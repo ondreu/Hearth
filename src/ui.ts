@@ -74,7 +74,7 @@ export function downloadTextFile(filename: string, content: string, mime = "appl
 	const a = activeDocument.createElement("a");
 	a.href = url;
 	a.download = filename;
-	a.style.display = "none";
+	a.hide();
 	activeDocument.body.appendChild(a);
 	a.click();
 	a.remove();
@@ -89,7 +89,7 @@ export function pickTextFile(accept = "application/json,.json"): Promise<string 
 		const input = activeDocument.createElement("input");
 		input.type = "file";
 		input.accept = accept;
-		input.style.display = "none";
+		input.hide();
 		let settled = false;
 		const finish = (value: string | null) => {
 			if (settled) return;
