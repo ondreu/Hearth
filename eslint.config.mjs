@@ -15,5 +15,10 @@ export default tseslint.config(
 				tsconfigRootDir: import.meta.dirname,
 			},
 		},
+		rules: {
+			// Vyžaduje Obsidian API 1.13.0+; minAppVersion je 1.8.7.
+			// Zapnout zpět, až se minAppVersion zvedne.
+			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
+		},
 	},
 );
