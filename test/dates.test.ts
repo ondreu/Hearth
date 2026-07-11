@@ -161,17 +161,15 @@ describe("parseNaturalDate — unrecognised input", () => {
 		expect(parseNaturalDate("31. února")).toBeNull();
 	});
 
-	// BUG (documented, not fixed): an ISO-shaped but calendar-invalid date is
-	// NOT rejected. dates.ts guards with `if (!m.isValid) return null`, but
-	// moment's `isValid` is a *method*, so `m.isValid` is always a (truthy)
-	// function reference and the guard never fires. The invalid moment then
-	// formats to the literal string "Invalid date". This test asserts the
-	// CORRECT behaviour (null) and is skipped until the guard calls isValid().
-	it.skip('BUG: "2026-02-31" (Feb 31) should be null, but returns "Invalid date"', () => {
+	// Regression: an ISO-shaped but calendar-invalid date must be rejected.
+	// Previously the guard `if (!m.isValid) return null` never fired (moment's
+	// isValid is a *method*, so the property reference was always truthy) and
+	// the invalid moment formatted to the literal string "Invalid date".
+	it('returns null for "2026-02-31" (Feb 31 doesn\'t exist)', () => {
 		expect(parseNaturalDate("2026-02-31")).toBeNull();
 	});
 
-	it.skip('BUG: "2026-13-01" (month 13) should be null, but returns "Invalid date"', () => {
+	it('returns null for "2026-13-01" (there is no month 13)', () => {
 		expect(parseNaturalDate("2026-13-01")).toBeNull();
 	});
 });
@@ -207,11 +205,10 @@ describe("formatRelativeDate", () => {
 		expect(formatRelativeDate("2026-07-16T09:30:00")).toBe("Tomorrow");
 	});
 
-	// BUG (documented, not fixed): same `isValid`-as-property mistake as above.
-	// The doc-comment promises the raw string is returned verbatim when it
-	// can't be parsed, but the guard `if (!target.isValid) return dateStr`
-	// never fires, so an unparseable input formats to "Invalid date" instead.
-	it.skip('BUG: unparseable input should echo the raw string, but returns "Invalid date"', () => {
+	// Regression: an unparseable input must echo the raw string verbatim (per
+	// the doc-comment), not format an invalid moment to "Invalid date". Same
+	// root cause as the parseNaturalDate case — the isValid guard now fires.
+	it("echoes the raw string verbatim when it can't be parsed", () => {
 		expect(formatRelativeDate("blabla")).toBe("blabla");
 	});
 });

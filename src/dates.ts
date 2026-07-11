@@ -18,9 +18,13 @@ interface Moment {
 	add(amount: number, unit: string): Moment;
 	day(): number;
 	diff(other: Moment, unit?: string): number;
+	/** moment's isValid is a METHOD. Typed as such so a bare `m.isValid`
+	 * (forgetting the call) is caught by the compiler (TS2774) rather than
+	 * silently evaluating a truthy function reference. */
+	isValid(): boolean;
 }
 interface MomentFn {
-	(input?: string): Moment & { isValid?: boolean };
+	(input?: string): Moment;
 }
 const moment = createMoment as unknown as MomentFn;
 
@@ -52,7 +56,7 @@ export function parseNaturalDate(input: string): string | null {
 	const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
 	if (iso) {
 		const m = moment(`${iso[1]}-${iso[2]}-${iso[3]}`);
-		if (!m.isValid) return null;
+		if (!m.isValid()) return null;
 		return m.format("YYYY-MM-DD");
 	}
 
@@ -113,7 +117,7 @@ export function parseNaturalDate(input: string): string | null {
 	// when it lands within a sane window (±5 years) so stray words don't get
 	// silently coerced into weird dates.
 	const guessed = moment(raw);
-	if (guessed.isValid) {
+	if (guessed.isValid()) {
 		const diff = Math.abs(guessed.diff(today, "year"));
 		if (diff <= 5) return guessed.format("YYYY-MM-DD");
 	}
@@ -129,7 +133,7 @@ export function parseNaturalDate(input: string): string | null {
 export function formatRelativeDate(dateStr: string): string {
 	const iso = dateStr.slice(0, 10);
 	const target = moment(iso);
-	if (!target.isValid) return dateStr;
+	if (!target.isValid()) return dateStr;
 	const today = moment().startOf("day");
 	const m = target.startOf("day");
 	const diff = Math.round(m.diff(today, "day"));

@@ -26,6 +26,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   appears blank and must be reassigned). Buttons edited or created in a recent
   version are unaffected.
 
+### Fixed
+
+- **Invalid due dates no longer leak the text "Invalid date" into tasks.** A
+  task due date that looked like an ISO date but wasn't a real calendar day —
+  e.g. `📅 2026-02-31` (there's no 31st of February) or a month like `2026-13-01`
+  — was being turned into the literal string **"Invalid date"** instead of being
+  left alone. The validity check meant to reject such dates never ran (it tested
+  moment's `isValid` as a property rather than calling it, so it was always
+  truthy), so the bogus label was written straight into the tasks card. These
+  dates are now correctly ignored, and any unparseable relative-date input falls
+  back to showing the raw text verbatim, as intended. A silent bug — nothing
+  errored, so it was easy to miss.
+
 ## [1.8.0] - 2026-07-11
 
 A cards-and-appearance release aggregating the whole 1.7.1 beta series.
