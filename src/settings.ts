@@ -606,12 +606,11 @@ export class HomeSettingTab extends PluginSettingTab {
 					// Target semantics differ per type, so clear a stale target when
 					// switching kinds.
 					btn.target = "";
-					btn.commandId = undefined;
 					void this.save();
 					this.display();
 				});
 			});
-			const currentTarget = btn.target ?? btn.commandId ?? "";
+			const currentTarget = btn.target ?? "";
 			if ((btn.type ?? "command") === "command") {
 				// Show a proper button labelled with the picked command (or a
 				// prompt when none is set yet) instead of a tiny icon, so which
@@ -626,7 +625,6 @@ export class HomeSettingTab extends PluginSettingTab {
 						new CommandPickerModal(this.app, (command) => {
 							btn.type = "command";
 							btn.target = command.id;
-							btn.commandId = undefined;
 							if (!btn.label.trim()) btn.label = command.name;
 							void this.save();
 							this.display();
@@ -642,7 +640,6 @@ export class HomeSettingTab extends PluginSettingTab {
 						.setValue(currentTarget)
 						.onChange(async (v) => {
 							btn.target = v;
-							btn.commandId = undefined;
 							await this.save();
 						}),
 				);

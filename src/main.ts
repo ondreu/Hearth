@@ -236,7 +236,12 @@ export default class HearthPlugin extends Plugin {
 			this.settings as unknown as Record<string, unknown>,
 			DEFAULT_SETTINGS as unknown as Record<string, unknown>,
 		);
-		migrateSettings(this.settings, raw);
+		// A one-way migration (e.g. the commandId → target fold) mutates settings
+		// in memory only; without flushing it here the legacy data would survive
+		// in storage and the migration would re-run every start, never actually
+		// retiring the deprecated field. Persist immediately when that happens.
+		const migrated = migrateSettings(this.settings, raw);
+		if (migrated) await this.saveSettings();
 	}
 
 	async saveSettings() {

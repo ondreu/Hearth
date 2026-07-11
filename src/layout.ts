@@ -666,8 +666,13 @@ function sanitizeMobileActionButton(raw: unknown): MobileActionButton | null {
 	if (r.type === "command" || r.type === "note" || r.type === "url") btn.type = r.type;
 	const target = str(r.target);
 	if (target !== undefined) btn.target = target;
+	// Fold a legacy `commandId` (from a pre-1.9.0 backup) into `target` rather
+	// than re-persisting the deprecated field, using the same rule as
+	// migrateSettings so an imported backup never reintroduces `commandId`.
 	const commandId = str(r.commandId);
-	if (commandId !== undefined) btn.commandId = commandId;
+	if ((btn.target === undefined || btn.target === "") && commandId !== undefined && commandId !== "") {
+		btn.target = commandId;
+	}
 	return btn;
 }
 

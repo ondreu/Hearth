@@ -11,6 +11,21 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [Unreleased]
+
+### Changed
+
+- **Mobile action buttons: the legacy `commandId` field is migrated to
+  `target`.** Buttons created before the unified command/note/URL model stored
+  their action in a deprecated `commandId` field that was only read as a
+  fallback. On load, such buttons are now migrated in place to the current
+  `target` field and the result is written back to storage, so the legacy field
+  finally leaves your `settings.json`. **This migration is one-way:** if you
+  upgrade and then downgrade Hearth below this version, any mobile action button
+  whose action was stored *only* as `commandId` loses its action (the button
+  appears blank and must be reassigned). Buttons edited or created in a recent
+  version are unaffected.
+
 ## [1.8.0] - 2026-07-11
 
 A cards-and-appearance release aggregating the whole 1.7.1 beta series.

@@ -295,8 +295,11 @@ export interface MobileActionButton {
 	type?: "command" | "note" | "url";
 	/** Command id, vault path, or URL depending on `type`. */
 	target?: string;
-	/** @deprecated Legacy command id from before `type`/`target` existed. Still
-	 * read as a fallback when `target` is unset so old buttons keep working. */
+	/** @deprecated Legacy command id from before `type`/`target` existed.
+	 * `migrateSettings` folds it into `target` on load (one-way); the fallback
+	 * read in `actionTarget` is a transitional safety net.
+	 * Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
+	 * migration has run for everyone — together with that fallback. */
 	commandId?: string;
 }
 
@@ -700,9 +703,9 @@ function starterCards(): DashboardCard[] {
 	];
 }
 
-/** The mobile action bar's default buttons. Each `commandId` is a command
- * Hearth registers itself, so replacing one via the command picker works
- * exactly like swapping in any other plugin's command. */
+/** The mobile action bar's default buttons. Each `target` is a command Hearth
+ * registers itself, so replacing one via the command picker works exactly like
+ * swapping in any other plugin's command. */
 export function defaultMobileActionButtons(): MobileActionButton[] {
 	return [
 		{ id: "action-new-note", label: "New note", icon: "plus", type: "command", target: "hearth:new-note" },
@@ -883,8 +886,13 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * Bring loaded settings up to date: wrap the legacy single-board `cards` array
  * (or the starter set) into the multi-dashboard model and backfill any new
  * fields. Idempotent — safe to run on every load.
+ *
+ * Returns `true` when it performed a destructive/one-way migration whose result
+ * must be flushed back to storage (currently only the `commandId` → `target`
+ * fold), so the caller knows to persist. The purely additive back-fills above
+ * remain in-memory until the next ordinary save, exactly as before.
  */
-export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): void {
+export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): boolean {
 	if (!Array.isArray(s.dashboards) || s.dashboards.length === 0) {
 		const legacy = Array.isArray(raw.cards) ? (raw.cards as DashboardCard[]) : null;
 		s.dashboards = [
@@ -913,9 +921,48 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	if (!Array.isArray(raw.mobileActionButtons)) {
 		s.mobileActionButtons = defaultMobileActionButtons();
 	}
+	// One-way migration (added 1.9.0): fold the legacy per-button `commandId`
+	// into the unified `target` field so the deprecated fallback can be retired.
+	// This does NOT round-trip — a user who upgrades and then downgrades below
+	// 1.9.0 loses any button whose action was stored only as `commandId`. See
+	// CHANGELOG.
+	// Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
+	// migration has run for everyone — together with the `commandId` field on
+	// MobileActionButton and the fallback read in actionTarget().
+	let migratedCommandId = false;
+	if (Array.isArray(s.mobileActionButtons)) {
+		for (const btn of s.mobileActionButtons) {
+			// Reading (and below, deleting) `commandId` intentionally trips
+			// no-deprecated — the repo forbids silencing that rule, so the
+			// warnings stay visible until the field is removed in 1.11.0. That is
+			// expected: a migration must touch the field it is retiring.
+			const legacy = btn.commandId;
+			if (legacy === undefined) continue;
+			// Only lift the value into `target` when `target` is unset: a button
+			// that already carries a `target` (a newer version or a manual edit)
+			// is authoritative, so its stale `commandId` is dropped without loss.
+			// We do NOT check whether the command still resolves — at load time
+			// other plugins' commands may not be registered yet, so a "missing"
+			// command can simply be not-yet-loaded, and deleting the value would
+			// be data loss. Preserving the string verbatim keeps exactly today's
+			// fallback behaviour.
+			if ((btn.target === undefined || btn.target === "") && legacy !== "") {
+				btn.target = legacy;
+			}
+			// Guard (never lose the value): drop `commandId` only once `target`
+			// actually holds the button's action — or the legacy value was empty,
+			// so there is nothing to preserve. This also lets the migration fully
+			// converge, so it stops re-firing (and re-saving) on later loads.
+			if ((btn.target !== undefined && btn.target !== "") || legacy === "") {
+				delete btn.commandId;
+				migratedCommandId = true;
+			}
+		}
+	}
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
+	return migratedCommandId;
 }
