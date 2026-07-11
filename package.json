@@ -20,7 +20,7 @@
 	"devDependencies": {
 		"@types/node": "^20.11.0",
 		"esbuild": "^0.28.1",
-		"obsidian": "latest",
+		"obsidian": "1.8.7",
 		"tslib": "^2.6.2",
 		"typescript": "^5.4.0"
 	}

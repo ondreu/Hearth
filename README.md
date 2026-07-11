@@ -447,72 +447,9 @@ genuinely appreciated and helps keep the updates coming.
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/B7K822EW68)
 
-## Shipped:
+## Changelog
 
-> **v1.8.0** — a cards-and-appearance release aggregating the whole 1.7.1 beta
-> series. Two new cards headline it: a **Dataview card** that runs a DQL or
-> DataviewJS query and renders the results through
-> **[Dataview](https://github.com/blacksmithgu/obsidian-dataview)**'s own
-> renderers (tables, lists and task lists look native and refresh live, with
-> auto-fitting, drag-resizable table columns), and a beta **Plugin view card**
-> that hosts any plugin's — or a core — **side-panel view** (calendar, outline,
-> tag pane, kanban…) right on the dashboard via a detached workspace leaf that
-> never touches your saved layout. Cards gain **frosted glass** — a backdrop
-> blur behind translucent cards at global, per-dashboard and per-card levels,
-> drawn on one shared layer so merged cards read as a single seamless sheet —
-> and it's now the **default look** for fresh installs. The **settings tab is
-> reorganized** into a category ribbon (Appearance · Search · Dashboard ·
-> Behaviour · Integrations · Backup · About) with a description on every setting
-> and a new **About** tab. Embed cards can carry a **second view** with a
-> switcher and **hide a base's header**, embed **zoom now reflows** to fit its
-> card, and the Tasks card grows a **list filter**, a **custom multi-rule sort**,
-> and multi-value **TaskNotes "complete" statuses**.
-
-> **v1.7.0** — a major Tasks-card release, plus search and release-notes
-> additions (everything from the 1.6.8 beta series). The Tasks card can now read
-> and edit **[Kanban](https://github.com/obsidian-community/obsidian-kanban)
-> plugin boards** — each heading a column, each checkbox a card — as a list or a
-> drag-and-drop board that rewrites the note in Kanban's own format. Cards
-> understand the full **obsidian-tasks metadata**: start (🛫), scheduled (⏳),
-> due (📅) and done (✅) dates, a 5-level priority (🔺⏫🔼🔽⏬, each a distinct
-> colour) and recurrence (🔁), shown as compact indicators with a right-click
-> editor and add-card pickers — read from Kanban cards and plain **Markdown
-> checkboxes** alike, and you can define your own **custom task states**
-> (`[symbol] Label`) that each become a draggable board column. Clicking a task
-> opens a compact **quick view** for editing metadata and description in place;
-> **convert to note** turns a card into its own linked note (optionally from a
-> template, scraping metadata into frontmatter and moving the description into
-> the note), or new cards can be **created as notes** outright. Boards gain
-> **done columns**, double-click **column rename**, clickable links, per-card
-> descriptions, card deletion, an always-visible **sort** control (Smart / Due /
-> Priority / Created / Alphabetical) that lives on each column, and recurring
-> tasks that complete **per-occurrence** like TaskNotes. The search bar can
-> optionally be powered by
-> **[Omnisearch](https://github.com/scambier/obsidian-omnisearch)** when it's
-> installed, scroll-mode boards grow as you drag a card past the bottom, and a
-> **"What's new" dialog** now surfaces release notes from a continuous,
-> accumulating changelog after each update.
-
-> **v1.6** — task due dates show as short relative labels ("Today", "Tomorrow",
-> "Yesterday", "Friday", "Next Friday", "15 Jul"), free-form launchpad tiles
-> you can drop anywhere on the card (not just the top-to-bottom flow), centred
-> mobile search, and edge-merging cards: two cards snapped together lose their
-> shared border and sharpen their touching corners so they read as one
-> continuous tile. Task due dates also accept natural-language input (`📅
-> tomorrow`, `📅 next friday`, `📅 in 3 days`…). Launchpad tiles are now pure
-> free-form: they can be placed anywhere and may overlap — a hidden tile glows
-> so the overlap is easy to spot and fix. An optional **Auto-shift tiles**
-> (beta) per-card toggle makes tiles shove each other aside live while
-> dragging (phone-widget style). In arrange mode the per-card headers can be
-> toggled off so each card's full body is visible.
-
-> **v1.5** — a redesigned dashboard experience: a CSS-grid tile layout with
-> independent column/row spans and drag-to-reorder, an ambient default
-> background, an overhauled starter dashboard, recurring TaskNotes tasks with
-> a ↻ badge and human-readable recurrence tooltip, smarter task sorting
-> (due → scheduled → priority → created), kanban drop outlines, calendar
-> today outline under the heatmap, search layout polish, and many fit-to-page
-> and card-drag fixes.
+Release history lives in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
