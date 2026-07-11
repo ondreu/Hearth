@@ -79,7 +79,7 @@ export function downloadTextFile(filename: string, content: string, mime = "appl
 	a.click();
 	a.remove();
 	// Revoke on the next tick so the download has had a chance to start.
-	activeWindow.setTimeout(() => URL.revokeObjectURL(url), 0);
+	window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /** Open the OS file picker for a single file and resolve with its text content,
