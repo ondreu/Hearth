@@ -3,8 +3,10 @@ name: Release Obsidian plugin
 on:
   push:
     tags:
-      # Run for version tags that match the manifest version, e.g. 0.1.0
+      # Stable version tags that match the manifest version, e.g. 0.1.0
       - "[0-9]+.[0-9]+.[0-9]+"
+      # Pre-release tags, e.g. 1.8.1-beta.1 / 1.8.1-alpha.2 / 1.8.1-rc.1
+      - "[0-9]+.[0-9]+.[0-9]+-*"
   # Allow cutting a release manually from the Actions tab / API.
   workflow_dispatch:
     inputs:
@@ -57,21 +59,41 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Verify tag matches manifest version
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          manifest="$(node -p "require('./manifest.json').version")"
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::Release tag '$tag' does not match manifest.json version '$manifest'."
+            echo "A mismatch blocks the plugin in the Obsidian store with"
+            echo "\"No release matches your manifest version\". Bump manifest.json"
+            echo "(and versions.json) to '$tag' before tagging, or re-tag to match."
+            exit 1
+          fi
+          echo "Tag matches manifest version: $manifest"
+
       - name: Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${{ steps.tag.outputs.tag }}"
-          # Pre-release versions (e.g. 1.6.1-beta) must not become the repo's
-          # "latest" release — mark them as pre-releases so stable stays latest.
-          flags=""
+          # Pre-release versions (e.g. 1.8.1-beta.1, 1.8.1-alpha.2, 1.8.1-rc.1)
+          # must not become the repo's "latest" release — mark them as
+          # pre-releases so stable stays latest. Any semver pre-release carries
+          # a "-" after the x.y.z core, so match that. Stable releases are
+          # pinned as --latest explicitly rather than relying on GitHub's
+          # defaults, so a re-published pre-release can never steal "latest".
           case "$tag" in
-            *-beta|*-alpha|*-rc*) flags="--prerelease" ;;
+            *-*) flags="--prerelease --latest=false" ;;
+            *)   flags="--latest" ;;
           esac
           # Assets must be attached as individual files (not zipped) so BRAT can
           # fetch manifest.json, main.js and styles.css directly. Idempotent so
           # re-runs just refresh the assets.
           if gh release view "$tag" >/dev/null 2>&1; then
+            # Re-run: refresh assets and re-assert the prerelease/latest state so
+            # a manually-touched release can't linger in the wrong flavour.
+            gh release edit "$tag" $flags
             gh release upload "$tag" main.js manifest.json styles.css --clobber
           else
             gh release create "$tag" \

@@ -56,6 +56,13 @@ is wasted:
   about timing. **As development slows down, I'll be able to take PRs far more
   readily**, and this guide will say so when that day comes.
 
+## Cutting a release
+
+Releases are maintainer-only and go out **exclusively by pushing a git tag** —
+never by hand through the GitHub UI. The versioning rules (plain semver `x.y.z`,
+betas as `1.8.1-beta.1`, never four-segment versions) and the full checklist
+live in [`RELEASING.md`](RELEASING.md).
+
 ## Filing an issue
 
 Use [GitHub Issues](https://github.com/ondreu/Hearth/issues). A quick search
