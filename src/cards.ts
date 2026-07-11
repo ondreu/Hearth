@@ -4430,6 +4430,15 @@ function doneStatusMatcher(cfg: TasksConfig, globalDoneValue: string): (status: 
 	return (status: string) => done.has(status.trim().toLowerCase());
 }
 
+/** Coerce a frontmatter scalar to a string, treating missing, empty, or
+ * non-scalar (object/array) values as absent. Guards against a YAML object
+ * being rendered as the literal "[object Object]" in task metadata. */
+function scalarField(v: unknown): string | undefined {
+	if (typeof v === "string") return v || undefined;
+	if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
+	return undefined;
+}
+
 function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	const s = view.plugin.settings;
 	const statusField = s.taskNotesStatusField.trim() || "status";
@@ -4462,13 +4471,10 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 		// a fallback sort key when no due date is set.
 		const scheduledRaw: unknown = fm["scheduled"];
 		const scheduled: string | null = typeof scheduledRaw === "string" ? scheduledRaw : null;
-		const priorityRaw: unknown = fm[priorityField];
-		const priority = priorityRaw == null || priorityRaw === "" ? undefined : String(priorityRaw);
+		const priority = scalarField(fm[priorityField]);
 		// TaskNotes stores the recurrence rule in a "recurrence" frontmatter
 		// field (an RRULE like "FREQ=WEEKLY;INTERVAL=1" or "RRULE:FREQ=DAILY").
-		const recurrenceRaw: unknown = fm["recurrence"];
-		const recurrence =
-			recurrenceRaw == null || recurrenceRaw === "" ? undefined : String(recurrenceRaw);
+		const recurrence = scalarField(fm["recurrence"]);
 		// TaskNotes records each completed occurrence of a recurring task as a
 		// YYYY-MM-DD entry in "complete_instances". Read it so the completion
 		// checkbox can reflect today's state and avoid double-completing.

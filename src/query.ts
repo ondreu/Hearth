@@ -35,8 +35,9 @@ export function queryMode(query: string): QueryMode {
 /** Stringify a frontmatter value for display/matching. */
 function formatPropertyValue(v: unknown): string {
 	if (v == null) return "";
-	if (typeof v === "object") return JSON.stringify(v);
-	return String(v);
+	if (typeof v === "string") return v;
+	if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
+	return JSON.stringify(v);
 }
 
 const NO_FILTER: QueryFilter = { includeFolders: true, includeFiles: true, groupId: null };
