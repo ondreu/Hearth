@@ -5853,12 +5853,13 @@ function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, 
 	}
 }
 
-function svgEl(parent: Element, tag: string, attrs: Record<string, string>, cls?: string): SVGElement {
-	const el = parent.ownerDocument.createElementNS("http://www.w3.org/2000/svg", tag);
-	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-	if (cls) el.setAttribute("class", cls);
-	parent.appendChild(el);
-	return el;
+function svgEl(
+	parent: Element,
+	tag: keyof SVGElementTagNameMap,
+	attrs: Record<string, string>,
+	cls?: string,
+): SVGElement {
+	return parent.createSvg(tag, { attr: attrs, cls });
 }
 
 /** Draw an analogue clock face and return a tick() to rotate its hands. */

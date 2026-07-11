@@ -71,11 +71,8 @@ export function confirmAction(
 export function downloadTextFile(filename: string, content: string, mime = "application/json"): void {
 	const blob = new Blob([content], { type: mime });
 	const url = URL.createObjectURL(blob);
-	const a = activeDocument.createElement("a");
-	a.href = url;
-	a.download = filename;
+	const a = activeDocument.body.createEl("a", { attr: { href: url, download: filename } });
 	a.hide();
-	activeDocument.body.appendChild(a);
 	a.click();
 	a.remove();
 	// Revoke on the next tick so the download has had a chance to start.
@@ -86,7 +83,7 @@ export function downloadTextFile(filename: string, content: string, mime = "appl
  * or null if the user cancelled or the file couldn't be read. */
 export function pickTextFile(accept = "application/json,.json"): Promise<string | null> {
 	return new Promise((resolve) => {
-		const input = activeDocument.createElement("input");
+		const input = activeDocument.body.createEl("input");
 		input.type = "file";
 		input.accept = accept;
 		input.hide();
@@ -104,7 +101,6 @@ export function pickTextFile(accept = "application/json,.json"): Promise<string 
 		});
 		// Fires when the dialog is dismissed without choosing a file.
 		input.addEventListener("cancel", () => finish(null));
-		activeDocument.body.appendChild(input);
 		input.click();
 	});
 }

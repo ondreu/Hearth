@@ -79,7 +79,7 @@ export class HomeSettingTab extends PluginSettingTab {
 	/** Tell the user Omnisearch isn't available and offer a one-click jump to it
 	 * in Obsidian's Community-plugins browser (via the `show-plugin` URI). */
 	private promptInstallOmnisearch(): void {
-		const frag = activeDocument.createDocumentFragment();
+		const frag = createFragment();
 		frag.appendText(t().settings.appearance.omnisearchMissing + " ");
 		const link = frag.createEl("a", {
 			text: t().settings.appearance.omnisearchInstallLink,
