@@ -154,6 +154,10 @@ export class SearchSection {
 		const present = new Set<string>();
 		let hasFolders = false;
 		let hasOther = false;
+		// Every discoverable file-type group except "folders" (tracked separately);
+		// once all of these plus a folder have been seen, nothing further can turn
+		// a chip on, so the whole-vault scan can stop early.
+		const allNonFolderGroups = FILE_TYPE_GROUPS.length - 1;
 		for (const f of this.view.app.vault.getAllLoadedFiles()) {
 			if (f instanceof TFolder) {
 				if (f.path !== "/") hasFolders = true;
@@ -164,6 +168,7 @@ export class SearchSection {
 			// "Other" is the catch-all: only show it when there's at least one
 			// file that didn't match a more specific group.
 			if (!g || g.id === OTHER_GROUP_ID) hasOther = true;
+			if (hasFolders && present.size >= allNonFolderGroups) break;
 		}
 		const hidden = new Set(this.view.plugin.settings.hiddenFilters);
 		return FILE_TYPE_GROUPS.filter((g) => {

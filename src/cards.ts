@@ -4363,6 +4363,15 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 	const files = view.app.vault.getMarkdownFiles().filter((f) => inTaskScope(f.path, cfg));
 	const hits: TaskHit[] = [];
 	for (const file of files) {
+		// Obsidian's metadata cache already indexes which list items are tasks
+		// (`listItems[].task`), so a note with none can be skipped without the
+		// read + per-line regex scan — the dominant cost when the scope holds
+		// many task-free notes. Only skip when the cache is actually present:
+		// if a file isn't indexed yet (cache == null, e.g. right after
+		// creation) fall back to the full scan so its tasks still show, healing
+		// on the metadataCache "changed" redraw once indexing catches up.
+		const cache = view.app.metadataCache.getFileCache(file);
+		if (cache && !cache.listItems?.some((li) => li.task !== undefined)) continue;
 		const content = await view.app.vault.cachedRead(file);
 		const lines = content.split("\n");
 		lines.forEach((line, i) => {
