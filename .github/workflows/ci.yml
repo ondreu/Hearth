@@ -31,6 +31,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The Obsidian community store reads the version straight from
+      # manifest.json at HEAD of the default branch. A pre-release version here
+      # is served to every stable user, so betas must live in manifest-beta.json
+      # only. Fail the build if the store-facing manifest is anything but plain
+      # x.y.z (this blocks 1.9.0-beta.1 and 1.8.1.4-beta style versions alike).
+      - name: Guard store manifest is plain x.y.z
+        run: |
+          store="$(node -p "require('./manifest.json').version")"
+          if ! printf '%s' "$store" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error file=manifest.json::version '$store' is not plain x.y.z."
+            echo "Betas belong in manifest-beta.json — see RELEASING.md."
+            exit 1
+          fi
+          echo "Store manifest version OK: $store"
+
       - name: Lint
         run: npm run lint
 

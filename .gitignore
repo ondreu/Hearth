@@ -10,3 +10,6 @@ main.js
 
 # obsidian local test vault (if any)
 test-vault/
+
+# obsidian plugin runtime data (local install state, not source)
+data.json

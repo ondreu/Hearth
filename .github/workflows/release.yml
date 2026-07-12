@@ -3,15 +3,17 @@ name: Release Obsidian plugin
 on:
   push:
     tags:
-      # Stable version tags that match the manifest version, e.g. 0.1.0
+      # Stable version tags, e.g. 1.8.1 — must match manifest.json.
       - "[0-9]+.[0-9]+.[0-9]+"
-      # Pre-release tags, e.g. 1.8.1-beta.1 / 1.8.1-alpha.2 / 1.8.1-rc.1
-      - "[0-9]+.[0-9]+.[0-9]+-*"
+      # Pre-release tags, e.g. 1.9.0-beta.1 / -alpha.2 / -rc.1 — must match
+      # manifest-beta.json. Four-segment tags (1.8.1.4-beta) are NOT valid
+      # semver and deliberately do not match either pattern.
+      - "[0-9]+.[0-9]+.[0-9]+-[0-9A-Za-z.]+"
   # Allow cutting a release manually from the Actions tab / API.
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g. 0.1.0). Defaults to manifest.json version."
+        description: "Version to release (e.g. 1.8.1). Defaults to the manifest matching the tag."
         required: false
 
 permissions:
@@ -47,6 +49,7 @@ jobs:
             main.js
             styles.css
             manifest.json
+            manifest-beta.json
 
       - name: Resolve release tag
         id: tag
@@ -59,33 +62,71 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Verify tag matches manifest version
+      # A pre-release tag carries a "-" after the x.y.z core. Betas are
+      # validated against manifest-beta.json (which BRAT reads); stable tags
+      # against manifest.json (which the community store reads). Keeping the two
+      # channels in two files is what stops a beta from ever becoming the
+      # store's "latest version" — the store only ever sees manifest.json.
+      - name: Verify tag matches the correct manifest
         run: |
           tag="${{ steps.tag.outputs.tag }}"
-          manifest="$(node -p "require('./manifest.json').version")"
+          case "$tag" in
+            *-*)
+              file="manifest-beta.json"
+              if [ ! -f "$file" ]; then
+                echo "::error::Pre-release '$tag' requires $file. Bump it to '$tag' and commit before tagging."
+                exit 1
+              fi
+              ;;
+            *)
+              file="manifest.json"
+              ;;
+          esac
+          manifest="$(node -p "require('./$file').version")"
           if [ "$tag" != "$manifest" ]; then
-            echo "::error::Release tag '$tag' does not match manifest.json version '$manifest'."
+            echo "::error::Release tag '$tag' does not match $file version '$manifest'."
             echo "A mismatch blocks the plugin in the Obsidian store with"
-            echo "\"No release matches your manifest version\". Bump manifest.json"
-            echo "(and versions.json) to '$tag' before tagging, or re-tag to match."
+            echo "\"No release matches your manifest version\". Bump $file to"
+            echo "'$tag' before tagging, or re-tag to match."
             exit 1
           fi
-          echo "Tag matches manifest version: $manifest"
+          echo "Tag matches $file version: $manifest"
+
+      # Belt-and-braces: even if a bad manifest slipped past CI, never let a
+      # pre-release version sit in the store-facing manifest.json.
+      - name: Guard store manifest is plain x.y.z
+        run: |
+          store="$(node -p "require('./manifest.json').version")"
+          if ! printf '%s' "$store" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::manifest.json version '$store' is not plain x.y.z."
+            echo "Betas belong in manifest-beta.json — the community store reads"
+            echo "manifest.json and would serve this to every stable user."
+            exit 1
+          fi
 
       - name: Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${{ steps.tag.outputs.tag }}"
-          # Pre-release versions (e.g. 1.8.1-beta.1, 1.8.1-alpha.2, 1.8.1-rc.1)
-          # must not become the repo's "latest" release — mark them as
-          # pre-releases so stable stays latest. Any semver pre-release carries
-          # a "-" after the x.y.z core, so match that. Stable releases are
-          # pinned as --latest explicitly rather than relying on GitHub's
-          # defaults, so a re-published pre-release can never steal "latest".
+          # Pre-releases must not become the repo's "latest" release — mark them
+          # so stable stays latest for BRAT and GitHub's UI. (Obsidian's store
+          # ignores this flag; the manifest split is what protects the store.)
+          # Stable tags are pinned --latest explicitly.
+          #
+          # BRAT reads an asset literally named manifest.json from the release.
+          # For betas that asset must carry the beta version, so overwrite the
+          # runner's working-copy manifest.json with the beta manifest before
+          # uploading. This is ephemeral CI state — the committed manifest.json
+          # on the branch is never changed and still points at stable.
           case "$tag" in
-            *-*) flags="--prerelease --latest=false" ;;
-            *)   flags="--latest" ;;
+            *-*)
+              flags="--prerelease --latest=false"
+              cp manifest-beta.json manifest.json
+              ;;
+            *)
+              flags="--latest"
+              ;;
           esac
           # Assets must be attached as individual files (not zipped) so BRAT can
           # fetch manifest.json, main.js and styles.css directly. Idempotent so
