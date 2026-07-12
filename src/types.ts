@@ -17,6 +17,7 @@ export type CardKind =
 	| "heatmap"
 	| "calculator"
 	| "dataview"
+	| "rss"
 	| "leaf";
 
 /** A single command tile inside a "commands" card. */
@@ -259,6 +260,44 @@ export interface LeafViewConfig {
 	viewType?: string;
 }
 
+/** A single feed a "rss" card can subscribe to. Each source becomes a tab in
+ * the card header; `name` labels the tab (falling back to the feed's own title
+ * when blank) and `url` is the RSS/Atom feed address. */
+export interface RssSource {
+	id: string;
+	/** Tab label; when empty the feed's own <title> is shown instead. */
+	name: string;
+	/** RSS 2.0 or Atom feed URL (http/https). */
+	url: string;
+}
+
+/** How a "rss" card lays out its items. "list" is a title + meta line per item;
+ * "cards" adds an excerpt and (when present) a thumbnail; "compact" is just the
+ * headlines. */
+export type RssLayout = "list" | "cards" | "compact";
+
+/** Per-card configuration for a "rss" card — a lightweight feed reader. All
+ * fields are optional; omitted fields use the defaults noted below. */
+export interface RssConfig {
+	/** The subscribed feeds, one tab each. */
+	sources?: RssSource[];
+	/** Item layout. Default "list". */
+	layout?: RssLayout;
+	/** Auto-refresh interval in minutes. 0 (or omitted → default 30) with 0
+	 * meaning "refresh only when opened / manually". */
+	refreshMin?: number;
+	/** Max items shown per feed. Default 15. */
+	itemLimit?: number;
+	/** Show item thumbnails when the feed provides them (cards layout). Default true. */
+	showImages?: boolean;
+	/** Show a short text excerpt under each item. Default true. */
+	showExcerpt?: boolean;
+	/** Show each item's publish date. Default true. */
+	showDate?: boolean;
+	/** Add a leading "All" tab that merges every source, newest first. Default false. */
+	mergeAll?: boolean;
+}
+
 /** Per-card configuration for a "clock" card. All fields are optional; omitted
  * fields fall back to the defaults that match the original clock behaviour. */
 export interface ClockConfig {
@@ -383,6 +422,8 @@ export interface DashboardCard {
 	calculator?: CalculatorConfig;
 	/** kind === "dataview": the query text and language. */
 	dataview?: DataviewConfig;
+	/** kind === "rss": feed sources, layout and refresh options. */
+	rss?: RssConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 

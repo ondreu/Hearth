@@ -7,6 +7,7 @@ import type {
 	DashboardCard,
 	EmbedView,
 	LinkItem,
+	RssLayout,
 	TasksConfig,
 } from "./types";
 import { confirmAction } from "./ui";
@@ -294,6 +295,9 @@ export class CardSettingsModal extends Modal {
 			case "dataview":
 				this.dataviewEditor(containerEl);
 				break;
+			case "rss":
+				this.rssEditor(containerEl);
+				break;
 			case "leaf":
 				this.leafEditor(containerEl);
 				break;
@@ -558,6 +562,189 @@ export class CardSettingsModal extends Modal {
 			txt.inputEl.addClass("hearth-dataview-input");
 		});
 		query.settingEl.addClass("hearth-setting-stacked");
+	}
+
+	private rssEditor(containerEl: HTMLElement): void {
+		const cfg = (this.card.rss ??= {});
+		const sources = (cfg.sources ??= []);
+
+		new Setting(containerEl).setName(t().editors.rss.feeds).setHeading();
+
+		sources.forEach((source, index) => {
+			const row = new Setting(containerEl).setClass("hearth-rss-setting");
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.rss.namePlaceholder)
+					.setValue(source.name)
+					.onChange((v) => {
+						source.name = v;
+						this.opts.save();
+					}),
+			);
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(t().editors.rss.urlPlaceholder)
+					.setValue(source.url)
+					.onChange((v) => {
+						source.url = v.trim();
+						this.opts.save();
+						this.opts.rerender();
+					});
+				txt.inputEl.addClass("hearth-rss-url");
+			});
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-up")
+					.setTooltip(t().editors.links.moveUp)
+					.setDisabled(index === 0)
+					.onClick(() => this.moveItem(sources, index, index - 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-down")
+					.setTooltip(t().editors.links.moveDown)
+					.setDisabled(index === sources.length - 1)
+					.onClick(() => this.moveItem(sources, index, index + 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("trash-2")
+					.setTooltip(t().editors.rss.removeFeed)
+					.onClick(() => {
+						sources.splice(index, 1);
+						this.opts.save();
+						this.opts.rerender();
+						this.render();
+					}),
+			);
+		});
+
+		new Setting(containerEl).addButton((b) =>
+			b.setButtonText(t().editors.rss.addFeed).onClick(() => {
+				sources.push({
+					id: `rss-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+					name: "",
+					url: "",
+				});
+				this.opts.save();
+				this.render();
+			}),
+		);
+
+		if (sources.length > 1) {
+			new Setting(containerEl)
+				.setName(t().editors.rss.mergeAll)
+				.setDesc(t().editors.rss.mergeAllDesc)
+				.addToggle((tg) =>
+					tg.setValue(cfg.mergeAll ?? false).onChange((v) => {
+						cfg.mergeAll = v || undefined;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+				);
+		}
+
+		new Setting(containerEl).setName(t().editors.rss.display).setHeading();
+
+		new Setting(containerEl)
+			.setName(t().editors.rss.layout)
+			.setDesc(t().editors.rss.layoutDesc)
+			.addDropdown((d) => {
+				d.addOption("list", t().editors.rss.layoutList);
+				d.addOption("cards", t().editors.rss.layoutCards);
+				d.addOption("compact", t().editors.rss.layoutCompact);
+				d.setValue(cfg.layout ?? "list").onChange((v) => {
+					cfg.layout = v === "list" ? undefined : (v as RssLayout);
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				});
+			});
+
+		const items = new Setting(containerEl)
+			.setName(t().editors.rss.itemLimit)
+			.setDesc(t().editors.rss.itemLimitDesc);
+		items.addSlider((s) => {
+			s.setLimits(3, 50, 1)
+				.setValue(cfg.itemLimit ?? 15)
+				.setDynamicTooltip()
+				.onChange((v) => {
+					cfg.itemLimit = v === 15 ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		items.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					cfg.itemLimit = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
+
+		const refresh = new Setting(containerEl)
+			.setName(t().editors.rss.refresh)
+			.setDesc(t().editors.rss.refreshDesc);
+		refresh.addSlider((s) => {
+			s.setLimits(0, 180, 5)
+				.setValue(cfg.refreshMin ?? 30)
+				.setDynamicTooltip()
+				.onChange((v) => {
+					cfg.refreshMin = v === 30 ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		refresh.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					cfg.refreshMin = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
+
+		const isCards = (cfg.layout ?? "list") === "cards";
+		if (isCards) {
+			new Setting(containerEl)
+				.setName(t().editors.rss.showImages)
+				.setDesc(t().editors.rss.showImagesDesc)
+				.addToggle((tg) =>
+					tg.setValue(cfg.showImages !== false).onChange((v) => {
+						cfg.showImages = v ? undefined : false;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+				);
+			new Setting(containerEl)
+				.setName(t().editors.rss.showExcerpt)
+				.setDesc(t().editors.rss.showExcerptDesc)
+				.addToggle((tg) =>
+					tg.setValue(cfg.showExcerpt !== false).onChange((v) => {
+						cfg.showExcerpt = v ? undefined : false;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+				);
+		}
+
+		new Setting(containerEl)
+			.setName(t().editors.rss.showDate)
+			.setDesc(t().editors.rss.showDateDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.showDate !== false).onChange((v) => {
+					cfg.showDate = v ? undefined : false;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+			);
 	}
 
 	private calculatorEditor(containerEl: HTMLElement): void {

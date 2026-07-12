@@ -147,6 +147,12 @@ export const CARD_TEMPLATES: CardTemplate[] = [
 		available: (app) => isDataviewAvailable(app),
 	},
 	{
+		id: "rss",
+		name: "RSS feed",
+		icon: "rss",
+		build: () => ({ kind: "rss", title: "RSS", rss: { sources: [] }, w: 4, h: 5 }),
+	},
+	{
 		id: "leaf",
 		name: "Plugin view (beta)",
 		icon: "layout-panel-left",

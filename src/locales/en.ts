@@ -456,6 +456,7 @@ export const en = {
 			heatmap: "Activity heatmap",
 			calculator: "Calculator",
 			dataview: "Dataview query",
+			rss: "RSS feed",
 			leaf: "Plugin view (beta)",
 		},
 		linkTypes: {
@@ -731,6 +732,32 @@ export const en = {
 				'TABLE file.mtime AS "Modified" FROM #project SORT file.mtime DESC',
 			queryJsPlaceholder: "dv.list(dv.pages('#project').file.link)",
 		},
+		rss: {
+			feeds: "Feeds",
+			namePlaceholder: "Name (optional)",
+			urlPlaceholder: "https://example.com/feed.xml",
+			addFeed: "Add feed",
+			removeFeed: "Remove feed",
+			mergeAll: "Combined “All” tab",
+			mergeAllDesc:
+				"Add a leading tab that merges every feed into one stream, newest first.",
+			display: "Display",
+			layout: "Layout",
+			layoutDesc: "How each item is shown.",
+			layoutList: "List (title + date)",
+			layoutCards: "Cards (excerpt + image)",
+			layoutCompact: "Compact (headlines)",
+			itemLimit: "Items per feed",
+			itemLimitDesc: "How many recent items to show.",
+			refresh: "Auto-refresh (minutes)",
+			refreshDesc: "How often to refetch feeds. 0 = only when opened.",
+			showImages: "Show images",
+			showImagesDesc: "Show item thumbnails when the feed provides them.",
+			showExcerpt: "Show excerpt",
+			showExcerptDesc: "Show a short text snippet under each item.",
+			showDate: "Show date",
+			showDateDesc: "Show each item's publish time.",
+		},
 		leaf: {
 			view: "View to host",
 			viewDesc:
@@ -803,6 +830,7 @@ export const en = {
 				"No Kanban board found — pick a board note in card settings, or create one with the Kanban plugin",
 			dataviewEnable: "Enable the Dataview plugin to run queries",
 			dataviewNoQuery: "Set a Dataview query in card settings",
+			rssNoSources: "Add a feed in card settings",
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
@@ -820,6 +848,15 @@ export const en = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km to miles, 10 € to USD…",
+		},
+		rss: {
+			allTab: "All",
+			untitled: "(untitled)",
+			loading: "Loading feed…",
+			empty: "No items in this feed",
+			error: "Couldn't load this feed",
+			disabled: "Feeds are off (external calls disabled)",
+			refresh: "Refresh",
 		},
 		daily: {
 			createToday: "Create today's note",
@@ -1054,6 +1091,7 @@ export const en = {
 		text: "Text / jot-down",
 		calculator: "Calculator",
 		dataview: "Dataview query",
+		rss: "RSS feed",
 		leaf: "Plugin view (beta)",
 	},
 

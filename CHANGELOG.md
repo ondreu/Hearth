@@ -11,6 +11,21 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [1.10.0]
+
+### Added
+
+- **RSS feed card.** A lightweight, self-contained feed reader you can drop on
+  any dashboard. Add one or more RSS/Atom feeds — each becomes a tab in the card
+  header — with an optional combined **"All"** tab that merges every source
+  newest-first. Choose between three layouts (**List** title + date, **Cards**
+  with excerpt and thumbnail, or a **Compact** headlines view), cap how many
+  items each feed shows, and set an auto-refresh interval (or 0 to refresh only
+  when opened, plus a manual refresh button). Feeds are fetched through
+  Obsidian's own request bridge (so cross-origin feeds work) and cached in
+  memory, degrade gracefully offline (the last good items stay), and honour the
+  **"disable external calls"** setting — with it on, no feed request is made.
+
 ## [1.9.0]
 
 ### Changed

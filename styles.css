@@ -1592,6 +1592,174 @@
 	fill: var(--interactive-accent);
 }
 
+/* RSS feed card */
+.hearth-rss {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+
+/* Tab bar: source tabs (scroll horizontally if they overflow) + a refresh
+ * button pinned to the right. */
+.hearth-rss-tabs {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+	margin-bottom: 6px;
+}
+
+.hearth-rss-tablist {
+	display: flex;
+	gap: 4px;
+	overflow-x: auto;
+	scrollbar-width: none;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-rss-tablist::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-rss-tab {
+	flex: 0 0 auto;
+	max-width: 140px;
+	padding: 2px 10px;
+	border: none;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+
+.hearth-rss-tab.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.hearth-rss-refresh {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-rss-refresh:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-rss-refresh.is-loading {
+	animation: hearth-rss-spin 0.9s linear infinite;
+}
+
+@keyframes hearth-rss-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.hearth-rss-content {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+/* An item is a clickable row; layout tweaks per view live below. */
+.hearth-rss-item {
+	display: flex;
+	gap: 10px;
+	padding: 6px 4px;
+	border-radius: 8px;
+	cursor: pointer;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-rss-item:last-child {
+	border-bottom: none;
+}
+
+.hearth-rss-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-rss-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-rss-title {
+	color: var(--text-normal);
+	font-size: 0.88rem;
+	font-weight: 600;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+}
+
+.hearth-rss-excerpt {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	line-height: 1.3;
+	/* Clamp to two lines so cards stay tidy. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.hearth-rss-meta {
+	color: var(--text-faint);
+	font-size: 0.72rem;
+}
+
+.hearth-rss-thumb {
+	flex: 0 0 auto;
+	width: 64px;
+	height: 64px;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-modifier-hover);
+}
+
+.hearth-rss-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Compact view: single-line headlines, tighter rows, no images. */
+.hearth-rss-compact .hearth-rss-item {
+	padding: 4px 4px;
+}
+
+.hearth-rss-compact .hearth-rss-title {
+	font-weight: 500;
+	font-size: 0.84rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* Mini calendar card */
 .hearth-calendar {
 	display: flex;

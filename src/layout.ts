@@ -15,6 +15,8 @@ import {
 	type LinkItem,
 	type MobileActionButton,
 	newDashboardId,
+	type RssConfig,
+	type RssSource,
 	type SavedSearchConfig,
 	type TaskFilterConfig,
 	type TaskSortRule,
@@ -76,6 +78,7 @@ const CARD_KINDS: CardKind[] = [
 	"heatmap",
 	"calculator",
 	"dataview",
+	"rss",
 	"leaf",
 ];
 
@@ -306,6 +309,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 		card.calculator = sanitizeCalculator(
 			r.calculator as Record<string, unknown>,
 		);
+	}
+	if (r.rss && typeof r.rss === "object") {
+		card.rss = sanitizeRss(r.rss as Record<string, unknown>);
 	}
 	if (r.dataview && typeof r.dataview === "object") {
 		card.dataview = sanitizeDataview(r.dataview as Record<string, unknown>);
@@ -558,6 +564,41 @@ function sanitizeCalculator(r: Record<string, unknown>): CalculatorConfig {
 		cfg.keypad = r.keypad;
 	const lastInput = str(r.lastInput);
 	if (lastInput !== undefined) cfg.lastInput = lastInput;
+	return cfg;
+}
+
+function sanitizeRssSource(raw: unknown): RssSource | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	const url = str(r.url);
+	if (url === undefined) return null;
+	return {
+		id: str(r.id) ?? `rss-${Math.random().toString(36).slice(2)}`,
+		name: str(r.name) ?? "",
+		url,
+	};
+}
+
+function sanitizeRss(r: Record<string, unknown>): RssConfig {
+	const cfg: RssConfig = {};
+	if (Array.isArray(r.sources)) {
+		cfg.sources = r.sources
+			.map(sanitizeRssSource)
+			.filter((s): s is RssSource => s !== null);
+	}
+	if (r.layout === "list" || r.layout === "cards" || r.layout === "compact") {
+		cfg.layout = r.layout;
+	}
+	if (typeof r.refreshMin === "number" && r.refreshMin >= 0) {
+		cfg.refreshMin = r.refreshMin;
+	}
+	if (typeof r.itemLimit === "number" && r.itemLimit > 0) {
+		cfg.itemLimit = r.itemLimit;
+	}
+	if (typeof r.showImages === "boolean") cfg.showImages = r.showImages;
+	if (typeof r.showExcerpt === "boolean") cfg.showExcerpt = r.showExcerpt;
+	if (typeof r.showDate === "boolean") cfg.showDate = r.showDate;
+	if (typeof r.mergeAll === "boolean") cfg.mergeAll = r.mergeAll;
 	return cfg;
 }
 
