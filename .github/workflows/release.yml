@@ -6,9 +6,9 @@ on:
       # Stable version tags, e.g. 1.8.1 — must match manifest.json.
       - "[0-9]+.[0-9]+.[0-9]+"
       # Pre-release tags, e.g. 1.9.0-beta.1 / -alpha.2 / -rc.1 — must match
-      # manifest-beta.json. Four-segment tags (1.8.1.4-beta) are NOT valid
-      # semver and deliberately do not match either pattern.
-      - "[0-9]+.[0-9]+.[0-9]+-[0-9A-Za-z.]+"
+      # manifest-beta.json. The trailing "-*" requires a hyphen immediately
+      # after x.y.z, so four-segment tags (1.8.1.4-beta) still do not match.
+      - "[0-9]+.[0-9]+.[0-9]+-*"
   # Allow cutting a release manually from the Actions tab / API.
   workflow_dispatch:
     inputs:
