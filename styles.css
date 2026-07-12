@@ -3401,49 +3401,39 @@ body.hearth-dv-resizing {
 	color: var(--text-muted);
 }
 
-/* Each release block, separated by a hairline rule so the log reads as a
- * stack of dated entries rather than one run-on list. */
-.hearth-whatsnew-entry + .hearth-whatsnew-entry {
+/* CHANGELOG.md rendered as Markdown. Each release is an h2 heading; a hairline
+ * rule above every heading after the first stacks the log as dated entries
+ * rather than one run-on list. */
+.hearth-whatsnew-body h2 {
+	margin: 0 0 8px;
+	font-size: 1.05rem;
+}
+
+.hearth-whatsnew-body h2:not(:first-child) {
 	margin-top: 20px;
 	padding-top: 16px;
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.hearth-whatsnew-version {
-	margin: 0 0 8px;
-	font-size: 1.05rem;
-}
-
-.hearth-whatsnew-tldr {
-	margin: 0 0 16px;
-	padding: 12px 14px;
-	border-radius: 8px;
-	background: var(--background-secondary);
-	border-left: 3px solid var(--interactive-accent);
-}
-
-.hearth-whatsnew-tldr p {
-	margin: 0;
-}
-
-.hearth-whatsnew-modal h4 {
-	margin: 18px 0 6px;
+/* The Added / Changed / Fixed section labels within a release. */
+.hearth-whatsnew-body h3 {
+	margin: 14px 0 6px;
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 	color: var(--text-muted);
 }
 
-.hearth-whatsnew-tldr h4 {
-	margin: 0 0 6px;
+.hearth-whatsnew-body p {
+	line-height: 1.45;
 }
 
-.hearth-whatsnew-section ul {
+.hearth-whatsnew-body ul {
 	margin: 0;
 	padding-left: 1.2em;
 }
 
-.hearth-whatsnew-section li {
+.hearth-whatsnew-body li {
 	margin: 5px 0;
 	line-height: 1.45;
 }

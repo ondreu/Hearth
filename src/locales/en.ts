@@ -90,9 +90,6 @@ export const en = {
 	whatsNew: {
 		title: "What's new in Hearth",
 		intro: "Thanks for updating! Here's what's changed since you last checked.",
-		tldr: "TL;DR",
-		features: "New features",
-		fixes: "Bug fixes & polish",
 		close: "Got it",
 		footer: "Full details live in the plugin's README.",
 	},

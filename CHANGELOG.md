@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## ["1.9.0]
+## [1.9.0]
 
 ### Changed
 
