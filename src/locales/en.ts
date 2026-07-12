@@ -468,6 +468,14 @@ export const en = {
 			fileDesc: "A note, image, canvas or .base file in your vault.",
 			filePlaceholder: "File path to embed",
 			pickFile: "Pick a file",
+			baseView: "Base view",
+			baseViewDesc: "Choose a view from this .base file, or use the default view.",
+			baseViewDefault: "Default view",
+			baseViewFileMissing: "The selected .base file could not be found.",
+			baseViewLoadError: "Could not read the .base file views. The default view will be used.",
+			baseViewNoViews: "No named views were found in this .base file. The default view will be used.",
+			baseViewUnsupported: (count: number) =>
+				`${count} view${count === 1 ? "" : "s"} with unsupported wikilink characters were hidden.`,
 			zoom: "Zoom",
 			zoomDesc:
 				"Scale the embedded content. Applies when you close this dialog.",

@@ -1,5 +1,5 @@
 import {
-	App,
+	type App,
 	Component,
 	debounce,
 	getAllTags,
@@ -16,7 +16,7 @@ import {
 } from "obsidian";
 import type { HomeView } from "./view";
 import type { BookmarkItem } from "./obsidian-ext";
-import {
+import type {
 	ClockConfig,
 	CommandItem,
 	DashboardCard,
@@ -35,9 +35,10 @@ import { cachedRates, loadRates } from "./currency";
 import { getDataviewApi } from "./dataview";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
 import { EXCALIDRAW_PLUGIN_ID, iconForFile, isExcalidraw } from "./filetypes";
-import { QueryHit, runQuery, searchFileContents } from "./query";
+import { type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
 import { parseNaturalDate, formatRelativeDate } from "./dates";
+import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
 /**
@@ -473,7 +474,7 @@ const activeEmbedView = new WeakMap<DashboardCard, number>();
  * Cards without a valid second view return a single-element list. */
 function embedViews(card: DashboardCard): EmbedView[] {
 	const views: EmbedView[] = [
-		{ target: card.target, scale: card.scale, editable: card.editable },
+		{ target: card.target, baseView: card.baseView, scale: card.scale, editable: card.editable },
 	];
 	if (card.secondView?.target?.trim()) views.push(card.secondView);
 	return views;
@@ -574,8 +575,12 @@ function renderEmbed(
 		void renderMarkdownFile(view, file, host, component);
 	} else {
 		// Images, canvas, .base and Excalidraw go through Obsidian's own
-		// transclusion embed, which handles those file types uniformly.
-		void MarkdownRenderer.render(view.app, `![[${target}]]`, host, target, component);
+		// transclusion embed, which handles those file types uniformly. Bases can
+		// optionally target a named view with Obsidian's documented #View subpath.
+		const baseView = active.baseView?.trim();
+		const embedTarget =
+			ext === "base" && isEmbeddableBaseViewName(baseView) ? `${target}#${baseView}` : target;
+		void MarkdownRenderer.render(view.app, `![[${embedTarget}]]`, host, target, component);
 
 		// Canvas and Excalidraw embeds are natively interactive (pan/zoom, and
 		// their own in-place edit toggle) — let them fill the card edge-to-edge

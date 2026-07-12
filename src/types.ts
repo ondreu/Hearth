@@ -311,6 +311,8 @@ export interface MobileActionButton {
 export interface EmbedView {
 	/** Vault path of the file to embed (.md, image, .base, ...). */
 	target?: string;
+	/** Bases view name to embed when target is a .base file; omitted means default view. */
+	baseView?: string;
 	/** Zoom factor for the embedded content (1 = 100%); omitted means no scaling. */
 	scale?: number;
 	/** Edit the embedded note's text in place instead of read-only (Markdown only). */
@@ -350,6 +352,9 @@ export interface DashboardCard {
 	// ---- Content (per kind) ----
 	/** kind === "embed": vault path of the file to embed (.md, image, .base, ...). */
 	target?: string;
+	/** kind === "embed": Bases view name to embed when target is a .base file;
+	 * omitted means the default view. */
+	baseView?: string;
 	/** kind === "web": the web page URL to embed in an iframe. */
 	url?: string;
 	/** kind === "web": allow the framed page same-origin access. Off by default

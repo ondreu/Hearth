@@ -9,7 +9,6 @@ import {
 	type Dashboard,
 	type DashboardCard,
 	type DataviewConfig,
-	type EmbedView,
 	type HeatmapConfig,
 	type HomeSettings,
 	type LeafViewConfig,
@@ -22,6 +21,7 @@ import {
 	type TasksConfig,
 	activeDashboard,
 } from "./types";
+import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
 /** Current dashboard-layout export schema version. v2 carries every dashboard
@@ -153,12 +153,38 @@ function num(value: unknown, fallback: number): number {
 	return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function clampNum(value: unknown, min: number, max: number, fallback: number): number {
+function clampNum(
+	value: unknown,
+	min: number,
+	max: number,
+	fallback: number,
+): number {
 	return Math.max(min, Math.min(max, Math.round(num(value, fallback))));
 }
 
 function str(value: unknown): string | undefined {
 	return typeof value === "string" ? value : undefined;
+}
+
+function sanitizeBaseViewName(raw: unknown): string | undefined {
+	if (typeof raw !== "string") return undefined;
+	const name = raw.trim();
+	return isEmbeddableBaseViewName(name) ? name : undefined;
+}
+
+function sanitizeEmbedView(
+	raw: unknown,
+): DashboardCard["secondView"] | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const target = str(r.target);
+	if (target === undefined) return undefined;
+	const view: NonNullable<DashboardCard["secondView"]> = { target };
+	const baseView = sanitizeBaseViewName(r.baseView);
+	if (baseView !== undefined) view.baseView = baseView;
+	if (typeof r.scale === "number") view.scale = r.scale;
+	if (typeof r.editable === "boolean") view.editable = r.editable;
+	return view;
 }
 
 function sanitizeLink(raw: unknown): LinkItem | null {
@@ -183,7 +209,9 @@ function sanitizeLink(raw: unknown): LinkItem | null {
 function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
-	const kind = CARD_KINDS.includes(r.kind as CardKind) ? (r.kind as CardKind) : null;
+	const kind = CARD_KINDS.includes(r.kind as CardKind)
+		? (r.kind as CardKind)
+		: null;
 	if (!kind) return null;
 
 	const card: DashboardCard = {
@@ -218,6 +246,10 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (title !== undefined) card.title = title;
 	const target = str(r.target);
 	if (target !== undefined) card.target = target;
+	const baseView = sanitizeBaseViewName(r.baseView);
+	if (baseView !== undefined) card.baseView = baseView;
+	const secondView = sanitizeEmbedView(r.secondView);
+	if (secondView) card.secondView = secondView;
 	const url = str(r.url);
 	if (url !== undefined) card.url = url;
 	const text = str(r.text);
@@ -230,16 +262,23 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.scale === "number") card.scale = r.scale;
 	if (typeof r.refreshSec === "number") card.refreshSec = r.refreshSec;
 	if (typeof r.editable === "boolean") card.editable = r.editable;
+	if (typeof r.hideBaseHeader === "boolean")
+		card.hideBaseHeader = r.hideBaseHeader;
 	if (typeof r.tileSize === "number") card.tileSize = r.tileSize;
 	if (typeof r.tileAutoFlow === "boolean") card.tileAutoFlow = r.tileAutoFlow;
-	if (typeof r.showOpenButton === "boolean") card.showOpenButton = r.showOpenButton;
-	if (typeof r.hideBaseHeader === "boolean") card.hideBaseHeader = r.hideBaseHeader;
-	if (typeof r.sandboxTrusted === "boolean") card.sandboxTrusted = r.sandboxTrusted;
+	if (typeof r.showOpenButton === "boolean")
+		card.showOpenButton = r.showOpenButton;
+	if (typeof r.hideBaseHeader === "boolean")
+		card.hideBaseHeader = r.hideBaseHeader;
+	if (typeof r.sandboxTrusted === "boolean")
+		card.sandboxTrusted = r.sandboxTrusted;
 	if (typeof r.pinned === "boolean") card.pinned = r.pinned;
 	if (typeof r.cardOpacity === "number") card.cardOpacity = r.cardOpacity;
 	if (typeof r.cardBlur === "number") card.cardBlur = r.cardBlur;
 	if (Array.isArray(r.links)) {
-		card.links = r.links.map(sanitizeLink).filter((l): l is LinkItem => l !== null);
+		card.links = r.links
+			.map(sanitizeLink)
+			.filter((l): l is LinkItem => l !== null);
 	}
 	if (Array.isArray(r.commands)) {
 		card.commands = r.commands
@@ -256,13 +295,17 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 		card.calendar = sanitizeCalendar(r.calendar as Record<string, unknown>);
 	}
 	if (r.savedSearch && typeof r.savedSearch === "object") {
-		card.savedSearch = sanitizeSavedSearch(r.savedSearch as Record<string, unknown>);
+		card.savedSearch = sanitizeSavedSearch(
+			r.savedSearch as Record<string, unknown>,
+		);
 	}
 	if (r.heatmap && typeof r.heatmap === "object") {
 		card.heatmap = sanitizeHeatmap(r.heatmap as Record<string, unknown>);
 	}
 	if (r.calculator && typeof r.calculator === "object") {
-		card.calculator = sanitizeCalculator(r.calculator as Record<string, unknown>);
+		card.calculator = sanitizeCalculator(
+			r.calculator as Record<string, unknown>,
+		);
 	}
 	if (r.dataview && typeof r.dataview === "object") {
 		card.dataview = sanitizeDataview(r.dataview as Record<string, unknown>);
@@ -271,7 +314,7 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
 	}
 	if (r.secondView && typeof r.secondView === "object") {
-		card.secondView = sanitizeEmbedView(r.secondView as Record<string, unknown>);
+		card.secondView = sanitizeEmbedView(r.secondView);
 	}
 
 	return card;
@@ -297,7 +340,8 @@ function sanitizeClock(r: Record<string, unknown>): ClockConfig {
 	if (typeof r.use24Hour === "boolean") clock.use24Hour = r.use24Hour;
 	if (typeof r.showSeconds === "boolean") clock.showSeconds = r.showSeconds;
 	if (typeof r.showGreeting === "boolean") clock.showGreeting = r.showGreeting;
-	if (typeof r.playfulGreetings === "boolean") clock.playfulGreetings = r.playfulGreetings;
+	if (typeof r.playfulGreetings === "boolean")
+		clock.playfulGreetings = r.playfulGreetings;
 	const greeting = str(r.greetingText);
 	if (greeting !== undefined) clock.greetingText = greeting;
 	const dateFormat = str(r.dateFormat);
@@ -315,10 +359,29 @@ function strArray(value: unknown): string[] | undefined {
 	return value.filter((v): v is string => typeof v === "string");
 }
 
-const TASK_SORT_KEYS = ["smart", "due", "priority", "created", "alpha"] as const;
-const TASK_SORT_FIELDS = ["due", "scheduled", "priority", "created", "alpha", "status"] as const;
+const TASK_SORT_KEYS = [
+	"smart",
+	"due",
+	"priority",
+	"created",
+	"alpha",
+] as const;
+const TASK_SORT_FIELDS = [
+	"due",
+	"scheduled",
+	"priority",
+	"created",
+	"alpha",
+	"status",
+] as const;
 const TASK_PRIORITY_LEVELS = ["high", "medium", "low", "none"] as const;
-const TASK_DUE_FILTERS = ["overdue", "today", "week", "hasDate", "noDate"] as const;
+const TASK_DUE_FILTERS = [
+	"overdue",
+	"today",
+	"week",
+	"hasDate",
+	"noDate",
+] as const;
 
 function sanitizeCheckboxStatuses(
 	value: unknown,
@@ -331,11 +394,16 @@ function sanitizeCheckboxStatuses(
 			const symbol = str(r.symbol);
 			const label = str(r.label);
 			if (symbol === undefined || label === undefined) return null;
-			const st: { symbol: string; label: string; done?: boolean } = { symbol, label };
+			const st: { symbol: string; label: string; done?: boolean } = {
+				symbol,
+				label,
+			};
 			if (typeof r.done === "boolean") st.done = r.done;
 			return st;
 		})
-		.filter((s): s is { symbol: string; label: string; done?: boolean } => s !== null);
+		.filter(
+			(s): s is { symbol: string; label: string; done?: boolean } => s !== null,
+		);
 	return out;
 }
 
@@ -345,7 +413,10 @@ function sanitizeSortRules(value: unknown): TaskSortRule[] | undefined {
 		.map((raw): TaskSortRule | null => {
 			if (!raw || typeof raw !== "object") return null;
 			const r = raw as Record<string, unknown>;
-			if (!TASK_SORT_FIELDS.includes(r.field as (typeof TASK_SORT_FIELDS)[number])) return null;
+			if (
+				!TASK_SORT_FIELDS.includes(r.field as (typeof TASK_SORT_FIELDS)[number])
+			)
+				return null;
 			const rule: TaskSortRule = { field: r.field as TaskSortRule["field"] };
 			if (typeof r.reverse === "boolean") rule.reverse = r.reverse;
 			return rule;
@@ -361,7 +432,8 @@ function sanitizeKanbanColumnSort(
 	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
 		if (!raw || typeof raw !== "object") continue;
 		const r = raw as Record<string, unknown>;
-		const entry: { key?: (typeof TASK_SORT_KEYS)[number]; reverse?: boolean } = {};
+		const entry: { key?: (typeof TASK_SORT_KEYS)[number]; reverse?: boolean } =
+			{};
 		if (TASK_SORT_KEYS.includes(r.key as (typeof TASK_SORT_KEYS)[number])) {
 			entry.key = r.key as (typeof TASK_SORT_KEYS)[number];
 		}
@@ -380,7 +452,9 @@ function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (Array.isArray(r.priorities)) {
 		cfg.priorities = r.priorities.filter(
 			(p): p is (typeof TASK_PRIORITY_LEVELS)[number] =>
-				TASK_PRIORITY_LEVELS.includes(p as (typeof TASK_PRIORITY_LEVELS)[number]),
+				TASK_PRIORITY_LEVELS.includes(
+					p as (typeof TASK_PRIORITY_LEVELS)[number],
+				),
 		);
 	}
 	if (TASK_DUE_FILTERS.includes(r.due as (typeof TASK_DUE_FILTERS)[number])) {
@@ -393,16 +467,23 @@ function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 
 function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	const cfg: TasksConfig = {};
-	if (r.source === "checkbox" || r.source === "tasknotes" || r.source === "kanban") {
+	if (
+		r.source === "checkbox" ||
+		r.source === "tasknotes" ||
+		r.source === "kanban"
+	) {
 		cfg.source = r.source;
 	}
 	const kanbanFile = str(r.kanbanFile);
 	if (kanbanFile !== undefined) cfg.kanbanFile = kanbanFile;
-	if (typeof r.kanbanExtended === "boolean") cfg.kanbanExtended = r.kanbanExtended;
-	if (typeof r.checkboxExtended === "boolean") cfg.checkboxExtended = r.checkboxExtended;
+	if (typeof r.kanbanExtended === "boolean")
+		cfg.kanbanExtended = r.kanbanExtended;
+	if (typeof r.checkboxExtended === "boolean")
+		cfg.checkboxExtended = r.checkboxExtended;
 	if (typeof r.taskQuickView === "boolean") cfg.taskQuickView = r.taskQuickView;
 	const convertNoteTemplate = str(r.convertNoteTemplate);
-	if (convertNoteTemplate !== undefined) cfg.convertNoteTemplate = convertNoteTemplate;
+	if (convertNoteTemplate !== undefined)
+		cfg.convertNoteTemplate = convertNoteTemplate;
 	if (typeof r.convertMetadataToFrontmatter === "boolean") {
 		cfg.convertMetadataToFrontmatter = r.convertMetadataToFrontmatter;
 	}
@@ -417,7 +498,11 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (sortRules) cfg.sortRules = sortRules;
 	const kanbanColumnSort = sanitizeKanbanColumnSort(r.kanbanColumnSort);
 	if (kanbanColumnSort) cfg.kanbanColumnSort = kanbanColumnSort;
-	if (r.folderScope === "all" || r.folderScope === "whitelist" || r.folderScope === "blacklist") {
+	if (
+		r.folderScope === "all" ||
+		r.folderScope === "whitelist" ||
+		r.folderScope === "blacklist"
+	) {
 		cfg.folderScope = r.folderScope;
 	}
 	const folders = strArray(r.folders);
@@ -440,7 +525,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 
 function sanitizeCalendar(r: Record<string, unknown>): CalendarConfig {
 	const cfg: CalendarConfig = {};
-	if (typeof r.showWeekNumbers === "boolean") cfg.showWeekNumbers = r.showWeekNumbers;
+	if (typeof r.showWeekNumbers === "boolean")
+		cfg.showWeekNumbers = r.showWeekNumbers;
 	if (typeof r.heatmap === "boolean") cfg.heatmap = r.heatmap;
 	if (r.heatmapMetric === "modified" || r.heatmapMetric === "created") {
 		cfg.heatmapMetric = r.heatmapMetric;
@@ -466,8 +552,10 @@ function sanitizeHeatmap(r: Record<string, unknown>): HeatmapConfig {
 
 function sanitizeCalculator(r: Record<string, unknown>): CalculatorConfig {
 	const cfg: CalculatorConfig = {};
-	if (r.angleUnit === "deg" || r.angleUnit === "rad") cfg.angleUnit = r.angleUnit;
-	if (r.keypad === "basic" || r.keypad === "scientific" || r.keypad === "none") cfg.keypad = r.keypad;
+	if (r.angleUnit === "deg" || r.angleUnit === "rad")
+		cfg.angleUnit = r.angleUnit;
+	if (r.keypad === "basic" || r.keypad === "scientific" || r.keypad === "none")
+		cfg.keypad = r.keypad;
 	const lastInput = str(r.lastInput);
 	if (lastInput !== undefined) cfg.lastInput = lastInput;
 	return cfg;
@@ -493,15 +581,6 @@ function sanitizeLeafView(r: Record<string, unknown>): LeafViewConfig {
 	return cfg;
 }
 
-function sanitizeEmbedView(r: Record<string, unknown>): EmbedView {
-	const view: EmbedView = {};
-	const target = str(r.target);
-	if (target !== undefined) view.target = target;
-	if (typeof r.scale === "number") view.scale = r.scale;
-	if (typeof r.editable === "boolean") view.editable = r.editable;
-	return view;
-}
-
 function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	if (!raw || typeof raw !== "object") return undefined;
 	const r = raw as Record<string, unknown>;
@@ -515,11 +594,17 @@ function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	};
 }
 
-function sanitizeDashboard(raw: unknown, s: HomeSettings, index: number): Dashboard | null {
+function sanitizeDashboard(
+	raw: unknown,
+	s: HomeSettings,
+	index: number,
+): Dashboard | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
 	const cards = Array.isArray(r.cards)
-		? r.cards.map((c, i) => sanitizeCard(c, i)).filter((c): c is DashboardCard => c !== null)
+		? r.cards
+				.map((c, i) => sanitizeCard(c, i))
+				.filter((c): c is DashboardCard => c !== null)
 		: [];
 	const dash: Dashboard = {
 		id: str(r.id) ?? newDashboardId(),
@@ -529,23 +614,44 @@ function sanitizeDashboard(raw: unknown, s: HomeSettings, index: number): Dashbo
 	const icon = str(r.icon);
 	if (icon !== undefined && icon.trim()) dash.icon = icon;
 	const iconLucide = str(r.iconLucide);
-	if (iconLucide !== undefined && iconLucide.trim()) dash.iconLucide = iconLucide;
+	if (iconLucide !== undefined && iconLucide.trim())
+		dash.iconLucide = iconLucide;
 	if (typeof r.gridColumns === "number") {
-		dash.gridColumns = clampNum(r.gridColumns, RANGE.gridColumns.min, RANGE.gridColumns.max, s.gridColumns);
+		dash.gridColumns = clampNum(
+			r.gridColumns,
+			RANGE.gridColumns.min,
+			RANGE.gridColumns.max,
+			s.gridColumns,
+		);
 	}
 	if (typeof r.rowHeight === "number") {
-		dash.rowHeight = clampNum(r.rowHeight, RANGE.rowHeight.min, RANGE.rowHeight.max, s.rowHeight);
+		dash.rowHeight = clampNum(
+			r.rowHeight,
+			RANGE.rowHeight.min,
+			RANGE.rowHeight.max,
+			s.rowHeight,
+		);
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
 	if (typeof r.maxWidth === "number") {
-		dash.maxWidth = clampNum(r.maxWidth, RANGE.maxWidth.min, RANGE.maxWidth.max, s.maxWidth);
+		dash.maxWidth = clampNum(
+			r.maxWidth,
+			RANGE.maxWidth.min,
+			RANGE.maxWidth.max,
+			s.maxWidth,
+		);
 	}
 	if (typeof r.cardOpacity === "number") {
 		dash.cardOpacity = Math.max(0, Math.min(1, r.cardOpacity));
 	}
 	if (typeof r.cardBlur === "number") {
-		dash.cardBlur = clampNum(r.cardBlur, RANGE.cardBlur.min, RANGE.cardBlur.max, s.cardBlur);
+		dash.cardBlur = clampNum(
+			r.cardBlur,
+			RANGE.cardBlur.min,
+			RANGE.cardBlur.max,
+			s.cardBlur,
+		);
 	}
 	const bg = sanitizeBackground(r.background);
 	if (bg) dash.background = bg;
@@ -573,7 +679,10 @@ export function importLayout(s: HomeSettings, json: string): string | null {
 /** Apply the dashboard/layout portion of a parsed export onto `s`. Returns an
  * error message on failure, or null on success. Supports the v2 multi-dashboard
  * format and the legacy v1 single-`cards` format. */
-function applyLayout(s: HomeSettings, data: Record<string, unknown>): string | null {
+function applyLayout(
+	s: HomeSettings,
+	data: Record<string, unknown>,
+): string | null {
 	// v2: a full multi-dashboard layout.
 	if (Array.isArray(data.dashboards)) {
 		const dashboards = data.dashboards
@@ -588,7 +697,9 @@ function applyLayout(s: HomeSettings, data: Record<string, unknown>): string | n
 		}
 		const activeId = str(data.activeDashboardId);
 		s.activeDashboardId =
-			activeId && dashboards.some((d) => d.id === activeId) ? activeId : dashboards[0].id;
+			activeId && dashboards.some((d) => d.id === activeId)
+				? activeId
+				: dashboards[0].id;
 		applyGlobals(s, data);
 		return null;
 	}
@@ -643,14 +754,31 @@ export function importSettings(s: HomeSettings, json: string): string | null {
 
 /** Apply the global (non-per-board) settings carried by a layout, clamped. */
 function applyGlobals(s: HomeSettings, data: Record<string, unknown>): void {
-	s.gridColumns = clampNum(data.gridColumns, RANGE.gridColumns.min, RANGE.gridColumns.max, s.gridColumns);
+	s.gridColumns = clampNum(
+		data.gridColumns,
+		RANGE.gridColumns.min,
+		RANGE.gridColumns.max,
+		s.gridColumns,
+	);
 	if (typeof data.rowHeight === "number") {
-		s.rowHeight = clampNum(data.rowHeight, RANGE.rowHeight.min, RANGE.rowHeight.max, s.rowHeight);
+		s.rowHeight = clampNum(
+			data.rowHeight,
+			RANGE.rowHeight.min,
+			RANGE.rowHeight.max,
+			s.rowHeight,
+		);
 	}
-	s.maxWidth = clampNum(data.maxWidth, RANGE.maxWidth.min, RANGE.maxWidth.max, s.maxWidth);
+	s.maxWidth = clampNum(
+		data.maxWidth,
+		RANGE.maxWidth.min,
+		RANGE.maxWidth.max,
+		s.maxWidth,
+	);
 	if (typeof data.fitToPage === "boolean") s.fitToPage = data.fitToPage;
 	if (Array.isArray(data.favorites)) {
-		s.favorites = data.favorites.filter((p): p is string => typeof p === "string");
+		s.favorites = data.favorites.filter(
+			(p): p is string => typeof p === "string",
+		);
 	}
 }
 
@@ -664,14 +792,19 @@ function sanitizeMobileActionButton(raw: unknown): MobileActionButton | null {
 		label: str(r.label) ?? "",
 		icon: str(r.icon) ?? "",
 	};
-	if (r.type === "command" || r.type === "note" || r.type === "url") btn.type = r.type;
+	if (r.type === "command" || r.type === "note" || r.type === "url")
+		btn.type = r.type;
 	const target = str(r.target);
 	if (target !== undefined) btn.target = target;
 	// Fold a legacy `commandId` (from a pre-1.9.0 backup) into `target` rather
 	// than re-persisting the deprecated field, using the same rule as
 	// migrateSettings so an imported backup never reintroduces `commandId`.
 	const commandId = str(r.commandId);
-	if ((btn.target === undefined || btn.target === "") && commandId !== undefined && commandId !== "") {
+	if (
+		(btn.target === undefined || btn.target === "") &&
+		commandId !== undefined &&
+		commandId !== ""
+	) {
 		btn.target = commandId;
 	}
 	return btn;
@@ -688,17 +821,28 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (logo !== undefined) s.logo = logo;
 	const searchPlaceholder = str(data.searchPlaceholder);
 	if (searchPlaceholder !== undefined) s.searchPlaceholder = searchPlaceholder;
-	if (typeof data.showNewNoteButton === "boolean") s.showNewNoteButton = data.showNewNoteButton;
-	if (data.newNoteButtonMode === "newNote" || data.newNoteButtonMode === "searchOnline") {
+	if (typeof data.showNewNoteButton === "boolean")
+		s.showNewNoteButton = data.showNewNoteButton;
+	if (
+		data.newNoteButtonMode === "newNote" ||
+		data.newNoteButtonMode === "searchOnline"
+	) {
 		s.newNoteButtonMode = data.newNoteButtonMode;
 	}
-	if (typeof data.searchContents === "boolean") s.searchContents = data.searchContents;
+	if (typeof data.searchContents === "boolean")
+		s.searchContents = data.searchContents;
 	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {
 		s.searchEngine = data.searchEngine;
 	}
 
 	// Background
-	const bgKinds: BackgroundKind[] = ["none", "default", "color", "image", "url"];
+	const bgKinds: BackgroundKind[] = [
+		"none",
+		"default",
+		"color",
+		"image",
+		"url",
+	];
 	if (bgKinds.includes(data.backgroundKind as BackgroundKind)) {
 		s.backgroundKind = data.backgroundKind as BackgroundKind;
 	}
@@ -712,16 +856,21 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 
 	// Behaviour
-	if (typeof data.openOnStartup === "boolean") s.openOnStartup = data.openOnStartup;
-	if (typeof data.replaceNewTabs === "boolean") s.replaceNewTabs = data.replaceNewTabs;
-	if (typeof data.mobileSearchOnly === "boolean") s.mobileSearchOnly = data.mobileSearchOnly;
-	if (typeof data.showMobileActionBar === "boolean") s.showMobileActionBar = data.showMobileActionBar;
+	if (typeof data.openOnStartup === "boolean")
+		s.openOnStartup = data.openOnStartup;
+	if (typeof data.replaceNewTabs === "boolean")
+		s.replaceNewTabs = data.replaceNewTabs;
+	if (typeof data.mobileSearchOnly === "boolean")
+		s.mobileSearchOnly = data.mobileSearchOnly;
+	if (typeof data.showMobileActionBar === "boolean")
+		s.showMobileActionBar = data.showMobileActionBar;
 	if (Array.isArray(data.mobileActionButtons)) {
 		s.mobileActionButtons = data.mobileActionButtons
 			.map(sanitizeMobileActionButton)
 			.filter((b): b is MobileActionButton => b !== null);
 	}
-	if (typeof data.disableExternalCalls === "boolean") s.disableExternalCalls = data.disableExternalCalls;
+	if (typeof data.disableExternalCalls === "boolean")
+		s.disableExternalCalls = data.disableExternalCalls;
 
 	// Appearance
 	if (typeof data.compact === "boolean") s.compact = data.compact;
@@ -729,12 +878,19 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 		s.cardOpacity = Math.max(0, Math.min(1, data.cardOpacity));
 	}
 	if (typeof data.cardBlur === "number") {
-		s.cardBlur = clampNum(data.cardBlur, RANGE.cardBlur.min, RANGE.cardBlur.max, s.cardBlur);
+		s.cardBlur = clampNum(
+			data.cardBlur,
+			RANGE.cardBlur.min,
+			RANGE.cardBlur.max,
+			s.cardBlur,
+		);
 	}
 
 	// Search filters
 	if (Array.isArray(data.hiddenFilters)) {
-		s.hiddenFilters = data.hiddenFilters.filter((f): f is string => typeof f === "string");
+		s.hiddenFilters = data.hiddenFilters.filter(
+			(f): f is string => typeof f === "string",
+		);
 	}
 
 	// Tasks / TaskNotes field mappings
