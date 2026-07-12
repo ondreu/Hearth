@@ -223,6 +223,9 @@ export const en = {
 		about: {
 			heading: "About Hearth",
 			headingDesc: "Project links, support and version.",
+			whatsNew: "What's new",
+			whatsNewDesc: "Read the release notes for this and every past version.",
+			whatsNewButton: "View changelog",
 			github: "GitHub repository",
 			githubDesc: "Browse the source, star the project, or read the changelog.",
 			githubButton: "Open GitHub",

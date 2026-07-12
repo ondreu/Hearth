@@ -6,6 +6,7 @@ import { type BackgroundKind, DEFAULT_SETTINGS, defaultMobileActionButtons, type
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
+import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { t } from "./i18n";
 
 /** Keys of HomeSettings whose default lives in DEFAULT_SETTINGS as a number —
@@ -1008,6 +1009,15 @@ export class HomeSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		new Setting(containerEl)
+			.setName(about.whatsNew)
+			.setDesc(about.whatsNewDesc)
+			.addButton((b) =>
+				this.aboutButton(b, "sparkles", about.whatsNewButton, () =>
+					new WhatsNewModal(this.app, CHANGELOG).open(),
+				),
+			);
+
+		new Setting(containerEl)
 			.setName(about.github)
 			.setDesc(about.githubDesc)
 			.addButton((b) => this.linkButton(b, "github", about.githubButton, GITHUB_URL));
@@ -1031,13 +1041,26 @@ export class HomeSettingTab extends PluginSettingTab {
 	}
 
 	/** A button that shows an icon *and* a label (Obsidian's setButtonText wipes a
-	 * setIcon, so the content is built by hand) and opens `url` in the browser. */
-	private linkButton(b: ButtonComponent, icon: string, label: string, url: string): void {
-		b.setTooltip(url).onClick(() => window.open(url, "_blank"));
+	 * setIcon, so the content is built by hand), runs `onClick`, and carries an
+	 * optional tooltip. */
+	private aboutButton(
+		b: ButtonComponent,
+		icon: string,
+		label: string,
+		onClick: () => void,
+		tooltip?: string,
+	): void {
+		b.onClick(onClick);
+		if (tooltip) b.setTooltip(tooltip);
 		const el = b.buttonEl;
 		el.empty();
 		el.addClass("hearth-about-btn");
 		setIcon(el.createSpan("hearth-about-btn-icon"), icon);
 		el.createSpan({ text: label });
+	}
+
+	/** An {@link aboutButton} that opens `url` in the browser. */
+	private linkButton(b: ButtonComponent, icon: string, label: string, url: string): void {
+		this.aboutButton(b, icon, label, () => window.open(url, "_blank"), url);
 	}
 }
