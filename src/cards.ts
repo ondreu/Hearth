@@ -4391,7 +4391,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 			let dueRaw: string | null = null;
 			if (dueExpr) {
 				dueRaw = dueExpr;
-				due = /^\d{4}-\d{2}-\d{2}$/.test(dueExpr) ? dueExpr : parseNaturalDate(dueExpr);
+				due = resolveDate(dueExpr);
 			}
 			hits.push({
 				file,
@@ -4465,7 +4465,7 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 		if (typeof dueRawVal === "string" && dueRawVal.trim()) {
 			const expr = dueRawVal.trim();
 			dueRaw = expr;
-			due = /^\d{4}-\d{2}-\d{2}$/.test(expr) ? expr : parseNaturalDate(expr);
+			due = resolveDate(expr);
 		}
 		// TaskNotes' scheduled field is conventionally "scheduled"; read it as
 		// a fallback sort key when no due date is set.
@@ -4694,7 +4694,7 @@ async function collectKanbanTasks(
 				const dueExpr = readEmojiField(rawText, "📅");
 				if (dueExpr) {
 					dueRaw = dueExpr;
-					due = /^\d{4}-\d{2}-\d{2}$/.test(dueExpr) ? dueExpr : parseNaturalDate(dueExpr);
+					due = resolveDate(dueExpr);
 				}
 				scheduled = readEmojiDate(rawText, "⏳") || null;
 				start = readEmojiDate(rawText, "🛫") || null;
@@ -4720,7 +4720,7 @@ async function collectKanbanTasks(
 						const d = fmStr("due");
 						if (d) {
 							dueRaw = d;
-							due = /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : parseNaturalDate(d);
+							due = resolveDate(d);
 						}
 					}
 					scheduled = scheduled || fmStr("scheduled");
@@ -4796,13 +4796,26 @@ const TASK_EMOJI_CLASS = "📅⏳🛫🔁✅❌➕⏫🔼🔽🔺⏬";
  * are left untouched when rewriting a card's metadata. */
 const MANAGED_EMOJI_CLASS = "📅⏳🛫🔁⏫🔼🔽🔺⏬";
 
+/** The single source of truth for turning a raw date expression — an ISO date
+ * (YYYY-MM-DD) or natural-language wording ("today", "next friday", "in 3
+ * days") — into a validated YYYY-MM-DD, or null when it isn't a real date. Both
+ * the task card and the detail modal resolve dates through here (via the fields
+ * they read), so they can never disagree about what a string means. Crucially
+ * there is NO "already ISO-shaped, pass it through" shortcut: an impossible ISO
+ * date (2026-02-31, month 13) is calendar-invalid and resolves to null rather
+ * than leaking to the card as a bogus date. `parseNaturalDate` already accepts
+ * any valid ISO date verbatim (regardless of how far out), so nothing valid is
+ * lost. */
+function resolveDate(expr: string): string | null {
+	return parseNaturalDate(expr);
+}
+
 /** Read a Tasks-plugin date field (e.g. 📅) and resolve it to YYYY-MM-DD, or
  * "" when absent/unparseable. Accepts natural-language wording. */
 function readEmojiDate(text: string, emoji: string): string {
 	const expr = readEmojiField(text, emoji);
 	if (!expr) return "";
-	if (/^\d{4}-\d{2}-\d{2}$/.test(expr)) return expr;
-	return parseNaturalDate(expr) ?? "";
+	return resolveDate(expr) ?? "";
 }
 
 /** Strip all Tasks-plugin emoji metadata (each marker and its trailing value up
