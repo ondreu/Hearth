@@ -37,7 +37,7 @@ import { isViewTypeHostable, mountLeafView } from "./leafview";
 import { EXCALIDRAW_PLUGIN_ID, iconForFile, isExcalidraw } from "./filetypes";
 import { type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
-import { parseNaturalDate, formatRelativeDate } from "./dates";
+import { parseNaturalDate, formatRelativeDate, localDayKey } from "./dates";
 import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
@@ -1159,7 +1159,7 @@ function activityByDay(app: HomeView["app"], metric: "modified" | "created"): Ma
 	const counts = new Map<string, number>();
 	for (const file of app.vault.getMarkdownFiles()) {
 		const ts = metric === "created" ? file.stat.ctime : file.stat.mtime;
-		const key: string = moment(new Date(ts)).format("YYYY-MM-DD");
+		const key = localDayKey(ts);
 		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return counts;
@@ -1175,20 +1175,23 @@ function renderStats(view: HomeView, body: HTMLElement): void {
 	let notes = 0;
 	let attachments = 0;
 	let folders = 0;
+	// Single pass over the loaded files: counts plus the tag set (collected
+	// inline for markdown files) instead of a second full getMarkdownFiles scan.
+	const tags = new Set<string>();
 	for (const f of vault.getAllLoadedFiles()) {
 		if (f instanceof TFolder) {
 			if (f.path !== "/") folders++;
 		} else if (f instanceof TFile) {
-			if (f.extension.toLowerCase() === "md") notes++;
-			else attachments++;
+			if (f.extension.toLowerCase() === "md") {
+				notes++;
+				const cache = view.app.metadataCache.getFileCache(f);
+				if (cache) {
+					for (const t of getAllTags(cache) ?? []) tags.add(t.toLowerCase());
+				}
+			} else {
+				attachments++;
+			}
 		}
-	}
-
-	const tags = new Set<string>();
-	for (const file of vault.getMarkdownFiles()) {
-		const cache = view.app.metadataCache.getFileCache(file);
-		if (!cache) continue;
-		for (const t of getAllTags(cache) ?? []) tags.add(t.toLowerCase());
 	}
 
 	const grid = body.createDiv("hearth-stats");

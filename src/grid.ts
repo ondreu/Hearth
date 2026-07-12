@@ -370,6 +370,32 @@ export function enableDragResize(
 	let guideX: HTMLElement | null = null;
 	let guideY: HTMLElement | null = null;
 
+	// The dragged card's own position is written synchronously on every
+	// pointermove so it tracks the pointer with no lag. The *derived* visual
+	// work — growing the board (a forced layout read over every card), the
+	// O(n²) edge-merge scan, and the frosted-glass SVG rebuild — is coalesced
+	// into a single animation frame so it runs at most once per painted frame
+	// instead of once per pointer event (pointermove can fire far more often).
+	let reflowFrame = 0;
+	const runReflow = () => {
+		reflowFrame = 0;
+		updateBoardHeight(gridEl);
+		applyEdgeMerging(gridEl);
+	};
+	const scheduleReflow = () => {
+		if (reflowFrame) return;
+		reflowFrame = window.requestAnimationFrame(runReflow);
+	};
+	const cancelReflow = () => {
+		if (reflowFrame) {
+			window.cancelAnimationFrame(reflowFrame);
+			reflowFrame = 0;
+		}
+	};
+	// A drag interrupted by a view teardown never reaches `end`; drop any frame
+	// still queued so it can't run against a detached grid.
+	component.register(cancelReflow);
+
 	const showGuide = (axis: "x" | "y", pos: number | null) => {
 		if (axis === "x") {
 			if (pos == null) {
@@ -505,14 +531,16 @@ export function enableDragResize(
 		cardEl.style.top = `${top}px`;
 		cardEl.style.height = `${height}px`;
 		}
-		updateBoardHeight(gridEl);
-		// Live edge-merge so touching corners sharpen as the card snaps to a
-		// neighbour during a drag/resize.
-		applyEdgeMerging(gridEl);
+		// Live edge-merge / board-height update so touching corners sharpen as the
+		// card snaps to a neighbour during a drag/resize — coalesced to one frame.
+		scheduleReflow();
 	};
 
 	const end = (e: PointerEvent) => {
 		if (!ctx || e.pointerId !== ctx.pointerId) return;
+		// Drop any queued mid-drag reflow; this handler recomputes everything
+		// synchronously below from the final committed geometry.
+		cancelReflow();
 		const w = ctx.boardWidth || 1;
 		// Persist the live pixel geometry back into the fractional/pixel model.
 		card.fx = clamp(cardEl.offsetLeft / w, 0, 1);

@@ -47,6 +47,21 @@ const WEEKDAYS: Record<string, number> = {
 	ne: 7, ned: 7, nedele: 7, "ně": 7, "neděle": 7,
 };
 
+/**
+ * The local calendar day of a timestamp, as `YYYY-MM-DD`. Equivalent to
+ * `moment(new Date(ts)).format("YYYY-MM-DD")` but without constructing a moment
+ * per call — meaningfully cheaper when mapping a whole vault's file timestamps
+ * to days (see activityByDay). Uses the local timezone, matching moment's
+ * default, so a file edited at 11pm lands on that local day.
+ */
+export function localDayKey(ts: number): string {
+	const d = new Date(ts);
+	const y = d.getFullYear();
+	const m = d.getMonth() + 1;
+	const day = d.getDate();
+	return `${y}-${m < 10 ? "0" : ""}${m}-${day < 10 ? "0" : ""}${day}`;
+}
+
 /** Parse a natural-language date expression to YYYY-MM-DD (null if not a date). */
 export function parseNaturalDate(input: string): string | null {
 	const raw = input.trim().toLowerCase();

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatRelativeDate, parseNaturalDate } from "../src/dates";
+import { moment } from "obsidian";
+import { formatRelativeDate, localDayKey, parseNaturalDate } from "../src/dates";
 
 /**
  * Date logic is the classic trap: without a frozen clock the same test passes
@@ -210,5 +211,28 @@ describe("formatRelativeDate", () => {
 	// root cause as the parseNaturalDate case — the isValid guard now fires.
 	it("echoes the raw string verbatim when it can't be parsed", () => {
 		expect(formatRelativeDate("blabla")).toBe("blabla");
+	});
+});
+
+describe("localDayKey", () => {
+	// The helper replaces a per-file moment(new Date(ts)).format("YYYY-MM-DD")
+	// in activityByDay, so it must return exactly what that expression did.
+	it("formats a timestamp as its local YYYY-MM-DD", () => {
+		const ts = Date.UTC(2026, 6, 15, 9, 30, 0); // 2026-07-15 (UTC test TZ)
+		expect(localDayKey(ts)).toBe("2026-07-15");
+	});
+
+	it("zero-pads single-digit months and days", () => {
+		expect(localDayKey(Date.UTC(2026, 0, 5))).toBe("2026-01-05");
+		expect(localDayKey(Date.UTC(2026, 11, 31))).toBe("2026-12-31");
+	});
+
+	it("matches moment().format for a range of timestamps", () => {
+		// Every 6h across ~40 days, crossing month/day boundaries.
+		const base = Date.UTC(2026, 1, 25, 0, 0, 0);
+		for (let i = 0; i < 160; i++) {
+			const ts = base + i * 6 * 3600 * 1000;
+			expect(localDayKey(ts)).toBe(moment(new Date(ts)).format("YYYY-MM-DD"));
+		}
 	});
 });
