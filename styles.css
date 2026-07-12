@@ -1831,10 +1831,11 @@
 	align-items: center;
 }
 
-.hearth-arrange-zone.is-auto-hide {
-	padding: 16px;
-}
-
+/* Hover mode must keep the SAME footprint as always-visible mode: the button
+ * stays laid out (opacity:0, not display:none), so its own box is the hover
+ * target and revealing it shifts nothing. Do NOT add in-flow padding/margin to
+ * the auto-hide zone — that grew the zone only in hover mode and pushed the
+ * whole board down (see the switcher zone below for the same rule). */
 .hearth-arrange-zone.is-auto-hide .hearth-tool-btn {
 	opacity: 0;
 	pointer-events: none;
@@ -1855,10 +1856,9 @@
 	align-items: center;
 }
 
-.hearth-dash-switcher-zone.is-auto-hide {
-	padding: 16px 0;
-}
-
+/* No in-flow padding on the auto-hide zone (see .hearth-arrange-zone above): the
+ * hidden switcher keeps its normal box, so hover mode has the same footprint as
+ * always-visible mode and enabling hover doesn't push the header/grid down. */
 .hearth-dash-switcher {
 	display: flex;
 	align-items: center;
