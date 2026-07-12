@@ -11,12 +11,20 @@
 		"importHelpers": true,
 		"isolatedModules": true,
 		"strictNullChecks": true,
+		// The unit-test shim (test/support/obsidian-shim.ts) default-imports the
+		// real moment.js; esbuild/Vitest allow that interop at runtime, so let
+		// tsc resolve it too. This only relaxes default-import checking — it does
+		// not change how src compiles.
+		"allowSyntheticDefaultImports": true,
 		"lib": [
 			"DOM",
 			"ES2020"
 		]
 	},
+	// Tests are typechecked here too (Vitest itself does not typecheck), and this
+	// is also the project the type-aware ESLint service loads for test/**.
 	"include": [
-		"src/**/*.ts"
+		"src/**/*.ts",
+		"test/**/*.ts"
 	]
 }

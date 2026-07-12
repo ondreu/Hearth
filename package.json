@@ -7,9 +7,10 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"typecheck": "tsc -noEmit -skipLibCheck",
-		"lint": "eslint src",
-		"lint:fix": "eslint src --fix",
-		"test": "vitest run"
+		"lint": "eslint src test",
+		"lint:fix": "eslint src test --fix",
+		"test": "vitest run",
+		"verify:manifests": "node scripts/verify-manifests.mjs"
 	},
 	"keywords": [
 		"obsidian",

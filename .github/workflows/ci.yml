@@ -46,6 +46,12 @@ jobs:
           fi
           echo "Store manifest version OK: $store"
 
+      # Complements the guard above: versions.json must map the stable manifest
+      # version, and manifest-beta.json must stay a pre-release strictly ahead of
+      # stable and identical to it in every other field. See scripts for details.
+      - name: Guard manifest / versions invariants
+        run: npm run verify:manifests
+
       - name: Lint
         run: npm run lint
 
