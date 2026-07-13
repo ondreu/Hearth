@@ -1,4 +1,4 @@
-import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SliderComponent, type TextComponent, TFile } from "obsidian";
+import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
@@ -93,8 +93,69 @@ export class HomeSettingTab extends PluginSettingTab {
 		new Notice(frag, 10000);
 	}
 
+	/** Where the pane last rendered: the declarative host row on Obsidian
+	 * 1.13+, `containerEl` on the legacy path. Internal re-renders (ribbon
+	 * clicks, list mutations) must target this element — on 1.13 `containerEl`
+	 * is never attached, so rendering into it would silently go nowhere. */
+	private renderTarget: HTMLElement | null = null;
+
+	/**
+	 * Obsidian 1.13 reworked the settings modal around declarative setting
+	 * definitions; when a tab's definitions are non-empty, the legacy
+	 * `display()` is never called. On affected installs (#52) the modal took
+	 * that path for this tab, so the pane stayed completely blank — no error,
+	 * and no guard inside display() could ever run. Registering the whole pane
+	 * as a single self-rendered definition makes the tab render on the new
+	 * pipeline; older Obsidian versions never call this and keep using
+	 * `display()`. Same builder either way.
+	 */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: this.plugin.manifest.name,
+				// The pane manages its own layout and content; keep the host
+				// row out of the 1.13 settings search.
+				searchable: false,
+				render: (setting: Setting) => {
+					const host = setting.settingEl;
+					// Drop the empty name/desc/control skeleton and the
+					// setting-row flex layout; the pane is a plain block.
+					host.empty();
+					host.addClass("hearth-settings-host");
+					this.renderTarget = host;
+					// Temporary #52 diagnostic: names the render path in the
+					// console of whichever window hosts settings. Remove once
+					// the blank-pane report is confirmed fixed.
+					console.warn(
+						`Hearth ${this.plugin.manifest.version}: rendering settings via setting definitions (Obsidian 1.13+)`,
+					);
+					this.renderInto(host);
+					return () => {
+						if (this.renderTarget === host) this.renderTarget = null;
+					};
+				},
+			},
+		];
+	}
+
 	display(): void {
-		const { containerEl } = this;
+		this.renderTarget = this.containerEl;
+		// Temporary #52 diagnostic — see getSettingDefinitions above.
+		console.warn(
+			`Hearth ${this.plugin.manifest.version}: rendering settings via legacy display()`,
+		);
+		this.renderInto(this.containerEl);
+	}
+
+	/** Re-render the pane in place after a state change (tab switch, list
+	 * mutation, import) — into whichever element the pane currently lives in. */
+	private rerender(): void {
+		this.renderInto(this.renderTarget ?? this.containerEl);
+	}
+
+	/** Build the full settings pane into `containerEl`, shared by both render
+	 * paths (legacy `display()` and the 1.13 setting-definition host). */
+	private renderInto(containerEl: HTMLElement): void {
 		containerEl.empty();
 		containerEl.addClass("hearth-settings");
 
@@ -175,7 +236,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			btn.createSpan({ cls: "hearth-ribbon-tab-label", text: label });
 			btn.addEventListener("click", () => {
 				this.app.saveLocalStorage(ACTIVE_TAB_KEY, tab.id);
-				this.display();
+				this.rerender();
 			});
 		}
 	}
@@ -498,7 +559,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				d.setValue(s.backgroundKind).onChange((v) => {
 					s.backgroundKind = v as BackgroundKind;
 					void this.save();
-					this.display();
+					this.rerender();
 				});
 			});
 
@@ -660,7 +721,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					// switching kinds.
 					btn.target = "";
 					void this.save();
-					this.display();
+					this.rerender();
 				});
 			});
 			const currentTarget = btn.target ?? "";
@@ -680,7 +741,7 @@ export class HomeSettingTab extends PluginSettingTab {
 							btn.target = command.id;
 							if (!btn.label.trim()) btn.label = command.name;
 							void this.save();
-							this.display();
+							this.rerender();
 						}).open();
 					});
 				});
@@ -718,7 +779,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						buttons.splice(index, 1);
 						await this.save();
-						this.display();
+						this.rerender();
 					}),
 			);
 		});
@@ -737,7 +798,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						target: "",
 					});
 					await this.save();
-					this.display();
+					this.rerender();
 				}),
 			)
 			.addExtraButton((b) =>
@@ -747,7 +808,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						s.mobileActionButtons = defaultMobileActionButtons();
 						await this.save();
-						this.display();
+						this.rerender();
 					}),
 			);
 	}
@@ -758,7 +819,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		const [item] = arr.splice(from, 1);
 		arr.splice(to, 0, item);
 		void this.save();
-		this.display();
+		this.rerender();
 	}
 
 	// ---- Tasks / TaskNotes ------------------------------------------------
@@ -1040,7 +1101,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					return;
 				}
 				void this.save();
-				this.display();
+				this.rerender();
 				new Notice(opts.imported);
 			},
 		});

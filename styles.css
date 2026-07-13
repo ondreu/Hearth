@@ -861,6 +861,16 @@
 	border-bottom-color: transparent;
 }
 
+/* On Obsidian 1.13+ the whole pane is hosted inside a single declarative
+   setting row (see HomeSettingTab.getSettingDefinitions); strip the row's
+   flex layout and separators so the pane lays out as a plain block, exactly
+   as it does under the legacy display() path. */
+.setting-item.hearth-settings-host {
+	display: block;
+	border: none;
+	padding: 0;
+}
+
 /* ---- Settings tab: category ribbon ----------------------------------
    A row of tabs pinned to the top of the settings pane; clicking one shows
    only that category's sections in the body below. */
