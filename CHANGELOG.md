@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.10.0]
+## [1.10.0] - 2026-07-13
 
 ### Added
 
@@ -36,6 +36,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   render shows an inline error in its place, logs the underlying error to the
   developer console, and leaves every other section — and the category ribbon,
   so you can still switch tabs — working as normal.
+- **Orphaned file/folder bookmarks no longer linger in the Bookmarks card.**
+  Obsidian keeps a file/folder bookmark in its store after the target note is
+  deleted, and its native bookmarks pane hides those orphans; the Bookmarks card
+  rendered the raw store, so a deleted note left a dead, unclickable row behind.
+  File/folder bookmarks whose path no longer resolves are now filtered out,
+  matching Obsidian's native behaviour. URL, search, and group items are
+  unaffected.
 
 ## [1.9.0]
 
@@ -265,6 +272,8 @@ A redesigned dashboard experience, plus recurring tasks and many polish fixes.
 - Default background uses a CDN URL (raw.githubusercontent was blocked by
   Obsidian's CSP).
 
+[1.10.0]: https://github.com/ondreu/Hearth/compare/1.9.0...1.10.0
+[1.9.0]: https://github.com/ondreu/Hearth/compare/1.8.1...1.9.0
 [1.8.0]: https://github.com/ondreu/Hearth/compare/1.7.0...1.8.0
 [1.7.0]: https://github.com/ondreu/Hearth/compare/1.6.7...1.7.0
 [1.6.7]: https://github.com/ondreu/Hearth/compare/1.6.6...1.6.7
