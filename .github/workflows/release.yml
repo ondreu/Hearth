@@ -15,6 +15,11 @@ on:
       version:
         description: "Version to release (e.g. 1.8.1). Defaults to the manifest matching the tag."
         required: false
+      allow_no_beta:
+        description: "Emergency hotfix ONLY: allow a stable release with no matching x.y.z-beta.* build. Leave false normally."
+        type: boolean
+        default: false
+        required: false
 
 permissions:
   contents: write
@@ -28,6 +33,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history + all tags so the beta-parity guard below can diff the
+          # stable commit against its x.y.z-beta.* tag.
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -91,6 +100,43 @@ jobs:
             exit 1
           fi
           echo "Tag matches $file version: $manifest"
+
+      # A stable x.y.z must be the PROMOTION of a beta-tested build, not a fresh
+      # build of whatever is on main now. This is the guard that catches a beta's
+      # un-tested code — a new feature, a refactor — from shipping straight to
+      # every stable user. It enforces that the tagged commit's build inputs
+      # (src/, styles.css, esbuild.config.mjs) are byte-for-byte identical to the
+      # newest x.y.z-beta.* release that preceded it. A version-only promotion
+      # bump (manifest / versions.json / package.json / CHANGELOG) leaves those
+      # untouched, so a correct promotion passes; tagging a diverged main fails.
+      - name: Verify stable is the promotion of its beta-tested build
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          case "$tag" in
+            *-*) echo "Pre-release $tag — beta-parity check does not apply."; exit 0 ;;
+          esac
+          betaTag="$(git tag -l "${tag}-*" | sort -V | tail -n1)"
+          if [ -z "$betaTag" ]; then
+            echo "::error::No ${tag}-beta.* tag exists. A stable release must promote a beta-tested build."
+            echo "Cut ${tag}-beta.N and let it soak first (see RELEASING.md), or — for a genuine"
+            echo "emergency hotfix ONLY — re-run from the Actions tab with allow_no_beta = true."
+            if [ "${{ github.event.inputs.allow_no_beta }}" = "true" ]; then
+              echo "::warning::allow_no_beta set — shipping stable $tag with no beta. Emergency path."
+              exit 0
+            fi
+            exit 1
+          fi
+          if git diff --quiet "$betaTag" HEAD -- src styles.css esbuild.config.mjs; then
+            echo "Stable $tag matches beta-tested $betaTag: src/, styles.css and esbuild.config.mjs are identical."
+          else
+            echo "::error::Stable $tag diverges from its beta $betaTag in build inputs (src/, styles.css or esbuild.config.mjs)."
+            echo "Stable must be the exact code that was beta-tested. Either tag the beta-tested"
+            echo "commit as $tag (a version-only bump is fine), or cut a fresh ${tag}-beta.N, let it"
+            echo "soak, and promote that. See RELEASING.md -> 'Promoting a beta to stable'."
+            echo "--- differing build inputs ($betaTag..HEAD) ---"
+            git --no-pager diff --stat "$betaTag" HEAD -- src styles.css esbuild.config.mjs || true
+            exit 1
+          fi
 
       # Belt-and-braces: even if a bad manifest slipped past CI, never let a
       # pre-release version sit in the store-facing manifest.json.

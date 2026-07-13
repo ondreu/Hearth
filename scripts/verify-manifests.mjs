@@ -113,6 +113,29 @@ for (const k of keys) {
 	}
 }
 
+// --- 5. CHANGELOG top entry tracks the in-flight version --------------------
+// The newest documented release must be either the current stable
+// (manifest.json) or the current beta line (manifest-beta.json minus its -pre
+// suffix). This stops changelog entries being filed under a version that isn't
+// the one actually in flight — the label half of shipping the wrong thing. It
+// can't police prose against code; the release workflow's beta-parity guard
+// ("Verify stable is the promotion of its beta-tested build") does that.
+const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+const topHeading = changelog.match(/^##\s+\[["']?(\d+\.\d+\.\d+)["']?\]/m);
+if (!topHeading) {
+	fail(`CHANGELOG.md has no top-most "## [x.y.z]" release heading.`);
+} else {
+	const top = topHeading[1];
+	const betaBase = String(beta.version).split("-")[0];
+	if (top !== manifest.version && top !== betaBase) {
+		fail(
+			`CHANGELOG.md's newest entry [${top}] is neither the stable manifest ` +
+				`version (${manifest.version}) nor the current beta line (${betaBase}). ` +
+				`Document changes under the version actually in flight — see RELEASING.md.`,
+		);
+	}
+}
+
 if (errors.length) {
 	for (const e of errors) console.error(`::error::${e}`);
 	console.error(`\n${errors.length} manifest/version problem(s) — see RELEASING.md.`);
