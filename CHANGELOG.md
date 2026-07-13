@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.10.0] - 2026-07-13
+## [1.11.0]
 
 ### Added
 
@@ -44,6 +44,38 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   matching Obsidian's native behaviour. URL, search, and group items are
   unaffected.
 
+## [1.10.0] - 2026-07-13
+
+### Added
+
+- **Hover-visibility options for dashboard controls.** The dashboard's
+  arrange-mode zone and switcher can be set to reveal on hover instead of
+  staying always visible, keeping the board clean until you reach for them; the
+  hover hit-area is enlarged so they're easy to summon.
+- **Per-dashboard search-bar visibility toggle.** Show or hide the search bar
+  independently on each dashboard.
+- **Base view selector for Embed cards.** An Embed card pointing at a `.base`
+  file can choose which of the base's views it displays.
+
+### Fixed
+
+- **Invalid due dates no longer leak the text "Invalid date" into tasks.** A
+  task due date that looked like an ISO date but wasn't a real calendar day —
+  e.g. `📅 2026-02-31` (there's no 31st of February) or a month like `2026-13-01`
+  — was being turned into the literal string **"Invalid date"** instead of being
+  left alone. The validity check meant to reject such dates never ran (it tested
+  moment's `isValid` as a property rather than calling it, so it was always
+  truthy), so the bogus label was written straight into the tasks card. These
+  dates are now correctly ignored, and any unparseable relative-date input falls
+  back to showing the raw text verbatim, as intended. A silent bug — nothing
+  errored, so it was easy to miss.
+- **Hover-reveal controls no longer shift the board.** Switching a dashboard
+  control to "Show on hover" added in-flow padding that only existed in hover
+  mode, growing the control's zone by ~32px so it pushed the header and grid
+  down — and in fit-to-page mode the extra height clipped the board. Hover mode
+  now has the same footprint as always-visible mode, so revealing a control no
+  longer moves anything.
+
 ## [1.9.0] - 2026-07-12
 
 ### Changed
@@ -58,19 +90,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   whose action was stored *only* as `commandId` loses its action (the button
   appears blank and must be reassigned). Buttons edited or created in a recent
   version are unaffected.
-
-### Fixed
-
-- **Invalid due dates no longer leak the text "Invalid date" into tasks.** A
-  task due date that looked like an ISO date but wasn't a real calendar day —
-  e.g. `📅 2026-02-31` (there's no 31st of February) or a month like `2026-13-01`
-  — was being turned into the literal string **"Invalid date"** instead of being
-  left alone. The validity check meant to reject such dates never ran (it tested
-  moment's `isValid` as a property rather than calling it, so it was always
-  truthy), so the bogus label was written straight into the tasks card. These
-  dates are now correctly ignored, and any unparseable relative-date input falls
-  back to showing the raw text verbatim, as intended. A silent bug — nothing
-  errored, so it was easy to miss.
 
 ## [1.8.0] - 2026-07-11
 
@@ -272,6 +291,7 @@ A redesigned dashboard experience, plus recurring tasks and many polish fixes.
 - Default background uses a CDN URL (raw.githubusercontent was blocked by
   Obsidian's CSP).
 
+[1.11.0]: https://github.com/ondreu/Hearth/compare/1.10.0...1.11.0
 [1.10.0]: https://github.com/ondreu/Hearth/compare/1.9.0...1.10.0
 [1.9.0]: https://github.com/ondreu/Hearth/compare/1.8.1...1.9.0
 [1.8.0]: https://github.com/ondreu/Hearth/compare/1.7.0...1.8.0
