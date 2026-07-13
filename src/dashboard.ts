@@ -14,6 +14,12 @@ import {
 	renderCardBody,
 	watchedCardPath,
 } from "./cards";
+import {
+	createVaultEventHub,
+	liveCardShouldRedraw,
+	type VaultEventHub,
+	watchedCardReactsToKind,
+} from "./cardevents";
 import { CARD_TEMPLATES, cardFromTemplate, templateName } from "./templates";
 import { CardSettingsModal } from "./editors";
 import {
@@ -88,6 +94,10 @@ export function renderDashboard(
 
 	const commit = () => void view.plugin.saveData(s);
 
+	// Shared vault-event fan-out for every card on this board (see
+	// createVaultEventHub). Lives on the render component, torn down with it.
+	const events = createVaultEventHub(view.app, (ref) => component.registerEvent(ref));
+
 	// Shared layout state for the drag engine (magnetic alignment to siblings).
 	const gridLayout: GridLayout = {
 		cards,
@@ -131,7 +141,7 @@ export function renderDashboard(
 
 		const body = el.createDiv("hearth-card-body");
 		if (card.background) body.addClass("has-bg");
-		const redraw = mountCardBody(view, card, body, component);
+		const redraw = mountCardBody(view, card, body, component, events);
 
 		// A second-view switcher (embed cards only) sits in the header when the
 		// card is titled, or floats over the card (hover-reveal) when it isn't.
@@ -212,6 +222,7 @@ function mountCardBody(
 	card: DashboardCard,
 	body: HTMLElement,
 	parent: Component,
+	events: VaultEventHub,
 ): () => void {
 	let child: Component | null = null;
 	const draw = () => {
@@ -236,7 +247,7 @@ function mountCardBody(
 		// modify (it would drop the cursor) — but still redraw on existence changes.
 		// An embed can switch between a read-only and an editable view, so this is
 		// evaluated per event against whichever view is currently shown.
-		watchCardFile(view, card, parent, draw, () => !watchedCardEditable(card));
+		watchCardFile(view, card, events, draw, () => !watchedCardEditable(card));
 		return draw;
 	}
 
@@ -245,12 +256,12 @@ function mountCardBody(
 	// them — debounced — whenever the vault or its metadata changes.
 	if (LIVE_KINDS.has(card.kind)) {
 		const redraw = debounce(draw, 400, true);
-		const { vault, metadataCache } = view.app;
-		parent.registerEvent(vault.on("create", () => redraw()));
-		parent.registerEvent(vault.on("delete", () => redraw()));
-		parent.registerEvent(vault.on("rename", () => redraw()));
-		parent.registerEvent(vault.on("modify", () => redraw()));
-		parent.registerEvent(metadataCache.on("changed", () => redraw()));
+		events.subscribe((ev) => {
+			// A folder-scoped tasks card reads nothing outside its folders, so
+			// events that provably can't change its content are skipped instead
+			// of redrawing (and instead of resetting the debounce timer).
+			if (liveCardShouldRedraw(card, ev)) redraw();
+		});
 	}
 	return draw;
 }
@@ -280,7 +291,7 @@ const LIVE_KINDS = new Set<DashboardCard["kind"]>([
 function watchCardFile(
 	view: HomeView,
 	card: DashboardCard,
-	parent: Component,
+	events: VaultEventHub,
 	draw: () => void,
 	redrawOnModify: () => boolean,
 ): void {
@@ -290,27 +301,13 @@ function watchCardFile(
 		const path = watchedCardPath(view, card);
 		return path != null && (file.path === path || oldPath === path);
 	};
-	const { vault } = view.app;
-	parent.registerEvent(
-		vault.on("modify", (file) => {
-			if (redrawOnModify() && affects(file)) redraw();
-		}),
-	);
-	parent.registerEvent(
-		vault.on("create", (file) => {
-			if (affects(file)) redraw();
-		}),
-	);
-	parent.registerEvent(
-		vault.on("delete", (file) => {
-			if (affects(file)) redraw();
-		}),
-	);
-	parent.registerEvent(
-		vault.on("rename", (file, oldPath) => {
-			if (affects(file, oldPath)) redraw();
-		}),
-	);
+	events.subscribe((ev) => {
+		// Tracked-file cards key off disk events only (see watchedCardReactsToKind:
+		// a metadata reparse is ignored, a content edit is ignored while the card
+		// is edited in place); then only the tracked file's own path redraws.
+		if (!watchedCardReactsToKind(ev.kind, redrawOnModify())) return;
+		if (affects(ev.file, ev.oldPath)) redraw();
+	});
 }
 
 /** Save the current settings and rebuild the view (used after structural
