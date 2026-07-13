@@ -14,7 +14,12 @@ import {
 	renderCardBody,
 	watchedCardPath,
 } from "./cards";
-import { tasksEventRelevant } from "./taskscope";
+import {
+	createVaultEventHub,
+	liveCardShouldRedraw,
+	type VaultEventHub,
+	watchedCardReactsToKind,
+} from "./cardevents";
 import { CARD_TEMPLATES, cardFromTemplate, templateName } from "./templates";
 import { CardSettingsModal } from "./editors";
 import {
@@ -45,62 +50,6 @@ import {
 	placeFreeform,
 	ROW_HEIGHT,
 } from "./grid";
-
-/** A vault/metadata change fanned out to the board's cards: the four vault
- * disk events plus the metadata-cache reparse ("meta"). `oldPath` is set for
- * renames only. */
-interface VaultEvent {
-	kind: "create" | "delete" | "rename" | "modify" | "meta";
-	file: TAbstractFile;
-	oldPath?: string;
-}
-
-interface VaultEventHub {
-	subscribe(listener: (ev: VaultEvent) => void): void;
-}
-
-/** One shared set of vault/metadataCache registrations per board render,
- * fanning each event out to the subscribed cards. Every live card used to
- * register its own five listeners, so each vault event ran 5×N closures (and
- * as many debounce timers) before anything was even filtered; the hub keeps
- * the Obsidian-side registration constant no matter how many cards listen.
- * Registration is lazy — a board with no event-driven cards registers
- * nothing, and the Component ties the listeners to the render lifecycle
- * exactly as the per-card registrations were. */
-function createVaultEventHub(view: HomeView, component: Component): VaultEventHub {
-	const listeners: ((ev: VaultEvent) => void)[] = [];
-	let registered = false;
-	const dispatch = (ev: VaultEvent) => {
-		for (const listener of listeners) {
-			// Isolate subscribers from each other — before the hub each card was
-			// its own Obsidian handler, so one card's failure must not start
-			// silencing the other cards' refreshes now that they share a loop.
-			try {
-				listener(ev);
-			} catch (err) {
-				console.error("Hearth card event listener error", err);
-			}
-		}
-	};
-	return {
-		subscribe(listener) {
-			if (!registered) {
-				registered = true;
-				const { vault, metadataCache } = view.app;
-				component.registerEvent(vault.on("create", (file) => dispatch({ kind: "create", file })));
-				component.registerEvent(vault.on("delete", (file) => dispatch({ kind: "delete", file })));
-				component.registerEvent(
-					vault.on("rename", (file, oldPath) => dispatch({ kind: "rename", file, oldPath })),
-				);
-				component.registerEvent(vault.on("modify", (file) => dispatch({ kind: "modify", file })));
-				component.registerEvent(
-					metadataCache.on("changed", (file) => dispatch({ kind: "meta", file })),
-				);
-			}
-			listeners.push(listener);
-		},
-	};
-}
 
 /** Renders the dashboard toolbar and the positioned grid of cards. In arrange
  * mode cards can be moved, resized, added, removed and re-targeted on the
@@ -147,7 +96,7 @@ export function renderDashboard(
 
 	// Shared vault-event fan-out for every card on this board (see
 	// createVaultEventHub). Lives on the render component, torn down with it.
-	const events = createVaultEventHub(view, component);
+	const events = createVaultEventHub(view.app, (ref) => component.registerEvent(ref));
 
 	// Shared layout state for the drag engine (magnetic alignment to siblings).
 	const gridLayout: GridLayout = {
@@ -311,8 +260,7 @@ function mountCardBody(
 			// A folder-scoped tasks card reads nothing outside its folders, so
 			// events that provably can't change its content are skipped instead
 			// of redrawing (and instead of resetting the debounce timer).
-			if (card.kind === "tasks" && !tasksEventRelevant(card.tasks, ev.file, ev.oldPath)) return;
-			redraw();
+			if (liveCardShouldRedraw(card, ev)) redraw();
 		});
 	}
 	return draw;
@@ -354,10 +302,10 @@ function watchCardFile(
 		return path != null && (file.path === path || oldPath === path);
 	};
 	events.subscribe((ev) => {
-		// Tracked-file cards key off disk events only — a metadata reparse of
-		// the file always follows a modify, which already redrew.
-		if (ev.kind === "meta") return;
-		if (ev.kind === "modify" && !redrawOnModify()) return;
+		// Tracked-file cards key off disk events only (see watchedCardReactsToKind:
+		// a metadata reparse is ignored, a content edit is ignored while the card
+		// is edited in place); then only the tracked file's own path redraws.
+		if (!watchedCardReactsToKind(ev.kind, redrawOnModify())) return;
 		if (affects(ev.file, ev.oldPath)) redraw();
 	});
 }
