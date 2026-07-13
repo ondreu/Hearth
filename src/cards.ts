@@ -1392,13 +1392,25 @@ function renderBookmarks(view: HomeView, body: HTMLElement): void {
 	const items: BookmarkItem[] = [];
 	flattenBookmarks(instance.getBookmarks() ?? [], items);
 
-	if (items.length === 0) {
+	// Obsidian keeps a file/folder bookmark in its store even after the target is
+	// deleted (the entry only goes away if the bookmark itself is removed), but its
+	// native pane hides those orphans. `getBookmarks()` returns the raw store, so we
+	// drop file/folder bookmarks whose target no longer exists to match Obsidian and
+	// avoid rendering dead, unclickable rows (see issue #41).
+	const live = items.filter((item) => {
+		if ((item.type === "file" || item.type === "folder") && item.path) {
+			return view.app.vault.getAbstractFileByPath(item.path) !== null;
+		}
+		return true;
+	});
+
+	if (live.length === 0) {
 		emptyState(body, "bookmark", t().cards.empty.bookmarksEmpty);
 		return;
 	}
 
 	const list = body.createDiv("hearth-list");
-	for (const item of items) {
+	for (const item of live) {
 		const label =
 			item.title ||
 			item.path ||
