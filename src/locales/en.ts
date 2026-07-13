@@ -190,6 +190,11 @@ export const en = {
 		resetField: "Reset to default",
 		collapseSection: "Collapse section",
 		expandSection: "Expand section",
+		/** Shown in place of a settings section (or tab) whose render threw, so a
+		 * single failing section can no longer blank the whole settings pane. */
+		sectionError: (name: string) => `The "${name}" section couldn't be shown.`,
+		sectionErrorHint:
+			"Open the developer console (Cmd/Ctrl+Option+I) to see the error, then please report it on GitHub. The other settings are unaffected.",
 		/** Category ribbon at the top of the settings tab. */
 		tabs: {
 			appearance: "Appearance",

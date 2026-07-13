@@ -928,6 +928,37 @@
 	animation: hearth-tab-fade 140ms ease;
 }
 
+/* Inline error shown when a section (or tab) fails to render, so one broken
+   section can't leave the whole settings pane blank. */
+.hearth-settings-error {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 12px 14px;
+	margin: 8px 0;
+	border: 1px solid var(--background-modifier-error);
+	border-radius: 8px;
+	background: var(--background-modifier-error-hover);
+}
+
+.hearth-settings-error-icon {
+	display: inline-flex;
+	color: var(--text-error);
+	flex-shrink: 0;
+}
+
+.hearth-settings-error-title {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-settings-error-hint {
+	margin-top: 4px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.4;
+}
+
 @keyframes hearth-tab-fade {
 	from {
 		opacity: 0;

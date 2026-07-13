@@ -107,7 +107,33 @@ export class HomeSettingTab extends PluginSettingTab {
 		this.renderRibbon(containerEl, active);
 
 		const body = containerEl.createDiv("hearth-settings-tabbody");
-		this.renderTab(body, active);
+		// A tab-level backstop: individual sections already isolate their own
+		// failures (see `section`), but the About tab and a couple of bare rows
+		// render straight into the body. Guard here too so a throw anywhere in a
+		// tab shows an inline error rather than a blank pane — and, because the
+		// ribbon above is already drawn, the user can still switch to a working
+		// tab. (A silently-blank settings page is exactly issue #52.)
+		try {
+			this.renderTab(body, active);
+		} catch (err) {
+			body.empty();
+			this.renderError(body, t().settings.tabs[active], err);
+		}
+	}
+
+	/** Render an inline error block in place of content that failed to render,
+	 * and log the real stack to the console so it can be reported. Keeps one
+	 * broken section from blanking the entire settings pane. */
+	private renderError(containerEl: HTMLElement, name: string, err: unknown): void {
+		console.error(`Hearth: the "${name}" settings section failed to render`, err);
+		const box = containerEl.createDiv("hearth-settings-error");
+		setIcon(box.createSpan("hearth-settings-error-icon"), "alert-triangle");
+		const text = box.createDiv("hearth-settings-error-text");
+		text.createDiv({
+			cls: "hearth-settings-error-title",
+			text: t().settings.sectionError(name),
+		});
+		text.createDiv({ cls: "hearth-settings-error-hint", text: t().settings.sectionErrorHint });
 	}
 
 	/** The currently-selected ribbon tab, defaulting to the first. */
@@ -237,7 +263,15 @@ export class HomeSettingTab extends PluginSettingTab {
 		setIcon(chevron, "chevron-down");
 
 		const body = wrap.createDiv("hearth-section-body");
-		render(body);
+		// Isolate each section: a throw while rendering one section shows an inline
+		// error there instead of blanking the whole tab, so its siblings still
+		// render. The heading/fold behaviour below stays intact regardless.
+		try {
+			render(body);
+		} catch (err) {
+			body.empty();
+			this.renderError(body, title, err);
+		}
 
 		// Persist the collapsed state per-section and per-vault via Obsidian's
 		// vault-scoped local storage.

@@ -26,6 +26,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   memory, degrade gracefully offline (the last good items stay), and honour the
   **"disable external calls"** setting — with it on, no feed request is made.
 
+### Fixed
+
+- **A failing settings section no longer blanks the whole settings pane.**
+  Previously, if any part of the settings tab threw while rendering, the entire
+  pane was left empty with nothing to explain why — and, because the tab
+  remembers the last category you opened, it could stay blank on every reopen.
+  Each section (and the tab as a whole) is now isolated: a section that fails to
+  render shows an inline error in its place, logs the underlying error to the
+  developer console, and leaves every other section — and the category ribbon,
+  so you can still switch tabs — working as normal.
+
 ## [1.9.0]
 
 ### Changed
