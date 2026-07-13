@@ -32,10 +32,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Previously, if any part of the settings tab threw while rendering, the entire
   pane was left empty with nothing to explain why — and, because the tab
   remembers the last category you opened, it could stay blank on every reopen.
-  Each section (and the tab as a whole) is now isolated: a section that fails to
-  render shows an inline error in its place, logs the underlying error to the
-  developer console, and leaves every other section — and the category ribbon,
-  so you can still switch tabs — working as normal.
+  The **entire** settings render is now guarded — each section, each tab, and
+  the surrounding ribbon/datalist build — so a failure anywhere shows an inline
+  error in its place and logs the underlying error to the developer console
+  (including when Obsidian 1.13 renders settings in a separate window, whose
+  console is easy to miss), instead of a silent blank pane. Whatever still
+  works — sibling sections and the category ribbon — keeps working so you can
+  navigate.
 - **Orphaned file/folder bookmarks no longer linger in the Bookmarks card.**
   Obsidian keeps a file/folder bookmark in its store after the target note is
   deleted, and its native bookmarks pane hides those orphans; the Bookmarks card

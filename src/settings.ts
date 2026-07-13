@@ -98,26 +98,41 @@ export class HomeSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		containerEl.addClass("hearth-settings");
 
-		this.fileDatalist(containerEl);
-
-		// A ribbon of category tabs sits pinned at the top; only the active tab's
-		// sections render below it, keeping a long settings panel navigable. The
-		// active tab persists per-vault in localStorage.
-		const active = this.activeTab();
-		this.renderRibbon(containerEl, active);
-
-		const body = containerEl.createDiv("hearth-settings-tabbody");
-		// A tab-level backstop: individual sections already isolate their own
-		// failures (see `section`), but the About tab and a couple of bare rows
-		// render straight into the body. Guard here too so a throw anywhere in a
-		// tab shows an inline error rather than a blank pane — and, because the
-		// ribbon above is already drawn, the user can still switch to a working
-		// tab. (A silently-blank settings page is exactly issue #52.)
+		// Whole-pane backstop. #52 reports a completely blank settings pane — no
+		// ribbon, no error in the (main-window) console — for some users on
+		// Obsidian 1.13, which renders settings in a *separate window*. A throw
+		// anywhere in the build (even before the ribbon, e.g. in `fileDatalist` or
+		// `activeTab`) would blank everything, and its error lands in that other
+		// window's console where it's easy to miss. Guard the entire build so the
+		// pane can never be silently blank: on failure, show an inline error and
+		// log the real stack (to whichever console this window uses).
 		try {
-			this.renderTab(body, active);
+			this.fileDatalist(containerEl);
+
+			// A ribbon of category tabs sits pinned at the top; only the active
+			// tab's sections render below it, keeping a long settings panel
+			// navigable. The active tab persists per-vault in localStorage.
+			const active = this.activeTab();
+			this.renderRibbon(containerEl, active);
+
+			const body = containerEl.createDiv("hearth-settings-tabbody");
+			// A tab-level backstop nested inside: individual sections already
+			// isolate their own failures (see `section`), but the About tab and a
+			// couple of bare rows render straight into the body. Guard here too so
+			// a throw in a tab shows an inline error rather than a blank pane —
+			// and, because the ribbon above is already drawn, the user can still
+			// switch to a working tab.
+			try {
+				this.renderTab(body, active);
+			} catch (err) {
+				body.empty();
+				this.renderError(body, t().settings.tabs[active], err);
+			}
 		} catch (err) {
-			body.empty();
-			this.renderError(body, t().settings.tabs[active], err);
+			// The ribbon/datalist itself failed to build. Append the error rather
+			// than empty()-ing, so any partially-drawn ribbon that survived still
+			// lets the user navigate.
+			this.renderError(containerEl, "Hearth", err);
 		}
 	}
 
