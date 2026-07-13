@@ -44,7 +44,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   matching Obsidian's native behaviour. URL, search, and group items are
   unaffected.
 
-## [1.9.0]
+## [1.9.0] - 2026-07-12
 
 ### Changed
 
