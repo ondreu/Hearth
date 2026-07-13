@@ -41,6 +41,7 @@ import { EXCALIDRAW_PLUGIN_ID, iconForFile, isExcalidraw } from "./filetypes";
 import { type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
 import { parseNaturalDate, formatRelativeDate, localDayKey } from "./dates";
+import { inTaskScope } from "./taskscope";
 import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
@@ -2512,19 +2513,6 @@ function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; do
 		.filter((s) => s && typeof s.symbol === "string" && s.symbol.length === 1)
 		.map((s) => ({ symbol: s.symbol, label: (s.label || "").trim() || s.symbol, done: !!s.done }));
 	return custom.length ? custom : defaultCheckboxStatuses();
-}
-
-/** Whether `path` is in scope per the card's folder whitelist/blacklist. An
- * empty whitelist matches nothing; an empty blacklist excludes nothing. */
-function inTaskScope(path: string, cfg: TasksConfig): boolean {
-	const mode = cfg.folderScope ?? "all";
-	if (mode === "all") return true;
-	const folders = (cfg.folders ?? [])
-		.map((f) => f.trim().replace(/\/+$/, ""))
-		.filter(Boolean);
-	if (folders.length === 0) return mode === "blacklist";
-	const matches = folders.some((f) => path === f || path.startsWith(`${f}/`));
-	return mode === "whitelist" ? matches : !matches;
 }
 
 function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
