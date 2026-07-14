@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.11.0]
+## [1.12.0]
 
 ### Changed
 
@@ -36,6 +36,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   at both global (Settings → Dashboard) and per-dashboard (dashboard settings)
   levels. Merged-together cards still flatten their touching corners, and the
   shared frosted-glass layer follows the same radius so nothing seams.
+- **RSS feed card — add feeds from a GitHub repo.** The RSS card's editor now
+  has an **Add from GitHub** shortcut: type a repository as `owner/repo` (or
+  paste its URL), pick **Releases**, **Commits**, or both, and Hearth adds the
+  matching `releases.atom` / `commits.atom` feeds for you — no need to
+  hand-write the feed URLs.
+
+## [1.11.0]
+
+### Added
+
 - **RSS feed card.** A lightweight, self-contained feed reader you can drop on
   any dashboard. Add one or more RSS/Atom feeds — each becomes a tab in the card
   header — with an optional combined **"All"** tab that merges every source
@@ -46,10 +56,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Obsidian's own request bridge (so cross-origin feeds work) and cached in
   memory, degrade gracefully offline (the last good items stay), and honour the
   **"disable external calls"** setting — with it on, no feed request is made.
-  The editor also has an **Add from GitHub** shortcut: type a repository as
-  `owner/repo` (or paste its URL), pick **Releases**, **Commits**, or both, and
-  Hearth adds the matching `releases.atom` / `commits.atom` feeds for you — no
-  need to hand-write the feed URLs.
 
 ### Fixed
 
