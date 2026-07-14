@@ -1,7 +1,7 @@
 {
 	"id": "hearth",
 	"name": "Hearth",
-	"version": "1.10.0",
+	"version": "1.11.0",
 	"minAppVersion": "1.8.7",
 	"description": "A beautiful, customizable home screen for your vault — search, dashboard, and launcher in one.",
 	"author": "ondreu",
