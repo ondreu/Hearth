@@ -696,6 +696,14 @@ function sanitizeDashboard(
 			s.cardBlur,
 		);
 	}
+	if (typeof r.cardRadius === "number") {
+		dash.cardRadius = clampNum(
+			r.cardRadius,
+			RANGE.cardRadius.min,
+			RANGE.cardRadius.max,
+			s.cardRadius,
+		);
+	}
 	const bg = sanitizeBackground(r.background);
 	if (bg) dash.background = bg;
 	return dash;

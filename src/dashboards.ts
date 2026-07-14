@@ -4,6 +4,7 @@ import {
 	type BackgroundConfig,
 	type BackgroundKind,
 	type Dashboard,
+	CARD_RADIUS_MAX,
 	DEFAULT_SETTINGS,
 	newDashboardId,
 	cloneCard,
@@ -128,6 +129,7 @@ function showDashboardMenu(view: HomeView, dash: Dashboard, evt: MouseEvent): vo
 				if (dash.showSearch != null) copy.showSearch = dash.showSearch;
 				if (dash.cardOpacity != null) copy.cardOpacity = dash.cardOpacity;
 				if (dash.cardBlur != null) copy.cardBlur = dash.cardBlur;
+				if (dash.cardRadius != null) copy.cardRadius = dash.cardRadius;
 				if (dash.background) copy.background = { ...dash.background };
 				const i = s.dashboards.findIndex((d) => d.id === dash.id);
 				s.dashboards.splice(i + 1, 0, copy);
@@ -291,6 +293,22 @@ class DashboardSettingsModal extends Modal {
 			1,
 			(v) => {
 				dash.cardBlur = v;
+				this.commit();
+			},
+		);
+
+		// Corner radius is capped at the design baseline (CARD_RADIUS_MAX): only
+		// sharper corners are offered, since rounding beyond it was never tuned for.
+		this.overrideSlider(
+			contentEl,
+			t().dashboards.modal.cardRadius,
+			dash.cardRadius,
+			s.cardRadius,
+			0,
+			CARD_RADIUS_MAX,
+			1,
+			(v) => {
+				dash.cardRadius = v;
 				this.commit();
 			},
 		);

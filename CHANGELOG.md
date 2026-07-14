@@ -15,11 +15,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Card corner radius setting.** A global **Card corner radius** slider
-  (Settings → Dashboard) controls how rounded card corners are, from the
-  default 14 px down to sharp 0 px corners. Merged-together cards still flatten
-  their touching corners, and the shared frosted-glass layer follows the same
-  radius so nothing seams.
+- **Card corner radius setting.** A **Card corner radius** slider controls how
+  rounded card corners are, from the default 14 px down to sharp 0 px corners,
+  at both global (Settings → Dashboard) and per-dashboard (dashboard settings)
+  levels. Merged-together cards still flatten their touching corners, and the
+  shared frosted-glass layer follows the same radius so nothing seams.
 - **RSS feed card.** A lightweight, self-contained feed reader you can drop on
   any dashboard. Add one or more RSS/Atom feeds — each becomes a tab in the card
   header — with an optional combined **"All"** tab that merges every source

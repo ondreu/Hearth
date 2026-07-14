@@ -540,6 +540,8 @@ export interface Dashboard {
 	/** Override the card surface backdrop blur (px) for this board (undefined =
 	 * global). */
 	cardBlur?: number;
+	/** Override the card corner radius (px) for this board (undefined = global). */
+	cardRadius?: number;
 	/** Show the dashboard search/command section (undefined = visible). */
 	showSearch?: boolean;
 }
@@ -876,11 +878,12 @@ export function resolveCardBlur(s: HomeSettings, card: DashboardCard): number {
  * frosted-glass mask, arrange outlines) so only sharper is offered. */
 export const CARD_RADIUS_MAX = 14;
 
-/** Effective card corner radius (px) for the dashboard, clamped to
- * [0, CARD_RADIUS_MAX]. Applied board-wide via the --hearth-card-radius CSS
- * variable so every card (and the frost mask) rounds by the same amount. */
+/** Effective card corner radius (px) for the active board (per-dashboard
+ * override or global), clamped to [0, CARD_RADIUS_MAX]. Applied board-wide via
+ * the --hearth-card-radius CSS variable so every card (and the frost mask)
+ * rounds by the same amount. */
 export function effectiveCardRadius(s: HomeSettings): number {
-	const v = s.cardRadius;
+	const v = activeDashboard(s).cardRadius ?? s.cardRadius;
 	return typeof v === "number" && !Number.isNaN(v)
 		? Math.max(0, Math.min(CARD_RADIUS_MAX, v))
 		: CARD_RADIUS_MAX;

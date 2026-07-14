@@ -359,10 +359,11 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Card blur (frosted glass)** — blur the dashboard behind translucent cards
   for a frosted-glass look, at global, per-dashboard and per-card levels. On by
   default for fresh installs; merged cards blur as one seamless surface.
-- **Card corner radius** — a global **Card corner radius** slider (Settings →
-  Dashboard) controls how rounded card corners are, from the default 14 px down
-  to sharp 0 px corners. Merged-together cards still flatten their touching
-  corners as usual, and the frosted-glass layer follows the same radius.
+- **Card corner radius** — a **Card corner radius** slider controls how rounded
+  card corners are, from the default 14 px down to sharp 0 px corners, at global
+  (Settings → Dashboard) and per-dashboard levels. Merged-together cards still
+  flatten their touching corners as usual, and the frosted-glass layer follows
+  the same radius.
 
 ## Mobile
 

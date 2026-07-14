@@ -157,6 +157,7 @@ export const en = {
 			fitOptionScroll: "Allow scrolling",
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
+			cardRadius: "Card corner radius",
 			done: "Done",
 			overriding: "Overriding the global default.",
 			usingGlobal: (value: number | string) =>
