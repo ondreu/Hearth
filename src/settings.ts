@@ -1,4 +1,4 @@
-import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SliderComponent, type TextComponent, TFile } from "obsidian";
+import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
@@ -66,12 +66,52 @@ const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 /** localStorage key for the last-opened settings tab. */
 const ACTIVE_TAB_KEY = "hearth-settings-tab";
 
+/**
+ * ⚠️ Naming hazard: members of this class live on the same prototype chain as
+ * Obsidian's `SettingTab`, whose *undocumented internals* are not in the
+ * typings — so a colliding name compiles cleanly and silently replaces engine
+ * behaviour at runtime. That is exactly how #52 happened: a private
+ * `renderTab(body, tab)` helper shadowed the internal `SettingTab.renderTab()`
+ * that Obsidian 1.13's settings window calls to open a tab. Obsidian invoked
+ * it with no arguments, the `switch (undefined)` matched nothing, and the pane
+ * came up completely blank — no error, on every reopen. Keep member names
+ * unmistakably Hearth-specific; the constructor tripwire below turns any
+ * future collision into a loud console error instead of a silent blank pane.
+ */
 export class HomeSettingTab extends PluginSettingTab {
 	plugin: HearthPlugin;
+
+	/** Members we deliberately override — the documented extension points of
+	 * `SettingTab`. Anything else that exists on the base prototype chain is an
+	 * Obsidian internal we must not shadow. */
+	private static readonly INTENDED_OVERRIDES = new Set([
+		"constructor",
+		"display",
+		"hide",
+		"getSettingDefinitions",
+		"getControlValue",
+		"setControlValue",
+	]);
 
 	constructor(app: App, plugin: HearthPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+		this.warnOnBaseMemberShadowing();
+	}
+
+	/** #52 tripwire: at runtime (inside real Obsidian, where the internals
+	 * actually exist on the base prototypes) report any member of this class
+	 * that shadows a `SettingTab` member we didn't mean to override. */
+	private warnOnBaseMemberShadowing(): void {
+		const base = Object.getPrototypeOf(HomeSettingTab.prototype) as object | null;
+		if (!base) return;
+		for (const name of Object.getOwnPropertyNames(HomeSettingTab.prototype)) {
+			if (!HomeSettingTab.INTENDED_OVERRIDES.has(name) && name in base) {
+				console.error(
+					`Hearth: HomeSettingTab.${name} shadows an internal Obsidian SettingTab member and will break settings rendering — rename it (see issue #52)`,
+				);
+			}
+		}
 	}
 
 	private async save(): Promise<void> {
@@ -94,31 +134,123 @@ export class HomeSettingTab extends PluginSettingTab {
 		new Notice(frag, 10000);
 	}
 
+	/** Where the pane last rendered: the declarative host row on Obsidian
+	 * 1.13+, `containerEl` on the legacy path. Internal re-renders (ribbon
+	 * clicks, list mutations) must target this element — on 1.13 `containerEl`
+	 * is never attached, so rendering into it would silently go nowhere. */
+	private renderTarget: HTMLElement | null = null;
+
+	/** Temporary #52 diagnostic state — see getSettingDefinitions. */
+	private loggedDefinitionsQuery = false;
+
+	/**
+	 * Obsidian 1.13 reworked the settings modal around declarative setting
+	 * definitions; when a tab's definitions are non-empty, the legacy
+	 * `display()` is never called. On affected installs (#52) the modal took
+	 * that path for this tab, so the pane stayed completely blank — no error,
+	 * and no guard inside display() could ever run. Registering the whole pane
+	 * as a single self-rendered definition makes the tab render on the new
+	 * pipeline; older Obsidian versions never call this and keep using
+	 * `display()`. Same builder either way.
+	 */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		// Temporary #52 diagnostic: Obsidian 1.13+ calls this once when the tab
+		// is added to the settings modal (for search indexing) and again per
+		// display cycle; pre-1.13 never calls it. One log on the first call
+		// closes the gap between the load log in main.ts and the render-path
+		// warns below — "queried but never rendered" (this line without a
+		// render line) is otherwise indistinguishable from "old Obsidian,
+		// display() pipeline". Remove with the other #52 warns.
+		if (!this.loggedDefinitionsQuery) {
+			this.loggedDefinitionsQuery = true;
+			console.warn(
+				`Hearth ${this.plugin.manifest.version}: settings tab queried on the 1.13 definitions pipeline`,
+			);
+		}
+		return [
+			{
+				name: this.plugin.manifest.name,
+				// The pane manages its own layout and content; keep the host
+				// row out of the 1.13 settings search.
+				searchable: false,
+				render: (setting: Setting) => {
+					const host = setting.settingEl;
+					// Drop the empty name/desc/control skeleton and the
+					// setting-row flex layout; the pane is a plain block.
+					host.empty();
+					host.addClass("hearth-settings-host");
+					this.renderTarget = host;
+					// Temporary #52 diagnostic: names the render path in the
+					// console of whichever window hosts settings. Remove once
+					// the blank-pane report is confirmed fixed.
+					console.warn(
+						`Hearth ${this.plugin.manifest.version}: rendering settings via setting definitions (Obsidian 1.13+)`,
+					);
+					this.renderInto(host);
+					return () => {
+						if (this.renderTarget === host) this.renderTarget = null;
+					};
+				},
+			},
+		];
+	}
+
 	display(): void {
-		const { containerEl } = this;
+		this.renderTarget = this.containerEl;
+		// Temporary #52 diagnostic — see getSettingDefinitions above.
+		console.warn(
+			`Hearth ${this.plugin.manifest.version}: rendering settings via legacy display()`,
+		);
+		this.renderInto(this.containerEl);
+	}
+
+	/** Re-render the pane in place after a state change (tab switch, list
+	 * mutation, import) — into whichever element the pane currently lives in. */
+	private rerender(): void {
+		this.renderInto(this.renderTarget ?? this.containerEl);
+	}
+
+	/** Build the full settings pane into `containerEl`, shared by both render
+	 * paths (legacy `display()` and the 1.13 setting-definition host). */
+	private renderInto(containerEl: HTMLElement): void {
 		containerEl.empty();
 		containerEl.addClass("hearth-settings");
 
-		this.fileDatalist(containerEl);
-
-		// A ribbon of category tabs sits pinned at the top; only the active tab's
-		// sections render below it, keeping a long settings panel navigable. The
-		// active tab persists per-vault in localStorage.
-		const active = this.activeTab();
-		this.renderRibbon(containerEl, active);
-
-		const body = containerEl.createDiv("hearth-settings-tabbody");
-		// A tab-level backstop: individual sections already isolate their own
-		// failures (see `section`), but the About tab and a couple of bare rows
-		// render straight into the body. Guard here too so a throw anywhere in a
-		// tab shows an inline error rather than a blank pane — and, because the
-		// ribbon above is already drawn, the user can still switch to a working
-		// tab. (A silently-blank settings page is exactly issue #52.)
+		// Whole-pane backstop. #52 reports a completely blank settings pane — no
+		// ribbon, no error in the (main-window) console — for some users on
+		// Obsidian 1.13, which renders settings in a *separate window*. A throw
+		// anywhere in the build (even before the ribbon, e.g. in `fileDatalist` or
+		// `activeTab`) would blank everything, and its error lands in that other
+		// window's console where it's easy to miss. Guard the entire build so the
+		// pane can never be silently blank: on failure, show an inline error and
+		// log the real stack (to whichever console this window uses).
 		try {
-			this.renderTab(body, active);
+			this.fileDatalist(containerEl);
+
+			// A ribbon of category tabs sits pinned at the top; only the active
+			// tab's sections render below it, keeping a long settings panel
+			// navigable. The active tab persists per-vault in localStorage.
+			const active = this.activeTab();
+			this.renderRibbon(containerEl, active);
+
+			const body = containerEl.createDiv("hearth-settings-tabbody");
+			// A tab-level backstop nested inside: individual sections already
+			// isolate their own failures (see `section`), but the About tab and a
+			// couple of bare rows render straight into the body. Guard here too so
+			// a throw in a tab shows an inline error rather than a blank pane —
+			// and, because the ribbon above is already drawn, the user can still
+			// switch to a working tab.
+			try {
+				this.renderTabSections(body, active);
+			} catch (err) {
+				body.empty();
+				this.renderError(body, t().settings.tabs[active], err);
+			}
 		} catch (err) {
-			body.empty();
-			this.renderError(body, t().settings.tabs[active], err);
+			// The ribbon/datalist itself failed to build. Append the error rather
+			// than empty()-ing, so any partially-drawn ribbon that survived still
+			// lets the user navigate.
+			this.renderError(containerEl, "Hearth", err);
 		}
 	}
 
@@ -161,13 +293,15 @@ export class HomeSettingTab extends PluginSettingTab {
 			btn.createSpan({ cls: "hearth-ribbon-tab-label", text: label });
 			btn.addEventListener("click", () => {
 				this.app.saveLocalStorage(ACTIVE_TAB_KEY, tab.id);
-				this.display();
+				this.rerender();
 			});
 		}
 	}
 
-	/** Render the sections that belong to a given tab. */
-	private renderTab(body: HTMLElement, tab: SettingsTabId): void {
+	/** Render the sections that belong to a given ribbon tab. (Named
+	 * `renderTabSections`, not `renderTab` — the latter is an Obsidian 1.13
+	 * internal and shadowing it blanked the whole pane, #52.) */
+	private renderTabSections(body: HTMLElement, tab: SettingsTabId): void {
 		const s = t().settings;
 		switch (tab) {
 			case "appearance":
@@ -484,7 +618,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				d.setValue(s.backgroundKind).onChange((v) => {
 					s.backgroundKind = v as BackgroundKind;
 					void this.save();
-					this.display();
+					this.rerender();
 				});
 			});
 
@@ -646,7 +780,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					// switching kinds.
 					btn.target = "";
 					void this.save();
-					this.display();
+					this.rerender();
 				});
 			});
 			const currentTarget = btn.target ?? "";
@@ -666,7 +800,7 @@ export class HomeSettingTab extends PluginSettingTab {
 							btn.target = command.id;
 							if (!btn.label.trim()) btn.label = command.name;
 							void this.save();
-							this.display();
+							this.rerender();
 						}).open();
 					});
 				});
@@ -704,7 +838,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						buttons.splice(index, 1);
 						await this.save();
-						this.display();
+						this.rerender();
 					}),
 			);
 		});
@@ -723,7 +857,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						target: "",
 					});
 					await this.save();
-					this.display();
+					this.rerender();
 				}),
 			)
 			.addExtraButton((b) =>
@@ -733,7 +867,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.onClick(async () => {
 						s.mobileActionButtons = defaultMobileActionButtons();
 						await this.save();
-						this.display();
+						this.rerender();
 					}),
 			);
 	}
@@ -744,7 +878,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		const [item] = arr.splice(from, 1);
 		arr.splice(to, 0, item);
 		void this.save();
-		this.display();
+		this.rerender();
 	}
 
 	// ---- Tasks / TaskNotes ------------------------------------------------
@@ -1042,7 +1176,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					return;
 				}
 				void this.save();
-				this.display();
+				this.rerender();
 				new Notice(opts.imported);
 			},
 		});

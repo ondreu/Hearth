@@ -1,4 +1,4 @@
-import { addIcon, Plugin, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, apiVersion, Plugin, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
@@ -18,6 +18,21 @@ export default class HearthPlugin extends Plugin {
 	isFirstRun = false;
 
 	async onload() {
+		// Temporary #52 diagnostic: one report has the settings pane blank with
+		// zero console output even from the render-path warns in settings.ts,
+		// which is only possible if the tab never renders at all — this line
+		// tells apart "an older build is still installed" from "this build is
+		// loaded but its settings tab is never rendered". It also embeds the
+		// environment details every hypothesis so far has hinged on (app/API
+		// version, Electron installer version, CPU architecture), so one
+		// screenshot answers them all. Remove together with the render-path
+		// warns once #52 is closed out.
+		const proc = (window as unknown as { process?: { versions?: Record<string, string>; arch?: string } }).process;
+		console.warn(
+			`Hearth ${this.manifest.version} loaded (Obsidian API ${apiVersion}, ` +
+				`electron ${proc?.versions?.electron ?? "n/a"}, arch ${proc?.arch ?? "n/a"})`,
+		);
+
 		// Pick the locale from Obsidian's UI language before anything renders or
 		// registers a translated command name.
 		setLanguage();

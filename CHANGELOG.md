@@ -33,14 +33,44 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Task date parsing no longer spams the console — and understands wikilink
+  dates.** When a task's date field held something moment.js couldn't parse
+  natively (e.g. `📅 [[260801]] #sd`, a due date written as a daily-note link),
+  the parser fell back to moment's deprecated `new Date()` path, printing a
+  loud RFC2822/ISO deprecation warning for every such field on every vault scan
+  (#52). Dates are now parsed strictly (ISO first, then an explicit list of
+  human formats), which can never trigger the warning. As part of the same
+  change, date expressions may now be wrapped in a wikilink (`📅
+  [[2026-08-01]]` or `[[Daily/2026-08-01|due]]` resolve to the linked day) and
+  trailing `#tags` after a date are ignored (`📅 2026-08-01 #home`).
+
+- **Settings pane no longer opens blank on Obsidian 1.13.** Root cause found
+  (with an enormous assist from the affected users' console digging in #52):
+  since the category-ribbon redesign, the settings tab had a private helper
+  named `renderTab(body, tab)` — and Obsidian 1.13's reworked settings window
+  calls an *internal, undocumented* `SettingTab.renderTab()` method (no
+  arguments) as the entry point for opening a tab. Hearth's same-named helper
+  silently shadowed it: Obsidian invoked it with no arguments, the
+  `switch (undefined)` inside matched no category, and the pane rendered
+  nothing — no error, on every reopen, on macOS and iPad alike (#52). And
+  because Obsidian never got past that entry point, none of the earlier
+  guards or the declarative registration could ever run. The helper is renamed
+  so Obsidian's own machinery runs again, the tab additionally registers its
+  pane through the 1.13 declarative settings API (older Obsidian versions keep
+  using `display()` — same UI either way), and a constructor tripwire now
+  reports any future member-name collision with Obsidian's `SettingTab`
+  internals as a loud console error instead of a silent blank pane.
 - **A failing settings section no longer blanks the whole settings pane.**
   Previously, if any part of the settings tab threw while rendering, the entire
   pane was left empty with nothing to explain why — and, because the tab
   remembers the last category you opened, it could stay blank on every reopen.
-  Each section (and the tab as a whole) is now isolated: a section that fails to
-  render shows an inline error in its place, logs the underlying error to the
-  developer console, and leaves every other section — and the category ribbon,
-  so you can still switch tabs — working as normal.
+  The **entire** settings render is now guarded — each section, each tab, and
+  the surrounding ribbon/datalist build — so a failure anywhere shows an inline
+  error in its place and logs the underlying error to the developer console
+  (including when Obsidian 1.13 renders settings in a separate window, whose
+  console is easy to miss), instead of a silent blank pane. Whatever still
+  works — sibling sections and the category ribbon — keeps working so you can
+  navigate.
 - **Orphaned file/folder bookmarks no longer linger in the Bookmarks card.**
   Obsidian keeps a file/folder bookmark in its store after the target note is
   deleted, and its native bookmarks pane hides those orphans; the Bookmarks card
