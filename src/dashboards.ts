@@ -1,4 +1,4 @@
-import { Menu, Modal, Setting, setIcon } from "obsidian";
+import { Menu, Setting, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
@@ -10,6 +10,7 @@ import {
 	cloneCard,
 } from "./types";
 import { confirmAction } from "./ui";
+import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
 
 /** A per-dashboard background's opacity and blur default to — and reset to —
@@ -168,8 +169,12 @@ function showDashboardMenu(view: HomeView, dash: Dashboard, evt: MouseEvent): vo
 
 /** Per-dashboard settings: name, switcher icon, dashboard chrome, and optional
  * overrides for grid columns, row height and background. Overrides fall back to
- * the global settings when left off. */
-class DashboardSettingsModal extends Modal {
+ * the global settings when left off.
+ *
+ * Laid out as a tabbed modal (General / Layout / Style / Background) with a
+ * persistent Done footer, mirroring the plugin settings pane so both configure
+ * the same way. */
+class DashboardSettingsModal extends HearthTabbedModal {
 	private view: HomeView;
 	private dash: Dashboard;
 
@@ -181,7 +186,13 @@ class DashboardSettingsModal extends Modal {
 
 	onOpen(): void {
 		this.titleEl.setText(t().dashboards.modal.title);
-		this.render();
+		this.hearthRenderShell();
+	}
+
+	/** Rebuild the modal in place, keeping the active tab. Used by the override
+	 * toggles and background dropdown, which swap which controls are shown. */
+	private render(): void {
+		this.hearthRenderShell();
 	}
 
 	/** Persist and refresh the live view without closing the modal. */
@@ -190,20 +201,56 @@ class DashboardSettingsModal extends Modal {
 		this.view.render();
 	}
 
-	private render(): void {
-		const { contentEl } = this;
-		contentEl.empty();
-		const dash = this.dash;
-		const s = this.view.plugin.settings;
+	protected hearthTabStorageKey(): string {
+		return "hearth-dash-settings-tab";
+	}
 
-		new Setting(contentEl).setName(t().dashboards.modal.name).addText((tx) =>
+	protected hearthTabs(): HearthModalTab[] {
+		const tabs = t().dashboards.modal.tabs;
+		return [
+			{ id: "general", label: tabs.general, icon: "settings-2" },
+			{ id: "layout", label: tabs.layout, icon: "layout-dashboard" },
+			{ id: "style", label: tabs.style, icon: "palette" },
+			{ id: "background", label: tabs.background, icon: "image" },
+		];
+	}
+
+	protected hearthRenderBody(body: HTMLElement, tabId: string): void {
+		switch (tabId) {
+			case "general":
+				this.generalSection(body);
+				break;
+			case "layout":
+				this.layoutSection(body);
+				break;
+			case "style":
+				this.styleSection(body);
+				break;
+			case "background":
+				this.backgroundSection(body);
+				break;
+		}
+	}
+
+	/** Persistent footer shared by every tab: close the modal. */
+	protected hearthRenderFooter(footer: HTMLElement): void {
+		new Setting(footer).addButton((b) =>
+			b.setButtonText(t().dashboards.modal.done).setCta().onClick(() => this.close()),
+		);
+	}
+
+	/** Name, switcher icons and whether the search section shows. */
+	private generalSection(containerEl: HTMLElement): void {
+		const dash = this.dash;
+
+		new Setting(containerEl).setName(t().dashboards.modal.name).addText((tx) =>
 			tx.setValue(dash.name).onChange((v) => {
 				dash.name = v || t().dashboards.fallbackName;
 				this.commit();
 			}),
 		);
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().dashboards.modal.switcherIcon)
 			.setDesc(t().dashboards.modal.switcherIconDesc)
 			.addText((tx) =>
@@ -213,7 +260,7 @@ class DashboardSettingsModal extends Modal {
 				}),
 			);
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().dashboards.modal.switcherLucide)
 			.setDesc(t().dashboards.modal.switcherLucideDesc)
 			.addText((tx) =>
@@ -226,7 +273,7 @@ class DashboardSettingsModal extends Modal {
 					}),
 			);
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().dashboards.modal.showSearch)
 			.setDesc(t().dashboards.modal.showSearchDesc)
 			.addToggle((tg) =>
@@ -235,9 +282,15 @@ class DashboardSettingsModal extends Modal {
 					this.commit();
 				}),
 			);
+	}
+
+	/** Content width and fit-to-page, each an override of the global default. */
+	private layoutSection(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
 
 		this.overrideSlider(
-			contentEl,
+			containerEl,
 			t().dashboards.modal.contentWidth,
 			dash.maxWidth,
 			s.maxWidth,
@@ -250,7 +303,7 @@ class DashboardSettingsModal extends Modal {
 			},
 		);
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().dashboards.modal.fitToPage)
 			.setDesc(t().dashboards.modal.fitToPageDesc)
 			.addDropdown((d) => {
@@ -268,9 +321,15 @@ class DashboardSettingsModal extends Modal {
 					this.commit();
 				});
 			});
+	}
+
+	/** Card surface overrides: opacity, blur and corner radius. */
+	private styleSection(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
 
 		this.overrideSlider(
-			contentEl,
+			containerEl,
 			t().dashboards.modal.cardOpacity,
 			dash.cardOpacity,
 			s.cardOpacity,
@@ -284,7 +343,7 @@ class DashboardSettingsModal extends Modal {
 		);
 
 		this.overrideSlider(
-			contentEl,
+			containerEl,
 			t().dashboards.modal.cardBlur,
 			dash.cardBlur,
 			s.cardBlur,
@@ -300,7 +359,7 @@ class DashboardSettingsModal extends Modal {
 		// Corner radius is capped at the design baseline (CARD_RADIUS_MAX): only
 		// sharper corners are offered, since rounding beyond it was never tuned for.
 		this.overrideSlider(
-			contentEl,
+			containerEl,
 			t().dashboards.modal.cardRadius,
 			dash.cardRadius,
 			s.cardRadius,
@@ -311,12 +370,6 @@ class DashboardSettingsModal extends Modal {
 				dash.cardRadius = v;
 				this.commit();
 			},
-		);
-
-		this.backgroundSection(contentEl);
-
-		new Setting(contentEl).addButton((b) =>
-			b.setButtonText(t().dashboards.modal.done).setCta().onClick(() => this.close()),
 		);
 	}
 

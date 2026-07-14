@@ -137,6 +137,13 @@ export const en = {
 		deleteConfirm: "Delete",
 		modal: {
 			title: "Dashboard settings",
+			/** Tabs across the top of the dashboard settings modal. */
+			tabs: {
+				general: "General",
+				layout: "Layout",
+				style: "Style",
+				background: "Background",
+			},
 			name: "Name",
 			switcherIcon: "Switcher icon",
 			switcherIconDesc:
@@ -434,6 +441,12 @@ export const en = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "Card settings",
+		/** Tabs across the top of the card settings modal. */
+		tabs: {
+			content: "Content",
+			style: "Style",
+			layout: "Layout",
+		},
 		type: "Type",
 		typeDesc: "What this card shows.",
 		cardTitle: "Title",

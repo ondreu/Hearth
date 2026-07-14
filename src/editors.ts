@@ -1,4 +1,4 @@
-import { type App, Modal, Notice, setIcon, Setting } from "obsidian";
+import { type App, Notice, setIcon, Setting } from "obsidian";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID } from "./filetypes";
 import { listBaseViews, isBaseTarget } from "./bases";
 import { CommandPickerModal, FilePickerModal } from "./pickers";
@@ -13,6 +13,7 @@ import type {
 } from "./types";
 import { confirmAction } from "./ui";
 import { listLeafViewTypes } from "./leafview";
+import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
 
 export interface CardSettingsOptions {
@@ -38,8 +39,12 @@ export interface CardSettingsOptions {
  * The single place to configure a card — opened from the card itself in arrange
  * mode. Covers kind, title, kind-specific content, colors and size so nothing
  * has to be hunted for in the plugin settings tab.
+ *
+ * Laid out as a tabbed modal (Content / Style / Layout) with a persistent
+ * Remove/Done footer, so a card with a dense editor (tasks, RSS) stays as
+ * navigable as a plain one.
  */
-export class CardSettingsModal extends Modal {
+export class CardSettingsModal extends HearthTabbedModal {
 	private card: DashboardCard;
 	private opts: CardSettingsOptions;
 
@@ -51,15 +56,50 @@ export class CardSettingsModal extends Modal {
 
 	onOpen(): void {
 		this.titleEl.setText(t().editors.title);
-		this.render();
+		this.hearthRenderShell();
 	}
 
+	/** Rebuild the modal in place, keeping the active tab. Kind-specific editors
+	 * call this after a change that swaps which controls are shown. */
 	private render(): void {
-		const { contentEl } = this;
-		contentEl.empty();
+		this.hearthRenderShell();
+	}
+
+	protected hearthTabStorageKey(): string {
+		return "hearth-card-settings-tab";
+	}
+
+	protected hearthTabs(): HearthModalTab[] {
+		const tabs = t().editors.tabs;
+		return [
+			{ id: "content", label: tabs.content, icon: "square-pen" },
+			{ id: "style", label: tabs.style, icon: "palette" },
+			{ id: "layout", label: tabs.layout, icon: "layout-dashboard" },
+		];
+	}
+
+	protected hearthRenderBody(body: HTMLElement, tabId: string): void {
+		switch (tabId) {
+			case "content":
+				this.identitySection(body);
+				this.contentSection(body);
+				break;
+			case "style":
+				this.colorsSection(body);
+				break;
+			case "layout":
+				this.sizeSection(body);
+				this.pinSection(body);
+				this.copySection(body);
+				break;
+		}
+	}
+
+	/** Type and title — what the card is, shown at the top of the Content tab. */
+	private identitySection(containerEl: HTMLElement): void {
 		const card = this.card;
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().editors.type)
 			.setDesc(t().editors.typeDesc)
 			.addDropdown((d) => {
@@ -73,7 +113,7 @@ export class CardSettingsModal extends Modal {
 				});
 			});
 
-		new Setting(contentEl)
+		new Setting(containerEl)
 			.setName(t().editors.cardTitle)
 			.setDesc(t().editors.cardTitleDesc)
 			.addText((txt) =>
@@ -85,14 +125,11 @@ export class CardSettingsModal extends Modal {
 						this.opts.save();
 					}),
 			);
+	}
 
-		this.contentSection(contentEl);
-		this.colorsSection(contentEl);
-		this.sizeSection(contentEl);
-		this.pinSection(contentEl);
-		this.copySection(contentEl);
-
-		new Setting(contentEl)
+	/** Persistent footer shared by every tab: remove the card, or close. */
+	protected hearthRenderFooter(footer: HTMLElement): void {
+		new Setting(footer)
 			.addButton((b) => {
 				b.setButtonText(t().editors.removeCard).onClick(() => {
 					confirmAction(this.app, {

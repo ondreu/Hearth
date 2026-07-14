@@ -13,6 +13,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ## [1.11.0]
 
+### Changed
+
+- **Card & dashboard settings, reorganised into tabs.** The card-settings and
+  per-dashboard-settings dialogs — previously one long, flat scroll of every
+  control — are now split across tabs, mirroring the plugin settings pane so the
+  whole plugin configures the same way. Card settings groups into **Content**
+  (type, title and the card's own options), **Style** (colours, opacity, blur)
+  and **Layout** (size, pin to all dashboards, copy to another), with Remove and
+  Done always in reach at the bottom. Dashboard settings groups into **General**,
+  **Layout**, **Style** and **Background**. The last-used tab is remembered, and
+  a single failing group can no longer blank the whole dialog.
+
 ### Added
 
 - **Recent files card — file-type filter.** The **Recent files** card can now be

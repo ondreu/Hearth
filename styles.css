@@ -1026,6 +1026,51 @@
 	}
 }
 
+/* ---- Tabbed modals: card & dashboard settings -----------------------
+   The card- and dashboard-settings modals reuse the settings pane's ribbon
+   look (.hearth-ribbon-tab): a row of tabs pinned to the top, one group's
+   controls shown at a time, and a persistent action footer below. */
+
+.hearth-modal-ribbon {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	padding-bottom: 10px;
+	margin-bottom: 6px;
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Give the body a floor so switching from a dense tab (tasks) to a sparse one
+   (style) doesn't make the modal jump in height on every click. */
+.hearth-modal-tabbody {
+	min-height: 220px;
+	animation: hearth-tab-fade 140ms ease;
+}
+
+/* The footer sits below the scrolling tab body, its actions right-aligned. */
+.hearth-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding-top: 12px;
+	margin-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-modal-footer .setting-item {
+	border: none;
+	padding: 0;
+	width: 100%;
+}
+
+.hearth-modal-footer .setting-item-control {
+	gap: 8px;
+}
+
 /* ---- Settings tab: About panel --------------------------------------
    The Ko-fi tip button keeps the brand's white/dark look (from the official
    widget) so it reads as a support button, not a stock accent button. */
