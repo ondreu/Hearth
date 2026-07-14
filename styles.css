@@ -2958,6 +2958,26 @@
 	justify-content: stretch;
 }
 
+/* RSS "Add from GitHub" quick-add: its three controls (repo input, feed-type
+   dropdown, Add button) need more room than a right-aligned control strip
+   gives — otherwise they squeeze the name/description into a sliver. Stack the
+   controls under the label, lay them out left-to-right, and let the repo input
+   take the slack (wrapping on narrow dialogs). */
+.hearth-rss-github {
+	display: block;
+}
+
+.hearth-rss-github .setting-item-control {
+	margin-top: 8px;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+}
+
+.hearth-rss-github-repo {
+	flex: 1 1 12em;
+	min-width: 0;
+}
+
 /* Dataview query editor: a monospaced, full-width code box. */
 .hearth-dataview-input {
 	width: 100%;
