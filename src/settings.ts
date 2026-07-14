@@ -65,12 +65,52 @@ const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 /** localStorage key for the last-opened settings tab. */
 const ACTIVE_TAB_KEY = "hearth-settings-tab";
 
+/**
+ * ⚠️ Naming hazard: members of this class live on the same prototype chain as
+ * Obsidian's `SettingTab`, whose *undocumented internals* are not in the
+ * typings — so a colliding name compiles cleanly and silently replaces engine
+ * behaviour at runtime. That is exactly how #52 happened: a private
+ * `renderTab(body, tab)` helper shadowed the internal `SettingTab.renderTab()`
+ * that Obsidian 1.13's settings window calls to open a tab. Obsidian invoked
+ * it with no arguments, the `switch (undefined)` matched nothing, and the pane
+ * came up completely blank — no error, on every reopen. Keep member names
+ * unmistakably Hearth-specific; the constructor tripwire below turns any
+ * future collision into a loud console error instead of a silent blank pane.
+ */
 export class HomeSettingTab extends PluginSettingTab {
 	plugin: HearthPlugin;
+
+	/** Members we deliberately override — the documented extension points of
+	 * `SettingTab`. Anything else that exists on the base prototype chain is an
+	 * Obsidian internal we must not shadow. */
+	private static readonly INTENDED_OVERRIDES = new Set([
+		"constructor",
+		"display",
+		"hide",
+		"getSettingDefinitions",
+		"getControlValue",
+		"setControlValue",
+	]);
 
 	constructor(app: App, plugin: HearthPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+		this.warnOnBaseMemberShadowing();
+	}
+
+	/** #52 tripwire: at runtime (inside real Obsidian, where the internals
+	 * actually exist on the base prototypes) report any member of this class
+	 * that shadows a `SettingTab` member we didn't mean to override. */
+	private warnOnBaseMemberShadowing(): void {
+		const base = Object.getPrototypeOf(HomeSettingTab.prototype) as object | null;
+		if (!base) return;
+		for (const name of Object.getOwnPropertyNames(HomeSettingTab.prototype)) {
+			if (!HomeSettingTab.INTENDED_OVERRIDES.has(name) && name in base) {
+				console.error(
+					`Hearth: HomeSettingTab.${name} shadows an internal Obsidian SettingTab member and will break settings rendering — rename it (see issue #52)`,
+				);
+			}
+		}
 	}
 
 	private async save(): Promise<void> {
@@ -200,7 +240,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			// and, because the ribbon above is already drawn, the user can still
 			// switch to a working tab.
 			try {
-				this.renderTab(body, active);
+				this.renderTabSections(body, active);
 			} catch (err) {
 				body.empty();
 				this.renderError(body, t().settings.tabs[active], err);
@@ -257,8 +297,10 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 	}
 
-	/** Render the sections that belong to a given tab. */
-	private renderTab(body: HTMLElement, tab: SettingsTabId): void {
+	/** Render the sections that belong to a given ribbon tab. (Named
+	 * `renderTabSections`, not `renderTab` — the latter is an Obsidian 1.13
+	 * internal and shadowing it blanked the whole pane, #52.) */
+	private renderTabSections(body: HTMLElement, tab: SettingsTabId): void {
 		const s = t().settings;
 		switch (tab) {
 			case "appearance":

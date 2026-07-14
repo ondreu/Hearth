@@ -39,16 +39,22 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   [[2026-08-01]]` or `[[Daily/2026-08-01|due]]` resolve to the linked day) and
   trailing `#tags` after a date are ignored (`📅 2026-08-01 #home`).
 
-- **Settings pane no longer opens blank on Obsidian 1.13.** Obsidian 1.13
-  rebuilt the settings window around a new declarative settings API, and when
-  it takes that path for a tab it never calls the plugin's legacy `display()`
-  renderer — on affected installs (reported on macOS and iPad, #52) Hearth's
-  settings therefore came up completely empty, with no error anywhere, ever
-  since the category-ribbon redesign. The tab now registers its pane through
-  the new API's render hook, so Obsidian 1.13+ renders it on the declarative
-  path while older Obsidian versions keep using `display()` — the same UI
-  either way. A temporary console line names which path rendered, to confirm
-  the diagnosis on affected machines.
+- **Settings pane no longer opens blank on Obsidian 1.13.** Root cause found
+  (with an enormous assist from the affected users' console digging in #52):
+  since the category-ribbon redesign, the settings tab had a private helper
+  named `renderTab(body, tab)` — and Obsidian 1.13's reworked settings window
+  calls an *internal, undocumented* `SettingTab.renderTab()` method (no
+  arguments) as the entry point for opening a tab. Hearth's same-named helper
+  silently shadowed it: Obsidian invoked it with no arguments, the
+  `switch (undefined)` inside matched no category, and the pane rendered
+  nothing — no error, on every reopen, on macOS and iPad alike (#52). And
+  because Obsidian never got past that entry point, none of the earlier
+  guards or the declarative registration could ever run. The helper is renamed
+  so Obsidian's own machinery runs again, the tab additionally registers its
+  pane through the 1.13 declarative settings API (older Obsidian versions keep
+  using `display()` — same UI either way), and a constructor tripwire now
+  reports any future member-name collision with Obsidian's `SettingTab`
+  internals as a loud console error instead of a silent blank pane.
 - **A failing settings section no longer blanks the whole settings pane.**
   Previously, if any part of the settings tab threw while rendering, the entire
   pane was left empty with nothing to explain why — and, because the tab
