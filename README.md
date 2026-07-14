@@ -225,7 +225,8 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Bookmarks** — pulls from Obsidian's core Bookmarks plugin, with site
   favicons next to URL bookmarks.
 - **Favorites** — a grid of curated note cards.
-- **Recent files** — your recently opened files (configurable count).
+- **Recent files** — your recently opened files (configurable count, with an
+  optional file-type filter — pick any combination of types to list).
 - **Links / launchpad** — a grid of tiles opening notes, URLs or commands.
   Tiles live on a **CSS grid** with independent **column and row spans**, so a
   tile can be 2×2, 4×1, or any proportion. In arrange mode, drag a tile to

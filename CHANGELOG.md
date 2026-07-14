@@ -15,6 +15,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Recent files card — file-type filter.** The **Recent files** card can now be
+  limited to specific file types. Its editor offers the same type chips as the
+  search filter (Notes, Images, PDFs, Canvas, …); pick any combination to list
+  only those, or leave them all off to keep showing every recently-opened file.
 - **Card corner radius setting.** A **Card corner radius** slider controls how
   rounded card corners are, from the default 14 px down to sharp 0 px corners,
   at both global (Settings → Dashboard) and per-dashboard (dashboard settings)

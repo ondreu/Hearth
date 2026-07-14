@@ -37,7 +37,7 @@ import { cachedRates, loadRates } from "./currency";
 import { getDataviewApi } from "./dataview";
 import { cachedFeed, loadFeed, type RssItem } from "./rss";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
-import { EXCALIDRAW_PLUGIN_ID, iconForFile, isExcalidraw } from "./filetypes";
+import { EXCALIDRAW_PLUGIN_ID, groupForFile, iconForFile, isExcalidraw } from "./filetypes";
 import { type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
 import { parseNaturalDate, formatRelativeDate, localDayKey } from "./dates";
@@ -1760,10 +1760,20 @@ function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement
 
 function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const count = card.count && card.count > 0 ? card.count : 8;
+	// Optional file-type filter: keep only files whose group is selected. An
+	// empty/undefined list means no filtering (show every type). The filter is
+	// applied before the count is capped, so the card shows the N most recent
+	// files of the chosen types rather than the N most recent overall.
+	const types = card.recentTypes && card.recentTypes.length > 0 ? new Set(card.recentTypes) : null;
 	const files = view.app.workspace
 		.getLastOpenFiles()
 		.map((p) => view.app.vault.getAbstractFileByPath(p))
 		.filter((f): f is TFile => f instanceof TFile)
+		.filter((f) => {
+			if (!types) return true;
+			const group = groupForFile(f);
+			return group != null && types.has(group.id);
+		})
 		.slice(0, count);
 
 	if (files.length === 0) {

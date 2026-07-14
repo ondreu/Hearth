@@ -526,6 +526,8 @@ export const en = {
 		recent: {
 			count: "Number of files",
 			countDesc: "How many recently-opened files to list.",
+			types: "File types",
+			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
 		},
 		calendar: {
 			weekNumbers: "Week numbers",

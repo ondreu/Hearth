@@ -347,6 +347,52 @@
 	display: flex;
 }
 
+/* ---- Recent-card type filter (card editor) -------------------------- */
+
+/* A wrap of labelled chips for choosing which file types a recent-files card
+ * lists. Multiple may be active at once, unlike the search filter's single
+ * selection. */
+.hearth-type-filter {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 18px;
+}
+
+.hearth-type-filter-chip {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: 10px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	transition: all 120ms ease;
+}
+
+.hearth-type-filter-chip:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.hearth-type-filter-chip.is-active {
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+}
+
+.hearth-type-filter-icon {
+	display: flex;
+}
+
+.hearth-type-filter-icon svg {
+	width: 15px;
+	height: 15px;
+}
+
 /* ---- Dashboard grid ------------------------------------------------- */
 
 .hearth-dashboard {

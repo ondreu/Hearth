@@ -408,6 +408,10 @@ export interface DashboardCard {
 	commands?: CommandItem[];
 	/** kind === "recent": how many recent files to show. */
 	count?: number;
+	/** kind === "recent": file-type group ids (see FILE_TYPE_GROUPS) to include.
+	 * Any combination of the search filter's types; undefined or empty means all
+	 * types are shown. */
+	recentTypes?: string[];
 	/** kind === "clock": time/greeting/date display options. */
 	clock?: ClockConfig;
 	/** kind === "tasks": source, folder scope and display options. */

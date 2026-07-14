@@ -1,4 +1,5 @@
-import { type App, Modal, Notice, Setting } from "obsidian";
+import { type App, Modal, Notice, setIcon, Setting } from "obsidian";
+import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID } from "./filetypes";
 import { listBaseViews, isBaseTarget } from "./bases";
 import { CommandPickerModal, FilePickerModal } from "./pickers";
 import type {
@@ -263,6 +264,7 @@ export class CardSettingsModal extends Modal {
 				this.addResetButton(recent, t().settings.resetField, () => {
 					card.count = undefined;
 				});
+				this.recentTypesEditor(containerEl, card);
 				break;
 			}
 			case "links":
@@ -907,6 +909,50 @@ export class CardSettingsModal extends Modal {
 					this.render();
 				}),
 		);
+	}
+
+	/** File-type filter for the recent-files card: a row of toggleable chips
+	 * mirroring the search filter's types. Any combination may be selected; an
+	 * empty selection means every type is shown. */
+	private recentTypesEditor(containerEl: HTMLElement, card: DashboardCard): void {
+		const setting = new Setting(containerEl)
+			.setName(t().editors.recent.types)
+			.setDesc(t().editors.recent.typesDesc);
+		this.addResetButton(setting, t().settings.resetField, () => {
+			card.recentTypes = undefined;
+		});
+
+		const selected = new Set(card.recentTypes ?? []);
+		const row = containerEl.createDiv("hearth-type-filter");
+		// Folders can never appear among recently-opened files, so offer every
+		// search-filter type except that one.
+		const groups = FILE_TYPE_GROUPS.filter((g) => g.id !== FOLDERS_GROUP_ID);
+		for (const group of groups) {
+			const chip = row.createDiv("hearth-type-filter-chip");
+			chip.toggleClass("is-active", selected.has(group.id));
+			setIcon(chip.createDiv("hearth-type-filter-icon"), group.icon);
+			chip.createDiv({ cls: "hearth-type-filter-label", text: fileTypeLabel(group) });
+			chip.setAttribute("role", "button");
+			chip.setAttribute("tabindex", "0");
+			chip.setAttribute("aria-pressed", String(selected.has(group.id)));
+			const toggle = () => {
+				if (selected.has(group.id)) selected.delete(group.id);
+				else selected.add(group.id);
+				const on = selected.has(group.id);
+				chip.toggleClass("is-active", on);
+				chip.setAttribute("aria-pressed", String(on));
+				card.recentTypes = selected.size > 0 ? Array.from(selected) : undefined;
+				this.opts.save();
+				this.opts.rerender();
+			};
+			chip.addEventListener("click", toggle);
+			chip.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					toggle();
+				}
+			});
+		}
 	}
 
 	/** Move an item within a list, then persist and re-render the editor. */
