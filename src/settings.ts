@@ -99,6 +99,9 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * is never attached, so rendering into it would silently go nowhere. */
 	private renderTarget: HTMLElement | null = null;
 
+	/** Temporary #52 diagnostic state — see getSettingDefinitions. */
+	private loggedDefinitionsQuery = false;
+
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
 	 * definitions; when a tab's definitions are non-empty, the legacy
@@ -110,6 +113,19 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * `display()`. Same builder either way.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
+		// Temporary #52 diagnostic: Obsidian 1.13+ calls this once when the tab
+		// is added to the settings modal (for search indexing) and again per
+		// display cycle; pre-1.13 never calls it. One log on the first call
+		// closes the gap between the load log in main.ts and the render-path
+		// warns below — "queried but never rendered" (this line without a
+		// render line) is otherwise indistinguishable from "old Obsidian,
+		// display() pipeline". Remove with the other #52 warns.
+		if (!this.loggedDefinitionsQuery) {
+			this.loggedDefinitionsQuery = true;
+			console.warn(
+				`Hearth ${this.plugin.manifest.version}: settings tab queried on the 1.13 definitions pipeline`,
+			);
+		}
 		return [
 			{
 				name: this.plugin.manifest.name,
