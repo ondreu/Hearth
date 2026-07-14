@@ -18,6 +18,14 @@ export default class HearthPlugin extends Plugin {
 	isFirstRun = false;
 
 	async onload() {
+		// Temporary #52 diagnostic: one report has the settings pane blank with
+		// zero console output even from the render-path warns in settings.ts,
+		// which is only possible if the tab never renders at all — this line
+		// tells apart "an older build is still installed" from "this build is
+		// loaded but its settings tab is never rendered". Remove together with
+		// the render-path warns once #52 is closed out.
+		console.warn(`Hearth ${this.manifest.version} loaded`);
+
 		// Pick the locale from Obsidian's UI language before anything renders or
 		// registers a translated command name.
 		setLanguage();

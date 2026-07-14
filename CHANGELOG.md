@@ -28,6 +28,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Task date parsing no longer spams the console — and understands wikilink
+  dates.** When a task's date field held something moment.js couldn't parse
+  natively (e.g. `📅 [[260801]] #sd`, a due date written as a daily-note link),
+  the parser fell back to moment's deprecated `new Date()` path, printing a
+  loud RFC2822/ISO deprecation warning for every such field on every vault scan
+  (#52). Dates are now parsed strictly (ISO first, then an explicit list of
+  human formats), which can never trigger the warning. As part of the same
+  change, date expressions may now be wrapped in a wikilink (`📅
+  [[2026-08-01]]` or `[[Daily/2026-08-01|due]]` resolve to the linked day) and
+  trailing `#tags` after a date are ignored (`📅 2026-08-01 #home`).
+
 - **Settings pane no longer opens blank on Obsidian 1.13.** Obsidian 1.13
   rebuilt the settings window around a new declarative settings API, and when
   it takes that path for a tab it never calls the plugin's legacy `display()`
