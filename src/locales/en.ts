@@ -762,6 +762,17 @@ export const en = {
 			urlPlaceholder: "https://example.com/feed.xml",
 			addFeed: "Add feed",
 			removeFeed: "Remove feed",
+			github: "Add from GitHub",
+			githubDesc:
+				"Enter a repository as owner/repo (or paste its URL) and pick what to follow — Hearth builds the Atom feed for you.",
+			githubPlaceholder: "owner/repo",
+			githubReleases: "Releases",
+			githubCommits: "Commits",
+			githubBoth: "Releases & commits",
+			githubAdd: "Add repo",
+			githubInvalid: "Enter a repository as owner/repo.",
+			githubReleasesName: "{repo} releases",
+			githubCommitsName: "{repo} commits",
 			mergeAll: "Combined “All” tab",
 			mergeAllDesc:
 				"Add a leading tab that merges every feed into one stream, newest first.",

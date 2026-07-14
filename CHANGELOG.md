@@ -46,6 +46,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Obsidian's own request bridge (so cross-origin feeds work) and cached in
   memory, degrade gracefully offline (the last good items stay), and honour the
   **"disable external calls"** setting — with it on, no feed request is made.
+  The editor also has an **Add from GitHub** shortcut: type a repository as
+  `owner/repo` (or paste its URL), pick **Releases**, **Commits**, or both, and
+  Hearth adds the matching `releases.atom` / `commits.atom` feeds for you — no
+  need to hand-write the feed URLs.
 
 ### Fixed
 
