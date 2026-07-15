@@ -59,6 +59,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **TaskNotes tasks open in a working editor again.** Opening an existing
+  TaskNotes task from a Tasks card handed TaskNotes' edit modal the note's
+  `TFile` instead of its own task object, leaving the modal with a broken
+  change-detection baseline: every button but Delete was trapped and the window
+  couldn't be closed (#72). Hearth now resolves TaskNotes' task info for the
+  note first (via its cache manager or public API) and only opens the modal when
+  it can, falling back to opening the note otherwise.
+
 - **Task date parsing no longer spams the console — and understands wikilink
   dates.** When a task's date field held something moment.js couldn't parse
   natively (e.g. `📅 [[260801]] #sd`, a due date written as a daily-note link),
