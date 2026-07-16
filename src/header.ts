@@ -2,7 +2,17 @@ import { type Component, Platform, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
 import { HEARTH_ICON_ID } from "./icon";
-import { effectiveShowSearch } from "./types";
+import {
+	effectiveHeaderAlign,
+	effectiveHeaderLogoScale,
+	effectiveHeaderMarginTop,
+	effectiveHeaderSpacingBelow,
+	effectiveHeaderTitleScale,
+	effectiveLogo,
+	effectiveShowSearch,
+	effectiveShowTitle,
+	effectiveTitle,
+} from "./types";
 import { t } from "./i18n";
 
 /** The search engine used by the “Search online” button action.
@@ -22,9 +32,22 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	const s = view.plugin.settings;
 	const mobileOnly = Platform.isMobile && s.mobileSearchOnly;
 
-	if (s.showTitle) {
+	container.addClass(`is-title-align-${effectiveHeaderAlign(s)}`);
+	const spacingBelow = effectiveHeaderSpacingBelow(s);
+	if (spacingBelow !== undefined) {
+		container.style.setProperty("--hearth-header-spacing-below", `${spacingBelow}px`);
+	}
+
+	if (effectiveShowTitle(s)) {
 		const titleRow = container.createDiv("hearth-title");
-		const logo = s.logo.trim();
+		titleRow.style.setProperty("--hearth-title-scale", String(effectiveHeaderTitleScale(s)));
+		titleRow.style.setProperty("--hearth-logo-scale", String(effectiveHeaderLogoScale(s)));
+		const marginTop = effectiveHeaderMarginTop(s);
+		if (marginTop !== undefined) {
+			titleRow.style.setProperty("--hearth-title-margin-top", `${marginTop}px`);
+		}
+
+		const logo = effectiveLogo(s).trim();
 		// A custom emoji/text logo is shown verbatim; otherwise fall back to the
 		// Hearth crystal icon as the brand mark.
 		if (logo === "") {
@@ -33,7 +56,7 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 		} else {
 			titleRow.createSpan({ cls: "hearth-logo", text: logo });
 		}
-		titleRow.createSpan({ cls: "hearth-title-text", text: s.title });
+		titleRow.createSpan({ cls: "hearth-title-text", text: effectiveTitle(s) });
 	}
 
 	if (!effectiveShowSearch(s)) return;

@@ -57,7 +57,8 @@ export const en = {
 		layoutImportError: (error: string) => `Hearth: ${error}`,
 		settingsExported: "Hearth: settings exported.",
 		settingsImported: "Hearth: settings imported.",
-		exportedToVault: (file: string) => `Hearth: saved ${file} to your vault's root folder.`,
+		exportedToVault: (file: string) =>
+			`Hearth: saved ${file} to your vault's root folder.`,
 		exportFailed: "Hearth: couldn't save the export file.",
 		cardCopied: "Card copied to the dashboard.",
 	},
@@ -140,6 +141,7 @@ export const en = {
 			/** Tabs across the top of the dashboard settings modal. */
 			tabs: {
 				general: "General",
+				header: "Header",
 				layout: "Layout",
 				style: "Style",
 				background: "Background",
@@ -154,6 +156,30 @@ export const en = {
 			lucidePlaceholder: "home",
 			showSearch: "Show search section",
 			showSearchDesc: "Show the search and command bar with its results and filter buttons on this dashboard.",
+			titleVisibility: "Title visibility",
+			titleVisibilityDesc:
+				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
+			titleVisibilityDefault: (state: string) => `Use global default (${state})`,
+			visibilityShown: "shown",
+			visibilityHidden: "hidden",
+			visibilityShow: "Show title",
+			visibilityHide: "Hide title",
+			titleText: "Title text",
+			titleTextDesc: "Override the global title text for this dashboard.",
+			logoText: "Logo text",
+			logoTextDesc:
+				"Override the global logo for this dashboard. Empty uses the Hearth crystal icon.",
+			titleAlign: "Title alignment",
+			titleAlignDesc:
+				"Align only the title/logo block. The search bar keeps its own layout.",
+			alignDefault: "Default (center)",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			titleSize: "Title size",
+			logoSize: "Logo size",
+			titleTopMargin: "Title top margin",
+			headerSpacingBelow: "Spacing below title/header",
 			contentWidth: "Content width",
 			fitToPage: "Fit to page",
 			fitToPageDesc: "Override scrolling for this board.",
@@ -165,10 +191,15 @@ export const en = {
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
 			cardRadius: "Card corner radius",
+			cardBorderWidth: "Card border",
 			done: "Done",
 			overriding: "Overriding the global default.",
 			usingGlobal: (value: number | string) =>
 				`Using global default (${value}).`,
+			usingDefault: (value: number | string) =>
+				`Using default (${value}).`,
+			usingDefaultText: (value: string) =>
+				`Using default (${value}).`,
 			background: "Background",
 			backgroundDesc: "Override the global background for this dashboard.",
 			backgroundValue: "Background value",
@@ -403,6 +434,9 @@ export const en = {
 			cardRadius: "Card corner radius",
 			cardRadiusDesc:
 				"How rounded card corners are, in pixels. 14 is the default; lower makes corners sharper.",
+			cardBorderWidth: "Card border",
+			cardBorderWidthDesc:
+				"Thickness of the card border and header divider, in pixels. 0 hides the border.",
 			cards: "Cards",
 			cardsDesc:
 				"Add and configure cards on the dashboard itself: open the home view, " +
@@ -416,7 +450,8 @@ export const en = {
 			export: "Export layout",
 			exportDesc: "Download the current dashboard layout as a JSON file.",
 			exportButton: "Export file",
-			exportMobileTooltip: "On mobile the file is saved to your vault's root folder.",
+			exportMobileTooltip:
+				"On mobile the file is saved to your vault's root folder.",
 			import: "Import layout",
 			importDesc:
 				"Choose a previously exported layout file. This replaces your current dashboards.",
@@ -1154,7 +1189,9 @@ export const en = {
 		notAnObject: "Layout must be a JSON object.",
 		noValidDashboards: "Layout contained no valid dashboards.",
 		noValidCards: "Layout contained no valid cards.",
-		notAHearthLayout: 'Not a Hearth layout — no "dashboards" or "cards" array found.',
-		notHearthSettings: 'Not a Hearth settings backup — no "hearthSettings" marker or layout found.',
+		notAHearthLayout:
+			'Not a Hearth layout — no "dashboards" or "cards" array found.',
+		notHearthSettings:
+			'Not a Hearth settings backup — no "hearthSettings" marker or layout found.',
 	},
 };

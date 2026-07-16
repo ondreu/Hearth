@@ -26,6 +26,7 @@ import {
 	activeCards,
 	cloneCard,
 	type DashboardCard,
+	effectiveCardBorderWidth,
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
@@ -87,6 +88,7 @@ export function renderDashboard(
 	// mask in grid.ts reads the resolved value back off the grid so its rounding
 	// matches. Merged-edge corners still flatten to 0 regardless (see styles.css).
 	grid.style.setProperty("--hearth-card-radius", `${effectiveCardRadius(s)}px`);
+	grid.style.setProperty("--card-border-width", `${effectiveCardBorderWidth(s)}px`);
 	const fit = effectiveFitToPage(s);
 	// In fit-to-page mode the board is locked to one screen, so leave the
 	// min-height to CSS (which clips the overflow). Otherwise grow the board

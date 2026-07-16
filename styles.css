@@ -51,7 +51,7 @@
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 28px;
+	gap: var(--hearth-inner-gap, 28px);
 }
 
 .hearth-fit .hearth-inner {
@@ -66,6 +66,10 @@
 	flex-direction: column;
 	align-items: center;
 	gap: 18px;
+	margin-bottom: calc(
+		var(--hearth-header-spacing-below, var(--hearth-inner-gap, 28px)) -
+		var(--hearth-inner-gap, 28px)
+	);
 	/* Sit above the dashboard so the search dropdown overlay isn't covered. */
 	position: relative;
 	z-index: 50;
@@ -109,12 +113,31 @@
 	font-weight: 700;
 	letter-spacing: -0.02em;
 	color: var(--text-normal);
-	margin-top: 2vh;
+	margin-top: var(--hearth-title-margin-top, 2vh);
+}
+
+.hearth-header.is-title-align-left .hearth-title {
+	align-self: flex-start;
+	text-align: left;
+}
+
+.hearth-header.is-title-align-center .hearth-title {
+	align-self: center;
+	text-align: center;
+}
+
+.hearth-header.is-title-align-right .hearth-title {
+	align-self: flex-end;
+	text-align: right;
 }
 
 .hearth-logo {
-	font-size: 0.9em;
+	font-size: calc(0.9em * var(--hearth-logo-scale, 1));
 	line-height: 1;
+}
+
+.hearth-title-text {
+	font-size: calc(1em * var(--hearth-title-scale, 1));
 }
 
 .hearth-logo-icon {
@@ -456,7 +479,8 @@
 	/* --hearth-card-radius (px) is set per-board by renderDashboard; the 14px
 	 * fallback keeps the design baseline when it isn't set. */
 	border-radius: var(--hearth-card-radius, 14px);
-	border: 1px solid var(--background-modifier-border);
+	border: var(--card-border-width, 1px) solid
+		var(--background-modifier-border);
 	/* --card-opacity (0..1) tints the card surface without dimming content. */
 	background: color-mix(
 		in srgb,
@@ -542,7 +566,8 @@
 	display: flex;
 	align-items: center;
 	padding: 10px 14px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	border-bottom: var(--card-border-width, 1px) solid
+		var(--background-modifier-border);
 }
 
 .hearth-card-title {
@@ -2437,21 +2462,24 @@
 }
 
 /* Collapse the shared border between touching cards so there's no double line
- * — the two surfaces meet flush and look like a single tile. The card's own
- * background fills the now-borderless edge (box-sizing is border-box).
- * Deliberately placed after the accent rules so a touching edge goes
- * borderless even on accent-coloured cards. */
+ * — the two surfaces meet flush and look like a single tile. Remove the shared
+ * border width rather than making it transparent: at thicker border widths a
+ * transparent border still occupies space and reads as a notch/pike where
+ * merged edges meet the rounded outer frame. With border-box sizing this does
+ * not expand cards outward; it only lets the card background fill the shared
+ * edge inside the existing card box. Deliberately placed after the accent rules
+ * so a touching edge goes borderless even on accent-coloured cards. */
 .hearth-card.merge-top {
-	border-top-color: transparent;
+	border-top-width: 0;
 }
 .hearth-card.merge-bottom {
-	border-bottom-color: transparent;
+	border-bottom-width: 0;
 }
 .hearth-card.merge-left {
-	border-left-color: transparent;
+	border-left-width: 0;
 }
 .hearth-card.merge-right {
-	border-right-color: transparent;
+	border-right-width: 0;
 }
 
 /* Drop the drop-shadow on any card that shares a full edge with a neighbour.
@@ -2514,7 +2542,8 @@
 	background: color-mix(in srgb, var(--background-primary) 88%, transparent);
 	backdrop-filter: blur(6px);
 	border-bottom: 1px solid var(--background-modifier-border);
-	border-radius: var(--hearth-card-radius, 14px) var(--hearth-card-radius, 14px) 0 0;
+	border-radius: var(--hearth-card-radius, 14px)
+		var(--hearth-card-radius, 14px) 0 0;
 }
 
 .hearth-card-title-input {
@@ -2685,7 +2714,7 @@
 }
 
 .hearth-compact .hearth-inner {
-	gap: 16px;
+	--hearth-inner-gap: 16px;
 }
 
 .hearth-compact .hearth-header {
@@ -2693,7 +2722,7 @@
 }
 
 .hearth-compact .hearth-title {
-	margin-top: 0;
+	margin-top: var(--hearth-title-margin-top, 0);
 }
 
 .hearth-compact .hearth-card-head {

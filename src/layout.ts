@@ -22,6 +22,7 @@ import {
 	type TaskSortRule,
 	type TasksConfig,
 	activeDashboard,
+	CARD_BORDER_WIDTH_MAX,
 } from "./types";
 import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
@@ -59,6 +60,10 @@ const RANGE = {
 	cardH: { min: 1, max: 60 },
 	cardBlur: { min: 0, max: 24 },
 	cardRadius: { min: 0, max: 14 },
+	cardBorderWidth: { min: 0, max: CARD_BORDER_WIDTH_MAX },
+	headerScale: { min: 0.6, max: 1.8 },
+	headerMarginTop: { min: 0, max: 96 },
+	headerSpacingBelow: { min: 0, max: 96 },
 };
 
 const CARD_KINDS: CardKind[] = [
@@ -141,6 +146,7 @@ export function exportSettings(s: HomeSettings): string {
 		cardOpacity: s.cardOpacity,
 		cardBlur: s.cardBlur,
 		cardRadius: s.cardRadius,
+		cardBorderWidth: s.cardBorderWidth,
 
 		// Search filters
 		hiddenFilters: s.hiddenFilters,
@@ -165,6 +171,15 @@ function clampNum(
 	fallback: number,
 ): number {
 	return Math.max(min, Math.min(max, Math.round(num(value, fallback))));
+}
+
+function clampFloat(
+	value: unknown,
+	min: number,
+	max: number,
+	fallback: number,
+): number {
+	return Math.max(min, Math.min(max, num(value, fallback)));
 }
 
 function str(value: unknown): string | undefined {
@@ -677,6 +692,52 @@ function sanitizeDashboard(
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
+	const rawHeader = r.header;
+	if (rawHeader && typeof rawHeader === "object") {
+		const h = rawHeader as Record<string, unknown>;
+		const header: NonNullable<Dashboard["header"]> = {};
+		if (typeof h.showTitle === "boolean") header.showTitle = h.showTitle;
+		const title = str(h.title);
+		if (title !== undefined) header.title = title;
+		const logo = str(h.logo);
+		if (logo !== undefined) header.logo = logo;
+		if (h.align === "left" || h.align === "center" || h.align === "right") {
+			header.align = h.align;
+		}
+		if (typeof h.titleScale === "number") {
+			header.titleScale = clampFloat(
+				h.titleScale,
+				RANGE.headerScale.min,
+				RANGE.headerScale.max,
+				1,
+			);
+		}
+		if (typeof h.logoScale === "number") {
+			header.logoScale = clampFloat(
+				h.logoScale,
+				RANGE.headerScale.min,
+				RANGE.headerScale.max,
+				1,
+			);
+		}
+		if (typeof h.marginTop === "number") {
+			header.marginTop = clampNum(
+				h.marginTop,
+				RANGE.headerMarginTop.min,
+				RANGE.headerMarginTop.max,
+				0,
+			);
+		}
+		if (typeof h.spacingBelow === "number") {
+			header.spacingBelow = clampNum(
+				h.spacingBelow,
+				RANGE.headerSpacingBelow.min,
+				RANGE.headerSpacingBelow.max,
+				0,
+			);
+		}
+		if (Object.keys(header).length > 0) dash.header = header;
+	}
 	if (typeof r.maxWidth === "number") {
 		dash.maxWidth = clampNum(
 			r.maxWidth,
@@ -702,6 +763,14 @@ function sanitizeDashboard(
 			RANGE.cardRadius.min,
 			RANGE.cardRadius.max,
 			s.cardRadius,
+		);
+	}
+	if (typeof r.cardBorderWidth === "number") {
+		dash.cardBorderWidth = clampNum(
+			r.cardBorderWidth,
+			RANGE.cardBorderWidth.min,
+			RANGE.cardBorderWidth.max,
+			s.cardBorderWidth,
 		);
 	}
 	const bg = sanitizeBackground(r.background);
@@ -942,6 +1011,14 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 			RANGE.cardRadius.min,
 			RANGE.cardRadius.max,
 			s.cardRadius,
+		);
+	}
+	if (typeof data.cardBorderWidth === "number") {
+		s.cardBorderWidth = clampNum(
+			data.cardBorderWidth,
+			RANGE.cardBorderWidth.min,
+			RANGE.cardBorderWidth.max,
+			s.cardBorderWidth,
 		);
 	}
 

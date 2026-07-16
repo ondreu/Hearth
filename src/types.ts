@@ -521,6 +521,28 @@ export interface BackgroundConfig {
 
 /** A named dashboard: one arrangeable board of cards. The vault can hold several
  * and switch between them from the top-left switcher. */
+export type HeaderAlign = "left" | "center" | "right";
+
+export interface DashboardHeaderConfig {
+	/** Override the global title visibility (undefined = use global). */
+	showTitle?: boolean;
+	/** Override the global title text for this dashboard. */
+	title?: string;
+	/** Override the global logo text/icon for this dashboard. Empty = Hearth icon. */
+	logo?: string;
+	/** Align only the title/logo block; search remains controlled separately. */
+	align?: HeaderAlign;
+	/** Title size multiplier, clamped to a conservative range. */
+	titleScale?: number;
+	/** Logo size multiplier, clamped to a conservative range. */
+	logoScale?: number;
+	/** Title block top margin in pixels. Undefined keeps the stylesheet default. */
+	marginTop?: number;
+	/** Spacing below the whole header block in pixels. Undefined keeps the
+	 * stylesheet default. */
+	spacingBelow?: number;
+}
+
 export interface Dashboard {
 	id: string;
 	name: string;
@@ -546,6 +568,10 @@ export interface Dashboard {
 	cardBlur?: number;
 	/** Override the card corner radius (px) for this board (undefined = global). */
 	cardRadius?: number;
+	/** Override the card border width (px) for this board (undefined = global). */
+	cardBorderWidth?: number;
+	/** Per-dashboard overrides for the title/logo block. */
+	header?: DashboardHeaderConfig;
 	/** Show the dashboard search/command section (undefined = visible). */
 	showSearch?: boolean;
 }
@@ -610,6 +636,9 @@ export interface HomeSettings {
 	 * design default of 14; larger is disallowed so nothing that assumes the
 	 * baseline rounding (merged-edge sharpening, the frost mask) breaks. */
 	cardRadius: number;
+	/** Card border width in pixels. 0 removes the visible card border and the
+	 * header divider line. */
+	cardBorderWidth: number;
 
 	// ---- Search filters ----
 	/** Group ids the user has hidden from the auto-detected filter row. */
@@ -690,6 +719,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// The design baseline corner radius; also the maximum (only sharper is
 	// allowed) so it matches the hardcoded 14 the layout was tuned around.
 	cardRadius: 14,
+	// Default card border width preserves the classic 1px look.
+	cardBorderWidth: 1,
 
 	hiddenFilters: [],
 
@@ -844,6 +875,75 @@ export function effectiveShowSearch(s: HomeSettings): boolean {
 	return activeDashboard(s).showSearch ?? true;
 }
 
+export const HEADER_SCALE_MIN = 0.6;
+export const HEADER_SCALE_MAX = 1.8;
+export const HEADER_MARGIN_TOP_MIN = 0;
+export const HEADER_MARGIN_TOP_MAX = 96;
+export const HEADER_SPACING_BELOW_MIN = 0;
+export const HEADER_SPACING_BELOW_MAX = 96;
+
+function clampHeaderScale(v: unknown): number {
+	return typeof v === "number" && !Number.isNaN(v)
+		? Math.max(HEADER_SCALE_MIN, Math.min(HEADER_SCALE_MAX, v))
+		: 1;
+}
+
+function clampHeaderMarginTop(v: unknown): number | undefined {
+	return typeof v === "number" && !Number.isNaN(v)
+		? Math.max(HEADER_MARGIN_TOP_MIN, Math.min(HEADER_MARGIN_TOP_MAX, Math.round(v)))
+		: undefined;
+}
+
+function clampHeaderSpacingBelow(v: unknown): number | undefined {
+	return typeof v === "number" && !Number.isNaN(v)
+		? Math.max(
+				HEADER_SPACING_BELOW_MIN,
+				Math.min(HEADER_SPACING_BELOW_MAX, Math.round(v)),
+			)
+		: undefined;
+}
+
+/** Whether the active board should show the title/logo block. */
+export function effectiveShowTitle(s: HomeSettings): boolean {
+	return activeDashboard(s).header?.showTitle ?? s.showTitle;
+}
+
+/** Title text for the active board's title/logo block. */
+export function effectiveTitle(s: HomeSettings): string {
+	return activeDashboard(s).header?.title ?? s.title;
+}
+
+/** Logo text for the active board's title/logo block. Empty = Hearth icon. */
+export function effectiveLogo(s: HomeSettings): string {
+	return activeDashboard(s).header?.logo ?? s.logo;
+}
+
+/** Alignment for the active board's title/logo block; search layout is separate. */
+export function effectiveHeaderAlign(s: HomeSettings): HeaderAlign {
+	const align = activeDashboard(s).header?.align;
+	return align === "left" || align === "right" ? align : "center";
+}
+
+/** Title size multiplier for the active board's title/logo block. */
+export function effectiveHeaderTitleScale(s: HomeSettings): number {
+	return clampHeaderScale(activeDashboard(s).header?.titleScale);
+}
+
+/** Logo size multiplier for the active board's title/logo block. */
+export function effectiveHeaderLogoScale(s: HomeSettings): number {
+	return clampHeaderScale(activeDashboard(s).header?.logoScale);
+}
+
+/** Optional title block top margin override in pixels. Undefined keeps CSS default. */
+export function effectiveHeaderMarginTop(s: HomeSettings): number | undefined {
+	return clampHeaderMarginTop(activeDashboard(s).header?.marginTop);
+}
+
+/** Optional spacing below the whole header block in pixels. Undefined keeps CSS default. */
+export function effectiveHeaderSpacingBelow(s: HomeSettings): number | undefined {
+	return clampHeaderSpacingBelow(activeDashboard(s).header?.spacingBelow);
+}
+
 /** Effective content max-width for the active board (per-dashboard override or global). */
 export function effectiveMaxWidth(s: HomeSettings): number {
 	return activeDashboard(s).maxWidth ?? s.maxWidth;
@@ -881,6 +981,7 @@ export function resolveCardBlur(s: HomeSettings, card: DashboardCard): number {
  * allows: rounding beyond this was never tuned for (merged-edge sharpening, the
  * frosted-glass mask, arrange outlines) so only sharper is offered. */
 export const CARD_RADIUS_MAX = 14;
+export const CARD_BORDER_WIDTH_MAX = 8;
 
 /** Effective card corner radius (px) for the active board (per-dashboard
  * override or global), clamped to [0, CARD_RADIUS_MAX]. Applied board-wide via
@@ -891,6 +992,15 @@ export function effectiveCardRadius(s: HomeSettings): number {
 	return typeof v === "number" && !Number.isNaN(v)
 		? Math.max(0, Math.min(CARD_RADIUS_MAX, v))
 		: CARD_RADIUS_MAX;
+}
+
+/** Effective card border width (px) for the active board (per-dashboard
+ * override or global), clamped to [0, CARD_BORDER_WIDTH_MAX]. */
+export function effectiveCardBorderWidth(s: HomeSettings): number {
+	const v = activeDashboard(s).cardBorderWidth ?? s.cardBorderWidth;
+	return typeof v === "number" && !Number.isNaN(v)
+		? Math.max(0, Math.min(CARD_BORDER_WIDTH_MAX, Math.round(v)))
+		: 1;
 }
 
 /** Remove a card from whichever list holds it (a board or the pinned set). */
@@ -996,6 +1106,7 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	if (typeof s.cardOpacity !== "number") s.cardOpacity = 0.5;
 	if (typeof s.cardBlur !== "number") s.cardBlur = 7;
 	if (typeof s.cardRadius !== "number") s.cardRadius = CARD_RADIUS_MAX;
+	if (typeof s.cardBorderWidth !== "number") s.cardBorderWidth = 1;
 	if (typeof s.backgroundOpacity !== "number") s.backgroundOpacity = 0.35;
 	if (typeof s.backgroundBlur !== "number") s.backgroundBlur = 2;
 	// Fit-to-page is the default for fresh installs; existing users keep their

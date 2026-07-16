@@ -2,7 +2,7 @@ import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, set
 import type HearthPlugin from "./main";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
-import { type BackgroundKind, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton } from "./types";
+import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -17,7 +17,8 @@ type NumericSettingKey =
 	| "backgroundBlur"
 	| "cardOpacity"
 	| "cardBlur"
-	| "cardRadius";
+	| "cardRadius"
+	| "cardBorderWidth";
 
 /** Keys of HomeSettings whose default lives in DEFAULT_SETTINGS as a string and
  * would be awkward to reconstruct by hand (frontmatter field names, the search
@@ -1057,6 +1058,20 @@ export class HomeSettingTab extends PluginSettingTab {
 					await this.save();
 				});
 			this.addSliderReset(cardRadius, sl, "cardRadius");
+		});
+
+		const cardBorderWidth = new Setting(containerEl)
+			.setName(t().settings.dashboard.cardBorderWidth)
+			.setDesc(t().settings.dashboard.cardBorderWidthDesc);
+		cardBorderWidth.addSlider((sl) => {
+			sl.setLimits(0, CARD_BORDER_WIDTH_MAX, 1)
+				.setValue(s.cardBorderWidth)
+				.setDynamicTooltip()
+				.onChange(async (v) => {
+					s.cardBorderWidth = v;
+					await this.save();
+				});
+			this.addSliderReset(cardBorderWidth, sl, "cardBorderWidth");
 		});
 	}
 

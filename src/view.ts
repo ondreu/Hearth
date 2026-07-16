@@ -5,7 +5,13 @@ import { renderDashboard } from "./dashboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { applyBackground } from "./background";
-import { effectiveFitToPage, effectiveMaxWidth, effectiveShowSearch, renderCards } from "./types";
+import {
+	effectiveFitToPage,
+	effectiveMaxWidth,
+	effectiveShowSearch,
+	effectiveShowTitle,
+	renderCards,
+} from "./types";
 import { HEARTH_ICON_ID } from "./icon";
 import { t } from "./i18n";
 
@@ -130,7 +136,7 @@ export class HomeView extends ItemView {
 
 		if (!mobileOnly) renderDashboardSwitcher(this, inner);
 
-		if (this.plugin.settings.showTitle || effectiveShowSearch(this.plugin.settings)) {
+		if (effectiveShowTitle(this.plugin.settings) || effectiveShowSearch(this.plugin.settings)) {
 			const header = inner.createDiv("hearth-header");
 			renderHeader(this, header, child);
 		}
