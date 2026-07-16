@@ -30,6 +30,30 @@ the community store never touches. CI enforces this: a non-`x.y.z` version in
 | `manifest-beta.json` | BRAT only | latest **beta** `x.y.z-beta.N` |
 | `versions.json` | store (compatibility fallback) | **stable** versions only |
 
+## Release cadence: a train, not a freeze
+
+Hearth releases run as a **train**. `main` never freezes:
+
+1. Work lands on `main` and is tested there commit by commit.
+2. When a version's worth of work is ready, **cut a beta snapshot** of `main`
+   (`x.y.z-beta.N`) and let it soak with BRAT testers for a few days.
+3. **Promote** that snapshot to stable `x.y.z` — a version-only bump of the
+   **beta-tested commit** (see below), not a fresh build of `main`.
+4. While the beta soaks, the *next* version's features keep merging into `main`;
+   they become the next beta line. Go to 2.
+
+Two consequences fall out of this and drive the rules below:
+
+- **At promotion time `main` is always ahead of the beta you're promoting.**
+  That drift is the next cycle's work — it is expected and does **not** block
+  promotion. What you ship as `x.y.z` is the soaked snapshot, and the
+  beta-parity guard makes sure of it.
+- **`manifest-beta.json` tracks the open line.** Promoting `x.y.z` is also when
+  you *open the next line* by bumping `manifest-beta.json` to `x.(y+1).0-beta.1`.
+  Opening a line (a manifest bump) is separate from cutting a soak build (the
+  tag you actually test): a `beta.1` tagged at open-time with no soak is just a
+  placeholder — the meaningful build is whatever `beta.N` you cut when ready.
+
 ## Versioning
 
 Obsidian requires plain [semver](https://semver.org/) `x.y.z` versions. The tag
@@ -79,11 +103,20 @@ becomes "latest" for all users. Use `1.9.0-beta.4`, not `1.8.1.4-beta`.
 > such beta exists). This is what stops a beta's un-tested code — a new feature,
 > a refactor — from riding a stable tag straight into the store.
 
-**First, make sure `main` hasn't drifted past the beta.** If commits touching
-`src/` / `styles.css` have landed since the last `x.y.z-beta.N` you shipped,
-those changes were **never beta-tested**. Do **not** promote — cut a fresh beta
-from current `main` (bump `manifest-beta.json`, tag `x.(y+1).0-beta.1` or the
-next `-beta.N`), let it soak, and promote _that_.
+**First, check what has drifted onto `main` since the beta.** Because the train
+never freezes (see "Release cadence"), `main` is normally ahead of the beta
+you're promoting — and that's fine when the drift is **next-version** work: it
+stays on `main` and becomes the next beta line, while you promote the soaked
+snapshot as-is.
+
+The drift only blocks promotion when it's **this-version** work: a fix or change
+you intend to ship *in the stable you're about to cut* that landed after the
+`x.y.z-beta.N` you soaked. Those changes were **never beta-tested**, so do
+**not** fold them into the promotion. Cut a fresh beta from current `main`
+(bump `manifest-beta.json` to the next `-beta.N`, tag it), let it soak, and
+promote _that_. The beta-parity guard enforces this either way — it will reject
+a stable tag whose build inputs differ from the beta, so this-version work
+cannot ride a promotion without its own beta.
 
 To promote:
 
@@ -103,6 +136,20 @@ To promote:
    ```
 4. The workflow verifies the tag matches `manifest.json`, confirms beta parity
    (above), builds, attaches the assets, and pins the tag as **latest**.
+5. **Land the store manifest on `main`, and open the next line.** The community
+   store reads `manifest.json` at `main`'s HEAD, so the promotion isn't
+   user-visible until `main` carries it. When `main` has already moved past the
+   beta (the usual train case), the tagged promotion commit from step 1 lives on
+   the beta line, **not** on `main` — so make a separate commit on `main` that
+   both bumps the store-facing files to the new stable **and** opens the next
+   beta line, e.g. `chore: release 1.9.0, open 1.10.0-beta.1`:
+   - `manifest.json` → `"1.9.0"`, `versions.json` += `"1.9.0"`, `package.json` → `"1.9.0"`
+   - `manifest-beta.json` → `"1.10.0-beta.1"`
+   - `CHANGELOG.md` → open a `## [1.10.0]` section for the next-version work
+     already on `main`, and make sure `[1.9.0]` lists only what the stable
+     actually ships (move any next-version entries up).
+   `main` is branch-protected, so land this through a PR (the `Typecheck &
+   build` check must pass), not a direct push.
 
 > Genuine emergency hotfix with no beta? Run the workflow from the **Actions
 > tab** (`workflow_dispatch`) with `allow_no_beta = true`. This is the only
