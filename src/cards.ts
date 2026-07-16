@@ -5795,32 +5795,64 @@ function renderLineRecurringCheckbox(
 	});
 }
 
-/** Best-effort: open a TaskNotes task in TaskNotes' own editor rather than the
- * raw Markdown note. TaskNotes exposes no stable public API, so this tries a
- * couple of plausible instance/api methods and returns whether one handled it;
- * the caller falls back to opening the file when it didn't. */
-function openInTaskNotes(view: HomeView, file: TFile): boolean {
-	const plugin = view.app.plugins.plugins[TASKNOTES_PLUGIN_ID] as
-		| Record<string, unknown>
-		| undefined;
-	if (!plugin) return false;
-	const targets: unknown[] = [plugin, plugin.api];
-	for (const target of targets) {
-		if (!target || typeof target !== "object") continue;
-		const obj = target as Record<string, unknown>;
-		for (const method of ["openTaskEditModal", "openTask"]) {
-			const fn = obj[method];
-			if (typeof fn === "function") {
-				try {
-					(fn as (f: TFile) => void).call(obj, file);
-					return true;
-				} catch {
-					// Wrong signature or internal error — fall through to file open.
-				}
-			}
+/** The slice of TaskNotes' plugin surface this uses. All optional and duck-typed:
+ * TaskNotes ships no stable public types, so each accessor is probed before use
+ * and may be absent or reshaped between versions. */
+interface TaskNotesLike {
+	openTaskEditModal?: (task: unknown) => unknown;
+	cacheManager?: { getTaskInfo?: (path: string) => unknown };
+	api?: { tasks?: { get?: (path: string) => unknown } };
+}
+
+/** Best-effort: open a TaskNotes task in TaskNotes' own edit modal rather than
+ * the raw Markdown note. TaskNotes exposes no stable public API, so this resolves
+ * the plugin's own task object for the file and hands it to `openTaskEditModal`,
+ * returning whether it handled the open; the caller falls back to opening the
+ * file when it didn't.
+ *
+ * The modal requires TaskNotes' `TaskInfo` (title/status/priority/…), not a
+ * `TFile`: passing the file leaves the modal with a broken change-detection
+ * baseline that traps every button but Delete (see issue #72). `openTaskEditModal`
+ * is async, so a bad argument never throws synchronously — resolving the info up
+ * front (and awaiting the open) is the only way to know we really handled it. */
+async function openInTaskNotes(view: HomeView, file: TFile): Promise<boolean> {
+	const plugin = view.app.plugins.plugins[TASKNOTES_PLUGIN_ID] as TaskNotesLike | undefined;
+	if (!plugin || typeof plugin.openTaskEditModal !== "function") return false;
+	const task = await resolveTaskNotesInfo(plugin, file.path);
+	if (!task) return false;
+	try {
+		await plugin.openTaskEditModal(task);
+		return true;
+	} catch {
+		// Internal error — fall through to a plain file open.
+		return false;
+	}
+}
+
+/** Resolve TaskNotes' `TaskInfo` for a note path via whichever accessor the
+ * installed version exposes: the cache manager first, then the public runtime
+ * API (`api.tasks.get`). Both are best-effort and may be absent or reshaped
+ * between TaskNotes versions, so failures fall through to the next. */
+async function resolveTaskNotesInfo(plugin: TaskNotesLike, path: string): Promise<unknown> {
+	const cache = plugin.cacheManager;
+	if (typeof cache?.getTaskInfo === "function") {
+		try {
+			const info = await cache.getTaskInfo(path);
+			if (info) return info;
+		} catch {
+			// Fall through to the public API.
 		}
 	}
-	return false;
+	const get = plugin.api?.tasks?.get;
+	if (typeof get === "function") {
+		try {
+			const info = await get(path);
+			if (info) return info;
+		} catch {
+			// No resolver worked.
+		}
+	}
+	return null;
 }
 
 async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
@@ -5846,7 +5878,7 @@ async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 		return;
 	}
 	// TaskNotes tasks (no line) open in TaskNotes' own editor when possible.
-	if (hit.line < 0 && openInTaskNotes(view, hit.file)) return;
+	if (hit.line < 0 && (await openInTaskNotes(view, hit.file))) return;
 
 	const leaf = view.app.workspace.getLeaf(true);
 	await leaf.openFile(hit.file);
