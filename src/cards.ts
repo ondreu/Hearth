@@ -4268,6 +4268,10 @@ class TaskDetailModal extends Modal {
 	/** For an editable line-based card, the title input (its value is written
 	 * back onto the card line on save). */
 	private titleInput: HTMLTextAreaElement | null = null;
+	/** Description editor shown for Kanban cards when metadata isn't managed
+	 * (non-extended mode); saved as sub-bullets under the card, or — for a linked
+	 * card — into its note body. Null when the extended-mode fields own it. */
+	private descArea: HTMLTextAreaElement | null = null;
 	constructor(
 		private readonly view: HomeView,
 		private readonly cfg: TasksConfig,
@@ -4329,47 +4333,72 @@ class TaskDetailModal extends Modal {
 			}
 		} else {
 			// Read-only summary of whatever metadata the task carries (from the card
-			// or, for a linked card, its note's frontmatter), plus its description.
+			// or, for a linked card, its note's frontmatter) — metadata editing stays
+			// behind the "Dates & priorities" toggle. The description, however, is
+			// editable here for Kanban cards even with that toggle off.
 			const today: string = moment().format("YYYY-MM-DD");
 			const chips = contentEl.createDiv("hearth-taskdetail-readonly");
 			if (hit.priority) renderPriority(chips, hit.priority);
 			renderTaskDateChips(chips, hit, today);
 			if (!chips.childNodes.length)
 				chips.createSpan({ cls: "hearth-taskdetail-empty", text: t().cards.tasks.noMetadata });
-			if (linked && hit.linkedFile) {
-				const descHost = contentEl.createDiv();
-				void readNoteDescription(view, hit.linkedFile).then((desc) => {
-					if (desc) renderTaskDescription(descHost, desc);
+			if (isKanban) {
+				// Kanban card: an editable description (sub-bullets under the card, or
+				// the note body for a linked card).
+				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
+				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
+				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
+				const area = descRow.createEl("textarea", {
+					cls: "hearth-taskdetail-desc",
+					attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
 				});
+				this.descArea = area;
+				if (linked && hit.linkedFile) {
+					void readNoteDescription(view, hit.linkedFile).then((desc) => {
+						// Don't clobber edits the user already started typing.
+						if (!area.value) area.value = desc;
+					});
+				} else {
+					area.value = hit.description ?? "";
+				}
 			} else if (hit.description) {
+				// Plain checkbox: nested lines may be sub-tasks, so show read-only.
 				renderTaskDescription(contentEl, hit.description);
 			}
 		}
 
 		const actions = new Setting(contentEl);
-		if (editable || canEditTitle) {
+		if (editable || canEditTitle || this.descArea) {
 			actions.addButton((b) =>
 				b
 					.setButtonText(t().cards.tasks.save)
 					.setCta()
 					.onClick(() => {
 						const r = this.read?.();
-						const descArea = this.linkedDescArea;
+						const linkedDescArea = this.linkedDescArea;
+						const ownDescArea = this.descArea;
 						const newTitle = this.titleInput?.value.trim();
 						void (async () => {
-							// Write metadata first (it preserves the card's current title),
-							// then rewrite the title — that order keeps each write's
-							// stored-line guard matching.
+							// Write metadata first (it also rewrites the description
+							// sub-bullets and preserves the card's current title), then the
+							// title — that order keeps each write's stored-line guard matching.
 							if (r) {
 								const ok = await setKanbanCardMetadata(view, hit, r.meta, r.description);
+								if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							} else if (ownDescArea && !hit.linkedFile) {
+								// Non-extended Kanban card: description-only write (no metadata
+								// managed, so the card's markers are left untouched).
+								const ok = await setKanbanCardDescription(view, hit, ownDescArea.value);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 							}
 							if (canEditTitle && newTitle && newTitle !== (hit.text || "")) {
 								const ok = await setKanbanCardText(view, hit, newTitle, editable);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 							}
-							// A linked card's description is written back to the note body.
-							if (hit.linkedFile && descArea) await writeNoteDescription(view, hit.linkedFile, descArea.value);
+							// A linked card's description is written back to the note body,
+							// whichever mode edited it.
+							const linkedDesc = linkedDescArea ?? ownDescArea;
+							if (hit.linkedFile && linkedDesc) await writeNoteDescription(view, hit.linkedFile, linkedDesc.value);
 							this.refresh();
 						})();
 						this.close();
@@ -5342,6 +5371,35 @@ async function setKanbanCardText(
 	const newItem = `${prefix}${rest}`.trimEnd();
 	if (newItem === cur) return true; // no-op edit
 	lines[hit.line] = newItem;
+	await view.app.vault.modify(hit.file, lines.join("\n"));
+	return true;
+}
+
+/** Set (or clear) a Kanban card's description, independent of its metadata: a
+ * card linked to a note writes it to the note body; a normal card replaces the
+ * nested `- ` sub-bullets under its item line, leaving the item line (title and
+ * metadata) untouched. This is the description-only path used when Tasks-plugin
+ * metadata isn't managed (`kanbanExtended` off), so no markers are rewritten.
+ * Bails (returns false) if the stored line no longer matches the card. */
+async function setKanbanCardDescription(
+	view: HomeView,
+	hit: TaskHit,
+	description: string,
+): Promise<boolean> {
+	if (hit.linkedFile) {
+		await writeNoteDescription(view, hit.linkedFile, description);
+		return true;
+	}
+	const content = await view.app.vault.read(hit.file);
+	const lines = content.split("\n");
+	const cur = lines[hit.line];
+	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
+	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
+	const { end } = cardBlockRange(lines, hit.line);
+	// Swap just the description sub-bullets (item line + 1 … block end) for the
+	// freshly-built ones, keeping the card's title/metadata line as-is.
+	lines.splice(hit.line + 1, end - (hit.line + 1), ...descriptionBullets(description, itemIndent));
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
 }

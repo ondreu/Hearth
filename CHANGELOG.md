@@ -48,6 +48,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   so it's reachable by keyboard too. Either way the card's dates, priority and
   repeat markers are preserved; note-linked cards keep their note's name as the
   title (#71).
+- **Editable Kanban card descriptions.** A card's quick-view popover now has a
+  **Description** field for every Kanban card — not just when the "Dates &
+  priorities" toggle is on. The text is saved as indented sub-bullets under the
+  card in the board note, or, for a card that's been converted to a note, into
+  that note's body. The card's title and metadata line is left untouched (#71).
 
 ## [1.11.0]
 
