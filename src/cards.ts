@@ -3889,10 +3889,35 @@ function renderTaskKanban(
 			if (source !== "kanban" && hit.priority) renderPriority(meta, hit.priority);
 			renderTaskDateChips(meta, hit, today);
 			const open = () => void openTask(view, cfg, hit, refresh);
-			cardEl.addEventListener("click", open);
+			// A real board/checkbox line (not a note-linked card) can have its title
+			// edited inline: double-click swaps the text for an input. Single click
+			// still opens the card, so the open is deferred just long enough for a
+			// following double-click to cancel it and start editing instead.
+			const canEditTitle = hit.line >= 0 && !hit.linkedFile;
+			if (canEditTitle) {
+				let clickTimer: number | null = null;
+				cardEl.addEventListener("click", () => {
+					if (clickTimer != null) return;
+					clickTimer = window.setTimeout(() => {
+						clickTimer = null;
+						open();
+					}, 220);
+				});
+				cardEl.addEventListener("dblclick", (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					if (clickTimer != null) {
+						window.clearTimeout(clickTimer);
+						clickTimer = null;
+					}
+					startCardTitleEdit(view, cfg, hit, textRow, cardText, cardEl, refresh);
+				});
+			} else {
+				cardEl.addEventListener("click", open);
+			}
 			makeClickable(cardEl, open, hit.text || hit.file.basename);
 			// Line-based cards (Kanban cards and plain checkboxes) get the
-			// right-click menu: edit metadata, plus convert/delete for Kanban.
+			// right-click menu: edit title/metadata, plus convert/delete for Kanban.
 			if (hit.line >= 0) attachKanbanCardMenu(view, cfg, hit, cardEl, refresh);
 		}
 
@@ -4240,6 +4265,13 @@ class TaskDetailModal extends Modal {
 	/** For a linked card, the editable description textarea (its content is
 	 * written back to the note body on save). */
 	private linkedDescArea: HTMLTextAreaElement | null = null;
+	/** For an editable line-based card, the title input (its value is written
+	 * back onto the card line on save). */
+	private titleInput: HTMLTextAreaElement | null = null;
+	/** Description editor shown for Kanban cards when metadata isn't managed
+	 * (non-extended mode); saved as sub-bullets under the card, or — for a linked
+	 * card — into its note body. Null when the extended-mode fields own it. */
+	private descArea: HTMLTextAreaElement | null = null;
 	constructor(
 		private readonly view: HomeView,
 		private readonly cfg: TasksConfig,
@@ -4258,9 +4290,21 @@ class TaskDetailModal extends Modal {
 		// (edited here, written back there) and its description inside the note
 		// body (edited in a textarea below the metadata, written back to the note).
 		const linked = !!hit.linkedFile;
+		// A real board/checkbox line (not a note-linked card) can have its title
+		// rewritten here; a linked card's title is its note, so it stays read-only.
+		const canEditTitle = hit.line >= 0 && !linked;
 
-		const title = contentEl.createEl("h3", { cls: "hearth-taskdetail-title" });
-		fillTaskText(view, title, hit.text || hit.file.basename, hit.file.path);
+		if (canEditTitle) {
+			const titleInput = contentEl.createEl("textarea", {
+				cls: "hearth-taskdetail-title-edit",
+				attr: { rows: "1", "aria-label": t().cards.tasks.editTitle, placeholder: t().cards.tasks.titlePlaceholder },
+			});
+			titleInput.value = hit.text || "";
+			this.titleInput = titleInput;
+		} else {
+			const title = contentEl.createEl("h3", { cls: "hearth-taskdetail-title" });
+			fillTaskText(view, title, hit.text || hit.file.basename, hit.file.path);
+		}
 
 		if (editable) {
 			const current: TaskMeta = {
@@ -4289,41 +4333,74 @@ class TaskDetailModal extends Modal {
 			}
 		} else {
 			// Read-only summary of whatever metadata the task carries (from the card
-			// or, for a linked card, its note's frontmatter), plus its description.
+			// or, for a linked card, its note's frontmatter) — metadata editing stays
+			// behind the "Dates & priorities" toggle. The description, however, is
+			// editable here for Kanban cards even with that toggle off.
 			const today: string = moment().format("YYYY-MM-DD");
 			const chips = contentEl.createDiv("hearth-taskdetail-readonly");
 			if (hit.priority) renderPriority(chips, hit.priority);
 			renderTaskDateChips(chips, hit, today);
 			if (!chips.childNodes.length)
 				chips.createSpan({ cls: "hearth-taskdetail-empty", text: t().cards.tasks.noMetadata });
-			if (linked && hit.linkedFile) {
-				const descHost = contentEl.createDiv();
-				void readNoteDescription(view, hit.linkedFile).then((desc) => {
-					if (desc) renderTaskDescription(descHost, desc);
+			if (isKanban) {
+				// Kanban card: an editable description (sub-bullets under the card, or
+				// the note body for a linked card).
+				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
+				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
+				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
+				const area = descRow.createEl("textarea", {
+					cls: "hearth-taskdetail-desc",
+					attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
 				});
+				this.descArea = area;
+				if (linked && hit.linkedFile) {
+					void readNoteDescription(view, hit.linkedFile).then((desc) => {
+						// Don't clobber edits the user already started typing.
+						if (!area.value) area.value = desc;
+					});
+				} else {
+					area.value = hit.description ?? "";
+				}
 			} else if (hit.description) {
+				// Plain checkbox: nested lines may be sub-tasks, so show read-only.
 				renderTaskDescription(contentEl, hit.description);
 			}
 		}
 
 		const actions = new Setting(contentEl);
-		if (editable) {
+		if (editable || canEditTitle || this.descArea) {
 			actions.addButton((b) =>
 				b
 					.setButtonText(t().cards.tasks.save)
 					.setCta()
 					.onClick(() => {
-						if (this.read) {
-							const r = this.read();
-							const descArea = this.linkedDescArea;
-							void (async () => {
+						const r = this.read?.();
+						const linkedDescArea = this.linkedDescArea;
+						const ownDescArea = this.descArea;
+						const newTitle = this.titleInput?.value.trim();
+						void (async () => {
+							// Write metadata first (it also rewrites the description
+							// sub-bullets and preserves the card's current title), then the
+							// title — that order keeps each write's stored-line guard matching.
+							if (r) {
 								const ok = await setKanbanCardMetadata(view, hit, r.meta, r.description);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
-								// A linked card's description is written back to the note body.
-								if (hit.linkedFile && descArea) await writeNoteDescription(view, hit.linkedFile, descArea.value);
-								this.refresh();
-							})();
-						}
+							} else if (ownDescArea && !hit.linkedFile) {
+								// Non-extended Kanban card: description-only write (no metadata
+								// managed, so the card's markers are left untouched).
+								const ok = await setKanbanCardDescription(view, hit, ownDescArea.value);
+								if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							}
+							if (canEditTitle && newTitle && newTitle !== (hit.text || "")) {
+								const ok = await setKanbanCardText(view, hit, newTitle, editable);
+								if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							}
+							// A linked card's description is written back to the note body,
+							// whichever mode edited it.
+							const linkedDesc = linkedDescArea ?? ownDescArea;
+							if (hit.linkedFile && linkedDesc) await writeNoteDescription(view, hit.linkedFile, linkedDesc.value);
+							this.refresh();
+						})();
 						this.close();
 					}),
 			);
@@ -5258,6 +5335,75 @@ async function setKanbanCardMetadata(
 	return true;
 }
 
+/** Rewrite a line-based card's title text in place, preserving its checkbox mark
+ * and any Tasks-plugin metadata markers (dates, priority, repeat, and the ✅/➕/❌
+ * stamps). Only the descriptive text is replaced; nested description lines are
+ * left untouched. `extended` mirrors {@link taskMetaEnabled}: when on, the emoji
+ * markers are treated as metadata and reattached after the new title; when off,
+ * the whole line text is the title and is replaced verbatim. Bails (returns
+ * false) if the stored line no longer matches the card, or the new title is empty. */
+async function setKanbanCardText(
+	view: HomeView,
+	hit: TaskHit,
+	newText: string,
+	extended: boolean,
+): Promise<boolean> {
+	const content = await view.app.vault.read(hit.file);
+	const lines = content.split("\n");
+	const cur = lines[hit.line];
+	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
+	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	const clean = newText.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+	if (!clean) return false; // never write a text-less card
+	const prefix = cur.slice(0, cur.length - m[2].length);
+	let rest: string;
+	if (extended) {
+		// Pull out every metadata marker (in order) so interspersed dates/priority
+		// survive, then reattach them after the freshly-typed title.
+		const markerRe = new RegExp(`[${TASK_EMOJI_CLASS}][^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
+		const markers: string[] = [];
+		let mm: RegExpExecArray | null;
+		while ((mm = markerRe.exec(m[2])) !== null) markers.push(mm[0].trim());
+		rest = [clean, ...markers].join(" ").replace(/\s+/g, " ").trim();
+	} else {
+		rest = clean;
+	}
+	const newItem = `${prefix}${rest}`.trimEnd();
+	if (newItem === cur) return true; // no-op edit
+	lines[hit.line] = newItem;
+	await view.app.vault.modify(hit.file, lines.join("\n"));
+	return true;
+}
+
+/** Set (or clear) a Kanban card's description, independent of its metadata: a
+ * card linked to a note writes it to the note body; a normal card replaces the
+ * nested `- ` sub-bullets under its item line, leaving the item line (title and
+ * metadata) untouched. This is the description-only path used when Tasks-plugin
+ * metadata isn't managed (`kanbanExtended` off), so no markers are rewritten.
+ * Bails (returns false) if the stored line no longer matches the card. */
+async function setKanbanCardDescription(
+	view: HomeView,
+	hit: TaskHit,
+	description: string,
+): Promise<boolean> {
+	if (hit.linkedFile) {
+		await writeNoteDescription(view, hit.linkedFile, description);
+		return true;
+	}
+	const content = await view.app.vault.read(hit.file);
+	const lines = content.split("\n");
+	const cur = lines[hit.line];
+	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
+	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
+	const { end } = cardBlockRange(lines, hit.line);
+	// Swap just the description sub-bullets (item line + 1 … block end) for the
+	// freshly-built ones, keeping the card's title/metadata line as-is.
+	lines.splice(hit.line + 1, end - (hit.line + 1), ...descriptionBullets(description, itemIndent));
+	await view.app.vault.modify(hit.file, lines.join("\n"));
+	return true;
+}
+
 /** Delete a Kanban card (its checkbox line plus any nested continuation lines,
  * and one trailing blank line) from the board note. Bails if the stored line no
  * longer matches the card. */
@@ -5280,6 +5426,71 @@ async function deleteKanbanCard(view: HomeView, hit: TaskHit): Promise<boolean> 
 	lines.splice(hit.line, removeEnd - hit.line);
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
+}
+
+/** Swap a card's title for an inline text input so it can be renamed in place,
+ * mirroring the column rename. Enter (or blur) commits, Escape cancels; the
+ * card's drag is suspended while editing so selecting text doesn't start a drag,
+ * and clicks on the input are kept from bubbling to the card's open handler. */
+function startCardTitleEdit(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	row: HTMLElement,
+	textEl: HTMLElement,
+	card: HTMLElement,
+	refresh: () => void,
+): void {
+	const extended = taskMetaEnabled(cfg, hit);
+	const wasDraggable = card.getAttribute("draggable");
+	card.setAttribute("draggable", "false");
+	textEl.hide();
+	const input = row.createEl("textarea", {
+		cls: "hearth-kanban-card-edit",
+		attr: { rows: "1", "aria-label": t().cards.tasks.editTitleHint },
+	});
+	row.insertBefore(input, textEl);
+	input.value = hit.text || "";
+	input.focus();
+	input.select();
+	let done = false;
+	const cleanup = () => {
+		input.remove();
+		textEl.show();
+		if (wasDraggable != null) card.setAttribute("draggable", wasDraggable);
+	};
+	const commit = () => {
+		if (done) return;
+		done = true;
+		const next = input.value.trim();
+		cleanup();
+		if (next && next !== (hit.text || "")) {
+			void setKanbanCardText(view, hit, next, extended).then((ok) => {
+				if (!ok) new Notice(t().notices.taskChangedOnDisk);
+				refresh();
+			});
+		}
+	};
+	const cancel = () => {
+		if (done) return;
+		done = true;
+		cleanup();
+	};
+	input.addEventListener("keydown", (ke) => {
+		// Enter commits (a card title is a single line); Shift+Enter is ignored so
+		// it can't split the title. Escape cancels.
+		if (ke.key === "Enter" && !ke.shiftKey) {
+			ke.preventDefault();
+			commit();
+		} else if (ke.key === "Escape") {
+			ke.preventDefault();
+			cancel();
+		}
+	});
+	input.addEventListener("blur", commit);
+	// Keep clicks/drags on the input from bubbling to the card's open/drag handlers.
+	for (const type of ["mousedown", "click", "dblclick", "pointerdown"])
+		input.addEventListener(type, (e) => e.stopPropagation());
 }
 
 /** Swap a Kanban column's title span for an inline text input to rename it.
