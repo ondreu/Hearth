@@ -11,6 +11,41 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [1.13.0]
+
+### Added
+
+- **Per-dashboard header customization.** Each dashboard can now override the
+  global header defaults — title visibility and text, logo text/icon,
+  alignment, title and logo size, the title's top margin, and the spacing below
+  the header block — while search visibility stays independent. Import/export
+  sanitises the new fields and duplicating a dashboard preserves its explicit
+  overrides (#75).
+- **Editable Kanban card titles.** A Kanban card's title can now be edited in
+  place: **double-click** a card to swap its text for an inline input (Enter
+  saves, Escape cancels), the same gesture that renames a column. The card's
+  quick-view popover (single click) also shows the title as an editable field,
+  so it's reachable by keyboard too. Either way the card's dates, priority and
+  repeat markers are preserved; note-linked cards keep their note's name as the
+  title (#71).
+- **Editable Kanban card descriptions.** A card's quick-view popover now has a
+  **Description** field for every Kanban card — not just when the "Dates &
+  priorities" toggle is on. The text is saved as indented sub-bullets under the
+  card in the board note, or, for a card that's been converted to a note, into
+  that note's body. The card's title and metadata line is left untouched (#71).
+- **Card border width setting.** A new global setting controls the width of
+  card borders (#78).
+
+### Fixed
+
+- **TaskNotes tasks open in a working editor again.** Opening an existing
+  TaskNotes task from a Tasks card handed TaskNotes' edit modal the note's
+  `TFile` instead of its own task object, leaving the modal with a broken
+  change-detection baseline: every button but Delete was trapped and the window
+  couldn't be closed (#72). Hearth now resolves TaskNotes' task info for the
+  note first (via its cache manager or public API) and only opens the modal when
+  it can, falling back to opening the note otherwise.
+
 ## [1.12.0]
 
 ### Changed
@@ -41,18 +76,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   paste its URL), pick **Releases**, **Commits**, or both, and Hearth adds the
   matching `releases.atom` / `commits.atom` feeds for you — no need to
   hand-write the feed URLs.
-- **Editable Kanban card titles.** A Kanban card's title can now be edited in
-  place: **double-click** a card to swap its text for an inline input (Enter
-  saves, Escape cancels), the same gesture that renames a column. The card's
-  quick-view popover (single click) also shows the title as an editable field,
-  so it's reachable by keyboard too. Either way the card's dates, priority and
-  repeat markers are preserved; note-linked cards keep their note's name as the
-  title (#71).
-- **Editable Kanban card descriptions.** A card's quick-view popover now has a
-  **Description** field for every Kanban card — not just when the "Dates &
-  priorities" toggle is on. The text is saved as indented sub-bullets under the
-  card in the board note, or, for a card that's been converted to a note, into
-  that note's body. The card's title and metadata line is left untouched (#71).
 
 ## [1.11.0]
 
@@ -70,14 +93,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   **"disable external calls"** setting — with it on, no feed request is made.
 
 ### Fixed
-
-- **TaskNotes tasks open in a working editor again.** Opening an existing
-  TaskNotes task from a Tasks card handed TaskNotes' edit modal the note's
-  `TFile` instead of its own task object, leaving the modal with a broken
-  change-detection baseline: every button but Delete was trapped and the window
-  couldn't be closed (#72). Hearth now resolves TaskNotes' task info for the
-  note first (via its cache manager or public API) and only opens the modal when
-  it can, falling back to opening the note otherwise.
 
 - **Task date parsing no longer spams the console — and understands wikilink
   dates.** When a task's date field held something moment.js couldn't parse
