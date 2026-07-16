@@ -41,6 +41,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   paste its URL), pick **Releases**, **Commits**, or both, and Hearth adds the
   matching `releases.atom` / `commits.atom` feeds for you — no need to
   hand-write the feed URLs.
+- **Editable Kanban card titles.** A Kanban card's title can now be edited in
+  place: **double-click** a card to swap its text for an inline input (Enter
+  saves, Escape cancels), the same gesture that renames a column. The card's
+  quick-view popover (single click) also shows the title as an editable field,
+  so it's reachable by keyboard too. Either way the card's dates, priority and
+  repeat markers are preserved; note-linked cards keep their note's name as the
+  title (#71).
 
 ## [1.11.0]
 

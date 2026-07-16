@@ -1211,6 +1211,23 @@
 	min-width: 0;
 }
 
+/* Inline card-title editor (double-click a Kanban card to edit its title). */
+.hearth-kanban-card-edit {
+	flex: 1;
+	min-width: 0;
+	width: 100%;
+	resize: none;
+	overflow: hidden;
+	border-radius: 4px;
+	border: 1px solid var(--interactive-accent);
+	background: var(--background-primary);
+	padding: 2px 5px;
+	font-size: 0.8rem;
+	line-height: 1.35;
+	font-family: inherit;
+	color: var(--text-normal);
+}
+
 /* Dot-only priority (Kanban cards): just the coloured dot, nudged to sit on
    the title's line rather than the top of the row. */
 .hearth-task-priority.is-dot-only {
@@ -3200,6 +3217,28 @@ body.hearth-dv-resizing {
 	font-size: 1.05rem;
 	line-height: 1.35;
 	word-break: break-word;
+}
+
+/* Editable title field at the top of the quick-view for line-based cards. */
+.hearth-taskdetail-title-edit {
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0 0 4px;
+	resize: vertical;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	padding: 4px 8px;
+	font-size: 1.05rem;
+	line-height: 1.35;
+	font-family: inherit;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-taskdetail-title-edit:focus {
+	border-color: var(--interactive-accent);
+	outline: none;
 }
 
 /* Read-only metadata summary shown for plain (non-extended) tasks. */
