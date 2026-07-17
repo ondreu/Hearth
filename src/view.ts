@@ -19,6 +19,16 @@ export const VIEW_TYPE_HOME = "hearth-home-view";
 
 export class HomeView extends ItemView {
 	plugin: HearthPlugin;
+	/**
+	 * Mark the dashboard as a navigable pane (the base `View` default is
+	 * `false`). A non-navigable leaf is treated like the file explorer or
+	 * calendar: Obsidian won't reuse it to open a file, so clicking a note in
+	 * the file explorer while the dashboard is focused spawns a *new* tab and
+	 * leaves the file explorer's selection stuck on that note (#84). With
+	 * navigation enabled, opening a file replaces the dashboard in place — the
+	 * dashboard behaves like any editor tab and the selection tracks correctly.
+	 */
+	navigation = true;
 	/** Whether the dashboard is in layout/arrange mode (drag & resize). */
 	arrangeMode = false;
 	/** In arrange mode, optionally hide the per-card headers (title input +
