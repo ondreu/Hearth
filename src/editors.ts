@@ -173,6 +173,16 @@ export class CardSettingsModal extends HearthTabbedModal {
 				});
 			});
 
+		// A hosted plugin view runs a live leaf inside the card; gently flag that it
+		// costs more than an ordinary card so the choice is informed.
+		if (card.kind === "leaf") {
+			const note = new Setting(containerEl).setDesc(t().editors.leaf.perfNote);
+			note.settingEl.addClass("hearth-setting-note");
+			const icon = createSpan("hearth-setting-note-icon");
+			setIcon(icon, "gauge");
+			note.descEl.prepend(icon);
+		}
+
 		new Setting(containerEl)
 			.setName(t().editors.cardTitle)
 			.setDesc(t().editors.cardTitleDesc)
@@ -431,10 +441,66 @@ export class CardSettingsModal extends HearthTabbedModal {
 			}
 			d.setValue(current ?? "").onChange((v) => {
 				cfg.viewType = v || undefined;
+				// A file chosen for the old view can't be shown by the new one and
+				// makes file-backed views throw, so drop it when the view changes.
+				cfg.file = undefined;
 				this.opts.save();
+				this.render();
 				this.opts.rerender();
 			});
 		});
+
+		const fileSetting = new Setting(containerEl)
+			.setName(t().editors.leaf.file)
+			.setDesc(t().editors.leaf.fileDesc);
+		fileSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.leaf.filePlaceholder)
+				.setValue(cfg.file ?? "")
+				.onChange((v) => {
+					const trimmed = v.trim();
+					cfg.file = trimmed || undefined;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+		);
+		fileSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.leaf.pickFile)
+				.onClick(() => {
+					new FilePickerModal(this.app, (file) => {
+						cfg.file = file.path;
+						this.opts.save();
+						this.render();
+						this.opts.rerender();
+					}).open();
+				}),
+		);
+		if (cfg.file) {
+			fileSetting.addExtraButton((b) =>
+				b
+					.setIcon("x")
+					.setTooltip(t().editors.leaf.clearFile)
+					.onClick(() => {
+						cfg.file = undefined;
+						this.opts.save();
+						this.render();
+						this.opts.rerender();
+					}),
+			);
+		}
+
+		new Setting(containerEl)
+			.setName(t().editors.leaf.hideHeader)
+			.setDesc(t().editors.leaf.hideHeaderDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.hideHeader ?? false).onChange((v) => {
+					cfg.hideHeader = v || undefined;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+			);
 
 		new Setting(containerEl)
 			.setName(t().editors.leaf.note)

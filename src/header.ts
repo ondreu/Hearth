@@ -108,9 +108,10 @@ function searchOnline(bar: HTMLElement): void {
 
 /** The original New-note button: creates a new note on click. */
 function createNewNoteButton(view: HomeView): HTMLElement {
-	const btn = activeDocument.createElement("button");
-	btn.className = "hearth-newnote";
-	btn.setAttribute("aria-label", t().header.newNoteAria);
+	const btn = createEl("button", {
+		cls: "hearth-newnote",
+		attr: { "aria-label": t().header.newNoteAria },
+	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.newNote });
 	btn.addEventListener("click", () => {
@@ -121,9 +122,10 @@ function createNewNoteButton(view: HomeView): HTMLElement {
 
 /** The Search-online button: runs a web search for the current query. */
 function createSearchOnlineButton(bar: HTMLElement): HTMLElement {
-	const btn = activeDocument.createElement("button");
-	btn.className = "hearth-newnote hearth-newnote-search";
-	btn.setAttribute("aria-label", t().header.searchOnlineAria);
+	const btn = createEl("button", {
+		cls: "hearth-newnote hearth-newnote-search",
+		attr: { "aria-label": t().header.searchOnlineAria },
+	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "globe");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.searchOnline });
 	btn.addEventListener("click", () => searchOnline(bar));

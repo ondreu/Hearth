@@ -728,6 +728,40 @@
 	background: transparent !important;
 }
 
+/* Optionally drop the hosted view's own header (breadcrumbs, back/forward and
+ * kebab menu). For a single-file card that navigation chrome is just noise.
+ * Stacked classes (both sit on the host element) out-specify Obsidian's own
+ * `.view-header` rule so this wins without needing !important. */
+.hearth-leaf-host.hearth-leaf-hide-header .view-header {
+	display: none;
+}
+
+/* A quiet inline note in the card editor (e.g. the plugin-view performance
+ * hint): muted, borderless, with a small leading icon. */
+.hearth-setting-note {
+	border-top: none;
+	padding-top: 0;
+}
+
+.hearth-setting-note .setting-item-description {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-setting-note-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+	margin-top: 1px;
+}
+
+.hearth-setting-note-icon .svg-icon {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
 /* Obsidian renders a canvas/Excalidraw embed as:
  *   <p> › span.internal-embed › (div.embed-title + svg.canvas-minimap)
  * To make the drawing fill the card without leaving an empty "chin" (or, worse,
