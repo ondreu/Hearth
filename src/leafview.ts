@@ -1,4 +1,4 @@
-import { App, Component, WorkspaceLeaf } from "obsidian";
+import { App, Component, TFile, WorkspaceLeaf } from "obsidian";
 
 /** Hearth's own view type — hosting it inside itself makes no sense, so it is
  * excluded from the leaf card's picker. Kept as a literal (rather than imported
@@ -71,6 +71,15 @@ export function isViewTypeHostable(app: App, type: string): boolean {
 	return !!byType && type in byType && !EXCLUDED_VIEW_TYPES.has(type);
 }
 
+/** Resolve a vault path to a file, or null when it's blank or not a file. Used
+ * to point a hosted view at a specific document (an Excalidraw drawing, a
+ * canvas…) rather than its empty "new file" screen. */
+function fileForPath(app: App, path: string | undefined): TFile | null {
+	const trimmed = path?.trim();
+	if (!trimmed) return null;
+	return app.vault.getFileByPath(trimmed);
+}
+
 /**
  * Host a registered view inside `container` by creating a detached workspace
  * leaf, driving it to `viewType`, and moving its element into the card. The
@@ -82,6 +91,10 @@ export function isViewTypeHostable(app: App, type: string): boolean {
  * teardown is registered before the (async) view load so a mid-load failure
  * is still cleaned up.
  *
+ * When `file` names a vault file that exists, the view is opened on that file
+ * (an Excalidraw drawing, a canvas, a note…) instead of its detached "new file"
+ * screen. A blank or missing path hosts the bare view as before.
+ *
  * Best-effort and defensive: any failure to construct or mount returns false
  * rather than throwing, so a problematic view can never break the dashboard.
  */
@@ -90,6 +103,7 @@ export function mountLeafView(
 	viewType: string,
 	container: HTMLElement,
 	component: Component,
+	file?: string,
 ): boolean {
 	try {
 		// WorkspaceLeaf's constructor is internal; a detached leaf is the standard
@@ -108,11 +122,28 @@ export function mountLeafView(
 		container.appendChild(leaf.containerEl);
 		// active:false keeps focus and the active-leaf pointer where they are, so
 		// hosting a view never steals focus from the dashboard or editor.
-		void leaf
-			.setViewState({ type: viewType, active: false })
-			.catch(() => {
-				/* the view failed to load; the empty leaf is harmless and cleaned up */
-			});
+		const target = fileForPath(app, file);
+		if (target) {
+			// Drive the leaf to the requested view type on the chosen file. Passing
+			// the path through the view state is how Obsidian opens a file into a
+			// specific view; file-backed views (Excalidraw, canvas…) then render that
+			// document rather than their empty screen.
+			void leaf
+				.setViewState({
+					type: viewType,
+					active: false,
+					state: { file: target.path },
+				})
+				.catch(() => {
+					/* the view failed to load; the empty leaf is harmless and cleaned up */
+				});
+		} else {
+			void leaf
+				.setViewState({ type: viewType, active: false })
+				.catch(() => {
+					/* the view failed to load; the empty leaf is harmless and cleaned up */
+				});
+		}
 		return true;
 	} catch {
 		return false;

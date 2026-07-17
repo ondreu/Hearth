@@ -836,6 +836,14 @@ export const en = {
 				"plugins are enabled.",
 			pickPlaceholder: "Pick a view…",
 			none: "No hostable views found. Enable a plugin that provides a side-panel view.",
+			file: "File to show",
+			fileDesc:
+				"Optional. Open a specific vault file in the hosted view — an " +
+				"Excalidraw drawing, a canvas, a note. Leave empty to host the view " +
+				"without a file (some views then show a blank or \"new file\" screen).",
+			filePlaceholder: "e.g. Drawings/Sketch.excalidraw.md",
+			pickFile: "Choose file",
+			clearFile: "Clear file",
 			note: "Beta",
 			noteDesc:
 				"Hosts another plugin's view inside the card. Some views expect a " +

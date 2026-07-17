@@ -436,6 +436,47 @@ export class CardSettingsModal extends HearthTabbedModal {
 			});
 		});
 
+		const fileSetting = new Setting(containerEl)
+			.setName(t().editors.leaf.file)
+			.setDesc(t().editors.leaf.fileDesc);
+		fileSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.leaf.filePlaceholder)
+				.setValue(cfg.file ?? "")
+				.onChange((v) => {
+					const trimmed = v.trim();
+					cfg.file = trimmed || undefined;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+		);
+		fileSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.leaf.pickFile)
+				.onClick(() => {
+					new FilePickerModal(this.app, (file) => {
+						cfg.file = file.path;
+						this.opts.save();
+						this.render();
+						this.opts.rerender();
+					}).open();
+				}),
+		);
+		if (cfg.file) {
+			fileSetting.addExtraButton((b) =>
+				b
+					.setIcon("x")
+					.setTooltip(t().editors.leaf.clearFile)
+					.onClick(() => {
+						cfg.file = undefined;
+						this.opts.save();
+						this.render();
+						this.opts.rerender();
+					}),
+			);
+		}
+
 		new Setting(containerEl)
 			.setName(t().editors.leaf.note)
 			.setDesc(t().editors.leaf.noteDesc);

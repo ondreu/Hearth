@@ -258,6 +258,12 @@ export interface LeafViewConfig {
 	 * "tag-pane". This is the id a plugin passes to `registerView`. Empty means
 	 * the card hasn't been pointed at a view yet and shows an empty state. */
 	viewType?: string;
+	/** Optional vault path of a specific file to open in the hosted view, e.g. an
+	 * Excalidraw drawing or a Canvas. File-backed views (Excalidraw, canvas, …)
+	 * otherwise mount detached from any file and show their "new/empty" screen;
+	 * pointing them at a file renders that document instead. Empty means the view
+	 * is hosted without a file, as before. */
+	file?: string;
 }
 
 /** A single feed a "rss" card can subscribe to. Each source becomes a tab in

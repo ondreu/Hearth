@@ -193,7 +193,7 @@ function renderLeaf(
 	// Hosted views are natively interactive and manage their own scrolling, so
 	// let them fill the card edge-to-edge like canvas/Excalidraw embeds do.
 	body.addClass("hearth-card-body-live");
-	if (!mountLeafView(view.app, type, host, component)) {
+	if (!mountLeafView(view.app, type, host, component, card.leafView?.file)) {
 		host.remove();
 		body.removeClass("hearth-card-body-live");
 		emptyState(body, "layout-panel-left", t().cards.empty.leafViewMissing);

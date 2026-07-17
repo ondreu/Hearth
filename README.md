@@ -272,7 +272,9 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Plugin view** *(beta)* — host another plugin's — or a core — registered
   **side-panel view** (calendar, outline, tag pane, a Kanban board view…)
   right inside a dashboard card. Pick from the views your enabled plugins and
-  Obsidian's core panes provide; the card hosts a **detached workspace leaf**,
+  Obsidian's core panes provide, and optionally point the card at a **specific
+  file** to show — an Excalidraw drawing, a canvas, a note — instead of the
+  view's empty "new file" screen. The card hosts a **detached workspace leaf**,
   so it never shows up in your saved layout or disturbs your other panes, and it
   cleans itself up when the card redraws or the dashboard closes. It honours the
   card's opacity and blur (frosted glass) like every other card, and shows a
