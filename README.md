@@ -274,12 +274,17 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   right inside a dashboard card. Pick from the views your enabled plugins and
   Obsidian's core panes provide, and optionally point the card at a **specific
   file** to show — an Excalidraw drawing, a canvas, a note — instead of the
-  view's empty "new file" screen. The card hosts a **detached workspace leaf**,
-  so it never shows up in your saved layout or disturbs your other panes, and it
-  cleans itself up when the card redraws or the dashboard closes. It honours the
+  view's empty "new file" screen, and optionally **hide the view's own header**
+  (breadcrumbs, nav arrows, kebab menu) for a clean single-file card. The card
+  hosts a **detached workspace leaf**, so it never shows up in your saved layout
+  or disturbs your other panes, and it cleans itself up when the card redraws or
+  the dashboard closes. To keep memory in check it only runs the hosted view
+  while the card is **on screen** — it's torn down when scrolled out of view or
+  when you switch to another tab, and rebuilt when you come back. It honours the
   card's opacity and blur (frosted glass) like every other card, and shows a
-  friendly prompt when the chosen view's plugin is disabled. Some views expect a
-  real sidebar and may size oddly on a wide card — hence beta.
+  friendly prompt when the chosen view's plugin is disabled. Hosting a live view
+  costs more than an ordinary card and some views expect a real sidebar and may
+  size oddly on a wide card — hence beta; use a few at most.
 
 ### Live content
 
