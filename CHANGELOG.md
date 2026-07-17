@@ -35,6 +35,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   that note's body. The card's title and metadata line is left untouched (#71).
 - **Card border width setting.** A new global setting controls the width of
   card borders (#78).
+- **Bookmark groups (folders).** The Bookmarks card now mirrors Obsidian's own
+  bookmarks pane: groups render as collapsible folders (click the header to
+  expand or collapse) and sub-groups nest to any depth, instead of every
+  bookmark being flattened into one list. This also fixes bookmarks inside a
+  group appearing twice — the card previously re-flattened Obsidian's already
+  flat `getBookmarks()` list — and drops groups left empty after orphaned
+  file/folder bookmarks are hidden (#82).
 
 ### Fixed
 

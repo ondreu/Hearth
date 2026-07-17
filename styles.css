@@ -1172,6 +1172,39 @@
 	text-overflow: ellipsis;
 }
 
+/* Bookmark groups (folders): collapsible, nesting to any depth like Obsidian's
+   own bookmarks pane. The group wraps a header row over its children. */
+.hearth-bookmark-group,
+.hearth-bookmark-group-children {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+/* Indent each nested level so the tree structure reads at a glance. Because
+   groups nest in the DOM, the padding compounds one step per level. */
+.hearth-bookmark-group-children {
+	padding-left: 16px;
+}
+
+.hearth-bookmark-group-header {
+	gap: 4px;
+}
+
+.hearth-bookmark-chevron {
+	color: var(--text-faint);
+	transition: transform 0.12s ease;
+}
+
+/* Chevron points right when collapsed, rotates down when open. */
+.hearth-bookmark-group:not(.is-collapsed) > .hearth-bookmark-group-header .hearth-bookmark-chevron {
+	transform: rotate(90deg);
+}
+
+.hearth-bookmark-group.is-collapsed > .hearth-bookmark-group-children {
+	display: none;
+}
+
 /* Tasks card */
 .hearth-task-text {
 	flex: 1;
