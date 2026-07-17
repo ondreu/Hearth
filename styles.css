@@ -729,9 +729,11 @@
 }
 
 /* Optionally drop the hosted view's own header (breadcrumbs, back/forward and
- * kebab menu). For a single-file card that navigation chrome is just noise. */
-.hearth-leaf-hide-header .view-header {
-	display: none !important;
+ * kebab menu). For a single-file card that navigation chrome is just noise.
+ * Stacked classes (both sit on the host element) out-specify Obsidian's own
+ * `.view-header` rule so this wins without needing !important. */
+.hearth-leaf-host.hearth-leaf-hide-header .view-header {
+	display: none;
 }
 
 /* A quiet inline note in the card editor (e.g. the plugin-view performance
