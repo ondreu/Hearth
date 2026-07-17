@@ -193,6 +193,9 @@ function renderLeaf(
 	// Hosted views are natively interactive and manage their own scrolling, so
 	// let them fill the card edge-to-edge like canvas/Excalidraw embeds do.
 	body.addClass("hearth-card-body-live");
+	// Optionally suppress the hosted view's breadcrumbs/nav/kebab header — for a
+	// single-file card that chrome is just noise.
+	if (card.leafView?.hideHeader) host.addClass("hearth-leaf-hide-header");
 	if (!mountLeafView(view.app, type, host, component, card.leafView?.file)) {
 		host.remove();
 		body.removeClass("hearth-card-body-live");

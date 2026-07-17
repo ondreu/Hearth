@@ -638,6 +638,7 @@ function sanitizeLeafView(r: Record<string, unknown>): LeafViewConfig {
 	if (viewType !== undefined) cfg.viewType = viewType;
 	const file = str(r.file);
 	if (file !== undefined) cfg.file = file;
+	if (typeof r.hideHeader === "boolean") cfg.hideHeader = r.hideHeader;
 	return cfg;
 }
 

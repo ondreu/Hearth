@@ -124,25 +124,21 @@ export function mountLeafView(
 		// hosting a view never steals focus from the dashboard or editor.
 		const target = fileForPath(app, file);
 		if (target) {
-			// Drive the leaf to the requested view type on the chosen file. Passing
-			// the path through the view state is how Obsidian opens a file into a
-			// specific view; file-backed views (Excalidraw, canvas…) then render that
-			// document rather than their empty screen.
-			void leaf
-				.setViewState({
-					type: viewType,
-					active: false,
-					state: { file: target.path },
-				})
-				.catch(() => {
-					/* the view failed to load; the empty leaf is harmless and cleaned up */
-				});
+			// Open the file through the leaf's own opener rather than hand-rolling a
+			// view state. openFile loads the file's data the way Obsidian does when
+			// you click a note, so file-backed views (Excalidraw, canvas…) get a fully
+			// initialised document instead of a half-built one — driving these views
+			// via setViewState({ state: { file } }) leaves them without their data and
+			// crashes some of them (Excalidraw throws in setViewData on every frame).
+			// The file's registered editor is its natural view, which matches the type
+			// the user picked for the card.
+			void leaf.openFile(target, { active: false }).catch(() => {
+				/* the file/view failed to load; the empty leaf is harmless and cleaned up */
+			});
 		} else {
-			void leaf
-				.setViewState({ type: viewType, active: false })
-				.catch(() => {
-					/* the view failed to load; the empty leaf is harmless and cleaned up */
-				});
+			void leaf.setViewState({ type: viewType, active: false }).catch(() => {
+				/* the view failed to load; the empty leaf is harmless and cleaned up */
+			});
 		}
 		return true;
 	} catch {

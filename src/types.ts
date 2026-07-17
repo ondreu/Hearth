@@ -264,6 +264,10 @@ export interface LeafViewConfig {
 	 * pointing them at a file renders that document instead. Empty means the view
 	 * is hosted without a file, as before. */
 	file?: string;
+	/** Hide the hosted view's own header (breadcrumbs, back/forward arrows and the
+	 * kebab menu). For a single-file card that chrome is just noise; default
+	 * (false/undefined) keeps it. */
+	hideHeader?: boolean;
 }
 
 /** A single feed a "rss" card can subscribe to. Each source becomes a tab in

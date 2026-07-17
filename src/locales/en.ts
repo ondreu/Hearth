@@ -844,6 +844,13 @@ export const en = {
 			filePlaceholder: "e.g. Drawings/Sketch.excalidraw.md",
 			pickFile: "Choose file",
 			clearFile: "Clear file",
+			hideHeader: "Hide view header",
+			hideHeaderDesc:
+				"Hide the hosted view's own header — its breadcrumbs, back/forward " +
+				"arrows and menu. Handy when the card shows a single file.",
+			perfNote:
+				"Hosting a live plugin view is heavier than a normal card and may " +
+				"affect performance — use a few at most.",
 			note: "Beta",
 			noteDesc:
 				"Hosts another plugin's view inside the card. Some views expect a " +
