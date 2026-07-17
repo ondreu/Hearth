@@ -177,9 +177,19 @@ export function mountLeafView(
 ): boolean {
 	try {
 		let leaf: WorkspaceLeaf | null = null;
+		let destroyed = false;
 
 		const mount = () => {
-			if (!leaf) leaf = createHostedLeaf(app, viewType, container, file);
+			if (leaf || destroyed) return;
+			// Never build the view before the workspace has finished restoring and
+			// all plugins are loaded. Mounting a host like Excalidraw mid-startup
+			// leaves it "waiting for Obsidian to initialize all of your plugins" and
+			// can hang the app. onLayoutReady runs immediately once ready, so after
+			// startup this is a straight-through call.
+			app.workspace.onLayoutReady(() => {
+				if (leaf || destroyed) return;
+				leaf = createHostedLeaf(app, viewType, container, file);
+			});
 		};
 		const unmount = () => {
 			if (!leaf) return;
@@ -205,6 +215,7 @@ export function mountLeafView(
 		io.observe(container);
 
 		component.register(() => {
+			destroyed = true;
 			io.disconnect();
 			unmountSoon.cancel();
 			unmount();
