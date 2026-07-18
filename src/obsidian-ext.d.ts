@@ -48,6 +48,13 @@ declare module "obsidian" {
 	}
 }
 
+/** Shape of the core "Workspaces" plugin instance we care about: the saved
+ * workspaces keyed by name, and the name of the last-loaded one. */
+export interface WorkspacesInstance {
+	workspaces?: Record<string, unknown>;
+	activeWorkspace?: string;
+}
+
 // Shape of an Obsidian core "Bookmarks" item we care about. `type` is one of
 // "file" | "folder" | "search" | "group" | "url" (and possibly others), kept as
 // a plain string since the literals collapse into it anyway.

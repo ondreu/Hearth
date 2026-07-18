@@ -695,6 +695,9 @@ function sanitizeDashboard(
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
+	const linkedWorkspace = str(r.linkedWorkspace);
+	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
+		dash.linkedWorkspace = linkedWorkspace;
 	const rawHeader = r.header;
 	if (rawHeader && typeof rawHeader === "object") {
 		const h = rawHeader as Record<string, unknown>;
