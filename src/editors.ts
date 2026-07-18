@@ -1851,13 +1851,17 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 		if (cfg.mode !== "analog") {
 			new Setting(containerEl)
-				.setName(t().editors.clock.hour24)
-				.addToggle((t) =>
-					t.setValue(cfg.use24Hour ?? false).onChange((v) => {
-						cfg.use24Hour = v;
+				.setName(t().editors.clock.hourFormat)
+				.addDropdown((d) => {
+					d.addOption("auto", t().editors.clock.hourFormatAuto);
+					d.addOption("12", t().editors.clock.hourFormat12);
+					d.addOption("24", t().editors.clock.hourFormat24);
+					d.setValue(cfg.hourFormat ?? (cfg.use24Hour ? "24" : "auto")).onChange((v) => {
+						cfg.hourFormat = v as NonNullable<ClockConfig["hourFormat"]>;
+						cfg.use24Hour = undefined;
 						this.opts.save();
-					}),
-				);
+					});
+				});
 		}
 		new Setting(containerEl)
 			.setName(t().editors.clock.showSeconds)

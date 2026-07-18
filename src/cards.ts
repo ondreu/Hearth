@@ -6189,6 +6189,16 @@ function pickGreeting(hour: number, playful: boolean): string {
 	return pool[Math.floor(Math.random() * pool.length)];
 }
 
+/** Resolve the clock's `hour12` option. Returns `undefined` for "auto" so the
+ * locale default is used, or a boolean to force a 12- or 24-hour clock. Falls
+ * back to the deprecated `use24Hour` flag for configs saved before hourFormat. */
+function resolveHour12(cfg: ClockConfig): boolean | undefined {
+	const fmt = cfg.hourFormat ?? (cfg.use24Hour ? "24" : "auto");
+	if (fmt === "24") return false;
+	if (fmt === "12") return true;
+	return undefined;
+}
+
 function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, custom?: string): string {
 	switch (mode) {
 		case "short":
@@ -6508,7 +6518,8 @@ function renderClock(
 	const dateEl = dateMode === "none" ? null : wrap.createDiv("hearth-clock-date");
 
 	const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
-	if (cfg.use24Hour) timeOpts.hour12 = false;
+	const hour12 = resolveHour12(cfg);
+	if (hour12 !== undefined) timeOpts.hour12 = hour12;
 	if (cfg.showSeconds) timeOpts.second = "2-digit";
 
 	const update = () => {

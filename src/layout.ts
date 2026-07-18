@@ -360,7 +360,13 @@ function sanitizeCommand(raw: unknown): CommandItem | null {
 function sanitizeClock(r: Record<string, unknown>): ClockConfig {
 	const clock: ClockConfig = {};
 	if (r.mode === "digital" || r.mode === "analog") clock.mode = r.mode;
-	if (typeof r.use24Hour === "boolean") clock.use24Hour = r.use24Hour;
+	if (r.hourFormat === "auto" || r.hourFormat === "12" || r.hourFormat === "24") {
+		clock.hourFormat = r.hourFormat;
+	} else if (typeof r.use24Hour === "boolean") {
+		// Migrate the pre-hourFormat boolean: true forced 24-hour, false meant
+		// "follow the locale default" (now "auto").
+		clock.hourFormat = r.use24Hour ? "24" : "auto";
+	}
 	if (typeof r.showSeconds === "boolean") clock.showSeconds = r.showSeconds;
 	if (typeof r.showGreeting === "boolean") clock.showGreeting = r.showGreeting;
 	if (typeof r.playfulGreetings === "boolean")
