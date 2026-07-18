@@ -128,13 +128,18 @@ export default class HearthPlugin extends Plugin {
 		void leaf.setViewState({ type: VIEW_TYPE_HOME });
 	}
 
+	/** Name of the workspace we last reacted to, so the link fires once per
+	 * workspace load instead of pinning the dashboard on every layout-change. */
+	private lastWorkspace?: string;
+
 	/** Switch to the dashboard linked to the currently loaded core-Workspace,
 	 * if any. One-way sync: workspace → dashboard, never the reverse. */
 	private followLinkedWorkspace() {
 		const instance = this.app.internalPlugins.getPluginById("workspaces")
 			?.instance as WorkspacesInstance | undefined;
 		const active = instance?.activeWorkspace;
-		if (!active) return;
+		if (!active || active === this.lastWorkspace) return;
+		this.lastWorkspace = active;
 		const match = this.settings.dashboards.find(
 			(d) => d.linkedWorkspace === active,
 		);
