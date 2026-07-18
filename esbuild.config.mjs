@@ -33,10 +33,9 @@ const context = await esbuild.context({
 	],
 	format: "cjs",
 	target: "es2020",
-	// Inline the brand icon (assets/icon.png) as a data URI so it ships in the
-	// bundle and can be used for the ribbon, tab and header logo. CHANGELOG.md is
-	// bundled as raw text so the "What's new" dialog can mirror it directly.
-	loader: { ".png": "dataurl", ".md": "text" },
+	// CHANGELOG.md is bundled as raw text so the "What's new" dialog can mirror
+	// it directly.
+	loader: { ".md": "text" },
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
