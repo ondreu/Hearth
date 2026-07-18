@@ -45,6 +45,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Unnamed bookmarks show the file name, not the full path.** A file or folder
+  bookmark without its own name previously rendered as its whole vault path,
+  which overflowed the card when the path was long. It now shows just the
+  target's basename — matching Obsidian's own bookmarks pane — and still falls
+  back to the last path segment if the target can't be resolved (#92).
 - **TaskNotes tasks open in a working editor again.** Opening an existing
   TaskNotes task from a Tasks card handed TaskNotes' edit modal the note's
   `TFile` instead of its own task object, leaving the modal with a broken

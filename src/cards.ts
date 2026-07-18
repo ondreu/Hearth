@@ -1464,6 +1464,17 @@ function renderBookmarkGroup(
 	makeClickable(header, toggle, label);
 }
 
+/** The name Obsidian shows for an unnamed file/folder bookmark: the target's
+ * basename, not its full path. Resolving through the vault strips the `.md`
+ * extension from notes (like Obsidian) and keeps the extension on other files;
+ * if the target can't be resolved we fall back to the last path segment. */
+function bookmarkPathName(view: HomeView, path: string): string {
+	const file = view.app.vault.getAbstractFileByPath(path);
+	if (file instanceof TFile) return file.basename;
+	if (file instanceof TFolder) return file.name;
+	return path.split("/").pop() || path;
+}
+
 /** A single (non-group) bookmark row: file, folder, url, search or graph. */
 function renderBookmarkLeaf(
 	view: HomeView,
@@ -1472,7 +1483,7 @@ function renderBookmarkLeaf(
 ): void {
 	const label =
 		item.title ||
-		item.path ||
+		(item.path ? bookmarkPathName(view, item.path) : undefined) ||
 		item.url ||
 		item.query ||
 		t().cards.bookmarks.untitled;
