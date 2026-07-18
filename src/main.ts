@@ -1,8 +1,14 @@
-import { addIcon, apiVersion, Plugin, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, apiVersion, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
-import { HEARTH_ICON_ID, HEARTH_ICON_SVG } from "./icon";
+import {
+	HEARTH_ICON_ID,
+	HEARTH_ICON_SVG,
+	HEARTH_ICON_THEMED_ID,
+	HEARTH_ICON_THEMED_SVG,
+	hearthIconIdFor,
+} from "./icon";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
@@ -16,6 +22,9 @@ export default class HearthPlugin extends Plugin {
 	 * as opposed to an existing vault that simply predates a given setting.
 	 * Used so the "What's new" dialog greets upgraders but not first-timers. */
 	isFirstRun = false;
+	/** The ribbon crystal, kept so the icon can be swapped when the
+	 * themeColorTarget setting changes. */
+	private ribbonEl?: HTMLElement;
 
 	async onload() {
 		// Temporary #52 diagnostic: one report has the settings pane blank with
@@ -39,13 +48,19 @@ export default class HearthPlugin extends Plugin {
 
 		await this.loadSettings();
 
-		// Register the Hearth crystal so it can be used as the ribbon, tab and
-		// header icon.
+		// Register both Hearth crystals (brand purple and themeable) so either
+		// can be used as the ribbon, tab and header icon per the
+		// themeColorTarget setting.
 		addIcon(HEARTH_ICON_ID, HEARTH_ICON_SVG);
+		addIcon(HEARTH_ICON_THEMED_ID, HEARTH_ICON_THEMED_SVG);
 
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
 
-		this.addRibbonIcon(HEARTH_ICON_ID, t().ribbon.openHome, () => this.activateView());
+		this.ribbonEl = this.addRibbonIcon(
+			hearthIconIdFor(this.settings.themeColorTarget),
+			t().ribbon.openHome,
+			() => this.activateView(),
+		);
 
 		this.addCommand({
 			id: "open-home",
@@ -262,6 +277,17 @@ export default class HearthPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 		this.refreshViews();
+	}
+
+	/** Re-apply the brand/themed crystal to the ribbon and open tab headers
+	 * after the themeColorTarget setting changes. */
+	refreshBrandIcons() {
+		if (this.ribbonEl) setIcon(this.ribbonEl, hearthIconIdFor(this.settings.themeColorTarget));
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
+			// updateHeader is undocumented; when absent the tab icon simply
+			// refreshes the next time the leaf re-renders.
+			(leaf as WorkspaceLeaf & { updateHeader?: () => void }).updateHeader?.();
+		});
 	}
 
 	refreshViews() {

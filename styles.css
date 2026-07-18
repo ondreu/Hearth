@@ -150,6 +150,16 @@
 	height: 1em;
 }
 
+/* "Follow theme icon color" setting: tint the crystal and/or the title text
+   with the theme's icon color instead of the brand purple / normal text. */
+.hearth-title.is-icon-themed .hearth-logo-icon {
+	color: var(--icon-color);
+}
+
+.hearth-title.is-title-themed .hearth-title-text {
+	color: var(--icon-color);
+}
+
 /* ---- Search --------------------------------------------------------- */
 
 /* (The search row is .hearth-search-wrap above; .hearth-search is kept as a

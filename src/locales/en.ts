@@ -295,6 +295,14 @@ export const en = {
 			logo: "Logo",
 			logoDesc:
 				"An emoji or short text shown next to the title. Leave empty for the Hearth crystal icon.",
+			themeColorTarget: "Follow theme icon color",
+			themeColorTargetDesc:
+				"Draw the crystal icon and/or the title text in your theme's icon " +
+				"color instead of the default purple crystal and normal text.",
+			themeColorNone: "Off",
+			themeColorIcon: "Icon",
+			themeColorTitle: "Title",
+			themeColorBoth: "Icon and title",
 			searchPlaceholder: "Search placeholder",
 			searchContents: "Search note contents",
 			searchContentsDesc:

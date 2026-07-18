@@ -594,6 +594,10 @@ export interface HomeSettings {
 	showTitle: boolean;
 	/** Emoji or short text shown as a logo next to the title. */
 	logo: string;
+	/** What follows the theme's icon color: nothing (brand-purple crystal and
+	 * normal title text, the historical look), the crystal icon, the title
+	 * text, or both. */
+	themeColorTarget: "none" | "icon" | "title" | "both";
 	searchPlaceholder: string;
 	showNewNoteButton: boolean;
 	/** What the single button beside the search bar does: create a new note, or
@@ -696,6 +700,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	showTitle: true,
 	// Empty => the Hearth crystal icon is shown as the brand mark.
 	logo: "",
+	themeColorTarget: "none",
 	searchPlaceholder: "Search or command",
 	showNewNoteButton: true,
 	newNoteButtonMode: "newNote",

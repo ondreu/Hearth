@@ -1,7 +1,7 @@
 import { type Component, Platform, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
-import { HEARTH_ICON_ID } from "./icon";
+import { hearthIconIdFor } from "./icon";
 import {
 	effectiveHeaderAlign,
 	effectiveHeaderLogoScale,
@@ -40,6 +40,11 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 
 	if (effectiveShowTitle(s)) {
 		const titleRow = container.createDiv("hearth-title");
+		// Tint the crystal and/or title text with the theme's icon color per
+		// the themeColorTarget setting (see styles.css).
+		const target = s.themeColorTarget;
+		if (target === "icon" || target === "both") titleRow.addClass("is-icon-themed");
+		if (target === "title" || target === "both") titleRow.addClass("is-title-themed");
 		titleRow.style.setProperty("--hearth-title-scale", String(effectiveHeaderTitleScale(s)));
 		titleRow.style.setProperty("--hearth-logo-scale", String(effectiveHeaderLogoScale(s)));
 		const marginTop = effectiveHeaderMarginTop(s);
@@ -52,7 +57,7 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 		// Hearth crystal icon as the brand mark.
 		if (logo === "") {
 			const logoEl = titleRow.createSpan({ cls: "hearth-logo hearth-logo-icon" });
-			setIcon(logoEl, HEARTH_ICON_ID);
+			setIcon(logoEl, hearthIconIdFor(target));
 		} else {
 			titleRow.createSpan({ cls: "hearth-logo", text: logo });
 		}

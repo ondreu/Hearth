@@ -12,7 +12,7 @@ import {
 	effectiveShowTitle,
 	renderCards,
 } from "./types";
-import { HEARTH_ICON_ID } from "./icon";
+import { hearthIconIdFor } from "./icon";
 import { t } from "./i18n";
 
 export const VIEW_TYPE_HOME = "hearth-home-view";
@@ -52,7 +52,7 @@ export class HomeView extends ItemView {
 	}
 
 	getIcon(): string {
-		return HEARTH_ICON_ID;
+		return hearthIconIdFor(this.plugin.settings.themeColorTarget);
 	}
 
 	async onOpen(): Promise<void> {
