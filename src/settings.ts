@@ -515,6 +515,23 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.addTextReset(logo, txt, "logo");
 		});
 
+		new Setting(containerEl)
+			.setName(t().settings.appearance.themeColorTarget)
+			.setDesc(t().settings.appearance.themeColorTargetDesc)
+			.addDropdown((dd) =>
+				dd
+					.addOption("none", t().settings.appearance.themeColorNone)
+					.addOption("icon", t().settings.appearance.themeColorIcon)
+					.addOption("title", t().settings.appearance.themeColorTitle)
+					.addOption("both", t().settings.appearance.themeColorBoth)
+					.setValue(s.themeColorTarget)
+					.onChange(async (v) => {
+						s.themeColorTarget = v as HomeSettings["themeColorTarget"];
+						await this.save();
+						this.plugin.refreshBrandIcons();
+					}),
+			);
+
 		const width = new Setting(containerEl)
 			.setName(t().settings.appearance.contentWidth)
 			.setDesc(t().settings.appearance.contentWidthDesc);
