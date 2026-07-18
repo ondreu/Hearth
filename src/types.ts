@@ -313,7 +313,11 @@ export interface RssConfig {
 export interface ClockConfig {
 	/** Digital (default) or analogue clock face. */
 	mode?: "digital" | "analog";
-	/** Use 24-hour time instead of the locale default. */
+	/** Time format: "auto" follows the locale default, "12"/"24" force a
+	 * 12- or 24-hour clock regardless of locale. Default "auto". */
+	hourFormat?: "auto" | "12" | "24";
+	/** @deprecated Superseded by `hourFormat`. Kept for migration only:
+	 * `true` maps to `hourFormat: "24"`. */
 	use24Hour?: boolean;
 	/** Show seconds in the time. */
 	showSeconds?: boolean;
