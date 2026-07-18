@@ -584,6 +584,9 @@ export interface Dashboard {
 	header?: DashboardHeaderConfig;
 	/** Show the dashboard search/command section (undefined = visible). */
 	showSearch?: boolean;
+	/** Name of a core-Workspace; loading that workspace auto-switches to this
+	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
+	linkedWorkspace?: string;
 }
 
 export type ChromeVisibility = "always" | "hover";

@@ -9,6 +9,7 @@ import {
 	HEARTH_ICON_THEMED_SVG,
 	hearthIconIdFor,
 } from "./icon";
+import type { WorkspacesInstance } from "./obsidian-ext";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
@@ -101,6 +102,14 @@ export default class HearthPlugin extends Plugin {
 			this.app.workspace.on("active-leaf-change", (leaf) => this.maybeReplaceNewTab(leaf)),
 		);
 
+		// Follow core-Workspace loads: when the active workspace matches a
+		// dashboard's linked workspace, switch to that dashboard. There is no
+		// dedicated "workspace loaded" event, so listen to layout-change;
+		// setActiveDashboard no-ops when the dashboard is already active.
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => this.followLinkedWorkspace()),
+		);
+
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.openOnStartup) void this.activateView();
 			// Pop the release-notes dialog after an update (but not on a fresh
@@ -117,6 +126,24 @@ export default class HearthPlugin extends Plugin {
 		if (!leaf || !this.settings.replaceNewTabs) return;
 		if (leaf.getViewState().type !== "empty") return;
 		void leaf.setViewState({ type: VIEW_TYPE_HOME });
+	}
+
+	/** Name of the workspace we last reacted to, so the link fires once per
+	 * workspace load instead of pinning the dashboard on every layout-change. */
+	private lastWorkspace?: string;
+
+	/** Switch to the dashboard linked to the currently loaded core-Workspace,
+	 * if any. One-way sync: workspace → dashboard, never the reverse. */
+	private followLinkedWorkspace() {
+		const instance = this.app.internalPlugins.getPluginById("workspaces")
+			?.instance as WorkspacesInstance | undefined;
+		const active = instance?.activeWorkspace;
+		if (!active || active === this.lastWorkspace) return;
+		this.lastWorkspace = active;
+		const match = this.settings.dashboards.find(
+			(d) => d.linkedWorkspace === active,
+		);
+		if (match) this.setActiveDashboard(match.id);
 	}
 
 	/** Switch the active dashboard and refresh any open home views. */

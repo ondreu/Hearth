@@ -156,6 +156,10 @@ export const en = {
 			lucidePlaceholder: "home",
 			showSearch: "Show search section",
 			showSearchDesc: "Show the search and command bar with its results and filter buttons on this dashboard.",
+			linkedWorkspace: "Linked workspace",
+			linkedWorkspaceDesc:
+				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
+			linkedWorkspaceNone: "None",
 			titleVisibility: "Title visibility",
 			titleVisibilityDesc:
 				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
