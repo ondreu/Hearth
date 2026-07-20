@@ -1015,6 +1015,9 @@ export const en = {
 			agendaNoNote: "No note",
 			allDay: "All day",
 			untitledEvent: "(No title)",
+			openDailyNote: "Open daily note",
+			createDailyNote: "Create daily note",
+			eventsHeading: "Events",
 		},
 		stats: {
 			notes: "Notes",

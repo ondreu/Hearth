@@ -2319,8 +2319,15 @@
 	display: flex;
 	align-items: baseline;
 	gap: 7px;
-	padding: 2px 0;
+	padding: 2px 6px;
+	margin: 0 -6px;
+	border-radius: 6px;
+	cursor: pointer;
 	min-width: 0;
+}
+
+.hearth-agenda-event:hover {
+	background: var(--background-modifier-hover);
 }
 
 .hearth-agenda-evbullet {

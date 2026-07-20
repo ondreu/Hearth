@@ -11,6 +11,7 @@ import {
 	Notice,
 	setIcon,
 	Setting,
+	type TAbstractFile,
 	TFile,
 	TFolder,
 } from "obsidian";
@@ -1156,6 +1157,94 @@ function renderCalendarHead(
 	next.addEventListener("click", handlers.onNext);
 }
 
+/** Open the daily note for `day` — the calendar's default click action. Opens
+ * an existing note, runs the core "open today's note" command for today, or
+ * offers to create the note for any other day. No-op when daily notes are off. */
+function openDailyNote(
+	view: HomeView,
+	day: Moment,
+	options: DailyNotesOptions | null,
+	file: TAbstractFile | null,
+	isToday: boolean,
+): void {
+	if (file instanceof TFile) {
+		void view.app.workspace.getLeaf(true).openFile(file);
+	} else if (!options) {
+		// Calendar-only card: nothing to open or create.
+	} else if (isToday) {
+		if (!view.app.commands.executeCommandById("daily-notes")) {
+			new Notice(t().notices.couldNotOpenDaily);
+		}
+	} else {
+		void createDailyNoteAt(view, day, options).then((created) => {
+			if (created) void view.app.workspace.getLeaf(true).openFile(created);
+			else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
+		});
+	}
+}
+
+/** A one-line time label for an event: its start–end range, or "All day". */
+function eventTimeLabel(ev: IcsOccurrence): string {
+	if (ev.allDay) return t().cards.calendar.allDay;
+	const start = moment(new Date(ev.start)).format("LT");
+	if (ev.end === null) return start;
+	return `${start} – ${moment(new Date(ev.end)).format("LT")}`;
+}
+
+/** Surface an event's details (time, location, calendar) in a Notice — the
+ * lightweight "view this event" action from the day picker and agenda. */
+function showEventDetail(ev: IcsOccurrence, ics: IcsContext): void {
+	const lines = [ev.summary || t().cards.calendar.untitledEvent, eventTimeLabel(ev)];
+	if (ev.location) lines.push(ev.location);
+	const label = ics.label(ev.sourceId);
+	if (label) lines.push(label);
+	new Notice(lines.join("\n"));
+}
+
+/** When a day has external events, clicking it opens this picker rather than
+ * jumping straight into the note: the daily note (open or create) sits at the
+ * top, then each event — so notes and events are both reachable in one click. */
+function showDayMenu(
+	view: HomeView,
+	day: Moment,
+	options: DailyNotesOptions | null,
+	file: TAbstractFile | null,
+	isToday: boolean,
+	events: IcsOccurrence[],
+	ics: IcsContext,
+	anchor: MouseEvent | HTMLElement,
+): void {
+	const menu = new Menu();
+	if (options) {
+		const exists = file instanceof TFile;
+		menu.addItem((item) =>
+			item
+				.setTitle(
+					exists ? t().cards.calendar.openDailyNote : t().cards.calendar.createDailyNote,
+				)
+				.setIcon(exists ? "file-text" : "file-plus")
+				.onClick(() => openDailyNote(view, day, options, file, isToday)),
+		);
+		menu.addSeparator();
+	}
+	menu.addItem((item) => item.setTitle(t().cards.calendar.eventsHeading).setIsLabel(true));
+	for (const ev of events) {
+		const time = ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT");
+		menu.addItem((item) =>
+			item
+				.setTitle(`${time}  ${ev.summary || t().cards.calendar.untitledEvent}`)
+				.setIcon("calendar-clock")
+				.onClick(() => showEventDetail(ev, ics)),
+		);
+	}
+	if (anchor instanceof MouseEvent) {
+		menu.showAtMouseEvent(anchor);
+	} else {
+		const rect = anchor.getBoundingClientRect();
+		menu.showAtPosition({ x: rect.left, y: rect.bottom });
+	}
+}
+
 function renderCalendarGrid(
 	view: HomeView,
 	wrap: HTMLElement,
@@ -1234,25 +1323,17 @@ function renderCalendarGrid(
 			}
 		}
 
-		const activate = () => {
-			if (file instanceof TFile) {
-				void view.app.workspace.getLeaf(true).openFile(file);
-			} else if (!options) {
-				// Calendar-only card (no daily notes): nothing to open or create.
-			} else if (isToday) {
-				if (!view.app.commands.executeCommandById("daily-notes")) {
-					new Notice(t().notices.couldNotOpenDaily);
-				}
+		// A day with events opens the picker (note + events); a plain day opens
+		// its note directly, exactly as before.
+		const activate = (evt?: MouseEvent) => {
+			if (events.length) {
+				showDayMenu(view, day, options, file, isToday, events, ics, evt ?? cell);
 			} else {
-				// Offer to create the missing daily note for that day.
-				void createDailyNoteAt(view, day, options).then((created) => {
-					if (created) void view.app.workspace.getLeaf(true).openFile(created);
-					else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
-				});
+				openDailyNote(view, day, options, file, isToday);
 			}
 		};
-		cell.addEventListener("click", activate);
-		makeClickable(cell, activate, day.format("MMMM D, YYYY"));
+		cell.addEventListener("click", (e) => activate(e));
+		makeClickable(cell, () => activate(), day.format("MMMM D, YYYY"));
 	}
 }
 
@@ -1324,30 +1405,18 @@ function renderCalendarAgenda(
 		}
 		if (hasNote) row.createDiv("hearth-calendar-dot hearth-agenda-dot");
 
-		// The day header opens/creates the daily note; when there are no daily
-		// notes the header is inert (the card is calendar-only).
+		// The day header opens/creates the daily note (events are listed
+		// separately below, each clickable); with no daily notes it's inert.
 		if (options) {
-			const activate = () => {
-				if (file instanceof TFile) {
-					void view.app.workspace.getLeaf(true).openFile(file);
-				} else if (isToday) {
-					if (!view.app.commands.executeCommandById("daily-notes")) {
-						new Notice(t().notices.couldNotOpenDaily);
-					}
-				} else {
-					void createDailyNoteAt(view, day, options).then((created) => {
-						if (created) void view.app.workspace.getLeaf(true).openFile(created);
-						else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
-					});
-				}
-			};
+			const activate = () => openDailyNote(view, day, options, file, isToday);
 			row.addEventListener("click", activate);
 			makeClickable(row, activate, day.format("MMMM D, YYYY"));
 		} else {
 			row.addClass("is-static");
 		}
 
-		// External calendar events for the day, listed under its header.
+		// External calendar events for the day, listed under its header. Each is
+		// clickable to view its details, so the day offers both note and events.
 		if (events.length) {
 			const evList = list.createDiv("hearth-agenda-events");
 			for (const ev of events) renderAgendaEvent(evList, ev, day, ics);
@@ -1378,10 +1447,9 @@ function renderAgendaEvent(
 		if (label) body.createSpan({ cls: "hearth-agenda-evbadge", text: label });
 	}
 
-	row.setAttribute(
-		"aria-label",
-		`${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`,
-	);
+	const open = () => showEventDetail(ev, ics);
+	row.addEventListener("click", open);
+	makeClickable(row, open, `${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`);
 }
 
 /** Bucket an edit count into a 1–4 heat level relative to the range peak. */
