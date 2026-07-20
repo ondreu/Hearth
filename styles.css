@@ -2152,6 +2152,27 @@
 	background: var(--text-normal);
 }
 
+/* Marker row under a day number: the daily-note dot plus per-calendar event
+   dots, coloured by their source. */
+.hearth-calendar-dots {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	min-height: 4px;
+}
+
+.hearth-calendar-evdot {
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-calendar-day.is-today .hearth-calendar-evdot {
+	box-shadow: 0 0 0 1px var(--background-primary);
+}
+
 /* Agenda layout of the calendar card: a scrollable, chronological list of
    days instead of the month grid. */
 .hearth-calendar.is-agenda {
@@ -2275,6 +2296,72 @@
 
 .hearth-agenda-row.has-heat:hover {
 	background-color: var(--background-modifier-hover);
+}
+
+.hearth-agenda-row.is-static {
+	cursor: default;
+}
+
+.hearth-agenda-row.is-static:hover {
+	background: transparent;
+}
+
+/* External calendar events listed under an agenda day. The left inset lines
+   them up under the day's label, not its date box. */
+.hearth-agenda-events {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 0 8px 4px 52px;
+}
+
+.hearth-agenda-event {
+	display: flex;
+	align-items: baseline;
+	gap: 7px;
+	padding: 2px 0;
+	min-width: 0;
+}
+
+.hearth-agenda-evbullet {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	align-self: center;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-agenda-evtime {
+	flex: 0 0 auto;
+	font-size: 0.72rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+	min-width: 3.4em;
+}
+
+.hearth-agenda-evbody {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
+.hearth-agenda-evtitle {
+	font-size: 0.8rem;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-agenda-evbadge {
+	flex: 0 0 auto;
+	font-size: 0.62rem;
+	color: var(--text-faint);
+	padding: 0 5px;
+	border-radius: 6px;
+	background: var(--background-modifier-hover);
 }
 
 /* Vault statistics card */

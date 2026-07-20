@@ -15,6 +15,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Calendar card — agenda layout and external ICS calendars.** The calendar
+  card gains a **Layout** setting: the existing month grid, or a new **agenda**
+  view that lists upcoming days (3–60 ahead) as a scrollable timeline. It can
+  also **subscribe to external calendars** by ICS/iCal URL (Google, iCloud,
+  Fastmail, Nextcloud, …) — add multiple sources, each with its own name and
+  colour and an individual show/hide toggle. Events render as coloured dots on
+  the month grid and are listed under each day in the agenda, expanded from the
+  common recurrence rules (daily/weekly/monthly/yearly with interval, count,
+  until, weekly by-day, and exclusions). Feeds are cached and auto-refreshed on
+  a configurable interval, share the RSS card's fetch path (so they work despite
+  browser CORS), and honour the global **disable external calls** privacy
+  setting. `webcal://` links are accepted. Timezone note: UTC and all-day times
+  are exact; `TZID` wall-clock times are read in the viewer's local zone.
 - **Vault statistics card — advanced mode.** The stats card gains an **Advanced**
   toggle in its editor. Off keeps the familiar fixed set of tiles. On unlocks
   three controls: choose which built-in stats appear (notes, attachments,

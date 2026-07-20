@@ -185,6 +185,21 @@ export interface TasksConfig {
 	kanbanDoneColumns?: string[];
 }
 
+/** An external calendar (ICS/iCal) subscription a "calendar" card overlays on
+ * top of its daily-note grid. `url` is an http(s)/webcal `.ics` address; `color`
+ * tints the source's event dots and chips; `name` labels it in the editor. */
+export interface IcsSource {
+	id: string;
+	/** Display label for the source (editor list + agenda badges). */
+	name: string;
+	/** ICS feed URL (http/https/webcal). */
+	url: string;
+	/** CSS color for this source's events. Falls back to the accent color. */
+	color?: string;
+	/** Temporarily hide this source's events without deleting it. */
+	enabled?: boolean;
+}
+
 /** Per-card configuration for a "calendar" card. */
 export interface CalendarConfig {
 	/** Layout: "month" (default) renders the month grid; "agenda" renders a
@@ -199,6 +214,11 @@ export interface CalendarConfig {
 	heatmap?: boolean;
 	/** Which timestamp the heatmap counts. Default "modified". */
 	heatmapMetric?: "modified" | "created";
+	/** External ICS calendars overlaid on the card. */
+	sources?: IcsSource[];
+	/** Auto-refresh interval for external calendars, in minutes. 0 (or omitted →
+	 * default 60) refreshes only when the card is (re)opened or manually. */
+	refreshMin?: number;
 }
 
 /** Per-card configuration for a "search" (query) card. */
@@ -931,7 +951,11 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 	if (card.commands) copy.commands = card.commands.map((c) => ({ ...c }));
 	if (card.secondView) copy.secondView = { ...card.secondView };
 	if (card.tasks) copy.tasks = { ...card.tasks, folders: card.tasks.folders ? [...card.tasks.folders] : undefined, kanbanOrder: card.tasks.kanbanOrder ? [...card.tasks.kanbanOrder] : undefined, kanbanHidden: card.tasks.kanbanHidden ? [...card.tasks.kanbanHidden] : undefined, kanbanDoneColumns: card.tasks.kanbanDoneColumns ? [...card.tasks.kanbanDoneColumns] : undefined, kanbanColumnSort: card.tasks.kanbanColumnSort ? Object.fromEntries(Object.entries(card.tasks.kanbanColumnSort).map(([k, v]) => [k, { ...v }])) : undefined, sortRules: card.tasks.sortRules ? card.tasks.sortRules.map((r) => ({ ...r })) : undefined };
-	if (card.calendar) copy.calendar = { ...card.calendar };
+	if (card.calendar)
+		copy.calendar = {
+			...card.calendar,
+			sources: card.calendar.sources ? card.calendar.sources.map((s) => ({ ...s })) : undefined,
+		};
 	if (card.savedSearch) copy.savedSearch = { ...card.savedSearch };
 	if (card.heatmap) copy.heatmap = { ...card.heatmap };
 	if (card.stats)

@@ -601,6 +601,17 @@ export const en = {
 			heatmap: "Heatmap",
 			heatmapDesc: "Tint each day by note activity that day.",
 			heatmapCounts: "Heatmap counts",
+			externalCalendars: "External calendars",
+			externalCalendarsDesc:
+				"Subscribe to ICS/iCal feeds (Google, iCloud, Fastmail, Nextcloud…). Events appear as coloured dots on the grid and are listed in the agenda view.",
+			sourceNamePlaceholder: "Name",
+			sourceUrlPlaceholder: "ICS/iCal URL (https:// or webcal://)",
+			sourceShow: "Show this calendar",
+			sourceHide: "Hide this calendar",
+			sourceRemove: "Remove calendar",
+			addCalendar: "Add calendar",
+			refresh: "Refresh every",
+			refreshDesc: "How often to re-fetch calendars, in minutes. 0 fetches only on open.",
 		},
 		heatmap: {
 			metric: "Metric",
@@ -999,7 +1010,11 @@ export const en = {
 			dayEdited: (date: string, count: number) => `${date}: ${count} edited`,
 			dayMetric: (date: string, count: number, metric: string) =>
 				`${date}: ${count} ${metric}`,
+			dayEvents: (date: string, count: number) =>
+				`${date}: ${count} ${count === 1 ? "event" : "events"}`,
 			agendaNoNote: "No note",
+			allDay: "All day",
+			untitledEvent: "(No title)",
 		},
 		stats: {
 			notes: "Notes",

@@ -3,6 +3,7 @@ import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID } from "./filetypes";
 import { listBaseViews, isBaseTarget } from "./bases";
 import { CommandPickerModal, FilePickerModal } from "./pickers";
 import type {
+	CalendarConfig,
 	CardKind,
 	ClockConfig,
 	DashboardCard,
@@ -1066,6 +1067,129 @@ export class CardSettingsModal extends HearthTabbedModal {
 					});
 				});
 		}
+
+		this.calendarSourcesEditor(containerEl, cfg);
+	}
+
+	/** The "External calendars" section of the calendar editor: subscribe to one
+	 * or more ICS/iCal feeds (name, URL, colour, enable toggle) overlaid on the
+	 * card, plus their shared auto-refresh interval. */
+	private calendarSourcesEditor(containerEl: HTMLElement, cfg: CalendarConfig): void {
+		const sources = (cfg.sources ??= []);
+
+		new Setting(containerEl).setName(t().editors.calendar.externalCalendars).setHeading();
+		new Setting(containerEl).setDesc(t().editors.calendar.externalCalendarsDesc);
+
+		sources.forEach((source, index) => {
+			const row = new Setting(containerEl).setClass("hearth-rss-setting");
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.calendar.sourceNamePlaceholder)
+					.setValue(source.name)
+					.onChange((v) => {
+						source.name = v;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+			);
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(t().editors.calendar.sourceUrlPlaceholder)
+					.setValue(source.url)
+					.onChange((v) => {
+						source.url = v.trim();
+						this.opts.save();
+						this.opts.rerender();
+					});
+				txt.inputEl.addClass("hearth-rss-url");
+			});
+			row.addColorPicker((c) =>
+				c.setValue(source.color ?? "#7c6cff").onChange((v) => {
+					source.color = v;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon(source.enabled === false ? "eye-off" : "eye")
+					.setTooltip(
+						source.enabled === false
+							? t().editors.calendar.sourceShow
+							: t().editors.calendar.sourceHide,
+					)
+					.onClick(() => {
+						source.enabled = source.enabled === false ? undefined : false;
+						this.opts.save();
+						this.opts.rerender();
+						this.render();
+					}),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-up")
+					.setTooltip(t().editors.links.moveUp)
+					.setDisabled(index === 0)
+					.onClick(() => this.moveItem(sources, index, index - 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-down")
+					.setTooltip(t().editors.links.moveDown)
+					.setDisabled(index === sources.length - 1)
+					.onClick(() => this.moveItem(sources, index, index + 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("trash-2")
+					.setTooltip(t().editors.calendar.sourceRemove)
+					.onClick(() => {
+						sources.splice(index, 1);
+						this.opts.save();
+						this.opts.rerender();
+						this.render();
+					}),
+			);
+		});
+
+		new Setting(containerEl).addButton((b) =>
+			b.setButtonText(t().editors.calendar.addCalendar).onClick(() => {
+				sources.push({
+					id: `ics-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+					name: "",
+					url: "",
+				});
+				this.opts.save();
+				this.render();
+			}),
+		);
+
+		if (sources.length === 0) return;
+
+		const refresh = new Setting(containerEl)
+			.setName(t().editors.calendar.refresh)
+			.setDesc(t().editors.calendar.refreshDesc);
+		refresh.addSlider((s) => {
+			s.setLimits(0, 180, 5)
+				.setValue(cfg.refreshMin ?? 60)
+				.setDynamicTooltip()
+				.onChange((v) => {
+					cfg.refreshMin = v === 60 ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		refresh.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					cfg.refreshMin = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
 	}
 
 	private heatmapEditor(containerEl: HTMLElement): void {

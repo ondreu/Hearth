@@ -17,6 +17,7 @@ import {
 import type { HomeView } from "./view";
 import type { BookmarkItem } from "./obsidian-ext";
 import type {
+	CalendarConfig,
 	ClockConfig,
 	CommandItem,
 	DashboardCard,
@@ -38,6 +39,13 @@ import { evaluate as evaluateCalc } from "./calculator";
 import { cachedRates, loadRates } from "./currency";
 import { getDataviewApi } from "./dataview";
 import { cachedFeed, loadFeed, type RssItem } from "./rss";
+import {
+	cachedCalendar,
+	eventsByDay,
+	expandEvents,
+	loadCalendar,
+	type IcsOccurrence,
+} from "./ics";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
 import { EXCALIDRAW_PLUGIN_ID, fileTypeLabel, groupById, groupForFile, iconForFile, isExcalidraw } from "./filetypes";
 import { countQuery, type QueryHit, runQuery, searchFileContents } from "./query";
@@ -68,6 +76,7 @@ interface Moment {
 	month(): number;
 	year(): number;
 	diff(other: Moment, unit?: string): number;
+	valueOf(): number;
 }
 interface MomentFn {
 	(input?: Date | string): Moment;
@@ -138,7 +147,7 @@ export function renderCardBody(
 			renderTasks(view, card, body);
 			break;
 		case "calendar":
-			renderCalendar(view, card, body);
+			renderCalendar(view, card, body, component);
 			break;
 		case "stats":
 			renderStats(view, card, body);
@@ -972,25 +981,43 @@ export function watchedCardPath(view: HomeView, card: DashboardCard): string | n
  * today when it doesn't exist yet safely falls back to the core "Open
  * today's daily note" command (template-aware). Other empty days are left
  * alone rather than guessing at template handling for arbitrary dates. */
-function renderCalendar(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+function renderCalendar(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component: Component,
+): void {
 	const options = dailyNotesOptions(view);
-	if (!options) {
+	const cfg = card.calendar ?? {};
+	const sources = (cfg.sources ?? []).filter((s) => s.url.trim() && s.enabled !== false);
+
+	// The card needs a reason to exist: either daily notes (for the note grid) or
+	// at least one external calendar to overlay.
+	if (!options && sources.length === 0) {
 		emptyState(body, "calendar-days", t().cards.empty.dailyEnable);
 		return;
 	}
 
-	const cfg = card.calendar ?? {};
 	const wrap = body.createDiv("hearth-calendar");
 	// Activity counts are only needed for the heatmap tint.
 	const activity = cfg.heatmap ? activityByDay(view.app, cfg.heatmapMetric ?? "modified") : null;
 
+	const ics = buildIcsContext(view, cfg, sources, component);
 	if (cfg.view === "agenda") {
-		renderCalendarAgenda(view, wrap, options, cfg, activity);
+		const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
+		const draw = () => {
+			wrap.empty();
+			const start = moment().startOf("day");
+			ics.expand(start.valueOf(), start.clone().add(days, "days").valueOf());
+			renderCalendarAgenda(view, wrap, options, cfg, activity, ics);
+		};
+		ics.onLoaded(draw);
+		draw();
+		ics.start();
 		return;
 	}
 
 	let cursor: Moment = moment().startOf("month");
-
 	const draw = () => {
 		wrap.empty();
 		renderCalendarHead(wrap, cursor, {
@@ -1007,9 +1034,107 @@ function renderCalendar(view: HomeView, card: DashboardCard, body: HTMLElement):
 				draw();
 			},
 		});
-		renderCalendarGrid(view, wrap, cursor, options, cfg, activity);
+		// Expand events across a window comfortably covering the visible grid.
+		ics.expand(
+			cursor.clone().startOf("month").subtract(7, "days").valueOf(),
+			cursor.clone().endOf("month").add(7, "days").valueOf(),
+		);
+		renderCalendarGrid(view, wrap, cursor, options, cfg, activity, ics);
 	};
+	ics.onLoaded(draw);
 	draw();
+	ics.start();
+}
+
+/** Per-render helper bundling the external-calendar state for a calendar card:
+ * lazily fetches each ICS source, expands events for a given window, and hands
+ * the card per-day occurrences plus each source's colour and label. When there
+ * are no sources every method is a cheap no-op, so the note grid pays nothing. */
+interface IcsContext {
+	/** Recompute the day buckets for `[startMs, endMs)` from cached feeds. */
+	expand(startMs: number, endMs: number): void;
+	/** Occurrences on a given local day key (YYYY-MM-DD), already sorted. */
+	on(dayKey: string): IcsOccurrence[];
+	/** CSS colour for a source id. */
+	color(sourceId: string | undefined): string;
+	/** Friendly label for a source id. */
+	label(sourceId: string | undefined): string;
+	/** Whether any external calendars are configured. */
+	readonly hasSources: boolean;
+	/** Whether more than one external calendar is configured (badges shown only
+	 * then, since with a single source the label is redundant). */
+	readonly multiSource: boolean;
+	/** Register a redraw to run after a background fetch resolves. */
+	onLoaded(cb: () => void): void;
+	/** Kick the initial fetch (and schedule auto-refresh). */
+	start(): void;
+}
+
+function buildIcsContext(
+	view: HomeView,
+	cfg: NonNullable<DashboardCard["calendar"]>,
+	sources: NonNullable<CalendarConfig["sources"]>,
+	component: Component,
+): IcsContext {
+	const disabled = view.plugin.settings.disableExternalCalls;
+	const refreshMin = cfg.refreshMin ?? 60;
+	const ttlMs = Math.max(refreshMin, 1) * 60_000;
+	let byDay = new Map<string, IcsOccurrence[]>();
+	let redraw: (() => void) | null = null;
+	let destroyed = false;
+	component.register(() => {
+		destroyed = true;
+	});
+
+	const src = (id: string | undefined) => sources.find((s) => s.id === id);
+	const color = (id: string | undefined): string =>
+		src(id)?.color || "var(--interactive-accent)";
+	const label = (id: string | undefined): string => {
+		const s = src(id);
+		if (!s) return "";
+		return s.name.trim() || cachedCalendar(s.url)?.name || feedHost(s.url);
+	};
+
+	const expand = (startMs: number, endMs: number): void => {
+		const occ: IcsOccurrence[] = [];
+		for (const s of sources) {
+			const cal = cachedCalendar(s.url);
+			if (!cal) continue;
+			for (const o of expandEvents(cal.events, startMs, endMs)) {
+				o.sourceId = s.id;
+				occ.push(o);
+			}
+		}
+		byDay = eventsByDay(occ);
+	};
+
+	const load = (force: boolean): void => {
+		if (sources.length === 0) return;
+		void Promise.all(
+			sources.map((s) => loadCalendar(s.url, { ttlMs, disabled, force })),
+		).then(() => {
+			if (destroyed) return;
+			redraw?.();
+		});
+	};
+
+	return {
+		expand,
+		on: (key) => byDay.get(key) ?? [],
+		color,
+		label,
+		hasSources: sources.length > 0,
+		multiSource: sources.length > 1,
+		onLoaded: (cb) => {
+			redraw = cb;
+		},
+		start: () => {
+			load(false);
+			if (refreshMin > 0) {
+				component.registerInterval(window.setInterval(() => load(true), refreshMin * 60_000));
+			}
+		},
+	};
 }
 
 function renderCalendarHead(
@@ -1035,9 +1160,10 @@ function renderCalendarGrid(
 	view: HomeView,
 	wrap: HTMLElement,
 	cursor: Moment,
-	options: DailyNotesOptions,
+	options: DailyNotesOptions | null,
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	activity: Map<string, number> | null,
+	ics: IcsContext,
 ): void {
 	const grid = wrap.createDiv("hearth-calendar-grid");
 	const startOfWeek = moment.localeData().firstDayOfWeek();
@@ -1073,26 +1199,46 @@ function renderCalendarGrid(
 		if (weekNumbers && i % 7 === 0) {
 			grid.createDiv({ cls: "hearth-calendar-wk", text: day.format("W") });
 		}
-		const path = dailyNotePath(day, options);
-		const file = view.app.vault.getAbstractFileByPath(path);
-		const isToday = day.format("YYYY-MM-DD") === today;
+		const dayKey = day.format("YYYY-MM-DD");
+		const path = options ? dailyNotePath(day, options) : null;
+		const file = path ? view.app.vault.getAbstractFileByPath(path) : null;
+		const isToday = dayKey === today;
+		const events = ics.on(dayKey);
 
 		const cell = grid.createDiv("hearth-calendar-day");
 		cell.toggleClass("is-outside", day.month() !== cursor.month());
 		cell.toggleClass("is-today", isToday);
 		cell.toggleClass("has-note", file instanceof TFile);
 		if (activity) {
-			const count = activity.get(day.format("YYYY-MM-DD")) ?? 0;
+			const count = activity.get(dayKey) ?? 0;
 			cell.style.setProperty("--heat", count > 0 ? String(heatLevel(count, peak)) : "0");
 			cell.toggleClass("has-heat", count > 0);
 			cell.setAttribute("aria-label", t().cards.calendar.dayEdited(day.format("MMM D"), count));
 		}
 		cell.createDiv({ cls: "hearth-calendar-daynum", text: String(day.date()) });
-		if (file instanceof TFile) cell.createDiv("hearth-calendar-dot");
+
+		// Markers row: the daily-note dot, then one coloured dot per external
+		// event (capped) so a busy day reads at a glance without overflowing.
+		if (file instanceof TFile || events.length) {
+			const dots = cell.createDiv("hearth-calendar-dots");
+			if (file instanceof TFile) dots.createDiv("hearth-calendar-dot");
+			for (const ev of events.slice(0, 3)) {
+				const dot = dots.createDiv("hearth-calendar-evdot");
+				dot.style.setProperty("--ev-color", ics.color(ev.sourceId));
+			}
+			if (events.length) {
+				cell.setAttribute(
+					"aria-label",
+					t().cards.calendar.dayEvents(day.format("MMM D"), events.length),
+				);
+			}
+		}
 
 		const activate = () => {
 			if (file instanceof TFile) {
 				void view.app.workspace.getLeaf(true).openFile(file);
+			} else if (!options) {
+				// Calendar-only card (no daily notes): nothing to open or create.
 			} else if (isToday) {
 				if (!view.app.commands.executeCommandById("daily-notes")) {
 					new Notice(t().notices.couldNotOpenDaily);
@@ -1111,17 +1257,19 @@ function renderCalendarGrid(
 }
 
 /** The agenda layout of the calendar card: a chronological list of days from
- * today forward (`agendaDays`, default 14). Each row opens its daily note (or
- * offers to create it, exactly like the month grid). Days with a note are
- * emphasised with a dot; the optional heatmap tints each row by that day's
- * activity. Suits narrow or tall cards where a linear list reads better than a
- * grid. */
+ * today forward (`agendaDays`, default 14). Each day header opens its daily note
+ * (or offers to create it, exactly like the month grid), and any external
+ * calendar events for that day are listed beneath it, coloured by source. Days
+ * with a note are emphasised with a dot; the optional heatmap tints each header
+ * by that day's activity. Suits narrow or tall cards, and is the natural home
+ * for subscribed ICS calendars. */
 function renderCalendarAgenda(
 	view: HomeView,
 	wrap: HTMLElement,
-	options: DailyNotesOptions,
+	options: DailyNotesOptions | null,
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	activity: Map<string, number> | null,
+	ics: IcsContext,
 ): void {
 	wrap.addClass("is-agenda");
 	const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
@@ -1140,16 +1288,18 @@ function renderCalendarAgenda(
 	let lastMonth = -1;
 	for (let i = 0; i < days; i++) {
 		const day = start.clone().add(i, "days");
+		const dayKey = day.format("YYYY-MM-DD");
 		// A light month separator whenever the agenda crosses into a new month.
 		if (day.month() !== lastMonth) {
 			list.createDiv({ cls: "hearth-agenda-month", text: day.format("MMMM YYYY") });
 			lastMonth = day.month();
 		}
 
-		const path = dailyNotePath(day, options);
-		const file = view.app.vault.getAbstractFileByPath(path);
+		const path = options ? dailyNotePath(day, options) : null;
+		const file = path ? view.app.vault.getAbstractFileByPath(path) : null;
 		const hasNote = file instanceof TFile;
 		const isToday = i === 0;
+		const events = ics.on(dayKey);
 
 		const row = list.createDiv("hearth-agenda-row");
 		row.toggleClass("is-today", isToday);
@@ -1160,36 +1310,78 @@ function renderCalendarAgenda(
 		dateBox.createDiv({ cls: "hearth-agenda-daynum", text: String(day.date()) });
 
 		const main = row.createDiv("hearth-agenda-main");
-		main.createDiv({ cls: "hearth-agenda-label", text: formatRelativeDate(day.format("YYYY-MM-DD")) });
-		if (!hasNote) {
+		main.createDiv({ cls: "hearth-agenda-label", text: formatRelativeDate(dayKey) });
+		// Faint "No note" hint only for truly empty days (no note, no events).
+		if (!hasNote && events.length === 0 && options) {
 			main.createDiv({ cls: "hearth-agenda-sub", text: t().cards.calendar.agendaNoNote });
 		}
 
 		if (activity) {
-			const count = activity.get(day.format("YYYY-MM-DD")) ?? 0;
+			const count = activity.get(dayKey) ?? 0;
 			row.style.setProperty("--heat", count > 0 ? String(heatLevel(count, peak)) : "0");
 			row.toggleClass("has-heat", count > 0);
 			row.setAttribute("aria-label", t().cards.calendar.dayEdited(day.format("MMM D"), count));
 		}
 		if (hasNote) row.createDiv("hearth-calendar-dot hearth-agenda-dot");
 
-		const activate = () => {
-			if (file instanceof TFile) {
-				void view.app.workspace.getLeaf(true).openFile(file);
-			} else if (isToday) {
-				if (!view.app.commands.executeCommandById("daily-notes")) {
-					new Notice(t().notices.couldNotOpenDaily);
+		// The day header opens/creates the daily note; when there are no daily
+		// notes the header is inert (the card is calendar-only).
+		if (options) {
+			const activate = () => {
+				if (file instanceof TFile) {
+					void view.app.workspace.getLeaf(true).openFile(file);
+				} else if (isToday) {
+					if (!view.app.commands.executeCommandById("daily-notes")) {
+						new Notice(t().notices.couldNotOpenDaily);
+					}
+				} else {
+					void createDailyNoteAt(view, day, options).then((created) => {
+						if (created) void view.app.workspace.getLeaf(true).openFile(created);
+						else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
+					});
 				}
-			} else {
-				void createDailyNoteAt(view, day, options).then((created) => {
-					if (created) void view.app.workspace.getLeaf(true).openFile(created);
-					else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
-				});
-			}
-		};
-		row.addEventListener("click", activate);
-		makeClickable(row, activate, day.format("MMMM D, YYYY"));
+			};
+			row.addEventListener("click", activate);
+			makeClickable(row, activate, day.format("MMMM D, YYYY"));
+		} else {
+			row.addClass("is-static");
+		}
+
+		// External calendar events for the day, listed under its header.
+		if (events.length) {
+			const evList = list.createDiv("hearth-agenda-events");
+			for (const ev of events) renderAgendaEvent(evList, ev, day, ics);
+		}
 	}
+}
+
+/** One external-calendar event line in the agenda: a coloured bullet, its time
+ * (or "All day"), and the summary, with the source name as a trailing badge
+ * when more than one calendar is subscribed. */
+function renderAgendaEvent(
+	parent: HTMLElement,
+	ev: IcsOccurrence,
+	day: Moment,
+	ics: IcsContext,
+): void {
+	const row = parent.createDiv("hearth-agenda-event");
+	const bullet = row.createDiv("hearth-agenda-evbullet");
+	bullet.style.setProperty("--ev-color", ics.color(ev.sourceId));
+
+	const time = row.createDiv("hearth-agenda-evtime");
+	time.setText(ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT"));
+
+	const body = row.createDiv("hearth-agenda-evbody");
+	body.createSpan({ cls: "hearth-agenda-evtitle", text: ev.summary || t().cards.calendar.untitledEvent });
+	if (ics.multiSource) {
+		const label = ics.label(ev.sourceId);
+		if (label) body.createSpan({ cls: "hearth-agenda-evbadge", text: label });
+	}
+
+	row.setAttribute(
+		"aria-label",
+		`${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`,
+	);
 }
 
 /** Bucket an edit count into a 1–4 heat level relative to the range peak. */
