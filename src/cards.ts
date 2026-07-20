@@ -983,6 +983,12 @@ function renderCalendar(view: HomeView, card: DashboardCard, body: HTMLElement):
 	const wrap = body.createDiv("hearth-calendar");
 	// Activity counts are only needed for the heatmap tint.
 	const activity = cfg.heatmap ? activityByDay(view.app, cfg.heatmapMetric ?? "modified") : null;
+
+	if (cfg.view === "agenda") {
+		renderCalendarAgenda(view, wrap, options, cfg, activity);
+		return;
+	}
+
 	let cursor: Moment = moment().startOf("month");
 
 	const draw = () => {
@@ -1101,6 +1107,88 @@ function renderCalendarGrid(
 		};
 		cell.addEventListener("click", activate);
 		makeClickable(cell, activate, day.format("MMMM D, YYYY"));
+	}
+}
+
+/** The agenda layout of the calendar card: a chronological list of days from
+ * today forward (`agendaDays`, default 14). Each row opens its daily note (or
+ * offers to create it, exactly like the month grid). Days with a note are
+ * emphasised with a dot; the optional heatmap tints each row by that day's
+ * activity. Suits narrow or tall cards where a linear list reads better than a
+ * grid. */
+function renderCalendarAgenda(
+	view: HomeView,
+	wrap: HTMLElement,
+	options: DailyNotesOptions,
+	cfg: NonNullable<DashboardCard["calendar"]>,
+	activity: Map<string, number> | null,
+): void {
+	wrap.addClass("is-agenda");
+	const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
+	const start = moment().startOf("day");
+
+	// Highest edit count in the visible range, so the heatmap tint is relative.
+	let peak = 1;
+	if (activity) {
+		for (let i = 0; i < days; i++) {
+			const key = start.clone().add(i, "days").format("YYYY-MM-DD");
+			peak = Math.max(peak, activity.get(key) ?? 0);
+		}
+	}
+
+	const list = wrap.createDiv("hearth-agenda");
+	let lastMonth = -1;
+	for (let i = 0; i < days; i++) {
+		const day = start.clone().add(i, "days");
+		// A light month separator whenever the agenda crosses into a new month.
+		if (day.month() !== lastMonth) {
+			list.createDiv({ cls: "hearth-agenda-month", text: day.format("MMMM YYYY") });
+			lastMonth = day.month();
+		}
+
+		const path = dailyNotePath(day, options);
+		const file = view.app.vault.getAbstractFileByPath(path);
+		const hasNote = file instanceof TFile;
+		const isToday = i === 0;
+
+		const row = list.createDiv("hearth-agenda-row");
+		row.toggleClass("is-today", isToday);
+		row.toggleClass("has-note", hasNote);
+
+		const dateBox = row.createDiv("hearth-agenda-date");
+		dateBox.createDiv({ cls: "hearth-agenda-dow", text: day.format("ddd") });
+		dateBox.createDiv({ cls: "hearth-agenda-daynum", text: String(day.date()) });
+
+		const main = row.createDiv("hearth-agenda-main");
+		main.createDiv({ cls: "hearth-agenda-label", text: formatRelativeDate(day.format("YYYY-MM-DD")) });
+		if (!hasNote) {
+			main.createDiv({ cls: "hearth-agenda-sub", text: t().cards.calendar.agendaNoNote });
+		}
+
+		if (activity) {
+			const count = activity.get(day.format("YYYY-MM-DD")) ?? 0;
+			row.style.setProperty("--heat", count > 0 ? String(heatLevel(count, peak)) : "0");
+			row.toggleClass("has-heat", count > 0);
+			row.setAttribute("aria-label", t().cards.calendar.dayEdited(day.format("MMM D"), count));
+		}
+		if (hasNote) row.createDiv("hearth-calendar-dot hearth-agenda-dot");
+
+		const activate = () => {
+			if (file instanceof TFile) {
+				void view.app.workspace.getLeaf(true).openFile(file);
+			} else if (isToday) {
+				if (!view.app.commands.executeCommandById("daily-notes")) {
+					new Notice(t().notices.couldNotOpenDaily);
+				}
+			} else {
+				void createDailyNoteAt(view, day, options).then((created) => {
+					if (created) void view.app.workspace.getLeaf(true).openFile(created);
+					else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
+				});
+			}
+		};
+		row.addEventListener("click", activate);
+		makeClickable(row, activate, day.format("MMMM D, YYYY"));
 	}
 }
 

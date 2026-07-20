@@ -187,6 +187,12 @@ export interface TasksConfig {
 
 /** Per-card configuration for a "calendar" card. */
 export interface CalendarConfig {
+	/** Layout: "month" (default) renders the month grid; "agenda" renders a
+	 * chronological list of upcoming days. */
+	view?: "month" | "agenda";
+	/** Agenda view only: how many days ahead to list (including today).
+	 * Default 14. */
+	agendaDays?: number;
 	/** Show an ISO week-number column down the left edge. */
 	showWeekNumbers?: boolean;
 	/** Tint each day by note activity that day (a heatmap). */

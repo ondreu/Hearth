@@ -590,6 +590,12 @@ export const en = {
 			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
 		},
 		calendar: {
+			view: "Layout",
+			viewDesc: "Month shows a grid; agenda lists upcoming days.",
+			viewMonth: "Month grid",
+			viewAgenda: "Agenda",
+			agendaDays: "Days ahead",
+			agendaDaysDesc: "How many days the agenda lists, starting from today.",
 			weekNumbers: "Week numbers",
 			weekNumbersDesc: "Show an ISO week-number column down the left edge.",
 			heatmap: "Heatmap",
@@ -993,6 +999,7 @@ export const en = {
 			dayEdited: (date: string, count: number) => `${date}: ${count} edited`,
 			dayMetric: (date: string, count: number, metric: string) =>
 				`${date}: ${count} ${metric}`,
+			agendaNoNote: "No note",
 		},
 		stats: {
 			notes: "Notes",

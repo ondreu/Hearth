@@ -999,14 +999,51 @@ export class CardSettingsModal extends HearthTabbedModal {
 	private calendarEditor(containerEl: HTMLElement): void {
 		const cfg = (this.card.calendar ??= {});
 		new Setting(containerEl)
-			.setName(t().editors.calendar.weekNumbers)
-			.setDesc(t().editors.calendar.weekNumbersDesc)
-			.addToggle((t) =>
-				t.setValue(cfg.showWeekNumbers ?? false).onChange((v) => {
-					cfg.showWeekNumbers = v || undefined;
+			.setName(t().editors.calendar.view)
+			.setDesc(t().editors.calendar.viewDesc)
+			.addDropdown((d) => {
+				d.addOption("month", t().editors.calendar.viewMonth);
+				d.addOption("agenda", t().editors.calendar.viewAgenda);
+				d.setValue(cfg.view ?? "month").onChange((v) => {
+					cfg.view = v === "agenda" ? "agenda" : undefined;
 					this.opts.save();
-				}),
+					this.render();
+				});
+			});
+		if (cfg.view === "agenda") {
+			const days = new Setting(containerEl)
+				.setName(t().editors.calendar.agendaDays)
+				.setDesc(t().editors.calendar.agendaDaysDesc);
+			days.addSlider((s) => {
+				s.setLimits(3, 60, 1)
+					.setValue(cfg.agendaDays ?? 14)
+					.setDynamicTooltip()
+					.onChange((v) => {
+						cfg.agendaDays = v === 14 ? undefined : v;
+						this.opts.save();
+					});
+			});
+			days.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t().settings.resetSlider)
+					.onClick(() => {
+						cfg.agendaDays = undefined;
+						this.opts.save();
+						this.render();
+					}),
 			);
+		} else {
+			new Setting(containerEl)
+				.setName(t().editors.calendar.weekNumbers)
+				.setDesc(t().editors.calendar.weekNumbersDesc)
+				.addToggle((t) =>
+					t.setValue(cfg.showWeekNumbers ?? false).onChange((v) => {
+						cfg.showWeekNumbers = v || undefined;
+						this.opts.save();
+					}),
+				);
+		}
 		new Setting(containerEl)
 			.setName(t().editors.calendar.heatmap)
 			.setDesc(t().editors.calendar.heatmapDesc)
