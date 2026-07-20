@@ -1,3 +1,5 @@
+import type { EventNoteConfig } from "./eventnote";
+
 /** The kind of content a dashboard card renders. */
 export type CardKind =
 	| "embed"
@@ -219,6 +221,9 @@ export interface CalendarConfig {
 	/** Auto-refresh interval for external calendars, in minutes. 0 (or omitted →
 	 * default 60) refreshes only when the card is (re)opened or manually. */
 	refreshMin?: number;
+	/** How the "Create note" action in the event modal builds a note from an
+	 * event (template, filename, per-field routing). */
+	eventNote?: EventNoteConfig;
 }
 
 /** Per-card configuration for a "search" (query) card. */
@@ -955,6 +960,14 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 		copy.calendar = {
 			...card.calendar,
 			sources: card.calendar.sources ? card.calendar.sources.map((s) => ({ ...s })) : undefined,
+			eventNote: card.calendar.eventNote
+				? {
+						...card.calendar.eventNote,
+						fields: card.calendar.eventNote.fields
+							? card.calendar.eventNote.fields.map((f) => ({ ...f }))
+							: undefined,
+					}
+				: undefined,
 		};
 	if (card.savedSearch) copy.savedSearch = { ...card.savedSearch };
 	if (card.heatmap) copy.heatmap = { ...card.heatmap };

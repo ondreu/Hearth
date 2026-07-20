@@ -261,7 +261,7 @@ describe("eventsByDay", () => {
 		start: number;
 		end: number | null;
 		allDay: boolean;
-	}): IcsOccurrence => ({ location: "", description: "", url: "", ...o });
+	}): IcsOccurrence => ({ uid: "u", location: "", description: "", url: "", ...o });
 
 	it("buckets a timed event on its start day", () => {
 		const start = Date.UTC(2026, 6, 20, 9);

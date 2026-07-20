@@ -2447,6 +2447,33 @@
 	overflow-wrap: anywhere;
 }
 
+.hearth-event-footer {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 18px;
+}
+
+.hearth-event-footer button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-event-btnicon {
+	display: inline-flex;
+}
+
+.hearth-event-btnicon .svg-icon,
+.hearth-event-btnicon svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* Keep the optional date-format input from crowding the field-routing row. */
+.hearth-event-format {
+	max-width: 9em;
+}
+
 /* Vault statistics card */
 .hearth-stats {
 	display: grid;

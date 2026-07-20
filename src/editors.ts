@@ -16,6 +16,12 @@ import type {
 	TasksConfig,
 } from "./types";
 import { ALL_STATS, DEFAULT_STATS, STAT_ICONS } from "./types";
+import {
+	DEFAULT_EVENT_NOTE_FIELDS,
+	type EventField,
+	type EventFieldAction,
+	type EventNoteConfig,
+} from "./eventnote";
 import { confirmAction } from "./ui";
 import { listLeafViewTypes } from "./leafview";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
@@ -1189,6 +1195,212 @@ export class CardSettingsModal extends HearthTabbedModal {
 					this.opts.rerender();
 					this.render();
 				}),
+		);
+
+		this.eventNoteEditor(containerEl, cfg);
+	}
+
+	/** The "Event notes" section: configure the modal's Create-note action —
+	 * template, folder, filename, link property, and per-field routing so the
+	 * user decides what each event value becomes in the new note. */
+	private eventNoteEditor(containerEl: HTMLElement, cfg: CalendarConfig): void {
+		const note = (cfg.eventNote ??= {});
+
+		new Setting(containerEl).setName(t().editors.calendar.eventNoteHeading).setHeading();
+		new Setting(containerEl).setDesc(t().editors.calendar.eventNoteDesc);
+
+		new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteEnabled)
+			.setDesc(t().editors.calendar.eventNoteEnabledDesc)
+			.addToggle((tg) =>
+				tg.setValue(note.enabled !== false).onChange((v) => {
+					note.enabled = v ? undefined : false;
+					this.opts.save();
+					this.render();
+				}),
+			);
+		if (note.enabled === false) return;
+
+		new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteFolder)
+			.setDesc(t().editors.calendar.eventNoteFolderDesc)
+			.addText((txt) =>
+				txt.setValue(note.folder ?? "").onChange((v) => {
+					note.folder = v.trim() || undefined;
+					this.opts.save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteFilename)
+			.setDesc(t().editors.calendar.eventNoteFilenameDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder("{{summary}}")
+					.setValue(note.filename ?? "")
+					.onChange((v) => {
+						note.filename = v.trim() || undefined;
+						this.opts.save();
+					}),
+			);
+
+		const template = new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteTemplate)
+			.setDesc(t().editors.calendar.eventNoteTemplateDesc);
+		template.addText((txt) => {
+			txt.setValue(note.template ?? "").onChange((v) => {
+				note.template = v.trim() || undefined;
+				this.opts.save();
+			});
+			txt.inputEl.addClass("hearth-rss-url");
+		});
+		template.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.calendar.eventNotePickTemplate)
+				.onClick(() => {
+					new FilePickerModal(this.app, (file) => {
+						note.template = file.path;
+						this.opts.save();
+						this.render();
+					}).open();
+				}),
+		);
+		template.addExtraButton((b) =>
+			b
+				.setIcon("x")
+				.setTooltip(t().editors.calendar.eventNoteClearTemplate)
+				.onClick(() => {
+					note.template = undefined;
+					this.opts.save();
+					this.render();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteLinkKey)
+			.setDesc(t().editors.calendar.eventNoteLinkKeyDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder("event_uid")
+					.setValue(note.linkKey ?? "")
+					.onChange((v) => {
+						// Distinguish "unset (use default)" from "explicitly empty".
+						note.linkKey = v === "" ? undefined : v.trim();
+						this.opts.save();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().editors.calendar.eventNoteCustomize)
+			.setDesc(t().editors.calendar.eventNoteCustomizeDesc)
+			.addToggle((tg) =>
+				tg.setValue(note.fields !== undefined).onChange((v) => {
+					note.fields = v ? DEFAULT_EVENT_NOTE_FIELDS.map((f) => ({ ...f })) : undefined;
+					this.opts.save();
+					this.render();
+				}),
+			);
+
+		if (note.fields) this.eventNoteFieldsEditor(containerEl, note);
+	}
+
+	/** The editable list of per-field routing rules (field → action → key/format). */
+	private eventNoteFieldsEditor(containerEl: HTMLElement, note: EventNoteConfig): void {
+		const rules = (note.fields ??= []);
+		const fieldNames = t().editors.calendar.eventFieldNames;
+		const actionNames = t().editors.calendar.eventFieldActions;
+		const fieldOrder: EventField[] = [
+			"summary",
+			"date",
+			"start",
+			"end",
+			"location",
+			"description",
+			"url",
+			"calendar",
+		];
+
+		new Setting(containerEl).setName(t().editors.calendar.eventNoteFieldsHeading).setHeading();
+
+		rules.forEach((rule, index) => {
+			const row = new Setting(containerEl).setClass("hearth-rss-setting");
+			row.addDropdown((d) => {
+				for (const f of fieldOrder) d.addOption(f, fieldNames[f]);
+				d.setValue(rule.field).onChange((v) => {
+					rule.field = v as EventField;
+					this.opts.save();
+				});
+			});
+			row.addDropdown((d) => {
+				d.addOption("ignore", actionNames.ignore);
+				d.addOption("frontmatter", actionNames.frontmatter);
+				d.addOption("body", actionNames.body);
+				d.setValue(rule.action).onChange((v) => {
+					rule.action = v as EventFieldAction;
+					this.opts.save();
+					this.render();
+				});
+			});
+			if (rule.action !== "ignore") {
+				row.addText((txt) => {
+					txt
+						.setPlaceholder(
+							rule.action === "frontmatter"
+								? t().editors.calendar.eventNotePropertyPlaceholder
+								: t().editors.calendar.eventNoteHeadingPlaceholder,
+						)
+						.setValue(rule.key ?? "")
+						.onChange((v) => {
+							rule.key = v.trim() || undefined;
+							this.opts.save();
+						});
+				});
+			}
+			if (rule.action === "frontmatter" && ["date", "start", "end"].includes(rule.field)) {
+				row.addText((txt) => {
+					txt
+						.setPlaceholder(t().editors.calendar.eventNoteFormatPlaceholder)
+						.setValue(rule.format ?? "")
+						.onChange((v) => {
+							rule.format = v.trim() || undefined;
+							this.opts.save();
+						});
+					txt.inputEl.addClass("hearth-event-format");
+				});
+			}
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-up")
+					.setTooltip(t().editors.links.moveUp)
+					.setDisabled(index === 0)
+					.onClick(() => this.moveItem(rules, index, index - 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-down")
+					.setTooltip(t().editors.links.moveDown)
+					.setDisabled(index === rules.length - 1)
+					.onClick(() => this.moveItem(rules, index, index + 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("trash-2")
+					.setTooltip(t().editors.calendar.eventNoteRemoveField)
+					.onClick(() => {
+						rules.splice(index, 1);
+						this.opts.save();
+						this.render();
+					}),
+			);
+		});
+
+		new Setting(containerEl).addButton((b) =>
+			b.setButtonText(t().editors.calendar.eventNoteAddField).onClick(() => {
+				rules.push({ field: "location", action: "frontmatter" });
+				this.opts.save();
+				this.render();
+			}),
 		);
 	}
 

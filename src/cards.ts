@@ -47,6 +47,7 @@ import {
 	loadCalendar,
 	type IcsOccurrence,
 } from "./ics";
+import { buildEventNote, type EventNoteConfig, type EventNoteInput } from "./eventnote";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
 import { EXCALIDRAW_PLUGIN_ID, fileTypeLabel, groupById, groupForFile, iconForFile, isExcalidraw } from "./filetypes";
 import { countQuery, type QueryHit, runQuery, searchFileContents } from "./query";
@@ -1065,6 +1066,8 @@ interface IcsContext {
 	/** Whether more than one external calendar is configured (badges shown only
 	 * then, since with a single source the label is redundant). */
 	readonly multiSource: boolean;
+	/** The event → note configuration for the "Create note" modal action. */
+	readonly eventNote: EventNoteConfig | undefined;
 	/** Register a redraw to run after a background fetch resolves. */
 	onLoaded(cb: () => void): void;
 	/** Kick the initial fetch (and schedule auto-refresh). */
@@ -1126,6 +1129,7 @@ function buildIcsContext(
 		label,
 		hasSources: sources.length > 0,
 		multiSource: sources.length > 1,
+		eventNote: cfg.eventNote,
 		onLoaded: (cb) => {
 			redraw = cb;
 		},
@@ -1265,6 +1269,42 @@ class EventDetailModal extends Modal {
 				attr: { target: "_blank", rel: "noopener" },
 			});
 		}
+
+		// "Create note" / "Open note" — the note-from-event action. Shown unless
+		// explicitly disabled in the card's event-note config.
+		if (this.ics.eventNote?.enabled !== false) this.renderNoteAction();
+	}
+
+	/** The footer button that creates the event's note (or opens it when one
+	 * already exists, matched by the event UID in frontmatter). */
+	private renderNoteAction(): void {
+		const cfg = this.ics.eventNote ?? {};
+		const linkKey = cfg.linkKey === undefined ? "event_uid" : cfg.linkKey.trim();
+		const existing = findEventNote(this.app, this.ev.uid, linkKey);
+
+		const footer = this.contentEl.createDiv("hearth-event-footer");
+		const btn = footer.createEl("button", { cls: "mod-cta" });
+		setIcon(btn.createSpan("hearth-event-btnicon"), existing ? "file-text" : "file-plus");
+		btn.createSpan({
+			text: existing
+				? t().cards.calendar.openEventNote
+				: t().cards.calendar.createEventNote,
+		});
+		btn.addEventListener("click", () => {
+			if (existing instanceof TFile) {
+				void this.app.workspace.getLeaf(true).openFile(existing);
+				this.close();
+				return;
+			}
+			void createEventNote(this.app, this.ev, this.ics).then((file) => {
+				if (file) {
+					void this.app.workspace.getLeaf(true).openFile(file);
+					this.close();
+				} else {
+					new Notice(t().notices.couldNotCreateEventNote);
+				}
+			});
+		});
 	}
 
 	onClose(): void {
@@ -1279,6 +1319,92 @@ class EventDetailModal extends Modal {
 		if (text) row.createDiv({ cls: "hearth-event-text", text });
 		return row;
 	}
+}
+
+/** The event data the note builder consumes, resolved from an occurrence plus
+ * its source calendar's display name. */
+function toEventNoteInput(ev: IcsOccurrence, calendar: string): EventNoteInput {
+	return {
+		uid: ev.uid,
+		summary: ev.summary,
+		location: ev.location,
+		description: ev.description,
+		url: ev.url,
+		start: ev.start,
+		end: ev.end,
+		allDay: ev.allDay,
+		calendar,
+	};
+}
+
+/** Find an existing note whose frontmatter link key holds this event's UID, so
+ * the same event always maps to one note. Returns null when linking is off, the
+ * event has no UID, or no note matches. */
+function findEventNote(app: App, uid: string, linkKey: string): TFile | null {
+	if (!uid || !linkKey) return null;
+	for (const file of app.vault.getMarkdownFiles()) {
+		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (fm && String(fm[linkKey]) === uid) return file;
+	}
+	return null;
+}
+
+/** Create the note for an event from the card's event-note config: seed from a
+ * template (if any), route each field to frontmatter or body per the rules,
+ * write the file and its frontmatter. Returns the file, or null on failure. */
+async function createEventNote(
+	app: App,
+	ev: IcsOccurrence,
+	ics: IcsContext,
+): Promise<TFile | null> {
+	const cfg = ics.eventNote ?? {};
+	let templateContent = "";
+	const templatePath = (cfg.template || "").trim();
+	if (templatePath) {
+		const tpl =
+			app.vault.getAbstractFileByPath(templatePath) ??
+			app.vault.getAbstractFileByPath(`${templatePath}.md`);
+		if (tpl instanceof TFile) {
+			try {
+				templateContent = await app.vault.read(tpl);
+			} catch {
+				templateContent = "";
+			}
+		}
+	}
+
+	const built = buildEventNote(toEventNoteInput(ev, ics.label(ev.sourceId)), cfg, templateContent);
+
+	// Ensure the target folder exists.
+	if (built.folder && !(app.vault.getAbstractFileByPath(built.folder) instanceof TFolder)) {
+		try {
+			await app.vault.createFolder(built.folder);
+		} catch {
+			// May have been created concurrently — proceed.
+		}
+	}
+	const parent =
+		(built.folder ? app.vault.getAbstractFileByPath(built.folder) : app.vault.getRoot()) ??
+		app.vault.getRoot();
+	if (!(parent instanceof TFolder)) return null;
+
+	let file: TFile;
+	try {
+		file = await app.fileManager.createNewMarkdownFile(parent, built.filename);
+	} catch {
+		return null;
+	}
+	try {
+		if (built.body) await app.vault.modify(file, `${built.body.replace(/\s+$/, "")}\n`);
+		if (Object.keys(built.frontmatter).length) {
+			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+				for (const [k, v] of Object.entries(built.frontmatter)) fm[k] = v;
+			});
+		}
+	} catch {
+		// The file exists even if body/frontmatter writes failed; return it.
+	}
+	return file;
 }
 
 /** When a day has external events, clicking it opens this picker rather than

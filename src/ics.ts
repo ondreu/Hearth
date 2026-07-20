@@ -58,6 +58,7 @@ export interface IcsCalendar {
 
 /** One concrete occurrence produced by expanding an event over a window. */
 export interface IcsOccurrence {
+	uid: string;
 	summary: string;
 	location: string;
 	description: string;
@@ -330,6 +331,7 @@ export function expandEvents(
 			const effectiveEnd = end ?? start;
 			if (start < windowEnd && effectiveEnd >= windowStart) {
 				out.push({
+					uid: ev.uid,
 					summary: ev.summary,
 					location: ev.location,
 					description: ev.description,
