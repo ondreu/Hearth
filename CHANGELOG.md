@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.14.0]
+## [1.15.0]
 
 ### Added
 
@@ -49,6 +49,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   show how many files match a query, using the search bar's syntax (`#tag`,
   `key:value` for a frontmatter property, or plain text). Each custom tile takes
   an optional label and icon.
+
+### Fixed
+
+- **Clock card — force a 12- or 24-hour clock regardless of locale.** The clock's
+  "24-hour time" toggle only chose between 24-hour and the OS locale default, so
+  on locales that already default to a 24-hour clock there was no way to get a
+  12-hour clock. It is replaced by a three-way **Time format** selector
+  (Automatic / 12-hour / 24-hour) mapping directly to `Intl`'s `hour12` option.
+  Existing settings are migrated, preserving prior behaviour (#98).
+
+## [1.14.0]
+
+### Added
+
 - **Link a dashboard to a core Workspace (auto-switch).** Each dashboard gets an
   optional linked workspace, chosen from the core Workspaces plugin's saved
   workspaces in the dashboard settings (General tab). When that workspace loads,
