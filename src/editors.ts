@@ -10,8 +10,11 @@ import type {
 	LinkItem,
 	RssLayout,
 	RssSource,
+	StatId,
+	StatsQuery,
 	TasksConfig,
 } from "./types";
+import { ALL_STATS, DEFAULT_STATS, STAT_ICONS } from "./types";
 import { confirmAction } from "./ui";
 import { listLeafViewTypes } from "./leafview";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
@@ -397,6 +400,9 @@ export class CardSettingsModal extends HearthTabbedModal {
 				break;
 			case "heatmap":
 				this.heatmapEditor(containerEl);
+				break;
+			case "stats":
+				this.statsEditor(containerEl);
 				break;
 			case "calculator":
 				this.calculatorEditor(containerEl);
@@ -1058,6 +1064,189 @@ export class CardSettingsModal extends HearthTabbedModal {
 					this.opts.save();
 					this.render();
 				}),
+		);
+	}
+
+	/**
+	 * The stats card is plain by default — a fixed set of tiles, no controls. An
+	 * "Advanced" toggle unlocks the rest: choosing which built-in stats show,
+	 * breaking attachments out into per-file-type tiles, and custom query counts.
+	 * Everything below the toggle is gated on it, so a basic card stays basic.
+	 */
+	private statsEditor(containerEl: HTMLElement): void {
+		const cfg = (this.card.stats ??= {});
+
+		new Setting(containerEl)
+			.setName(t().editors.stats.advanced)
+			.setDesc(t().editors.stats.advancedDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.advanced ?? false).onChange((v) => {
+					cfg.advanced = v || undefined;
+					this.opts.save();
+					this.opts.rerender();
+					// Show/hide the advanced controls below.
+					this.render();
+				}),
+			);
+
+		if (!cfg.advanced) return;
+
+		// ---- Which built-in stats to show --------------------------------------
+		new Setting(containerEl).setName(t().editors.stats.builtins).setHeading();
+		const builtinSetting = new Setting(containerEl).setDesc(t().editors.stats.builtinsDesc);
+		this.addResetButton(builtinSetting, t().settings.resetField, () => {
+			cfg.builtins = undefined;
+		});
+		const selectedBuiltins = new Set<StatId>(cfg.builtins ?? DEFAULT_STATS);
+		const builtinRow = containerEl.createDiv("hearth-type-filter");
+		for (const id of ALL_STATS) {
+			const chip = builtinRow.createDiv("hearth-type-filter-chip");
+			const on = selectedBuiltins.has(id);
+			chip.toggleClass("is-active", on);
+			setIcon(chip.createDiv("hearth-type-filter-icon"), STAT_ICONS[id]);
+			chip.createDiv({ cls: "hearth-type-filter-label", text: t().cards.stats[id] });
+			chip.setAttribute("role", "button");
+			chip.setAttribute("tabindex", "0");
+			chip.setAttribute("aria-pressed", String(on));
+			const toggle = () => {
+				if (selectedBuiltins.has(id)) selectedBuiltins.delete(id);
+				else selectedBuiltins.add(id);
+				const active = selectedBuiltins.has(id);
+				chip.toggleClass("is-active", active);
+				chip.setAttribute("aria-pressed", String(active));
+				// Keep the canonical order and collapse "exactly the default set"
+				// back to undefined so the card reads as unconfigured. Compared
+				// element-wise (not by length) since an optional stat can stand in
+				// for a deselected default at the same count.
+				const ordered = ALL_STATS.filter((s) => selectedBuiltins.has(s));
+				const isDefault =
+					ordered.length === DEFAULT_STATS.length &&
+					ordered.every((s, i) => s === DEFAULT_STATS[i]);
+				cfg.builtins = isDefault ? undefined : ordered;
+				this.opts.save();
+				this.opts.rerender();
+			};
+			chip.addEventListener("click", toggle);
+			chip.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					toggle();
+				}
+			});
+		}
+
+		// ---- Attachment breakdown by file type ---------------------------------
+		new Setting(containerEl).setName(t().editors.stats.attachmentTypes).setHeading();
+		const attachSetting = new Setting(containerEl).setDesc(t().editors.stats.attachmentTypesDesc);
+		this.addResetButton(attachSetting, t().settings.resetField, () => {
+			cfg.attachmentTypes = undefined;
+		});
+		const selectedTypes = new Set(cfg.attachmentTypes ?? []);
+		const typeRow = containerEl.createDiv("hearth-type-filter");
+		// Attachments are non-note files, so offer every file-type group except
+		// folders and markdown notes.
+		const groups = FILE_TYPE_GROUPS.filter(
+			(g) => g.id !== FOLDERS_GROUP_ID && g.id !== "markdown",
+		);
+		for (const group of groups) {
+			const chip = typeRow.createDiv("hearth-type-filter-chip");
+			const on = selectedTypes.has(group.id);
+			chip.toggleClass("is-active", on);
+			setIcon(chip.createDiv("hearth-type-filter-icon"), group.icon);
+			chip.createDiv({ cls: "hearth-type-filter-label", text: fileTypeLabel(group) });
+			chip.setAttribute("role", "button");
+			chip.setAttribute("tabindex", "0");
+			chip.setAttribute("aria-pressed", String(on));
+			const toggle = () => {
+				if (selectedTypes.has(group.id)) selectedTypes.delete(group.id);
+				else selectedTypes.add(group.id);
+				const active = selectedTypes.has(group.id);
+				chip.toggleClass("is-active", active);
+				chip.setAttribute("aria-pressed", String(active));
+				cfg.attachmentTypes = selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined;
+				this.opts.save();
+				this.opts.rerender();
+			};
+			chip.addEventListener("click", toggle);
+			chip.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					toggle();
+				}
+			});
+		}
+
+		// ---- Custom query counts ------------------------------------------------
+		new Setting(containerEl).setName(t().editors.stats.customCounts).setHeading();
+		new Setting(containerEl).setDesc(t().editors.stats.customCountsDesc);
+		const queries = (cfg.queries ??= []);
+		queries.forEach((q, index) => {
+			const row = new Setting(containerEl).setClass("hearth-link-setting");
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.stats.labelPlaceholder)
+					.setValue(q.label ?? "")
+					.onChange((v) => {
+						q.label = v || undefined;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+			);
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.stats.iconPlaceholder)
+					.setValue(q.icon ?? "")
+					.onChange((v) => {
+						q.icon = v || undefined;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+			);
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.stats.queryPlaceholder)
+					.setValue(q.query)
+					.onChange((v) => {
+						q.query = v;
+						this.opts.save();
+						this.opts.rerender();
+					}),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-up")
+					.setTooltip(t().editors.links.moveUp)
+					.setDisabled(index === 0)
+					.onClick(() => this.moveItem(queries, index, index - 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("chevron-down")
+					.setTooltip(t().editors.links.moveDown)
+					.setDisabled(index === queries.length - 1)
+					.onClick(() => this.moveItem(queries, index, index + 1)),
+			);
+			row.addExtraButton((b) =>
+				b
+					.setIcon("trash-2")
+					.setTooltip(t().editors.stats.removeCount)
+					.onClick(() => {
+						queries.splice(index, 1);
+						this.opts.save();
+						this.opts.rerender();
+						this.render();
+					}),
+			);
+		});
+		new Setting(containerEl).addButton((b) =>
+			b.setButtonText(t().editors.stats.addCount).onClick(() => {
+				queries.push({
+					id: `stat-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+					query: "",
+				});
+				this.opts.save();
+				this.render();
+			}),
 		);
 	}
 

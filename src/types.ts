@@ -215,6 +215,75 @@ export interface HeatmapConfig {
 	weeks?: number;
 }
 
+/** The built-in vault statistics a "stats" card can show. */
+export type StatId =
+	| "notes"
+	| "attachments"
+	| "folders"
+	| "tags"
+	| "dayStreak"
+	| "daysUsing";
+
+/** The built-in stats in their default display order — the fixed layout a
+ * "stats" card has always shown, kept in one place so a card with no advanced
+ * config renders exactly as before. Newer optional stats (see ALL_STATS) are
+ * deliberately excluded so the default card is unchanged. */
+export const DEFAULT_STATS: StatId[] = [
+	"notes",
+	"attachments",
+	"folders",
+	"tags",
+	"dayStreak",
+];
+
+/** Every selectable built-in stat, in editor/display order. Extends
+ * DEFAULT_STATS with opt-in stats a user can turn on in advanced mode. Must
+ * begin with DEFAULT_STATS in the same order so "all defaults selected" round
+ * trips back to the unconfigured (undefined) state. */
+export const ALL_STATS: StatId[] = [...DEFAULT_STATS, "daysUsing"];
+
+/** Lucide icon id (Obsidian setIcon) for each built-in stat. Shared by the card
+ * renderer and its editor so the tile icon and the editor chip never drift. */
+export const STAT_ICONS: Record<StatId, string> = {
+	notes: "file-text",
+	attachments: "paperclip",
+	folders: "folder",
+	tags: "tag",
+	dayStreak: "flame",
+	daysUsing: "calendar-clock",
+};
+
+/** A user-defined stat tile that counts the files matching a query. */
+export interface StatsQuery {
+	/** Stable id, used by the editor to reorder/remove without index churn. */
+	id: string;
+	/** Label under the count. Falls back to the query text when empty. */
+	label?: string;
+	/** Lucide icon id (Obsidian setIcon). Defaults to "hash". */
+	icon?: string;
+	/** The query, same syntax as the search bar: `#tag`, `key:value`, or plain
+	 * text for names/paths. */
+	query: string;
+}
+
+/** Per-card configuration for a "stats" (vault statistics) card. The card shows
+ * its default fixed set of tiles until `advanced` is turned on, which unlocks
+ * choosing which built-in stats appear, breaking attachments out into per
+ * file-type tiles (images, PDFs, …), and adding custom query counts. */
+export interface StatsConfig {
+	/** Opt into the advanced controls. Off (default) => the fixed default set,
+	 * ignoring every other field here. */
+	advanced?: boolean;
+	/** Which built-in stats to show, in order. Undefined => DEFAULT_STATS. Only
+	 * consulted when `advanced` is on. */
+	builtins?: StatId[];
+	/** File-type group ids (see FILE_TYPE_GROUPS) to show as their own count
+	 * tiles — the attachment breakdown. Only consulted when `advanced` is on. */
+	attachmentTypes?: string[];
+	/** User-defined query-count tiles. Only consulted when `advanced` is on. */
+	queries?: StatsQuery[];
+}
+
 /** On-screen keypad tier for a calculator card. "none" hides the pad (just the
  * text field); "basic" is digits + arithmetic; "scientific" adds functions,
  * constants and powers. */
@@ -436,6 +505,9 @@ export interface DashboardCard {
 	savedSearch?: SavedSearchConfig;
 	/** kind === "heatmap": metric and range. */
 	heatmap?: HeatmapConfig;
+	/** kind === "stats": which stats to show, attachment breakdown and custom
+	 * query counts (all gated behind the config's `advanced` flag). */
+	stats?: StatsConfig;
 	/** kind === "calculator": angle unit, last input and history. */
 	calculator?: CalculatorConfig;
 	/** kind === "dataview": the query text and language. */
@@ -856,6 +928,13 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 	if (card.calendar) copy.calendar = { ...card.calendar };
 	if (card.savedSearch) copy.savedSearch = { ...card.savedSearch };
 	if (card.heatmap) copy.heatmap = { ...card.heatmap };
+	if (card.stats)
+		copy.stats = {
+			...card.stats,
+			builtins: card.stats.builtins ? [...card.stats.builtins] : undefined,
+			attachmentTypes: card.stats.attachmentTypes ? [...card.stats.attachmentTypes] : undefined,
+			queries: card.stats.queries ? card.stats.queries.map((q) => ({ ...q })) : undefined,
+		};
 	if (card.clock) copy.clock = { ...card.clock };
 	if (card.calculator) copy.calculator = { ...card.calculator };
 	if (card.dataview) copy.dataview = { ...card.dataview, columnWidths: card.dataview.columnWidths ? [...card.dataview.columnWidths] : undefined };

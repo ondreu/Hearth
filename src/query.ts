@@ -59,6 +59,63 @@ export function runQuery(
 	return searchByName(app, q, filter, opts.limit);
 }
 
+/**
+ * Count the files matching a vault query, using the same tag / property / name
+ * dispatch as {@link runQuery} but without scoring, sorting or a result cap — so
+ * it suits a stat tile that only needs the total. A blank query counts 0 (not
+ * the whole vault), so an unconfigured custom stat doesn't read as "everything".
+ */
+export function countQuery(app: App, query: string): number {
+	const q = query.trim();
+	if (!q) return 0;
+	if (q.startsWith("#")) return countByTag(app, q.slice(1));
+	const property = PROPERTY_QUERY.exec(q);
+	if (property) return countByProperty(app, property[1], property[2]);
+	return countByName(app, q);
+}
+
+function countByName(app: App, query: string): number {
+	const fuzzy = prepareFuzzySearch(query);
+	let n = 0;
+	for (const f of app.vault.getAllLoadedFiles()) {
+		if (f instanceof TFolder && f.path === "/") continue;
+		const displayName = f instanceof TFile ? f.basename : f.name;
+		if (fuzzy(displayName) ?? fuzzy(f.path)) n++;
+	}
+	return n;
+}
+
+function countByTag(app: App, raw: string): number {
+	const q = raw.trim().toLowerCase();
+	let n = 0;
+	for (const file of app.vault.getMarkdownFiles()) {
+		const cache = app.metadataCache.getFileCache(file);
+		if (!cache) continue;
+		const tags = getAllTags(cache);
+		if (!tags || tags.length === 0) continue;
+		if (!q || tags.some((tag) => tag.slice(1).toLowerCase().includes(q))) n++;
+	}
+	return n;
+}
+
+function countByProperty(app: App, key: string, rawValue: string): number {
+	const value = rawValue.trim().toLowerCase();
+	let n = 0;
+	for (const file of app.vault.getMarkdownFiles()) {
+		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (!fm) continue;
+		const actualKey = Object.keys(fm).find((k) => k.toLowerCase() === key.toLowerCase());
+		if (!actualKey || fm[actualKey] == null) continue;
+
+		const values: unknown[] = Array.isArray(fm[actualKey]) ? fm[actualKey] : [fm[actualKey]];
+		const matched = value
+			? values.some((v) => formatPropertyValue(v).toLowerCase().includes(value))
+			: values.length > 0;
+		if (matched) n++;
+	}
+	return n;
+}
+
 function searchByName(app: App, query: string, filter: QueryFilter, limit: number): QueryHit[] {
 	const candidates: TAbstractFile[] = [];
 	for (const f of app.vault.getAllLoadedFiles()) {
