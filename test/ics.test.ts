@@ -5,6 +5,7 @@ import {
 	parseIcs,
 	parseIcsDate,
 	type IcsEvent,
+	type IcsOccurrence,
 } from "../src/ics";
 
 /**
@@ -78,6 +79,20 @@ describe("parseIcs — basic parsing", () => {
 		expect(parseIcs(doc)!.events[0].summary).toBe("Lunch, then; walk\nhome");
 	});
 
+	it("reads DESCRIPTION and URL", () => {
+		const doc = cal(
+			vevent(
+				"SUMMARY:x",
+				"DTSTART:20260720T090000Z",
+				"DESCRIPTION:Bring the deck\\nand a laptop",
+				"URL:https://example.com/mtg",
+			),
+		);
+		const ev = parseIcs(doc)!.events[0];
+		expect(ev.description).toBe("Bring the deck\nand a laptop");
+		expect(ev.url).toBe("https://example.com/mtg");
+	});
+
 	it("derives end from DURATION when DTEND is absent", () => {
 		const doc = cal(vevent("SUMMARY:x", "DTSTART:20260720T090000Z", "DURATION:PT90M"));
 		const ev = parseIcs(doc)!.events[0];
@@ -133,6 +148,8 @@ function ev(partial: Partial<IcsEvent> & { start: number }): IcsEvent {
 		uid: "u",
 		summary: "e",
 		location: "",
+		description: "",
+		url: "",
 		end: null,
 		allDay: false,
 		rrule: null,
@@ -238,11 +255,17 @@ describe("expandEvents — recurrence", () => {
 });
 
 describe("eventsByDay", () => {
+	/** Build an occurrence with sensible empty defaults for the detail fields. */
+	const occ = (o: {
+		summary: string;
+		start: number;
+		end: number | null;
+		allDay: boolean;
+	}): IcsOccurrence => ({ location: "", description: "", url: "", ...o });
+
 	it("buckets a timed event on its start day", () => {
 		const start = Date.UTC(2026, 6, 20, 9);
-		const map = eventsByDay([
-			{ summary: "x", location: "", start, end: start + 3600_000, allDay: false },
-		]);
+		const map = eventsByDay([occ({ summary: "x", start, end: start + 3600_000, allDay: false })]);
 		expect([...map.keys()]).toEqual(["2026-07-20"]);
 	});
 
@@ -250,7 +273,7 @@ describe("eventsByDay", () => {
 		// 20th–22nd inclusive means DTEND = 23rd (exclusive).
 		const start = new Date(2026, 6, 20).getTime();
 		const end = new Date(2026, 6, 23).getTime();
-		const map = eventsByDay([{ summary: "trip", location: "", start, end, allDay: true }]);
+		const map = eventsByDay([occ({ summary: "trip", start, end, allDay: true })]);
 		expect([...map.keys()].sort()).toEqual(["2026-07-20", "2026-07-21", "2026-07-22"]);
 	});
 
@@ -258,14 +281,8 @@ describe("eventsByDay", () => {
 		const timed = Date.UTC(2026, 6, 20, 9);
 		const allDayStart = new Date(2026, 6, 20).getTime();
 		const map = eventsByDay([
-			{ summary: "timed", location: "", start: timed, end: null, allDay: false },
-			{
-				summary: "allday",
-				location: "",
-				start: allDayStart,
-				end: allDayStart + 86400_000,
-				allDay: true,
-			},
+			occ({ summary: "timed", start: timed, end: null, allDay: false }),
+			occ({ summary: "allday", start: allDayStart, end: allDayStart + 86400_000, allDay: true }),
 		]);
 		expect(map.get("2026-07-20")!.map((o) => o.summary)).toEqual(["allday", "timed"]);
 	});

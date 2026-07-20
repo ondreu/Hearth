@@ -2371,6 +2371,82 @@
 	background: var(--background-modifier-hover);
 }
 
+/* Event details modal (opened from a calendar day picker or agenda event) */
+.hearth-event-modal .modal-content {
+	padding-top: 4px;
+}
+
+.hearth-event-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.hearth-event-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.hearth-event-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 20px;
+	height: 20px;
+	color: var(--text-muted);
+}
+
+.hearth-event-icon .svg-icon,
+.hearth-event-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-event-caldot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-event-text {
+	color: var(--text-normal);
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+.hearth-event-desc {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-event-desc-head {
+	margin-bottom: 6px;
+}
+
+.hearth-event-desc-head .hearth-event-text {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.hearth-event-desc-body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--text-normal);
+	line-height: 1.5;
+	max-height: 40vh;
+	overflow-y: auto;
+}
+
+.hearth-event-link {
+	overflow-wrap: anywhere;
+}
+
 /* Vault statistics card */
 .hearth-stats {
 	display: grid;

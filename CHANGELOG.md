@@ -28,9 +28,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   browser CORS), and honour the global **disable external calls** privacy
   setting. `webcal://` links are accepted. Clicking a day that has events opens
   a picker so you can choose the daily note (open or create) or any event; in
-  the agenda, each listed event is clickable to view its time, location and
-  calendar. Timezone note: UTC and all-day times are exact; `TZID` wall-clock
-  times are read in the viewer's local zone.
+  the agenda, each listed event is clickable. Either way an event opens a
+  details modal showing its name, date, time, location, notes/description,
+  source calendar and any link. Timezone note: UTC and all-day times are exact;
+  `TZID` wall-clock times are read in the viewer's local zone.
 - **Vault statistics card — advanced mode.** The stats card gains an **Advanced**
   toggle in its editor. Off keeps the familiar fixed set of tiles. On unlocks
   three controls: choose which built-in stats appear (notes, attachments,

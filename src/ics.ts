@@ -30,6 +30,10 @@ export interface IcsEvent {
 	uid: string;
 	summary: string;
 	location: string;
+	/** Free-text notes (DESCRIPTION), unescaped, or "" when absent. */
+	description: string;
+	/** Associated URL (URL property), or "" when absent. */
+	url: string;
 	/** Epoch ms of the first occurrence's start. */
 	start: number;
 	/** Epoch ms of the first occurrence's end. All-day DTEND is exclusive.
@@ -56,6 +60,8 @@ export interface IcsCalendar {
 export interface IcsOccurrence {
 	summary: string;
 	location: string;
+	description: string;
+	url: string;
 	start: number;
 	end: number | null;
 	allDay: boolean;
@@ -229,6 +235,8 @@ function buildEvent(
 		uid: props.UID?.[0]?.value ?? "",
 		summary: unescapeText(props.SUMMARY?.[0]?.value ?? ""),
 		location: unescapeText(props.LOCATION?.[0]?.value ?? ""),
+		description: unescapeText(props.DESCRIPTION?.[0]?.value ?? ""),
+		url: (props.URL?.[0]?.value ?? "").trim(),
 		start,
 		end,
 		allDay,
@@ -324,6 +332,8 @@ export function expandEvents(
 				out.push({
 					summary: ev.summary,
 					location: ev.location,
+					description: ev.description,
+					url: ev.url,
 					start,
 					end,
 					allDay: ev.allDay,

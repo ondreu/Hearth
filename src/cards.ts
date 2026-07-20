@@ -1191,14 +1191,94 @@ function eventTimeLabel(ev: IcsOccurrence): string {
 	return `${start} – ${moment(new Date(ev.end)).format("LT")}`;
 }
 
-/** Surface an event's details (time, location, calendar) in a Notice — the
- * lightweight "view this event" action from the day picker and agenda. */
-function showEventDetail(ev: IcsOccurrence, ics: IcsContext): void {
-	const lines = [ev.summary || t().cards.calendar.untitledEvent, eventTimeLabel(ev)];
-	if (ev.location) lines.push(ev.location);
-	const label = ics.label(ev.sourceId);
-	if (label) lines.push(label);
-	new Notice(lines.join("\n"));
+/** Open the full event-details modal — the "view this event" action from the
+ * day picker and the agenda. */
+function showEventDetail(view: HomeView, ev: IcsOccurrence, ics: IcsContext): void {
+	new EventDetailModal(view.app, ev, ics).open();
+}
+
+/** Human-readable date (or date range) for an event, spelled out for the modal:
+ * a single day reads "Monday, July 20, 2026"; a span reads "Jul 20 – Jul 23". */
+function eventDateLabel(ev: IcsOccurrence): string {
+	const start = moment(new Date(ev.start));
+	if (ev.allDay) {
+		// All-day DTEND is exclusive: the last covered day is one ms earlier.
+		const last = moment(new Date((ev.end ?? ev.start + 86400_000) - 1));
+		if (last.format("YYYY-MM-DD") === start.format("YYYY-MM-DD")) return start.format("dddd, LL");
+		return `${start.format("ll")} – ${last.format("ll")}`;
+	}
+	if (ev.end !== null) {
+		const end = moment(new Date(ev.end));
+		if (end.format("YYYY-MM-DD") !== start.format("YYYY-MM-DD")) {
+			return `${start.format("ll")} – ${end.format("ll")}`;
+		}
+	}
+	return start.format("dddd, LL");
+}
+
+/** A full modal with every field an ICS event carries: name, date, time,
+ * location, notes, source calendar and any link. Fields that are absent are
+ * simply skipped, so a bare event shows just its name and when. */
+class EventDetailModal extends Modal {
+	constructor(
+		app: App,
+		private readonly ev: IcsOccurrence,
+		private readonly ics: IcsContext,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		const ev = this.ev;
+		this.modalEl.addClass("hearth-event-modal");
+		this.titleEl.setText(ev.summary || t().cards.calendar.untitledEvent);
+
+		const rows = this.contentEl.createDiv("hearth-event-rows");
+		this.row(rows, "calendar-days", eventDateLabel(ev));
+		this.row(rows, "clock", eventTimeLabel(ev));
+		if (ev.location) this.row(rows, "map-pin", ev.location);
+
+		const label = this.ics.label(ev.sourceId);
+		if (label) {
+			const row = this.row(rows, null, label);
+			// Fill the icon gutter with the source's colour dot.
+			const dot = row.querySelector<HTMLElement>(".hearth-event-icon")!.createDiv(
+				"hearth-event-caldot",
+			);
+			dot.style.setProperty("--ev-color", this.ics.color(ev.sourceId));
+		}
+
+		if (ev.description) {
+			const block = this.contentEl.createDiv("hearth-event-desc");
+			this.row(block, "align-left", t().cards.calendar.eventNotes).addClass(
+				"hearth-event-desc-head",
+			);
+			block.createDiv({ cls: "hearth-event-desc-body", text: ev.description });
+		}
+
+		if (ev.url && /^https?:\/\//i.test(ev.url)) {
+			const row = this.row(this.contentEl.createDiv("hearth-event-rows"), "link", "");
+			row.createEl("a", {
+				cls: "hearth-event-link",
+				text: ev.url,
+				href: ev.url,
+				attr: { target: "_blank", rel: "noopener" },
+			});
+		}
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+
+	/** One label row: an icon (or a blank gutter when null) plus its text. */
+	private row(parent: HTMLElement, icon: string | null, text: string): HTMLElement {
+		const row = parent.createDiv("hearth-event-row");
+		const iconEl = row.createDiv("hearth-event-icon");
+		if (icon) setIcon(iconEl, icon);
+		if (text) row.createDiv({ cls: "hearth-event-text", text });
+		return row;
+	}
 }
 
 /** When a day has external events, clicking it opens this picker rather than
@@ -1234,7 +1314,7 @@ function showDayMenu(
 			item
 				.setTitle(`${time}  ${ev.summary || t().cards.calendar.untitledEvent}`)
 				.setIcon("calendar-clock")
-				.onClick(() => showEventDetail(ev, ics)),
+				.onClick(() => showEventDetail(view, ev, ics)),
 		);
 	}
 	if (anchor instanceof MouseEvent) {
@@ -1419,7 +1499,7 @@ function renderCalendarAgenda(
 		// clickable to view its details, so the day offers both note and events.
 		if (events.length) {
 			const evList = list.createDiv("hearth-agenda-events");
-			for (const ev of events) renderAgendaEvent(evList, ev, day, ics);
+			for (const ev of events) renderAgendaEvent(view, evList, ev, day, ics);
 		}
 	}
 }
@@ -1428,6 +1508,7 @@ function renderCalendarAgenda(
  * (or "All day"), and the summary, with the source name as a trailing badge
  * when more than one calendar is subscribed. */
 function renderAgendaEvent(
+	view: HomeView,
 	parent: HTMLElement,
 	ev: IcsOccurrence,
 	day: Moment,
@@ -1447,7 +1528,7 @@ function renderAgendaEvent(
 		if (label) body.createSpan({ cls: "hearth-agenda-evbadge", text: label });
 	}
 
-	const open = () => showEventDetail(ev, ics);
+	const open = () => showEventDetail(view, ev, ics);
 	row.addEventListener("click", open);
 	makeClickable(row, open, `${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`);
 }
