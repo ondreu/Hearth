@@ -15,6 +15,31 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Calendar card — agenda layout and external ICS calendars.** The calendar
+  card gains a **Layout** setting: the existing month grid, or a new **agenda**
+  view that lists upcoming days (3–60 ahead) as a scrollable timeline. It can
+  also **subscribe to external calendars** by ICS/iCal URL (Google, iCloud,
+  Fastmail, Nextcloud, …) — add multiple sources, each with its own name and
+  colour and an individual show/hide toggle. Events render as coloured dots on
+  the month grid and are listed under each day in the agenda, expanded from the
+  common recurrence rules (daily/weekly/monthly/yearly with interval, count,
+  until, weekly by-day, and exclusions). Feeds are cached and auto-refreshed on
+  a configurable interval, share the RSS card's fetch path (so they work despite
+  browser CORS), and honour the global **disable external calls** privacy
+  setting. `webcal://` links are accepted. Clicking a day that has events opens
+  a picker so you can choose the daily note (open or create) or any event; in
+  the agenda, each listed event is clickable. Either way an event opens a
+  details modal showing its name, date, time, location, notes/description,
+  source calendar and any link. From that modal you can **create a note from
+  the event**, configured to be as flexible as you like: pick a template,
+  choose the target folder and a filename pattern (`{{summary}}`, `{{date}}`,
+  …), and route every event value independently — send the date/time to custom
+  frontmatter properties, append the description to the body under a heading,
+  or ignore a value entirely and just keep the name. Sensible defaults apply
+  out of the box. The note is linked back to the event by its ID (stored in
+  frontmatter), so opening the same event later reopens its note instead of
+  making a duplicate. Timezone note: UTC and all-day times are exact; `TZID`
+  wall-clock times are read in the viewer's local zone.
 - **Vault statistics card — advanced mode.** The stats card gains an **Advanced**
   toggle in its editor. Off keeps the familiar fixed set of tiles. On unlocks
   three controls: choose which built-in stats appear (notes, attachments,

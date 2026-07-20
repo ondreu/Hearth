@@ -2152,6 +2152,328 @@
 	background: var(--text-normal);
 }
 
+/* Marker row under a day number: the daily-note dot plus per-calendar event
+   dots, coloured by their source. */
+.hearth-calendar-dots {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	min-height: 4px;
+}
+
+.hearth-calendar-evdot {
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-calendar-day.is-today .hearth-calendar-evdot {
+	box-shadow: 0 0 0 1px var(--background-primary);
+}
+
+/* Agenda layout of the calendar card: a scrollable, chronological list of
+   days instead of the month grid. */
+.hearth-calendar.is-agenda {
+	gap: 0;
+}
+
+.hearth-agenda {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	overflow-y: auto;
+}
+
+.hearth-agenda-month {
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-faint);
+	padding: 8px 4px 4px;
+}
+
+.hearth-agenda-month:first-child {
+	padding-top: 0;
+}
+
+.hearth-agenda-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.hearth-agenda-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-agenda-date {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 34px;
+	line-height: 1.1;
+}
+
+.hearth-agenda-dow {
+	font-size: 0.62rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--text-faint);
+}
+
+.hearth-agenda-daynum {
+	font-size: 1.05rem;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-agenda-row.is-today .hearth-agenda-daynum {
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border-radius: 999px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+}
+
+.hearth-agenda-main {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+	flex: 1;
+}
+
+.hearth-agenda-label {
+	font-size: 0.86rem;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-agenda-row:not(.has-note) .hearth-agenda-label {
+	color: var(--text-muted);
+}
+
+.hearth-agenda-sub {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+}
+
+.hearth-agenda-dot {
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.hearth-agenda-row.is-today {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+/* Heatmap tint for agenda rows, mirroring the grid's per-day tint. Built from
+ * the stable --accent-h/s/l vars for the same reason (see the grid rule). */
+.hearth-agenda-row.has-heat {
+	background-color: hsla(
+		var(--accent-h),
+		var(--accent-s),
+		var(--accent-l),
+		calc(var(--heat, 0) * 0.16)
+	);
+}
+
+.hearth-agenda-row.has-heat:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.hearth-agenda-row.is-static {
+	cursor: default;
+}
+
+.hearth-agenda-row.is-static:hover {
+	background: transparent;
+}
+
+/* External calendar events listed under an agenda day. The left inset lines
+   them up under the day's label, not its date box. */
+.hearth-agenda-events {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 0 8px 4px 52px;
+}
+
+.hearth-agenda-event {
+	display: flex;
+	align-items: baseline;
+	gap: 7px;
+	padding: 2px 6px;
+	margin: 0 -6px;
+	border-radius: 6px;
+	cursor: pointer;
+	min-width: 0;
+}
+
+.hearth-agenda-event:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-agenda-evbullet {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	align-self: center;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-agenda-evtime {
+	flex: 0 0 auto;
+	font-size: 0.72rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+	min-width: 3.4em;
+}
+
+.hearth-agenda-evbody {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
+.hearth-agenda-evtitle {
+	font-size: 0.8rem;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-agenda-evbadge {
+	flex: 0 0 auto;
+	font-size: 0.62rem;
+	color: var(--text-faint);
+	padding: 0 5px;
+	border-radius: 6px;
+	background: var(--background-modifier-hover);
+}
+
+/* Event details modal (opened from a calendar day picker or agenda event) */
+.hearth-event-modal .modal-content {
+	padding-top: 4px;
+}
+
+.hearth-event-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.hearth-event-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.hearth-event-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 20px;
+	height: 20px;
+	color: var(--text-muted);
+}
+
+.hearth-event-icon .svg-icon,
+.hearth-event-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-event-caldot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-event-text {
+	color: var(--text-normal);
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+.hearth-event-desc {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-event-desc-head {
+	margin-bottom: 6px;
+}
+
+.hearth-event-desc-head .hearth-event-text {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.hearth-event-desc-body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--text-normal);
+	line-height: 1.5;
+	max-height: 40vh;
+	overflow-y: auto;
+}
+
+.hearth-event-link {
+	overflow-wrap: anywhere;
+}
+
+.hearth-event-footer {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 18px;
+}
+
+.hearth-event-footer button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-event-btnicon {
+	display: inline-flex;
+}
+
+.hearth-event-btnicon .svg-icon,
+.hearth-event-btnicon svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* Keep the optional date-format input from crowding the field-routing row. */
+.hearth-event-format {
+	max-width: 9em;
+}
+
 /* Vault statistics card */
 .hearth-stats {
 	display: grid;

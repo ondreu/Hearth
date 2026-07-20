@@ -215,7 +215,17 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Mini calendar** — a month grid resolved from the core Daily notes plugin's
   format/folder, with a dot on days that already have a note. Optional ISO week
   numbers and an edit-count heatmap tint; click an empty day to create that
-  day's note.
+  day's note. Switch it to an **agenda** layout to list upcoming days as a
+  scrollable timeline instead. It can also **subscribe to external calendars**
+  via ICS/iCal URLs (Google, iCloud, Fastmail, Nextcloud…): events show as
+  coloured dots on the grid and are listed under each day in the agenda,
+  auto-refreshed on a configurable interval and honouring the "disable external
+  calls" privacy setting. Clicking an event opens a details modal (name, date,
+  time, location, description, calendar, link) from which you can **create a
+  note from the event** — pick a template, a folder and filename pattern, and
+  route each value how you like (date/time into custom frontmatter, description
+  into the body, or ignored). The note is linked back to the event by its ID so
+  it's reopened rather than duplicated.
 - **Vault statistics** — notes, attachments, folders, unique tags and your
   daily-note streak, read entirely from the in-memory vault index.
 - **Saved search** — runs a stored query (the same syntax as the search bar) and
