@@ -1193,6 +1193,9 @@ function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): vo
 	let notes = 0;
 	let attachments = 0;
 	let folders = 0;
+	// Oldest file creation time across the whole vault — the "days using Obsidian"
+	// stat counts from here. Infinity so the first file always wins the min.
+	let oldestCtime = Infinity;
 	// Single pass over the loaded files: counts plus the tag set (collected
 	// inline for markdown files) instead of a second full getMarkdownFiles scan.
 	// Per-file-type-group counts feed the advanced attachment breakdown.
@@ -1211,6 +1214,7 @@ function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): vo
 			} else {
 				attachments++;
 			}
+			if (f.stat.ctime > 0 && f.stat.ctime < oldestCtime) oldestCtime = f.stat.ctime;
 			if (advanced) {
 				const group = groupForFile(f);
 				if (group) byType.set(group.id, (byType.get(group.id) ?? 0) + 1);
@@ -1218,12 +1222,19 @@ function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): vo
 		}
 	}
 
+	// Whole days between the oldest file's creation and now (0 for an empty vault
+	// or one created today), so the tile reads as a tenure counter.
+	const daysUsing = Number.isFinite(oldestCtime)
+		? Math.max(0, Math.floor((Date.now() - oldestCtime) / 86_400_000))
+		: 0;
+
 	const values: Record<StatId, number> = {
 		notes,
 		attachments,
 		folders,
 		tags: tags.size,
 		dayStreak: 0,
+		daysUsing,
 	};
 	const streak = dailyNoteStreak(view);
 

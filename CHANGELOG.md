@@ -18,9 +18,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **Vault statistics card — advanced mode.** The stats card gains an **Advanced**
   toggle in its editor. Off keeps the familiar fixed set of tiles. On unlocks
   three controls: choose which built-in stats appear (notes, attachments,
-  folders, tags, day streak); break attachments out into a separate count tile
-  per file type (images, PDFs, videos, …); and add custom count tiles that show
-  how many files match a query, using the search bar's syntax (`#tag`,
+  folders, tags, day streak, and a new **Days using Obsidian** counter measured
+  from the vault's oldest file); break attachments out into a separate count
+  tile per file type (images, PDFs, videos, …); and add custom count tiles that
+  show how many files match a query, using the search bar's syntax (`#tag`,
   `key:value` for a frontmatter property, or plain text). Each custom tile takes
   an optional label and icon.
 - **Link a dashboard to a core Workspace (auto-switch).** Each dashboard gets an

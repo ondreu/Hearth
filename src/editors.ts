@@ -14,7 +14,7 @@ import type {
 	StatsQuery,
 	TasksConfig,
 } from "./types";
-import { DEFAULT_STATS, STAT_ICONS } from "./types";
+import { ALL_STATS, DEFAULT_STATS, STAT_ICONS } from "./types";
 import { confirmAction } from "./ui";
 import { listLeafViewTypes } from "./leafview";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
@@ -1099,7 +1099,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 		});
 		const selectedBuiltins = new Set<StatId>(cfg.builtins ?? DEFAULT_STATS);
 		const builtinRow = containerEl.createDiv("hearth-type-filter");
-		for (const id of DEFAULT_STATS) {
+		for (const id of ALL_STATS) {
 			const chip = builtinRow.createDiv("hearth-type-filter-chip");
 			const on = selectedBuiltins.has(id);
 			chip.toggleClass("is-active", on);
@@ -1114,10 +1114,15 @@ export class CardSettingsModal extends HearthTabbedModal {
 				const active = selectedBuiltins.has(id);
 				chip.toggleClass("is-active", active);
 				chip.setAttribute("aria-pressed", String(active));
-				// Keep the canonical order and collapse "all selected" back to the
-				// default (undefined) so the card reads as unconfigured.
-				const ordered = DEFAULT_STATS.filter((s) => selectedBuiltins.has(s));
-				cfg.builtins = ordered.length === DEFAULT_STATS.length ? undefined : ordered;
+				// Keep the canonical order and collapse "exactly the default set"
+				// back to undefined so the card reads as unconfigured. Compared
+				// element-wise (not by length) since an optional stat can stand in
+				// for a deselected default at the same count.
+				const ordered = ALL_STATS.filter((s) => selectedBuiltins.has(s));
+				const isDefault =
+					ordered.length === DEFAULT_STATS.length &&
+					ordered.every((s, i) => s === DEFAULT_STATS[i]);
+				cfg.builtins = isDefault ? undefined : ordered;
 				this.opts.save();
 				this.opts.rerender();
 			};

@@ -1000,6 +1000,7 @@ export const en = {
 			folders: "Folders",
 			tags: "Tags",
 			dayStreak: "Day streak",
+			daysUsing: "Days using Obsidian",
 		},
 		web: {
 			openInBrowser: "Open in browser",

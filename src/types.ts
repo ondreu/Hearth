@@ -216,11 +216,18 @@ export interface HeatmapConfig {
 }
 
 /** The built-in vault statistics a "stats" card can show. */
-export type StatId = "notes" | "attachments" | "folders" | "tags" | "dayStreak";
+export type StatId =
+	| "notes"
+	| "attachments"
+	| "folders"
+	| "tags"
+	| "dayStreak"
+	| "daysUsing";
 
 /** The built-in stats in their default display order — the fixed layout a
  * "stats" card has always shown, kept in one place so a card with no advanced
- * config renders exactly as before. */
+ * config renders exactly as before. Newer optional stats (see ALL_STATS) are
+ * deliberately excluded so the default card is unchanged. */
 export const DEFAULT_STATS: StatId[] = [
 	"notes",
 	"attachments",
@@ -228,6 +235,12 @@ export const DEFAULT_STATS: StatId[] = [
 	"tags",
 	"dayStreak",
 ];
+
+/** Every selectable built-in stat, in editor/display order. Extends
+ * DEFAULT_STATS with opt-in stats a user can turn on in advanced mode. Must
+ * begin with DEFAULT_STATS in the same order so "all defaults selected" round
+ * trips back to the unconfigured (undefined) state. */
+export const ALL_STATS: StatId[] = [...DEFAULT_STATS, "daysUsing"];
 
 /** Lucide icon id (Obsidian setIcon) for each built-in stat. Shared by the card
  * renderer and its editor so the tile icon and the editor chip never drift. */
@@ -237,6 +250,7 @@ export const STAT_ICONS: Record<StatId, string> = {
 	folders: "folder",
 	tags: "tag",
 	dayStreak: "flame",
+	daysUsing: "calendar-clock",
 };
 
 /** A user-defined stat tile that counts the files matching a query. */
