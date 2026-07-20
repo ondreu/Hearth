@@ -49,6 +49,7 @@ import {
 } from "./ics";
 import { buildEventNote, type EventNoteConfig, type EventNoteInput } from "./eventnote";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
+import { renderJiraCard } from "./jira";
 import { EXCALIDRAW_PLUGIN_ID, fileTypeLabel, groupById, groupForFile, iconForFile, isExcalidraw } from "./filetypes";
 import { countQuery, type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
@@ -169,9 +170,16 @@ export function renderCardBody(
 		case "rss":
 			renderRss(view, card, body, component);
 			break;
+		case "jira":
+			renderJiraCard(view, card, body, component);
+			break;
 		case "leaf":
 			renderLeaf(view, card, body, component);
 			break;
+		default: {
+			const exhaustive: never = card.kind;
+			return exhaustive;
+		}
 	}
 }
 

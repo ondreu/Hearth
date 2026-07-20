@@ -8,6 +8,7 @@ import type {
 	ClockConfig,
 	DashboardCard,
 	EmbedView,
+	JiraControl,
 	LinkItem,
 	RssLayout,
 	RssSource,
@@ -26,6 +27,7 @@ import { confirmAction } from "./ui";
 import { listLeafViewTypes } from "./leafview";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
+import { clearJiraCache, JIRA_CONTROLS, listJiraFilters } from "./jira";
 
 /** A GitHub repo split into its owner and repo halves, as pulled from user
  * input by {@link parseGithubRepo}. */
@@ -86,6 +88,8 @@ export interface CardSettingsOptions {
 	favorites: string[];
 	/** Whether this card is currently pinned to all dashboards. */
 	isPinned: boolean;
+	/** Whether the global privacy setting blocks outbound requests. */
+	externalCallsDisabled: boolean;
 	/** Pin/unpin this card across all dashboards. */
 	setPinned: (pinned: boolean) => void;
 	/** Persist the current settings (no view rebuild). */
@@ -117,6 +121,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 	 * it survives the in-place rerenders that adding a feed triggers. */
 	private ghRepo = "";
 	private ghFeedType: "releases" | "commits" | "both" = "releases";
+	private jiraLoadVersion = 0;
 
 	constructor(app: App, card: DashboardCard, opts: CardSettingsOptions) {
 		super(app);
@@ -420,9 +425,19 @@ export class CardSettingsModal extends HearthTabbedModal {
 			case "rss":
 				this.rssEditor(containerEl);
 				break;
+			case "jira":
+				this.jiraEditor(containerEl);
+				break;
 			case "leaf":
 				this.leafEditor(containerEl);
 				break;
+			case "bookmarks":
+			case "text":
+				break;
+			default: {
+				const exhaustive: never = card.kind;
+				return exhaustive;
+			}
 		}
 	}
 
@@ -1666,6 +1681,189 @@ export class CardSettingsModal extends HearthTabbedModal {
 		});
 	}
 
+	private jiraEditor(containerEl: HTMLElement): void {
+		const cfg = (this.card.jira ??= {});
+		const strings = t().editors.jira;
+
+		new Setting(containerEl)
+			.setName(strings.host)
+			.setDesc(strings.hostDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(strings.hostPlaceholder)
+					.setValue(cfg.host ?? "")
+					.onChange((value) => {
+						const next = value.trim() || undefined;
+						if (next !== cfg.host) clearJiraCache(cfg);
+						cfg.host = next;
+						this.opts.save();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(strings.pat)
+			.setDesc(strings.patDesc)
+			.addText((txt) => {
+				txt.setValue(cfg.pat ?? "").onChange((value) => {
+					// SECURITY-REVIEW: PAT remains in the password control and per-card
+					// plugin data; it is never displayed elsewhere or logged.
+					const next = value || undefined;
+					if (next !== cfg.pat) clearJiraCache(cfg);
+					cfg.pat = next;
+					this.opts.save();
+				});
+				txt.inputEl.type = "password";
+				txt.inputEl.autocomplete = "off";
+			});
+
+		new Setting(containerEl)
+			.setName(strings.apiBase)
+			.setDesc(strings.apiBaseDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(strings.apiBasePlaceholder)
+					.setValue(cfg.apiBasePath ?? "/rest/api/latest")
+					.onChange((value) => {
+						const next = value.trim() || undefined;
+						if (next !== cfg.apiBasePath) clearJiraCache(cfg);
+						cfg.apiBasePath = next;
+						this.opts.save();
+					}),
+			);
+
+		const filterSetting = new Setting(containerEl)
+			.setName(strings.savedFilter)
+			.setDesc(
+				this.opts.externalCallsDisabled
+					? strings.externalCallsDisabled
+					: cfg.filterName
+					? strings.selectedFilter(cfg.filterName)
+					: strings.savedFilterDesc,
+			);
+		let filterSelect: HTMLSelectElement | null = null;
+		filterSetting.addButton((button) =>
+			button
+				.setButtonText(strings.loadFilters)
+				.setDisabled(this.opts.externalCallsDisabled)
+				.onClick(async () => {
+					if (this.opts.externalCallsDisabled) return;
+					const version = ++this.jiraLoadVersion;
+					button.setDisabled(true);
+					filterSelect?.remove();
+					filterSelect = null;
+					try {
+						const filters = await listJiraFilters(cfg);
+						if (
+							version !== this.jiraLoadVersion ||
+							!filterSetting.settingEl.isConnected
+						) {
+							return;
+						}
+						if (!filters.length) {
+							new Notice(strings.noFavoriteFilters);
+							return;
+						}
+						filterSetting.addDropdown((dropdown) => {
+							filterSelect = dropdown.selectEl;
+							dropdown.addOption("", strings.chooseFilter);
+							for (const filter of filters) {
+								dropdown.addOption(filter.id, filter.name);
+							}
+							dropdown.setValue(cfg.filterId ?? "").onChange((id) => {
+								const selected = filters.find((filter) => filter.id === id);
+								cfg.filterId = selected?.id;
+								cfg.filterName = selected?.name;
+								cfg.selections = {};
+								this.opts.save();
+								this.opts.rerender();
+								this.render();
+							});
+						});
+					} catch {
+						if (
+							version === this.jiraLoadVersion &&
+							filterSetting.settingEl.isConnected
+						) {
+							new Notice(strings.loadFailed);
+						}
+					} finally {
+						if (
+							version === this.jiraLoadVersion &&
+							filterSetting.settingEl.isConnected
+						) {
+							button.setDisabled(false);
+						}
+					}
+				}),
+		);
+
+		new Setting(containerEl).setName(strings.controls).setHeading();
+		const enabled = new Set<JiraControl>(cfg.controls ?? JIRA_CONTROLS);
+		for (const control of JIRA_CONTROLS) {
+			new Setting(containerEl)
+				.setName(t().cards.jira.controls[control])
+				.addToggle((toggle) =>
+					toggle.setValue(enabled.has(control)).onChange((value) => {
+						if (value) enabled.add(control);
+						else enabled.delete(control);
+						cfg.controls = JIRA_CONTROLS.filter((item) => enabled.has(item));
+						this.opts.save();
+						this.opts.rerender();
+					}),
+				);
+		}
+
+		const maxResults = new Setting(containerEl)
+			.setName(strings.maxResults)
+			.setDesc(strings.maxResultsDesc);
+		maxResults.addText((txt) => {
+			txt.setValue(String(cfg.maxResults ?? 50)).onChange((value) => {
+				const parsed = parseInt(value, 10);
+				cfg.maxResults =
+					Number.isNaN(parsed) || parsed <= 0
+						? undefined
+						: Math.min(200, parsed);
+				this.opts.save();
+			});
+			txt.inputEl.type = "number";
+			txt.inputEl.min = "1";
+			txt.inputEl.max = "200";
+			txt.inputEl.addClass("hearth-count-input");
+		});
+
+		const numberSetting = (
+			name: string,
+			description: string,
+			value: number,
+			update: (next: number | undefined) => void,
+		): void => {
+			new Setting(containerEl)
+				.setName(name)
+				.setDesc(description)
+				.addText((txt) => {
+					txt.setValue(String(value)).onChange((raw) => {
+						const parsed = parseInt(raw, 10);
+						update(Number.isNaN(parsed) || parsed < 0 ? undefined : parsed);
+						this.opts.save();
+					});
+					txt.inputEl.type = "number";
+					txt.inputEl.min = "0";
+					txt.inputEl.addClass("hearth-count-input");
+				});
+		};
+		numberSetting(
+			strings.refresh,
+			strings.refreshDesc,
+			cfg.refreshMin ?? 0,
+			(value) => {
+				cfg.refreshMin = value;
+			},
+		);
+		numberSetting(strings.cache, strings.cacheDesc, cfg.cacheMin ?? 5, (value) => {
+			cfg.cacheMin = value;
+		});
+	}
+
 	/** Add a reset (rotate-ccw) extra button that clears a field back to its
 	 * default, then saves and redraws so the input reflects the restored value. */
 	private addResetButton(
@@ -2663,6 +2861,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 	}
 
 	onClose(): void {
+		this.jiraLoadVersion++;
 		this.contentEl.empty();
 		this.opts.rerender();
 	}

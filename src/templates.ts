@@ -153,6 +153,24 @@ export const CARD_TEMPLATES: CardTemplate[] = [
 		build: () => ({ kind: "rss", title: "RSS", rss: { sources: [] }, w: 4, h: 5 }),
 	},
 	{
+		id: "jira",
+		name: "Jira filter",
+		icon: "ticket",
+		build: () => ({
+			kind: "jira",
+			title: "Jira",
+			jira: {
+				apiBasePath: "/rest/api/latest",
+				controls: ["status", "assignee", "priority", "issueType", "sprint", "fixVersion"],
+				maxResults: 50,
+				refreshMin: 0,
+				cacheMin: 5,
+			},
+			w: 6,
+			h: 5,
+		}),
+	},
+	{
 		id: "leaf",
 		name: "Plugin view (beta)",
 		icon: "layout-panel-left",

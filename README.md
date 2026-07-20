@@ -230,6 +230,11 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   daily-note streak, read entirely from the in-memory vault index.
 - **Saved search** — runs a stored query (the same syntax as the search bar) and
   lists the matching files, refreshed live.
+- **Jira filter** — connects over HTTPS to a Jira saved filter with bearer PAT
+  authentication and shows a rich issue list. Portable layout/settings exports
+  omit the PAT. Narrow the base filter with
+  multi-select status, assignee, priority, issue type, sprint, and fix-version
+  controls; refresh manually or on a per-card interval.
 - **Activity heatmap** — a GitHub-style contribution grid tinted by how many
   notes were edited (or created) each day.
 - **Bookmarks** — pulls from Obsidian's core Bookmarks plugin, with site
@@ -260,8 +265,8 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   (basic or scientific, chosen in card settings) is handy on mobile. Everything
   except currency is computed locally; exchange rates are fetched once and
   cached, and currency degrades gracefully offline. The currency lookup uses the
-  free, key-less [Frankfurter API](https://www.frankfurter.app/) (ECB rates) and
-  is the only outbound network request Hearth makes — it can be turned off under
+  free, key-less [Frankfurter API](https://www.frankfurter.app/) (ECB rates) and,
+  like Jira and other external-content cards, can be turned off under
   **Settings → Hearth → Behaviour → Privacy & network → Disable external
   calls**.
 - **Dataview query** *(requires the [Dataview](https://github.com/blacksmithgu/obsidian-dataview)
@@ -411,8 +416,7 @@ many fields have a reset (↺) button back to their default.
   **card blur** (frosted glass).
 - **Behaviour** — open on startup, replace empty new tabs, mobile search-only,
   mobile action bar, and a **Privacy & network** toggle to disable external
-  calls (the calculator's currency-rate lookup — the only outbound request
-  Hearth makes).
+  calls (Jira, calendars, RSS, and currency rates).
 - **Integrations** — Tasks / TaskNotes frontmatter field names and the status
   value(s) that count as "done".
 - **Backup** — import / export the current dashboard's layout as JSON.

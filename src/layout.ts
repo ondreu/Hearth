@@ -14,6 +14,8 @@ import {
 	type LeafViewConfig,
 	type LinkItem,
 	type MobileActionButton,
+	type JiraConfig,
+	type JiraControl,
 	newDashboardId,
 	type RssConfig,
 	type RssSource,
@@ -85,16 +87,28 @@ const CARD_KINDS: CardKind[] = [
 	"calculator",
 	"dataview",
 	"rss",
+	"jira",
 	"leaf",
 ];
 
 /** Build the portable layout payload (the dashboard setup and its globals). */
 function layoutPayload(s: HomeSettings): LayoutExport {
+	// SECURITY-REVIEW: Jira PATs authenticate outbound requests and must never be
+	// copied into portable layout/settings artifacts. Clone only the affected
+	// card/config objects so live settings retain their credentials unchanged.
+	const scrubCard = (card: DashboardCard): DashboardCard =>
+		card.jira?.pat === undefined
+			? card
+			: { ...card, jira: { ...card.jira, pat: undefined } };
+	const dashboards = s.dashboards.map((dashboard) => ({
+		...dashboard,
+		cards: dashboard.cards.map(scrubCard),
+	}));
 	return {
 		hearthLayout: LAYOUT_SCHEMA,
-		dashboards: s.dashboards,
+		dashboards,
 		activeDashboardId: s.activeDashboardId,
-		pinnedCards: s.pinnedCards,
+		pinnedCards: s.pinnedCards.map(scrubCard),
 		gridColumns: s.gridColumns,
 		rowHeight: s.rowHeight,
 		fitToPage: s.fitToPage,
@@ -329,6 +343,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	}
 	if (r.rss && typeof r.rss === "object") {
 		card.rss = sanitizeRss(r.rss as Record<string, unknown>);
+	}
+	if (r.jira !== undefined) {
+		card.jira = sanitizeJira(r.jira);
 	}
 	if (r.dataview && typeof r.dataview === "object") {
 		card.dataview = sanitizeDataview(r.dataview as Record<string, unknown>);
@@ -622,6 +639,60 @@ function sanitizeRss(r: Record<string, unknown>): RssConfig {
 	if (typeof r.showExcerpt === "boolean") cfg.showExcerpt = r.showExcerpt;
 	if (typeof r.showDate === "boolean") cfg.showDate = r.showDate;
 	if (typeof r.mergeAll === "boolean") cfg.mergeAll = r.mergeAll;
+	return cfg;
+}
+
+const JIRA_CONTROLS: JiraControl[] = [
+	"status",
+	"assignee",
+	"priority",
+	"issueType",
+	"sprint",
+	"fixVersion",
+];
+
+/** Allowlist and clamp an imported Jira card configuration. */
+export function sanitizeJira(raw: unknown): JiraConfig {
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+	const r = raw as Record<string, unknown>;
+	const cfg: JiraConfig = {};
+	const host = str(r.host)?.trim().replace(/\/+$/, "");
+	if (host !== undefined) cfg.host = host;
+	const pat = str(r.pat);
+	if (pat !== undefined) cfg.pat = pat;
+	const apiBasePath = str(r.apiBasePath);
+	if (apiBasePath !== undefined) cfg.apiBasePath = apiBasePath;
+	const filterId = str(r.filterId);
+	if (filterId !== undefined) cfg.filterId = filterId;
+	const filterName = str(r.filterName);
+	if (filterName !== undefined) cfg.filterName = filterName;
+	if (Array.isArray(r.controls)) {
+		cfg.controls = r.controls.filter(
+			(control): control is JiraControl =>
+				typeof control === "string" &&
+				JIRA_CONTROLS.includes(control as JiraControl),
+		);
+	}
+	if (r.selections && typeof r.selections === "object" && !Array.isArray(r.selections)) {
+		const rawSelections = r.selections as Record<string, unknown>;
+		cfg.selections = {};
+		for (const control of JIRA_CONTROLS) {
+			const values = rawSelections[control];
+			if (!Array.isArray(values)) continue;
+			cfg.selections[control] = values.filter(
+				(value): value is string => typeof value === "string",
+			);
+		}
+	}
+	if (typeof r.maxResults === "number" && Number.isFinite(r.maxResults)) {
+		cfg.maxResults = Math.max(1, Math.min(200, Math.round(r.maxResults)));
+	}
+	if (typeof r.refreshMin === "number" && Number.isFinite(r.refreshMin)) {
+		cfg.refreshMin = Math.max(0, Math.min(1440, Math.round(r.refreshMin)));
+	}
+	if (typeof r.cacheMin === "number" && Number.isFinite(r.cacheMin)) {
+		cfg.cacheMin = Math.max(0, Math.min(1440, Math.round(r.cacheMin)));
+	}
 	return cfg;
 }
 

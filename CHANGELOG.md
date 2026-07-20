@@ -15,6 +15,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Jira saved-filter card.** Connect a dashboard card to a favorite Jira saved
+  filter using a bearer personal access token, then refine its issues with
+  multi-select status, assignee, priority, issue type, sprint, and fix-version
+  controls. The card derives options from the unrefined filter, preserves
+  selected values, supports manual and automatic refresh, caches successful
+  responses, and keeps REST requests constrained to the configured HTTPS Jira
+  host. Portable exports omit the Jira personal access token.
 - **Calendar card — agenda layout and external ICS calendars.** The calendar
   card gains a **Layout** setting: the existing month grid, or a new **agenda**
   view that lists upcoming days (3–60 ahead) as a scrollable timeline. It can

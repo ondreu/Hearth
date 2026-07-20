@@ -20,7 +20,44 @@ export type CardKind =
 	| "calculator"
 	| "dataview"
 	| "rss"
+	| "jira"
 	| "leaf";
+
+/** A refinement control available on a Jira saved-filter card. */
+export type JiraControl =
+	| "status"
+	| "assignee"
+	| "priority"
+	| "issueType"
+	| "sprint"
+	| "fixVersion";
+
+/** Selected values for each Jira refinement control. Missing keys are unfiltered. */
+export type JiraSelections = Partial<Record<JiraControl, string[]>>;
+
+/** Per-card connection, saved-filter, refinement, and refresh settings for Jira. */
+export interface JiraConfig {
+	/** Jira origin, including http(s) scheme but no API path. */
+	host?: string;
+	/** Bearer personal access token. Stored in Obsidian plugin data. */
+	pat?: string;
+	/** Relative Jira REST base path. Default `/rest/api/latest`. */
+	apiBasePath?: string;
+	/** Jira saved-filter id. */
+	filterId?: string;
+	/** Saved display name for the chosen filter. */
+	filterName?: string;
+	/** Refinement controls shown above the issue list. */
+	controls?: JiraControl[];
+	/** Persisted multi-select refinements. */
+	selections?: JiraSelections;
+	/** Maximum issues shown by the refined query. Default 50. */
+	maxResults?: number;
+	/** Automatic refresh interval in minutes. 0 disables it. */
+	refreshMin?: number;
+	/** In-memory request cache interval in minutes. Default 5. */
+	cacheMin?: number;
+}
 
 /** A single command tile inside a "commands" card. */
 export interface CommandItem {
@@ -545,6 +582,8 @@ export interface DashboardCard {
 	dataview?: DataviewConfig;
 	/** kind === "rss": feed sources, layout and refresh options. */
 	rss?: RssConfig;
+	/** kind === "jira": connection, saved filter, and refinement options. */
+	jira?: JiraConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 
@@ -739,9 +778,8 @@ export interface HomeSettings {
 	/** Buttons shown in the mobile action bar. */
 	mobileActionButtons: MobileActionButton[];
 	/** Block all outbound network requests Hearth would otherwise make. The only
-	 * such request is the calculator's currency-rate fetch (the key-less,
-	 * ECB-backed Frankfurter API); with this on, currency conversions report that
-	 * rates are unavailable instead of reaching out. */
+	 * requests are configured live-content cards (including Jira) and the
+	 * calculator's key-less, ECB-backed currency-rate fetch. */
 	disableExternalCalls: boolean;
 
 	// ---- Appearance (layout density) ----
@@ -981,6 +1019,7 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 	if (card.clock) copy.clock = { ...card.clock };
 	if (card.calculator) copy.calculator = { ...card.calculator };
 	if (card.dataview) copy.dataview = { ...card.dataview, columnWidths: card.dataview.columnWidths ? [...card.dataview.columnWidths] : undefined };
+	if (card.jira) copy.jira = { ...card.jira, controls: card.jira.controls ? [...card.jira.controls] : undefined, selections: card.jira.selections ? Object.fromEntries(Object.entries(card.jira.selections).map(([key, values]) => [key, values ? [...values] : values])) : undefined };
 	return copy;
 }
 
