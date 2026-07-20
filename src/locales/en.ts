@@ -601,6 +601,25 @@ export const en = {
 			weeks: "Weeks",
 			weeksDesc: "How many weeks of history to show.",
 		},
+		stats: {
+			advanced: "Advanced",
+			advancedDesc:
+				"Choose which stats to show, break attachments out by file type, and add " +
+				"custom counts. Off shows the default set.",
+			builtins: "Stats to show",
+			builtinsDesc: "Pick which built-in stats appear. The day streak only shows when daily notes are set up.",
+			attachmentTypes: "Attachment breakdown",
+			attachmentTypesDesc: "Add a separate count tile for each selected file type (images, PDFs, …).",
+			customCounts: "Custom counts",
+			customCountsDesc:
+				"Each row counts the files matching a query and shows the total as a tile. " +
+				"Query syntax matches the search bar: #tag, key:value for a property, or plain text.",
+			labelPlaceholder: "Label",
+			iconPlaceholder: "Icon",
+			queryPlaceholder: "#project or status:active",
+			addCount: "Add count",
+			removeCount: "Remove count",
+		},
 		metricOptions: {
 			modified: "Notes edited",
 			created: "Notes created",
