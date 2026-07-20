@@ -6,6 +6,7 @@ import {
 	deriveJiraOptions,
 	discoverSprintFieldId,
 	escapeJqlString,
+	filterJiraOptions,
 	jiraSearchFields,
 	parseSprintNames,
 } from "../src/jira";
@@ -132,6 +133,29 @@ describe("deriveJiraOptions", () => {
 			{},
 		);
 		expect(options.sprint).toEqual([]);
+	});
+});
+
+describe("filterJiraOptions", () => {
+	const options = ["Sprint 10", "Platform Sprint", "Release train"];
+
+	it("returns every option for an empty or whitespace-only query", () => {
+		const unfiltered = filterJiraOptions(options, "");
+		expect(unfiltered).toEqual(options);
+		expect(unfiltered).not.toBe(options);
+		expect(filterJiraOptions(options, "   ")).toEqual(options);
+	});
+
+	it("matches case-insensitive substrings after trimming the query", () => {
+		expect(filterJiraOptions(options, "  SPRINT  ")).toEqual([
+			"Sprint 10",
+			"Platform Sprint",
+		]);
+	});
+
+	it("returns an empty list when no options match without mutating the input", () => {
+		expect(filterJiraOptions(options, "missing")).toEqual([]);
+		expect(options).toEqual(["Sprint 10", "Platform Sprint", "Release train"]);
 	});
 });
 

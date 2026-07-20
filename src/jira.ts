@@ -280,6 +280,13 @@ export function deriveJiraOptions(
 	) as JiraOptions;
 }
 
+/** Narrow Jira control options with a case-insensitive substring query. */
+export function filterJiraOptions(values: string[], query: string): string[] {
+	const needle = query.trim().toLocaleLowerCase();
+	if (!needle) return [...values];
+	return values.filter((value) => value.toLocaleLowerCase().includes(needle));
+}
+
 function validatedHost(host: string): URL {
 	const parsed = new URL(host);
 	if (
@@ -556,29 +563,63 @@ export function renderJiraCard(
 			);
 			const menu = details.createDiv("hearth-jira-filter-menu");
 			const values = options[control];
-			if (!values.length) {
-				menu.createDiv({ cls: "hearth-jira-filter-empty", text: strings.noOptions });
-			}
-			for (const value of values) {
-				const label = menu.createEl("label", { cls: "hearth-jira-filter-option" });
-				const input = label.createEl("input");
-				input.type = "checkbox";
-				input.checked = selected.includes(value);
-				label.createSpan({ text: value });
-				input.addEventListener("change", () => {
-					const next = new Set(selections[control] ?? []);
-					if (input.checked) next.add(value);
-					else next.delete(value);
-					selections[control] = Array.from(next);
-					summary.setText(
-						next.size
-							? strings.controlCount(controlLabel(control), next.size)
-							: controlLabel(control),
-					);
-					persistSelections();
-					coordinator.request({ force: false, refinedOnly: true });
-				});
-			}
+			const searchWrap = menu.createDiv("hearth-jira-filter-search");
+			const search = searchWrap.createEl("input", {
+				attr: {
+					"aria-label": strings.searchAria(controlLabel(control)),
+					autocomplete: "off",
+					spellcheck: "false",
+				},
+			});
+			search.type = "search";
+			search.placeholder = strings.searchPlaceholder;
+			const optionList = menu.createDiv("hearth-jira-filter-options");
+			const paintOptions = (): void => {
+				optionList.empty();
+				const filtered = filterJiraOptions(values, search.value);
+				if (!filtered.length) {
+					optionList.createDiv({
+						cls: "hearth-jira-filter-empty",
+						text: values.length ? strings.noMatchingOptions : strings.noOptions,
+						attr: { role: "status" },
+					});
+					return;
+				}
+				for (const value of filtered) {
+					const label = optionList.createEl("label", {
+						cls: "hearth-jira-filter-option",
+					});
+					const input = label.createEl("input");
+					input.type = "checkbox";
+					input.checked = (selections[control] ?? []).includes(value);
+					label.createSpan({ text: value });
+					input.addEventListener("change", () => {
+						const next = new Set(selections[control] ?? []);
+						if (input.checked) next.add(value);
+						else next.delete(value);
+						selections[control] = Array.from(next);
+						summary.setText(
+							next.size
+								? strings.controlCount(controlLabel(control), next.size)
+								: controlLabel(control),
+						);
+						persistSelections();
+						coordinator.request({ force: false, refinedOnly: true });
+					});
+				}
+			};
+			search.addEventListener("input", paintOptions);
+			details.addEventListener("toggle", () => {
+				if (details.open) {
+					window.requestAnimationFrame(() => {
+						if (!destroyed && search.isConnected) search.focus();
+					});
+					return;
+				}
+				search.value = "";
+				paintOptions();
+			});
+			paintOptions();
 		}
 		refreshButton = toolbar.createEl("button", {
 			cls: "hearth-jira-refresh",
