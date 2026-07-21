@@ -371,10 +371,8 @@ export const en = {
 				"field. No effect on desktop.",
 			disableExternalCalls: "Disable external calls",
 			disableExternalCallsDesc:
-				"Block all outbound network requests Hearth makes. The only such " +
-				"request is the calculator's currency-rate lookup (the free, key-less " +
-				"Frankfurter API). With this on, currency conversions report that rates " +
-				"are unavailable instead of reaching out to the internet.",
+				"Block all outbound network requests Hearth makes, including Jira, " +
+				"external calendars, RSS feeds, and the calculator's currency-rate lookup.",
 		},
 		mobileActions: {
 			heading: "Mobile action bar",
@@ -527,6 +525,7 @@ export const en = {
 			calculator: "Calculator",
 			dataview: "Dataview query",
 			rss: "RSS feed",
+			jira: "Jira filter",
 			leaf: "Plugin view (beta)",
 		},
 		linkTypes: {
@@ -921,6 +920,32 @@ export const en = {
 			showDate: "Show date",
 			showDateDesc: "Show each item's publish time.",
 		},
+		jira: {
+			host: "Jira host",
+			hostDesc: "The Jira site origin. HTTPS is required when sending a personal access token.",
+			hostPlaceholder: "https://jira.example.com",
+			pat: "Personal access token",
+			patDesc: "Bearer PAT used for this card. Stored in Hearth's plugin data.",
+			apiBase: "API base path",
+			apiBaseDesc: "A relative Jira REST path. Full URLs are rejected.",
+			apiBasePlaceholder: "/rest/api/latest",
+			savedFilter: "Saved filter",
+			savedFilterDesc: "Load your favorite Jira filters, then choose one.",
+			selectedFilter: (name: string) => `Selected: ${name}`,
+			loadFilters: "Load favorite filters",
+			chooseFilter: "Choose a filter…",
+			noFavoriteFilters: "Jira returned no favorite filters.",
+			loadFailed: "Couldn't load Jira filters. Check the host, API path, and token.",
+			externalCallsDisabled:
+				"Favorite filters can't be loaded while external calls are disabled in Hearth settings.",
+			controls: "Filter controls",
+			maxResults: "Max results",
+			maxResultsDesc: "The most refined issues to show, up to 200.",
+			refresh: "Auto-refresh (minutes)",
+			refreshDesc: "How often to refresh Jira. 0 = only when opened or refreshed manually.",
+			cache: "Cache interval (minutes)",
+			cacheDesc: "How long successful Jira responses stay in memory. 0 disables caching.",
+		},
 		leaf: {
 			view: "View to host",
 			viewDesc:
@@ -1035,6 +1060,27 @@ export const en = {
 			error: "Couldn't load this feed",
 			disabled: "Feeds are off (external calls disabled)",
 			refresh: "Refresh",
+		},
+		jira: {
+			controls: {
+				status: "Status",
+				assignee: "Assignee",
+				priority: "Priority",
+				issueType: "Issue type",
+				sprint: "Sprint",
+				fixVersion: "Fix version",
+			},
+			controlCount: (label: string, count: number) => `${label} (${count})`,
+			searchPlaceholder: "Search options…",
+			searchAria: (label: string) => `Search ${label} options`,
+			noOptions: "No options",
+			noMatchingOptions: "No matching options",
+			refresh: "Refresh Jira issues",
+			loading: "Loading Jira issues…",
+			error: "Couldn't load Jira issues",
+			empty: "No issues match these filters",
+			disabled: "Jira is off (external calls disabled)",
+			notConfigured: "Configure a Jira host, token, and saved filter in card settings",
 		},
 		daily: {
 			createToday: "Create today's note",
@@ -1285,6 +1331,7 @@ export const en = {
 		calculator: "Calculator",
 		dataview: "Dataview query",
 		rss: "RSS feed",
+		jira: "Jira filter",
 		leaf: "Plugin view (beta)",
 	},
 

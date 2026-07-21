@@ -385,6 +385,7 @@ function openCardSettings(view: HomeView, card: DashboardCard): void {
 	new CardSettingsModal(view.app, card, {
 		favorites: s.favorites,
 		isPinned: s.pinnedCards.includes(card),
+		externalCallsDisabled: s.disableExternalCalls,
 		setPinned: (pinned) => setCardPinned(s, card, pinned),
 		save: () => void view.plugin.saveData(s),
 		rerender: () => view.render(),
