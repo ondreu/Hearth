@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 // The assertions below are the frozen "before" behavior and must not change
 // across the refactor; only these import paths moved to the registry barrel.
-import { CARD_TEMPLATES, cloneCard } from "../src/cards";
+import { CARD_DEFINITIONS, CARD_TEMPLATES, TEMPLATE_MENU_ORDER, cloneCard } from "../src/cards";
 import type { DashboardCard } from "../src/types";
 
 /**
@@ -66,6 +66,17 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			},
 			{ id: "leaf", icon: "layout-panel-left", gated: true, build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 } },
 		]);
+	});
+
+	// TEMPLATE_MENU_ORDER is the one enumeration the registry does not
+	// compile-enforce: CARD_TEMPLATES is derived from it, so a preset declared in
+	// a module but missing from the order silently vanishes from the add-card
+	// menu. Pin the round-trip so that omission — or a duplicate id — fails here.
+	it("TEMPLATE_MENU_ORDER covers every registered template id exactly once", () => {
+		const declared = Object.values(CARD_DEFINITIONS)
+			.flatMap((def) => def.templates.map((tpl) => tpl.id))
+			.sort();
+		expect([...TEMPLATE_MENU_ORDER].sort()).toEqual(declared);
 	});
 });
 
