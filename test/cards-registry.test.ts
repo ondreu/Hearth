@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-// NOTE: these imports are re-pointed to ../src/cards once the registry barrel
-// exists; the assertions below are the frozen "before" behavior and must not
-// change across the refactor.
-import { CARD_TEMPLATES } from "../src/templates";
-import { cloneCard } from "../src/types";
+// The assertions below are the frozen "before" behavior and must not change
+// across the refactor; only these import paths moved to the registry barrel.
+import { CARD_TEMPLATES, cloneCard } from "../src/cards";
 import type { DashboardCard } from "../src/types";
 
 /**
@@ -82,35 +80,35 @@ function maximalCard(): DashboardCard {
 		kind: "tasks",
 		title: "Everything",
 		links: [{ label: "A", href: "a" } as never],
-		commands: [{ id: "c", name: "C" } as never],
-		secondView: { target: "sv" } as never,
+		commands: [{ id: "c", name: "C" }],
+		secondView: { target: "sv" },
 		tasks: {
 			folders: ["f1"],
 			kanbanOrder: ["k1"],
 			kanbanHidden: ["k2"],
 			kanbanDoneColumns: ["Done"],
-			kanbanColumnSort: { Todo: { by: "due", dir: "asc" } as never },
-			sortRules: [{ by: "due", dir: "asc" } as never],
+			kanbanColumnSort: { Todo: { key: "due", reverse: false } },
+			sortRules: [{ field: "due", reverse: false }],
 		} as never,
 		calendar: {
 			sources: [{ url: "u" } as never],
-			eventNote: { fields: [{ name: "n" } as never] } as never,
-		} as never,
-		savedSearch: { query: "q" } as never,
+			eventNote: { fields: [{ name: "n" } as never] },
+		},
+		savedSearch: { query: "q" },
 		heatmap: { field: "h" } as never,
 		stats: {
 			builtins: ["notes"] as never,
 			attachmentTypes: ["png"],
 			queries: [{ label: "Q", query: "x" } as never],
-		} as never,
+		},
 		clock: { format: "24" } as never,
 		calculator: { keypad: "basic" } as never,
-		dataview: { columnWidths: [1, 2, 3] } as never,
+		dataview: { columnWidths: [1, 2, 3] },
 		jira: {
 			controls: ["status"],
 			selections: { status: ["Open"] },
 		} as never,
-	} as DashboardCard;
+	};
 }
 
 describe("cloneCard deep-clone independence", () => {
@@ -127,8 +125,8 @@ describe("cloneCard deep-clone independence", () => {
 		copy.tasks!.kanbanOrder!.push("k9");
 		copy.tasks!.kanbanHidden!.push("k9");
 		copy.tasks!.kanbanDoneColumns!.push("Extra");
-		(copy.tasks!.kanbanColumnSort as Record<string, { dir: string }>).Todo.dir = "desc";
-		copy.tasks!.sortRules![0].dir = "desc";
+		copy.tasks!.kanbanColumnSort!.Todo.reverse = true;
+		copy.tasks!.sortRules![0].reverse = true;
 		copy.calendar!.sources!.push({ url: "u2" } as never);
 		copy.calendar!.eventNote!.fields!.push({ name: "n2" } as never);
 		(copy.savedSearch as { query: string }).query = "q2";

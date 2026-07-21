@@ -26,6 +26,7 @@ import {
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
 } from "./types";
+import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
@@ -67,29 +68,6 @@ const RANGE = {
 	headerMarginTop: { min: 0, max: 96 },
 	headerSpacingBelow: { min: 0, max: 96 },
 };
-
-const CARD_KINDS: CardKind[] = [
-	"embed",
-	"daily",
-	"web",
-	"bookmarks",
-	"favorites",
-	"text",
-	"recent",
-	"links",
-	"commands",
-	"clock",
-	"tasks",
-	"calendar",
-	"stats",
-	"search",
-	"heatmap",
-	"calculator",
-	"dataview",
-	"rss",
-	"jira",
-	"leaf",
-];
 
 /** Build the portable layout payload (the dashboard setup and its globals). */
 function layoutPayload(s: HomeSettings): LayoutExport {

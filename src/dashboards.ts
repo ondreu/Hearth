@@ -16,8 +16,8 @@ import {
 	HEADER_SPACING_BELOW_MIN,
 	DEFAULT_SETTINGS,
 	newDashboardId,
-	cloneCard,
 } from "./types";
+import { cloneCard } from "./cards";
 import { confirmAction } from "./ui";
 import type { WorkspacesInstance } from "./obsidian-ext";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";

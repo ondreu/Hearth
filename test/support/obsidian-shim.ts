@@ -40,3 +40,42 @@ export class TAbstractFile {}
 export class TFile extends TAbstractFile {}
 export class TFolder extends TAbstractFile {}
 export class App {}
+
+// Inert base classes / components. They exist only so `extends` clauses and
+// value imports resolve when a test transitively pulls in a UI-heavy module
+// (e.g. the card registry barrel importing editors.ts). None is exercised by a
+// pure-logic test.
+export class Component {}
+export class Modal {}
+export class FuzzySuggestModal {}
+export class ItemView {}
+export class Plugin {}
+export class PluginSettingTab {}
+export class Setting {}
+export class Notice {}
+export class Menu {}
+export class MarkdownRenderer {}
+export class MarkdownView {}
+export class WorkspaceLeaf {}
+export class ButtonComponent {}
+export class SliderComponent {}
+export class TextComponent {}
+
+export function setIcon(): void {}
+export function addIcon(): void {}
+export function parseYaml(): unknown {
+	throw new Error("parseYaml is not implemented in tests (Obsidian API)");
+}
+// Real signature returns a debounced wrapper; the identity function is enough
+// for module resolution and is never scheduled in a pure-logic test.
+export function debounce<T extends (...args: never[]) => unknown>(fn: T): T {
+	return fn;
+}
+
+export const Platform = {
+	isMobile: false,
+	isDesktop: true,
+	isMobileApp: false,
+	isDesktopApp: true,
+};
+export const apiVersion = "1.8.7";

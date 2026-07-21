@@ -49,7 +49,6 @@ import {
 } from "./ics";
 import { buildEventNote, type EventNoteConfig, type EventNoteInput } from "./eventnote";
 import { isViewTypeHostable, mountLeafView } from "./leafview";
-import { renderJiraCard } from "./jira";
 import { EXCALIDRAW_PLUGIN_ID, fileTypeLabel, groupById, groupForFile, iconForFile, isExcalidraw } from "./filetypes";
 import { countQuery, type QueryHit, runQuery, searchFileContents } from "./query";
 import { confirmAction, makeClickable } from "./ui";
@@ -108,80 +107,9 @@ interface KanbanColumn {
 	endLine: number;
 }
 
-/** Render a card's body based on its kind. */
-export function renderCardBody(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	switch (card.kind) {
-		case "embed":
-			renderEmbed(view, card, body, component);
-			break;
-		case "daily":
-			renderDaily(view, card, body, component);
-			break;
-		case "web":
-			renderWeb(card, body, component);
-			break;
-		case "bookmarks":
-			renderBookmarks(view, body);
-			break;
-		case "favorites":
-			renderFavorites(view, body);
-			break;
-		case "text":
-			renderText(view, card, body, component);
-			break;
-		case "recent":
-			renderRecent(view, card, body);
-			break;
-		case "links":
-			renderLinks(view, card, body);
-			break;
-		case "commands":
-			renderCommands(view, card, body);
-			break;
-		case "clock":
-			renderClock(view, card, body, component);
-			break;
-		case "tasks":
-			renderTasks(view, card, body);
-			break;
-		case "calendar":
-			renderCalendar(view, card, body, component);
-			break;
-		case "stats":
-			renderStats(view, card, body);
-			break;
-		case "search":
-			renderSavedSearch(view, card, body);
-			break;
-		case "heatmap":
-			renderHeatmap(view, card, body);
-			break;
-		case "calculator":
-			renderCalculator(view, card, body);
-			break;
-		case "dataview":
-			renderDataview(view, card, body, component);
-			break;
-		case "rss":
-			renderRss(view, card, body, component);
-			break;
-		case "jira":
-			renderJiraCard(view, card, body, component);
-			break;
-		case "leaf":
-			renderLeaf(view, card, body, component);
-			break;
-		default: {
-			const exhaustive: never = card.kind;
-			return exhaustive;
-		}
-	}
-}
+// Card bodies are dispatched by kind through the registry (see
+// src/cards/index.ts `cardDefinition(card).render`), not a switch here. Each
+// renderer below is exported and referenced by its card module.
 
 // ---- Leaf (hosted plugin side-panel view) -------------------------------
 
@@ -194,7 +122,7 @@ export function renderCardBody(
  * disabled or uninstalled). Mounting is best-effort: `mountLeafView` never
  * throws, and the hosted leaf's lifecycle is tied to `component`, so it is torn
  * down cleanly on the next redraw or when the dashboard closes. */
-function renderLeaf(
+export function renderLeaf(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -233,7 +161,7 @@ function renderLeaf(
  * prompt if Dataview is later disabled. Dataview attaches its own refreshable
  * renderer to `component`, so results update live as the vault (and Dataview's
  * index) change, without Hearth having to re-run the query. */
-function renderDataview(
+export function renderDataview(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -417,7 +345,7 @@ function decorateDataviewTable(
 
 /** A card that runs a saved query (same syntax as the top search bar) and lists
  * the matching files, refreshed on every render. */
-function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.savedSearch ?? {};
 	const query = (cfg.query ?? "").trim();
 	if (!query) {
@@ -531,7 +459,7 @@ export function activeEmbedViewEditable(card: DashboardCard): boolean {
 	return !!activeEmbedViewParams(card).editable;
 }
 
-function renderEmbed(
+export function renderEmbed(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -911,7 +839,7 @@ function todaysDailyNotePath(options: DailyNotesOptions): string {
  * tracks the current day. Falls back to a "create today's note" prompt when the
  * note doesn't exist yet, and respects the per-card editable toggle.
  */
-function renderDaily(
+export function renderDaily(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -991,7 +919,7 @@ export function watchedCardPath(view: HomeView, card: DashboardCard): string | n
  * today when it doesn't exist yet safely falls back to the core "Open
  * today's daily note" command (template-aware). Other empty days are left
  * alone rather than guessing at template handling for arbitrary dates. */
-function renderCalendar(
+export function renderCalendar(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -1748,7 +1676,7 @@ function activityByDay(app: HomeView["app"], metric: "modified" | "created"): Ma
  * With no advanced config the card shows its fixed default set. When the card's
  * `stats.advanced` flag is on the user picks which built-in stats appear, breaks
  * attachments out into per file-type tiles, and adds custom query counts. */
-function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.stats;
 	const advanced = cfg?.advanced ?? false;
 	const vault = view.app.vault;
@@ -1863,7 +1791,7 @@ function dailyNoteStreak(view: HomeView): number | null {
 
 /** A contribution-style grid: one square per day for the last N weeks, tinted
  * by how many notes were edited (or created) that day. */
-function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.heatmap ?? {};
 	const metric = cfg.metric ?? "modified";
 	const weeks = cfg.weeks && cfg.weeks > 0 ? Math.min(cfg.weeks, 53) : 26;
@@ -1928,7 +1856,7 @@ function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): 
 
 // ---- Web / iframe embed -------------------------------------------------
 
-function renderWeb(card: DashboardCard, body: HTMLElement, component: Component): void {
+export function renderWeb(card: DashboardCard, body: HTMLElement, component: Component): void {
 	const url = card.url?.trim();
 	if (!url) {
 		emptyState(body, "globe", t().cards.empty.webNoUrl);
@@ -2013,7 +1941,7 @@ function pruneBookmarks(items: BookmarkItem[], view: HomeView): BookmarkItem[] {
 	return out;
 }
 
-function renderBookmarks(view: HomeView, body: HTMLElement): void {
+export function renderBookmarks(view: HomeView, body: HTMLElement): void {
 	const plugin = view.app.internalPlugins.getPluginById("bookmarks");
 	const instance = plugin?.instance as
 		| { items?: BookmarkItem[]; getBookmarks?: () => BookmarkItem[] }
@@ -2154,7 +2082,7 @@ function openBookmark(view: HomeView, item: BookmarkItem): void {
 
 // ---- Favorites (curated note cards) ------------------------------------
 
-function renderFavorites(view: HomeView, body: HTMLElement): void {
+export function renderFavorites(view: HomeView, body: HTMLElement): void {
 	const paths = view.plugin.settings.favorites;
 	if (!paths.length) {
 		emptyState(body, "star", t().cards.empty.favoritesEmpty);
@@ -2181,7 +2109,7 @@ function renderFavorites(view: HomeView, body: HTMLElement): void {
 
 // ---- Text / jot-down ----------------------------------------------------
 
-function renderText(
+export function renderText(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -2294,7 +2222,7 @@ const CALC_SCI_KEYS: CalcKey[] = [
 /** A free-text calculator: arithmetic, unit/currency conversions and
  * plain-language queries (à la Wolfram Alpha's input box), evaluated live as
  * you type. The on-screen keypad tier is chosen in card settings. */
-function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = (card.calculator ??= {});
 	const angleUnit = cfg.angleUnit ?? "deg";
 
@@ -2444,7 +2372,7 @@ function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement
 
 // ---- Recent files -------------------------------------------------------
 
-function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const count = card.count && card.count > 0 ? card.count : 8;
 	// Optional file-type filter: keep only files whose group is selected. An
 	// empty/undefined list means no filtering (show every type). The filter is
@@ -2480,7 +2408,7 @@ function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElement): v
 
 // ---- Links / launchpad --------------------------------------------------
 
-function renderLinks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const links = card.links ?? [];
 	if (links.length === 0) {
 		emptyState(body, "layout-grid", t().cards.empty.linksEmpty);
@@ -3104,7 +3032,7 @@ function openLink(view: HomeView, link: LinkItem): void {
 
 // ---- Commands / command palette tiles -----------------------------------
 
-function renderCommands(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const commands = card.commands ?? [];
 	if (commands.length === 0) {
 		emptyState(body, "terminal", t().cards.empty.commandsEmpty);
@@ -3223,7 +3151,7 @@ function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; do
 	return custom.length ? custom : defaultCheckboxStatuses();
 }
 
-function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.tasks ?? {};
 	const container = body.createDiv("hearth-tasks-wrap");
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
@@ -6908,7 +6836,7 @@ function feedHost(url: string): string {
 	}
 }
 
-function renderRss(
+export function renderRss(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
@@ -7102,7 +7030,7 @@ function renderRss(
 	}
 }
 
-function renderClock(
+export function renderClock(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
