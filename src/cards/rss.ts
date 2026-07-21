@@ -10,5 +10,12 @@ export const rssCard: CardDefinition<"rss"> = {
 	],
 	render: (view, card, body, component) => renderRss(view, card, body, component),
 	renderEditor: (container, ctx) => rssEditor(ctx, container),
+	cloneConfig: (source, copy) => {
+		if (source.rss)
+			copy.rss = {
+				...source.rss,
+				sources: source.rss.sources ? source.rss.sources.map((s) => ({ ...s })) : undefined,
+			};
+	},
 	liveness: { mode: "static" },
 };

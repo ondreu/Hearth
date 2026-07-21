@@ -64,9 +64,24 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
  * and the editor's type dropdown. */
 export const CARD_KINDS = Object.keys(CARD_DEFINITIONS) as CardKind[];
 
-/** The definition backing a card. */
+/** Inert definition served for a kind this build doesn't know — persisted data
+ * written by a newer Hearth version (then downgraded), a sync conflict, or a
+ * hand-edited data.json. The card renders an empty body (the old render
+ * switch's default) instead of a lookup on `undefined` taking down the whole
+ * dashboard render; the card itself keeps its data and its slot, and the
+ * editor's type dropdown still offers every known kind as a way out. */
+const UNKNOWN_CARD_DEFINITION: CardDefinition = {
+	// Never dispatched on: dispatch happens on the card's own (unknown) kind.
+	kind: "text",
+	templates: [],
+	render: () => {},
+	liveness: { mode: "static" },
+};
+
+/** The definition backing a card. Total: an unknown kind gets an inert
+ * fallback rather than `undefined`. */
 export function cardDefinition(card: DashboardCard): CardDefinition {
-	return CARD_DEFINITIONS[card.kind];
+	return CARD_DEFINITIONS[card.kind] ?? UNKNOWN_CARD_DEFINITION;
 }
 
 /**

@@ -7,7 +7,7 @@ import type { CardSettingsOptions } from "../editors";
 /**
  * The contract every card kind implements (issue #103).
  *
- * A card kind is one self-contained module under `src/cards/<kind>/` that
+ * A card kind is one self-contained module, `src/cards/<kind>.ts`, that
  * exports a `CardDefinition`. The registry barrel (`src/cards/index.ts`)
  * collects them into one `CARD_DEFINITIONS` record, and every place that used
  * to enumerate kinds by hand — the render switch, the editor switch, the

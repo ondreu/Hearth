@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 // The assertions below are the frozen "before" behavior and must not change
 // across the refactor; only these import paths moved to the registry barrel.
-import { CARD_DEFINITIONS, CARD_TEMPLATES, TEMPLATE_MENU_ORDER, cloneCard } from "../src/cards";
+import {
+	CARD_DEFINITIONS,
+	CARD_TEMPLATES,
+	TEMPLATE_MENU_ORDER,
+	cardDefinition,
+	cloneCard,
+} from "../src/cards";
 import type { DashboardCard } from "../src/types";
 
 /**
@@ -12,7 +18,9 @@ import type { DashboardCard } from "../src/types";
  *   1. the "Add card" menu — every template's id, icon and build() output, in
  *      the exact order they are offered today;
  *   2. cloneCard() deep-clones every nested config array/object, so mutating a
- *      copy never reaches the original.
+ *      copy never reaches the original. (The RSS config is the one addition
+ *      over the old cloner, which missed it — a clone shared `rss.sources`
+ *      with its original.)
  */
 
 describe("CARD_TEMPLATES (add-card menu)", () => {
@@ -115,6 +123,7 @@ function maximalCard(): DashboardCard {
 		clock: { format: "24" } as never,
 		calculator: { keypad: "basic" } as never,
 		dataview: { columnWidths: [1, 2, 3] },
+		rss: { sources: [{ id: "s1", name: "Feed", url: "https://example.com/feed" }] },
 		jira: {
 			controls: ["status"],
 			selections: { status: ["Open"] },
@@ -148,6 +157,7 @@ describe("cloneCard deep-clone independence", () => {
 		(copy.clock as { format: string }).format = "12";
 		(copy.calculator as { keypad: string }).keypad = "sci";
 		copy.dataview!.columnWidths!.push(4);
+		copy.rss!.sources!.push({ id: "s2", name: "Feed 2", url: "https://example.com/feed2" });
 		copy.jira!.controls!.push("assignee");
 		copy.jira!.selections!.status!.push("Closed");
 
@@ -164,6 +174,55 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.clock).toEqual(pristine.clock);
 		expect(orig.calculator).toEqual(pristine.calculator);
 		expect(orig.dataview).toEqual(pristine.dataview);
+		expect(orig.rss).toEqual(pristine.rss);
 		expect(orig.jira).toEqual(pristine.jira);
+	});
+});
+
+describe("liveness classification", () => {
+	// The refactor migrated this by hand from the old per-kind branches
+	// (card.kind === "web", embed/daily checks, LIVE_KINDS). Pin it: a kind
+	// silently drifting between modes would pass every other test while its
+	// card stops (or starts) refreshing in the running dashboard.
+	it("keeps each kind's live-refresh mode", () => {
+		const modes = Object.fromEntries(
+			Object.entries(CARD_DEFINITIONS).map(([kind, def]) => [kind, def.liveness.mode]),
+		);
+		expect(modes).toEqual({
+			embed: "watch-file",
+			daily: "watch-file",
+			web: "poll",
+			bookmarks: "static",
+			favorites: "static",
+			text: "static",
+			recent: "static",
+			links: "static",
+			commands: "static",
+			clock: "static",
+			tasks: "vault",
+			calendar: "vault",
+			stats: "vault",
+			search: "vault",
+			heatmap: "vault",
+			calculator: "static",
+			dataview: "static",
+			rss: "static",
+			jira: "static",
+			leaf: "static",
+		});
+	});
+});
+
+describe("cardDefinition", () => {
+	it("serves an inert fallback for a kind this build doesn't know", () => {
+		// Persisted data can outrun the code: a data.json written by a newer
+		// Hearth (then downgraded), a sync conflict, a hand edit. The lookup must
+		// stay total so one alien card can't take down the whole dashboard render.
+		const alien = { id: "a", x: 0, y: 0, w: 1, h: 1, kind: "hologram" } as unknown as DashboardCard;
+		const def = cardDefinition(alien);
+		expect(def).toBeDefined();
+		expect(def.liveness).toEqual({ mode: "static" });
+		expect("renderEditor" in def).toBe(false);
+		expect(() => def.render(null as never, alien, null as never, null as never)).not.toThrow();
 	});
 });
