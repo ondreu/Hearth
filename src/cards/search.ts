@@ -1,13 +1,13 @@
-import { setIcon, TFile } from "obsidian";
+import { setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
-import { savedSearchEditor } from "../editors";
+import { addResetButton } from "../editors";
 import { iconForFile } from "../filetypes";
 import { t } from "../i18n";
 import { runQuery, searchFileContents, type QueryHit } from "../query";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Query (saved search) ----------------------------------------------
@@ -83,6 +83,50 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 		tile.addEventListener("click", open);
 		makeClickable(tile, open, name);
 	}
+}
+
+
+export function savedSearchEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.savedSearch ??= {});
+	new Setting(containerEl)
+		.setName(t().editors.savedSearch.query)
+		.setDesc(t().editors.savedSearch.queryDesc)
+		.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.savedSearch.queryPlaceholder)
+				.setValue(cfg.query ?? "")
+				.onChange((v) => {
+					cfg.query = v;
+					ctx.opts.save();
+				}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.savedSearch.display)
+		.setDesc(t().editors.savedSearch.displayDesc)
+		.addDropdown((d) => {
+			d.addOption("list", t().editors.savedSearch.displayList);
+			d.addOption("tiles", t().editors.savedSearch.displayTiles);
+			d.setValue(cfg.view ?? "list").onChange((v) => {
+				cfg.view = v === "list" ? undefined : (v as "tiles");
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	const maxResults = new Setting(containerEl)
+		.setName(t().editors.savedSearch.maxResults)
+		.setDesc(t().editors.savedSearch.maxResultsDesc);
+	maxResults.addText((t) => {
+		t.setValue(String(cfg.count ?? 12)).onChange((v) => {
+			const n = parseInt(v, 10);
+			cfg.count = Number.isNaN(n) || n <= 0 ? undefined : n;
+			ctx.opts.save();
+		});
+		t.inputEl.type = "number";
+		t.inputEl.addClass("hearth-count-input");
+	});
+	addResetButton(ctx, maxResults, t().settings.resetField, () => {
+		cfg.count = undefined;
+	});
 }
 
 /** A saved query whose matching notes are listed live. */

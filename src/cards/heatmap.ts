@@ -1,10 +1,10 @@
+import { Setting } from "obsidian";
 import { activityByDay, createDailyNoteAt, dailyNotesOptions, heatLevel, moment } from "../cardbodies";
-import { heatmapEditor } from "../editors";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Activity heatmap (GitHub-style) ------------------------------------
@@ -72,6 +72,43 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 		if (l > 0) sq.addClass("has-heat");
 	}
 	legend.createSpan({ cls: "hearth-heatmap-legend-label", text: t().cards.heatmap.more });
+}
+
+
+export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.heatmap ??= {});
+	new Setting(containerEl)
+		.setName(t().editors.heatmap.metric)
+		.addDropdown((d) => {
+			d.addOption("modified", t().editors.metricOptions.modified);
+			d.addOption("created", t().editors.metricOptions.created);
+			d.setValue(cfg.metric ?? "modified").onChange((v) => {
+				cfg.metric = v as NonNullable<typeof cfg.metric>;
+				ctx.opts.save();
+			});
+		});
+	const weeks = new Setting(containerEl)
+		.setName(t().editors.heatmap.weeks)
+		.setDesc(t().editors.heatmap.weeksDesc);
+	weeks.addSlider((s) => {
+		s.setLimits(8, 53, 1)
+			.setValue(cfg.weeks ?? 26)
+			.setDynamicTooltip()
+			.onChange((v) => {
+				cfg.weeks = v === 26 ? undefined : v;
+				ctx.opts.save();
+			});
+	});
+	weeks.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				cfg.weeks = undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+	);
 }
 
 /** A calendar-style activity heatmap over a vault metric. */

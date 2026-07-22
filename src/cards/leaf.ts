@@ -1,11 +1,12 @@
-import { Component } from "obsidian";
+import { Component, setIcon, Setting } from "obsidian";
 import { emptyState } from "../cardbodies";
-import { leafEditor, leafTypeNote } from "../editors";
 import { t } from "../i18n";
-import { isLeafViewAvailable, isViewTypeHostable, mountLeafView } from "../leafview";
+import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";
+import { FilePickerModal } from "../pickers";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
+
 
 /** A card that hosts another plugin's (or a core) registered side-panel view —
  * a calendar, outline, tag pane, kanban board, and so on — by mounting a
@@ -44,6 +45,111 @@ export function renderLeaf(
 		body.removeClass("hearth-card-body-live");
 		emptyState(body, "layout-panel-left", t().cards.empty.leafViewMissing);
 	}
+}
+
+
+/** The performance note shown under the type dropdown for the leaf card. */
+export function leafTypeNote(containerEl: HTMLElement): void {
+	const note = new Setting(containerEl).setDesc(t().editors.leaf.perfNote);
+	note.settingEl.addClass("hearth-setting-note");
+	const icon = createSpan("hearth-setting-note-icon");
+	setIcon(icon, "gauge");
+	note.descEl.prepend(icon);
+}
+
+
+	/** Pick which registered side-panel view the "leaf" card hosts. The dropdown
+	 * lists every hostable view type found in the app right now (core panes plus
+	 * whatever community plugins have registered), so the choices depend on which
+	 * plugins are enabled. */
+export function leafEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.leafView ??= {});
+	const types = listLeafViewTypes(ctx.app);
+
+	const setting = new Setting(containerEl)
+		.setName(t().editors.leaf.view)
+		.setDesc(t().editors.leaf.viewDesc);
+
+	if (types.length === 0) {
+		setting.setDesc(t().editors.leaf.none);
+		return;
+	}
+
+	setting.addDropdown((d) => {
+		d.addOption("", t().editors.leaf.pickPlaceholder);
+		for (const vt of types) d.addOption(vt.type, vt.name);
+		// Keep a previously-chosen view selectable even if its plugin is now
+		// disabled, so switching the plugin back on restores the card as-is.
+		const current = cfg.viewType?.trim();
+		if (current && !types.some((vt) => vt.type === current)) {
+			d.addOption(current, current);
+		}
+		d.setValue(current ?? "").onChange((v) => {
+			cfg.viewType = v || undefined;
+			// A file chosen for the old view can't be shown by the new one and
+			// makes file-backed views throw, so drop it when the view changes.
+			cfg.file = undefined;
+			ctx.opts.save();
+			ctx.requestRender();
+			ctx.opts.rerender();
+		});
+	});
+
+	const fileSetting = new Setting(containerEl)
+		.setName(t().editors.leaf.file)
+		.setDesc(t().editors.leaf.fileDesc);
+	fileSetting.addText((txt) =>
+		txt
+			.setPlaceholder(t().editors.leaf.filePlaceholder)
+			.setValue(cfg.file ?? "")
+			.onChange((v) => {
+				const trimmed = v.trim();
+				cfg.file = trimmed || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+	);
+	fileSetting.addExtraButton((b) =>
+		b
+			.setIcon("file-symlink")
+			.setTooltip(t().editors.leaf.pickFile)
+			.onClick(() => {
+				new FilePickerModal(ctx.app, (file) => {
+					cfg.file = file.path;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}).open();
+			}),
+	);
+	if (cfg.file) {
+		fileSetting.addExtraButton((b) =>
+			b
+				.setIcon("x")
+				.setTooltip(t().editors.leaf.clearFile)
+				.onClick(() => {
+					cfg.file = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+		);
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.leaf.hideHeader)
+		.setDesc(t().editors.leaf.hideHeaderDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.hideHeader ?? false).onChange((v) => {
+				cfg.hideHeader = v || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+
+	new Setting(containerEl)
+		.setName(t().editors.leaf.note)
+		.setDesc(t().editors.leaf.noteDesc);
 }
 
 /** Hosts another plugin's registered side-panel view inside a card. Beta. */

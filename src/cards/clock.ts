@@ -1,10 +1,9 @@
-import { Component } from "obsidian";
+import { Component, Setting } from "obsidian";
 import { moment } from "../cardbodies";
-import { clockEditor } from "../editors";
 import { t } from "../i18n";
 import { type ClockConfig, type DashboardCard } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Clock / greeting ---------------------------------------------------
@@ -161,6 +160,102 @@ export function renderClock(
 
 	update();
 	component.registerInterval(window.setInterval(update, 1000));
+}
+
+
+export function clockEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.clock ??= {});
+
+	new Setting(containerEl)
+		.setName(t().editors.clock.style)
+		.addDropdown((d) => {
+			d.addOption("digital", t().editors.clock.styleDigital);
+			d.addOption("analog", t().editors.clock.styleAnalog);
+			d.setValue(cfg.mode ?? "digital").onChange((v) => {
+				cfg.mode = v as NonNullable<ClockConfig["mode"]>;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	if (cfg.mode !== "analog") {
+		new Setting(containerEl)
+			.setName(t().editors.clock.hourFormat)
+			.addDropdown((d) => {
+				d.addOption("auto", t().editors.clock.hourFormatAuto);
+				d.addOption("12", t().editors.clock.hourFormat12);
+				d.addOption("24", t().editors.clock.hourFormat24);
+				d.setValue(cfg.hourFormat ?? (cfg.use24Hour ? "24" : "auto")).onChange((v) => {
+					cfg.hourFormat = v as NonNullable<ClockConfig["hourFormat"]>;
+					cfg.use24Hour = undefined;
+					ctx.opts.save();
+				});
+			});
+	}
+	new Setting(containerEl)
+		.setName(t().editors.clock.showSeconds)
+		.addToggle((t) =>
+			t.setValue(cfg.showSeconds ?? false).onChange((v) => {
+				cfg.showSeconds = v;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.clock.showGreeting)
+		.addToggle((t) =>
+			t.setValue(cfg.showGreeting !== false).onChange((v) => {
+				cfg.showGreeting = v;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.clock.playful)
+		.setDesc(t().editors.clock.playfulDesc)
+		.addToggle((t) =>
+			t.setValue(cfg.playfulGreetings ?? false).onChange((v) => {
+				cfg.playfulGreetings = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.clock.greetingOverride)
+		.setDesc(t().editors.clock.greetingOverrideDesc)
+		.addText((t) =>
+			t.setValue(cfg.greetingText ?? "").onChange((v) => {
+				cfg.greetingText = v;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.clock.date)
+		.addDropdown((d) => {
+			d.addOption("full", t().editors.clock.dateFull);
+			d.addOption("long", t().editors.clock.dateLong);
+			d.addOption("short", t().editors.clock.dateShort);
+			d.addOption("iso", t().editors.clock.dateIso);
+			d.addOption("weekday", t().editors.clock.dateWeekday);
+			d.addOption("custom", t().editors.clock.dateCustom);
+			d.addOption("none", t().editors.clock.dateNone);
+			d.setValue(cfg.dateMode ?? "full").onChange((v) => {
+				cfg.dateMode = v as NonNullable<ClockConfig["dateMode"]>;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+	if (cfg.dateMode === "custom") {
+		new Setting(containerEl)
+			.setName(t().editors.clock.customFormat)
+			.setDesc(t().editors.clock.customFormatDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.clock.customFormatPlaceholder)
+					.setValue(cfg.dateFormat ?? "")
+					.onChange((v) => {
+						cfg.dateFormat = v;
+						ctx.opts.save();
+					}),
+			);
+	}
 }
 
 /** A live clock with an optional greeting and date. */

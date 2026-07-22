@@ -1,4 +1,15 @@
-import { Component, Menu, Modal, Notice, setIcon, TFile, TFolder, type App, type TAbstractFile } from "obsidian";
+import {
+	Component,
+	Menu,
+	Modal,
+	Notice,
+	setIcon,
+	Setting,
+	TFile,
+	TFolder,
+	type App,
+	type TAbstractFile,
+} from "obsidian";
 import {
 	activityByDay,
 	createDailyNoteAt,
@@ -12,14 +23,22 @@ import {
 	type Moment,
 } from "../cardbodies";
 import { formatRelativeDate } from "../dates";
-import { calendarEditor } from "../editors";
-import { buildEventNote, type EventNoteConfig, type EventNoteInput } from "../eventnote";
+import { moveItem } from "../editors";
+import {
+	buildEventNote,
+	DEFAULT_EVENT_NOTE_FIELDS,
+	type EventField,
+	type EventFieldAction,
+	type EventNoteConfig,
+	type EventNoteInput,
+} from "../eventnote";
 import { t } from "../i18n";
 import { cachedCalendar, eventsByDay, expandEvents, loadCalendar, type IcsOccurrence } from "../ics";
+import { FilePickerModal } from "../pickers";
 import { type CalendarConfig, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Mini calendar -------------------------------------------------------
@@ -718,6 +737,411 @@ function renderAgendaEvent(
 	const open = () => showEventDetail(view, ev, ics);
 	row.addEventListener("click", open);
 	makeClickable(row, open, `${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`);
+}
+
+
+export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.calendar ??= {});
+	new Setting(containerEl)
+		.setName(t().editors.calendar.view)
+		.setDesc(t().editors.calendar.viewDesc)
+		.addDropdown((d) => {
+			d.addOption("month", t().editors.calendar.viewMonth);
+			d.addOption("agenda", t().editors.calendar.viewAgenda);
+			d.setValue(cfg.view ?? "month").onChange((v) => {
+				cfg.view = v === "agenda" ? "agenda" : undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+	if (cfg.view === "agenda") {
+		const days = new Setting(containerEl)
+			.setName(t().editors.calendar.agendaDays)
+			.setDesc(t().editors.calendar.agendaDaysDesc);
+		days.addSlider((s) => {
+			s.setLimits(3, 60, 1)
+				.setValue(cfg.agendaDays ?? 14)
+				.setDynamicTooltip()
+				.onChange((v) => {
+					cfg.agendaDays = v === 14 ? undefined : v;
+					ctx.opts.save();
+				});
+		});
+		days.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					cfg.agendaDays = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	} else {
+		new Setting(containerEl)
+			.setName(t().editors.calendar.weekNumbers)
+			.setDesc(t().editors.calendar.weekNumbersDesc)
+			.addToggle((t) =>
+				t.setValue(cfg.showWeekNumbers ?? false).onChange((v) => {
+					cfg.showWeekNumbers = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+	}
+	new Setting(containerEl)
+		.setName(t().editors.calendar.heatmap)
+		.setDesc(t().editors.calendar.heatmapDesc)
+		.addToggle((t) =>
+			t.setValue(cfg.heatmap ?? false).onChange((v) => {
+				cfg.heatmap = v || undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+	if (cfg.heatmap) {
+		new Setting(containerEl)
+			.setName(t().editors.calendar.heatmapCounts)
+			.addDropdown((d) => {
+				d.addOption("modified", t().editors.metricOptions.modified);
+				d.addOption("created", t().editors.metricOptions.created);
+				d.setValue(cfg.heatmapMetric ?? "modified").onChange((v) => {
+					cfg.heatmapMetric = v as NonNullable<typeof cfg.heatmapMetric>;
+					ctx.opts.save();
+				});
+			});
+	}
+
+	calendarSourcesEditor(ctx, containerEl, cfg);
+}
+
+
+/** The "External calendars" section of the calendar editor: subscribe to one
+ * or more ICS/iCal feeds (name, URL, colour, enable toggle) overlaid on the
+ * card, plus their shared auto-refresh interval. */
+export function calendarSourcesEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: CalendarConfig): void {
+	const sources = (cfg.sources ??= []);
+
+	new Setting(containerEl).setName(t().editors.calendar.externalCalendars).setHeading();
+	new Setting(containerEl).setDesc(t().editors.calendar.externalCalendarsDesc);
+
+	sources.forEach((source, index) => {
+		const row = new Setting(containerEl).setClass("hearth-rss-setting");
+		row.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.calendar.sourceNamePlaceholder)
+				.setValue(source.name)
+				.onChange((v) => {
+					source.name = v;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+		);
+		row.addText((txt) => {
+			txt
+				.setPlaceholder(t().editors.calendar.sourceUrlPlaceholder)
+				.setValue(source.url)
+				.onChange((v) => {
+					source.url = v.trim();
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
+			txt.inputEl.addClass("hearth-rss-url");
+		});
+		row.addColorPicker((c) =>
+			c.setValue(source.color ?? "#7c6cff").onChange((v) => {
+				source.color = v;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon(source.enabled === false ? "eye-off" : "eye")
+				.setTooltip(
+					source.enabled === false
+						? t().editors.calendar.sourceShow
+						: t().editors.calendar.sourceHide,
+				)
+				.onClick(() => {
+					source.enabled = source.enabled === false ? undefined : false;
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				}),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.links.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, sources, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.links.moveDown)
+				.setDisabled(index === sources.length - 1)
+				.onClick(() => moveItem(ctx, sources, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.calendar.sourceRemove)
+				.onClick(() => {
+					sources.splice(index, 1);
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.calendar.addCalendar).onClick(() => {
+			sources.push({
+				id: `ics-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+				name: "",
+				url: "",
+			});
+			ctx.opts.save();
+			ctx.requestRender();
+		}),
+	);
+
+	if (sources.length === 0) return;
+
+	const refresh = new Setting(containerEl)
+		.setName(t().editors.calendar.refresh)
+		.setDesc(t().editors.calendar.refreshDesc);
+	refresh.addSlider((s) => {
+		s.setLimits(0, 180, 5)
+			.setValue(cfg.refreshMin ?? 60)
+			.setDynamicTooltip()
+			.onChange((v) => {
+				cfg.refreshMin = v === 60 ? undefined : v;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+	});
+	refresh.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				cfg.refreshMin = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
+
+	eventNoteEditor(ctx, containerEl, cfg);
+}
+
+
+/** The "Event notes" section: configure the modal's Create-note action —
+ * template, folder, filename, link property, and per-field routing so the
+ * user decides what each event value becomes in the new note. */
+export function eventNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: CalendarConfig): void {
+	const note = (cfg.eventNote ??= {});
+
+	new Setting(containerEl).setName(t().editors.calendar.eventNoteHeading).setHeading();
+	new Setting(containerEl).setDesc(t().editors.calendar.eventNoteDesc);
+
+	new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteEnabled)
+		.setDesc(t().editors.calendar.eventNoteEnabledDesc)
+		.addToggle((tg) =>
+			tg.setValue(note.enabled !== false).onChange((v) => {
+				note.enabled = v ? undefined : false;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+	if (note.enabled === false) return;
+
+	new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteFolder)
+		.setDesc(t().editors.calendar.eventNoteFolderDesc)
+		.addText((txt) =>
+			txt.setValue(note.folder ?? "").onChange((v) => {
+				note.folder = v.trim() || undefined;
+				ctx.opts.save();
+			}),
+		);
+
+	new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteFilename)
+		.setDesc(t().editors.calendar.eventNoteFilenameDesc)
+		.addText((txt) =>
+			txt
+				.setPlaceholder("{{summary}}")
+				.setValue(note.filename ?? "")
+				.onChange((v) => {
+					note.filename = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+
+	const template = new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteTemplate)
+		.setDesc(t().editors.calendar.eventNoteTemplateDesc);
+	template.addText((txt) => {
+		txt.setValue(note.template ?? "").onChange((v) => {
+			note.template = v.trim() || undefined;
+			ctx.opts.save();
+		});
+		txt.inputEl.addClass("hearth-rss-url");
+	});
+	template.addExtraButton((b) =>
+		b
+			.setIcon("file-symlink")
+			.setTooltip(t().editors.calendar.eventNotePickTemplate)
+			.onClick(() => {
+				new FilePickerModal(ctx.app, (file) => {
+					note.template = file.path;
+					ctx.opts.save();
+					ctx.requestRender();
+				}).open();
+			}),
+	);
+	template.addExtraButton((b) =>
+		b
+			.setIcon("x")
+			.setTooltip(t().editors.calendar.eventNoteClearTemplate)
+			.onClick(() => {
+				note.template = undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+	);
+
+	new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteLinkKey)
+		.setDesc(t().editors.calendar.eventNoteLinkKeyDesc)
+		.addText((txt) =>
+			txt
+				.setPlaceholder("event_uid")
+				.setValue(note.linkKey ?? "")
+				.onChange((v) => {
+					// Distinguish "unset (use default)" from "explicitly empty".
+					note.linkKey = v === "" ? undefined : v.trim();
+					ctx.opts.save();
+				}),
+		);
+
+	new Setting(containerEl)
+		.setName(t().editors.calendar.eventNoteCustomize)
+		.setDesc(t().editors.calendar.eventNoteCustomizeDesc)
+		.addToggle((tg) =>
+			tg.setValue(note.fields !== undefined).onChange((v) => {
+				note.fields = v ? DEFAULT_EVENT_NOTE_FIELDS.map((f) => ({ ...f })) : undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+
+	if (note.fields) eventNoteFieldsEditor(ctx, containerEl, note);
+}
+
+
+/** The editable list of per-field routing rules (field → action → key/format). */
+export function eventNoteFieldsEditor(ctx: CardEditorContext, containerEl: HTMLElement, note: EventNoteConfig): void {
+	const rules = (note.fields ??= []);
+	const fieldNames = t().editors.calendar.eventFieldNames;
+	const actionNames = t().editors.calendar.eventFieldActions;
+	const fieldOrder: EventField[] = [
+		"summary",
+		"date",
+		"start",
+		"end",
+		"location",
+		"description",
+		"url",
+		"calendar",
+	];
+
+	new Setting(containerEl).setName(t().editors.calendar.eventNoteFieldsHeading).setHeading();
+
+	rules.forEach((rule, index) => {
+		const row = new Setting(containerEl).setClass("hearth-rss-setting");
+		row.addDropdown((d) => {
+			for (const f of fieldOrder) d.addOption(f, fieldNames[f]);
+			d.setValue(rule.field).onChange((v) => {
+				rule.field = v as EventField;
+				ctx.opts.save();
+			});
+		});
+		row.addDropdown((d) => {
+			d.addOption("ignore", actionNames.ignore);
+			d.addOption("frontmatter", actionNames.frontmatter);
+			d.addOption("body", actionNames.body);
+			d.setValue(rule.action).onChange((v) => {
+				rule.action = v as EventFieldAction;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+		if (rule.action !== "ignore") {
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(
+						rule.action === "frontmatter"
+							? t().editors.calendar.eventNotePropertyPlaceholder
+							: t().editors.calendar.eventNoteHeadingPlaceholder,
+					)
+					.setValue(rule.key ?? "")
+					.onChange((v) => {
+						rule.key = v.trim() || undefined;
+						ctx.opts.save();
+					});
+			});
+		}
+		if (rule.action === "frontmatter" && ["date", "start", "end"].includes(rule.field)) {
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(t().editors.calendar.eventNoteFormatPlaceholder)
+					.setValue(rule.format ?? "")
+					.onChange((v) => {
+						rule.format = v.trim() || undefined;
+						ctx.opts.save();
+					});
+				txt.inputEl.addClass("hearth-event-format");
+			});
+		}
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.links.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, rules, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.links.moveDown)
+				.setDisabled(index === rules.length - 1)
+				.onClick(() => moveItem(ctx, rules, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.calendar.eventNoteRemoveField)
+				.onClick(() => {
+					rules.splice(index, 1);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.calendar.eventNoteAddField).onClick(() => {
+			rules.push({ field: "location", action: "frontmatter" });
+			ctx.opts.save();
+			ctx.requestRender();
+		}),
+	);
 }
 
 /** A mini month calendar with an optional agenda and external ICS calendars. */

@@ -1,11 +1,10 @@
-import { Component } from "obsidian";
+import { Component, Setting } from "obsidian";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import { getDataviewApi, isDataviewAvailable } from "../dataview";
-import { dataviewEditor } from "../editors";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Dataview query -----------------------------------------------------
@@ -199,6 +198,48 @@ function decorateDataviewTable(
 			window.addEventListener("pointerup", onUp);
 		});
 	});
+}
+
+
+export function dataviewEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.dataview ??= {});
+	new Setting(containerEl)
+		.setName(t().editors.dataview.language)
+		.setDesc(t().editors.dataview.languageDesc)
+		.addDropdown((d) => {
+			d.addOption("dql", t().editors.dataview.languageDql);
+			d.addOption("js", t().editors.dataview.languageJs);
+			d.setValue(cfg.language ?? "dql").onChange((v) => {
+				cfg.language = v === "js" ? "js" : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			});
+		});
+	const isJs = cfg.language === "js";
+	const query = new Setting(containerEl)
+		.setName(t().editors.dataview.query)
+		.setDesc(
+			isJs
+				? t().editors.dataview.queryJsDesc
+				: t().editors.dataview.queryDqlDesc,
+		);
+	query.addTextArea((txt) => {
+		txt
+			.setPlaceholder(
+				isJs
+					? t().editors.dataview.queryJsPlaceholder
+					: t().editors.dataview.queryDqlPlaceholder,
+			)
+			.setValue(cfg.query ?? "")
+			.onChange((v) => {
+				cfg.query = v;
+				ctx.opts.save();
+			});
+		txt.inputEl.rows = 6;
+		txt.inputEl.addClass("hearth-dataview-input");
+	});
+	query.settingEl.addClass("hearth-setting-stacked");
 }
 
 /** A Dataview query, rendered through the Dataview plugin. Gated on that plugin. */

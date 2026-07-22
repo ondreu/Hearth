@@ -1,9 +1,9 @@
-import { Component, setIcon } from "obsidian";
+import { Component, setIcon, Setting } from "obsidian";
 import { emptyState } from "../cardbodies";
-import { webEditor } from "../editors";
+import { addResetButton } from "../editors";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Web / iframe embed -------------------------------------------------
@@ -65,6 +65,56 @@ export function renderWeb(card: DashboardCard, body: HTMLElement, component: Com
 		open.addEventListener("click", openExternally);
 	}, 4000);
 	component.register(() => window.clearTimeout(timer));
+}
+
+
+export function webEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	new Setting(containerEl).setName(t().editors.web.url).addText((txt) =>
+		txt
+			.setPlaceholder(t().editors.web.urlPlaceholder)
+			.setValue(card.url ?? "")
+			.onChange((v) => {
+				card.url = v;
+				ctx.opts.save();
+			}),
+	);
+	new Setting(containerEl)
+		.setName(t().editors.web.trusted)
+		.setDesc(t().editors.web.trustedDesc)
+		.addToggle((tg) =>
+			tg.setValue(card.sandboxTrusted ?? false).onChange((v) => {
+				card.sandboxTrusted = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+	refreshSetting(ctx, containerEl);
+}
+
+
+/** Auto-refresh interval (seconds) for web cards. 0 = off. (Embed and daily
+ * cards update live from vault events and don't need this.) */
+export function refreshSetting(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	const setting = new Setting(containerEl)
+		.setName(t().editors.web.autoRefresh)
+		.setDesc(t().editors.web.autoRefreshDesc);
+	setting.addText((txt) => {
+		txt.setValue(String(card.refreshSec ?? 0)).onChange((v) => {
+			const n = parseInt(v, 10);
+			card.refreshSec = Number.isNaN(n) || n <= 0 ? undefined : n;
+			ctx.opts.save();
+		});
+		txt.inputEl.type = "number";
+		txt.inputEl.addClass("hearth-count-input");
+		txt.inputEl.setAttribute(
+			"aria-label",
+			t().editors.web.refreshIntervalAria,
+		);
+	});
+	addResetButton(ctx, setting, t().settings.resetField, () => {
+		card.refreshSec = undefined;
+	});
 }
 
 /** A web page in a sandboxed iframe, with optional polling refresh. */

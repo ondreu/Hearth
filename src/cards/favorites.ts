@@ -1,11 +1,12 @@
-import { setIcon, TFile } from "obsidian";
+import { setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
-import { favoritesEditor } from "../editors";
+import { moveItem } from "../editors";
 import { iconForFile } from "../filetypes";
 import { t } from "../i18n";
+import { FilePickerModal } from "../pickers";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Favorites (curated note cards) ------------------------------------
@@ -33,6 +34,60 @@ export function renderFavorites(view: HomeView, body: HTMLElement): void {
 			card.createDiv({ cls: "hearth-fav-name", text: path });
 		}
 	}
+}
+
+
+export function favoritesEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	new Setting(containerEl)
+		.setName(t().editors.favorites.heading)
+		.setDesc(t().editors.favorites.headingDesc)
+		.setHeading();
+	const favorites = ctx.opts.favorites;
+
+	favorites.forEach((path, index) => {
+		new Setting(containerEl)
+			.setName(path)
+			.addExtraButton((b) =>
+				b
+					.setIcon("chevron-up")
+					.setTooltip(t().editors.favorites.moveUp)
+					.setDisabled(index === 0)
+					.onClick(() => moveItem(ctx, favorites, index, index - 1)),
+			)
+			.addExtraButton((b) =>
+				b
+					.setIcon("chevron-down")
+					.setTooltip(t().editors.favorites.moveDown)
+					.setDisabled(index === favorites.length - 1)
+					.onClick(() => moveItem(ctx, favorites, index, index + 1)),
+			)
+			.addExtraButton((b) =>
+				b
+					.setIcon("trash-2")
+					.setTooltip(t().editors.favorites.remove)
+					.onClick(() => {
+						favorites.splice(index, 1);
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
+			);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.favorites.addFavorite).onClick(() => {
+			new FilePickerModal(
+				ctx.app,
+				(file) => {
+					if (!favorites.includes(file.path)) {
+						favorites.push(file.path);
+						ctx.opts.save();
+						ctx.requestRender();
+					}
+				},
+				t().pickers.noteToFavorite,
+			).open();
+		}),
+	);
 }
 
 /** The user's starred notes (a Hearth-global list). */

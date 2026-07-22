@@ -1,8 +1,9 @@
 import { MarkdownView, Menu, Modal, Notice, setIcon, Setting, TFile, TFolder, type App } from "obsidian";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
-import { tasksEditor } from "../editors";
+import { addResetButton } from "../editors";
 import { t } from "../i18n";
+import { FilePickerModal } from "../pickers";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
 	type DashboardCard,
@@ -16,7 +17,7 @@ import {
 } from "../types";
 import { confirmAction, makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 /** Community plugin id for TaskNotes (used by "tasks" cards in TaskNotes mode). */
@@ -3441,7 +3442,6 @@ function readEmojiField(text: string, emoji: string): string | null {
 const CHECKBOX_MARKER = /^(\s*[-*+]\s\[)(.)(\])/;
 
 
-
 /** Set a checkbox task's status symbol in place (used when a checkbox card is
  * dragged between the board's status columns). Only the leading `[·]` marker is
  * changed; when metadata is managed the ✅ done date is stamped for a done status
@@ -3787,6 +3787,346 @@ async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 		const pos = { line: hit.line, ch: 0 };
 		leaf.view.editor.setCursor(pos);
 		leaf.view.editor.scrollIntoView({ from: pos, to: pos }, true);
+	}
+}
+
+
+export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.tasks ??= {});
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.source)
+		.setDesc(t().editors.tasks.sourceDesc)
+		.addDropdown((d) => {
+			d.addOption("checkbox", t().editors.tasks.sourceCheckbox);
+			d.addOption("tasknotes", t().editors.tasks.sourceTaskNotes);
+			d.addOption("kanban", t().editors.tasks.sourceKanban);
+			d.setValue(cfg.source ?? "checkbox").onChange((v) => {
+				cfg.source = v as TasksConfig["source"];
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	// Kanban source: pick the board note and choose plain vs. Tasks-plugin
+	// (extended) card parsing.
+	if (cfg.source === "kanban") {
+		const boardSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanBoard)
+			.setDesc(t().editors.tasks.kanbanBoardDesc);
+		boardSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.kanbanBoardPlaceholder)
+				.setValue(cfg.kanbanFile ?? "")
+				.onChange((v) => {
+					cfg.kanbanFile = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+		boardSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.tasks.pickBoard)
+				.onClick(() => {
+					new FilePickerModal(
+						ctx.app,
+						(file) => {
+							cfg.kanbanFile = file.path;
+							ctx.opts.save();
+							ctx.requestRender();
+						},
+						t().editors.tasks.pickBoard,
+						(file) => {
+							const fm =
+								ctx.app.metadataCache.getFileCache(file)?.frontmatter;
+							return !!fm && "kanban-plugin" in fm;
+						},
+					).open();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanExtended)
+			.setDesc(t().editors.tasks.kanbanExtendedDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.kanbanExtended ?? false).onChange((v) => {
+					cfg.kanbanExtended = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+
+		// Convert-to-note options (the card right-click "Convert to note"
+		// action): seed the new note from a template, and/or scrape the card's
+		// metadata into the note's frontmatter instead of onto the board link.
+		const tplSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.convertTemplate)
+			.setDesc(t().editors.tasks.convertTemplateDesc);
+		tplSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.convertTemplatePlaceholder)
+				.setValue(cfg.convertNoteTemplate ?? "")
+				.onChange((v) => {
+					cfg.convertNoteTemplate = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+		tplSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.tasks.pickTemplate)
+				.onClick(() => {
+					new FilePickerModal(
+						ctx.app,
+						(file) => {
+							cfg.convertNoteTemplate = file.path;
+							ctx.opts.save();
+							ctx.requestRender();
+						},
+						t().editors.tasks.pickTemplate,
+					).open();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.convertScrape)
+			.setDesc(t().editors.tasks.convertScrapeDesc)
+			.addToggle((tg) =>
+				tg
+					.setValue(cfg.convertMetadataToFrontmatter ?? false)
+					.onChange((v) => {
+						cfg.convertMetadataToFrontmatter = v || undefined;
+						ctx.opts.save();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.newTaskAsNote)
+			.setDesc(t().editors.tasks.newTaskAsNoteDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.newTaskAsNote ?? false).onChange((v) => {
+					cfg.newTaskAsNote = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+	}
+
+	// Checkbox source: parse the inline Tasks-plugin metadata (dates, priority,
+	// repeat) — the counterpart of the Kanban "Dates & priorities" toggle. On
+	// by default; storing `false` opts out and reads checkboxes as plain text.
+	if ((cfg.source ?? "checkbox") === "checkbox") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.checkboxExtended)
+			.setDesc(t().editors.tasks.checkboxExtendedDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.checkboxExtended ?? true).onChange((v) => {
+					cfg.checkboxExtended = v ? undefined : false;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+			);
+
+		// Custom checkbox statuses: the board columns / task states, one per
+		// line as `[symbol] Label`, with a trailing "(done)" to mark completed
+		// states. Blank uses the default set (To do / In progress / Done).
+		const defaultStatusText =
+			`[ ] ${t().cards.tasks.toDo}\n` +
+			`[/] ${t().cards.tasks.statusInProgress}\n` +
+			`[x] ${t().cards.tasks.done} (done)`;
+		const statusText = (cfg.checkboxStatuses ?? []).length
+			? (cfg.checkboxStatuses ?? [])
+					.map((s) => `[${s.symbol}] ${s.label}${s.done ? " (done)" : ""}`)
+					.join("\n")
+			: defaultStatusText;
+		new Setting(containerEl)
+			.setName(t().editors.tasks.checkboxStatuses)
+			.setDesc(t().editors.tasks.checkboxStatusesDesc)
+			.addTextArea((ta) => {
+				ta.setValue(statusText)
+					.setPlaceholder(defaultStatusText)
+					.onChange((v) => {
+						const parsed = v
+							.split("\n")
+							.map((line) => {
+								const m = /^\s*\[(.)\]\s*(.*)$/.exec(line);
+								if (!m) return null;
+								let label = m[2].trim();
+								let done = false;
+								const dm = /\(done\)\s*$/i.exec(label);
+								if (dm) {
+									done = true;
+									label = label.slice(0, dm.index).trim();
+								}
+								return {
+									symbol: m[1],
+									label: label || m[1],
+									done: done || undefined,
+								};
+							})
+							.filter(
+								(
+									s,
+								): s is {
+									symbol: string;
+									label: string;
+									done: boolean | undefined;
+								} => s !== null,
+							);
+						cfg.checkboxStatuses = parsed.length ? parsed : undefined;
+						ctx.opts.save();
+					});
+				ta.inputEl.rows = 4;
+				ta.inputEl.addClass("hearth-tasks-statuses-input");
+			});
+	}
+
+	// TaskNotes source: which status values count as complete. Empty uses the
+	// single global done value (Settings → Hearth); listing values here (e.g.
+	// "done" and "canceled") treats each as complete.
+	if (cfg.source === "tasknotes") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.doneStatuses)
+			.setDesc(t().editors.tasks.doneStatusesDesc)
+			.addTextArea((ta) => {
+				ta.setValue((cfg.taskNotesDoneStatuses ?? []).join("\n"))
+					.setPlaceholder(t().editors.tasks.doneStatusesPlaceholder)
+					.onChange((v) => {
+						const parsed = v
+							.split("\n")
+							.map((s) => s.trim())
+							.filter(Boolean);
+						cfg.taskNotesDoneStatuses = parsed.length ? parsed : undefined;
+						ctx.opts.save();
+					});
+				ta.inputEl.rows = 3;
+				ta.inputEl.addClass("hearth-tasks-statuses-input");
+			});
+	}
+
+	// Quick-view on click applies to line-based tasks (checkboxes and Kanban
+	// cards); TaskNotes tasks always open in their own editor.
+	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.quickView)
+			.setDesc(t().editors.tasks.quickViewDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.taskQuickView ?? true).onChange((v) => {
+					cfg.taskQuickView = v ? undefined : false;
+					ctx.opts.save();
+				}),
+			);
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.layout)
+		.setDesc(t().editors.tasks.layoutDesc)
+		.addDropdown((d) => {
+			d.addOption("list", t().editors.tasks.layoutList);
+			d.addOption("kanban", t().editors.tasks.layoutKanban);
+			d.setValue(cfg.layout ?? "list").onChange((v) => {
+				cfg.layout = v === "kanban" ? "kanban" : undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	if (
+		cfg.layout === "kanban" &&
+		(cfg.kanbanHidden?.length ||
+			cfg.kanbanOrder?.length ||
+			cfg.kanbanDoneColumns?.length)
+	) {
+		const parts: string[] = [];
+		if (cfg.kanbanHidden?.length)
+			parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
+		if (cfg.kanbanDoneColumns?.length)
+			parts.push(
+				t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
+			);
+		const reset = new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanColumns)
+			.setDesc(
+				parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
+			);
+		if (cfg.kanbanHidden?.length) {
+			reset.addButton((b) =>
+				b.setButtonText(t().editors.tasks.showAll).onClick(() => {
+					cfg.kanbanHidden = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+			);
+		}
+		reset.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().editors.tasks.resetColumns)
+				.onClick(() => {
+					cfg.kanbanHidden = undefined;
+					cfg.kanbanOrder = undefined;
+					cfg.kanbanDoneColumns = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.showCompleted)
+		.setDesc(
+			cfg.layout === "kanban"
+				? t().editors.tasks.showCompletedKanbanDesc
+				: "",
+		)
+		.addToggle((t) =>
+			t.setValue(cfg.showCompleted ?? false).onChange((v) => {
+				cfg.showCompleted = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+
+	const maxTasks = new Setting(containerEl)
+		.setName(t().editors.tasks.maxTasks)
+		.setDesc(t().editors.tasks.maxTasksDesc);
+	maxTasks.addText((t) => {
+		t.setValue(String(cfg.count ?? 10)).onChange((v) => {
+			const n = parseInt(v, 10);
+			cfg.count = Number.isNaN(n) || n <= 0 ? undefined : n;
+			ctx.opts.save();
+		});
+		t.inputEl.type = "number";
+		t.inputEl.addClass("hearth-count-input");
+	});
+	addResetButton(ctx, maxTasks, t().settings.resetField, () => {
+		cfg.count = undefined;
+	});
+
+	new Setting(containerEl).setName(t().editors.tasks.folders).setHeading();
+	new Setting(containerEl)
+		.setName(t().editors.tasks.scope)
+		.addDropdown((d) => {
+			d.addOption("all", t().editors.tasks.scopeAll);
+			d.addOption("whitelist", t().editors.tasks.scopeWhitelist);
+			d.addOption("blacklist", t().editors.tasks.scopeBlacklist);
+			d.setValue(cfg.folderScope ?? "all").onChange((v) => {
+				cfg.folderScope = v as TasksConfig["folderScope"];
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	if ((cfg.folderScope ?? "all") !== "all") {
+		new Setting(containerEl)
+			.setDesc(t().editors.tasks.foldersDesc)
+			.addTextArea((t) => {
+				t.setValue((cfg.folders ?? []).join("\n")).onChange((v) => {
+					cfg.folders = v
+						.split("\n")
+						.map((s) => s.trim())
+						.filter(Boolean);
+					ctx.opts.save();
+				});
+				t.inputEl.rows = 3;
+			});
 	}
 }
 

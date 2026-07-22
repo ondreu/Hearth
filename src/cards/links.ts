@@ -1,11 +1,12 @@
-import { setIcon, TFile } from "obsidian";
+import { setIcon, Setting, TFile } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
-import { linksEditor } from "../editors";
+import { moveItem } from "../editors";
 import { t } from "../i18n";
+import { CommandPickerModal } from "../pickers";
 import { type DashboardCard, type LinkItem } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Links / launchpad --------------------------------------------------
@@ -71,6 +72,141 @@ function openLink(view: HomeView, link: LinkItem): void {
 			break;
 		}
 	}
+}
+
+
+export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	new Setting(containerEl).setName(t().editors.links.heading).setHeading();
+	const card = ctx.card;
+	const links = (card.links ??= []);
+
+	new Setting(containerEl)
+		.setName(t().editors.links.autoShift)
+		.setDesc(t().editors.links.autoShiftDesc)
+		.addToggle((t) =>
+			t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
+				card.tileAutoFlow = v;
+				ctx.opts.save();
+			}),
+		);
+
+	links.forEach((link, index) => {
+		const row = new Setting(containerEl).setClass("hearth-link-setting");
+		row.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.links.labelPlaceholder)
+				.setValue(link.label)
+				.onChange((v) => {
+					link.label = v;
+					ctx.opts.save();
+				}),
+		);
+		row.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.links.iconPlaceholder)
+				.setValue(link.icon)
+				.onChange((v) => {
+					link.icon = v;
+					ctx.opts.save();
+				}),
+		);
+		row.addDropdown((d) => {
+			(Object.keys(t().editors.linkTypes) as LinkItem["type"][]).forEach(
+				(k) => {
+					d.addOption(k, t().editors.linkTypes[k]);
+				},
+			);
+			d.setValue(link.type).onChange((v) => {
+				link.type = v as LinkItem["type"];
+				ctx.opts.save();
+				// The target control differs by type (a command picker vs. a
+				// free-text path/URL field), so rebuild the editor to swap it.
+				ctx.requestRender();
+			});
+		});
+		if (link.type === "command") {
+			// Commands are addressed by an opaque id (e.g. "editor:toggle-bold")
+			// that users can't be expected to know, so offer a fuzzy picker over
+			// the registered commands instead of a raw text field. This mirrors
+			// how the "commands" card adds tiles and is what makes command links
+			// actually fire.
+			row.addButton((b) => {
+				const current = link.target
+					? ctx.app.commands.listCommands().find((c) => c.id === link.target)
+					: undefined;
+				b.setButtonText(
+					current ? current.name : t().editors.links.pickCommand,
+				);
+				b.onClick(() => {
+					new CommandPickerModal(ctx.app, (command) => {
+						link.target = command.id;
+						// Prefill an empty label with the command name so the tile
+						// isn't blank; leave a user-set label untouched.
+						if (!link.label) link.label = command.name;
+						// Adopt the command's own icon if the link is still on the
+						// default; a user-chosen icon is left alone.
+						if ((!link.icon || link.icon === "link") && command.icon) {
+							link.icon = command.icon;
+						}
+						ctx.opts.save();
+						ctx.requestRender();
+					}).open();
+				});
+			});
+		} else {
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(
+						link.type === "url"
+							? t().editors.links.targetUrl
+							: t().editors.links.targetNote,
+					)
+					.setValue(link.target)
+					.onChange((v) => {
+						link.target = v;
+						ctx.opts.save();
+					}),
+			);
+		}
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.links.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, links, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.links.moveDown)
+				.setDisabled(index === links.length - 1)
+				.onClick(() => moveItem(ctx, links, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.links.removeLink)
+				.onClick(() => {
+					links.splice(index, 1);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.links.addLink).onClick(() => {
+			links.push({
+				id: `link-${Date.now().toString(36)}`,
+				label: "",
+				icon: "link",
+				target: "",
+				type: "note",
+			});
+			ctx.opts.save();
+			ctx.requestRender();
+		}),
+	);
 }
 
 /** A free-form launchpad of link tiles. */

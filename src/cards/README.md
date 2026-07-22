@@ -29,15 +29,19 @@ Steps 1, 3 (the record), and 4 are compiler-enforced.
 
 ## Where the code lives
 
-Each kind's **render** implementation now lives in its own module (Phase B):
-`renderBookmarks` is in `bookmarks.ts`, `renderCalendar` in `calendar.ts`, and
-so on. `../cardbodies.ts` keeps only the helpers shared by two or more kinds —
-the `emptyState` placeholder, the Markdown-embed core, the daily-note path
-resolvers, the vault-activity helpers, the free-form tile grid, the embed
-view-state cluster and `feedHost` — which the modules import. The rule of thumb:
-logic used by a single kind belongs in that kind's module; logic shared across
-kinds stays in `cardbodies.ts`.
+Each kind's **render** and **editor** implementations now live in its own module
+(Phase B): `renderBookmarks` and the bookmarks card sit in `bookmarks.ts`,
+`renderCalendar`/`calendarEditor` in `calendar.ts`, and so on. Two shared files
+keep only the helpers used by more than one kind:
 
-The per-kind **editor** implementations still live in `../editors.ts`; each
-module imports its editor function. Relocating those into their modules the same
-way is the remaining follow-up.
+- `../cardbodies.ts` — the render helpers shared across kinds: the `emptyState`
+  placeholder, the Markdown-embed core, the daily-note path resolvers, the
+  vault-activity helpers, the free-form tile grid, the embed view-state cluster
+  and `feedHost`.
+- `../editors.ts` — the settings-modal framework (`CardSettingsModal`,
+  `CardSettingsOptions`) and the generic editor helpers `addResetButton` and
+  `moveItem`.
+
+The rule of thumb: logic used by a single kind belongs in that kind's module;
+logic shared across kinds stays in the relevant shared file, and the module
+imports it.

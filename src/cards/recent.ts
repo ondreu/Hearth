@@ -1,12 +1,12 @@
-import { setIcon, TFile } from "obsidian";
+import { setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
-import { recentEditor } from "../editors";
-import { groupForFile, iconForFile } from "../filetypes";
+import { addResetButton } from "../editors";
+import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile, iconForFile } from "../filetypes";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Recent files -------------------------------------------------------
@@ -42,6 +42,72 @@ export function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElem
 		const open = () => void view.app.workspace.getLeaf(true).openFile(file);
 		row.addEventListener("click", open);
 		makeClickable(row, open, file.basename);
+	}
+}
+
+
+export function recentEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	const recent = new Setting(containerEl)
+		.setName(t().editors.recent.count)
+		.setDesc(t().editors.recent.countDesc);
+	recent.addText((txt) => {
+		txt.setValue(String(card.count ?? 8)).onChange((v) => {
+			const n = parseInt(v, 10);
+			card.count = Number.isNaN(n) ? undefined : n;
+			ctx.opts.save();
+		});
+		txt.inputEl.type = "number";
+		txt.inputEl.addClass("hearth-count-input");
+	});
+	addResetButton(ctx, recent, t().settings.resetField, () => {
+		card.count = undefined;
+	});
+	recentTypesEditor(ctx, containerEl, card);
+}
+
+
+/** File-type filter for the recent-files card: a row of toggleable chips
+ * mirroring the search filter's types. Any combination may be selected; an
+ * empty selection means every type is shown. */
+export function recentTypesEditor(ctx: CardEditorContext, containerEl: HTMLElement, card: DashboardCard): void {
+	const setting = new Setting(containerEl)
+		.setName(t().editors.recent.types)
+		.setDesc(t().editors.recent.typesDesc);
+	addResetButton(ctx, setting, t().settings.resetField, () => {
+		card.recentTypes = undefined;
+	});
+
+	const selected = new Set(card.recentTypes ?? []);
+	const row = containerEl.createDiv("hearth-type-filter");
+	// Folders can never appear among recently-opened files, so offer every
+	// search-filter type except that one.
+	const groups = FILE_TYPE_GROUPS.filter((g) => g.id !== FOLDERS_GROUP_ID);
+	for (const group of groups) {
+		const chip = row.createDiv("hearth-type-filter-chip");
+		chip.toggleClass("is-active", selected.has(group.id));
+		setIcon(chip.createDiv("hearth-type-filter-icon"), group.icon);
+		chip.createDiv({ cls: "hearth-type-filter-label", text: fileTypeLabel(group) });
+		chip.setAttribute("role", "button");
+		chip.setAttribute("tabindex", "0");
+		chip.setAttribute("aria-pressed", String(selected.has(group.id)));
+		const toggle = () => {
+			if (selected.has(group.id)) selected.delete(group.id);
+			else selected.add(group.id);
+			const on = selected.has(group.id);
+			chip.toggleClass("is-active", on);
+			chip.setAttribute("aria-pressed", String(on));
+			card.recentTypes = selected.size > 0 ? Array.from(selected) : undefined;
+			ctx.opts.save();
+			ctx.opts.rerender();
+		};
+		chip.addEventListener("click", toggle);
+		chip.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				toggle();
+			}
+		});
 	}
 }
 

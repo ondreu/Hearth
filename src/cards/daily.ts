@@ -1,4 +1,4 @@
-import { Component, Notice, setIcon, TFile } from "obsidian";
+import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
 import {
 	dailyNotesOptions,
 	emptyState,
@@ -7,11 +7,10 @@ import {
 	todaysDailyNotePath,
 	watchedCardPath,
 } from "../cardbodies";
-import { dailyEditor } from "../editors";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 /**
@@ -76,6 +75,32 @@ export function renderDaily(
 	const host = body.createDiv("hearth-embed markdown-rendered");
 	body.addClass("is-embed-host");
 	void renderMarkdownFile(view, file, host, component);
+}
+
+
+export function dailyEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	new Setting(containerEl)
+		.setName(t().editors.daily.editable)
+		.setDesc(t().editors.daily.editableDesc)
+		.addToggle((tg) =>
+			tg.setValue(card.editable ?? false).onChange((v) => {
+				card.editable = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.daily.openButton)
+		.setDesc(t().editors.daily.openButtonDesc)
+		.addToggle((tg) =>
+			tg.setValue(card.showOpenButton !== false).onChange((v) => {
+				card.showOpenButton = v ? undefined : false;
+				ctx.opts.save();
+			}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.daily.info)
+		.setDesc(t().editors.daily.infoDesc);
 }
 
 /** Today's daily note, embedded live. */

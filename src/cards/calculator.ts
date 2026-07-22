@@ -1,11 +1,10 @@
-import { debounce } from "obsidian";
+import { debounce, Setting } from "obsidian";
 import { evaluate as evaluateCalc } from "../calculator";
 import { cachedRates, loadRates } from "../currency";
-import { calculatorEditor } from "../editors";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Calculator ---------------------------------------------------------
@@ -205,6 +204,36 @@ export function renderCalculator(view: HomeView, card: DashboardCard, body: HTML
 
 	renderKeys();
 	update();
+}
+
+
+export function calculatorEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.calculator ??= {});
+	new Setting(containerEl)
+		.setName(t().editors.calculator.angleUnit)
+		.setDesc(t().editors.calculator.angleUnitDesc)
+		.addDropdown((d) => {
+			d.addOption("deg", t().editors.calculator.degrees);
+			d.addOption("rad", t().editors.calculator.radians);
+			d.setValue(cfg.angleUnit ?? "deg").onChange((v) => {
+				cfg.angleUnit = v === "rad" ? "rad" : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	new Setting(containerEl)
+		.setName(t().editors.calculator.keypad)
+		.setDesc(t().editors.calculator.keypadDesc)
+		.addDropdown((d) => {
+			d.addOption("none", t().editors.calculator.keypadNone);
+			d.addOption("basic", t().editors.calculator.keypadBasic);
+			d.addOption("scientific", t().editors.calculator.keypadScientific);
+			d.setValue(cfg.keypad ?? "none").onChange((v) => {
+				cfg.keypad = v === "none" ? undefined : (v as "basic" | "scientific");
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
 }
 
 /** A calculator with history and unit/currency conversion. */

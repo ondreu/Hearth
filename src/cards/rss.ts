@@ -1,12 +1,12 @@
-import { Component, moment as createMoment, setIcon } from "obsidian";
+import { Component, moment as createMoment, Notice, setIcon, Setting } from "obsidian";
 import { emptyState, feedHost } from "../cardbodies";
-import { rssEditor } from "../editors";
+import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { cachedFeed, loadFeed, type RssItem } from "../rss";
 import { type DashboardCard, type RssLayout, type RssSource } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- RSS (lightweight feed reader) -------------------------------------
@@ -215,6 +215,302 @@ export function renderRss(
 			window.setInterval(() => load(true), refreshMin * 60_000),
 		);
 	}
+}
+
+
+/** A GitHub repo split into its owner and repo halves, as pulled from user
+ * input by {@link parseGithubRepo}. */
+interface GithubRepo {
+	owner: string;
+	repo: string;
+}
+
+
+/** Parse an `owner/repo` string — or a full GitHub URL, or an `git@…` SSH
+ * remote — into its two halves. Returns null when either half is missing so
+ * callers can warn the user. */
+function parseGithubRepo(input: string): GithubRepo | null {
+	let s = input.trim();
+	if (!s) return null;
+	// Strip a leading scheme + host, an SSH `git@github.com:` remote, or a bare
+	// `github.com/` prefix, so a pasted URL collapses to `owner/repo/…`.
+	s = s
+		.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]+\//i, "")
+		.replace(/^git@[^:]+:/i, "")
+		.replace(/^github\.com\//i, "");
+	// Drop any query/hash and a trailing `.git`, then keep the first two path
+	// segments — the rest (tree/blob/…) is irrelevant to the feed.
+	s = s.split(/[?#]/)[0].replace(/\.git$/i, "");
+	const parts = s.split("/").filter(Boolean);
+	if (parts.length < 2) return null;
+	return { owner: parts[0], repo: parts[1] };
+}
+
+
+/** Build the RSS sources for a repo's GitHub Atom feeds. `type` selects the
+ * releases feed, the commits feed, or both. */
+function githubFeedSources(
+	repo: GithubRepo,
+	type: "releases" | "commits" | "both",
+): RssSource[] {
+	const base = `https://github.com/${repo.owner}/${repo.repo}`;
+	const slug = `${repo.owner}/${repo.repo}`;
+	const mk = (kind: "releases" | "commits", name: string): RssSource => ({
+		id: `rss-gh-${kind}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+		name,
+		url: `${base}/${kind}.atom`,
+	});
+	const out: RssSource[] = [];
+	if (type === "releases" || type === "both") {
+		out.push(
+			mk("releases", t().editors.rss.githubReleasesName.replace("{repo}", slug)),
+		);
+	}
+	if (type === "commits" || type === "both") {
+		out.push(
+			mk("commits", t().editors.rss.githubCommitsName.replace("{repo}", slug)),
+		);
+	}
+	return out;
+}
+
+
+export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.rss ??= {});
+	const sources = (cfg.sources ??= []);
+
+	new Setting(containerEl).setName(t().editors.rss.feeds).setHeading();
+
+	sources.forEach((source, index) => {
+		const row = new Setting(containerEl).setClass("hearth-rss-setting");
+		row.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.rss.namePlaceholder)
+				.setValue(source.name)
+				.onChange((v) => {
+					source.name = v;
+					ctx.opts.save();
+				}),
+		);
+		row.addText((txt) => {
+			txt
+				.setPlaceholder(t().editors.rss.urlPlaceholder)
+				.setValue(source.url)
+				.onChange((v) => {
+					source.url = v.trim();
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
+			txt.inputEl.addClass("hearth-rss-url");
+		});
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.links.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, sources, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.links.moveDown)
+				.setDisabled(index === sources.length - 1)
+				.onClick(() => moveItem(ctx, sources, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.rss.removeFeed)
+				.onClick(() => {
+					sources.splice(index, 1);
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.rss.addFeed).onClick(() => {
+			sources.push({
+				id: `rss-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
+				name: "",
+				url: "",
+			});
+			ctx.opts.save();
+			ctx.requestRender();
+		}),
+	);
+
+	githubFeedAdder(ctx, containerEl, sources);
+
+	if (sources.length > 1) {
+		new Setting(containerEl)
+			.setName(t().editors.rss.mergeAll)
+			.setDesc(t().editors.rss.mergeAllDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.mergeAll ?? false).onChange((v) => {
+					cfg.mergeAll = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
+
+	new Setting(containerEl).setName(t().editors.rss.display).setHeading();
+
+	new Setting(containerEl)
+		.setName(t().editors.rss.layout)
+		.setDesc(t().editors.rss.layoutDesc)
+		.addDropdown((d) => {
+			d.addOption("list", t().editors.rss.layoutList);
+			d.addOption("cards", t().editors.rss.layoutCards);
+			d.addOption("compact", t().editors.rss.layoutCompact);
+			d.setValue(cfg.layout ?? "list").onChange((v) => {
+				cfg.layout = v === "list" ? undefined : (v as RssLayout);
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			});
+		});
+
+	const items = new Setting(containerEl)
+		.setName(t().editors.rss.itemLimit)
+		.setDesc(t().editors.rss.itemLimitDesc);
+	items.addSlider((s) => {
+		s.setLimits(3, 50, 1)
+			.setValue(cfg.itemLimit ?? 15)
+			.setDynamicTooltip()
+			.onChange((v) => {
+				cfg.itemLimit = v === 15 ? undefined : v;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+	});
+	items.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				cfg.itemLimit = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
+
+	const refresh = new Setting(containerEl)
+		.setName(t().editors.rss.refresh)
+		.setDesc(t().editors.rss.refreshDesc);
+	refresh.addSlider((s) => {
+		s.setLimits(0, 180, 5)
+			.setValue(cfg.refreshMin ?? 30)
+			.setDynamicTooltip()
+			.onChange((v) => {
+				cfg.refreshMin = v === 30 ? undefined : v;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+	});
+	refresh.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				cfg.refreshMin = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
+
+	const isCards = (cfg.layout ?? "list") === "cards";
+	if (isCards) {
+		new Setting(containerEl)
+			.setName(t().editors.rss.showImages)
+			.setDesc(t().editors.rss.showImagesDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.showImages !== false).onChange((v) => {
+					cfg.showImages = v ? undefined : false;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+		new Setting(containerEl)
+			.setName(t().editors.rss.showExcerpt)
+			.setDesc(t().editors.rss.showExcerptDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.showExcerpt !== false).onChange((v) => {
+					cfg.showExcerpt = v ? undefined : false;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.rss.showDate)
+		.setDesc(t().editors.rss.showDateDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.showDate !== false).onChange((v) => {
+				cfg.showDate = v ? undefined : false;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+}
+
+
+/** Quick-add helper: turn an `owner/repo` (or a GitHub URL) into RSS sources
+ * pointing at GitHub's built-in `releases.atom` / `commits.atom` feeds, so
+ * the user never has to hand-write those URLs. */
+export function githubFeedAdder(ctx: CardEditorContext, containerEl: HTMLElement, sources: RssSource[]): void {
+	const setting = new Setting(containerEl)
+		.setName(t().editors.rss.github)
+		.setDesc(t().editors.rss.githubDesc)
+		.setClass("hearth-rss-github");
+
+	setting.addText((txt) => {
+		txt
+			.setPlaceholder(t().editors.rss.githubPlaceholder)
+			.setValue((ctx.session.ghRepo as string) ?? "")
+			.onChange((v) => {
+				ctx.session.ghRepo = v;
+			});
+		txt.inputEl.addClass("hearth-rss-github-repo");
+	});
+
+	setting.addDropdown((d) => {
+		d.addOption("releases", t().editors.rss.githubReleases);
+		d.addOption("commits", t().editors.rss.githubCommits);
+		d.addOption("both", t().editors.rss.githubBoth);
+		d.setValue((ctx.session.ghFeedType as string) ?? "releases").onChange((v) => {
+			ctx.session.ghFeedType = v;
+		});
+	});
+
+	setting.addButton((b) =>
+		b
+			.setButtonText(t().editors.rss.githubAdd)
+			.setCta()
+			.onClick(() => {
+				const repo = parseGithubRepo((ctx.session.ghRepo as string) ?? "");
+				if (!repo) {
+					new Notice(t().editors.rss.githubInvalid);
+					return;
+				}
+				sources.push(
+					...githubFeedSources(
+						repo,
+						(ctx.session.ghFeedType as "releases" | "commits" | "both") ?? "releases",
+					),
+				);
+				ctx.session.ghRepo = "";
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
 }
 
 /** An RSS/Atom reader with its own internal refresh. */

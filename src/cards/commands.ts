@@ -1,11 +1,12 @@
-import { setIcon } from "obsidian";
+import { setIcon, Setting } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
-import { commandsEditor } from "../editors";
+import { moveItem } from "../editors";
 import { t } from "../i18n";
+import { CommandPickerModal } from "../pickers";
 import { type CommandItem, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Commands / command palette tiles -----------------------------------
@@ -56,6 +57,114 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 
 function runCommand(view: HomeView, cmd: CommandItem): void {
 	if (cmd.id) view.app.commands.executeCommandById(cmd.id);
+}
+
+
+export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	new Setting(containerEl)
+		.setName(t().editors.commands.autoShift)
+		.setDesc(t().editors.commands.autoShiftDesc)
+		.addToggle((t) =>
+			t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
+				card.tileAutoFlow = v;
+				ctx.opts.save();
+			}),
+		);
+	const buttonSize = new Setting(containerEl)
+		.setName(t().editors.commands.buttonSize)
+		.setDesc(t().editors.commands.buttonSizeDesc);
+	buttonSize.addSlider((s) => {
+		s.setLimits(60, 180, 10)
+			.setValue(card.tileSize ?? 90)
+			.setDynamicTooltip()
+			.onChange((v) => {
+				card.tileSize = v === 90 ? undefined : v;
+				ctx.opts.save();
+			});
+	});
+	buttonSize.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				card.tileSize = undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+	);
+
+	new Setting(containerEl).setName(t().editors.commands.heading).setHeading();
+	const commands = (ctx.card.commands ??= []);
+
+	commands.forEach((cmd, index) => {
+		const row = new Setting(containerEl)
+			.setClass("hearth-link-setting")
+			.setName(cmd.name || cmd.id);
+		row.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.commands.iconOptionalPlaceholder)
+				.setValue(cmd.icon ?? "")
+				.onChange((v) => {
+					cmd.icon = v || undefined;
+					ctx.opts.save();
+				}),
+		);
+		row.addText((txt) => {
+			txt
+				.setPlaceholder(t().editors.commands.sizePlaceholder)
+				.setValue(cmd.size ? String(cmd.size) : "")
+				.onChange((v) => {
+					const n = parseInt(v, 10);
+					cmd.size = Number.isNaN(n) || n <= 0 ? undefined : n;
+					ctx.opts.save();
+				});
+			txt.inputEl.type = "number";
+			txt.inputEl.addClass("hearth-count-input");
+			txt.inputEl.setAttribute(
+				"aria-label",
+				t().editors.commands.tileSizeAria,
+			);
+		});
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.commands.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, commands, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.commands.moveDown)
+				.setDisabled(index === commands.length - 1)
+				.onClick(() => moveItem(ctx, commands, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.commands.removeCommand)
+				.onClick(() => {
+					commands.splice(index, 1);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(t().editors.commands.addCommand).onClick(() => {
+			new CommandPickerModal(ctx.app, (command) => {
+				commands.push({
+					id: command.id,
+					name: command.name,
+					icon: command.icon,
+				});
+				ctx.opts.save();
+				ctx.requestRender();
+			}).open();
+		}),
+	);
 }
 
 /** A free-form grid of command-palette tiles. */

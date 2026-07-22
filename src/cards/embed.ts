@@ -1,5 +1,5 @@
-import { Component, MarkdownRenderer, TFile } from "obsidian";
-import { isEmbeddableBaseViewName } from "../bases";
+import { Component, MarkdownRenderer, Setting, TFile } from "obsidian";
+import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
 	activeEmbedIndex,
 	activeEmbedView,
@@ -10,12 +10,12 @@ import {
 	renderMarkdownFile,
 	watchedCardPath,
 } from "../cardbodies";
-import { embedEditor } from "../editors";
 import { EXCALIDRAW_PLUGIN_ID, isExcalidraw } from "../filetypes";
 import { t } from "../i18n";
+import { FilePickerModal } from "../pickers";
 import { type DashboardCard, type EmbedView } from "../types";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 /** Whether the embed view a card is currently showing is edited in place. Used
@@ -175,6 +175,278 @@ export function mountEmbedViewSwitcher(
 		});
 	};
 	build();
+}
+
+
+// ---- Per-kind card editors (issue #103) --------------------------------
+// Lifted out of CardSettingsModal so each card kind's Content-tab controls
+// can be owned by its module. Each takes a CardEditorContext instead of the
+// modal's `this`. Phase B relocates these into src/cards/<kind>/.
+
+export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+	const setting = new Setting(containerEl)
+		.setName(t().editors.embed.file)
+		.setDesc(t().editors.embed.fileDesc);
+	setting.addText((txt) =>
+		txt
+			.setPlaceholder(t().editors.embed.filePlaceholder)
+			.setValue(card.target ?? "")
+			.onChange((v) => {
+				setPrimaryEmbedTarget(ctx, v);
+			}),
+	);
+	setting.addExtraButton((b) =>
+		b
+			.setIcon("file-symlink")
+			.setTooltip(t().editors.embed.pickFile)
+			.onClick(() => {
+				new FilePickerModal(ctx.app, (file) => {
+					setPrimaryEmbedTarget(ctx, file.path, true);
+				}).open();
+			}),
+	);
+	baseViewSetting(
+		ctx,
+		containerEl,
+		card.target,
+		() => card.baseView,
+		(v) => {
+			card.baseView = v;
+			ctx.opts.save();
+		},
+	);
+	new Setting(containerEl)
+		.setName(t().editors.embed.zoom)
+		.setDesc(t().editors.embed.zoomDesc)
+		.addSlider((s) => {
+			s.setLimits(50, 200, 10)
+				.setValue(Math.round((card.scale ?? 1) * 100))
+				.setDynamicTooltip()
+				.onChange((v) => {
+					card.scale = v === 100 ? undefined : v / 100;
+					ctx.opts.save();
+				});
+		})
+		.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.scale = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	new Setting(containerEl)
+		.setName(t().editors.embed.editable)
+		.setDesc(t().editors.embed.editableDesc)
+		.addToggle((tg) =>
+			tg.setValue(card.editable ?? false).onChange((v) => {
+				card.editable = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+	// Hide-base-header is only relevant to .base embeds; shown when either
+	// view targets one.
+	if (isBaseTarget(card.target) || isBaseTarget(card.secondView?.target)) {
+		new Setting(containerEl)
+			.setName(t().editors.embed.hideBaseHeader)
+			.setDesc(t().editors.embed.hideBaseHeaderDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.hideBaseHeader ?? false).onChange((v) => {
+					card.hideBaseHeader = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
+	embedSecondView(ctx, containerEl);
+}
+
+
+export function setPrimaryEmbedTarget(ctx: CardEditorContext, value: string, rerender = false): void {
+	const previousTarget = ctx.card.target?.trim() ?? "";
+	const nextTarget = value.trim();
+	const wasBase = isBaseTarget(previousTarget);
+	const isBase = isBaseTarget(nextTarget);
+	const targetChanged = nextTarget !== previousTarget;
+	ctx.card.target = value;
+	if (!isBase || targetChanged) ctx.card.baseView = undefined;
+	ctx.opts.save();
+	if (rerender || wasBase !== isBase || (isBase && targetChanged))
+		ctx.requestRender();
+}
+
+
+export function baseViewSetting(ctx: CardEditorContext, 
+	containerEl: HTMLElement,
+	target: string | undefined,
+	getBaseView: () => string | undefined,
+	setBaseView: (value: string | undefined) => void,
+): void {
+	if (!isBaseTarget(target)) return;
+
+	const setting = new Setting(containerEl)
+		.setName(t().editors.embed.baseView)
+		.setDesc(t().editors.embed.baseViewDesc);
+
+	setting.addDropdown((dropdown) => {
+		const selected = getBaseView()?.trim() ?? "";
+		dropdown.addOption("", t().editors.embed.baseViewDefault);
+		if (selected) dropdown.addOption(selected, selected);
+		dropdown.setValue(selected).onChange((value) => {
+			setBaseView(value || undefined);
+		});
+
+		void listBaseViews(ctx.app, target).then((result) => {
+			if (!setting.settingEl.isConnected) return;
+
+			const safeViews = result.views
+				.filter((view) => view.embeddable)
+				.map((view) => view.name);
+			while (dropdown.selectEl.firstChild)
+				dropdown.selectEl.removeChild(dropdown.selectEl.firstChild);
+			dropdown.addOption("", t().editors.embed.baseViewDefault);
+			for (const viewName of safeViews)
+				dropdown.addOption(viewName, viewName);
+
+			const current = getBaseView()?.trim() ?? "";
+			if (!result.error && current && !safeViews.includes(current)) {
+				setBaseView(undefined);
+				dropdown.setValue("");
+			} else {
+				dropdown.setValue(current);
+			}
+
+			const unsupportedCount = result.views.length - safeViews.length;
+			if (result.error === "not-found") {
+				setting.setDesc(t().editors.embed.baseViewFileMissing);
+			} else if (result.error) {
+				setting.setDesc(t().editors.embed.baseViewLoadError);
+			} else if (result.views.length === 0) {
+				setting.setDesc(t().editors.embed.baseViewNoViews);
+			} else if (unsupportedCount > 0) {
+				setting.setDesc(
+					t().editors.embed.baseViewUnsupported(unsupportedCount),
+				);
+			}
+		});
+	});
+}
+
+
+/** Second-view controls for an embed card: pick a second file to embed, and
+ * (once one is set) its own zoom and editable options. When set, the card
+ * shows a switcher between the two views. */
+export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const card = ctx.card;
+
+	new Setting(containerEl)
+		.setName(t().editors.embed.secondViewHeading)
+		.setHeading();
+
+	const setting = new Setting(containerEl)
+		.setName(t().editors.embed.secondViewFile)
+		.setDesc(t().editors.embed.secondViewFileDesc);
+	setting.addText((txt) =>
+		txt
+			.setPlaceholder(t().editors.embed.filePlaceholder)
+			.setValue(card.secondView?.target ?? "")
+			.onChange((v) => {
+				setSecondViewTarget(ctx, v);
+			}),
+	);
+	setting.addExtraButton((b) =>
+		b
+			.setIcon("file-symlink")
+			.setTooltip(t().editors.embed.pickFile)
+			.onClick(() => {
+				new FilePickerModal(ctx.app, (file) => {
+					setSecondViewTarget(ctx, file.path, true);
+				}).open();
+			}),
+	);
+	if (card.secondView?.target) {
+		setting.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(t().editors.embed.secondViewClear)
+				.onClick(() => {
+					card.secondView = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	}
+
+	// Zoom and editable mirror the primary embed's options, but only make
+	// sense once a second file is chosen.
+	if (card.secondView?.target) {
+		const view = card.secondView;
+		baseViewSetting(ctx, 
+			containerEl,
+			view.target,
+			() => view.baseView,
+			(v: string | undefined) => {
+				view.baseView = v;
+				ctx.opts.save();
+			},
+		);
+		new Setting(containerEl)
+			.setName(t().editors.embed.zoom)
+			.setDesc(t().editors.embed.zoomDesc)
+			.addSlider((s) => {
+				s.setLimits(50, 200, 10)
+					.setValue(Math.round((view.scale ?? 1) * 100))
+					.setDynamicTooltip()
+					.onChange((v) => {
+						view.scale = v === 100 ? undefined : v / 100;
+						ctx.opts.save();
+					});
+			})
+			.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t().settings.resetSlider)
+					.onClick(() => {
+						view.scale = undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
+			);
+		new Setting(containerEl)
+			.setName(t().editors.embed.editable)
+			.setDesc(t().editors.embed.editableDesc)
+			.addToggle((tg) =>
+				tg.setValue(view.editable ?? false).onChange((v) => {
+					view.editable = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+	}
+}
+
+
+/** Set (or clear) the second view's embed target, creating the config object
+ * on first use and dropping it entirely when emptied. */
+export function setSecondViewTarget(ctx: CardEditorContext, value: string, rerender = false): void {
+	const target = value.trim();
+	const previousTarget = ctx.card.secondView?.target?.trim() ?? "";
+	const targetChanged = target !== previousTarget;
+	const wasBase = isBaseTarget(previousTarget);
+	const isBase = isBaseTarget(target);
+	if (!target) {
+		ctx.card.secondView = undefined;
+	} else {
+		const next: EmbedView = { ...(ctx.card.secondView ?? {}) };
+		next.target = target;
+		if (!isBase || targetChanged) next.baseView = undefined;
+		ctx.card.secondView = next;
+	}
+	ctx.opts.save();
+	if (rerender || wasBase !== isBase || (isBase && targetChanged))
+		ctx.requestRender();
 }
 
 /** Embedded note / image / base / excalidraw / canvas. One kind, five presets. */
