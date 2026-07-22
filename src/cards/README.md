@@ -29,8 +29,15 @@ Steps 1, 3 (the record), and 4 are compiler-enforced.
 
 ## Where the code lives
 
-The `CardDefinition` for each kind is here, but during the initial refactor
-(issue #103) the render and editor **implementations** still live in
-`../cardbodies.ts` and `../editors.ts`; each module imports and adapts them.
-Phase B relocates those implementations into their kind's module so each card is
-physically self-contained.
+Each kind's **render** implementation now lives in its own module (Phase B):
+`renderBookmarks` is in `bookmarks.ts`, `renderCalendar` in `calendar.ts`, and
+so on. `../cardbodies.ts` keeps only the helpers shared by two or more kinds —
+the `emptyState` placeholder, the Markdown-embed core, the daily-note path
+resolvers, the vault-activity helpers, the free-form tile grid, the embed
+view-state cluster and `feedHost` — which the modules import. The rule of thumb:
+logic used by a single kind belongs in that kind's module; logic shared across
+kinds stays in `cardbodies.ts`.
+
+The per-kind **editor** implementations still live in `../editors.ts`; each
+module imports its editor function. Relocating those into their modules the same
+way is the remaining follow-up.
