@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.15.0]
+## [1.16.0]
 
 ### Added
 
@@ -22,6 +22,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   selected values, supports manual and automatic refresh, caches successful
   responses, and keeps REST requests constrained to the configured HTTPS Jira
   host. Portable exports omit the Jira personal access token.
+
+## [1.15.0]
+
+### Added
+
 - **Calendar card — agenda layout and external ICS calendars.** The calendar
   card gains a **Layout** setting: the existing month grid, or a new **agenda**
   view that lists upcoming days (3–60 ahead) as a scrollable timeline. It can
