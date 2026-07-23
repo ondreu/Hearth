@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { moment } from "obsidian";
+import "moment/locale/cs";
 import {
 	eventsByDay,
 	expandEvents,
@@ -7,6 +9,12 @@ import {
 	type IcsEvent,
 	type IcsOccurrence,
 } from "../src/ics";
+
+// Loading a locale module both registers AND activates it globally (moment's
+// defineLocale switches the active locale as a side effect) — reset to "en"
+// immediately so every other test in this file keeps running in the default
+// locale regardless of import or execution order.
+moment.locale("en");
 
 /**
  * The ICS reader is tested against real-world calendar shapes. vitest forces
@@ -242,6 +250,28 @@ describe("expandEvents — recurrence", () => {
 			base + 4 * day,
 			base + 7 * day,
 		]);
+	});
+
+	it("expands weekly BYDAY the same regardless of the active moment locale", () => {
+		// moment's startOf("week")/day() are locale-aware (e.g. cs starts the
+		// week on Monday, not Sunday); BYDAY expansion must stay
+		// locale-independent (see the note on weeklyStarts in src/ics.ts).
+		moment.locale("cs");
+		try {
+			const occ = expandEvents(
+				[ev({ start: base, rrule: "FREQ=WEEKLY;BYDAY=MO,WE,FR" })],
+				base,
+				base + 8 * day,
+			);
+			expect(occ.map((o) => o.start).sort((a, b) => a - b)).toEqual([
+				base,
+				base + 2 * day,
+				base + 4 * day,
+				base + 7 * day,
+			]);
+		} finally {
+			moment.locale("en");
+		}
 	});
 
 	it("caps a runaway rule at MAX_OCCURRENCES", () => {
