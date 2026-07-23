@@ -9,22 +9,21 @@ import { confirmAction } from "./ui";
 import { t } from "./i18n";
 import type { HomeView } from "./view";
 import {
-	activeEmbedViewEditable,
-	mountEmbedViewSwitcher,
-	renderCardBody,
-	watchedCardPath,
-} from "./cards";
-import {
 	createVaultEventHub,
-	liveCardShouldRedraw,
+	type VaultEvent,
 	type VaultEventHub,
 	watchedCardReactsToKind,
 } from "./cardevents";
-import { CARD_TEMPLATES, cardFromTemplate, templateName } from "./templates";
+import {
+	CARD_TEMPLATES,
+	cardDefinition,
+	cardFromTemplate,
+	cloneCard,
+	templateName,
+} from "./cards";
 import { CardSettingsModal } from "./editors";
 import {
 	activeCards,
-	cloneCard,
 	type DashboardCard,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
@@ -117,9 +116,8 @@ export function renderDashboard(
 		applyCardPosition(el, card);
 
 		if (card.pinned) el.addClass("is-pinned");
-		if (card.kind === "links" || card.kind === "commands") {
-			el.addClass("is-tile-card");
-		}
+		const cardClass = cardDefinition(card).cardClass;
+		if (cardClass) el.addClass(cardClass);
 		if (card.accent) {
 			el.style.setProperty("--card-accent", card.accent);
 			el.addClass("has-accent");
@@ -150,11 +148,11 @@ export function renderDashboard(
 		if (card.background) body.addClass("has-bg");
 		const redraw = mountCardBody(view, card, body, component, events);
 
-		// A second-view switcher (embed cards only) sits in the header when the
-		// card is titled, or floats over the card (hover-reveal) when it isn't.
-		// Not shown while arranging, where the header holds the title editor.
+		// Post-render header/floating extras (the embed card's second-view
+		// switcher). Not shown while arranging, where the header holds the title
+		// editor.
 		if (!view.arrangeMode) {
-			mountEmbedViewSwitcher(view, card, el, head, redraw);
+			cardDefinition(card).mountExtras?.(view, card, el, head, redraw);
 		}
 
 		if (view.arrangeMode) {
@@ -231,17 +229,19 @@ function mountCardBody(
 	parent: Component,
 	events: VaultEventHub,
 ): () => void {
+	const def = cardDefinition(card);
 	let child: Component | null = null;
 	const draw = () => {
 		if (child) parent.removeChild(child);
 		child = new Component();
 		parent.addChild(child);
 		body.empty();
-		renderCardBody(view, card, body, child);
+		def.render(view, card, body, child);
 	};
 	draw();
 
-	if (card.kind === "web") {
+	const live = def.liveness;
+	if (live.mode === "poll") {
 		const every = card.refreshSec && card.refreshSec > 0 ? card.refreshSec : 0;
 		// registerInterval ties the timer to the view's render lifecycle, so it
 		// is cleared on the next full rebuild (and on view close).
@@ -249,66 +249,50 @@ function mountCardBody(
 		return draw;
 	}
 
-	if (card.kind === "embed" || card.kind === "daily") {
+	if (live.mode === "watch-file") {
 		// Editable cards sync content edits in their textarea, so don't redraw on
 		// modify (it would drop the cursor) — but still redraw on existence changes.
 		// An embed can switch between a read-only and an editable view, so this is
 		// evaluated per event against whichever view is currently shown.
-		watchCardFile(view, card, events, draw, () => !watchedCardEditable(card));
+		watchCardFile(view, card, events, draw, () => !live.editableInPlace(card), live.watchedPath);
 		return draw;
 	}
 
 	// Data-driven cards derive their content from the vault as a whole (tasks,
 	// counts, daily-note existence, query matches, edit timestamps), so redraw
 	// them — debounced — whenever the vault or its metadata changes.
-	if (LIVE_KINDS.has(card.kind)) {
+	if (live.mode === "vault") {
+		const shouldRedraw = live.shouldRedraw;
 		const redraw = debounce(draw, 400, true);
 		events.subscribe((ev) => {
 			// A folder-scoped tasks card reads nothing outside its folders, so
 			// events that provably can't change its content are skipped instead
 			// of redrawing (and instead of resetting the debounce timer).
-			if (liveCardShouldRedraw(card, ev)) redraw();
+			if (!shouldRedraw || shouldRedraw(card, ev)) redraw();
 		});
 	}
 	return draw;
 }
 
-/** Whether the card's currently-shown content is edited in place (so a modify
- * event should sync the textarea rather than redraw). For embeds this follows
- * the active view (primary or second); daily cards use their own flag. */
-function watchedCardEditable(card: DashboardCard): boolean {
-	if (card.kind === "embed") return activeEmbedViewEditable(card);
-	return !!card.editable;
-}
-
-/** Card kinds whose content is derived from the whole vault and should refresh
- * live on vault/metadata changes. */
-const LIVE_KINDS = new Set<DashboardCard["kind"]>([
-	"tasks",
-	"stats",
-	"calendar",
-	"search",
-	"heatmap",
-]);
-
-/** Redraw an embed/daily card's body when the file it tracks changes on disk.
- * create/delete/rename always redraw; modify only when `redrawOnModify` (a
- * predicate, re-evaluated per event so an embed that switches between a
- * read-only and an editable view is handled correctly). */
+/** Redraw a tracked-file (embed/daily) card's body when the file it tracks
+ * changes on disk. create/delete/rename always redraw; modify only when
+ * `redrawOnModify` (a predicate, re-evaluated per event so an embed that
+ * switches between a read-only and an editable view is handled correctly). */
 function watchCardFile(
 	view: HomeView,
 	card: DashboardCard,
 	events: VaultEventHub,
 	draw: () => void,
 	redrawOnModify: () => boolean,
+	watchedPath: (view: HomeView, card: DashboardCard) => string | null,
 ): void {
 	// Coalesce bursts of writes (e.g. an editor autosaving) into one redraw.
 	const redraw = debounce(draw, 150, true);
 	const affects = (file: TAbstractFile, oldPath?: string): boolean => {
-		const path = watchedCardPath(view, card);
+		const path = watchedPath(view, card);
 		return path != null && (file.path === path || oldPath === path);
 	};
-	events.subscribe((ev) => {
+	events.subscribe((ev: VaultEvent) => {
 		// Tracked-file cards key off disk events only (see watchedCardReactsToKind:
 		// a metadata reparse is ignored, a content edit is ignored while the card
 		// is edited in place); then only the tracked file's own path redraws.
