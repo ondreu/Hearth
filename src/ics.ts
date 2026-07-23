@@ -299,9 +299,7 @@ interface Moment {
 	valueOf(): number;
 	clone(): Moment;
 	add(amount: number, unit: string): Moment;
-	day(): number;
 	isoWeekday(): number;
-	startOf(unit: string): Moment;
 	toDate(): Date;
 }
 const moment = createMoment as unknown as (input?: number | Date) => Moment;
@@ -399,12 +397,22 @@ function expandRecurring(
 }
 
 /** The concrete occurrence starts within the week of `cursor` that fall on the
- * requested weekdays, preserving the cursor's time-of-day. */
+ * requested weekdays, preserving the cursor's time-of-day.
+ *
+ * `byDays` uses RFC 5545's Sunday-based numbering (SU=0 … SA=6, see
+ * ICAL_DAYS). `cursor.day()`/`startOf("week")` are locale-aware in moment —
+ * for any locale whose week starts on Monday (Czech included), "day 0 of the
+ * week" is Monday, not Sunday, so adding a raw SU=0..SA=6 offset from
+ * `startOf("week")` landed on the wrong date and shifted events by up to
+ * several days. `isoWeekday()` (Mon=1..Sun=7, locale-independent) sidesteps
+ * that entirely: converting SU=0 to ISO 7 and MO=1..SA=6 stay as-is, then
+ * offsetting straight from the cursor's own ISO weekday. */
 function weeklyStarts(cursor: Moment, byDays: number[]): number[] {
-	const weekStart = cursor.clone().startOf("week");
+	const curIso = cursor.isoWeekday();
 	const out: number[] = [];
 	for (const dow of byDays) {
-		const day = weekStart.clone().add(dow, "days");
+		const iso = dow === 0 ? 7 : dow;
+		const day = cursor.clone().add(iso - curIso, "days");
 		// Re-apply the original time-of-day by copying it off the cursor.
 		const c = cursor.toDate();
 		const d = day.toDate();
