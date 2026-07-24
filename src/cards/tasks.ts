@@ -1179,10 +1179,6 @@ function renderTaskKanban(
 ): void {
 	const source = cfg.source ?? "checkbox";
 	const doneValue = (view.plugin.settings.taskNotesDoneValue.trim() || "done");
-	// The board's "open" status for TaskNotes cards: the first non-done status
-	// present, used when a card's completion checkbox is unticked (see
-	// renderTaskNotesCheckbox). Falls back to empty (no status = open).
-	const kanbanOpenStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
 
 	// Build the ordered list of columns and assign each hit to one.
 	interface Column { key: string; label: string; hits: TaskHit[]; statusSymbol?: string; statusDone?: boolean }
@@ -1517,11 +1513,26 @@ function renderTaskKanban(
 				});
 			});
 			} else if (source === "tasknotes") {
-				// Non-recurring TaskNotes card: a completion checkbox, matching the
-				// list layout so every task shows one instead of only recurring ones
-				// (#111). Checking sets the done status (which moves the card to the
-				// done column on refresh); unchecking restores the card's open status.
-				renderTaskNotesCheckbox(view, cfg, hit, textRow, refresh, kanbanOpenStatus);
+				// Non-recurring TaskNotes card: a checkbox that advances the card to
+				// the next swimlane (status column) on tick — stepping through the
+				// statuses and eventually into the done column — and back to the
+				// first column on untick, mirroring how a task progresses its status
+				// (#111). moveTo writes the target column's status to the note.
+				const check = textRow.createEl("input", {
+					cls: "hearth-task-check",
+					attr: { type: "checkbox" },
+				});
+				check.checked = hit.done;
+				const stop = (e: Event) => e.stopPropagation();
+				check.addEventListener("click", stop);
+				check.addEventListener("mousedown", stop);
+				check.addEventListener("pointerdown", stop);
+				check.addEventListener("change", () => {
+					const idx = visible.indexOf(col);
+					const target = check.checked ? visible[idx + 1] : visible[0];
+					if (target && target !== col) moveTo(hit, target);
+					else refresh();
+				});
 		}
 		const cardText = textRow.createDiv({ cls: "hearth-kanban-card-text" });
 		fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
