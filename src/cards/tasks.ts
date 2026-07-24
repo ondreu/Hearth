@@ -3782,11 +3782,15 @@ async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 	if (hit.line < 0 && (await openInTaskNotes(view, hit.file))) return;
 
 	const leaf = view.app.workspace.getLeaf(true);
-	await leaf.openFile(hit.file);
+	// Scroll to the task's line via ephemeral state rather than a setCursor call
+	// right after openFile: in a freshly created leaf the editor isn't laid out
+	// yet, so an immediate scroll is discarded and the note opens at the top
+	// (#118). Obsidian applies `eState.line` once the MarkdownView has mounted,
+	// so the note lands on the task. The setCursor below then places the caret.
+	const openState = hit.line >= 0 ? { eState: { line: hit.line } } : undefined;
+	await leaf.openFile(hit.file, openState);
 	if (hit.line >= 0 && leaf.view instanceof MarkdownView) {
-		const pos = { line: hit.line, ch: 0 };
-		leaf.view.editor.setCursor(pos);
-		leaf.view.editor.scrollIntoView({ from: pos, to: pos }, true);
+		leaf.view.editor.setCursor({ line: hit.line, ch: 0 });
 	}
 }
 

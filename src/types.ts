@@ -733,6 +733,11 @@ export interface Dashboard {
 	/** Name of a core-Workspace; loading that workspace auto-switches to this
 	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
 	linkedWorkspace?: string;
+	/** Marks this board as the one to open on phones/tablets. When Hearth loads
+	 * on mobile it switches to the first dashboard with this flag, so a board
+	 * tuned for a small screen can be the mobile default without being the
+	 * desktop default. Undefined/false = not a mobile default. */
+	mobileDefault?: boolean;
 }
 
 export type ChromeVisibility = "always" | "hover";
@@ -769,6 +774,11 @@ export interface HomeSettings {
 	// ---- Behaviour ----
 	openOnStartup: boolean;
 	replaceNewTabs: boolean;
+	/** Place keyboard focus in the search field whenever a home view opens, so a
+	 * new Hearth tab can be typed into straight away without reaching for the
+	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
+	 * keyboard on every open. */
+	focusSearchOnOpen: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -865,6 +875,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 
 	openOnStartup: true,
 	replaceNewTabs: true,
+	focusSearchOnOpen: false,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
