@@ -372,14 +372,26 @@ export const en = {
 			focusSearchOnOpenDesc:
 				"Place the cursor in the search field whenever a home view opens, so " +
 				"you can start typing right away. Desktop only.",
-			openNoteIn: "Open notes in",
-			openNoteInDesc:
-				"Where a note opens when clicked from a card (Recent, Bookmarks, " +
-				"Favorites, saved queries, launchpad note tiles) or the search results. " +
-				"“Current tab” replaces the home view in place; external URLs always " +
-				"open in the browser.",
-			openNoteInTab: "New tab",
-			openNoteInCurrent: "Current tab (replace Hearth)",
+			openNoteInLink: "Open note from link",
+			openNoteInLinkDesc:
+				"Where a note opens when clicked from a Hearth card — Recent, " +
+				"Bookmarks, Favorites, saved queries, launchpad note tiles, the " +
+				"daily-note button, the activity heatmap, the top search bar, or a " +
+				"mobile action button. “Current tab” replaces the home view in place.",
+			openNoteInExplorer: "Open note from explorer",
+			openNoteInExplorerDesc:
+				"Where a note opens when clicked in Obsidian's own File Explorer pane " +
+				"(the file-tree sidebar) — independent of Hearth's own cards. " +
+				"“Default” leaves Obsidian's normal click handling untouched.",
+			openUrlIn: "Open URL",
+			openUrlInDesc:
+				"Where a URL-type launchpad or mobile-action link opens. Only takes " +
+				"effect when Obsidian's core Web Viewer plugin is enabled and set to " +
+				"open external links itself — otherwise links always open in your " +
+				"system browser.",
+			openInDefault: "Default (Obsidian's normal behavior)",
+			openInTab: "New tab",
+			openInCurrent: "Current tab (replace Hearth)",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +

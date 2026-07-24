@@ -13,6 +13,7 @@ import type { WorkspacesInstance } from "./obsidian-ext";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
+import { registerExplorerOpenOverride } from "./explorer";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
 const AUDIO_RECORDER_PLUGIN_ID = "audio-recorder";
@@ -96,6 +97,8 @@ export default class HearthPlugin extends Plugin {
 		this.registerDashboardCommands();
 
 		this.addSettingTab(new HomeSettingTab(this.app, this));
+
+		registerExplorerOpenOverride(this);
 
 		// Replace freshly-opened empty tabs with the home view.
 		this.registerEvent(

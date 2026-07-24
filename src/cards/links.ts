@@ -2,7 +2,7 @@ import { setTooltip, Setting, TFile } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
-import { openLinkFromCard, openNoteFromCard } from "../navigation";
+import { openLinkFromCard, openNoteFromCard, openUrlFromCard } from "../navigation";
 import { CommandPickerModal } from "../pickers";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
@@ -62,7 +62,7 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 function openLink(view: HomeView, link: LinkItem): void {
 	switch (link.type) {
 		case "url":
-			if (link.target) window.open(link.target, "_blank");
+			if (link.target) openUrlFromCard(view, link.target);
 			break;
 		case "command":
 			if (link.target) view.app.commands.executeCommandById(link.target);

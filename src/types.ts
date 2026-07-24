@@ -779,12 +779,26 @@ export interface HomeSettings {
 	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
 	 * keyboard on every open. */
 	focusSearchOnOpen: boolean;
-	/** Where a note opens when clicked from a Hearth card (Recent, Bookmarks,
-	 * Favorites, saved queries, launchpad note tiles, …) or the search results.
-	 * "tab" (default) opens it in a new tab; "current" reuses the Hearth tab,
-	 * replacing the home view in place (#106). External URLs always open in the
-	 * browser regardless. */
-	openNoteIn: "tab" | "current";
+	/** Where a note opens when clicked from a Hearth card — Recent, Bookmarks,
+	 * Favorites, saved queries, launchpad note tiles, the daily-note button,
+	 * the activity heatmap, the top search bar, or a mobile action button
+	 * (#106). "tab" (default) opens it in a new tab; "current" reuses the
+	 * Hearth tab, replacing the home view in place. */
+	openNoteInLink: "tab" | "current";
+	/** Where a note opens when clicked in Obsidian's own File Explorer pane
+	 * (the file-tree sidebar), independent of Hearth's own cards (#106).
+	 * "default" (the initial value) installs no override, leaving Obsidian's
+	 * stock click handling untouched; "tab"/"current" force every plain click
+	 * to open a new leaf / reuse the active one respectively. */
+	openNoteInExplorer: "default" | "tab" | "current";
+	/** Where a URL-type launchpad/mobile-action link opens (#106). Only takes
+	 * effect when Obsidian's core Web Viewer plugin is enabled: "current"
+	 * replaces the Hearth tab with a Web Viewer leaf showing the URL. "tab"
+	 * (default) hands the URL to window.open exactly as before — if Web
+	 * Viewer's own "open external links" option is on, Obsidian intercepts
+	 * that call itself and routes it into a Web Viewer tab; otherwise it opens
+	 * in the system browser. */
+	openUrlIn: "tab" | "current";
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -882,7 +896,9 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openOnStartup: true,
 	replaceNewTabs: true,
 	focusSearchOnOpen: false,
-	openNoteIn: "tab",
+	openNoteInLink: "tab",
+	openNoteInExplorer: "default",
+	openUrlIn: "tab",
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
@@ -1325,6 +1341,11 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
+	// Migrate the short-lived single "openNoteIn" field (drafted alongside this
+	// setting, never shipped in a release) into `openNoteInLink`.
+	if (typeof raw.openNoteIn === "string" && typeof raw.openNoteInLink !== "string") {
+		s.openNoteInLink = raw.openNoteIn as HomeSettings["openNoteInLink"];
+	}
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
 	return migratedCommandId;

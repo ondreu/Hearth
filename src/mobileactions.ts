@@ -1,6 +1,6 @@
 import { setIcon, TFile } from "obsidian";
 import type { HomeView } from "./view";
-import { openLinkFromCard, openNoteFromCard } from "./navigation";
+import { openLinkFromCard, openNoteFromCard, openUrlFromCard } from "./navigation";
 import type { MobileActionButton } from "./types";
 
 /**
@@ -45,7 +45,7 @@ function runMobileAction(view: HomeView, btn: MobileActionButton): void {
 	if (!target) return;
 	switch (btn.type ?? "command") {
 		case "url":
-			window.open(target, "_blank");
+			openUrlFromCard(view, target);
 			break;
 		case "note": {
 			const file = view.app.vault.getAbstractFileByPath(target);

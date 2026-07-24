@@ -735,14 +735,41 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
-			.setName(t().settings.behaviour.openNoteIn)
-			.setDesc(t().settings.behaviour.openNoteInDesc)
+			.setName(t().settings.behaviour.openNoteInLink)
+			.setDesc(t().settings.behaviour.openNoteInLinkDesc)
 			.addDropdown((d) => {
-				d.addOption("tab", t().settings.behaviour.openNoteInTab)
-					.addOption("current", t().settings.behaviour.openNoteInCurrent)
-					.setValue(s.openNoteIn)
+				d.addOption("tab", t().settings.behaviour.openInTab)
+					.addOption("current", t().settings.behaviour.openInCurrent)
+					.setValue(s.openNoteInLink)
 					.onChange(async (v) => {
-						s.openNoteIn = v as HomeSettings["openNoteIn"];
+						s.openNoteInLink = v as HomeSettings["openNoteInLink"];
+						await this.save();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openNoteInExplorer)
+			.setDesc(t().settings.behaviour.openNoteInExplorerDesc)
+			.addDropdown((d) => {
+				d.addOption("default", t().settings.behaviour.openInDefault)
+					.addOption("tab", t().settings.behaviour.openInTab)
+					.addOption("current", t().settings.behaviour.openInCurrent)
+					.setValue(s.openNoteInExplorer)
+					.onChange(async (v) => {
+						s.openNoteInExplorer = v as HomeSettings["openNoteInExplorer"];
+						await this.save();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openUrlIn)
+			.setDesc(t().settings.behaviour.openUrlInDesc)
+			.addDropdown((d) => {
+				d.addOption("tab", t().settings.behaviour.openInTab)
+					.addOption("current", t().settings.behaviour.openInCurrent)
+					.setValue(s.openUrlIn)
+					.onChange(async (v) => {
+						s.openUrlIn = v as HomeSettings["openUrlIn"];
 						await this.save();
 					});
 			});
