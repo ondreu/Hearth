@@ -487,6 +487,11 @@ export const en = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "Card settings",
+		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
+		iconHelp:
+			"Enter a Lucide icon id (e.g. “home”, “star”, “calendar”) — browse them at " +
+			"lucide.dev/icons. You can also enter a vault image path (e.g. " +
+			"Attachments/icon.png) to use your own picture as the icon.",
 		/** Tabs across the top of the card settings modal. */
 		tabs: {
 			content: "Content",

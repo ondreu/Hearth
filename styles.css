@@ -1655,6 +1655,15 @@
 	height: 24px;
 }
 
+/* A vault image used as a tile icon (#119): sized to match the Lucide glyph and
+ * scaled to fit so non-square images aren't distorted. */
+.hearth-link-icon .hearth-widget-icon-img {
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+	border-radius: 4px;
+}
+
 /* When a tile is shrunk too small to show its label (added by applyTileSize),
  * hide the label and drop the gap so the icon centres exactly. Without this the
  * empty label + gap keep reserving space and push the icon above centre, so it
