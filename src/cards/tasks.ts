@@ -1179,6 +1179,10 @@ function renderTaskKanban(
 ): void {
 	const source = cfg.source ?? "checkbox";
 	const doneValue = (view.plugin.settings.taskNotesDoneValue.trim() || "done");
+	// The board's "open" status for TaskNotes cards: the first non-done status
+	// present, used when a card's completion checkbox is unticked (see
+	// renderTaskNotesCheckbox). Falls back to empty (no status = open).
+	const kanbanOpenStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
 
 	// Build the ordered list of columns and assign each hit to one.
 	interface Column { key: string; label: string; hits: TaskHit[]; statusSymbol?: string; statusDone?: boolean }
@@ -1512,6 +1516,12 @@ function renderTaskKanban(
 					refresh();
 				});
 			});
+			} else if (source === "tasknotes") {
+				// Non-recurring TaskNotes card: a completion checkbox, matching the
+				// list layout so every task shows one instead of only recurring ones
+				// (#111). Checking sets the done status (which moves the card to the
+				// done column on refresh); unchecking restores the card's open status.
+				renderTaskNotesCheckbox(view, cfg, hit, textRow, refresh, kanbanOpenStatus);
 		}
 		const cardText = textRow.createDiv({ cls: "hearth-kanban-card-text" });
 		fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
@@ -3509,7 +3519,12 @@ function renderTaskNotesCheckbox(
 		attr: { type: "checkbox" },
 	});
 	check.checked = hit.done;
-	check.addEventListener("click", (e) => e.stopPropagation());
+	// Swallow the pointer/click so ticking the box neither opens the note nor
+	// (on a draggable Kanban card) starts a drag.
+	const stop = (e: Event) => e.stopPropagation();
+	check.addEventListener("click", stop);
+	check.addEventListener("mousedown", stop);
+	check.addEventListener("pointerdown", stop);
 	check.addEventListener("change", () => {
 		const value = check.checked ? doneWriteValue(view, cfg) : openStatus;
 		void setTaskNotesStatus(view, hit, value).then(refresh);
