@@ -721,6 +721,18 @@ export class HomeSettingTab extends PluginSettingTab {
 					await this.save();
 				}),
 			);
+
+		if (!Platform.isMobile) {
+			new Setting(containerEl)
+				.setName(t().settings.behaviour.focusSearchOnOpen)
+				.setDesc(t().settings.behaviour.focusSearchOnOpenDesc)
+				.addToggle((tg) =>
+					tg.setValue(s.focusSearchOnOpen).onChange(async (v) => {
+						s.focusSearchOnOpen = v;
+						await this.save();
+					}),
+				);
+		}
 	}
 
 	// ---- Privacy & network ----------------------------------------------

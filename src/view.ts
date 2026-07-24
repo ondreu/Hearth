@@ -58,6 +58,20 @@ export class HomeView extends ItemView {
 	async onOpen(): Promise<void> {
 		this.render();
 		this.trackViewport();
+		this.maybeFocusSearch();
+	}
+
+	/**
+	 * When enabled, move keyboard focus into the search field as the view opens
+	 * so a freshly-opened Hearth tab is ready to type into (#115). Only runs from
+	 * onOpen — not on every re-render — so a background refresh never steals focus
+	 * while the user is working. Desktop only: focusing an input on mobile pops
+	 * the on-screen keyboard, which would be jarring on every open.
+	 */
+	private maybeFocusSearch(): void {
+		if (!this.plugin.settings.focusSearchOnOpen || Platform.isMobile) return;
+		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
+		if (input) input.focus();
 	}
 
 	/**
