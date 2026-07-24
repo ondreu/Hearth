@@ -1082,8 +1082,14 @@ async function loadAndRenderTasks(
 		return;
 	}
 
+	// The card's "open" status for TaskNotes tasks: the first non-done status
+	// value present. Used when a list checkbox reopens a completed task, so it
+	// returns to a real open status (e.g. "open") rather than being cleared.
+	// Falls back to empty (no status = open) when the card has none to offer.
+	const openStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
+
 	const listEl = container.createDiv("hearth-list hearth-tasks");
-	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh);
+	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh, openStatus);
 }
 
 
@@ -1094,6 +1100,7 @@ function renderTaskRow(
 	hit: TaskHit,
 	today: string,
 	refresh: () => void,
+	openStatus: string,
 ): void {
 	const row = listEl.createDiv("hearth-list-item hearth-task");
 	row.toggleClass("is-done", hit.done);
@@ -1130,8 +1137,13 @@ function renderTaskRow(
 		// next scheduled), not by flipping status — a checkbox does that without
 		// needing a status column to drag into.
 		renderRecurringCheckbox(view, hit, today, row, refresh);
-	} else if (hit.status) {
-		row.createDiv({ cls: "hearth-task-status", text: hit.status });
+	} else {
+		// Non-recurring TaskNotes task: a completion checkbox, matching the
+		// recurring case so the list reads consistently instead of mixing
+		// checkboxes with text status badges (#111). Checking sets the done
+		// status; unchecking restores the card's open status — mirroring how
+		// completing a TaskNotes task moves it to the next/done status.
+		renderTaskNotesCheckbox(view, cfg, hit, row, refresh, openStatus);
 	}
 
 	const label = row.createDiv({ cls: "hearth-list-label hearth-task-text" });
@@ -3472,6 +3484,38 @@ async function setCheckboxSymbol(
 
 /** Write a TaskNotes task's status frontmatter field (used by the Kanban board
  * when a card is dragged to another status column). */
+/** The status value written when a TaskNotes task is marked done: the card's
+ * first configured "done" status when set (so a card treating both "done" and
+ * "canceled" as complete writes "done"), otherwise the global done value. */
+function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
+	const custom = (cfg.taskNotesDoneStatuses ?? []).map((v) => v.trim()).filter(Boolean);
+	return custom[0] ?? (view.plugin.settings.taskNotesDoneValue.trim() || "done");
+}
+
+/** A completion checkbox for a non-recurring TaskNotes task (list layout).
+ * Checking writes the done status; unchecking restores the card's open status
+ * (see openStatus in renderTaskList). Clicks are swallowed so ticking the box
+ * doesn't also open the note. */
+function renderTaskNotesCheckbox(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	row: HTMLElement,
+	refresh: () => void,
+	openStatus: string,
+): void {
+	const check = row.createEl("input", {
+		cls: "hearth-task-check",
+		attr: { type: "checkbox" },
+	});
+	check.checked = hit.done;
+	check.addEventListener("click", (e) => e.stopPropagation());
+	check.addEventListener("change", () => {
+		const value = check.checked ? doneWriteValue(view, cfg) : openStatus;
+		void setTaskNotesStatus(view, hit, value).then(refresh);
+	});
+}
+
 async function setTaskNotesStatus(view: HomeView, hit: TaskHit, value: string): Promise<void> {
 	const field = view.plugin.settings.taskNotesStatusField.trim() || "status";
 	try {
