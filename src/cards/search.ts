@@ -3,6 +3,7 @@ import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { iconForFile } from "../filetypes";
 import { t } from "../i18n";
+import { openNoteFromCard } from "../navigation";
 import { runQuery, searchFileContents, type QueryHit } from "../query";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
@@ -60,7 +61,7 @@ function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): v
 		row.createDiv({ cls: "hearth-list-label", text: name });
 		if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
 		const open = () => {
-			if (hit.file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(hit.file);
+			if (hit.file instanceof TFile) openNoteFromCard(view, hit.file);
 		};
 		row.addEventListener("click", open);
 		makeClickable(row, open, name);
@@ -78,7 +79,7 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 		tile.createDiv({ cls: "hearth-link-label", text: name });
 		const open = () => {
-			if (hit.file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(hit.file);
+			if (hit.file instanceof TFile) openNoteFromCard(view, hit.file);
 		};
 		tile.addEventListener("click", open);
 		makeClickable(tile, open, name);

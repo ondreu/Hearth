@@ -3,6 +3,7 @@ import type { HomeView } from "./view";
 import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, iconForFile, OTHER_GROUP_ID } from "./filetypes";
 import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
+import { openNoteFromCard } from "./navigation";
 import { t } from "./i18n";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
@@ -472,7 +473,7 @@ export class SearchSection {
 	private openFile(file: TAbstractFile): void {
 		if (file instanceof TFile) {
 			this.pushHistory(file.path);
-			void this.view.app.workspace.getLeaf(true).openFile(file);
+			openNoteFromCard(this.view, file);
 			this.hide();
 		} else if (file instanceof TFolder) {
 			// Reveal the folder in the file explorer.

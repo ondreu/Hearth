@@ -1,6 +1,7 @@
 import { setIcon, TFile, TFolder } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
+import { openNoteFromCard } from "../navigation";
 import { type BookmarkItem } from "../obsidian-ext";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -175,7 +176,7 @@ function openBookmark(view: HomeView, item: BookmarkItem): void {
 	}
 	if (item.path) {
 		const file = view.app.vault.getAbstractFileByPath(item.path);
-		if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
+		if (file instanceof TFile) openNoteFromCard(view, file);
 	}
 }
 

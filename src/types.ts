@@ -779,6 +779,12 @@ export interface HomeSettings {
 	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
 	 * keyboard on every open. */
 	focusSearchOnOpen: boolean;
+	/** Where a note opens when clicked from a Hearth card (Recent, Bookmarks,
+	 * Favorites, saved queries, launchpad note tiles, …) or the search results.
+	 * "tab" (default) opens it in a new tab; "current" reuses the Hearth tab,
+	 * replacing the home view in place (#106). External URLs always open in the
+	 * browser regardless. */
+	openNoteIn: "tab" | "current";
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -876,6 +882,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openOnStartup: true,
 	replaceNewTabs: true,
 	focusSearchOnOpen: false,
+	openNoteIn: "tab",
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below

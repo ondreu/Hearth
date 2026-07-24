@@ -372,6 +372,14 @@ export const en = {
 			focusSearchOnOpenDesc:
 				"Place the cursor in the search field whenever a home view opens, so " +
 				"you can start typing right away. Desktop only.",
+			openNoteIn: "Open notes in",
+			openNoteInDesc:
+				"Where a note opens when clicked from a card (Recent, Bookmarks, " +
+				"Favorites, saved queries, launchpad note tiles) or the search results. " +
+				"“Current tab” replaces the home view in place; external URLs always " +
+				"open in the browser.",
+			openNoteInTab: "New tab",
+			openNoteInCurrent: "Current tab (replace Hearth)",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +

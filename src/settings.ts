@@ -733,6 +733,19 @@ export class HomeSettingTab extends PluginSettingTab {
 					}),
 				);
 		}
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openNoteIn)
+			.setDesc(t().settings.behaviour.openNoteInDesc)
+			.addDropdown((d) => {
+				d.addOption("tab", t().settings.behaviour.openNoteInTab)
+					.addOption("current", t().settings.behaviour.openNoteInCurrent)
+					.setValue(s.openNoteIn)
+					.onChange(async (v) => {
+						s.openNoteIn = v as HomeSettings["openNoteIn"];
+						await this.save();
+					});
+			});
 	}
 
 	// ---- Privacy & network ----------------------------------------------

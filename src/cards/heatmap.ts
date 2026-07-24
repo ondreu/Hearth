@@ -1,6 +1,7 @@
 import { Setting } from "obsidian";
 import { activityByDay, createDailyNoteAt, dailyNotesOptions, heatLevel, moment } from "../cardbodies";
 import { t } from "../i18n";
+import { openNoteFromCard } from "../navigation";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -54,7 +55,7 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 			if (options) {
 				const activate = () => {
 					void createDailyNoteAt(view, day, options).then((f) => {
-						if (f) void view.app.workspace.getLeaf(true).openFile(f);
+						if (f) openNoteFromCard(view, f);
 					});
 				};
 				cellEl.addEventListener("click", activate);

@@ -8,6 +8,7 @@ import {
 	watchedCardPath,
 } from "../cardbodies";
 import { t } from "../i18n";
+import { openNoteFromCard } from "../navigation";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -63,7 +64,7 @@ export function renderDaily(
 		});
 		setIcon(open, "square-pen");
 		open.addEventListener("click", () => {
-			void view.app.workspace.getLeaf(true).openFile(file);
+			openNoteFromCard(view, file);
 		});
 	}
 
