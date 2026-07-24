@@ -1,5 +1,6 @@
-import { setIcon, TFile } from "obsidian";
+import { setIcon, setTooltip, TFile } from "obsidian";
 import type { HomeView } from "./view";
+import { t } from "./i18n";
 
 /** Image file extensions a widget tile can use as its icon (#119). */
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "avif", "ico"]);
@@ -19,23 +20,38 @@ export function resolveIconImage(view: HomeView, icon: string | undefined): TFil
 }
 
 /**
- * Render a widget tile's icon into `el`: a vault image when the icon string is
- * an image path, otherwise a Lucide icon (falling back to `fallback` when the
- * string is empty). Shared by the launchpad and command cards so both accept
- * either kind (#119).
+ * Render a launchpad/command tile's visual into `tile`, before its label:
+ *
+ * - When the icon string is a vault image path, the image covers the whole tile
+ *   (object-fit: cover) with the label overlaid on top (#119). The caller adds
+ *   the label afterwards; the `hearth-tile-has-image` class makes CSS position
+ *   the image behind it and give the label a legibility scrim.
+ * - Otherwise the usual centered Lucide icon slot is used (falling back to
+ *   `fallback` when the string is empty).
  */
-export function applyWidgetIcon(
+export function applyTileVisual(
 	view: HomeView,
-	el: HTMLElement,
+	tile: HTMLElement,
 	icon: string | undefined,
 	fallback: string,
 ): void {
 	const image = resolveIconImage(view, icon);
 	if (image) {
-		el.addClass("hearth-icon-image");
-		const img = el.createEl("img", { cls: "hearth-widget-icon-img" });
+		tile.addClass("hearth-tile-has-image");
+		const img = tile.createEl("img", { cls: "hearth-tile-image" });
 		img.src = view.app.vault.getResourcePath(image);
 		return;
 	}
-	setIcon(el, icon?.trim() || fallback);
+	setIcon(tile.createDiv("hearth-link-icon"), icon?.trim() || fallback);
+}
+
+/**
+ * Append a small "?" help badge to an icon field's control row, carrying the
+ * shared icon help as its tooltip so users can discover that the field accepts
+ * a Lucide id or a vault image path without having to hover the input (#119).
+ */
+export function addIconHelp(controlEl: HTMLElement): void {
+	const help = controlEl.createSpan({ cls: "hearth-icon-help", text: "?" });
+	setTooltip(help, t().editors.iconHelp);
+	help.setAttribute("aria-label", t().editors.iconHelp);
 }

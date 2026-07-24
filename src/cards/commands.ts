@@ -3,7 +3,7 @@ import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOv
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
-import { applyWidgetIcon } from "../widgeticon";
+import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type CommandItem, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -29,7 +29,7 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 		// height/icon (via --hearth-tile) and, when larger than the base, makes
 		// the tile span proportionally more grid columns so it's wider too.
 		applyTileSize(tile, cmd.sizeW, cmd.sizeH, cmd.size, baseTile, cmd.col, cmd.row);
-		applyWidgetIcon(view, tile.createDiv("hearth-link-icon"), cmd.icon, "terminal-square");
+		applyTileVisual(view, tile, cmd.icon, "terminal-square");
 		tile.createDiv({ cls: "hearth-link-label", text: cmd.name || cmd.id });
 		const run = () => runCommand(view, cmd);
 		// In arrange mode, clicking a tile must NOT trigger its action.
@@ -112,6 +112,7 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 				});
 			setTooltip(txt.inputEl, t().editors.iconHelp);
 		});
+		addIconHelp(row.controlEl);
 		row.addText((txt) => {
 			txt
 				.setPlaceholder(t().editors.commands.sizePlaceholder)

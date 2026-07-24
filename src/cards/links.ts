@@ -3,7 +3,7 @@ import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOv
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
-import { applyWidgetIcon } from "../widgeticon";
+import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -28,7 +28,7 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 	for (const link of links) {
 		const tile = grid.createDiv("hearth-link-tile");
 		applyTileSize(tile, link.sizeW, link.sizeH, link.size, baseTile, link.col, link.row);
-		applyWidgetIcon(view, tile.createDiv("hearth-link-icon"), link.icon, "link");
+		applyTileVisual(view, tile, link.icon, "link");
 		tile.createDiv({ cls: "hearth-link-label", text: link.label || link.target });
 		const open = () => openLink(view, link);
 		// In arrange mode, clicking a tile must NOT trigger its action — the
@@ -112,6 +112,7 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				});
 			setTooltip(txt.inputEl, t().editors.iconHelp);
 		});
+		addIconHelp(row.controlEl);
 		row.addDropdown((d) => {
 			(Object.keys(t().editors.linkTypes) as LinkItem["type"][]).forEach(
 				(k) => {
