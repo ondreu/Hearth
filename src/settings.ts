@@ -733,6 +733,16 @@ export class HomeSettingTab extends PluginSettingTab {
 					}),
 				);
 		}
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.liveRefresh)
+			.setDesc(t().settings.behaviour.liveRefreshDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.liveRefresh).onChange(async (v) => {
+					s.liveRefresh = v;
+					await this.save();
+				}),
+			);
 	}
 
 	// ---- Privacy & network ----------------------------------------------
