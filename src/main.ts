@@ -1,4 +1,4 @@
-import { addIcon, apiVersion, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, apiVersion, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
@@ -111,6 +111,7 @@ export default class HearthPlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
+			this.applyMobileDefaultDashboard();
 			if (this.settings.openOnStartup) void this.activateView();
 			// Pop the release-notes dialog after an update (but not on a fresh
 			// install). Runs once layout is ready so it doesn't fight startup.
@@ -144,6 +145,20 @@ export default class HearthPlugin extends Plugin {
 			(d) => d.linkedWorkspace === active,
 		);
 		if (match) this.setActiveDashboard(match.id);
+	}
+
+	/** On mobile, switch to the first dashboard flagged as the mobile default so
+	 * a phone/tablet opens on the board tuned for a small screen (#120). Applied
+	 * in memory only, without saving: `activeDashboardId` is a single field shared
+	 * with desktop through synced settings, so persisting the mobile choice would
+	 * drag the desktop's active board along with it on the next sync. Any already
+	 * open home view is re-rendered to reflect the switch. */
+	private applyMobileDefaultDashboard() {
+		if (!Platform.isMobile) return;
+		const mobile = this.settings.dashboards.find((d) => d.mobileDefault);
+		if (!mobile || this.settings.activeDashboardId === mobile.id) return;
+		this.settings.activeDashboardId = mobile.id;
+		this.refreshViews();
 	}
 
 	/** Switch the active dashboard and refresh any open home views. */
