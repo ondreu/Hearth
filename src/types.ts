@@ -774,6 +774,11 @@ export interface HomeSettings {
 	// ---- Behaviour ----
 	openOnStartup: boolean;
 	replaceNewTabs: boolean;
+	/** Place keyboard focus in the search field whenever a home view opens, so a
+	 * new Hearth tab can be typed into straight away without reaching for the
+	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
+	 * keyboard on every open. */
+	focusSearchOnOpen: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -870,6 +875,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 
 	openOnStartup: true,
 	replaceNewTabs: true,
+	focusSearchOnOpen: false,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below

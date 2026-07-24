@@ -368,6 +368,10 @@ export const en = {
 			openOnStartupDesc: "Open the home view when the vault loads.",
 			replaceNewTabs: "Replace new tabs",
 			replaceNewTabsDesc: "Show the home view instead of an empty new tab.",
+			focusSearchOnOpen: "Focus search on open",
+			focusSearchOnOpenDesc:
+				"Place the cursor in the search field whenever a home view opens, so " +
+				"you can start typing right away. Desktop only.",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
