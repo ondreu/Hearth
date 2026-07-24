@@ -372,6 +372,11 @@ export const en = {
 			focusSearchOnOpenDesc:
 				"Place the cursor in the search field whenever a home view opens, so " +
 				"you can start typing right away. Desktop only.",
+			liveRefresh: "Live refresh on vault changes",
+			liveRefreshDesc:
+				"Keep an open home view current as the vault changes — Recent, Bookmarks " +
+				"and saved-query cards update without reopening the tab. Switching back to " +
+				"the Hearth tab always refreshes it regardless of this setting.",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +

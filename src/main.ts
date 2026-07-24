@@ -1,4 +1,4 @@
-import { addIcon, apiVersion, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, apiVersion, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
@@ -26,6 +26,18 @@ export default class HearthPlugin extends Plugin {
 	/** The ribbon crystal, kept so the icon can be swapped when the
 	 * themeColorTarget setting changes. */
 	private ribbonEl?: HTMLElement;
+
+	/** Home-view leaves that have already been the active leaf at least once.
+	 * Their first activation was the fresh onOpen render, so the focus refresh
+	 * (#110) skips it and only re-renders on genuine re-focus (this also avoids
+	 * clobbering any search focus set on open). A WeakSet so closed leaves are
+	 * collected with no manual bookkeeping. */
+	private seenActiveHomeLeaves = new WeakSet<WorkspaceLeaf>();
+
+	/** Debounced live-refresh of open home views on vault changes (#110).
+	 * resetTimer=true so a burst of writes (a sync, a bulk edit) coalesces into a
+	 * single re-render ~600ms after the last change. */
+	private liveRefreshDebounced = debounce(() => this.runLiveRefresh(), 600, true);
 
 	async onload() {
 		// Temporary #52 diagnostic: one report has the settings pane blank with
@@ -97,10 +109,25 @@ export default class HearthPlugin extends Plugin {
 
 		this.addSettingTab(new HomeSettingTab(this.app, this));
 
-		// Replace freshly-opened empty tabs with the home view.
+		// Replace freshly-opened empty tabs with the home view, and refresh a home
+		// view whenever the user switches back to its tab (#110).
 		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", (leaf) => this.maybeReplaceNewTab(leaf)),
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				this.maybeReplaceNewTab(leaf);
+				this.maybeRefreshOnFocus(leaf);
+			}),
 		);
+
+		// Opt-in live refresh: when enabled, re-render open home views a beat after
+		// the vault changes so Recent/Bookmarks/query cards stay current without
+		// reopening the tab. Registered unconditionally; the handler checks the
+		// setting so toggling it takes effect without a reload. Debounced so a burst
+		// of writes (a sync, a bulk edit) coalesces into a single re-render.
+		const onVaultChange = () => this.liveRefreshDebounced();
+		this.registerEvent(this.app.vault.on("create", onVaultChange));
+		this.registerEvent(this.app.vault.on("delete", onVaultChange));
+		this.registerEvent(this.app.vault.on("rename", onVaultChange));
+		this.registerEvent(this.app.vault.on("modify", onVaultChange));
 
 		// Follow core-Workspace loads: when the active workspace matches a
 		// dashboard's linked workspace, switch to that dashboard. There is no
@@ -336,6 +363,33 @@ export default class HearthPlugin extends Plugin {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
 			if (view instanceof HomeView) view.render();
+		});
+	}
+
+	/** Re-render a home view when it becomes the active leaf again, so content
+	 * that changed while it was backgrounded (recents, bookmarks, saved-query
+	 * results) is current (#110). The first activation of a leaf was its fresh
+	 * onOpen render, so that one is skipped; genuine re-focus re-renders. Skipped
+	 * while the board is being arranged so a drag/resize isn't interrupted. */
+	private maybeRefreshOnFocus(leaf: WorkspaceLeaf | null) {
+		if (!leaf) return;
+		const view = leaf.view;
+		if (!(view instanceof HomeView)) return;
+		if (!this.seenActiveHomeLeaves.has(leaf)) {
+			this.seenActiveHomeLeaves.add(leaf);
+			return;
+		}
+		if (view.arrangeMode) return;
+		view.render();
+	}
+
+	/** Live-refresh handler behind {@link liveRefreshDebounced}. No-op unless the
+	 * setting is on; never rebuilds a board mid-arrange. */
+	private runLiveRefresh() {
+		if (!this.settings.liveRefresh) return;
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
+			const view = leaf.view;
+			if (view instanceof HomeView && !view.arrangeMode) view.render();
 		});
 	}
 }

@@ -779,6 +779,12 @@ export interface HomeSettings {
 	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
 	 * keyboard on every open. */
 	focusSearchOnOpen: boolean;
+	/** Live-refresh open home views when the vault changes (files created,
+	 * modified, deleted or renamed), so cards like Recent, Bookmarks and saved
+	 * queries update without reopening the tab. Debounced, and skipped while a
+	 * board is being arranged. Off by default; a home view already refreshes
+	 * whenever the user switches back to its tab regardless of this setting. */
+	liveRefresh: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -876,6 +882,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openOnStartup: true,
 	replaceNewTabs: true,
 	focusSearchOnOpen: false,
+	liveRefresh: false,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
