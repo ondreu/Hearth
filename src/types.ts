@@ -733,6 +733,11 @@ export interface Dashboard {
 	/** Name of a core-Workspace; loading that workspace auto-switches to this
 	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
 	linkedWorkspace?: string;
+	/** Marks this board as the one to open on phones/tablets. When Hearth loads
+	 * on mobile it switches to the first dashboard with this flag, so a board
+	 * tuned for a small screen can be the mobile default without being the
+	 * desktop default. Undefined/false = not a mobile default. */
+	mobileDefault?: boolean;
 }
 
 export type ChromeVisibility = "always" | "hover";

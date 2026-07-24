@@ -161,6 +161,9 @@ export const en = {
 			linkedWorkspaceDesc:
 				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
 			linkedWorkspaceNone: "None",
+			mobileDefault: "Default on mobile",
+			mobileDefaultDesc:
+				"Open this dashboard when Hearth loads on a phone or tablet. Only one board can be the mobile default; enabling this clears it on the others.",
 			titleVisibility: "Title visibility",
 			titleVisibilityDesc:
 				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
