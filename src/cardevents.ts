@@ -1,12 +1,11 @@
 import type { App, EventRef, TAbstractFile } from "obsidian";
-import type { DashboardCard } from "./types";
-import { tasksEventRelevant } from "./taskscope";
 
 /**
- * The dashboard's shared vault-event fan-out and the pure "should this card
- * redraw for this event?" decisions, kept out of dashboard.ts so they can be
+ * The dashboard's shared vault-event fan-out and the tracked-file "does this
+ * event kind count?" decision, kept out of dashboard.ts so they can be
  * unit-tested without the Obsidian runtime (the module uses only type-only
- * imports from "obsidian").
+ * imports from "obsidian"). The per-kind redraw decision lives on each card
+ * definition's `liveness` (see src/cards/definition.ts).
  */
 
 export type VaultEventKind = "create" | "delete" | "rename" | "modify" | "meta";
@@ -68,17 +67,6 @@ export function createVaultEventHub(
 			listeners.push(listener);
 		},
 	};
-}
-
-/**
- * Whether a live (data-driven) card should redraw for an event. Non-tasks live
- * cards (stats, calendar, search, heatmap) derive their content from the whole
- * vault, so every change is relevant; a tasks card additionally honours its
- * folder scope so a change it can provably ignore skips the redraw.
- */
-export function liveCardShouldRedraw(card: DashboardCard, ev: VaultEvent): boolean {
-	if (card.kind === "tasks") return tasksEventRelevant(card.tasks, ev.file, ev.oldPath);
-	return true;
 }
 
 /**

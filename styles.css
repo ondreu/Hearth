@@ -2237,8 +2237,8 @@
 }
 
 .hearth-agenda-row.is-today .hearth-agenda-daynum {
-	color: var(--text-on-accent);
-	background: var(--interactive-accent);
+	color: var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
 	border-radius: 999px;
 	width: 24px;
 	height: 24px;
@@ -2279,8 +2279,8 @@
 }
 
 .hearth-agenda-row.is-today {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: -2px;
+	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, transparent);
+	outline-offset: -1px;
 }
 
 /* Heatmap tint for agenda rows, mirroring the grid's per-day tint. Built from

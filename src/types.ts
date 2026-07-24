@@ -983,46 +983,6 @@ export function newDashboardId(): string {
 	return `dash-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`;
 }
 
-/** Deep-clone a card with a fresh id, so the copy can be added to a dashboard
- * (or a different one) without colliding with the original. */
-export function cloneCard(card: DashboardCard): DashboardCard {
-	const copy: DashboardCard = {
-		...card,
-		id: `card-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
-	};
-	if (card.links) copy.links = card.links.map((l) => ({ ...l }));
-	if (card.commands) copy.commands = card.commands.map((c) => ({ ...c }));
-	if (card.secondView) copy.secondView = { ...card.secondView };
-	if (card.tasks) copy.tasks = { ...card.tasks, folders: card.tasks.folders ? [...card.tasks.folders] : undefined, kanbanOrder: card.tasks.kanbanOrder ? [...card.tasks.kanbanOrder] : undefined, kanbanHidden: card.tasks.kanbanHidden ? [...card.tasks.kanbanHidden] : undefined, kanbanDoneColumns: card.tasks.kanbanDoneColumns ? [...card.tasks.kanbanDoneColumns] : undefined, kanbanColumnSort: card.tasks.kanbanColumnSort ? Object.fromEntries(Object.entries(card.tasks.kanbanColumnSort).map(([k, v]) => [k, { ...v }])) : undefined, sortRules: card.tasks.sortRules ? card.tasks.sortRules.map((r) => ({ ...r })) : undefined };
-	if (card.calendar)
-		copy.calendar = {
-			...card.calendar,
-			sources: card.calendar.sources ? card.calendar.sources.map((s) => ({ ...s })) : undefined,
-			eventNote: card.calendar.eventNote
-				? {
-						...card.calendar.eventNote,
-						fields: card.calendar.eventNote.fields
-							? card.calendar.eventNote.fields.map((f) => ({ ...f }))
-							: undefined,
-					}
-				: undefined,
-		};
-	if (card.savedSearch) copy.savedSearch = { ...card.savedSearch };
-	if (card.heatmap) copy.heatmap = { ...card.heatmap };
-	if (card.stats)
-		copy.stats = {
-			...card.stats,
-			builtins: card.stats.builtins ? [...card.stats.builtins] : undefined,
-			attachmentTypes: card.stats.attachmentTypes ? [...card.stats.attachmentTypes] : undefined,
-			queries: card.stats.queries ? card.stats.queries.map((q) => ({ ...q })) : undefined,
-		};
-	if (card.clock) copy.clock = { ...card.clock };
-	if (card.calculator) copy.calculator = { ...card.calculator };
-	if (card.dataview) copy.dataview = { ...card.dataview, columnWidths: card.dataview.columnWidths ? [...card.dataview.columnWidths] : undefined };
-	if (card.jira) copy.jira = { ...card.jira, controls: card.jira.controls ? [...card.jira.controls] : undefined, selections: card.jira.selections ? Object.fromEntries(Object.entries(card.jira.selections).map(([key, values]) => [key, values ? [...values] : values])) : undefined };
-	return copy;
-}
-
 /** The dashboard currently selected (falls back to the first one). */
 export function activeDashboard(s: HomeSettings): Dashboard {
 	return s.dashboards.find((d) => d.id === s.activeDashboardId) ?? s.dashboards[0];
