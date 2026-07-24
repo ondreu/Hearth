@@ -316,6 +316,24 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			);
 
 		new Setting(containerEl)
+			.setName(t().dashboards.modal.mobileDefault)
+			.setDesc(t().dashboards.modal.mobileDefaultDesc)
+			.addToggle((tg) =>
+				tg.setValue(dash.mobileDefault ?? false).onChange((v) => {
+					// Only one board is the mobile default; enabling this one clears
+					// the flag on the others so the first-match lookup is unambiguous.
+					if (v) {
+						for (const d of this.view.plugin.settings.dashboards) {
+							d.mobileDefault = d === dash ? true : undefined;
+						}
+					} else {
+						dash.mobileDefault = undefined;
+					}
+					this.commit();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(t().dashboards.modal.linkedWorkspace)
 			.setDesc(t().dashboards.modal.linkedWorkspaceDesc)
 			.addDropdown((dd) => {

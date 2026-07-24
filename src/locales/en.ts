@@ -161,6 +161,9 @@ export const en = {
 			linkedWorkspaceDesc:
 				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
 			linkedWorkspaceNone: "None",
+			mobileDefault: "Default on mobile",
+			mobileDefaultDesc:
+				"Open this dashboard when Hearth loads on a phone or tablet. Only one board can be the mobile default; enabling this clears it on the others.",
 			titleVisibility: "Title visibility",
 			titleVisibilityDesc:
 				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
@@ -365,6 +368,10 @@ export const en = {
 			openOnStartupDesc: "Open the home view when the vault loads.",
 			replaceNewTabs: "Replace new tabs",
 			replaceNewTabsDesc: "Show the home view instead of an empty new tab.",
+			focusSearchOnOpen: "Focus search on open",
+			focusSearchOnOpenDesc:
+				"Place the cursor in the search field whenever a home view opens, so " +
+				"you can start typing right away. Desktop only.",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
@@ -487,6 +494,11 @@ export const en = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "Card settings",
+		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
+		iconHelp:
+			"Enter a Lucide icon id (e.g. “home”, “star”, “calendar”) — browse them at " +
+			"lucide.dev/icons. You can also enter a vault image path (e.g. " +
+			"Attachments/icon.png) to use your own picture as the icon.",
 		/** Tabs across the top of the card settings modal. */
 		tabs: {
 			content: "Content",

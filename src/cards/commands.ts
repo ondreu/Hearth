@@ -1,8 +1,9 @@
-import { setIcon, Setting } from "obsidian";
+import { setTooltip, Setting } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
+import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type CommandItem, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -28,7 +29,7 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 		// height/icon (via --hearth-tile) and, when larger than the base, makes
 		// the tile span proportionally more grid columns so it's wider too.
 		applyTileSize(tile, cmd.sizeW, cmd.sizeH, cmd.size, baseTile, cmd.col, cmd.row);
-		setIcon(tile.createDiv("hearth-link-icon"), cmd.icon || "terminal-square");
+		applyTileVisual(view, tile, cmd.icon, "terminal-square");
 		tile.createDiv({ cls: "hearth-link-label", text: cmd.name || cmd.id });
 		const run = () => runCommand(view, cmd);
 		// In arrange mode, clicking a tile must NOT trigger its action.
@@ -101,15 +102,17 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		const row = new Setting(containerEl)
 			.setClass("hearth-link-setting")
 			.setName(cmd.name || cmd.id);
-		row.addText((txt) =>
+		row.addText((txt) => {
 			txt
 				.setPlaceholder(t().editors.commands.iconOptionalPlaceholder)
 				.setValue(cmd.icon ?? "")
 				.onChange((v) => {
 					cmd.icon = v || undefined;
 					ctx.opts.save();
-				}),
-		);
+				});
+			setTooltip(txt.inputEl, t().editors.iconHelp);
+		});
+		addIconHelp(row.controlEl);
 		row.addText((txt) => {
 			txt
 				.setPlaceholder(t().editors.commands.sizePlaceholder)
