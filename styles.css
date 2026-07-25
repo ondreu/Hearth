@@ -342,14 +342,29 @@
 .hearth-filters {
 	display: flex;
 	flex-wrap: wrap;
-	/* Pack the chips together from the left with a fixed gap, rather than
-	 * spreading them edge-to-edge across the search width. With only a handful
-	 * of filters, space-between stranded them (one at the start, one in the
-	 * middle, one at the end); left-aligning keeps them as a tidy cluster at
-	 * any count. Width still matches the search column so wrapping lines up. */
+	/* Few chips: pack them together from the left with a fixed gap, so a
+	 * handful of filters read as a tidy cluster rather than being stranded
+	 * across the search width (one at the start, one in the middle, one at
+	 * the end). Width still matches the search column so wrapping lines up. */
 	justify-content: flex-start;
 	gap: 8px;
 	width: 100%;
+}
+
+/* Many chips (7+): once there are enough to fill the row, spread them across
+ * the full search width with dynamic spacing. The :nth-child(7) selector
+ * matches only when a 7th chip exists.
+ *
+ * This uses a grid rather than justify-content: space-between because there
+ * are ~15 filter groups and the row wraps on narrower panes: space-between
+ * would strand a short wrapped row (one chip left, one right) — the same
+ * problem this rule exists to avoid. auto-fit tracks distribute the width
+ * evenly AND keep wrapped rows aligned to the same columns. The chips keep
+ * their 38px size; justify-items centres them in their track. */
+.hearth-filters:has(.hearth-filter:nth-child(7)) {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+	justify-items: center;
 }
 
 .hearth-filter {
