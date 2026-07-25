@@ -342,11 +342,12 @@
 .hearth-filters {
 	display: flex;
 	flex-wrap: wrap;
-	/* Spread the chips from the first to the last edge of the row so they span
-	 * the whole search width and stay evenly distributed. Sizes are unchanged;
-	 * only the spacing between them is. Width matches the search column (i.e.
-	 * the search field), not the New-note button beside it. */
-	justify-content: space-between;
+	/* Pack the chips together from the left with a fixed gap, rather than
+	 * spreading them edge-to-edge across the search width. With only a handful
+	 * of filters, space-between stranded them (one at the start, one in the
+	 * middle, one at the end); left-aligning keeps them as a tidy cluster at
+	 * any count. Width still matches the search column so wrapping lines up. */
+	justify-content: flex-start;
 	gap: 8px;
 	width: 100%;
 }
