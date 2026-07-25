@@ -342,29 +342,23 @@
 .hearth-filters {
 	display: flex;
 	flex-wrap: wrap;
-	/* Few chips: pack them together from the left with a fixed gap, so a
-	 * handful of filters read as a tidy cluster rather than being stranded
-	 * across the search width (one at the start, one in the middle, one at
-	 * the end). Width still matches the search column so wrapping lines up. */
+	/* Pack the chips from the left rather than spreading them edge-to-edge:
+	 * with only a few filters, space-between stranded them across the search
+	 * width (one at the start, one in the middle, one at the end). Width still
+	 * matches the search column so wrapping lines up. */
 	justify-content: flex-start;
-	gap: 8px;
+	/* Semi-dynamic spacing: the gap breathes with the search column, from 8px
+	 * on a narrow pane up to a 16px ceiling on a wide one, so the chips never
+	 * look cramped or marooned. The percentage resolves against the container's
+	 * width; 3% is picked so both ends are actually reachable — the column tops
+	 * out near 578px (the 720px row minus the gap and the New-note button),
+	 * which hits the 16px cap, and it falls back to 8px below ~267px.
+	 * Row and column gaps are set separately on purpose: a percentage row-gap
+	 * would resolve against the container's indefinite height, which can
+	 * collapse to 0 and let wrapped rows touch. */
+	row-gap: 8px;
+	column-gap: clamp(8px, 3%, 16px);
 	width: 100%;
-}
-
-/* Many chips (7+): once there are enough to fill the row, spread them across
- * the full search width with dynamic spacing. The :nth-child(7) selector
- * matches only when a 7th chip exists.
- *
- * This uses a grid rather than justify-content: space-between because there
- * are ~15 filter groups and the row wraps on narrower panes: space-between
- * would strand a short wrapped row (one chip left, one right) — the same
- * problem this rule exists to avoid. auto-fit tracks distribute the width
- * evenly AND keep wrapped rows aligned to the same columns. The chips keep
- * their 38px size; justify-items centres them in their track. */
-.hearth-filters:has(.hearth-filter:nth-child(7)) {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
-	justify-items: center;
 }
 
 .hearth-filter {
