@@ -348,16 +348,16 @@
 	 * matches the search column so wrapping lines up. */
 	justify-content: flex-start;
 	/* Semi-dynamic spacing: the gap breathes with the search column, from 8px
-	 * on a narrow pane up to a 16px ceiling on a wide one, so the chips never
+	 * on a narrow pane up to a 48px ceiling on a wide one, so the chips never
 	 * look cramped or marooned. The percentage resolves against the container's
-	 * width; 3% is picked so both ends are actually reachable — the column tops
-	 * out near 578px (the 720px row minus the gap and the New-note button),
-	 * which hits the 16px cap, and it falls back to 8px below ~267px.
+	 * width; 9% is picked so the cap is actually reachable — the column tops
+	 * out near 578px (the 720px row minus the gap and the New-note button), so
+	 * the gap maxes out from ~533px up and only floors at 8px below ~89px.
 	 * Row and column gaps are set separately on purpose: a percentage row-gap
 	 * would resolve against the container's indefinite height, which can
 	 * collapse to 0 and let wrapped rows touch. */
 	row-gap: 8px;
-	column-gap: clamp(8px, 3%, 16px);
+	column-gap: clamp(8px, 9%, 48px);
 	width: 100%;
 }
 
