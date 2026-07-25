@@ -11,6 +11,84 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [1.17.0]
+
+### Added
+
+- **Keep an open dashboard current.** A home view now re-renders when you switch
+  back to its tab, so Recent, Bookmarks and query-driven cards no longer show
+  stale content until the tab is closed and reopened. The first render of a leaf
+  is left alone, and refreshes are skipped mid-drag/resize so arranging a board
+  is never interrupted. A new opt-in **Live refresh on vault changes** Behaviour
+  toggle (default off) additionally re-renders on vault create/modify/delete/
+  rename — debounced to coalesce bursts — so a permanently-visible board stays
+  current without switching tabs (#110).
+- **Completion checkboxes for every TaskNotes task.** Task cards showed a
+  checkbox on recurring TaskNotes tasks but a plain status badge on the rest, so
+  a mixed card looked inconsistent. Non-recurring TaskNotes tasks now get a
+  checkbox too, in both the list and Kanban layouts. In the list, ticking writes
+  the card's done status and unticking restores its first open status; on a
+  Kanban board, ticking advances the task to the next swimlane (and eventually
+  the done column), untick returns it to the first — mirroring how completing a
+  task progresses its status. The checkbox swallows pointer events so ticking it
+  on a draggable card doesn't start a drag. Recurring tasks keep their
+  per-occurrence checkbox; checkbox- and Kanban-source tasks are unchanged (#111).
+- **Vault images as tile icons.** Launchpad and command tiles accepted only a
+  Lucide icon id; they now also take a path to an image in your vault (png, jpg,
+  svg, webp, …), which fills the whole tile with the label overlaid on a
+  legibility scrim. A bare Lucide id never resolves to a file, so existing icons
+  are untouched. The icon field in both editors gains a "?" help badge
+  explaining the two accepted forms (#119).
+- **Per-dashboard "Default on mobile" flag.** A dashboard can be marked as the
+  mobile default from its settings (General tab), so a board tuned for a small
+  screen opens on phones and tablets without becoming the desktop default. Only
+  one board can hold the flag. The switch is applied in memory only, because the
+  active-dashboard id is a single synced field — persisting it would drag the
+  desktop's active board along on the next sync (#120).
+- **"Focus search on open" option.** An opt-in Behaviour setting that puts
+  keyboard focus in the search field whenever a home view opens, so a fresh
+  Hearth tab can be typed into straight away. Focus is applied on open only, so
+  a background refresh never steals it mid-interaction. Desktop only — the
+  setting is hidden on mobile, where auto-focus would pop the on-screen keyboard
+  on every open (#115).
+
+### Fixed
+
+- **Opening a task's note jumps to the task's line.** "Jump to Note" (and a
+  click when quick view is off) landed at the top of the note, so a task buried
+  in a long note meant scrolling to find it. The target line is now passed as
+  ephemeral state, which Obsidian applies once the view has mounted, instead of
+  a cursor move that a not-yet-laid-out editor discarded (#118).
+- **Calendar events no longer shift by a day.** Weekly recurring events expanded
+  their by-day rule against a locale-aware week start combined with a
+  Sunday-based day offset, so in any locale whose week starts on Monday (Czech,
+  most of Europe) occurrences landed on the wrong date — off by up to several
+  days. The expansion is now locale-independent. The agenda view's
+  today-highlight is also toned down to a thin outline and a lightly tinted day
+  number; the month grid keeps its existing highlight.
+- **Search filter chips no longer strand across the search bar.** With only a
+  few filters, the chips were distributed edge-to-edge — one at the start, one
+  in the middle, one at the end. They now sit in a left-aligned row whose gap
+  shares out the leftover space, growing from 8px to 48px with the chip count
+  and wrapping only once the minimum no longer fits.
+
+### Changed
+
+- **Default background** swapped from an animated GIF to a static wallpaper;
+  the GIF was needlessly power-hungry.
+- **Card architecture modularised into a registry** (internal, behaviour
+  preserving). Adding a card type used to mean editing a dozen scattered
+  enumerations — render and editor switches, the add-card menu, layout-import
+  validation, the live-redraw set, the card cloner, locale records — most of
+  which failed silently when missed. Each of the 20 card kinds is now a
+  self-contained module under `src/cards/` declaring its render, editor,
+  templates, liveness and clone behaviour, collected by a registry whose mapped
+  type turns a missing registration into a compile error. An unknown persisted
+  card kind (from a newer version, a sync conflict or a hand-edited
+  `data.json`) now falls back to an inert definition rather than crashing the
+  whole dashboard render, and a cloned RSS card no longer shares its sources
+  array with the original (#103).
+
 ## [1.16.0]
 
 ### Added

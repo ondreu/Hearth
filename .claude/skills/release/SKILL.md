@@ -149,7 +149,12 @@ rejected — land it via a PR and merge once the check is green.
 - **CHANGELOG** top entry is the in-flight version, and each section lists only
   what that build ships.
 - Run `node scripts/verify-manifests.mjs` on the `main`-facing branch to confirm
-  the manifest/version/changelog invariants before opening the PR.
+  the manifest/version/changelog invariants before opening the PR. Do **not**
+  expect it to pass on the B1 promotion commit — there `manifest.json` is already
+  `X.Y.Z` while `manifest-beta.json` still holds `X.Y.Z-beta.N`, so the
+  "beta strictly ahead of stable" check fails by construction until B2 opens the
+  next line. That branch is never merged and nothing in CI or the release
+  workflow runs this script, so the failure is expected, not a problem to fix.
 
 ## Never
 

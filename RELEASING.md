@@ -1,14 +1,16 @@
 # Releasing Hearth
 
-Releases are cut **exclusively by pushing a git tag**. The
-[`Release Obsidian plugin`](.github/workflows/release.yml) workflow builds the
-plugin, attaches `main.js`, `manifest.json` and `styles.css` to a GitHub
-Release, and marks pre-releases correctly so the Obsidian community store keeps
-serving the right build to the right people.
+Releases are cut **exclusively by the
+[`Release Obsidian plugin`](.github/workflows/release.yml) workflow**, which
+builds the plugin, attaches `main.js`, `manifest.json` and `styles.css` to a
+GitHub Release, and marks pre-releases correctly so the Obsidian community store
+keeps serving the right build to the right people. The workflow has two entry
+points — a pushed tag or a manual dispatch — and both run every guard; see
+[How a release is cut](#how-a-release-is-cut).
 
 > **Never create a release by hand through the GitHub UI.** A manual release
 > skips the tag→manifest check, is created as "latest" by default, and — as has
-> happened — can push a beta to every stable user. Tags only.
+> happened — can push a beta to every stable user. The workflow only.
 
 ## Two channels: stable vs. beta
 
@@ -74,12 +76,49 @@ Tags like `1.8.1.4-beta` are **not valid semver** and Obsidian rejects them
 workflow never runs, `--prerelease` is never applied, and the release silently
 becomes "latest" for all users. Use `1.9.0-beta.4`, not `1.8.1.4-beta`.
 
+## How a release is cut
+
+The workflow has two entry points. Both run the identical guard chain
+(tag↔manifest, beta parity, plain-`x.y.z` store manifest), so neither is a way
+to "get around" a failing check — only the trigger differs.
+
+**1. Push the tag** (the default). The tag name **is** the version, no `v`
+prefix:
+
+```sh
+git tag 1.9.0-beta.1
+git push origin 1.9.0-beta.1
+```
+
+**2. Dispatch the workflow** — for when a tag push isn't available. Sandboxed
+environments (Claude Code on the web, and CI runners without tag-push rights)
+have their egress proxy reject `refs/tags/*` pushes with **HTTP 403**; that is
+policy, not a transient failure, so don't retry it. Run the workflow instead:
+
+- From the **Actions tab**: _Release Obsidian plugin_ → _Run workflow_, pick the
+  branch holding the release commit, and set **Version**.
+- Or via the API/MCP equivalent, `workflow_id=release.yml`, `ref=<that branch>`,
+  `inputs={"version": "<exact tag>"}`.
+
+`gh release create` inside the workflow mints the tag on GitHub's side, so the
+tag still ends up pointing at the release commit.
+
+> ⚠️ **Always set the `version` input.** It is optional in the form but defaults
+> to `manifest.json`'s version — i.e. the *stable* line. Dispatching a beta
+> without it silently tries to cut the stable version instead of your beta.
+
+Because the dispatch needs a `ref`, the commit must be on a **pushed branch**
+first (branch pushes are unaffected by the tag-push block). For a promotion that
+means a short-lived branch off the beta-tested commit — `promote-X.Y.Z` by
+convention — which can be deleted once the tag exists.
+
 ## Cutting a beta
 
 1. **Bump `manifest-beta.json` only** — do **not** touch `manifest.json`:
    - `manifest-beta.json` → `"version": "1.9.0-beta.1"`
 2. Commit (e.g. `chore: beta 1.9.0-beta.1`).
-3. **Tag and push** — the tag name **is** the version, no `v` prefix:
+3. **Cut the release** — push the tag, or dispatch the workflow with the beta
+   version; see [How a release is cut](#how-a-release-is-cut).
    ```sh
    git tag 1.9.0-beta.1
    git push origin 1.9.0-beta.1
@@ -129,7 +168,20 @@ To promote:
    A version-only bump like this leaves the build inputs untouched, so the guard
    passes. **Never** carry along extra `src/`/`styles.css` commits here.
 2. Commit (e.g. `chore: release 1.9.0`).
-3. **Tag and push** — the tag must point at that promotion commit:
+
+   > **Expect `verify:manifests` to fail on this commit — that is correct.**
+   > The promotion bumps `manifest.json` to `1.9.0` while `manifest-beta.json`
+   > still holds `1.9.0-beta.1`, so the "beta must be strictly ahead of stable"
+   > invariant is violated by construction. It is resolved a step later, when
+   > the `main`-facing commit opens the next line (`1.10.0-beta.1`). Nothing is
+   > wrong: the promotion branch is never merged to `main`, and neither CI (which
+   > runs only on `main` pushes and PRs) nor the release workflow runs this
+   > script. Run `verify:manifests` on the **`main`-facing** commit of step 5,
+   > which is the one that has to satisfy it.
+
+3. **Cut the release** — the tag must point at that promotion commit. Push the
+   tag, or dispatch the workflow against the branch carrying it; see
+   [How a release is cut](#how-a-release-is-cut).
    ```sh
    git tag 1.9.0
    git push origin 1.9.0
