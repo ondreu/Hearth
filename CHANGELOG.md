@@ -33,6 +33,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   task progresses its status. The checkbox swallows pointer events so ticking it
   on a draggable card doesn't start a drag. Recurring tasks keep their
   per-occurrence checkbox; checkbox- and Kanban-source tasks are unchanged (#111).
+- **Status chip on TaskNotes tasks in the list layout.** With the checkbox
+  replacing the old status badge, a task's actual status — open, in-progress,
+  waiting, whatever your setup uses — was no longer visible in the list; the
+  checkbox only says done or not. Each TaskNotes task now carries a small status
+  pill beside its priority chip, showing the raw frontmatter value (capitalized
+  for reading) with the full value in the tooltip. Checkbox- and Kanban-source
+  tasks keep their existing badges.
 - **Vault images as tile icons.** Launchpad and command tiles accepted only a
   Lucide icon id; they now also take a path to an image in your vault (png, jpg,
   svg, webp, …), which fills the whole tile with the label overlaid on a
@@ -64,8 +71,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Sunday-based day offset, so in any locale whose week starts on Monday (Czech,
   most of Europe) occurrences landed on the wrong date — off by up to several
   days. The expansion is now locale-independent. The agenda view's
-  today-highlight is also toned down to a thin outline and a lightly tinted day
-  number; the month grid keeps its existing highlight.
+  today-highlight is also toned down to a thin row border and an
+  accent-coloured day number, with no filled pill behind it, so today reads as
+  part of the list rather than a block of colour; the month grid keeps its
+  existing highlight.
 - **Search filter chips no longer strand across the search bar.** With only a
   few filters, the chips were distributed edge-to-edge — one at the start, one
   in the middle, one at the end. They now sit in a left-aligned row whose gap

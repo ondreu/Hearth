@@ -2319,15 +2319,11 @@
 	color: var(--text-normal);
 }
 
+/* Today in the agenda is marked lightly: the day number takes the accent
+   colour, with no filled pill behind it, so the row reads as part of the list
+   instead of a block of colour (the row border below carries the rest). */
 .hearth-agenda-row.is-today .hearth-agenda-daynum {
 	color: var(--interactive-accent);
-	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
-	border-radius: 999px;
-	width: 24px;
-	height: 24px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 	font-weight: 700;
 }
 
@@ -2362,7 +2358,7 @@
 }
 
 .hearth-agenda-row.is-today {
-	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, transparent);
+	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 30%, transparent);
 	outline-offset: -1px;
 }
 
@@ -3406,6 +3402,18 @@
 .hearth-task-column {
 	background: var(--background-modifier-hover);
 	color: var(--text-muted);
+}
+
+/* The TaskNotes status chip in the list layout, sitting beside the priority
+   chip. Raw frontmatter values are usually lowercase ("open", "in-progress"),
+   so capitalize them to read like the priority label next to it. */
+.hearth-task-statuschip {
+	text-transform: capitalize;
+}
+
+/* A completed task's status chip recedes with the rest of the row. */
+.hearth-task.is-done .hearth-task-statuschip {
+	color: var(--text-faint);
 }
 
 /* "Add card" control at the bottom of a Kanban column (Kanban source). */
