@@ -33,6 +33,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   task progresses its status. The checkbox swallows pointer events so ticking it
   on a draggable card doesn't start a drag. Recurring tasks keep their
   per-occurrence checkbox; checkbox- and Kanban-source tasks are unchanged (#111).
+- **Status chip on TaskNotes tasks in the list layout.** With the checkbox
+  replacing the old status badge, a task's actual status — open, in-progress,
+  waiting, whatever your setup uses — was no longer visible in the list; the
+  checkbox only says done or not. Each TaskNotes task now carries a small status
+  pill directly after its title, left-aligned against it so it reads as part of
+  the task while the priority and date chips stay on the right edge. It shows
+  the raw frontmatter value (capitalized for reading) with the full value in the
+  tooltip, and fades along with a completed row. Checkbox- and Kanban-source
+  tasks keep their existing badges.
 - **Vault images as tile icons.** Launchpad and command tiles accepted only a
   Lucide icon id; they now also take a path to an image in your vault (png, jpg,
   svg, webp, …), which fills the whole tile with the label overlaid on a
@@ -74,6 +83,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **Kanban boards are as translucent as task lists.** The list layout draws no
+  surface of its own, so a translucent or frosted card shows straight through
+  it — but a Kanban board covered the same card with an opaque column plate and
+  opaque cards, reading as a solid slab on an otherwise see-through board.
+  Columns are now a light tint rather than a plate, and cards a translucent fill
+  with their hairline border defining the edge; both scale with the board's card
+  opacity, so they fade in step with the surface they sit on.
 - **Default background** swapped from an animated GIF to a static wallpaper;
   the GIF was needlessly power-hungry.
 - **Card architecture modularised into a registry** (internal, behaviour
