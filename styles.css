@@ -2319,11 +2319,15 @@
 	color: var(--text-normal);
 }
 
-/* Today in the agenda is marked lightly: the day number takes the accent
-   colour, with no filled pill behind it, so the row reads as part of the list
-   instead of a block of colour (the row border below carries the rest). */
 .hearth-agenda-row.is-today .hearth-agenda-daynum {
 	color: var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
+	border-radius: 999px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	font-weight: 700;
 }
 
@@ -2358,7 +2362,7 @@
 }
 
 .hearth-agenda-row.is-today {
-	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 30%, transparent);
+	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, transparent);
 	outline-offset: -1px;
 }
 
@@ -3327,12 +3331,22 @@
 	align-items: flex-start;
 }
 
+/* Columns read as tinted lanes, not opaque plates. The list layout draws no
+ * surface of its own, so the card's translucency and frost show through it; a
+ * solid --background-secondary column covered all of that and made a Kanban
+ * card look like a slab next to an otherwise see-through board. The lane tint
+ * is therefore both weakened and scaled by the board's --card-opacity, so it
+ * fades in step with the card surface it sits on. */
 .hearth-kanban-col {
 	flex: 1 0 140px;
 	min-width: 130px;
 	display: flex;
 	flex-direction: column;
-	background: var(--background-secondary);
+	background: color-mix(
+		in srgb,
+		var(--background-secondary) calc(var(--card-opacity, 1) * 40%),
+		transparent
+	);
 	border-radius: 8px;
 	max-height: 100%;
 }
@@ -3368,8 +3382,15 @@
 	border-radius: 6px;
 }
 
+/* Cards on the lane: a translucent fill (scaled by --card-opacity for the same
+ * reason as the column) with the hairline border doing the work of defining the
+ * card, rather than an opaque --background-primary tile. */
 .hearth-kanban-card {
-	background: var(--background-primary);
+	background: color-mix(
+		in srgb,
+		var(--background-primary) calc(var(--card-opacity, 1) * 55%),
+		transparent
+	);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
 	padding: 6px 8px;
@@ -3404,11 +3425,25 @@
 	color: var(--text-muted);
 }
 
-/* The TaskNotes status chip in the list layout, sitting beside the priority
-   chip. Raw frontmatter values are usually lowercase ("open", "in-progress"),
-   so capitalize them to read like the priority label next to it. */
+/* The TaskNotes status chip in the list layout. Raw frontmatter values are
+   usually lowercase ("open", "in-progress"), so capitalize them to read like a
+   label rather than a field value. */
 .hearth-task-statuschip {
 	text-transform: capitalize;
+}
+
+/* The chip is left-aligned against the task title instead of drifting into the
+   right-hand chip cluster: the title stops filling the row, and the chip's auto
+   right margin pushes the priority and date chips to the far edge. The marker
+   class is set in renderTaskStatus() rather than matched with :has(), which is
+   avoided here for its broad selector-invalidation cost. */
+.hearth-task.has-statuschip .hearth-task-text {
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.hearth-task.has-statuschip .hearth-task-statuschip {
+	margin-right: auto;
 }
 
 /* A completed task's status chip recedes with the rest of the row. */

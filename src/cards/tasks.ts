@@ -303,12 +303,19 @@ function renderPriority(parent: HTMLElement, priority: string, dotOnly = false):
 
 /** A small pill showing a TaskNotes task's raw status value. The list layout's
  * completion checkbox only says done/not-done, so the actual status (open,
- * in-progress, waiting, …) needs a chip of its own beside the priority. */
-function renderTaskStatus(parent: HTMLElement, status: string): void {
+ * in-progress, waiting, …) needs a chip of its own. It's rendered straight
+ * after the task title and left-aligned against it (see the `has-statuschip`
+ * rules in styles.css) so it reads as part of the task rather than floating
+ * among the right-hand priority/date chips. */
+function renderTaskStatus(row: HTMLElement, status: string): void {
 	const label = status.trim();
 	if (!label) return;
-	const chip = parent.createDiv({ cls: "hearth-task-status hearth-task-statuschip", text: label });
+	const chip = row.createDiv({ cls: "hearth-task-status hearth-task-statuschip", text: label });
 	chip.setAttribute("title", `Status: ${label}`);
+	// Marks the row so the title stops growing to fill it, letting the chip sit
+	// against the title. Set here rather than matched with :has(), which is
+	// avoided in this stylesheet for its broad selector-invalidation cost.
+	row.addClass("has-statuschip");
 }
 
 
@@ -1159,14 +1166,14 @@ function renderTaskRow(
 
 	const label = row.createDiv({ cls: "hearth-list-label hearth-task-text" });
 	fillTaskText(view, label, hit.text || hit.file.basename, hit.file.path);
+	// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
+	// …) and the checkbox can't express it, so show it right after the title.
+	if (hit.status) renderTaskStatus(row, hit.status);
 	// Kanban cards show the board column they belong to as a small badge.
 	if (hit.boardColumn) row.createDiv({ cls: "hearth-task-status hearth-task-column", text: hit.boardColumn });
 	// The list has room for a labelled priority chip (a bare dot is easy to
 	// miss); board cards stay dot-only for compactness.
 	if (hit.priority) renderPriority(row, hit.priority);
-	// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
-	// …) and the checkbox can't express it, so show it next to the priority.
-	if (hit.status) renderTaskStatus(row, hit.status);
 	renderTaskDateChips(row, hit, today);
 	if (hit.description) renderTaskDescription(row, hit.description);
 

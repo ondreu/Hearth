@@ -37,8 +37,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   replacing the old status badge, a task's actual status — open, in-progress,
   waiting, whatever your setup uses — was no longer visible in the list; the
   checkbox only says done or not. Each TaskNotes task now carries a small status
-  pill beside its priority chip, showing the raw frontmatter value (capitalized
-  for reading) with the full value in the tooltip. Checkbox- and Kanban-source
+  pill directly after its title, left-aligned against it so it reads as part of
+  the task while the priority and date chips stay on the right edge. It shows
+  the raw frontmatter value (capitalized for reading) with the full value in the
+  tooltip, and fades along with a completed row. Checkbox- and Kanban-source
   tasks keep their existing badges.
 - **Vault images as tile icons.** Launchpad and command tiles accepted only a
   Lucide icon id; they now also take a path to an image in your vault (png, jpg,
@@ -71,10 +73,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Sunday-based day offset, so in any locale whose week starts on Monday (Czech,
   most of Europe) occurrences landed on the wrong date — off by up to several
   days. The expansion is now locale-independent. The agenda view's
-  today-highlight is also toned down to a thin row border and an
-  accent-coloured day number, with no filled pill behind it, so today reads as
-  part of the list rather than a block of colour; the month grid keeps its
-  existing highlight.
+  today-highlight is also toned down to a thin outline and a lightly tinted day
+  number; the month grid keeps its existing highlight.
 - **Search filter chips no longer strand across the search bar.** With only a
   few filters, the chips were distributed edge-to-edge — one at the start, one
   in the middle, one at the end. They now sit in a left-aligned row whose gap
@@ -83,6 +83,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **Kanban boards are as translucent as task lists.** The list layout draws no
+  surface of its own, so a translucent or frosted card shows straight through
+  it — but a Kanban board covered the same card with an opaque column plate and
+  opaque cards, reading as a solid slab on an otherwise see-through board.
+  Columns are now a light tint rather than a plate, and cards a translucent fill
+  with their hairline border defining the edge; both scale with the board's card
+  opacity, so they fade in step with the surface they sit on.
 - **Default background** swapped from an animated GIF to a static wallpaper;
   the GIF was needlessly power-hungry.
 - **Card architecture modularised into a registry** (internal, behaviour
