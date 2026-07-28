@@ -184,6 +184,11 @@ export class SearchSection {
 		if (groups.length === 0) return;
 
 		const row = parent.createDiv("hearth-filters");
+		// The column-gap splits the row's leftover space between the chips, so
+		// the stylesheet needs the chip count. We know it exactly here, so set
+		// it directly: deriving it in CSS took a ladder of :has() rules, which
+		// carries a broad selector-invalidation cost and capped out at 14 chips.
+		row.style.setProperty("--n", String(groups.length));
 		for (const group of groups) {
 			const chip = row.createDiv("hearth-filter");
 			chip.toggleClass("is-active", this.activeFilter === group.id);

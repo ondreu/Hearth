@@ -350,11 +350,14 @@
  * function, so capping a track at 48px of slack also makes it wrap as soon as
  * 48px doesn't fit, far too early.
  *
- * So the count comes from :has() instead. --n resolves to the number of chips
- * (each rule below overrides the last, so the highest match wins) and the gap
- * is the exact leftover split between them, clamped to the 8-48px range. When
- * the clamp bottoms out at 8px the row no longer fits and flex wraps, which is
- * precisely the intended wrap point. */
+ * So the count comes from --n, which renderFilters() sets to the number of
+ * chips as it builds the row. The gap is the exact leftover split between
+ * them, clamped to the 8-48px range. When the clamp bottoms out at 8px the row
+ * no longer fits and flex wraps, which is precisely the intended wrap point.
+ *
+ * --n was previously derived here with a ladder of :has(.hearth-filter:
+ * nth-child(n)) rules. That is avoided for its broad selector-invalidation
+ * cost, and it also silently capped the count at 14 chips. */
 .hearth-filters {
 	display: flex;
 	flex-wrap: wrap;
@@ -367,20 +370,6 @@
 	row-gap: 8px;
 	width: 100%;
 }
-
-.hearth-filters:has(.hearth-filter:nth-child(2)) { --n: 2; }
-.hearth-filters:has(.hearth-filter:nth-child(3)) { --n: 3; }
-.hearth-filters:has(.hearth-filter:nth-child(4)) { --n: 4; }
-.hearth-filters:has(.hearth-filter:nth-child(5)) { --n: 5; }
-.hearth-filters:has(.hearth-filter:nth-child(6)) { --n: 6; }
-.hearth-filters:has(.hearth-filter:nth-child(7)) { --n: 7; }
-.hearth-filters:has(.hearth-filter:nth-child(8)) { --n: 8; }
-.hearth-filters:has(.hearth-filter:nth-child(9)) { --n: 9; }
-.hearth-filters:has(.hearth-filter:nth-child(10)) { --n: 10; }
-.hearth-filters:has(.hearth-filter:nth-child(11)) { --n: 11; }
-.hearth-filters:has(.hearth-filter:nth-child(12)) { --n: 12; }
-.hearth-filters:has(.hearth-filter:nth-child(13)) { --n: 13; }
-.hearth-filters:has(.hearth-filter:nth-child(14)) { --n: 14; }
 
 .hearth-filter {
 	display: flex;
