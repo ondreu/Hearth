@@ -17,8 +17,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws
-  one — Recent files, Favorites, saved-search cards and the search bar — instead
-  of the generic file-type icon. Lucide icons and emoji are both shown; a file
+  one — Recent files, Favorites, Bookmarks, saved-search cards and the search
+  bar — instead of the generic file-type icon. Bookmarks pointing at a note or
+  folder now also follow the file's *type* icon rather than always showing the
+  same page glyph, so a bookmarked PDF or canvas looks like one. Lucide icons and emoji are both shown; a file
   using an icon from one of Iconize's downloaded icon packs keeps Hearth's own
   icon, since those are SVG files rather than named icons. Neither plugin offers
   an API, so Hearth reads their settings directly and quietly falls back to the

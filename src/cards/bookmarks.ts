@@ -1,5 +1,6 @@
 import { setIcon, TFile, TFolder } from "obsidian";
 import { emptyState } from "../cardbodies";
+import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { type BookmarkItem } from "../obsidian-ext";
 import { makeClickable } from "../ui";
@@ -131,8 +132,19 @@ function renderBookmarkLeaf(
 		t().cards.bookmarks.untitled;
 	const row = container.createDiv("hearth-list-item");
 	const iconEl = row.createDiv("hearth-list-icon");
+	// A bookmark that points at a vault file or folder gets that target's icon —
+	// its Iconize/Iconic icon when one is set, otherwise its file-type icon — so
+	// the same note looks the same here as in Recent or Favorites (#132). Every
+	// other bookmark kind describes a destination rather than a file and keeps
+	// its own fixed icon.
+	const target =
+		(item.type === "file" || item.type === "folder") && item.path
+			? view.app.vault.getAbstractFileByPath(item.path)
+			: null;
 	if (item.type === "url" && item.url) {
 		renderFavicon(iconEl, item.url);
+	} else if (target) {
+		applyFileIcon(iconEl, resolveFileIcon(view.app, target, fileIconOptions(view.plugin.settings)));
 	} else {
 		const icon =
 			item.type === "folder" ? "folder" :
