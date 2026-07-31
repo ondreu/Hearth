@@ -4,6 +4,15 @@ import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
 import { t } from "../i18n";
 import { FilePickerModal } from "../pickers";
+import {
+	PRIORITY_EMOJI,
+	priorityClass,
+	priorityDisplayLabel,
+	priorityKey,
+	priorityLevel,
+	priorityRank,
+	readPriorityEmoji,
+} from "../priority";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
 	type DashboardCard,
@@ -261,33 +270,6 @@ function formatDueLabel(hit: TaskHit): string | null {
 }
 
 
-/** Map a raw priority value to a coarse level for coloring the indicator. */
-function priorityLevel(priority: string): "high" | "medium" | "low" | "other" {
-	const v = priority.trim().toLowerCase();
-	if (/^(high|urgent|critical|highest|p1|1|!!!|🔺|⏫)$/.test(v)) return "high";
-	if (/^(medium|normal|med|moderate|p2|2|🔼)$/.test(v)) return "medium";
-	if (/^(low|lowest|minor|p3|3|🔽|⏬)$/.test(v)) return "low";
-	return "other";
-}
-
-
-/** A readable label for a priority value: a raw word (e.g. TaskNotes' "high")
- * is shown as-is, but an emoji priority (🔺⏫🔼🔽⏬) is mapped to its key word
- * (highest/high/medium/low/lowest) so the list doesn't show a bare emoji. */
-function priorityDisplayLabel(priority: string): string {
-	if (/[a-z]/i.test(priority)) return priority;
-	return priorityKey(priority) || priority; // CSS capitalizes the word
-}
-
-
-/** The fine-grained CSS level class for a priority: distinguishes all five
- * Tasks-plugin levels (highest/high/medium/low/lowest) so, e.g., "highest" and
- * "high" get different colours. Falls back to "other". */
-function priorityClass(priority: string): string {
-	return priorityKey(priority) || "other";
-}
-
-
 /** A small colored dot showing a task's priority. With `dotOnly` (used by
  * Kanban board cards to keep them compact) it renders just the coloured dot
  * inline, with the value in the tooltip; otherwise it also shows a readable
@@ -373,21 +355,6 @@ function renderTaskDescription(parent: HTMLElement, description: string): void {
  * default); plain checkboxes follow `checkboxExtended` (on by default). */
 function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
-}
-
-
-/** Coarse rank of a priority value for ordering: high → medium → low → other. */
-function priorityRank(p: string | undefined): number {
-	switch (priorityLevel(p ?? "")) {
-		case "high":
-			return 0;
-		case "medium":
-			return 1;
-		case "low":
-			return 2;
-		default:
-			return 3;
-	}
 }
 
 
@@ -2563,39 +2530,6 @@ async function collectKanbanTasks(
 		}
 	}
 	return { hits, columns, file };
-}
-
-
-/** The Tasks-plugin priority emoji present on a card (highest→lowest), or
- * undefined. Returned raw; priorityLevel()/renderPriority() map it to a level
- * and show it as the label. */
-function readPriorityEmoji(text: string): string | undefined {
-	const m = /[🔺⏫🔼🔽⏬]/u.exec(text);
-	return m ? m[0] : undefined;
-}
-
-
-/** Tasks-plugin priority keys, in descending order, mapped to their emoji. */
-const PRIORITY_EMOJI: Record<string, string> = {
-	highest: "🔺",
-	high: "⏫",
-	medium: "🔼",
-	low: "🔽",
-	lowest: "⏬",
-};
-
-
-/** The priority key ("high", "lowest", …) for a raw priority value — an emoji
- * (⏫) or a word ("high") — or "" when none/unrecognized. Used to prefill the
- * editor and to round-trip the emoji through the pickers. */
-function priorityKey(priority: string | undefined): string {
-	if (!priority) return "";
-	for (const [key, emoji] of Object.entries(PRIORITY_EMOJI)) {
-		if (priority === emoji || priority.toLowerCase() === key) return key;
-	}
-	// Fall back to the coarse level for words like "urgent"/"minor".
-	const level = priorityLevel(priority);
-	return level === "other" ? "" : level;
 }
 
 
