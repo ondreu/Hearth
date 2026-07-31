@@ -1,6 +1,7 @@
 import { Command, Component, debounce, Platform, setIcon, TAbstractFile, TFile, TFolder } from "obsidian";
 import type { HomeView } from "./view";
-import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, iconForFile, OTHER_GROUP_ID } from "./filetypes";
+import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
+import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";
 import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { t } from "./i18n";
@@ -337,8 +338,10 @@ export class SearchSection {
 			this.showEmpty();
 			return;
 		}
+		const icons = fileIconOptions(this.view.plugin.settings);
 		hits.forEach((hit, i) => {
-			const row = this.newRow(i, hit.badge?.icon ?? iconForFile(hit.file));
+			// A badge icon says why the file matched, so it outranks the file's own.
+			const row = this.newRow(i, hit.badge?.icon ?? resolveFileIcon(this.view.app, hit.file, icons));
 			const text = row.createDiv("hearth-result-text");
 			const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 			this.renderName(text.createDiv("hearth-result-name"), name || "/", hit.matches);
@@ -374,12 +377,12 @@ export class SearchSection {
 		this.finishResults();
 	}
 
-	private newRow(index: number, icon: string): HTMLElement {
+	private newRow(index: number, icon: ResolvedIcon | string): HTMLElement {
 		const row = this.resultsEl.createDiv("hearth-result");
 		row.id = `${this.resultsId}-opt-${index}`;
 		row.setAttribute("role", "option");
 		row.setAttribute("aria-selected", "false");
-		setIcon(row.createDiv("hearth-result-icon"), icon);
+		applyFileIcon(row.createDiv("hearth-result-icon"), icon);
 		return row;
 	}
 

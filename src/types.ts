@@ -849,6 +849,17 @@ export interface HomeSettings {
 	/** The status value that counts as "done". */
 	taskNotesDoneValue: string;
 
+	// ---- File icons / Iconic / Iconize ----
+	/** Show the per-file icons set with the Iconic or Iconize community plugins
+	 * wherever Hearth draws a file icon, instead of Hearth's file-type icon.
+	 * Harmless with neither plugin installed — there is simply nothing to read,
+	 * and every file keeps its type icon. */
+	customFileIcons: boolean;
+	/** Frontmatter property Iconize stores a note's icon in. Iconize lets the
+	 * user rename it, so — as with the TaskNotes fields above — this mirrors its
+	 * default rather than assuming nobody changed it. */
+	iconizeIconProperty: string;
+
 	// ---- Layout ----
 	maxWidth: number;
 
@@ -919,6 +930,12 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	taskNotesDueField: "due",
 	taskNotesPriorityField: "priority",
 	taskNotesDoneValue: "done",
+
+	// On by default: with neither icon plugin installed this changes nothing,
+	// and with one installed the icons the user already set are what they expect
+	// to see. "icon" is Iconize's own default property name.
+	customFileIcons: true,
+	iconizeIconProperty: "icon",
 
 	maxWidth: 1600,
 

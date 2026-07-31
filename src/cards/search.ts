@@ -1,7 +1,7 @@
-import { setIcon, Setting, TFile } from "obsidian";
+import { Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
-import { iconForFile } from "../filetypes";
+import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { runQuery, searchFileContents, type QueryHit } from "../query";
 import { type DashboardCard } from "../types";
@@ -53,9 +53,15 @@ export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTM
 
 function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): void {
 	const el = body.createDiv("hearth-list");
+	const icons = fileIconOptions(view.plugin.settings);
 	for (const hit of list) {
 		const row = el.createDiv("hearth-list-item");
-		setIcon(row.createDiv("hearth-list-icon"), hit.badge?.icon ?? iconForFile(hit.file));
+		// A badge icon describes *why* the file matched (tag, property, body), so
+		// it outranks the file's own icon.
+		applyFileIcon(
+			row.createDiv("hearth-list-icon"),
+			hit.badge?.icon ?? resolveFileIcon(view.app, hit.file, icons),
+		);
 		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 		row.createDiv({ cls: "hearth-list-label", text: name });
 		if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
@@ -72,9 +78,13 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 	const grid = body.createDiv("hearth-links hearth-tiles-sized");
 	const baseTile = 90;
 	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
+	const icons = fileIconOptions(view.plugin.settings);
 	for (const hit of list) {
 		const tile = grid.createDiv("hearth-link-tile");
-		setIcon(tile.createDiv("hearth-link-icon"), hit.badge?.icon ?? iconForFile(hit.file));
+		applyFileIcon(
+			tile.createDiv("hearth-link-icon"),
+			hit.badge?.icon ?? resolveFileIcon(view.app, hit.file, icons),
+		);
 		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 		tile.createDiv({ cls: "hearth-link-label", text: name });
 		const open = () => {

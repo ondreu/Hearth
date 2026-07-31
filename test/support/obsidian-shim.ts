@@ -63,6 +63,12 @@ export class TextComponent {}
 
 export function setIcon(): void {}
 export function addIcon(): void {}
+// fileicons.ts imports this for its icon-registry lookup. The pure helpers
+// under test take the "is this icon registered?" check as a parameter, so the
+// real registry is never consulted.
+export function getIconIds(): string[] {
+	throw new Error("getIconIds is not implemented in tests (Obsidian API)");
+}
 export function parseYaml(): unknown {
 	throw new Error("parseYaml is not implemented in tests (Obsidian API)");
 }

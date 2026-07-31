@@ -1228,6 +1228,28 @@
 	border-radius: 3px;
 }
 
+/* An emoji icon from Iconic/Iconize stands in for the Lucide glyph setIcon
+ * would have drawn, so it has to occupy the same box — otherwise rows with an
+ * emoji sit a pixel or two off from rows without one. Sized off --icon-size so
+ * it tracks Obsidian's own icon scaling. */
+.hearth-emoji-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--icon-size, 16px);
+	height: var(--icon-size, 16px);
+	font-size: calc(var(--icon-size, 16px) * 0.85);
+	line-height: 1;
+}
+
+/* Tile icons are drawn at a fixed 24px rather than --icon-size (see
+ * .hearth-link-icon .svg-icon), so the emoji has to match that explicitly. */
+.hearth-link-icon .hearth-emoji-icon {
+	width: 24px;
+	height: 24px;
+	font-size: 20px;
+}
+
 .hearth-list-label {
 	font-size: 0.9rem;
 	color: var(--text-normal);
