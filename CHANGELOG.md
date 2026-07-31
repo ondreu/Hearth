@@ -11,6 +11,22 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [1.18.0]
+
+### Fixed
+
+- **Theme focus rings no longer break the search bar.** Under Catppuccin (and
+  any theme that styles input focus with a body-class-prefixed selector), the
+  home-screen search input picked up the theme's own focus ring, so a blue
+  outline hugged the text field instead of the search bar lighting up as a
+  whole. Those themes' selectors outrank the plain class selectors Hearth used
+  to suppress the ring. The controls that draw their own focus affordance — the
+  search input, the jot/embed editors, the calculator, the card-title field and
+  the task-detail title editor — now hold that suppression against any theme.
+  Inputs with an ordinary border, such as the Kanban editors and the task-detail
+  description field, keep the theme's ring, since for them it is the focus
+  affordance (#138).
+
 ## [1.17.0]
 
 ### Added
