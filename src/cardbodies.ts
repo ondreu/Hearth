@@ -1,4 +1,5 @@
 import { Component, debounce, MarkdownRenderer, moment as createMoment, setIcon, TFile } from "obsidian";
+import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
 import { localDayKey } from "./dates";
 import { t } from "./i18n";
 import { type DashboardCard, type EmbedView } from "./types";
@@ -146,6 +147,96 @@ export function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath:
 }
 
 
+/** The task checkboxes a rendered host owns, in document order. Checkboxes
+ * inside a transclusion belong to another file, so they're left out: they would
+ * shift the ordinals the source mapping counts on (and clicking one should edit
+ * that other note, which this wiring can't do). */
+function checkboxInputs(host: HTMLElement): HTMLInputElement[] {
+	const all = host.querySelectorAll<HTMLInputElement>(
+		"input.task-list-item-checkbox, li.task-list-item > input[type='checkbox']",
+	);
+	return Array.from(all).filter((el) => !el.closest(".internal-embed, .markdown-embed"));
+}
+
+
+/**
+ * Make task checkboxes inside rendered Markdown write back to their source
+ * (issue #143). Obsidian only persists a checkbox click inside a real preview
+ * view; the inputs `MarkdownRenderer.render` emits into a custom container are
+ * live but inert, so a tick looked like it stuck and was lost on the next
+ * render. Like `wireMarkdownLinks`, this delegates from the stable host so it
+ * keeps working as the content node is re-rendered underneath it.
+ *
+ * `process` applies an edit to the source text (a vault read-modify-write for
+ * note-backed cards). The click is reverted in the DOM when the edit doesn't
+ * land, so the checkbox never shows a state the source doesn't have.
+ */
+export function wireMarkdownCheckboxes(
+	host: HTMLElement,
+	process: (fn: (data: string) => string) => Promise<unknown>,
+	opts: CheckboxScanOptions = {},
+): void {
+	const isCheckbox = (evt: Event): HTMLInputElement | null => {
+		const target = evt.target;
+		if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return null;
+		return target;
+	};
+
+	// A card whose preview opens a raw editor on double-click shouldn't do that
+	// when the user ticks two boxes quickly. Registered before that handler, so
+	// stopping the event here keeps it from running.
+	host.addEventListener("dblclick", (evt) => {
+		if (isCheckbox(evt)) evt.stopImmediatePropagation();
+	});
+
+	host.addEventListener("click", (evt) => {
+		const input = isCheckbox(evt);
+		if (!input) return;
+		const inputs = checkboxInputs(host);
+		const ordinal = inputs.indexOf(input);
+		if (ordinal < 0) return;
+		// The browser has already flipped the input; that's the state to write.
+		const checked = input.checked;
+		const count = inputs.length;
+		evt.stopPropagation();
+		const revert = () => {
+			if (input.isConnected) input.checked = !checked;
+		};
+		let applied = false;
+		void process((data) => {
+			// The render we counted no longer matches the source (an edit landed
+			// in between, or the note renders checkboxes we can't account for) —
+			// writing by ordinal could tick the wrong line, so write nothing.
+			if (countCheckboxes(data, opts) !== count) return data;
+			const next = toggleCheckboxAt(data, ordinal, checked, opts);
+			if (next === null) return data;
+			applied = true;
+			return next;
+		})
+			.then(() => {
+				if (!applied) revert();
+			})
+			.catch(() => {
+				revert();
+			});
+	});
+}
+
+
+/** Apply an edit to a note, atomically re-reading it first so a checkbox click
+ * can't clobber a concurrent edit. */
+function processFile(
+	view: HomeView,
+	file: TFile,
+): (fn: (data: string) => string) => Promise<unknown> {
+	return (fn) => {
+		const current = view.app.vault.getAbstractFileByPath(file.path);
+		if (!(current instanceof TFile)) return Promise.reject(new Error(`Missing: ${file.path}`));
+		return view.app.vault.process(current, fn);
+	};
+}
+
+
 /** Render a Markdown file's real content (not a transclusion placeholder). */
 export async function renderMarkdownFile(
 	view: HomeView,
@@ -156,6 +247,7 @@ export async function renderMarkdownFile(
 	const raw = await view.app.vault.cachedRead(file);
 	await MarkdownRenderer.render(view.app, stripFrontmatter(raw), host, file.path, component);
 	wireMarkdownLinks(view, host, file.path);
+	wireMarkdownCheckboxes(host, processFile(view, file));
 }
 
 
@@ -176,6 +268,9 @@ export function renderEditableEmbed(
 	const preview = wrap.createDiv("hearth-embed markdown-rendered hearth-jot-preview");
 	preview.setAttribute("title", t().cards.embed.editHint);
 	wireMarkdownLinks(view, preview, file.path);
+	// Registered before the dblclick-to-edit handler below, so ticking two boxes
+	// in quick succession doesn't drop the card into the raw editor.
+	wireMarkdownCheckboxes(preview, processFile(view, file));
 	const area = wrap.createEl("textarea", {
 		cls: "hearth-text hearth-embed-edit hearth-jot-edit",
 		attr: { placeholder: t().cards.embed.emptyNotePlaceholder },
