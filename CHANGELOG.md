@@ -15,6 +15,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Sorting tasks by priority puts Highest at the top.** The priority sort
+  ranked tasks by the coarse colour bucket the priority dot uses, which lumps
+  Highest in with High (and Lowest in with Low). Tasks one level apart therefore
+  tied, and the order fell through to the next rule — so a High task could sit
+  above a Highest one. Priority now ranks on the exact level, so all five
+  Tasks-plugin levels order Highest → High → Medium → Low → Lowest, with
+  unprioritised tasks last. This applies to the priority sort, the priority step
+  of a custom sort, and the priority tiebreak in the default smart sort (#145).
 - **Checkboxes now stay checked.** Ticking a task in an embedded note, a daily
   note or a jot card looked like it worked and was lost on the next render:
   Obsidian only writes a checkbox click back to the file inside a real preview
