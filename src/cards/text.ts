@@ -1,5 +1,5 @@
 import { Component, debounce, MarkdownRenderer } from "obsidian";
-import { wireMarkdownLinks } from "../cardbodies";
+import { wireMarkdownCheckboxes, wireMarkdownLinks } from "../cardbodies";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
@@ -19,6 +19,22 @@ export function renderText(
 	const preview = wrap.createDiv("hearth-jot-preview markdown-rendered");
 	preview.setAttribute("title", t().cards.embed.editHint);
 	wireMarkdownLinks(view, preview, "");
+	// Ticking a checkbox edits the card's own text (issue #143). The jot isn't a
+	// note, so its leading `---` is content, not frontmatter. Registered before
+	// the dblclick-to-edit handler below so a quick double-tick doesn't open the
+	// raw editor.
+	wireMarkdownCheckboxes(
+		preview,
+		(fn) => {
+			const next = fn(card.text ?? "");
+			if (next !== (card.text ?? "")) {
+				card.text = next;
+				void view.plugin.saveData(view.plugin.settings);
+			}
+			return Promise.resolve();
+		},
+		{ skipFrontmatter: false },
+	);
 	const area = wrap.createEl("textarea", {
 		cls: "hearth-text hearth-jot-edit",
 		attr: { placeholder: t().cards.text.placeholder },

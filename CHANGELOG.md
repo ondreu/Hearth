@@ -15,6 +15,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Checkboxes now stay checked.** Ticking a task in an embedded note, a daily
+  note or a jot card looked like it worked and was lost on the next render:
+  Obsidian only writes a checkbox click back to the file inside a real preview
+  view, and the boxes Hearth renders into a card were live but inert. They now
+  edit their source — the note for embed and daily cards, the card's own text
+  for jots — so the state sticks, whether or not the card is set to editable.
+  A tick is reverted if the write can't land, and a click on a checkbox no
+  longer opens the raw editor when it lands as part of a double-click (#143).
 - **Theme focus rings no longer break the search bar.** Under Catppuccin (and
   any theme that styles input focus with a body-class-prefixed selector), the
   home-screen search input picked up the theme's own focus ring, so a blue
