@@ -1,7 +1,7 @@
 import { setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { moveItem } from "../editors";
-import { iconForFile } from "../filetypes";
+import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { FilePickerModal } from "../pickers";
 import { makeClickable } from "../ui";
@@ -19,11 +19,12 @@ export function renderFavorites(view: HomeView, body: HTMLElement): void {
 	}
 
 	const grid = body.createDiv("hearth-favorites");
+	const icons = fileIconOptions(view.plugin.settings);
 	for (const path of paths) {
 		const file = view.app.vault.getAbstractFileByPath(path);
 		const card = grid.createDiv("hearth-fav-card");
 		if (file instanceof TFile) {
-			setIcon(card.createDiv("hearth-fav-icon"), iconForFile(file));
+			applyFileIcon(card.createDiv("hearth-fav-icon"), resolveFileIcon(view.app, file, icons));
 			card.createDiv({ cls: "hearth-fav-name", text: file.basename });
 			const open = () => void view.app.workspace.getLeaf(true).openFile(file);
 			card.addEventListener("click", open);

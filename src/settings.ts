@@ -1,5 +1,6 @@
 import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
+import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
 import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton } from "./types";
@@ -32,7 +33,8 @@ type StringSettingKey =
 	| "taskNotesStatusField"
 	| "taskNotesDueField"
 	| "taskNotesPriorityField"
-	| "taskNotesDoneValue";
+	| "taskNotesDoneValue"
+	| "iconizeIconProperty";
 
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
@@ -343,6 +345,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				break;
 			case "integrations":
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
+				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
+					this.fileIconsSection(b),
+				);
 				break;
 			case "backup":
 				this.section(body, s.layout.heading, s.layout.headingDesc, (b) => this.layoutSection(b));
@@ -968,6 +973,37 @@ export class HomeSettingTab extends PluginSettingTab {
 				await this.save();
 			});
 			this.addTextReset(doneValue, txt, "taskNotesDoneValue");
+		});
+	}
+
+	// ---- File icons (Iconic / Iconize) ----------------------------------
+
+	private fileIconsSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+
+		new Setting(containerEl)
+			.setName(t().settings.fileIcons.enable)
+			.setDesc(
+				hasFileIconPlugin(this.plugin.app)
+					? t().settings.fileIcons.enableDesc
+					: t().settings.fileIcons.enableDescNoPlugin,
+			)
+			.addToggle((tog) =>
+				tog.setValue(s.customFileIcons).onChange(async (v) => {
+					s.customFileIcons = v;
+					await this.save();
+				}),
+			);
+
+		const property = new Setting(containerEl)
+			.setName(t().settings.fileIcons.property)
+			.setDesc(t().settings.fileIcons.propertyDesc);
+		property.addText((txt) => {
+			txt.setValue(s.iconizeIconProperty).onChange(async (v) => {
+				s.iconizeIconProperty = v;
+				await this.save();
+			});
+			this.addTextReset(property, txt, "iconizeIconProperty");
 		});
 	}
 

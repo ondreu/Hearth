@@ -423,6 +423,27 @@ export const en = {
 			doneValue: "“Done” status value",
 			doneValueDesc: "The status value that marks a TaskNotes task complete.",
 		},
+		fileIcons: {
+			heading: "File icons / Iconic / Iconize",
+			headingDesc:
+				"Use the per-file icons you've set with the Iconic or Iconize " +
+				"plugins wherever Hearth shows a file — Recent, Favorites, saved " +
+				"searches and the search bar. Lucide icons and emoji are shown; " +
+				"files using an icon from a downloaded icon pack keep Hearth's own " +
+				"file-type icon.",
+			enable: "Use icons from Iconic / Iconize",
+			enableDesc:
+				"Off shows Hearth's file-type icon for every file, ignoring both plugins.",
+			enableDescNoPlugin:
+				"Neither Iconic nor Iconize is enabled right now, so every file " +
+				"shows Hearth's file-type icon. This can stay on — it takes effect " +
+				"as soon as one of them is installed.",
+			property: "Iconize frontmatter property",
+			propertyDesc:
+				"Property Iconize stores a note's icon in, for icons set through " +
+				"frontmatter rather than its menu. Match this to Iconize's own " +
+				"setting if you renamed it (its default is “icon”).",
+		},
 		filters: {
 			heading: "Search filters",
 			headingDesc:

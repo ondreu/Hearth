@@ -13,6 +13,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ## [1.18.0]
 
+### Added
+
+- **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
+  custom icon set with either plugin keeps that icon everywhere Hearth draws
+  one — Recent files, Favorites, saved-search cards and the search bar — instead
+  of the generic file-type icon. Lucide icons and emoji are both shown; a file
+  using an icon from one of Iconize's downloaded icon packs keeps Hearth's own
+  icon, since those are SVG files rather than named icons. Neither plugin offers
+  an API, so Hearth reads their settings directly and quietly falls back to the
+  file-type icon if it can't. Turn it off, or point it at a renamed Iconize
+  frontmatter property, under Settings → Hearth → Integrations (#132).
+
 ### Fixed
 
 - **Sorting tasks by priority puts Highest at the top.** The priority sort

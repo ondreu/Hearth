@@ -1,7 +1,8 @@
 import { setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
-import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile, iconForFile } from "../filetypes";
+import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
+import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile } from "../filetypes";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
@@ -35,9 +36,10 @@ export function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElem
 	}
 
 	const list = body.createDiv("hearth-list");
+	const icons = fileIconOptions(view.plugin.settings);
 	for (const file of files) {
 		const row = list.createDiv("hearth-list-item");
-		setIcon(row.createDiv("hearth-list-icon"), iconForFile(file));
+		applyFileIcon(row.createDiv("hearth-list-icon"), resolveFileIcon(view.app, file, icons));
 		row.createDiv({ cls: "hearth-list-label", text: file.basename });
 		const open = () => void view.app.workspace.getLeaf(true).openFile(file);
 		row.addEventListener("click", open);
