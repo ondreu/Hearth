@@ -35,6 +35,16 @@ main ──●──●──●───────●──●──●──
 - So at promotion time `main` will *always* be ahead of the beta. That is
   normal and correct — it does **not** block promotion (see "drift" below).
 
+**The two rules, and the one thing they forbid:**
+
+1. A beta is cut from current `main`. Always.
+2. A stable is promoted from a beta that soaked, unchanged. Always.
+
+⛔ **Therefore a beta cut today can never be promoted today.** Cutting and
+promoting are separated by the soak — they are never two halves of one job. If
+the beta you would promote does not already exist and has not already soaked,
+you are not doing a promotion: cut the beta, stop, and hand back.
+
 Always read `RELEASING.md` first; this skill is the operational runbook for it.
 
 ## Preflight (do this every time, before deciding anything)
@@ -47,13 +57,30 @@ git tag -l "*-beta.*" --sort=-v:refname | head      # existing beta snapshots
 git log --oneline "$(git describe --tags --abbrev=0 --match '*-beta.*')"..origin/main -- src styles.css esbuild.config.mjs
 ```
 
-Then classify the drift you see on `main` since the newest beta:
+Drift on `main` since the newest beta is **not** something to classify or fix.
+It is next-cycle work by definition: it ships in the beta you cut from `main` in
+this same pass and reaches stable one cycle later. Promote the soaked snapshot
+as-is.
 
-- Commits are **next-version** work → normal train movement. Promote the beta
-  as-is; those commits become the next beta line.
-- Commits are **this-version** work (a fix/feature you intend to ship in the
-  stable you're about to cut) → they were never soaked. Do **not** fold them in
-  silently: cut a fresh `beta.N` from `main`, let it soak, and promote *that*.
+The one question preflight actually has to answer is:
+
+> **Does a soaked `X.Y.Z-beta.N` already exist?**
+
+- **Yes** → Operation B. Promote it unchanged, whatever `main` looks like now.
+- **No** (the line was opened but never soaked, or soak found a bug) → this is
+  **not a promotion**. Do Operation A only — cut `X.Y.Z-beta.N` from `main` —
+  then **stop and hand back**. Do not continue into Operation B in the same
+  pass, and do not treat silence as permission to. Promotion is a later job,
+  after someone has decided the build is good.
+
+⛔ Cutting a beta and promoting it minutes later ships un-soaked code to every
+user, and **the beta-parity guard will not catch it** — that guard resolves the
+newest `X.Y.Z-beta.*` tag, and a beta you just cut is always the newest. Nothing
+downstream will stop you. This rule is the only thing that does.
+
+If the changelog files work under `[X.Y.Z]` that is not in the soaked beta, the
+**changelog** is wrong, not the beta: move those entries to the next version's
+section in B2 and promote as planned.
 
 ## Operation A — Cut a beta from `main`
 
@@ -66,6 +93,10 @@ Then classify the drift you see on `main` since the newest beta:
    version, no `v` prefix). The workflow publishes it as a **pre-release**.
 
 ## Operation B — Promote a beta to stable (+ open the next beta line)
+
+**Precondition:** the `X.Y.Z-beta.N` you are promoting already existed and had
+already soaked when this job started. If you cut it yourself in this pass,
+Operation B does not apply — you are done after Operation A.
 
 This is two commits on **two different bases** — do not try to do it as one
 commit on `main`, or the beta-parity guard will reject the stable tag.
@@ -158,6 +189,14 @@ rejected — land it via a PR and merge once the check is green.
 
 ## Never
 
+- **Never promote a beta you cut in this same pass.** No soak, no promotion —
+  cut it, stop, hand back. The beta-parity guard does not catch this.
+- **Never merge the B2 store-manifest PR yourself**, and never dispatch
+  `release.yml` for a plain `x.y.z`, unless the user asked for that in this
+  session. Those two steps are what reach every user. Open the PR, report the
+  green check, hand over the link.
+- **Never treat an unanswered question as approval.** If you asked whether to
+  proceed and got no reply, the answer is no — stop with what you have.
 - Never create a release by hand through the GitHub UI.
 - Never put a `-beta` version in `manifest.json`.
 - Never carry `src/` / `styles.css` / `esbuild.config.mjs` changes into a

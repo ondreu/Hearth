@@ -44,6 +44,18 @@ Hearth releases run as a **train**. `main` never freezes:
 4. While the beta soaks, the *next* version's features keep merging into `main`;
    they become the next beta line. Go to 2.
 
+Two rules define the train. Everything else in this document follows from them:
+
+> 1. **A beta is cut from current `main`.** Always — that is the only thing a
+>    beta ever is.
+> 2. **A stable is promoted from a beta that soaked**, unchanged. Always.
+>
+> Together they mean: **a beta cut today can never be promoted today.** Cutting
+> and promoting are two operations separated by the soak, never two halves of
+> one job. If the beta you would promote does not already exist and has not
+> already soaked, you are not doing a promotion — see
+> ["No soaked beta to promote?"](#no-soaked-beta-to-promote).
+
 Two consequences fall out of this and drive the rules below:
 
 - **At promotion time `main` is always ahead of the beta you're promoting.**
@@ -142,20 +154,39 @@ convention — which can be deleted once the tag exists.
 > such beta exists). This is what stops a beta's un-tested code — a new feature,
 > a refactor — from riding a stable tag straight into the store.
 
-**First, check what has drifted onto `main` since the beta.** Because the train
-never freezes (see "Release cadence"), `main` is normally ahead of the beta
-you're promoting — and that's fine when the drift is **next-version** work: it
-stays on `main` and becomes the next beta line, while you promote the soaked
-snapshot as-is.
+**`main` being ahead of the beta is not a problem to solve.** Because the train
+never freezes (see "Release cadence"), `main` is *always* ahead of the beta you
+promote. Everything that landed after the snapshot belongs to the **next**
+carriage — it ships in the beta you cut from `main` in this same pass, and
+reaches stable one cycle later. Nothing is stranded and nothing needs folding
+in. Promote the soaked snapshot as-is.
 
-The drift only blocks promotion when it's **this-version** work: a fix or change
-you intend to ship *in the stable you're about to cut* that landed after the
-`x.y.z-beta.N` you soaked. Those changes were **never beta-tested**, so do
-**not** fold them into the promotion. Cut a fresh beta from current `main`
-(bump `manifest-beta.json` to the next `-beta.N`, tag it), let it soak, and
-promote _that_. The beta-parity guard enforces this either way — it will reject
-a stable tag whose build inputs differ from the beta, so this-version work
-cannot ride a promotion without its own beta.
+> **Don't let the changelog talk you out of this.** If `CHANGELOG.md` files work
+> under `[x.y.z]` that is not in the `x.y.z-beta.N` you soaked, the *changelog*
+> is wrong, not the beta. Move those entries to the next version's section
+> (step 5 below) and promote as planned. A mismatch between prose and the
+> snapshot is never a reason to build a new stable out of `main`.
+
+<a id="no-soaked-beta-to-promote"></a>
+
+### No soaked beta to promote?
+
+Then this is not a promotion, and no amount of preparation makes it one. Cutting
+a beta and promoting it in the same pass ships un-soaked code to every user
+while looking like a correct release — the beta-parity guard **passes**, because
+it resolves the newest `x.y.z-beta.*` tag and a beta you just cut is always
+newest.
+
+There are two ways to arrive here, and both end the same way:
+
+- **The line was opened but never soaked** — `manifest-beta.json` holds
+  `x.y.z-beta.1` and no meaningful build was ever cut from it.
+- **Soak found a bug** — the beta you meant to promote is no good.
+
+In both cases: **cut `x.y.z-beta.N` from current `main`, and stop there.** Let
+it soak. Promoting it is a separate, later job — a different day and a different
+run of this document, once someone has decided the build is good. A stable
+release is never the second half of the job that created its beta.
 
 To promote:
 
