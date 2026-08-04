@@ -745,6 +745,31 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Operon tasks, boards, agendas and the running timer on the dashboard.** Four
+  new cards read from the [Operon](https://github.com/hasanyilmaz/operon) task
+  plugin: a task **list**, a **board** whose columns are Operon's own pipeline
+  statuses in its order and colours, an **agenda** grouping the next few days of
+  due work, and a **timer** showing the active tracker, ticking live. Filter by
+  pipeline, status, priority, completion state, note or text — the pickers offer
+  what Operon actually has, so there are no ids to type — or delegate the
+  question entirely by picking one of Operon's own scopes (*Happening today*,
+  *Overdue*, *Recently touched*). Clicking a task opens its note, landing on the
+  exact line for an inline task. The **Mini calendar** card can mark days with an
+  Operon task due and list them in the agenda alongside external-calendar events.
+
+  Unlike the TaskNotes integration, this reads nothing off disk: Operon ships an
+  in-process developer API, and Hearth uses it, so recurrence, statuses,
+  priorities and what counts as done all stay Operon's to define and keep working
+  as Operon changes. The integration is **read-only** — no card here modifies a
+  task.
+
+  Operon's developer API is **desktop-only, needs Obsidian 1.12.2 or newer**, and
+  requires **your approval**: Hearth's first request appears under Settings →
+  Operon → Core → General → Developer API Integrations, and the cards say exactly
+  what they're waiting for until you approve it. Settings → Hearth →
+  Integrations shows the connection status, the read access Hearth asks for, and
+  a switch to turn the whole thing off.
+
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws
   one — Recent files, Favorites, Bookmarks, saved-search cards and the search

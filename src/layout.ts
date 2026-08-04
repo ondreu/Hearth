@@ -18,6 +18,7 @@ import {
 	type LeafViewConfig,
 	type LinkItem,
 	type MobileActionButton,
+	type OperonConfig,
 	type JiraConfig,
 	type JiraControl,
 	newDashboardId,
@@ -202,6 +203,9 @@ export function exportSettings(s: HomeSettings): string {
 		taskNotesDoneValue: s.taskNotesDoneValue,
 		taskFieldsEnabled: s.taskFieldsEnabled,
 		taskFields: s.taskFields,
+
+		// Operon
+		operonIntegration: s.operonIntegration,
 	};
 	return JSON.stringify(data, null, 2);
 }
@@ -423,6 +427,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	}
 	if (r.git && typeof r.git === "object") {
 		card.git = sanitizeGit(r.git as Record<string, unknown>);
+	}
+	if (r.operon && typeof r.operon === "object") {
+		card.operon = sanitizeOperon(r.operon as Record<string, unknown>);
 	}
 	if (r.leafView && typeof r.leafView === "object") {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
@@ -728,6 +735,66 @@ function sanitizeCalendar(r: Record<string, unknown>): CalendarConfig {
 	if (typeof r.heatmap === "boolean") cfg.heatmap = r.heatmap;
 	if (r.heatmapMetric === "modified" || r.heatmapMetric === "created") {
 		cfg.heatmapMetric = r.heatmapMetric;
+	}
+	if (typeof r.operonTasks === "boolean") cfg.operonTasks = r.operonTasks;
+	const operonTaskColor = str(r.operonTaskColor);
+	if (operonTaskColor !== undefined) cfg.operonTaskColor = operonTaskColor;
+	return cfg;
+}
+
+const OPERON_VIEWS = ["list", "board", "agenda", "timer"] as const;
+const OPERON_SCOPES = ["query", "normal", "overdue", "happens-today", "recent"] as const;
+const OPERON_CHECKBOX_STATES = ["open", "done", "cancelled"] as const;
+
+/**
+ * Operon card config. Everything here is either a fixed enum or a list of
+ * Operon's own ids, so the whitelist copies ids through verbatim without
+ * checking them against a taxonomy: an imported layout may well land in a vault
+ * whose Operon is configured differently, and the card already falls back to
+ * showing an id it can't resolve rather than dropping the filter silently.
+ */
+function sanitizeOperon(r: Record<string, unknown>): OperonConfig {
+	const cfg: OperonConfig = {};
+	if (OPERON_VIEWS.includes(r.view as (typeof OPERON_VIEWS)[number])) {
+		cfg.view = r.view as OperonConfig["view"];
+	}
+	if (OPERON_SCOPES.includes(r.scope as (typeof OPERON_SCOPES)[number])) {
+		cfg.scope = r.scope as OperonConfig["scope"];
+	}
+	const pipelineIds = strArray(r.pipelineIds);
+	if (pipelineIds?.length) cfg.pipelineIds = pipelineIds;
+	const statusIds = strArray(r.statusIds);
+	if (statusIds?.length) cfg.statusIds = statusIds;
+	const priorityIds = strArray(r.priorityIds);
+	if (priorityIds?.length) cfg.priorityIds = priorityIds;
+	const boardOrder = strArray(r.boardOrder);
+	if (boardOrder?.length) cfg.boardOrder = boardOrder;
+	const boardHidden = strArray(r.boardHidden);
+	if (boardHidden?.length) cfg.boardHidden = boardHidden;
+	const checkbox = strArray(r.checkbox)?.filter((v): v is (typeof OPERON_CHECKBOX_STATES)[number] =>
+		OPERON_CHECKBOX_STATES.includes(v as (typeof OPERON_CHECKBOX_STATES)[number]),
+	);
+	if (checkbox?.length) cfg.checkbox = checkbox;
+	const filePath = str(r.filePath);
+	if (filePath !== undefined) cfg.filePath = filePath;
+	const text = str(r.text);
+	if (text !== undefined) cfg.text = text;
+	if (typeof r.agendaDays === "number") cfg.agendaDays = r.agendaDays;
+	if (typeof r.count === "number") cfg.count = r.count;
+	if (TASK_SORT_KEYS.includes(r.sortKey as (typeof TASK_SORT_KEYS)[number])) {
+		cfg.sortKey = r.sortKey as OperonConfig["sortKey"];
+	}
+	if (typeof r.sortReverse === "boolean") cfg.sortReverse = r.sortReverse;
+	for (const key of [
+		"showDue",
+		"showPriority",
+		"showStatus",
+		"showRecurrence",
+		"showTracker",
+		"showPinned",
+		"showFile",
+	] as const) {
+		if (typeof r[key] === "boolean") cfg[key] = r[key];
 	}
 	return cfg;
 }
@@ -1446,4 +1513,8 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 		s.taskFieldsEnabled = data.taskFieldsEnabled;
 	const taskFields = sanitizeTaskFields(data.taskFields);
 	if (taskFields) s.taskFields = taskFields;
+	// Operon
+	if (typeof data.operonIntegration === "boolean") {
+		s.operonIntegration = data.operonIntegration;
+	}
 }

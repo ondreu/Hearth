@@ -120,6 +120,34 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: { kind: "weather", title: "Weather", weather: {}, w: 4, h: 3 },
 			},
 			{
+				id: "operon-tasks",
+				icon: "list-checks",
+				category: "integrations",
+				requires: "Operon",
+				build: { kind: "operon", title: "Operon tasks", operon: { view: "list" }, w: 4, h: 4 },
+			},
+			{
+				id: "operon-board",
+				icon: "columns-3",
+				category: "integrations",
+				requires: "Operon",
+				build: { kind: "operon", title: "Operon board", operon: { view: "board" }, w: 8, h: 5 },
+			},
+			{
+				id: "operon-agenda",
+				icon: "calendar-clock",
+				category: "integrations",
+				requires: "Operon",
+				build: { kind: "operon", title: "Operon agenda", operon: { view: "agenda" }, w: 4, h: 5 },
+			},
+			{
+				id: "operon-timer",
+				icon: "timer",
+				category: "integrations",
+				requires: "Operon",
+				build: { kind: "operon", title: "Operon timer", operon: { view: "timer" }, w: 3, h: 2 },
+			},
+			{
 				id: "leaf",
 				icon: "layout-panel-left",
 				category: "integrations",
@@ -233,6 +261,14 @@ function maximalCard(): DashboardCard {
 		weather: { place: { name: "Prague", lat: 50.08, lon: 14.44 } },
 		git: { sections: ["status", "actions"], actions: ["commit", "push"] },
 		pet: { species: "fox", name: "Vulpes" },
+		operon: {
+			pipelineIds: ["p1"],
+			statusIds: ["s1"],
+			priorityIds: ["pr1"],
+			checkbox: ["open"],
+			boardOrder: ["s1"],
+			boardHidden: ["s2"],
+		},
 	};
 }
 
@@ -279,6 +315,12 @@ describe("cloneCard deep-clone independence", () => {
 		copy.git!.sections!.push("log");
 		copy.git!.actions!.push("pull");
 		copy.pet!.name = "Renard";
+		copy.operon!.pipelineIds!.push("p2");
+		copy.operon!.statusIds!.push("s3");
+		copy.operon!.priorityIds!.push("pr2");
+		copy.operon!.checkbox!.push("done");
+		copy.operon!.boardOrder!.push("s3");
+		copy.operon!.boardHidden!.push("s4");
 
 		// ...and confirm none of it reached the original.
 		const pristine = maximalCard();
@@ -302,6 +344,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.weather).toEqual(pristine.weather);
 		expect(orig.git).toEqual(pristine.git);
 		expect(orig.pet).toEqual(pristine.pet);
+		expect(orig.operon).toEqual(pristine.operon);
 	});
 });
 
@@ -341,6 +384,7 @@ describe("liveness classification", () => {
 			jira: "static",
 			weather: "static",
 			git: "static",
+			operon: "vault",
 			leaf: "static",
 			pet: "vault",
 		});

@@ -33,6 +33,9 @@ export const en = {
 	// ---- Notices (transient toasts) ------------------------------------
 	notices: {
 		couldNotCreateNote: "Hearth: could not create a new note.",
+		operonTaskMissing:
+			"Hearth: that Operon task's note is no longer in the vault.",
+		operonRechecked: "Hearth: rechecked the Operon connection.",
 		enableExcalidraw:
 			"Hearth: enable the Excalidraw plugin to create drawings.",
 		excalidrawCommandMissing:
@@ -1022,6 +1025,14 @@ export const en = {
 						"plugin itself — its remote, credentials and commit-message " +
 						"template all apply unchanged.",
 				},
+				operon: {
+					name: "Operon",
+					desc:
+						"The Operon cards — tasks, board, agenda and timer — read through " +
+						"Operon's own Developer API, so its statuses, priorities and " +
+						"recurrence stay its to define. Desktop only, needs Obsidian 1.12.2 " +
+						"or newer, and Operon must approve Hearth's read request.",
+				},
 				iconic: {
 					name: "Iconic",
 					desc:
@@ -1172,6 +1183,43 @@ export const en = {
 				"frontmatter rather than its menu. Match this to Iconize's own " +
 				"setting if you renamed it (its default is “icon”).",
 		},
+		operon: {
+			heading: "Operon",
+			headingDesc:
+				"Read tasks, boards, agendas and the running timer from the Operon " +
+				"plugin through its own developer API — Operon stays the source of " +
+				"truth for what a task is, and Hearth only displays what it returns.",
+			enable: "Connect to Operon",
+			enableDesc:
+				"Off is a kill switch: Operon cards stop reading and Hearth never " +
+				"asks Operon for access. Nothing is requested until an Operon card " +
+				"is on a dashboard.",
+			status: "Connection",
+			statusAbsent: "Operon isn't installed or enabled.",
+			statusUnsupported:
+				"Operon's developer API is desktop-only and needs Obsidian 1.12.2 or newer.",
+			statusBooting: "Operon is running but still starting up.",
+			statusPending:
+				"Waiting for approval. Open Settings → Operon → Core → General → " +
+				"Developer API Integrations and approve Hearth.",
+			statusSuspended:
+				"Access is suspended. Review Hearth's pending scope in Operon's " +
+				"Developer API Integrations.",
+			statusRevoked:
+				"Access was revoked. Grant it again in Operon's Developer API Integrations.",
+			statusReady: "Connected — Operon cards can read tasks.",
+			statusIdle: "Not connected yet. Add an Operon card to open a session.",
+			capabilities: "Requested access",
+			capabilitiesDesc:
+				"Read-only. Hearth asks for all of these at once because Operon does " +
+				"not open a partly approved session, and it never asks for permission " +
+				"to change anything.",
+			missing: (names: string) => `Not yet granted: ${names}`,
+			recheck: "Recheck",
+			recheckDesc:
+				"Reopen the connection after approving, revoking or reloading Operon.",
+			recheckAction: "Recheck now",
+		},
 		filters: {
 			heading: "Search filters",
 			headingDesc:
@@ -1300,6 +1348,7 @@ export const en = {
 			jira: "Jira filter",
 			weather: "Weather",
 			git: "Git",
+			operon: "Operon",
 			leaf: "Plugin view (beta)",
 			pet: "Pet",
 		},
@@ -1489,6 +1538,14 @@ export const en = {
 			externalCalendars: "External calendars",
 			externalCalendarsDesc:
 				"Subscribe to ICS/iCal feeds (Google, iCloud, Fastmail, Nextcloud…). Events appear as coloured dots on the grid and are listed in the agenda view.",
+			operonTasks: "Show Operon tasks",
+			operonTasksDesc:
+				"Mark days that have an Operon task due, and list those tasks in the " +
+				"agenda. Reads through Operon's developer API, so it needs Operon " +
+				"approved in Settings → Hearth → Integrations. Tasks that are only " +
+				"scheduled (no due date) aren't included.",
+			operonTaskColor: "Operon task colour",
+			operonTaskColorDesc: "Colour of the task markers. Defaults to the accent colour.",
 			sourceNamePlaceholder: "Name",
 			sourceUrlPlaceholder: "ICS/iCal URL (https:// or webcal://)",
 			sourceShow: "Show this calendar",
@@ -2163,6 +2220,58 @@ export const en = {
 				"Git plugin's own updates. 0 — the default — follows those updates only, " +
 				"which already covers everything done inside Obsidian.",
 		},
+		operon: {
+			view: "View",
+			viewDesc: "What this card draws from Operon.",
+			viewList: "Task list",
+			viewBoard: "Status board",
+			viewAgenda: "Agenda",
+			viewTimer: "Timer",
+			scope: "Scope",
+			scopeDesc:
+				"Use one of Operon's own scoped views, or apply the filters below. " +
+				"Operon decides what counts as overdue or happening today, so its " +
+				"scopes stay correct as its rules evolve.",
+			scopeQuery: "Custom filters",
+			scopeNormal: "All tasks",
+			scopeToday: "Happening today",
+			scopeOverdue: "Overdue",
+			scopeRecent: "Recently touched",
+			agendaDays: "Days ahead",
+			agendaDaysDesc: "How many days the agenda covers, including today.",
+			count: "Tasks shown",
+			countDesc: "Maximum tasks in the list, or per board column.",
+			pipelines: "Pipelines",
+			pipelinesDesc: "Limit to these Operon pipelines. None selected means all.",
+			statuses: "Statuses",
+			statusesDesc: "Limit to these Operon statuses. None selected means all.",
+			priorities: "Priorities",
+			prioritiesDesc: "Limit to these Operon priorities. None selected means all.",
+			checkbox: "Completion",
+			checkboxDesc: "Which completion states to include. Open tasks only by default.",
+			checkboxOpen: "Open",
+			checkboxDone: "Done",
+			checkboxCancelled: "Cancelled",
+			text: "Text match",
+			textDesc: "Only tasks whose description contains this text.",
+			sort: "Sort",
+			sortDesc:
+				"Order of the list and of each board column. Open tasks always come " +
+				"before completed ones. The toggle reverses the direction.",
+			sortSmart: "Smart (date, priority, age)",
+			sortDue: "Date",
+			sortPriority: "Priority",
+			sortCreated: "Created",
+			sortAlpha: "Alphabetical",
+			showDue: "Show dates",
+			showPriority: "Show priority",
+			showStatus: "Show status",
+			showRecurrence: "Show recurring marker",
+			showTracker: "Show running timer marker",
+			showPinned: "Show pinned marker",
+			showFile: "Show note name",
+			noOptions: "Add an Operon card to the board first to load these options",
+		},
 		rss: {
 			feeds: "Feeds",
 			namePlaceholder: "Name (optional)",
@@ -2475,6 +2584,32 @@ export const en = {
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
+			operonEnable: "Enable the Operon plugin to show its tasks",
+			operonDisabled:
+				"The Operon integration is off — turn it on in Settings → Hearth → Integrations",
+			operonUnsupported:
+				"Operon's developer API is desktop-only and needs Obsidian 1.12.2 or newer",
+			operonPending:
+				"Approve Hearth in Settings → Operon → Core → General → Developer API Integrations",
+			operonSuspended:
+				"Operon suspended Hearth's access — review it in Operon's Developer API Integrations",
+			operonRevoked:
+				"Operon access was revoked — grant it again in Operon's Developer API Integrations",
+			operonBooting: "Operon is still starting up",
+			operonNoTasks: "No Operon tasks match",
+			operonNoAgenda: "Nothing scheduled in this window",
+			operonNoColumns: "No Operon statuses to show — pick a pipeline in card settings",
+		},
+		operon: {
+			loading: "Reading Operon…",
+			untitled: "Untitled task",
+			settling: "Operon is still settling",
+			timerIdle: "No timer running",
+			timerStarting: "Starting…",
+			timerStopping: "Stopping…",
+			timerUnassigned: "Unassigned time",
+			truncated: (shown: number, total: number) => `Showing ${shown} of ${total}`,
+			readFailed: (reason: string) => `Operon couldn't answer: ${reason}`,
 		},
 		templater: {
 			untitledTile: "New note",
@@ -2661,6 +2796,8 @@ export const en = {
 			nextMonth: "Next month",
 			backToToday: "Back to today",
 			dayEdited: (date: string, count: number) => `${date}: ${count} edited`,
+			dayTasks: (date: string, count: number) =>
+				count === 1 ? `${date}: 1 task` : `${date}: ${count} tasks`,
 			dayMetric: (date: string, count: number, metric: string) =>
 				`${date}: ${count} ${metric}`,
 			dayEvents: (date: string, count: number) =>
@@ -2939,6 +3076,10 @@ export const en = {
 		jira: "Jira filter",
 		weather: "Weather",
 		git: "Git",
+		"operon-tasks": "Operon tasks",
+		"operon-board": "Operon board",
+		"operon-agenda": "Operon agenda",
+		"operon-timer": "Operon timer",
 		leaf: "Plugin view (beta)",
 		pet: "Pet",
 	},
@@ -2977,6 +3118,10 @@ export const en = {
 		jira: "Issues from a Jira filter or JQL search",
 		weather: "The forecast for a place you pick",
 		git: "Repository status, with commit, pull and push",
+		"operon-tasks": "Your Operon tasks, filtered the way you like",
+		"operon-board": "Operon's pipeline statuses as board columns",
+		"operon-agenda": "The next few days of Operon work, day by day",
+		"operon-timer": "Operon's running time tracker, ticking live",
 		leaf: "Another plugin's side panel, hosted in a card",
 		pet: "A small companion that lives on your board",
 	},

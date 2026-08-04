@@ -167,6 +167,26 @@ issue or email.
   change it.
 - **Quick view** — click a task for a compact popover with editable metadata
   and description instead of jumping into the note.
+- **Operon** *(requires the [Operon](https://github.com/hasanyilmaz/operon)
+  plugin, desktop only)* — four cards backed by Operon's own in-process
+  developer API: an **Operon tasks** list, an **Operon board** whose columns are
+  Operon's pipeline statuses (in its order, with its colours), an **Operon
+  agenda** grouping the next few days of due work, and an **Operon timer**
+  showing the running time tracker, ticking live. Filter by pipeline, status,
+  priority, completion state, note or text — the pickers list what Operon
+  actually has, so you never type an id by hand — or hand the whole question to
+  Operon by choosing one of its own scopes (*Happening today*, *Overdue*,
+  *Recently touched*). Clicking a task opens its note, landing on the exact line
+  for an inline task. Hearth reads through the API and never parses Operon's
+  notes, so recurrence, statuses and completion stay Operon's to define. It is
+  **read-only**: nothing here changes a task.
+
+  Two things to know before adding one. Operon's developer API is **desktop-only
+  and needs Obsidian 1.12.2 or newer**, and it requires **your approval** —
+  Hearth's first request appears in **Settings → Operon → Core → General →
+  Developer API Integrations**, where you approve the read capabilities it asked
+  for. Until then the cards say exactly what they're waiting for. See
+  Settings → Hearth → Integrations for the connection status and a kill switch.
 
 **Time & data**
 
@@ -180,7 +200,12 @@ issue or email.
   plugin, with dots for existing notes, ISO week numbers and an edit heatmap.
   Subscribe to external **ICS/iCal** calendars, or use **TaskNotes** as a
   source (scheduled tasks, due dates, recurrences, timeblocks). Create a note
-  from any event, linked back by ID.
+  from any event, linked back by ID. With the
+  [Operon](https://github.com/hasanyilmaz/operon) plugin connected it can also
+  mark days that have an **Operon task** due — a small square, so it never reads
+  as a calendar event — and list those tasks under each day in the agenda.
+  (Operon's query filters range over the due date, so a task that is only
+  *scheduled* isn't shown.)
 - **Vault statistics** — notes, attachments, folders, tags and daily-note
   streak.
 - **Activity heatmap** — a GitHub-style grid of notes edited or created per day.
