@@ -28,7 +28,7 @@ import {
 	type OperonTaskPage,
 	type OperonTaxonomy,
 } from "../operon";
-import { isOperonAvailable, OPERON_PLUGIN_ID } from "../operon";
+import { isOperonAvailable, isOperonPlatformSupported, OPERON_PLUGIN_ID } from "../operon";
 import { type DashboardCard, type OperonConfig } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -792,10 +792,14 @@ function template(id: string, name: string, icon: string, cfg: OperonConfig, w: 
 		name,
 		icon,
 		build: () => ({ kind: "operon" as const, title: name, operon: cfg, w, h }),
+		// Operon itself runs on mobile, but its developer API does not, so the
+		// accessor being present is not enough: on a phone the requirement can
+		// never be met, and the picker says so rather than pretending the card
+		// would work. A card synced from a desktop still shows that explanation.
 		requires: {
 			name: "Operon",
 			pluginId: OPERON_PLUGIN_ID,
-			satisfied: (app: App) => isOperonAvailable(app),
+			satisfied: (app: App) => isOperonAvailable(app) && isOperonPlatformSupported(),
 		},
 	};
 }

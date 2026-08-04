@@ -28,6 +28,7 @@ import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 import {
 	isOperonAvailable,
+	isOperonPlatformSupported,
 	openOperonTask,
 	queryTasks,
 	taskDay,
@@ -155,10 +156,14 @@ function buildOperonOverlay(
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	component: Component,
 ): OperonOverlay {
+	// Platform is checked here as well as in the session: on mobile the read
+	// could only ever come back refused, so the overlay stays inert rather than
+	// firing a query per month the user scrolls through.
 	const enabled =
 		!!cfg.operonTasks &&
 		view.plugin.settings.operonIntegration &&
-		isOperonAvailable(view.app);
+		isOperonAvailable(view.app) &&
+		isOperonPlatformSupported();
 	let byDay = new Map<string, OperonTask[]>();
 	let redraw: (() => void) | null = null;
 	let loadedWindow = "";
@@ -543,7 +548,7 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 
 	// Only offered when Operon is actually installed — a toggle for a plugin
 	// the vault doesn't have is noise, and the card would ignore it anyway.
-	if (isOperonAvailable(ctx.app)) {
+	if (isOperonAvailable(ctx.app) && isOperonPlatformSupported()) {
 		new Setting(containerEl)
 			.setName(t().editors.calendar.operonTasks)
 			.setDesc(t().editors.calendar.operonTasksDesc)
