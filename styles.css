@@ -9631,6 +9631,13 @@ body.hearth-dv-resizing {
 	color: var(--text-faint);
 }
 
+/* Today's work carries the accent; overdue already turns red via the shared
+   .hearth-task-due.is-overdue rule. */
+.hearth-operon-task .hearth-task-due.is-today {
+	color: var(--interactive-accent);
+	font-weight: 600;
+}
+
 /* A date the task only has because it is scheduled, not due — dashed so it
    isn't read as a deadline Operon never set. */
 .hearth-operon-task .hearth-task-due.is-scheduled {

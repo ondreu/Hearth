@@ -214,9 +214,11 @@ export function sortTasks(
 	return sorted;
 }
 
-/** A running timer's elapsed time as `H:MM:SS`, or `M:SS` under an hour. */
+/** A running timer's elapsed time as `H:MM:SS`, or `M:SS` under an hour. A
+ * non-finite reading (an off-contract payload, a field that never arrived)
+ * shows as zero rather than putting "NaN:NaN" on the dashboard. */
 export function formatElapsed(seconds: number): string {
-	const total = Math.max(0, Math.floor(seconds));
+	const total = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
 	const hours = Math.floor(total / 3600);
 	const minutes = Math.floor((total % 3600) / 60);
 	const secs = total % 60;

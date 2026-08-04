@@ -1573,7 +1573,7 @@ export class HomeSettingTab extends PluginSettingTab {
 	/** Which of Operon's states describes the connection right now, for the
 	 * readout below. Reuses the same rules the cards branch on, so the settings
 	 * pane and the dashboard never disagree about why nothing is showing. */
-	private operonStatusText(state: OperonAccessState | "idle"): string {
+	private operonStatusText(state: OperonAccessState | "idle" | "off"): string {
 		const s = t().settings.operon;
 		switch (state) {
 			case "unsupported":
@@ -1590,6 +1590,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				return s.statusReady;
 			case "idle":
 				return s.statusIdle;
+			case "off":
+				return s.statusOff;
 			case "absent":
 			default:
 				return s.statusAbsent;
@@ -1615,15 +1617,22 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		// Reading the state is what opens a session, so only do it once the user
-		// has opted in and Operon is actually there — otherwise this pane would
-		// file a capability request nobody asked for.
-		const state: OperonAccessState | "idle" =
-			settings.operonIntegration && isOperonAvailable(this.plugin.app)
-				? this.plugin.operon.access().state
-				: isOperonAvailable(this.plugin.app)
+		// Asking for the state is what opens a session, so ask only when the user
+		// has opted in and Operon is actually there — otherwise merely opening
+		// this pane would file a capability request nobody asked for. Read once
+		// and derive everything below from it, so the status line and the
+		// missing-capability list can never describe different attempts.
+		const available = isOperonAvailable(this.plugin.app);
+		const connected = settings.operonIntegration && available
+			? this.plugin.operon.access()
+			: null;
+		const state: OperonAccessState | "idle" | "off" = connected
+			? connected.state
+			: !available
+				? "absent"
+				: settings.operonIntegration
 					? "idle"
-					: "absent";
+					: "off";
 
 		new Setting(containerEl).setName(s.status).setDesc(this.operonStatusText(state));
 
@@ -1634,11 +1643,12 @@ export class HomeSettingTab extends PluginSettingTab {
 			cls: "hearth-operon-caps",
 			text: OPERON_READ_CAPABILITIES.join(", "),
 		});
-		const missing = settings.operonIntegration ? this.plugin.operon.access().missing : [];
-		if (state !== "ready" && state !== "idle" && missing.length > 0) {
+		// Only meaningful once a session has actually been attempted and came
+		// back short of what was asked for.
+		if (connected && connected.state !== "ready" && connected.missing.length > 0) {
 			capabilities.descEl.createDiv({
 				cls: "hearth-operon-caps-missing",
-				text: s.missing(missing.join(", ")),
+				text: s.missing(connected.missing.join(", ")),
 			});
 		}
 
@@ -1653,10 +1663,10 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		if (!isOperonAvailable(this.plugin.app)) {
+		if (!available) {
 			const link = containerEl.createEl("a", {
 				cls: "hearth-operon-install",
-				text: s.statusAbsent,
+				text: s.install,
 				href: `obsidian://show-plugin?id=${OPERON_PLUGIN_ID}`,
 			});
 			link.addEventListener("click", (e) => {

@@ -167,6 +167,11 @@ function buildOperonOverlay(
 	let byDay = new Map<string, OperonTask[]>();
 	let redraw: (() => void) | null = null;
 	let loadedWindow = "";
+	/** Which read the buckets belong to. Flipping months faster than Operon
+	 * answers would otherwise let an older month's response land last and
+	 * overwrite the newer one — the same guard the Omnisearch integration uses
+	 * for out-of-order results. */
+	let generation = 0;
 	let destroyed = false;
 	component.register(() => {
 		destroyed = true;
@@ -179,9 +184,16 @@ function buildOperonOverlay(
 		const key = `${from}..${to}`;
 		if (key === loadedWindow) return;
 		loadedWindow = key;
+		const mine = ++generation;
 		void queryTasks(view.plugin.operon, { due: { from, to } }, OPERON_OVERLAY_LIMIT).then(
 			(result) => {
-				if (destroyed || !result.ok) return;
+				if (destroyed || mine !== generation) return;
+				if (!result.ok) {
+					// Let a later visit to this window try again rather than
+					// leaving it permanently marked as read.
+					if (loadedWindow === key) loadedWindow = "";
+					return;
+				}
 				const next = new Map<string, OperonTask[]>();
 				for (const task of result.value.tasks) {
 					const day = taskDay(task);

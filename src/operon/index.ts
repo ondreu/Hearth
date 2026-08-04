@@ -42,7 +42,7 @@ export {
 	type OperonTaskPage,
 } from "./reads";
 
-export { cachedTaxonomy, forgetTaxonomy, loadTaxonomy } from "./catalog";
+export { cachedTaxonomy, forgetTaxonomy, loadTaxonomy, warmTaxonomy } from "./catalog";
 
 export {
 	addDays,

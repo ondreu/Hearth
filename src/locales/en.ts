@@ -1209,6 +1209,8 @@ export const en = {
 				"Access was revoked. Grant it again in Operon's Developer API Integrations.",
 			statusReady: "Connected — Operon cards can read tasks.",
 			statusIdle: "Not connected yet. Add an Operon card to open a session.",
+			statusOff: "The integration is switched off, so Hearth isn't reading anything from Operon.",
+			install: "Open Operon in Community plugins",
 			capabilities: "Requested access",
 			capabilitiesDesc:
 				"Read-only. Hearth asks for all of these at once because Operon does " +

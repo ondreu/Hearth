@@ -22,6 +22,10 @@ interface CacheEntry {
 
 let cached: CacheEntry | null = null;
 let inFlight: Promise<OperonTaxonomy | null> | null = null;
+/** The session the last read went through. The card editor needs a taxonomy but
+ * only receives an `App` — it has no route to the plugin — so the render path,
+ * which does hold the session, leaves one here for it. Cleared with the cache. */
+let lastSession: OperonSession | null = null;
 
 /** The last taxonomy read, without waiting. Lets a card draw its known columns
  * immediately and fill in once the refresh lands, the way the calendar card
@@ -38,22 +42,42 @@ export function cachedTaxonomy(): OperonTaxonomy | null {
 export function loadTaxonomy(session: OperonSession, force = false): Promise<OperonTaxonomy | null> {
 	const now = Date.now();
 	if (!force && cached && now - cached.at < TTL_MS) return Promise.resolve(cached.taxonomy);
-	if (inFlight) return inFlight;
+	// A forced refresh starts its own read: joining one already in flight could
+	// hand back a snapshot taken before whatever prompted the refresh.
+	if (inFlight && !force) return inFlight;
+	lastSession = session;
 
-	inFlight = readTaxonomy(session)
+	const request: Promise<OperonTaxonomy | null> = readTaxonomy(session)
 		.then((result) => {
+			// A failed read keeps whatever was cached: a card drawing slightly
+			// stale labels beats one that suddenly shows raw ids.
 			if (!result.ok) return cached?.taxonomy ?? null;
 			cached = { taxonomy: result.value, at: Date.now() };
 			return result.value;
 		})
 		.finally(() => {
-			inFlight = null;
+			// Only clear the slot if it is still ours — a forced read started
+			// alongside this one owns it now.
+			if (inFlight === request) inFlight = null;
 		});
-	return inFlight;
+	inFlight = request;
+	return request;
+}
+
+/**
+ * Fill the cache from whichever session last used it, for a caller that needs a
+ * taxonomy but has no session of its own. Resolves to null when nothing has
+ * read one yet — which is exactly when there is genuinely nothing to show.
+ */
+export function warmTaxonomy(): Promise<OperonTaxonomy | null> {
+	if (cached) return Promise.resolve(cached.taxonomy);
+	if (!lastSession) return Promise.resolve(null);
+	return loadTaxonomy(lastSession);
 }
 
 /** Drop the cache. Called when the Operon session is renegotiated, since a new
  * session may be looking at different settings. */
 export function forgetTaxonomy(): void {
 	cached = null;
+	lastSession = null;
 }

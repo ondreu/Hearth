@@ -240,6 +240,29 @@ describe("findStatus / findPriority", () => {
 });
 
 describe("boardColumns", () => {
+	it("offers a status shared by two pipelines exactly once", () => {
+		// Two pipelines naming the same status id must not produce two columns
+		// competing for the same tasks.
+		const shared = {
+			...(taxonomy as unknown as { pipelines: unknown[] }),
+			pipelines: [
+				{
+					id: "a",
+					name: "A",
+					order: 1,
+					statuses: [{ id: "todo", label: "To do", order: 1, color: "#888" }],
+				},
+				{
+					id: "b",
+					name: "B",
+					order: 2,
+					statuses: [{ id: "todo", label: "To do", order: 1, color: "#888" }],
+				},
+			],
+		} as unknown as OperonTaxonomy;
+		expect(boardColumns(shared).map((s) => s.id)).toEqual(["todo"]);
+	});
+
 	it("lists every pipeline's statuses in Operon's own order", () => {
 		expect(boardColumns(taxonomy).map((s) => s.id)).toEqual([
 			"todo",
@@ -335,6 +358,12 @@ describe("formatElapsed", () => {
 	it("floors fractions and clamps a negative reading to zero", () => {
 		expect(formatElapsed(59.9)).toBe("0:59");
 		expect(formatElapsed(-5)).toBe("0:00");
+	});
+
+	it("shows zero rather than NaN for an unusable reading", () => {
+		// An off-contract payload must not put "NaN:NaN" on the dashboard.
+		expect(formatElapsed(Number.NaN)).toBe("0:00");
+		expect(formatElapsed(Number.POSITIVE_INFINITY)).toBe("0:00");
 	});
 });
 

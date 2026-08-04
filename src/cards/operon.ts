@@ -10,16 +10,20 @@ import {
 	dueState,
 	findPriority,
 	findStatus,
+	findTasks,
 	formatElapsed,
 	groupByDay,
 	isClosed,
+	isOperonAvailable,
+	isOperonPlatformSupported,
+	OPERON_PLUGIN_ID,
 	loadTaxonomy,
 	openOperonTask,
 	queryTasks,
-	findTasks,
 	readTimer,
 	sortTasks,
 	taskDay,
+	warmTaxonomy,
 	type OperonAccessState,
 	type OperonResult,
 	type OperonSortKey,
@@ -28,7 +32,6 @@ import {
 	type OperonTaskPage,
 	type OperonTaxonomy,
 } from "../operon";
-import { isOperonAvailable, isOperonPlatformSupported, OPERON_PLUGIN_ID } from "../operon";
 import { type DashboardCard, type OperonConfig } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -54,9 +57,10 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 
 const DEFAULT_COUNT = 10;
 const DEFAULT_AGENDA_DAYS = 7;
-/** Board columns read the whole set once and split it locally, so the request
- * limit has to cover several columns rather than one list. */
-const BOARD_LIMIT_FACTOR = 4;
+/** Ceiling on one board read. A board splits a single result set across its
+ * columns, so the request has to cover all of them — but an unbounded limit on
+ * a large vault would pull far more than a card can show. */
+const BOARD_MAX_LIMIT = 500;
 
 type OperonView = NonNullable<OperonConfig["view"]>;
 
@@ -187,7 +191,11 @@ function loadTasks(
 ): Promise<OperonResult<OperonTaskPage>> {
 	const session = view.plugin.operon;
 	const scope = cfg.scope ?? "query";
-	if (scope !== "query" && operonView(cfg) !== "agenda") {
+	// Only the list view offers the scope control, so only the list view obeys
+	// it. Otherwise a scope chosen in list mode would quietly keep narrowing a
+	// board or an agenda after the card was switched, with no control on screen
+	// explaining why.
+	if (scope !== "query" && operonView(cfg) === "list") {
 		const { pipelineIds, statusIds, priorityIds, checkbox } = filtersFor(cfg, today);
 		return findTasks(session, scope, limit, { pipelineIds, statusIds, priorityIds, checkbox });
 	}
@@ -244,7 +252,12 @@ function renderDueChip(row: HTMLElement, task: OperonTask, today: string): void 
 	const day = taskDay(task);
 	if (!day) return;
 	const chip = row.createDiv({ cls: "hearth-task-due", text: formatRelativeDate(day) });
-	chip.addClass(`is-${dueState(task, today)}`);
+	// Only the two states the stylesheet distinguishes, matching the tasks
+	// card's vocabulary — a class per bucket would put four inert names in the
+	// DOM for one that does anything.
+	const state = dueState(task, today);
+	chip.toggleClass("is-overdue", state === "overdue");
+	chip.toggleClass("is-today", state === "today");
 	// Scheduled-only tasks are marked so a date shown here isn't read as a
 	// deadline Operon never set.
 	if (!task.dates.due) chip.addClass("is-scheduled");
@@ -401,30 +414,36 @@ function renderBoard(
 	component: Component,
 	today: string,
 ): void {
-	const limit = countOf(cfg) * BOARD_LIMIT_FACTOR;
 	mountAsync(
 		body,
 		component,
 		async () => {
+			// The taxonomy is read first so the request can be sized to the
+			// columns this board will actually draw. Asking for a fixed
+			// multiple instead would let a busy status swallow the whole
+			// result and leave its neighbours looking empty.
 			const taxonomy = await loadTaxonomy(view.plugin.operon);
-			return { taxonomy, result: await loadTasks(view, cfg, today, limit) };
-		},
-		({ taxonomy, result }, host) => {
-			if (!result.ok) {
-				renderReadFailure(host, result.error.reason);
-				return;
-			}
 			const columns = boardColumns(taxonomy, {
 				pipelineIds: cfg.pipelineIds,
 				order: cfg.boardOrder,
 				hidden: cfg.boardHidden,
 			});
+			const limit = Math.min(countOf(cfg) * Math.max(1, columns.length), BOARD_MAX_LIMIT);
+			return { taxonomy, columns, result: await loadTasks(view, cfg, today, limit) };
+		},
+		({ taxonomy, columns, result }, host) => {
+			if (!result.ok) {
+				renderReadFailure(host, result.error.reason);
+				return;
+			}
 			if (columns.length === 0) {
 				emptyState(host, "columns-3", t().cards.empty.operonNoColumns);
 				return;
 			}
 			renderStaleness(host, result.freshness.verified);
 
+			// A task with no workflow has no column to sit in — Operon allows
+			// one, a status board cannot show it. The list and agenda views do.
 			const byStatus = new Map<string, OperonTask[]>();
 			for (const task of result.value.tasks) {
 				const id = task.workflow?.status.id;
@@ -590,6 +609,23 @@ function chipPicker(
 }
 
 
+/** Every status across the taxonomy, each id offered once. Two pipelines can
+ * name the same status, and a picker that listed it twice would let the user
+ * toggle one copy on and the other off. */
+function statusOptions(taxonomy: OperonTaxonomy | null): { id: string; label: string }[] {
+	const seen = new Set<string>();
+	const options: { id: string; label: string }[] = [];
+	for (const pipeline of taxonomy?.pipelines ?? []) {
+		for (const status of pipeline.statuses) {
+			if (seen.has(status.id)) continue;
+			seen.add(status.id);
+			options.push({ id: status.id, label: status.label });
+		}
+	}
+	return options;
+}
+
+
 export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.operon ??= {});
 	const strings = t().editors.operon;
@@ -670,10 +706,17 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 	});
 
 	// Filters come from Operon's own taxonomy, via the cache the render path
-	// fills. An editor opened after a card has drawn has the options in hand;
-	// on a cold cache the pickers say so rather than blocking the modal on a
-	// read, and the next open has them.
+	// fills. Usually it is already warm — the card drew before its settings
+	// were opened. It is cold when a card was switched to this type from
+	// another, so fetch in the background and rebuild once it lands rather than
+	// blocking the modal on a read or dead-ending the pickers. Only the cold
+	// case fetches, so the rebuild cannot loop.
 	const taxonomy = cachedTaxonomy();
+	if (!taxonomy) {
+		void warmTaxonomy().then((loaded) => {
+			if (loaded) ctx.requestRender();
+		});
+	}
 	chipPicker(
 		containerEl,
 		strings.pipelines,
@@ -690,7 +733,7 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 		containerEl,
 		strings.statuses,
 		strings.statusesDesc,
-		(taxonomy?.pipelines ?? []).flatMap((p) => p.statuses.map((s) => ({ id: s.id, label: s.label }))),
+		statusOptions(taxonomy),
 		cfg.statusIds ?? [],
 		(next) => {
 			cfg.statusIds = next.length ? next : undefined;
