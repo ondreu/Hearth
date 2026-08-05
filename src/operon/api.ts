@@ -82,6 +82,9 @@ export interface OperonAccessError {
 	code: string;
 	reason: string;
 	reasonCode?: string;
+	/** The grant state Operon evaluated *and acted on* for this attempt. More
+	 * trustworthy than the one on the channel status — see {@link classifyAccess}. */
+	grantState?: string;
 }
 
 export interface OperonAccess {
@@ -145,21 +148,27 @@ export function classifyAccess(
 		return "unsupported";
 	}
 
-	// `grant` is present only once Operon actually evaluated one — which is
-	// also the only path on which it records a pending request for the user to
-	// approve. Its absence therefore means Operon refused earlier than that,
-	// and telling the user to go approve something would send them to a list
-	// that will be empty.
-	const grant = status.grant?.state;
+	// Which grant state to believe.
+	//
+	// Operon evaluates the grant, *acts* on that evaluation — recording a
+	// pending request, which enqueues a write — and only then builds the
+	// channel status by evaluating a second time. By then its own store reports
+	// a write in flight, and the second evaluation downgrades to "suspended".
+	// So on a first connection the status says "suspended" while the error says
+	// `capability-approval-required`, which is the pending case.
+	//
+	// The error describes the evaluation Operon acted on; the status describes
+	// one taken after the side effect. Prefer the error.
+	const grant = error?.grantState ?? status.grant?.state;
 	if (grant) {
+		// Operon's own name for "nothing is approved yet, and I have filed the
+		// request". Authoritative regardless of what the re-evaluation said.
+		if (error?.reasonCode === APPROVAL_REQUIRED) return "pending";
 		if (grant === "revoked") return "revoked";
 		if (grant === "suspended") {
-			// Operon suspends a grant on a version change the user must review —
-			// but it reports the same state while its own grant store is mid-write,
-			// which is transient and needs nobody. Its reason code separates the
-			// two, and only the first has anything to review: on the transient
-			// path Operon does not record a request, so sending the user to its
-			// settings would send them to an empty list.
+			// A version change the user must review — except when the reason is
+			// Operon's store being busy, which resolves itself and has nothing
+			// to review.
 			return error?.reasonCode === GRANT_STORE_BUSY ? "booting" : "suspended";
 		}
 		if (grant === "pending") return "pending";
@@ -188,6 +197,15 @@ export function classifyAccess(
  */
 const GRANT_STORE_BUSY = "grant-persistence-unavailable";
 
+/**
+ * Operon's reason code for "this consumer has no approved capabilities yet".
+ *
+ * It pairs with a *pending* grant, and reaching it is what makes Operon record
+ * the request the user then approves — so it is the one state that genuinely
+ * warrants pointing them at Operon's settings.
+ */
+const APPROVAL_REQUIRED = "capability-approval-required";
+
 /** Whether this state resolves on its own, given a moment. Nothing the user
  * does changes these, so a card showing one should retry rather than instruct. */
 export function isTransientAccessState(state: OperonAccessState): boolean {
@@ -197,12 +215,17 @@ export function isTransientAccessState(state: OperonAccessState): boolean {
 /** Narrow Operon's structured error to what Hearth shows and branches on. */
 export function accessErrorOf(error: unknown): OperonAccessError | null {
 	if (!error || typeof error !== "object") return null;
-	const e = error as { code?: unknown; reason?: unknown; details?: { reasonCode?: unknown } };
+	const e = error as {
+		code?: unknown;
+		reason?: unknown;
+		details?: { reasonCode?: unknown; grantState?: unknown };
+	};
 	if (typeof e.code !== "string") return null;
 	return {
 		code: e.code,
 		reason: typeof e.reason === "string" ? e.reason : "",
 		reasonCode: typeof e.details?.reasonCode === "string" ? e.details.reasonCode : undefined,
+		grantState: typeof e.details?.grantState === "string" ? e.details.grantState : undefined,
 	};
 }
 

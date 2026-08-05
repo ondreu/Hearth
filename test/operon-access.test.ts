@@ -97,6 +97,23 @@ describe("classifyAccess", () => {
 		).toBe("suspended");
 	});
 
+	// The exact shape observed in a real vault on a first connection. Operon
+	// evaluates the grant as pending, records the request (which enqueues a
+	// write), and only then builds the status by evaluating a second time — by
+	// which point its store reports busy and the re-evaluation says "suspended".
+	// Reading the status here told the user their access had been suspended and
+	// to go review it, when in fact the request had just been filed for them.
+	it("believes the evaluation Operon acted on, not the one taken after", () => {
+		expect(
+			classifyAccess(false, status({ grant: grant("suspended", []) }), {
+				code: "authority-insufficient",
+				reason: "The Developer API request is not covered by an active exact-capability grant.",
+				reasonCode: "capability-approval-required",
+				grantState: "pending",
+			}),
+		).toBe("pending");
+	});
+
 	it("marks exactly the states that resolve without the user", () => {
 		expect(isTransientAccessState("booting")).toBe(true);
 		for (const state of ["absent", "error", "unsupported", "pending", "suspended", "revoked", "ready"] as const) {
@@ -178,7 +195,18 @@ describe("accessErrorOf", () => {
 			code: "authority-insufficient",
 			reason: "Not covered by an active grant.",
 			reasonCode: "developer-api-consumer-unverified",
+			grantState: undefined,
 		});
+	});
+
+	it("keeps the grant state Operon acted on", () => {
+		expect(
+			accessErrorOf({
+				code: "authority-insufficient",
+				reason: "x",
+				details: { reasonCode: "capability-approval-required", grantState: "pending" },
+			})?.grantState,
+		).toBe("pending");
 	});
 
 	it("ignores anything that isn't a structured error", () => {
