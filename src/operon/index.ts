@@ -26,6 +26,7 @@ export {
 	getOperonAccessor,
 	isOperonAvailable,
 	isOperonPlatformSupported,
+	isTransientAccessState,
 	missingCapabilities,
 	type OperonAccess,
 	type OperonAccessError,

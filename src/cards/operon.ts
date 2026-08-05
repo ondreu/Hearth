@@ -17,6 +17,7 @@ import {
 	isOperonAvailable,
 	isOperonPlatformSupported,
 	OPERON_PLUGIN_ID,
+	isTransientAccessState,
 	loadTaxonomy,
 	openOperonTask,
 	queryTasks,
@@ -557,23 +558,56 @@ function renderTimer(
 }
 
 
-export function renderOperon(
+/** How long to wait before re-checking a transient access state, and how many
+ * times. Operon's grant store settles in well under a second; five tries at
+ * 1.5s covers a cold runtime start without polling a genuinely stuck one. */
+const ACCESS_RETRY_MS = 1_500;
+const ACCESS_RETRIES = 5;
+
+/**
+ * Draw the card for whatever access we currently have, retrying by itself while
+ * that state is transient.
+ *
+ * The retry is not a nicety. Operon reports its grant store as busy on the very
+ * first request from a new consumer, and no user action resolves that — while
+ * cards otherwise redraw only on a vault change, which may never come on a
+ * quiet vault. Without this the card would sit on a transient message forever.
+ * The timer is registered on the per-draw component, so it dies with the card,
+ * and each level fires once against a bounded budget.
+ */
+function drawForAccess(
 	view: HomeView,
-	card: DashboardCard,
+	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
+	retriesLeft: number,
 ): void {
-	const cfg = (card.operon ??= {});
-	if (!view.plugin.settings.operonIntegration) {
-		emptyState(body, "plug-zap", t().cards.empty.operonDisabled);
-		return;
-	}
 	const access = view.plugin.operon.access();
-	if (access.state !== "ready") {
-		renderAccessNotice(body, access.state, access.error);
+	if (access.state === "ready") {
+		drawReadyView(view, cfg, body, component);
 		return;
 	}
 
+	renderAccessNotice(body, access.state, access.error);
+	if (!isTransientAccessState(access.state) || retriesLeft <= 0) return;
+
+	const timer = window.setInterval(() => {
+		window.clearInterval(timer);
+		// Drop the cached result, or the session's own backoff would just hand
+		// back the same transient state we are retrying past.
+		view.plugin.operon.invalidate();
+		body.empty();
+		drawForAccess(view, cfg, body, component, retriesLeft - 1);
+	}, ACCESS_RETRY_MS);
+	component.registerInterval(timer);
+}
+
+function drawReadyView(
+	view: HomeView,
+	cfg: OperonConfig,
+	body: HTMLElement,
+	component: Component,
+): void {
 	const today = localDayKey(Date.now());
 	switch (operonView(cfg)) {
 		case "timer":
@@ -590,6 +624,20 @@ export function renderOperon(
 			renderList(view, cfg, body, component, today);
 			return;
 	}
+}
+
+export function renderOperon(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component: Component,
+): void {
+	const cfg = (card.operon ??= {});
+	if (!view.plugin.settings.operonIntegration) {
+		emptyState(body, "plug-zap", t().cards.empty.operonDisabled);
+		return;
+	}
+	drawForAccess(view, cfg, body, component, ACCESS_RETRIES);
 }
 
 

@@ -153,7 +153,15 @@ export function classifyAccess(
 	const grant = status.grant?.state;
 	if (grant) {
 		if (grant === "revoked") return "revoked";
-		if (grant === "suspended") return "suspended";
+		if (grant === "suspended") {
+			// Operon suspends a grant on a version change the user must review —
+			// but it reports the same state while its own grant store is mid-write,
+			// which is transient and needs nobody. Its reason code separates the
+			// two, and only the first has anything to review: on the transient
+			// path Operon does not record a request, so sending the user to its
+			// settings would send them to an empty list.
+			return error?.reasonCode === GRANT_STORE_BUSY ? "booting" : "suspended";
+		}
 		if (grant === "pending") return "pending";
 		// Grant is active. Reads can still be inadmissible while the runtime
 		// starts; anything else that failed is Operon's to explain.
@@ -166,6 +174,24 @@ export function classifyAccess(
 	if (status.reason === "unloading") return "booting";
 	if (error?.code === "handler-unavailable") return "booting";
 	return "error";
+}
+
+/**
+ * Operon's reason code for "my grant store has a write in flight".
+ *
+ * It surfaces as a *suspended* grant, which normally means the user has to
+ * review something — but this one resolves itself. It reliably fires on the
+ * very first request from a new consumer: evaluating the grant observes a
+ * consumer version it has never seen, which enqueues a write, and the same
+ * call then reports a persistence error because that write has not drained
+ * yet. Retrying a moment later evaluates cleanly and files the real request.
+ */
+const GRANT_STORE_BUSY = "grant-persistence-unavailable";
+
+/** Whether this state resolves on its own, given a moment. Nothing the user
+ * does changes these, so a card showing one should retry rather than instruct. */
+export function isTransientAccessState(state: OperonAccessState): boolean {
+	return state === "booting";
 }
 
 /** Narrow Operon's structured error to what Hearth shows and branches on. */

@@ -9,6 +9,7 @@ import {
 	OPERON_READ_CAPABILITIES,
 	accessErrorOf,
 	classifyAccess,
+	isTransientAccessState,
 	missingCapabilities,
 } from "../src/operon/api";
 
@@ -69,6 +70,38 @@ describe("classifyAccess", () => {
 		expect(classifyAccess(false, status({ grant: grant("pending") }))).toBe("pending");
 		expect(classifyAccess(false, status({ grant: grant("suspended") }))).toBe("suspended");
 		expect(classifyAccess(false, status({ grant: grant("revoked") }))).toBe("revoked");
+	});
+
+	// The first request from a new consumer reliably hits this: evaluating the
+	// grant observes an unseen consumer version, which enqueues a write, and the
+	// same call then reports its store busy. Operon does not record a request on
+	// that path, so calling it "suspended" would point the user at an empty list
+	// and leave the card stuck on a state that resolves itself.
+	it("treats a busy grant store as transient, not as something to review", () => {
+		expect(
+			classifyAccess(false, status({ grant: grant("suspended", []) }), {
+				code: "authority-insufficient",
+				reason: "Not covered by an active exact-capability grant.",
+				reasonCode: "grant-persistence-unavailable",
+			}),
+		).toBe("booting");
+	});
+
+	it("still reports a genuine suspension the user has to review", () => {
+		expect(
+			classifyAccess(false, status({ grant: grant("suspended", []) }), {
+				code: "authority-insufficient",
+				reason: "Not covered by an active exact-capability grant.",
+				reasonCode: "consumer-version-major-change",
+			}),
+		).toBe("suspended");
+	});
+
+	it("marks exactly the states that resolve without the user", () => {
+		expect(isTransientAccessState("booting")).toBe(true);
+		for (const state of ["absent", "error", "unsupported", "pending", "suspended", "revoked", "ready"] as const) {
+			expect(isTransientAccessState(state)).toBe(false);
+		}
 	});
 
 	it("reports a grant lost mid-session rather than claiming the session is live", () => {
