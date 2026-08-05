@@ -28,6 +28,7 @@ export {
 	isOperonPlatformSupported,
 	isTransientAccessState,
 	missingCapabilities,
+	retryDelayMs,
 	type OperonAccess,
 	type OperonAccessError,
 	type OperonAccessState,

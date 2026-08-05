@@ -11,6 +11,7 @@ import {
 	classifyAccess,
 	isTransientAccessState,
 	missingCapabilities,
+	retryDelayMs,
 } from "../src/operon/api";
 
 /**
@@ -177,6 +178,33 @@ describe("classifyAccess", () => {
 	it("surfaces a refusal on an otherwise active grant instead of silently retrying", () => {
 		// e.g. capability-unavailable: approved, admitted, still refused.
 		expect(classifyAccess(false, status({ grant: grant("active") }))).toBe("error");
+	});
+});
+
+describe("retryDelayMs", () => {
+	it("does what Operon asks when Operon asks for something", () => {
+		expect(retryDelayMs(0, 400)).toBe(400);
+		expect(retryDelayMs(3, 400)).toBe(400);
+	});
+
+	it("backs off from a short first try when Operon gives no hint", () => {
+		// The two causes have very different timescales — a queued grant write
+		// drains in milliseconds, a cold index can take tens of seconds — so the
+		// first tries are quick and later ones give real room.
+		expect(retryDelayMs(0)).toBe(1_500);
+		expect(retryDelayMs(1)).toBe(3_000);
+		expect(retryDelayMs(2)).toBe(6_000);
+	});
+
+	it("caps a single wait so a long backoff never reads as a hang", () => {
+		expect(retryDelayMs(10)).toBe(10_000);
+		expect(retryDelayMs(0, 600_000)).toBe(10_000);
+	});
+
+	it("ignores a hint that isn't a usable duration", () => {
+		for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, null, undefined]) {
+			expect(retryDelayMs(0, bad)).toBe(1_500);
+		}
 	});
 });
 

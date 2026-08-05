@@ -96,6 +96,9 @@ export interface OperonAccess {
 	status: DeveloperApiChannelStatusV1 | null;
 	/** Why Operon refused, when it said. Null on success. */
 	error: OperonAccessError | null;
+	/** How long Operon asked to be left alone, when it said. Drives the retry
+	 * delay for transient states instead of a number Hearth invented. */
+	retryAfterMs: number | null;
 	/** Capabilities requested but not granted, for the settings readout. */
 	missing: readonly string[];
 }
@@ -212,6 +215,30 @@ export function isTransientAccessState(state: OperonAccessState): boolean {
 	return state === "booting";
 }
 
+/** First retry delay when Operon gives no hint of its own. */
+const RETRY_BASE_MS = 1_500;
+/** Ceiling on a single wait, so a long backoff never feels like a hang. */
+const RETRY_MAX_MS = 10_000;
+
+/**
+ * How long to wait before re-checking a transient state, on attempt `attempt`
+ * (0-based).
+ *
+ * Operon's own `retryAfterMs` wins when it supplies one — it knows whether its
+ * runtime is mid-startup or its grant store is mid-write. Otherwise the delay
+ * doubles from a short first try, because the two causes have very different
+ * timescales: a queued grant write drains in milliseconds, while a cold index
+ * on a large vault can take tens of seconds, and a fixed delay serves one
+ * badly whichever it is picked for.
+ */
+export function retryDelayMs(attempt: number, retryAfterMs?: number | null): number {
+	if (typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) && retryAfterMs > 0) {
+		return Math.min(retryAfterMs, RETRY_MAX_MS);
+	}
+	const step = RETRY_BASE_MS * 2 ** Math.max(0, attempt);
+	return Math.min(step, RETRY_MAX_MS);
+}
+
 /** Narrow Operon's structured error to what Hearth shows and branches on. */
 export function accessErrorOf(error: unknown): OperonAccessError | null {
 	if (!error || typeof error !== "object") return null;
@@ -247,6 +274,7 @@ const UNAVAILABLE: OperonAccess = {
 	api: null,
 	status: null,
 	error: null,
+	retryAfterMs: null,
 	missing: OPERON_READ_CAPABILITIES,
 };
 
@@ -341,7 +369,14 @@ export class OperonSession {
 			// Terminal for this device: nothing the user does changes it, so it
 			// is cached until the session is explicitly invalidated.
 			this.retryAfter = Number.MAX_SAFE_INTEGER;
-			this.cached = { state: "unsupported", api: null, status: null, error: null, missing: [] };
+			this.cached = {
+				state: "unsupported",
+				api: null,
+				status: null,
+				error: null,
+				retryAfterMs: null,
+				missing: [],
+			};
 			return this.cached;
 		}
 
@@ -375,6 +410,7 @@ export class OperonSession {
 			api: result.ok && state === "ready" ? result.api : null,
 			status,
 			error,
+			retryAfterMs: typeof status?.retryAfterMs === "number" ? status.retryAfterMs : null,
 			missing: missingCapabilities(status),
 		};
 		return this.cached;

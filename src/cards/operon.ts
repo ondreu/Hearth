@@ -22,6 +22,7 @@ import {
 	openOperonTask,
 	queryTasks,
 	readTimer,
+	retryDelayMs,
 	sortTasks,
 	taskDay,
 	warmTaxonomy,
@@ -550,11 +551,17 @@ function renderTimer(
 }
 
 
-/** How long to wait before re-checking a transient access state, and how many
- * times. Operon's grant store settles in well under a second; five tries at
- * 1.5s covers a cold runtime start without polling a genuinely stuck one. */
-const ACCESS_RETRY_MS = 1_500;
-const ACCESS_RETRIES = 5;
+/**
+ * How many times a card re-checks a transient access state before giving up
+ * and leaving the message on screen.
+ *
+ * The delay between tries comes from {@link retryDelayMs}: Operon's own
+ * `retryAfterMs` when it offers one, otherwise a doubling backoff. Six tries
+ * therefore span roughly a minute — enough for a cold index on a large vault,
+ * while the first two land within seconds for the common case, which is
+ * Operon's grant store finishing a write it queued microseconds earlier.
+ */
+const ACCESS_RETRIES = 6;
 
 /**
  * Draw the card for whatever access we currently have, retrying by itself while
@@ -583,6 +590,7 @@ function drawForAccess(
 	renderAccessNotice(body, access.state, access.error);
 	if (!isTransientAccessState(access.state) || retriesLeft <= 0) return;
 
+	const delay = retryDelayMs(ACCESS_RETRIES - retriesLeft, access.retryAfterMs);
 	const timer = window.setInterval(() => {
 		window.clearInterval(timer);
 		// Drop the cached result, or the session's own backoff would just hand
@@ -590,7 +598,7 @@ function drawForAccess(
 		view.plugin.operon.invalidate();
 		body.empty();
 		drawForAccess(view, cfg, body, component, retriesLeft - 1);
-	}, ACCESS_RETRY_MS);
+	}, delay);
 	component.registerInterval(timer);
 }
 
