@@ -21,12 +21,14 @@ export {
 	OPERON_PLUGIN_ID,
 	OPERON_READ_CAPABILITIES,
 	OperonSession,
+	accessErrorOf,
 	classifyAccess,
 	getOperonAccessor,
 	isOperonAvailable,
 	isOperonPlatformSupported,
 	missingCapabilities,
 	type OperonAccess,
+	type OperonAccessError,
 	type OperonAccessState,
 } from "./api";
 

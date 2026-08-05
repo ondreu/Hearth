@@ -60,6 +60,8 @@ export const OPERON_READ_CAPABILITIES: readonly CapabilityIdV1[] = [
 export type OperonAccessState =
 	/** Not installed, not enabled, or too old to expose the accessor. */
 	| "absent"
+	/** Operon refused for a reason of its own. `OperonAccess.error` says which. */
+	| "error"
 	/** Mobile, or an Obsidian older than Operon's Developer API requires. */
 	| "unsupported"
 	/** Operon is up but its runtime is still starting; retry shortly. */
@@ -73,6 +75,15 @@ export type OperonAccessState =
 	/** Reads are admitted. */
 	| "ready";
 
+/** Operon's own account of a refusal, kept so Hearth can show it verbatim
+ * instead of guessing. `reasonCode` is the finer-grained identifier Operon puts
+ * in `error.details` (e.g. `developer-api-consumer-unverified`). */
+export interface OperonAccessError {
+	code: string;
+	reason: string;
+	reasonCode?: string;
+}
+
 export interface OperonAccess {
 	state: OperonAccessState;
 	/** The live API, only ever set when `state === "ready"`. */
@@ -80,6 +91,8 @@ export interface OperonAccess {
 	/** Operon's own channel report, kept even on failure — it carries the grant
 	 * summary the settings tab and empty states describe. */
 	status: DeveloperApiChannelStatusV1 | null;
+	/** Why Operon refused, when it said. Null on success. */
+	error: OperonAccessError | null;
 	/** Capabilities requested but not granted, for the settings readout. */
 	missing: readonly string[];
 }
@@ -123,6 +136,7 @@ export function isOperonPlatformSupported(): boolean {
 export function classifyAccess(
 	ok: boolean,
 	status: DeveloperApiChannelStatusV1 | null,
+	error?: OperonAccessError | null,
 ): OperonAccessState {
 	if (!status) return "absent";
 
@@ -130,22 +144,40 @@ export function classifyAccess(
 	if (status.reason === "unsupported-platform" || status.reason === "unsupported-version") {
 		return "unsupported";
 	}
-	if (status.reason === "accessor-unavailable") return "absent";
 
+	// `grant` is present only once Operon actually evaluated one — which is
+	// also the only path on which it records a pending request for the user to
+	// approve. Its absence therefore means Operon refused earlier than that,
+	// and telling the user to go approve something would send them to a list
+	// that will be empty.
 	const grant = status.grant?.state;
-	if (grant === "revoked") return "revoked";
-	if (grant === "suspended") return "suspended";
-	if (grant === "pending") return "pending";
-
-	if (!ok) {
-		// No grant record yet: the first request is what creates the pending
-		// entry the user reviews, so treat it as awaiting approval.
-		if (status.authority !== "granted") return "pending";
-		return status.availability === "unavailable" ? "booting" : "pending";
+	if (grant) {
+		if (grant === "revoked") return "revoked";
+		if (grant === "suspended") return "suspended";
+		if (grant === "pending") return "pending";
+		// Grant is active. Reads can still be inadmissible while the runtime
+		// starts; anything else that failed is Operon's to explain.
+		if (!status.admission.reads) return "booting";
+		return ok ? "ready" : "error";
 	}
 
-	if (!status.admission.reads) return "booting";
-	return "ready";
+	// Refused before any grant was evaluated. Two of these are ordinary
+	// transient states; the rest need Operon's own message, not a guess.
+	if (status.reason === "unloading") return "booting";
+	if (error?.code === "handler-unavailable") return "booting";
+	return "error";
+}
+
+/** Narrow Operon's structured error to what Hearth shows and branches on. */
+export function accessErrorOf(error: unknown): OperonAccessError | null {
+	if (!error || typeof error !== "object") return null;
+	const e = error as { code?: unknown; reason?: unknown; details?: { reasonCode?: unknown } };
+	if (typeof e.code !== "string") return null;
+	return {
+		code: e.code,
+		reason: typeof e.reason === "string" ? e.reason : "",
+		reasonCode: typeof e.details?.reasonCode === "string" ? e.details.reasonCode : undefined,
+	};
 }
 
 /** Requested capabilities Operon has not granted, in requested order. */
@@ -165,6 +197,7 @@ const UNAVAILABLE: OperonAccess = {
 	state: "absent",
 	api: null,
 	status: null,
+	error: null,
 	missing: OPERON_READ_CAPABILITIES,
 };
 
@@ -259,7 +292,7 @@ export class OperonSession {
 			// Terminal for this device: nothing the user does changes it, so it
 			// is cached until the session is explicitly invalidated.
 			this.retryAfter = Number.MAX_SAFE_INTEGER;
-			this.cached = { state: "unsupported", api: null, status: null, missing: [] };
+			this.cached = { state: "unsupported", api: null, status: null, error: null, missing: [] };
 			return this.cached;
 		}
 
@@ -280,7 +313,11 @@ export class OperonSession {
 		}
 
 		const status = result.status ?? null;
-		const state = classifyAccess(result.ok, status);
+		// Operon reports a refusal both on the result and (for lifecycle
+		// problems) on the status; prefer the result's, which is the specific
+		// one for this attempt.
+		const error = accessErrorOf(result.ok ? null : result.error) ?? accessErrorOf(status?.error);
+		const state = classifyAccess(result.ok, status, error);
 		// Operon says how long to wait when it knows; otherwise back off long
 		// enough that a burst of card renders costs one negotiation.
 		this.retryAfter = state === "ready" ? 0 : Date.now() + (status?.retryAfterMs ?? RETRY_BACKOFF_MS);
@@ -288,6 +325,7 @@ export class OperonSession {
 			state,
 			api: result.ok && state === "ready" ? result.api : null,
 			status,
+			error,
 			missing: missingCapabilities(status),
 		};
 		return this.cached;

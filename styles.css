@@ -9644,6 +9644,16 @@ body.hearth-dv-resizing {
 	border-bottom: 1px dashed currentColor;
 }
 
+/* Operon's own refusal, under the empty state. Small and muted: it is
+   diagnostic detail, not the headline. */
+.hearth-operon-errordetail {
+	padding: 0 12px 8px;
+	text-align: center;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	word-break: break-word;
+}
+
 /* ---- Operon agenda view ---- */
 .hearth-operon-day {
 	display: flex;

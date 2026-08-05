@@ -1592,6 +1592,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				return s.statusIdle;
 			case "off":
 				return s.statusOff;
+			case "error":
+				return s.statusError;
 			case "absent":
 			default:
 				return s.statusAbsent;
@@ -1634,7 +1636,18 @@ export class HomeSettingTab extends PluginSettingTab {
 					? "idle"
 					: "off";
 
-		new Setting(containerEl).setName(s.status).setDesc(this.operonStatusText(state));
+		const statusRow = new Setting(containerEl)
+			.setName(s.status)
+			.setDesc(this.operonStatusText(state));
+		// Operon's own code and sentence, verbatim, whenever it gave one. This is
+		// the only place the exact refusal is visible, and it is what makes a
+		// problem reportable rather than guessable.
+		if (connected?.error) {
+			statusRow.descEl.createDiv({
+				cls: "hearth-operon-caps-missing",
+				text: `${s.detail}: ${connected.error.reasonCode ?? connected.error.code}${connected.error.reason ? ` — ${connected.error.reason}` : ""}`,
+			});
+		}
 
 		const capabilities = new Setting(containerEl)
 			.setName(s.capabilities)

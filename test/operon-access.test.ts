@@ -5,7 +5,12 @@ import type {
 	DeveloperApiGrantStateV1,
 	DeveloperApiGrantSummaryV1,
 } from "@stratejya/operon-cli/contracts/v1";
-import { OPERON_READ_CAPABILITIES, classifyAccess, missingCapabilities } from "../src/operon/api";
+import {
+	OPERON_READ_CAPABILITIES,
+	accessErrorOf,
+	classifyAccess,
+	missingCapabilities,
+} from "../src/operon/api";
 
 /**
  * The rules every Operon card and the settings readout branch on.
@@ -58,7 +63,6 @@ describe("classifyAccess", () => {
 	it("separates a device that can never host the API from one that can", () => {
 		expect(classifyAccess(false, status({ reason: "unsupported-platform" }))).toBe("unsupported");
 		expect(classifyAccess(false, status({ reason: "unsupported-version" }))).toBe("unsupported");
-		expect(classifyAccess(false, status({ reason: "accessor-unavailable" }))).toBe("absent");
 	});
 
 	it("surfaces the grant state ahead of everything else", () => {
@@ -73,8 +77,36 @@ describe("classifyAccess", () => {
 		expect(classifyAccess(true, status({ grant: grant("revoked") }))).toBe("revoked");
 	});
 
-	it("calls a first, ungranted request pending — that request is what queues the approval", () => {
-		expect(classifyAccess(false, status({ authority: "read-only", reason: "ready" }))).toBe("pending");
+	// The distinction this suite exists for. Operon records a pending grant
+	// request only once it has evaluated one — the path that also puts `grant`
+	// on the status. Refusals that happen earlier (a rejected request shape, an
+	// unverified consumer, a runtime facade that never came up) file nothing,
+	// so calling them "pending" sends the user to a settings list that is empty
+	// and gives them nothing to approve.
+	it("does not claim pending when Operon never evaluated a grant", () => {
+		const early = status({ authority: "revoked", reason: "accessor-unavailable" });
+		expect(early.grant).toBeUndefined();
+		expect(classifyAccess(false, early)).toBe("error");
+	});
+
+	it("reports pending only when Operon actually recorded the request", () => {
+		// authority is "revoked" here too — reads aren't admitted yet — so the
+		// grant state, not the authority field, has to be what decides.
+		const filed = status({ authority: "revoked", grant: grant("pending", []) });
+		expect(classifyAccess(false, filed)).toBe("pending");
+	});
+
+	it("treats an uninitialised runtime as booting, not as a refusal", () => {
+		expect(
+			classifyAccess(false, status({ reason: "accessor-unavailable" }), {
+				code: "handler-unavailable",
+				reason: "The Operon Runtime facade has not been initialized.",
+			}),
+		).toBe("booting");
+	});
+
+	it("treats an unloading Operon as booting", () => {
+		expect(classifyAccess(false, status({ reason: "unloading" }))).toBe("booting");
 	});
 
 	it("does not call a session ready while Operon still refuses reads", () => {
@@ -85,8 +117,42 @@ describe("classifyAccess", () => {
 
 	it("distinguishes an unavailable runtime from an approval problem", () => {
 		expect(
-			classifyAccess(false, status({ availability: "unavailable", reason: "booting", grant: grant("active") })),
+			classifyAccess(false, {
+				...status({ availability: "unavailable", reason: "booting", grant: grant("active") }),
+				admission: { reads: false, writes: false },
+			}),
 		).toBe("booting");
+	});
+
+	it("surfaces a refusal on an otherwise active grant instead of silently retrying", () => {
+		// e.g. capability-unavailable: approved, admitted, still refused.
+		expect(classifyAccess(false, status({ grant: grant("active") }))).toBe("error");
+	});
+});
+
+describe("accessErrorOf", () => {
+	it("keeps the code, sentence and finer-grained reason code", () => {
+		expect(
+			accessErrorOf({
+				contractVersion: 1,
+				code: "authority-insufficient",
+				reason: "Not covered by an active grant.",
+				retryable: false,
+				action: "request-authority",
+				details: { reasonCode: "developer-api-consumer-unverified" },
+			}),
+		).toEqual({
+			code: "authority-insufficient",
+			reason: "Not covered by an active grant.",
+			reasonCode: "developer-api-consumer-unverified",
+		});
+	});
+
+	it("ignores anything that isn't a structured error", () => {
+		expect(accessErrorOf(null)).toBeNull();
+		expect(accessErrorOf(undefined)).toBeNull();
+		expect(accessErrorOf("boom")).toBeNull();
+		expect(accessErrorOf({ reason: "no code" })).toBeNull();
 	});
 });
 

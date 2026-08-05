@@ -24,6 +24,7 @@ import {
 	sortTasks,
 	taskDay,
 	warmTaxonomy,
+	type OperonAccessError,
 	type OperonAccessState,
 	type OperonResult,
 	type OperonSortKey,
@@ -82,8 +83,25 @@ function sortKeyOf(cfg: OperonConfig): OperonSortKey {
 /** The empty state for every reason an Operon card can't show data. Each state
  * names its own next step: "install Operon" and "approve Hearth in Operon's
  * settings" are very different problems and a shared message helps neither. */
-function renderAccessNotice(body: HTMLElement, state: OperonAccessState): void {
+function renderAccessNotice(
+	body: HTMLElement,
+	state: OperonAccessState,
+	error: OperonAccessError | null,
+): void {
 	const strings = t().cards.empty;
+	if (state === "error") {
+		emptyState(body, "alert-triangle", strings.operonError);
+		// Operon's own code and sentence, verbatim. Without this the card can
+		// only guess, and a wrong guess sends the user to a settings list that
+		// will be empty.
+		if (error) {
+			body.createDiv({
+				cls: "hearth-operon-errordetail",
+				text: t().cards.operon.errorDetail(error.reasonCode ?? error.code, error.reason),
+			});
+		}
+		return;
+	}
 	switch (state) {
 		case "unsupported":
 			emptyState(body, "monitor-off", strings.operonUnsupported);
@@ -552,7 +570,7 @@ export function renderOperon(
 	}
 	const access = view.plugin.operon.access();
 	if (access.state !== "ready") {
-		renderAccessNotice(body, access.state);
+		renderAccessNotice(body, access.state, access.error);
 		return;
 	}
 

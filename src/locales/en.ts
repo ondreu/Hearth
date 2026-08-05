@@ -1210,6 +1210,8 @@ export const en = {
 			statusReady: "Connected — Operon cards can read tasks.",
 			statusIdle: "Not connected yet. Add an Operon card to open a session.",
 			statusOff: "The integration is switched off, so Hearth isn't reading anything from Operon.",
+			statusError: "Operon refused the connection.",
+			detail: "Operon reported",
 			install: "Open Operon in Community plugins",
 			capabilities: "Requested access",
 			capabilitiesDesc:
@@ -2598,6 +2600,7 @@ export const en = {
 			operonRevoked:
 				"Operon access was revoked — grant it again in Operon's Developer API Integrations",
 			operonBooting: "Operon is still starting up",
+			operonError: "Operon refused the connection",
 			operonNoTasks: "No Operon tasks match",
 			operonNoAgenda: "Nothing scheduled in this window",
 			operonNoColumns: "No Operon statuses to show — pick a pipeline in card settings",
@@ -2612,6 +2615,9 @@ export const en = {
 			timerUnassigned: "Unassigned time",
 			truncated: (shown: number, total: number) => `Showing ${shown} of ${total}`,
 			readFailed: (reason: string) => `Operon couldn't answer: ${reason}`,
+			/** Operon's own words, shown verbatim under an empty state so the
+			 * problem is diagnosable instead of guessed at. */
+			errorDetail: (code: string, reason: string) => (reason ? `${code} — ${reason}` : code),
 		},
 		templater: {
 			untitledTile: "New note",
