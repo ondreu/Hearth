@@ -90,41 +90,33 @@ function renderAccessNotice(
 	error: OperonAccessError | null,
 ): void {
 	const strings = t().cards.empty;
-	if (state === "error") {
-		emptyState(body, "alert-triangle", strings.operonError);
-		// Operon's own code and sentence, verbatim. Without this the card can
-		// only guess, and a wrong guess sends the user to a settings list that
-		// will be empty.
-		if (error) {
-			body.createDiv({
-				cls: "hearth-operon-errordetail",
-				text: t().cards.operon.errorDetail(error.reasonCode ?? error.code, error.reason),
-			});
-		}
-		return;
-	}
-	switch (state) {
-		case "unsupported":
-			emptyState(body, "monitor-off", strings.operonUnsupported);
-			return;
-		case "booting":
-			emptyState(body, "loader", strings.operonBooting);
-			return;
-		case "pending":
-			emptyState(body, "key-round", strings.operonPending);
-			return;
-		case "suspended":
-			emptyState(body, "pause", strings.operonSuspended);
-			return;
-		case "revoked":
-			emptyState(body, "shield-off", strings.operonRevoked);
-			return;
-		case "absent":
-		default:
-			emptyState(body, "list-checks", strings.operonEnable);
-			return;
+	const notice: Record<OperonAccessState, { icon: string; text: string }> = {
+		error: { icon: "alert-triangle", text: strings.operonError },
+		unsupported: { icon: "monitor-off", text: strings.operonUnsupported },
+		booting: { icon: "loader", text: strings.operonBooting },
+		pending: { icon: "key-round", text: strings.operonPending },
+		suspended: { icon: "pause", text: strings.operonSuspended },
+		revoked: { icon: "shield-off", text: strings.operonRevoked },
+		absent: { icon: "list-checks", text: strings.operonEnable },
+		// Never drawn — a ready card renders its content instead — but the map
+		// is exhaustive so a new state cannot be added without a message.
+		ready: { icon: "list-checks", text: strings.operonEnable },
+	};
+	const { icon, text } = notice[state];
+	emptyState(body, icon, text);
+
+	// Operon's own code and sentence, verbatim, under *every* state it explained
+	// — not just the ones Hearth failed to categorise. Hearth's summary is an
+	// interpretation of that error, and when the interpretation is wrong this
+	// line is the only thing that says so.
+	if (error) {
+		body.createDiv({
+			cls: "hearth-operon-errordetail",
+			text: t().cards.operon.errorDetail(error.reasonCode ?? error.code, error.reason),
+		});
 	}
 }
+
 
 /** Turn a failed read into a line the user can act on. Operon's error codes are
  * additive, so an unrecognised one is reported as-is rather than guessed at. */
