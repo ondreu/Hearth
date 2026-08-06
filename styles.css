@@ -4296,6 +4296,26 @@ body.hearth-dv-resizing {
 	background: var(--background-modifier-hover);
 }
 
+/* A date field coloured by its relation to today (before / on / after). These
+   sit after the `.is-overdue` and `.is-recurring` rules above and match them
+   for specificity, so a colour the user set wins over the built-in red and
+   accent. The overdue class is only applied when no colour is configured, so
+   the two never actually contend. */
+.hearth-task-due.is-colored,
+.hearth-task-meta.is-colored {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+.hearth-task-due.is-colored.is-pill,
+.hearth-task-meta.is-colored.is-pill {
+	background: color-mix(in srgb, var(--chip-color) 18%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 32%, transparent);
+}
+
+.hearth-task-meta.is-colored .hearth-task-meta-emoji {
+	opacity: 1;
+}
+
 /* ---- Task fields editor --------------------------------------------- */
 
 .hearth-taskfields-hint {

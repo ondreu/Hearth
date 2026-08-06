@@ -398,10 +398,17 @@ function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
 
 
 /** Render one of a task's date indicators: start (🛫), scheduled (⏳), the
- * due/next-occurrence label, or the done date (✅). Start/scheduled/done are
- * parsed only for line-based tasks (checkbox + Kanban), so they render nothing
- * for TaskNotes; the due label keeps its recurrence/overdue treatment for every
- * source. Renders nothing when the task has no such date. */
+ * due/next-occurrence label, or the done date (✅). The due label keeps its
+ * recurrence/overdue treatment for every source. Renders nothing when the task
+ * has no such date.
+ *
+ * `restrict` applies the fixed layout's two extra rules: start/scheduled/done
+ * only on line-based tasks (checkbox + Kanban), and no scheduled chip on a
+ * recurring card, whose scheduled date is already what the due label shows as
+ * its next occurrence. A user-defined field asked for the key by name, so it
+ * renders whatever the task actually holds — a TaskNotes task carries a real
+ * `scheduled` date, and hiding it because the fixed layout never showed one
+ * made the field silently do nothing (#157). */
 function renderTaskDateChip(
 	parent: HTMLElement,
 	hit: TaskHit,
@@ -409,6 +416,7 @@ function renderTaskDateChip(
 	today: string,
 	style: TaskFieldStyle,
 	shown: TaskValueDisplay = { label: "", color: null },
+	restrict = true,
 ): HTMLElement | null {
 	const overdue = (d: string | null | undefined) => !hit.done && !!d && d.slice(0, 10) < today;
 
@@ -430,10 +438,8 @@ function renderTaskDateChip(
 		return due;
 	}
 
-	// For recurring cards the scheduled date is folded into the due label (it is
-	// the next occurrence), so showing it again would duplicate it.
-	if (hit.line < 0) return null;
-	if (id === "scheduled" && hit.recurrence) return null;
+	if (restrict && hit.line < 0) return null;
+	if (restrict && id === "scheduled" && hit.recurrence) return null;
 	const date = taskSourceDate(hit, id);
 	if (!date) return null;
 
@@ -963,7 +969,7 @@ function renderCustomTaskFields(
 					const shown = date
 						? dateDisplay(key, dateRelation(date, today))
 						: { label: "", color: null };
-					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown);
+					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
 					if (el && date && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
 					}
