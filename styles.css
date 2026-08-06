@@ -4319,14 +4319,39 @@ body.hearth-dv-resizing {
 /* ---- Task fields editor --------------------------------------------- */
 
 /* A field, its keys and their value tables are three levels deep, which the
-   default modal width cannot hold without crowding every row in the table. */
+   default modal width cannot hold without crowding every row in the table.
+   Height is a flex chain rather than a `vh` cap on the list: the modal frame
+   knows how tall it may be (and on a phone that is the whole screen), so the
+   list takes the room that is left over and scrolls inside it. A fixed cap
+   plus a header and a footer adds up to more than the frame allows, and the
+   difference is cut off with nothing to scroll. */
 .hearth-taskfields-modal {
+	display: flex;
+	flex-direction: column;
 	width: min(840px, 94vw);
 	max-width: min(840px, 94vw);
 }
 
+/* The class is doubled to outweigh a theme's own `.modal-content` rules: the
+   column layout here is what makes the list scroll instead of being cut off,
+   so it must not be a cascade coin toss. */
+.hearth-taskfields.hearth-taskfields {
+	display: flex;
+	flex-direction: column;
+	/* min-height: 0 at every step, or a flex item refuses to shrink below its
+	   content and the scroll never engages. */
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
 .hearth-taskfields h3 {
 	margin: 0 0 4px;
+	flex: 0 0 auto;
+}
+
+.hearth-taskfields > .hearth-taskfields-hint,
+.hearth-taskfields > .setting-item {
+	flex: 0 0 auto;
 }
 
 .hearth-taskfields-hint {
@@ -4340,11 +4365,24 @@ body.hearth-dv-resizing {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	max-height: 62vh;
+	/* The scroller: it takes whatever height the frame has left, never more. */
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-y: auto;
+	overscroll-behavior: contain;
 	/* Room for focus rings on the outermost controls, which a scroll container
 	   would otherwise clip. */
 	padding: 2px;
+}
+
+/* Nothing inside a bounded flex column may shrink. A field card is `overflow:
+   hidden` for its rounded corners, so a shrunk card doesn't overflow visibly —
+   it silently cuts its own content off, and the list has nothing left to
+   scroll. The rows must keep their height and let the scroller do its job. */
+.hearth-taskfields-body > *,
+.hearth-taskfields-section > *,
+.hearth-taskfields-table > * {
+	flex-shrink: 0;
 }
 
 /* ---- Panels: a card per field, a lighter card per key --------------- */
