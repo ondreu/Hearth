@@ -16,7 +16,11 @@ import {
 import {
 	activeTaskFields,
 	builtinSource,
+	DATE_RELATIONS,
+	dateDisplay,
+	dateRelation,
 	displayValue,
+	keyIsDate,
 	fieldStyle,
 	frontmatterSource,
 	isDateSource,
@@ -29,6 +33,7 @@ import {
 	sourceBuiltin,
 	sourceProperty,
 	TASK_BUILTIN_SOURCES,
+	type TaskValueDisplay,
 	TASK_COLOR_PRESETS,
 	type TaskBuiltinSource,
 	taskFieldValues,
@@ -40,6 +45,7 @@ import {
 	type TaskDueFilter,
 	type TaskFieldDef,
 	type TaskFieldKey,
+	type TaskValueMap,
 	type TaskFieldStyle,
 	type TaskFilterConfig,
 	type TaskMeta,
@@ -402,27 +408,34 @@ function renderTaskDateChip(
 	id: TaskBuiltinSource,
 	today: string,
 	style: TaskFieldStyle,
-): void {
+	shown: TaskValueDisplay = { label: "", color: null },
+): HTMLElement | null {
 	const overdue = (d: string | null | undefined) => !hit.done && !!d && d.slice(0, 10) < today;
 
 	if (id === "due") {
 		const dueLabel = formatDueLabel(hit);
-		if (!dueLabel) return;
-		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text: dueLabel });
-		due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
+		if (!dueLabel) return null;
+		// A relation label ("Overdue") replaces the date's own wording; the ↻ that
+		// marks a recurring task's next occurrence stays either way.
+		const text = shown.label ? `${shown.label}${hit.recurrence ? " ↻" : ""}` : dueLabel;
+		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text });
+		// An explicit colour for the relation supersedes the built-in overdue red,
+		// which is the point of being able to set one.
+		if (shown.color) applyChipColor(due, shown.color);
+		else due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
 		if (hit.recurrence) {
 			due.addClass("is-recurring");
 			due.setAttribute("title", recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring);
 		}
-		return;
+		return due;
 	}
 
 	// For recurring cards the scheduled date is folded into the due label (it is
 	// the next occurrence), so showing it again would duplicate it.
-	if (hit.line < 0) return;
-	if (id === "scheduled" && hit.recurrence) return;
+	if (hit.line < 0) return null;
+	if (id === "scheduled" && hit.recurrence) return null;
 	const date = taskSourceDate(hit, id);
-	if (!date) return;
+	if (!date) return null;
 
 	const emoji = id === "start" ? "🛫" : id === "scheduled" ? "⏳" : "✅";
 	const title =
@@ -435,10 +448,37 @@ function renderTaskDateChip(
 	const kind = id === "doneDate" ? "done" : id;
 	const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind} is-${style}` });
 	el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
-	el.appendText(formatRelativeDate(date));
+	el.appendText(shown.label || formatRelativeDate(date));
 	el.setAttribute("title", `${title}: ${date}`);
+	if (shown.color) applyChipColor(el, shown.color);
 	// A done date is history — it is never overdue.
-	if (id !== "doneDate") el.toggleClass("is-overdue", overdue(date));
+	else if (id !== "doneDate") el.toggleClass("is-overdue", overdue(date));
+	return el;
+}
+
+
+/** A date held in a frontmatter property the user marked as a date: the same
+ * relative label and relation colouring as a built-in date, without the emoji
+ * marker (which belongs to the Tasks-plugin fields, not to arbitrary keys). */
+function renderCustomDateChip(
+	parent: HTMLElement,
+	date: string,
+	today: string,
+	style: TaskFieldStyle,
+	shown: TaskValueDisplay,
+	prefix: string | undefined,
+	done: boolean,
+): HTMLElement {
+	const el = renderValueChip(parent, {
+		text: shown.label || formatRelativeDate(date),
+		style,
+		color: shown.color,
+		prefix,
+		title: date,
+		extraCls: "hearth-task-datechip",
+	});
+	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
+	return el;
 }
 
 
@@ -459,6 +499,13 @@ function renderTaskDateChip(
  */
 function taskKeyEditable(hit: TaskHit, source: string): boolean {
 	const builtin = sourceBuiltin(source);
+	if (builtin === "doneDate") return false;
+	if (builtin === "start") return hit.line >= 0;
+	if (builtin === "due" || builtin === "scheduled") {
+		// A recurring task's date is computed from its rule and rolls forward on
+		// completion; setting it by hand would be undone by the next tick.
+		return !hit.recurrence;
+	}
 	if (builtin) return builtin === "status" || builtin === "priority";
 	if (!sourceProperty(source)) return false;
 	return hit.line < 0 || !!hit.linkedFile;
@@ -489,6 +536,22 @@ async function writeTaskFieldValue(
 		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
 	}
 
+	// A line-based task keeps its dates in the same emoji markers, written
+	// through the same rewrite.
+	if (builtin && isDateSource(source) && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: priorityKey(hit.priority ?? ""),
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		if (builtin === "start") meta.start = value ?? "";
+		else if (builtin === "scheduled") meta.scheduled = value ?? "";
+		else meta.due = value ?? "";
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
 	// Everything else is a frontmatter write on the task's own note.
 	const s = view.plugin.settings;
 	const property =
@@ -496,7 +559,11 @@ async function writeTaskFieldValue(
 			? s.taskNotesStatusField.trim() || "status"
 			: builtin === "priority"
 				? s.taskNotesPriorityField.trim() || "priority"
-				: sourceProperty(source);
+				: builtin === "due"
+					? s.taskNotesDueField.trim() || "due"
+					: builtin === "scheduled"
+						? "scheduled"
+						: sourceProperty(source);
 	if (!property) return false;
 	const file = fieldSourceFile(hit);
 	try {
@@ -507,6 +574,79 @@ async function writeTaskFieldValue(
 		return true;
 	} catch {
 		return false;
+	}
+}
+
+
+/**
+ * A calendar for setting a task's date. The native date input is what puts a
+ * real calendar on screen (and the platform's own one on mobile); the shortcuts
+ * beside it cover what people actually pick — today, tomorrow, next week — and
+ * Clear removes the date entirely.
+ */
+class TaskDatePickerModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		initial: string,
+		private readonly onSubmit: (value: string | null) => void,
+	) {
+		super(app);
+		// The stored value may carry a time or be natural-language wording; the
+		// input only understands YYYY-MM-DD.
+		this.value = /^\d{4}-\d{2}-\d{2}/.test(initial) ? initial.slice(0, 10) : "";
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.addClass("hearth-taskdate-modal");
+		contentEl.createEl("h3", { text: t().cards.tasks.dateTitle });
+
+		const commit = (value: string | null) => {
+			this.onSubmit(value);
+			this.close();
+		};
+
+		let input: HTMLInputElement | null = null;
+		new Setting(contentEl).setName(t().cards.tasks.dateOn).addText((txt) => {
+			txt.inputEl.type = "date";
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit(this.value || null);
+			});
+			input = txt.inputEl;
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+
+		const shortcuts = contentEl.createDiv("hearth-taskdate-shortcuts");
+		const shortcut = (label: string, days: number) => {
+			const btn = shortcuts.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+			btn.addEventListener("click", () => {
+				const date = moment().add(days, "days").format("YYYY-MM-DD");
+				this.value = date;
+				if (input) input.value = date;
+			});
+		};
+		shortcut(t().cards.tasks.dateToday, 0);
+		shortcut(t().cards.tasks.dateTomorrow, 1);
+		shortcut(t().cards.tasks.dateNextWeek, 7);
+
+		new Setting(contentEl)
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setCta()
+					.onClick(() => commit(this.value || null)),
+			)
+			.addButton((b) => b.setButtonText(t().cards.tasks.dateClear).onClick(() => commit(null)))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
 	}
 }
 
@@ -582,6 +722,13 @@ async function openTaskValuePicker(
 			refresh();
 		});
 	};
+
+	// A date is picked from a calendar, not from a list of everything the vault
+	// happens to contain.
+	if (keyIsDate(key)) {
+		new TaskDatePickerModal(view.app, current, set).open();
+		return;
+	}
 
 	const mapped = (key.values ?? []).map((v) => v.match.trim()).filter(Boolean);
 	const seen = new Set(mapped.map((v) => v.toLowerCase()));
@@ -805,11 +952,38 @@ function renderCustomTaskFields(
 				if (hit.description) renderTaskDescription(hosts.block, hit.description);
 				continue;
 			}
-			if (isDateSource(key.source)) {
-				// A date is a relative label ("Tomorrow") with its own marker and
-				// overdue treatment; mapping individual dates would mean nothing.
+			// A date carries no discrete values to map, so it is labelled and
+			// coloured by where it falls relative to today, and edited with a
+			// calendar. A dot would hide the one thing a date is for.
+			if (keyIsDate(key)) {
+				const dateStyle = style === "dot" ? "text" : style;
 				const id = sourceBuiltin(key.source);
-				if (id) renderTaskDateChip(hosts.meta, hit, id, today, style === "dot" ? "text" : style);
+				if (id && isDateSource(key.source)) {
+					const date = id === "due" ? effectiveDate(hit) : taskSourceDate(hit, id);
+					const shown = date
+						? dateDisplay(key, dateRelation(date, today))
+						: { label: "", color: null };
+					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown);
+					if (el && date && taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+					continue;
+				}
+				for (const date of keyValues(view, hit, key.source)) {
+					const shown = dateDisplay(key, dateRelation(date, today));
+					const el = renderCustomDateChip(
+						hosts.meta,
+						date,
+						today,
+						dateStyle,
+						shown,
+						prefix,
+						hit.done,
+					);
+					if (taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+				}
 				continue;
 			}
 
@@ -4632,7 +4806,10 @@ export class TaskFieldsModal extends Modal {
 	): void {
 		const labels = t().editors.tasks;
 		const openKey = `key:${field.id}:${index}`;
-		const mappable = !isDateSource(key.source) && !isDescriptionSource(key.source);
+		const isDate = keyIsDate(key);
+		// The description is a block of text: no values, no dates, nothing to
+		// configure. Everything else expands.
+		const mappable = !isDescriptionSource(key.source);
 		const mapped = (key.values ?? []).length;
 
 		const row = new Setting(detail).setClass("hearth-taskfields-row");
@@ -4640,12 +4817,12 @@ export class TaskFieldsModal extends Modal {
 		row.setDesc(
 			!mappable
 				? labels.fieldNotMappable
-				: mapped
-					? labels.fieldMappedValues(mapped)
-					: labels.fieldNoMappings,
+				: isDate
+					? labels.fieldDateKey
+					: mapped
+						? labels.fieldMappedValues(mapped)
+						: labels.fieldNoMappings,
 		);
-		// A date and the description have no discrete values, so there is nothing
-		// to expand into.
 		if (mappable) this.addDisclosure(row, openKey);
 		row.addExtraButton((b) =>
 			b
@@ -4680,7 +4857,104 @@ export class TaskFieldsModal extends Modal {
 		);
 
 		if (!mappable || !this.isOpen(openKey)) return;
-		this.renderMappings(detail.createDiv("hearth-taskfields-detail"), key);
+		const host = detail.createDiv("hearth-taskfields-detail");
+		// A frontmatter property could hold anything; only the user knows whether
+		// this one is a date. The built-in date sources are not up for debate.
+		if (!isDateSource(key.source)) {
+			new Setting(host)
+				.setName(labels.fieldIsDate)
+				.setDesc(labels.fieldIsDateDesc)
+				.addToggle((tg) =>
+					tg.setValue(!!key.isDate).onChange((v) => {
+						key.isDate = v || undefined;
+						// The two modes store different things under `values`; keeping
+						// the old rows would leave dead entries behind either way.
+						key.values = undefined;
+						this.renderBody();
+					}),
+				);
+		}
+		if (isDate) this.renderDateRelations(host, key);
+		else this.renderMappings(host, key);
+	}
+
+	// ---- A date key: the three relations to today ---------------------------
+
+	/**
+	 * A date has no values to enumerate, so what it offers instead is the only
+	 * distinction that means anything on a task: is it behind us, is it today, or
+	 * is it still ahead. Each gets an optional label and colour — the label
+	 * replaces the date's own wording ("Overdue" rather than "Yesterday"), which
+	 * is why it is optional: most people want the colour and keep the date.
+	 */
+	private renderDateRelations(host: HTMLElement, key: TaskFieldKey): void {
+		const labels = t().editors.tasks;
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldDateHint });
+
+		const values = (key.values ??= []);
+		for (const relation of DATE_RELATIONS) {
+			// Rows exist for all three whether or not they have been configured, so
+			// the choice is visible rather than something to discover.
+			let mapping = values.find((v) => v.match === relation);
+			if (!mapping) {
+				mapping = { match: relation };
+				values.push(mapping);
+			}
+			const entry = mapping;
+			const row = new Setting(host).setClass("hearth-taskfields-color");
+			row.setName(labels.dateRelations[relation]);
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(labels.fieldDateLabelPlaceholder)
+					.setValue(entry.label ?? "")
+					.onChange((v) => {
+						entry.label = v.trim() || undefined;
+					}),
+			);
+			const swatch = row.controlEl.createDiv("hearth-taskfields-swatch");
+			if (entry.color) swatch.style.setProperty("--chip-color", entry.color);
+			swatch.toggleClass("is-unset", !entry.color);
+			this.addColorControls(row, entry);
+		}
+	}
+
+	/** The preset menu + free picker + clear that every colourable row carries. */
+	private addColorControls(row: Setting, mapping: TaskValueMap): void {
+		const labels = t().editors.tasks;
+		row.addExtraButton((b) => {
+			b.setIcon("palette").setTooltip(labels.fieldColor);
+			b.onClick(() => {
+				const menu = new Menu();
+				for (const preset of TASK_COLOR_PRESETS) {
+					menu.addItem((item) =>
+						item.setTitle(labels.colorNames[preset]).onClick(() => {
+							mapping.color = presetColor(preset);
+							this.renderBody();
+						}),
+					);
+				}
+				menu.addSeparator();
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.fieldColorClear)
+						.setIcon("rotate-ccw")
+						.onClick(() => {
+							mapping.color = undefined;
+							this.renderBody();
+						}),
+				);
+				const rect = b.extraSettingsEl.getBoundingClientRect();
+				menu.showAtPosition({ x: rect.left, y: rect.bottom });
+			});
+		});
+		// A free colour alongside the presets, for anyone matching a palette.
+		row.addColorPicker((picker) => {
+			if (mapping.color?.startsWith("#")) picker.setValue(mapping.color);
+			picker.onChange((v) => {
+				mapping.color = v;
+				this.renderBody();
+			});
+		});
 	}
 
 	// ---- One key's value mappings ------------------------------------------
@@ -4713,40 +4987,7 @@ export class TaskFieldsModal extends Modal {
 			const swatch = row.controlEl.createDiv("hearth-taskfields-swatch");
 			if (mapping.color) swatch.style.setProperty("--chip-color", mapping.color);
 			swatch.toggleClass("is-unset", !mapping.color);
-			row.addExtraButton((b) => {
-				b.setIcon("palette").setTooltip(labels.fieldColor);
-				b.onClick(() => {
-					const menu = new Menu();
-					for (const preset of TASK_COLOR_PRESETS) {
-						menu.addItem((item) =>
-							item.setTitle(labels.colorNames[preset]).onClick(() => {
-								mapping.color = presetColor(preset);
-								this.renderBody();
-							}),
-						);
-					}
-					menu.addSeparator();
-					menu.addItem((item) =>
-						item
-							.setTitle(labels.fieldColorClear)
-							.setIcon("rotate-ccw")
-							.onClick(() => {
-								mapping.color = undefined;
-								this.renderBody();
-							}),
-					);
-					const rect = b.extraSettingsEl.getBoundingClientRect();
-					menu.showAtPosition({ x: rect.left, y: rect.bottom });
-				});
-			});
-			// A free colour alongside the presets, for anyone matching a palette.
-			row.addColorPicker((picker) => {
-				if (mapping.color?.startsWith("#")) picker.setValue(mapping.color);
-				picker.onChange((v) => {
-					mapping.color = v;
-					this.renderBody();
-				});
-			});
+			this.addColorControls(row, mapping);
 			row.addExtraButton((b) =>
 				b
 					.setIcon("trash-2")
@@ -4873,7 +5114,19 @@ export class TaskFieldsModal extends Modal {
 	 * editing its own array after an Apply that leaves it open, and nothing it
 	 * does afterwards may reach into what was already saved. */
 	private apply(): void {
-		this.onApply(cloneTaskFields(this.fields));
+		const fields = cloneTaskFields(this.fields);
+		// The date editor materialises a row for all three relations so the choice
+		// is visible; the ones left untouched carry nothing and are dropped rather
+		// than stored. Typed value mappings are left alone — a match with no label
+		// yet is work in progress, not an empty row.
+		for (const f of fields) {
+			for (const k of f.keys) {
+				if (!keyIsDate(k) || !k.values) continue;
+				const kept = k.values.filter((v) => v.label?.trim() || v.color?.trim());
+				k.values = kept.length ? kept : undefined;
+			}
+		}
+		this.onApply(fields);
 	}
 
 	private renderFooter(parent: HTMLElement): void {

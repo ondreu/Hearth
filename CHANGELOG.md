@@ -30,12 +30,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     *Normal* in blue. A value you haven't mapped still shows, as itself, so
     nothing goes missing while you're still building the mapping up.
 
+  **Dates know they're dates.** A date key has no values to map — instead you
+  color and label it by where it falls: **before today**, **today**, **after
+  today**. Leave the label empty to keep the date's own wording and just tint
+  it. A frontmatter property holding a date can be marked as one, and gets the
+  same treatment.
+
   **Click a value to change it**, in the list and on a board alike: the chip
   opens a menu of your mapped values (under their own labels), then the other
   values that key takes elsewhere in your vault, then a free entry for anything
-  new and a clear. Frontmatter is written to the task's own note, so this is
+  new and a clear. A date opens a **calendar** instead, with today / tomorrow /
+  next week shortcuts. Frontmatter is written to the task's own note, so this is
   offered on TaskNotes tasks and notes made from a Kanban card; a plain checkbox
-  gets it for its priority, which lives on the line.
+  gets it for its priority and dates, which live on the line.
 
   The switch is **off by default**, and while it's off every Tasks card renders
   exactly as it always has. The fields you define in Settings apply to every

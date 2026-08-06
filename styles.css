@@ -4343,6 +4343,20 @@ body.hearth-dv-resizing {
 	margin: 8px 0 0;
 }
 
+/* Quick picks beside the calendar in the date picker. */
+.hearth-taskdate-shortcuts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 4px 0 12px;
+}
+
+/* A date held in a frontmatter property carries no emoji marker, so it leans on
+   the same overdue colour the Tasks-plugin dates use. */
+.hearth-task-datechip.is-overdue {
+	color: var(--text-error);
+}
+
 /* A chip whose value can be changed by clicking it. The affordance stays quiet
    until hover: a task row is already clickable, and every chip advertising
    itself would make the list noisy. */

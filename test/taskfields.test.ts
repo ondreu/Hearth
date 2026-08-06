@@ -4,8 +4,12 @@ import {
 	builtinSource,
 	displayValue,
 	fieldStyle,
+	DATE_RELATIONS,
+	dateDisplay,
+	dateRelation,
 	frontmatterSource,
 	isDateSource,
+	keyIsDate,
 	isDescriptionSource,
 	isKnownSource,
 	newTaskField,
@@ -244,5 +248,61 @@ describe("displayValue", () => {
 	it("ignores a blank label or colour rather than rendering an empty chip", () => {
 		const blank = { source: "fm:x", values: [{ match: "a", label: "  ", color: " " }] };
 		expect(displayValue(blank, "a")).toEqual({ label: "a", color: null });
+	});
+});
+
+/**
+ * Dates are a scale, not a set of values: there is no list of them to map, only
+ * where one falls relative to today. That is what a date key configures.
+ */
+describe("date keys", () => {
+	const today = "2026-08-06";
+
+	it("places a date before, on, or after today", () => {
+		expect(dateRelation("2026-08-05", today)).toBe("<today");
+		expect(dateRelation("2026-08-06", today)).toBe("today");
+		expect(dateRelation("2026-08-07", today)).toBe(">today");
+	});
+
+	it("compares only the date part, so a timestamp still lands on today", () => {
+		expect(dateRelation("2026-08-06T23:30:00", today)).toBe("today");
+	});
+
+	it("offers exactly the three relations", () => {
+		expect([...DATE_RELATIONS]).toEqual(["<today", "today", ">today"]);
+	});
+
+	it("treats the built-in date sources as dates without being told", () => {
+		expect(keyIsDate({ source: "builtin:due" })).toBe(true);
+		expect(keyIsDate({ source: "builtin:doneDate" })).toBe(true);
+		expect(keyIsDate({ source: "builtin:status" })).toBe(false);
+	});
+
+	// Hearth can't know a frontmatter property holds a date rather than text
+	// that happens to look like one, so the user says.
+	it("takes a frontmatter property as a date only when marked", () => {
+		expect(keyIsDate({ source: "fm:deadline" })).toBe(false);
+		expect(keyIsDate({ source: "fm:deadline", isDate: true })).toBe(true);
+	});
+
+	it("resolves the colour and label of a relation", () => {
+		const key = {
+			source: "builtin:due",
+			values: [
+				{ match: "<today", label: "Overdue", color: "#f00" },
+				{ match: ">today", color: "#00f" },
+			],
+		};
+		expect(dateDisplay(key, "<today")).toEqual({ label: "Overdue", color: "#f00" });
+		// Colour without a label: the date keeps its own wording.
+		expect(dateDisplay(key, ">today")).toEqual({ label: "", color: "#00f" });
+		expect(dateDisplay(key, "today")).toEqual({ label: "", color: null });
+	});
+
+	it("leaves an unconfigured date entirely alone", () => {
+		expect(dateDisplay({ source: "builtin:due" }, "<today")).toEqual({
+			label: "",
+			color: null,
+		});
 	});
 });

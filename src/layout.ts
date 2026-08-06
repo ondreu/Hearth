@@ -506,6 +506,7 @@ function sanitizeFieldKeys(value: unknown): TaskFieldKey[] {
 		const source = str(r.source)?.trim();
 		if (!source) continue;
 		const key: TaskFieldKey = { source };
+		if (r.isDate === true) key.isDate = true;
 		const values = sanitizeValueMaps(r.values);
 		if (values) key.values = values;
 		out.push(key);

@@ -916,6 +916,20 @@ export const en = {
 				"Show a nicer label and a color for each value. Values you don't map " +
 				"still show, as themselves.",
 			fieldMapEmpty: "No values mapped yet.",
+			fieldDateKey: "Shown as a date",
+			fieldIsDate: "Treat as a date",
+			fieldIsDateDesc:
+				"Show this property as a relative date (“Tomorrow”), color it by " +
+				"whether it's past, today or upcoming, and edit it with a calendar.",
+			fieldDateHint:
+				"A date has no fixed values to map, so it's colored by where it " +
+				"falls. A label is optional — leave it empty to keep the date itself.",
+			fieldDateLabelPlaceholder: "Show as (optional)",
+			dateRelations: {
+				"<today": "Before today",
+				today: "Today",
+				">today": "After today",
+			},
 			fieldNotMappable:
 				"This key has no discrete values to map — it keeps its own format.",
 			fieldMatchPlaceholder: "Value",
@@ -1373,6 +1387,12 @@ export const en = {
 			filterApply: "Apply",
 			filterClear: "Clear",
 			valueChange: "Change value",
+			dateTitle: "Set date",
+			dateOn: "Date",
+			dateToday: "Today",
+			dateTomorrow: "Tomorrow",
+			dateNextWeek: "Next week",
+			dateClear: "Clear date",
 			valueCustom: "Other value…",
 			valueCustomTitle: "Set value",
 			valueClear: "Clear value",

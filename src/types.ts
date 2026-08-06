@@ -149,8 +149,18 @@ export interface TaskValueMap {
  * (see `TASK_BUILTIN_SOURCES`). Every key with a value renders. */
 export interface TaskFieldKey {
 	source: string;
-	/** Per-value display overrides. */
+	/** Per-value display overrides.
+	 *
+	 * A date key stores its three relations here instead of literal values —
+	 * `<today`, `today` and `>today` — because a date has no discrete values to
+	 * enumerate, only a position relative to now. */
 	values?: TaskValueMap[];
+	/** Treat this key's value as a date: show it as a relative label
+	 * ("Tomorrow"), colour it by its relation to today, and edit it with a
+	 * calendar rather than a list. Implied for the built-in date sources; a
+	 * frontmatter property has to say so, since Hearth can't know a property
+	 * holds a date rather than text that looks like one. */
+	isDate?: boolean;
 }
 
 /**

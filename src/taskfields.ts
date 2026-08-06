@@ -88,6 +88,47 @@ export function isDateSource(source: string): boolean {
 }
 
 
+/**
+ * The three positions a date can hold relative to today. A date key colours and
+ * labels by these instead of by value: there is no list of dates to map, but
+ * "overdue", "today" and "upcoming" is exactly the distinction that matters on
+ * a task. Stored in the same `values` list as an ordinary mapping, under these
+ * reserved match strings.
+ */
+export const DATE_RELATIONS = ["<today", "today", ">today"] as const;
+
+export type DateRelation = (typeof DATE_RELATIONS)[number];
+
+
+/** Where a date sits relative to today. Both are compared as YYYY-MM-DD, which
+ * sorts lexically, so a value carrying a time (or any trailing text) is
+ * truncated to its date part first. */
+export function dateRelation(date: string, today: string): DateRelation {
+	const day = date.slice(0, 10);
+	if (day < today) return "<today";
+	if (day > today) return ">today";
+	return "today";
+}
+
+
+/** Whether a key's value is a date: always for the built-in date sources, and
+ * for a frontmatter property the user marked as one. */
+export function keyIsDate(key: TaskFieldKey): boolean {
+	return isDateSource(key.source) || !!key.isDate;
+}
+
+
+/** How a date should be shown, given where it falls relative to today. An
+ * absent label means "use the date's own relative label" — the mapping is
+ * usually there for the colour alone. */
+export function dateDisplay(key: TaskFieldKey, relation: DateRelation): TaskValueDisplay {
+	const hit = (key.values ?? []).find(
+		(v: TaskValueMap) => (v.match ?? "").trim().toLowerCase() === relation,
+	);
+	return { label: hit?.label?.trim() || "", color: hit?.color?.trim() || null };
+}
+
+
 /** Whether a source produces the multi-line description block, which is drawn
  * as sub-bullets and so takes no display style or value mapping. */
 export function isDescriptionSource(source: string): boolean {
