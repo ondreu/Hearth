@@ -15,10 +15,10 @@ import {
 	isDescriptionSource,
 	isKnownSource,
 	newTaskField,
-	normalizeSourceValue,
 	resolveTaskFields,
 	sourceBuiltin,
 	sourceProperty,
+	sourceValueAliases,
 	taskFieldValues,
 } from "../src/taskfields";
 import type { TaskFieldDef } from "../src/types";
@@ -225,22 +225,29 @@ describe("taskFieldValues", () => {
 	});
 });
 
-describe("normalizeSourceValue", () => {
+describe("sourceValueAliases", () => {
 	// The same priority arrives as "⏫" off a checkbox line and as "high" from
-	// TaskNotes frontmatter. A user who maps "high" means both.
-	it("folds the priority emoji onto its level so one mapping covers both", () => {
-		expect(normalizeSourceValue("builtin:priority", "⏫")).toBe("high");
-		expect(normalizeSourceValue("builtin:priority", "🔺")).toBe("highest");
-		expect(normalizeSourceValue("builtin:priority", "High")).toBe("high");
+	// TaskNotes frontmatter. A user who maps either means both.
+	it("offers a priority under its word and its emoji", () => {
+		expect(sourceValueAliases("builtin:priority", "⏫")).toEqual(["⏫", "high"]);
+		expect(sourceValueAliases("builtin:priority", "high")).toEqual(["high", "⏫"]);
+		expect(sourceValueAliases("builtin:priority", "🔺")).toEqual(["🔺", "highest"]);
 	});
 
-	it("passes an unrecognised priority through untouched", () => {
-		expect(normalizeSourceValue("builtin:priority", "spicy")).toBe("spicy");
+	// The raw value first, always: it is what the user saw when they wrote the
+	// mapping, and the level is only a fallback for the other spellings.
+	it("keeps the raw value ahead of the level it folds onto", () => {
+		expect(sourceValueAliases("builtin:priority", "urgent")).toEqual(["urgent", "high", "⏫"]);
+		expect(sourceValueAliases("builtin:priority", "p3")).toEqual(["p3", "low", "🔽"]);
+	});
+
+	it("offers an unrecognised priority as itself alone", () => {
+		expect(sourceValueAliases("builtin:priority", "spicy")).toEqual(["spicy"]);
 	});
 
 	it("leaves every other source alone", () => {
-		expect(normalizeSourceValue("fm:project", "Hearth")).toBe("Hearth");
-		expect(normalizeSourceValue("builtin:status", "In-Progress")).toBe("In-Progress");
+		expect(sourceValueAliases("fm:project", "Hearth")).toEqual(["Hearth"]);
+		expect(sourceValueAliases("builtin:status", "In-Progress")).toEqual(["In-Progress"]);
 	});
 });
 
@@ -286,6 +293,58 @@ describe("displayValue", () => {
 	it("ignores a blank label or colour rather than rendering an empty chip", () => {
 		const blank = { source: "fm:x", values: [{ match: "a", label: "  ", color: " " }] };
 		expect(displayValue(blank, "a")).toEqual({ label: "a", color: null });
+	});
+
+	// The bug this replaced: the value was folded onto its coarse priority level
+	// before the lookup, so every mapping written against what the vault actually
+	// holds missed, and only the two spellings that survive folding ("high",
+	// "low") ever found their label and colour.
+	describe("priority, in every spelling", () => {
+		const priority = {
+			source: "builtin:priority",
+			values: [
+				{ match: "highest", label: "Now", color: "#f00" },
+				{ match: "urgent", label: "Urgent", color: "#f80" },
+				{ match: "medium", label: "Soon", color: "#ff0" },
+				{ match: "🔽", label: "Whenever", color: "#0f0" },
+			],
+		};
+
+		it("finds a mapping written against the exact value", () => {
+			expect(displayValue(priority, "urgent")).toEqual({ label: "Urgent", color: "#f80" });
+			expect(displayValue(priority, "highest")).toEqual({ label: "Now", color: "#f00" });
+			expect(displayValue(priority, "medium")).toEqual({ label: "Soon", color: "#ff0" });
+		});
+
+		it("catches an emoji with a mapping written against the word", () => {
+			expect(displayValue(priority, "🔺")).toEqual({ label: "Now", color: "#f00" });
+			expect(displayValue(priority, "🔼")).toEqual({ label: "Soon", color: "#ff0" });
+		});
+
+		it("catches a word with a mapping written against the emoji", () => {
+			expect(displayValue(priority, "low")).toEqual({ label: "Whenever", color: "#0f0" });
+			expect(displayValue(priority, "minor")).toEqual({ label: "Whenever", color: "#0f0" });
+		});
+
+		// "urgent" folds onto "high", but it was mapped in its own right, so that
+		// mapping wins rather than the level's.
+		it("prefers the exact value over the level it folds onto", () => {
+			const both = {
+				source: "builtin:priority",
+				values: [
+					{ match: "high", label: "High" },
+					{ match: "urgent", label: "Urgent" },
+				],
+			};
+			expect(displayValue(both, "urgent").label).toBe("Urgent");
+			expect(displayValue(both, "⏫").label).toBe("High");
+		});
+
+		it("shows an unmapped emoji as its word rather than as a bare emoji", () => {
+			const none = { source: "builtin:priority" };
+			expect(displayValue(none, "⏬")).toEqual({ label: "lowest", color: null });
+			expect(displayValue(none, "urgent")).toEqual({ label: "urgent", color: null });
+		});
 	});
 });
 

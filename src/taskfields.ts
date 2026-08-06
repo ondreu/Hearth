@@ -1,4 +1,4 @@
-import { priorityKey } from "./priority";
+import { priorityDisplayLabel, priorityKey, PRIORITY_EMOJI } from "./priority";
 import type { TaskFieldDef, TaskFieldKey, TaskFieldStyle, TaskValueMap } from "./types";
 
 /**
@@ -248,14 +248,39 @@ export function taskFieldValues(raw: unknown): string[] {
 
 
 /**
- * Normalize a built-in value so mappings can be written against something
- * stable. Priority is the case that needs it: the same level arrives as "⏫"
- * from a checkbox line and as "high" from TaskNotes frontmatter, and a user
- * mapping "high" means both. Everything else is passed through untouched.
+ * The names a raw value can be matched by, most specific first. Priority is the
+ * case that needs more than one: the same level arrives as "⏫" off a checkbox
+ * line, as "high" from TaskNotes frontmatter and as "urgent" from a
+ * hand-written property, so a mapping written against any of those has to catch
+ * the others.
+ *
+ * The raw value always comes first, and that ordering is the point: folding the
+ * value onto its level *before* the lookup made every mapping written against
+ * what the vault actually holds ("urgent", "p1", "🔺") miss, because the lookup
+ * only ever saw the coarse level it had been folded onto.
  */
-export function normalizeSourceValue(source: string, value: string): string {
-	if (sourceBuiltin(source) !== "priority") return value;
-	return priorityKey(value) || value;
+export function sourceValueAliases(source: string, value: string): string[] {
+	const out = [value];
+	const add = (alias: string) => {
+		const needle = alias.trim().toLowerCase();
+		if (!needle) return;
+		if (out.some((v) => v.trim().toLowerCase() === needle)) return;
+		out.push(alias);
+	};
+	if (sourceBuiltin(source) === "priority") {
+		const key = priorityKey(value);
+		add(key);
+		add(PRIORITY_EMOJI[key] ?? "");
+	}
+	return out;
+}
+
+
+/** How a value reads when no mapping claims it. Only priority needs anything
+ * but itself: a bare "⏫" is not a label, so it shows as the word it stands for
+ * — exactly as the fixed layout has always drawn it. */
+function unmappedLabel(source: string, value: string): string {
+	return sourceBuiltin(source) === "priority" ? priorityDisplayLabel(value) : value;
 }
 
 
@@ -270,16 +295,18 @@ export interface TaskValueDisplay {
 
 /** Resolve a raw value against a key's mappings. Matching is case-insensitive
  * on the trimmed value; the first matching entry wins, so an earlier entry can
- * deliberately shadow a later one. */
+ * deliberately shadow a later one. The value is tried under each of its aliases
+ * in turn, so a mapping written against exactly what the vault holds is found
+ * first and one written against the level it folds onto still catches it. */
 export function displayValue(key: TaskFieldKey, value: string): TaskValueDisplay {
-	const needle = value.trim().toLowerCase();
-	const hit = (key.values ?? []).find(
-		(v: TaskValueMap) => (v.match ?? "").trim().toLowerCase() === needle,
-	);
-	return {
-		label: hit?.label?.trim() || value,
-		color: hit?.color?.trim() || null,
-	};
+	const fallback = unmappedLabel(key.source, value);
+	const entries = key.values ?? [];
+	for (const alias of sourceValueAliases(key.source, value)) {
+		const needle = alias.trim().toLowerCase();
+		const hit = entries.find((v: TaskValueMap) => (v.match ?? "").trim().toLowerCase() === needle);
+		if (hit) return { label: hit.label?.trim() || fallback, color: hit.color?.trim() || null };
+	}
+	return { label: fallback, color: null };
 }
 
 

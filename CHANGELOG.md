@@ -28,7 +28,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     that has a value shows one — so related metadata can live under one name.
   - **Map values** to nicer labels and colors: `high` → *Urgent* in red, `p2` →
     *Normal* in blue. A value you haven't mapped still shows, as itself, so
-    nothing goes missing while you're still building the mapping up.
+    nothing goes missing while you're still building the mapping up. Priority is
+    matched in every spelling it comes in, so mapping `high` also catches a ⏫
+    line — and mapping the exact word your notes use (`urgent`, `p1`) keeps its
+    own label and color.
 
   - Or have the value **color the whole task** instead of adding anything to
     it: **tint** its background or **glow** around it, at a strength you set.

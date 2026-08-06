@@ -29,7 +29,6 @@ import {
 	isDescriptionSource,
 	isKnownSource,
 	newTaskField,
-	normalizeSourceValue,
 	presetColor,
 	resolveTaskFields,
 	sourceBuiltin,
@@ -1034,8 +1033,10 @@ function renderCustomTaskFields(
 			const builtin = sourceBuiltin(key.source);
 			const editable = taskKeyEditable(hit, key.source);
 			for (const raw of keyValues(view, hit, key.source)) {
-				const value = normalizeSourceValue(key.source, raw);
-				const shown = displayValue(key, value);
+				// Resolved from the raw value: displayValue() tries its aliases itself,
+				// so a mapping written against what the vault holds ("urgent") is found
+				// before the level it folds onto ("high").
+				const shown = displayValue(key, raw);
 				if (ambient) {
 					paint(shown.color);
 					continue;
@@ -1059,7 +1060,7 @@ function renderCustomTaskFields(
 				}
 				// Click the chip to change the value in place, rather than opening
 				// the task to edit one field.
-				if (editable) makeChipEditable(el, view, cfg, hit, key, value, refresh);
+				if (editable) makeChipEditable(el, view, cfg, hit, key, raw, refresh);
 			}
 		}
 	}
