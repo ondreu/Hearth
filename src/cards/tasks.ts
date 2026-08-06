@@ -5080,9 +5080,18 @@ export class TaskFieldsModal extends Modal {
 	private colorCell(row: HTMLElement, mapping: TaskValueMap): void {
 		const labels = t().editors.tasks;
 		const cell = row.createDiv("hearth-taskfields-cell is-color");
-		const swatch = cell.createEl("button", {
+		// Deliberately not a <button>: Obsidian's and a theme's button rules set a
+		// background at a specificity a plugin class can't reliably beat, which
+		// left every swatch grey however it was coloured. A div with the button
+		// role has nothing to fight and the same keyboard behaviour.
+		const swatch = cell.createDiv({
 			cls: "hearth-taskfields-swatch",
-			attr: { type: "button", "aria-label": labels.fieldColor, title: labels.fieldColor },
+			attr: {
+				role: "button",
+				tabindex: "0",
+				"aria-label": labels.fieldColor,
+				title: labels.fieldColor,
+			},
 		});
 		const picker = cell.createEl("input", {
 			cls: "hearth-taskfields-picker",
@@ -5093,14 +5102,18 @@ export class TaskFieldsModal extends Modal {
 			},
 		});
 		const show = () => {
-			swatch.style.setProperty("--chip-color", mapping.color ?? "");
-			swatch.toggleClass("is-unset", !mapping.color);
+			// The colour is set inline rather than through a class or a custom
+			// property: Obsidian and themes style controls inside a modal at a
+			// specificity no plugin selector can be sure of beating, and a swatch
+			// that shows grey whatever was picked is worse than no preview at all.
+			// An inline background beats all of it. "No colour" is an empty ring.
+			swatch.style.backgroundColor = mapping.color ?? "transparent";
 			// The picker only understands hex, so a theme preset leaves it as it is
 			// rather than being coerced into some nearest colour.
 			if (mapping.color?.startsWith("#")) picker.value = mapping.color;
 		};
 		show();
-		swatch.addEventListener("click", () => {
+		const openPalette = () => {
 			const menu = new Menu();
 			for (const preset of TASK_COLOR_PRESETS) {
 				const value = presetColor(preset);
@@ -5126,6 +5139,12 @@ export class TaskFieldsModal extends Modal {
 			);
 			const rect = swatch.getBoundingClientRect();
 			menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+		};
+		swatch.addEventListener("click", openPalette);
+		swatch.addEventListener("keydown", (e) => {
+			if (e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			openPalette();
 		});
 		picker.addEventListener("input", () => {
 			mapping.color = picker.value;
