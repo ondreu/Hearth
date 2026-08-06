@@ -216,8 +216,11 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   status). Every key with a value shows one, so a field can gather related
   metadata under a single name. Each key can **map its values** to nicer labels
   and colours (`high` → *Urgent* in red); values you haven't mapped still show
-  as themselves. The fields you define apply to every Tasks card, and a single
-  card can define **its own** instead, from that card's settings.
+  as themselves. **Clicking a value changes it** — the chip opens a menu of your
+  mapped values, then the other values that key takes in your vault, then a free
+  entry — in both the list and the Kanban layouts. The fields you define apply
+  to every Tasks card, and a single card can define **its own** instead, from
+  that card's settings.
 - **Task quick view** — clicking a checkbox task or Kanban card opens a compact
   popover with its metadata and description, editable in place, plus buttons to
   **open the full note** or **delete the task** — instead of jumping straight

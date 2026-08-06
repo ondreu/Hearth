@@ -4326,6 +4326,43 @@ body.hearth-dv-resizing {
 	font-size: 0.82em;
 }
 
+/* What a field or key expands into, indented under the row that opened it and
+   ruled down the left so the nesting is readable three levels deep. */
+.hearth-taskfields-detail {
+	margin: 0 0 8px 12px;
+	padding-left: 12px;
+	border-left: 2px solid var(--background-modifier-border);
+}
+
+.hearth-taskfields-detail .setting-item {
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+.hearth-taskfields-detail .hearth-taskfields-hint {
+	margin: 8px 0 0;
+}
+
+/* A chip whose value can be changed by clicking it. The affordance stays quiet
+   until hover: a task row is already clickable, and every chip advertising
+   itself would make the list noisy. */
+.hearth-task-chip.is-editable,
+.hearth-task-status.is-editable,
+.hearth-task-priority.is-editable {
+	cursor: pointer;
+}
+
+.hearth-task-chip.is-editable:hover,
+.hearth-task-status.is-editable:hover,
+.hearth-task-priority.is-editable:hover {
+	box-shadow: 0 0 0 1px var(--background-modifier-border-hover);
+}
+
+.hearth-task-priority.is-editable.is-dot:hover .hearth-task-priority-dot,
+.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
+}
+
 /* Preview of the colour a value currently renders in, beside its picker. */
 .hearth-taskfields-swatch {
 	width: 14px;

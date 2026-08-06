@@ -30,6 +30,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     *Normal* in blue. A value you haven't mapped still shows, as itself, so
     nothing goes missing while you're still building the mapping up.
 
+  **Click a value to change it**, in the list and on a board alike: the chip
+  opens a menu of your mapped values (under their own labels), then the other
+  values that key takes elsewhere in your vault, then a free entry for anything
+  new and a clear. Frontmatter is written to the task's own note, so this is
+  offered on TaskNotes tasks and notes made from a Kanban card; a plain checkbox
+  gets it for its priority, which lives on the line.
+
   The switch is **off by default**, and while it's off every Tasks card renders
   exactly as it always has. The fields you define in Settings apply to every
   Tasks card; an individual card can define its own instead, from that card's

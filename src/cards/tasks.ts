@@ -39,6 +39,7 @@ import {
 	type HomeSettings,
 	type TaskDueFilter,
 	type TaskFieldDef,
+	type TaskFieldKey,
 	type TaskFieldStyle,
 	type TaskFilterConfig,
 	type TaskMeta,
@@ -340,7 +341,7 @@ function renderPriorityChip(
 	style: TaskFieldStyle,
 	color: string | null = null,
 	label = priorityDisplayLabel(priority),
-): void {
+): HTMLElement {
 	const chip = parent.createDiv(`hearth-task-priority is-${priorityClass(priority)} is-${style}`);
 	// The historical class for the compact board form, kept so the existing
 	// stylesheet rule (and any theme overriding it) still matches.
@@ -349,6 +350,7 @@ function renderPriorityChip(
 	if (style !== "dot") chip.createSpan({ cls: "hearth-task-priority-label", text: label });
 	applyChipColor(chip, color);
 	chip.setAttribute("title", `Priority: ${label}`);
+	return chip;
 }
 
 
@@ -357,7 +359,9 @@ function renderPriorityChip(
  * in-progress, waiting, …) needs a chip of its own. With `alignToTitle` it is
  * left-aligned against the task title (see the `has-statuschip` rules in
  * styles.css) so it reads as part of the task rather than floating among the
- * right-hand chips — which is how the fixed layout has always drawn it. */
+ * right-hand chips — which is how the fixed layout has always drawn it.
+ *
+ * Callers only reach here with a value in hand, so there is no empty case. */
 function renderStatusChip(
 	row: HTMLElement,
 	status: string,
@@ -365,8 +369,7 @@ function renderStatusChip(
 	color: string | null,
 	alignToTitle: boolean,
 	label = status.trim(),
-): void {
-	if (!label) return;
+): HTMLElement {
 	const chip = row.createDiv(`hearth-task-status hearth-task-statuschip is-${style}`);
 	if (style === "dot") chip.createDiv("hearth-task-chip-dot");
 	else chip.setText(label);
@@ -375,6 +378,7 @@ function renderStatusChip(
 	// Set here rather than matched with :has(), which is avoided in this
 	// stylesheet for its broad selector-invalidation cost.
 	if (alignToTitle) row.addClass("has-statuschip");
+	return chip;
 }
 
 
@@ -438,6 +442,223 @@ function renderTaskDateChip(
 }
 
 
+// ---- Editing a value from the task itself ---------------------------------
+
+/**
+ * Whether a key's value can be changed by clicking its chip.
+ *
+ * Frontmatter is only writable when the task *is* a note — a TaskNotes task, or
+ * a Kanban card converted to one. For a plain checkbox the frontmatter belongs
+ * to whatever note the line happens to sit in, which is not the task's own
+ * metadata, and writing there on a click would edit something the user never
+ * pointed at.
+ *
+ * Of the built-ins only status and priority are values to pick from a list. A
+ * date needs a date picker (the task's quick view has one), the board column is
+ * changed by dragging the card, and the description is free text.
+ */
+function taskKeyEditable(hit: TaskHit, source: string): boolean {
+	const builtin = sourceBuiltin(source);
+	if (builtin) return builtin === "status" || builtin === "priority";
+	if (!sourceProperty(source)) return false;
+	return hit.line < 0 || !!hit.linkedFile;
+}
+
+
+/** Write a new value for a key onto a task, or clear it when `value` is null.
+ * Returns false when the write couldn't be made. */
+async function writeTaskFieldValue(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	source: string,
+	value: string | null,
+): Promise<boolean> {
+	const builtin = sourceBuiltin(source);
+
+	// A line-based task keeps its priority in the line's emoji marker, so it goes
+	// through the same rewrite the metadata editor uses.
+	if (builtin === "priority" && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: value ? priorityKey(value) : "",
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
+	// Everything else is a frontmatter write on the task's own note.
+	const s = view.plugin.settings;
+	const property =
+		builtin === "status"
+			? s.taskNotesStatusField.trim() || "status"
+			: builtin === "priority"
+				? s.taskNotesPriorityField.trim() || "priority"
+				: sourceProperty(source);
+	if (!property) return false;
+	const file = fieldSourceFile(hit);
+	try {
+		await view.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			if (value === null) delete fm[property];
+			else fm[property] = value;
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+
+/** Ask for a value the vault hasn't seen yet — the only way to introduce, say,
+ * a first "blocked" status without editing the note by hand. */
+class TaskValuePromptModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		private readonly title: string,
+		initial: string,
+		private readonly onSubmit: (value: string) => void,
+	) {
+		super(app);
+		this.value = initial;
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.createEl("h3", { text: this.title });
+		const commit = () => {
+			const value = this.value.trim();
+			if (!value) return;
+			this.onSubmit(value);
+			this.close();
+		};
+		new Setting(contentEl).addText((txt) => {
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit();
+			});
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+		new Setting(contentEl)
+			.addButton((b) => b.setButtonText(t().cards.tasks.filterApply).setCta().onClick(commit))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+/**
+ * The value picker opened by clicking a chip: the field's mapped values first
+ * (under their own labels, so the menu reads the way the task does), then the
+ * other values that key actually takes elsewhere in the vault, then a free
+ * entry and a clear.
+ *
+ * Mapped-only would make a value you hadn't got round to mapping unreachable;
+ * vault-only would lose the labels and colours the field was built around. The
+ * two lists are shown in that order because the mapped ones are the vocabulary
+ * the user chose, and the rest are what the vault happens to contain.
+ */
+async function openTaskValuePicker(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	position: { x: number; y: number },
+	refresh: () => void,
+): Promise<void> {
+	const labels = t().cards.tasks;
+	const set = (value: string | null) => {
+		void writeTaskFieldValue(view, cfg, hit, key.source, value).then((ok) => {
+			if (!ok) new Notice(t().notices.couldNotUpdateTaskStatus);
+			refresh();
+		});
+	};
+
+	const mapped = (key.values ?? []).map((v) => v.match.trim()).filter(Boolean);
+	const seen = new Set(mapped.map((v) => v.toLowerCase()));
+	// The scan is a metadataCache read, not file I/O, but it still walks the
+	// vault — so it happens on the click rather than on every render.
+	const found = await discoverSourceValues(view, cfg, key.source);
+	const rest = found.filter((v) => !seen.has(v.trim().toLowerCase()));
+
+	const menu = new Menu();
+	const item = (value: string, label: string) =>
+		menu.addItem((mi) =>
+			mi
+				.setTitle(label)
+				.setChecked(value.trim().toLowerCase() === current.trim().toLowerCase())
+				.onClick(() => set(value)),
+		);
+
+	for (const value of mapped) item(value, displayValue(key, value).label);
+	if (mapped.length && rest.length) menu.addSeparator();
+	for (const value of rest) item(value, value);
+
+	if (mapped.length || rest.length) menu.addSeparator();
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueCustom)
+			.setIcon("pencil")
+			.onClick(() => {
+				new TaskValuePromptModal(view.app, labels.valueCustomTitle, current, (v) => set(v)).open();
+			}),
+	);
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueClear)
+			.setIcon("x")
+			.onClick(() => set(null)),
+	);
+	menu.showAtPosition(position);
+}
+
+
+/** The values one source takes across the card's scope, for the picker. */
+async function discoverSourceValues(
+	view: HomeView,
+	cfg: TasksConfig,
+	source: string,
+): Promise<string[]> {
+	const found = await discoverTaskFields(view.app, cfg, view.plugin.settings, [
+		{ id: "probe", name: "", keys: [{ source }] },
+	]);
+	return found.values.get(source) ?? [];
+}
+
+
+/** Make a chip open its value picker on click. The row underneath opens the
+ * task, so the click must not reach it. */
+function makeChipEditable(
+	el: HTMLElement,
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	refresh: () => void,
+): void {
+	el.addClass("is-editable");
+	el.setAttribute("aria-label", t().cards.tasks.valueChange);
+	const stop = (e: Event) => e.stopPropagation();
+	el.addEventListener("mousedown", stop);
+	el.addEventListener("pointerdown", stop);
+	el.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		void openTaskValuePicker(view, cfg, hit, key, current, { x: e.clientX, y: e.clientY }, refresh);
+	});
+}
+
+
 /** Where each field is drawn. The list layout is a single row, so all three are
  * the same element and the configured order is the visual order. A Kanban card
  * is three stacked areas (title row, description block, meta row), so a dot
@@ -459,10 +680,11 @@ function renderTaskFields(
 	hosts: TaskFieldHosts,
 	today: string,
 	layout: "list" | "kanban",
+	refresh: () => void,
 ): void {
 	const fields = activeTaskFields(cfg, view.plugin.settings);
 	if (fields === null) renderLegacyTaskFields(cfg, hit, hosts, today, layout);
-	else renderCustomTaskFields(view, hit, hosts, today, layout, fields);
+	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh);
 }
 
 
@@ -563,11 +785,13 @@ function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
  */
 function renderCustomTaskFields(
 	view: HomeView,
+	cfg: TasksConfig,
 	hit: TaskHit,
 	hosts: TaskFieldHosts,
 	today: string,
 	layout: "list" | "kanban",
 	fields: TaskFieldDef[],
+	refresh: () => void,
 ): void {
 	for (const field of fields) {
 		const style = fieldStyle(field);
@@ -590,17 +814,19 @@ function renderCustomTaskFields(
 			}
 
 			const builtin = sourceBuiltin(key.source);
+			const editable = taskKeyEditable(hit, key.source);
 			for (const raw of keyValues(view, hit, key.source)) {
 				const value = normalizeSourceValue(key.source, raw);
 				const shown = displayValue(key, value);
 				// Priority and status keep their own elements so the five-level
 				// colours and the theme rules written against them still apply.
+				let el: HTMLElement;
 				if (builtin === "priority") {
-					renderPriorityChip(host, raw, style, shown.color, shown.label);
+					el = renderPriorityChip(host, raw, style, shown.color, shown.label);
 				} else if (builtin === "status") {
-					renderStatusChip(host, raw, style, shown.color, false, shown.label);
+					el = renderStatusChip(host, raw, style, shown.color, false, shown.label);
 				} else {
-					renderValueChip(host, {
+					el = renderValueChip(host, {
 						text: shown.label,
 						style,
 						color: shown.color,
@@ -609,6 +835,9 @@ function renderCustomTaskFields(
 						extraCls: builtin === "column" ? "hearth-task-status hearth-task-column" : undefined,
 					});
 				}
+				// Click the chip to change the value in place, rather than opening
+				// the task to edit one field.
+				if (editable) makeChipEditable(el, view, cfg, hit, key, value, refresh);
 			}
 		}
 	}
@@ -1417,7 +1646,7 @@ function renderTaskRow(
 	// One row, so every field lands in it and the card's configured field order
 	// is exactly the left-to-right order: status/column beside the title, then
 	// priority, dates and any frontmatter chips.
-	renderTaskFields(view, cfg, hit, { inline: row, meta: row, block: row }, today, "list");
+	renderTaskFields(view, cfg, hit, { inline: row, meta: row, block: row }, today, "list", refresh);
 
 	const open = () => void openTask(view, cfg, hit, refresh);
 	row.addEventListener("click", open);
@@ -1805,7 +2034,7 @@ function renderTaskKanban(
 			// in the meta row (where the configured order applies).
 			const block = cardEl.createDiv("hearth-kanban-card-block");
 			const meta = cardEl.createDiv("hearth-kanban-card-meta");
-			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block }, today, "kanban");
+			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block }, today, "kanban", refresh);
 			const open = () => void openTask(view, cfg, hit, refresh);
 			// A real board/checkbox line (not a note-linked card) can have its title
 			// edited inline: double-click swaps the text for an input. Single click
@@ -4207,14 +4436,6 @@ function sourceLabel(source: string): string {
 }
 
 
-/** Which pane of the fields editor is open. The editor drills from the field
- * list into one field, and from there into one key's value mappings. */
-type TaskFieldsView =
-	| { pane: "fields" }
-	| { pane: "field"; fieldId: string }
-	| { pane: "key"; fieldId: string; keyIndex: number };
-
-
 /**
  * The fields editor.
  *
@@ -4223,12 +4444,20 @@ type TaskFieldsView =
  * frontmatter property or one of Hearth's own parsed values, and can map each
  * raw value to a nicer label and a colour. Values with no mapping still show,
  * as themselves.
+ *
+ * Everything expands in place rather than drilling into panes: a field opens to
+ * show its keys, a key opens to show its value mappings, and the fields above
+ * and below stay on screen throughout. Building a second field that mirrors the
+ * first is the common case, and it needs both visible.
  */
 export class TaskFieldsModal extends Modal {
 	private fields: TaskFieldDef[];
 	private body: HTMLElement | null = null;
 	private discovery: TaskFieldDiscovery = { properties: [], values: new Map() };
-	private view: TaskFieldsView = { pane: "fields" };
+	/** Which fields and keys are expanded, by `field:<id>` / `key:<id>:<n>`.
+	 * Named `expanded`, not `open`: `Modal.open()` is a method on the base class
+	 * and shadowing it would break the modal at runtime. */
+	private expanded = new Set<string>();
 
 	/**
 	 * @param cfg  The card being edited, or null when editing the global list in
@@ -4252,6 +4481,7 @@ export class TaskFieldsModal extends Modal {
 		const { contentEl } = this;
 		contentEl.addClass("hearth-taskfields-modal");
 		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
+		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
 		this.body = contentEl.createDiv("hearth-taskfields-body");
 		this.renderBody();
 		this.renderFooter(contentEl);
@@ -4265,98 +4495,39 @@ export class TaskFieldsModal extends Modal {
 		this.renderBody();
 	}
 
-	private field(id: string): TaskFieldDef | undefined {
-		return this.fields.find((f) => f.id === id);
+	private isOpen(key: string): boolean {
+		return this.expanded.has(key);
+	}
+
+	private toggleOpen(key: string): void {
+		if (!this.expanded.delete(key)) this.expanded.add(key);
+		this.renderBody();
+	}
+
+	/** The expand/collapse control every expandable row carries, so the chevron
+	 * always means the same thing and always sits in the same place. */
+	private addDisclosure(row: Setting, key: string): void {
+		row.addExtraButton((b) =>
+			b
+				.setIcon(this.isOpen(key) ? "chevron-down" : "chevron-right")
+				.setTooltip(this.isOpen(key) ? t().editors.tasks.fieldCollapse : t().editors.tasks.fieldExpand)
+				.onClick(() => this.toggleOpen(key)),
+		);
 	}
 
 	private renderBody(): void {
 		const body = this.body;
 		if (!body) return;
 		body.empty();
-		if (this.view.pane === "fields") {
-			this.renderFieldList(body);
-			return;
-		}
-		const field = this.field(this.view.fieldId);
-		// The field was deleted from under this pane — fall back to the list.
-		if (!field) {
-			this.view = { pane: "fields" };
-			this.renderFieldList(body);
-			return;
-		}
-		if (this.view.pane === "field") this.renderFieldPane(body, field);
-		else this.renderKeyPane(body, field, this.view.keyIndex);
-	}
-
-	/** A back link + title, shown at the top of the drill-down panes. */
-	private renderCrumb(body: HTMLElement, title: string, back: TaskFieldsView): void {
-		new Setting(body)
-			.setClass("hearth-taskfields-back")
-			.setName(title)
-			.addExtraButton((b) =>
-				b
-					.setIcon("arrow-left")
-					.setTooltip(t().editors.tasks.fieldBack)
-					.onClick(() => {
-						this.view = back;
-						this.renderBody();
-					}),
-			);
-	}
-
-	// ---- Pane 1: the fields ------------------------------------------------
-
-	private renderFieldList(body: HTMLElement): void {
 		const labels = t().editors.tasks;
-		body.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldsHint });
 
-		this.fields.forEach((field, index) => {
-			const row = new Setting(body).setClass("hearth-taskfields-row");
-			row.setName(field.name.trim() || labels.fieldUnnamed);
-			row.setDesc(
-				field.keys.length
-					? field.keys.map((k) => sourceLabel(k.source)).join(", ")
-					: labels.fieldNoKeys,
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("settings-2")
-					.setTooltip(labels.fieldEdit)
-					.onClick(() => {
-						this.view = { pane: "field", fieldId: field.id };
-						this.renderBody();
-					}),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("chevron-up")
-					.setTooltip(labels.fieldMoveUp)
-					.setDisabled(index === 0)
-					.onClick(() => this.move(index, index - 1)),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("chevron-down")
-					.setTooltip(labels.fieldMoveDown)
-					.setDisabled(index === this.fields.length - 1)
-					.onClick(() => this.move(index, index + 1)),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("trash-2")
-					.setTooltip(labels.fieldRemove)
-					.onClick(() => {
-						this.fields.splice(index, 1);
-						this.renderBody();
-					}),
-			);
-		});
+		this.fields.forEach((field, index) => this.renderField(body, field, index));
 
 		if (!this.fields.length) {
 			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
 		}
 
-		new Setting(body).addButton((b) =>
+		new Setting(body).setClass("hearth-taskfields-add").addButton((b) =>
 			b
 				.setButtonText(labels.fieldAdd)
 				.setIcon("plus")
@@ -4364,42 +4535,65 @@ export class TaskFieldsModal extends Modal {
 				.onClick(() => {
 					const field = newTaskField(labels.fieldDefaultName(this.fields.length + 1));
 					this.fields.push(field);
-					// Straight into the new field — naming it and giving it a key is
-					// the whole point of having added it.
-					this.view = { pane: "field", fieldId: field.id };
+					// Open it: naming it and giving it a key is the point of adding it.
+					this.expanded.add(`field:${field.id}`);
 					this.renderBody();
 				}),
 		);
 	}
 
-	// ---- Pane 2: one field -------------------------------------------------
+	// ---- A field -----------------------------------------------------------
 
-	private renderFieldPane(body: HTMLElement, field: TaskFieldDef): void {
+	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
 		const labels = t().editors.tasks;
-		this.renderCrumb(body, field.name.trim() || labels.fieldUnnamed, { pane: "fields" });
+		const openKey = `field:${field.id}`;
 
-		new Setting(body)
-			.setName(labels.fieldName)
-			.setDesc(labels.fieldNameDesc)
-			.addText((txt) =>
-				txt
-					.setPlaceholder(labels.fieldNamePlaceholder)
-					.setValue(field.name)
-					.onChange((v) => {
-						field.name = v;
-					}),
-			);
-
-		new Setting(body)
-			.setName(labels.fieldShowName)
-			.setDesc(labels.fieldShowNameDesc)
-			.addToggle((tg) =>
-				tg.setValue(!!field.showName).onChange((v) => {
-					field.showName = v || undefined;
+		const row = new Setting(body).setClass("hearth-taskfields-row").setHeading();
+		row.setName(field.name.trim() || labels.fieldUnnamed);
+		row.setDesc(
+			field.keys.length
+				? field.keys.map((k) => sourceLabel(k.source)).join(", ")
+				: labels.fieldNoKeys,
+		);
+		this.addDisclosure(row, openKey);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(labels.fieldMoveUp)
+				.setDisabled(index === 0)
+				.onClick(() => this.move(index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(labels.fieldMoveDown)
+				.setDisabled(index === this.fields.length - 1)
+				.onClick(() => this.move(index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(labels.fieldRemove)
+				.onClick(() => {
+					this.fields.splice(index, 1);
+					this.expanded.delete(openKey);
+					this.renderBody();
 				}),
-			);
+		);
 
-		new Setting(body)
+		if (!this.isOpen(openKey)) return;
+		const detail = body.createDiv("hearth-taskfields-detail");
+
+		new Setting(detail).setName(labels.fieldName).addText((txt) =>
+			txt
+				.setPlaceholder(labels.fieldNamePlaceholder)
+				.setValue(field.name)
+				.onChange((v) => {
+					field.name = v;
+				}),
+		);
+
+		new Setting(detail)
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
@@ -4411,163 +4605,93 @@ export class TaskFieldsModal extends Modal {
 				});
 			});
 
-		new Setting(body).setName(labels.fieldKeys).setDesc(labels.fieldKeysDesc).setHeading();
+		new Setting(detail)
+			.setName(labels.fieldShowName)
+			.setDesc(labels.fieldShowNameDesc)
+			.addToggle((tg) =>
+				tg.setValue(!!field.showName).onChange((v) => {
+					field.showName = v || undefined;
+				}),
+			);
 
-		field.keys.forEach((key, index) => {
-			const mapped = (key.values ?? []).length;
-			const row = new Setting(body).setClass("hearth-taskfields-row");
-			row.setName(sourceLabel(key.source));
-			row.setDesc(mapped ? labels.fieldMappedValues(mapped) : labels.fieldNoMappings);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("palette")
-					.setTooltip(labels.fieldMapValues)
-					.onClick(() => {
-						this.view = { pane: "key", fieldId: field.id, keyIndex: index };
-						this.renderBody();
-					}),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("chevron-up")
-					.setTooltip(labels.fieldMoveUp)
-					.setDisabled(index === 0)
-					.onClick(() => {
-						const [item] = field.keys.splice(index, 1);
-						field.keys.splice(index - 1, 0, item);
-						this.renderBody();
-					}),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("chevron-down")
-					.setTooltip(labels.fieldMoveDown)
-					.setDisabled(index === field.keys.length - 1)
-					.onClick(() => {
-						const [item] = field.keys.splice(index, 1);
-						field.keys.splice(index + 1, 0, item);
-						this.renderBody();
-					}),
-			);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("trash-2")
-					.setTooltip(labels.fieldRemoveKey)
-					.onClick(() => {
-						field.keys.splice(index, 1);
-						this.renderBody();
-					}),
-			);
-		});
-
+		new Setting(detail).setName(labels.fieldKeys).setDesc(labels.fieldKeysDesc);
+		field.keys.forEach((key, keyIndex) => this.renderKey(detail, field, key, keyIndex));
 		if (!field.keys.length) {
-			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
+			detail.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
 		}
-
-		this.renderAddKey(body, field);
+		this.renderAddKey(detail, field);
 	}
 
-	/** Add a key to a field: one of Hearth's own values from the menu, or any
-	 * frontmatter property — picked from what the vault has, or typed. */
-	private renderAddKey(body: HTMLElement, field: TaskFieldDef): void {
+	// ---- A key on a field --------------------------------------------------
+
+	private renderKey(
+		detail: HTMLElement,
+		field: TaskFieldDef,
+		key: TaskFieldKey,
+		index: number,
+	): void {
 		const labels = t().editors.tasks;
-		let typed = "";
-		const add = (source: string) => {
-			if (!isKnownSource(source)) return;
-			if (field.keys.some((k) => k.source === source)) {
-				new Notice(labels.fieldKeyAlreadyAdded(sourceLabel(source)));
-				return;
-			}
-			field.keys.push({ source });
-			this.renderBody();
-			// A newly referenced property has values worth suggesting.
-			void this.rescan();
-		};
+		const openKey = `key:${field.id}:${index}`;
+		const mappable = !isDateSource(key.source) && !isDescriptionSource(key.source);
+		const mapped = (key.values ?? []).length;
 
-		const setting = new Setting(body)
-			.setClass("hearth-taskfields-add")
-			.setName(labels.fieldAddKey)
-			.setDesc(labels.fieldAddKeyDesc);
-
-		setting.addText((txt) => {
-			txt.setPlaceholder(labels.fieldAddKeyPlaceholder).onChange((v) => (typed = v));
-			txt.inputEl.addEventListener("keydown", (e) => {
-				if (e.key !== "Enter") return;
-				e.preventDefault();
-				if (typed.trim()) add(frontmatterSource(typed));
-			});
-		});
-
-		// The property menu: what the scan actually found, minus what this field
-		// already reads.
-		const used = new Set(field.keys.map((k) => k.source));
-		const available = this.discovery.properties.filter(
-			(p) => !used.has(frontmatterSource(p)),
+		const row = new Setting(detail).setClass("hearth-taskfields-row");
+		row.setName(sourceLabel(key.source));
+		row.setDesc(
+			!mappable
+				? labels.fieldNotMappable
+				: mapped
+					? labels.fieldMappedValues(mapped)
+					: labels.fieldNoMappings,
 		);
-		setting.addExtraButton((b) => {
-			b.setIcon("list").setTooltip(labels.fieldPickProperty).setDisabled(!available.length);
-			b.onClick(() => {
-				const menu = new Menu();
-				for (const property of available) {
-					menu.addItem((item) =>
-						item.setTitle(property).onClick(() => add(frontmatterSource(property))),
-					);
-				}
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
-			});
-		});
-
-		// Hearth's own parsed values, which no frontmatter property can reach.
-		setting.addExtraButton((b) => {
-			b.setIcon("sparkles").setTooltip(labels.fieldPickBuiltin);
-			b.onClick(() => {
-				const menu = new Menu();
-				for (const id of TASK_BUILTIN_SOURCES) {
-					if (used.has(builtinSource(id))) continue;
-					menu.addItem((item) =>
-						item
-							.setTitle(t().editors.tasks.sourceNames[id])
-							.onClick(() => add(builtinSource(id))),
-					);
-				}
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
-			});
-		});
-
-		setting.addButton((b) =>
-			b.setButtonText(labels.fieldAddKeyButton).onClick(() => {
-				if (typed.trim()) add(frontmatterSource(typed));
-			}),
+		// A date and the description have no discrete values, so there is nothing
+		// to expand into.
+		if (mappable) this.addDisclosure(row, openKey);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(labels.fieldMoveUp)
+				.setDisabled(index === 0)
+				.onClick(() => {
+					const [item] = field.keys.splice(index, 1);
+					field.keys.splice(index - 1, 0, item);
+					this.renderBody();
+				}),
 		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(labels.fieldMoveDown)
+				.setDisabled(index === field.keys.length - 1)
+				.onClick(() => {
+					const [item] = field.keys.splice(index, 1);
+					field.keys.splice(index + 1, 0, item);
+					this.renderBody();
+				}),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(labels.fieldRemoveKey)
+				.onClick(() => {
+					field.keys.splice(index, 1);
+					this.renderBody();
+				}),
+		);
+
+		if (!mappable || !this.isOpen(openKey)) return;
+		this.renderMappings(detail.createDiv("hearth-taskfields-detail"), key);
 	}
 
-	// ---- Pane 3: one key's value mappings ----------------------------------
+	// ---- One key's value mappings ------------------------------------------
 
-	private renderKeyPane(body: HTMLElement, field: TaskFieldDef, keyIndex: number): void {
+	private renderMappings(host: HTMLElement, key: TaskFieldKey): void {
 		const labels = t().editors.tasks;
-		const key = field.keys[keyIndex];
-		if (!key) {
-			this.view = { pane: "field", fieldId: field.id };
-			this.renderBody();
-			return;
-		}
-		this.renderCrumb(body, sourceLabel(key.source), { pane: "field", fieldId: field.id });
-
-		if (isDateSource(key.source) || isDescriptionSource(key.source)) {
-			// A date renders as a relative label ("Tomorrow") with its own overdue
-			// treatment, and the description is a block of sub-bullets — neither has
-			// discrete values to map.
-			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldNotMappable });
-			return;
-		}
-
-		body.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldMapHint });
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldMapHint });
 
 		const values = (key.values ??= []);
 		values.forEach((mapping, index) => {
-			const row = new Setting(body).setClass("hearth-taskfields-color");
+			const row = new Setting(host).setClass("hearth-taskfields-color");
 			row.addText((txt) =>
 				txt
 					.setPlaceholder(labels.fieldMatchPlaceholder)
@@ -4634,17 +4758,13 @@ export class TaskFieldsModal extends Modal {
 			);
 		});
 
-		if (!values.length) {
-			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldMapEmpty });
-		}
-
 		// Values this key actually takes in the vault, minus the ones already
 		// mapped — so a mapping is usually two clicks, not typing from memory.
 		const mapped = new Set(values.map((v) => v.match.trim().toLowerCase()));
 		const suggestions = (this.discovery.values.get(key.source) ?? []).filter(
 			(v) => !mapped.has(v.trim().toLowerCase()),
 		);
-		const add = new Setting(body).setClass("hearth-taskfields-add").setName(labels.fieldAddMapping);
+		const add = new Setting(host).setClass("hearth-taskfields-add");
 		add.addExtraButton((b) => {
 			b.setIcon("list").setTooltip(labels.fieldPickValue).setDisabled(!suggestions.length);
 			b.onClick(() => {
@@ -4662,9 +4782,82 @@ export class TaskFieldsModal extends Modal {
 			});
 		});
 		add.addButton((b) =>
-			b.setButtonText(labels.fieldAddMappingButton).onClick(() => {
+			b.setButtonText(labels.fieldAddMapping).onClick(() => {
 				values.push({ match: "" });
 				this.renderBody();
+			}),
+		);
+	}
+
+	/** Add a key to a field: one of Hearth's own values from the menu, or any
+	 * frontmatter property — picked from what the vault has, or typed. */
+	private renderAddKey(detail: HTMLElement, field: TaskFieldDef): void {
+		const labels = t().editors.tasks;
+		let typed = "";
+		const add = (source: string) => {
+			if (!isKnownSource(source)) return;
+			if (field.keys.some((k) => k.source === source)) {
+				new Notice(labels.fieldKeyAlreadyAdded(sourceLabel(source)));
+				return;
+			}
+			field.keys.push({ source });
+			this.expanded.add(`key:${field.id}:${field.keys.length - 1}`);
+			this.renderBody();
+			// A newly referenced property has values worth suggesting.
+			void this.rescan();
+		};
+
+		const setting = new Setting(detail)
+			.setClass("hearth-taskfields-add")
+			.setName(labels.fieldAddKey)
+			.setDesc(labels.fieldAddKeyDesc);
+
+		setting.addText((txt) => {
+			txt.setPlaceholder(labels.fieldAddKeyPlaceholder).onChange((v) => (typed = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				if (typed.trim()) add(frontmatterSource(typed));
+			});
+		});
+
+		// The property menu: what the scan actually found, minus what this field
+		// already reads.
+		const used = new Set(field.keys.map((k) => k.source));
+		const available = this.discovery.properties.filter((p) => !used.has(frontmatterSource(p)));
+		setting.addExtraButton((b) => {
+			b.setIcon("list").setTooltip(labels.fieldPickProperty).setDisabled(!available.length);
+			b.onClick(() => {
+				const menu = new Menu();
+				for (const property of available) {
+					menu.addItem((item) =>
+						item.setTitle(property).onClick(() => add(frontmatterSource(property))),
+					);
+				}
+				const rect = b.extraSettingsEl.getBoundingClientRect();
+				menu.showAtPosition({ x: rect.left, y: rect.bottom });
+			});
+		});
+
+		// Hearth's own parsed values, which no frontmatter property can reach.
+		setting.addExtraButton((b) => {
+			b.setIcon("sparkles").setTooltip(labels.fieldPickBuiltin);
+			b.onClick(() => {
+				const menu = new Menu();
+				for (const id of TASK_BUILTIN_SOURCES) {
+					if (used.has(builtinSource(id))) continue;
+					menu.addItem((item) =>
+						item.setTitle(t().editors.tasks.sourceNames[id]).onClick(() => add(builtinSource(id))),
+					);
+				}
+				const rect = b.extraSettingsEl.getBoundingClientRect();
+				menu.showAtPosition({ x: rect.left, y: rect.bottom });
+			});
+		});
+
+		setting.addButton((b) =>
+			b.setButtonText(labels.fieldAddKeyButton).onClick(() => {
+				if (typed.trim()) add(frontmatterSource(typed));
 			}),
 		);
 	}
@@ -4709,6 +4902,7 @@ export class TaskFieldsModal extends Modal {
 		this.contentEl.empty();
 	}
 }
+
 
 
 /** A one-line summary of what a card shows, so the editor says what is
