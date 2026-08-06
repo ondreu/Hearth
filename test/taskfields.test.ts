@@ -1,172 +1,161 @@
 import { describe, expect, it } from "vitest";
 import {
-	BUILTIN_TASK_FIELDS,
 	activeTaskFields,
-	autoFieldColor,
-	customFieldId,
-	customFieldProperty,
-	fieldAppliesTo,
-	fieldAutoColor,
-	fieldColor,
-	fieldColorable,
+	builtinSource,
+	displayValue,
 	fieldStyle,
-	fieldStyleOptions,
-	isCustomField,
+	frontmatterSource,
+	isDateSource,
+	isDescriptionSource,
+	isKnownSource,
+	newTaskField,
+	normalizeSourceValue,
 	resolveTaskFields,
+	sourceBuiltin,
+	sourceProperty,
 	taskFieldValues,
 } from "../src/taskfields";
-import type { TaskFieldConfig } from "../src/types";
+import type { TaskFieldDef } from "../src/types";
 
 /**
- * Field customization for the tasks card (#157): which metadata a task shows,
- * in what order, and how each piece is drawn. The resolution rules matter more
- * than they look — a stored list comes off disk from a real user's vault and
- * may predate fields that exist now, so it must never render a task blank.
+ * User-defined task fields (#157). A field is built by the user rather than
+ * picked from a list, so the rules that matter are: what a stored definition
+ * resolves to, when the fixed legacy rendering applies instead, and how a raw
+ * value becomes something on screen.
  */
+
+const field = (over: Partial<TaskFieldDef> = {}): TaskFieldDef => ({
+	id: "f1",
+	name: "Priority",
+	keys: [{ source: frontmatterSource("priority") }],
+	...over,
+});
+
+describe("sources", () => {
+	it("round-trips a frontmatter property", () => {
+		expect(frontmatterSource("project")).toBe("fm:project");
+		expect(sourceProperty("fm:project")).toBe("project");
+		expect(sourceBuiltin("fm:project")).toBeNull();
+	});
+
+	it("round-trips a built-in", () => {
+		expect(builtinSource("due")).toBe("builtin:due");
+		expect(sourceBuiltin("builtin:due")).toBe("due");
+		expect(sourceProperty("builtin:due")).toBe("");
+	});
+
+	it("rejects sources it cannot read", () => {
+		expect(isKnownSource("fm:project")).toBe(true);
+		expect(isKnownSource("builtin:due")).toBe(true);
+		expect(isKnownSource("fm:")).toBe(false);
+		expect(isKnownSource("builtin:nonsense")).toBe(false);
+		expect(isKnownSource("priority")).toBe(false);
+	});
+
+	it("knows which sources render as dates or as a description block", () => {
+		expect(isDateSource("builtin:due")).toBe(true);
+		expect(isDateSource("builtin:doneDate")).toBe(true);
+		expect(isDateSource("builtin:status")).toBe(false);
+		expect(isDateSource("fm:due")).toBe(false);
+		expect(isDescriptionSource("builtin:description")).toBe(true);
+		expect(isDescriptionSource("fm:description")).toBe(false);
+	});
+});
+
 describe("resolveTaskFields", () => {
-	it("falls back to every built-in, in order, when nothing is stored", () => {
-		expect(resolveTaskFields(undefined).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
-		expect(resolveTaskFields([]).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
+	// The empty list is the feature's starting point and a legitimate end state:
+	// "show no metadata". It must never be quietly replaced with defaults.
+	it("treats an empty list as an empty list, not as unconfigured", () => {
+		expect(resolveTaskFields([])).toEqual([]);
+		expect(resolveTaskFields(undefined)).toEqual([]);
 	});
 
-	// The default order is the one the card rendered before fields were
-	// configurable — dates chronologically (🛫 start, ⏳ scheduled, due, ✅ done),
-	// not in whatever order the ids happen to be declared.
-	it("defaults to the order tasks were rendered in before this existed", () => {
-		expect(resolveTaskFields(undefined).map((f) => f.id)).toEqual([
-			"status",
-			"column",
-			"priority",
-			"start",
-			"scheduled",
-			"due",
-			"doneDate",
-			"description",
-		]);
-	});
-
-	it("keeps the stored order, including custom fields between built-ins", () => {
-		const stored: TaskFieldConfig[] = [
-			{ id: "priority" },
-			{ id: "fm:project" },
-			{ id: "due" },
-		];
-		expect(resolveTaskFields(stored).slice(0, 3).map((f) => f.id)).toEqual([
-			"priority",
-			"fm:project",
-			"due",
-		]);
-	});
-
-	it("preserves each field's own settings", () => {
-		const stored: TaskFieldConfig[] = [
-			{ id: "status", style: "dot", colors: { done: "#0f0" }, hidden: true },
-		];
-		expect(resolveTaskFields(stored)[0]).toMatchObject({
-			id: "status",
-			style: "dot",
-			hidden: true,
-			colors: { done: "#0f0" },
-		});
-	});
-
-	it("appends built-ins the stored list never mentions, visible", () => {
-		const resolved = resolveTaskFields([{ id: "due" }]);
-		expect(resolved.map((f) => f.id).sort()).toEqual([...BUILTIN_TASK_FIELDS].sort());
-		expect(resolved.find((f) => f.id === "priority")?.hidden).toBeUndefined();
-	});
-
-	it("keeps a hidden field hidden rather than re-adding it", () => {
-		const stored: TaskFieldConfig[] = BUILTIN_TASK_FIELDS.map((id) => ({
-			id,
-			hidden: id === "status" ? true : undefined,
-		}));
-		const status = resolveTaskFields(stored).filter((f) => f.id === "status");
-		expect(status).toHaveLength(1);
-		expect(status[0].hidden).toBe(true);
-	});
-
-	it("drops unknown ids, blank ids and empty custom properties", () => {
+	it("keeps fields and their keys in order", () => {
 		const stored = [
-			{ id: "nonsense" },
-			{ id: "" },
-			{ id: "fm:" },
-			{ id: "fm:  " },
-		] as TaskFieldConfig[];
-		expect(resolveTaskFields(stored).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
-	});
-
-	it("collapses duplicates, keeping the first entry", () => {
-		const stored: TaskFieldConfig[] = [
-			{ id: "due", style: "pill" },
-			{ id: "due", style: "dot" },
+			field({ id: "a", keys: [{ source: "fm:project" }, { source: "builtin:due" }] }),
+			field({ id: "b" }),
 		];
-		const due = resolveTaskFields(stored).filter((f) => f.id === "due");
-		expect(due).toHaveLength(1);
-		expect(due[0].style).toBe("pill");
+		const resolved = resolveTaskFields(stored);
+		expect(resolved.map((f) => f.id)).toEqual(["a", "b"]);
+		expect(resolved[0].keys.map((k) => k.source)).toEqual(["fm:project", "builtin:due"]);
+	});
+
+	it("drops keys naming a source it cannot read", () => {
+		const stored = [
+			field({ keys: [{ source: "fm:project" }, { source: "builtin:nope" }, { source: "" }] }),
+		];
+		expect(resolveTaskFields(stored)[0].keys.map((k) => k.source)).toEqual(["fm:project"]);
+	});
+
+	it("drops a field left with no keys at all", () => {
+		const stored = [field({ id: "a", keys: [{ source: "bogus" }] }), field({ id: "b" })];
+		expect(resolveTaskFields(stored).map((f) => f.id)).toEqual(["b"]);
+	});
+
+	it("does not mutate what it was given", () => {
+		const stored = [field({ keys: [{ source: "fm:project" }, { source: "bogus" }] })];
+		resolveTaskFields(stored);
+		expect(stored[0].keys).toHaveLength(2);
+	});
+
+	it("gives a new field a unique id and no keys", () => {
+		const a = newTaskField("Priority");
+		const b = newTaskField("Status");
+		expect(a.id).not.toBe(b.id);
+		expect(a.keys).toEqual([]);
+		expect(a.name).toBe("Priority");
 	});
 });
 
-describe("custom fields", () => {
-	it("round-trips a property name through the id", () => {
-		expect(customFieldId("project")).toBe("fm:project");
-		expect(customFieldProperty(customFieldId("project"))).toBe("project");
-		expect(isCustomField("fm:project")).toBe(true);
-		expect(isCustomField("priority")).toBe(false);
+/**
+ * The three layers. Off globally means the card renders the fixed metadata it
+ * always has — signalled by null, so the caller runs the legacy renderer rather
+ * than an equivalent field list.
+ */
+describe("activeTaskFields", () => {
+	const off = { taskFieldsEnabled: false, taskFields: [] };
+	const on = { taskFieldsEnabled: true, taskFields: [] };
+	const globalList = { taskFieldsEnabled: true, taskFields: [field({ id: "global" })] };
+
+	it("returns null while the master switch is off, whatever is stored", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [field({ id: "card" })] };
+		expect(activeTaskFields(card, off)).toBeNull();
+		expect(activeTaskFields({}, off)).toBeNull();
 	});
 
-	it("reports no property for a built-in", () => {
-		expect(customFieldProperty("priority")).toBe("");
-	});
-});
-
-describe("fieldAppliesTo", () => {
-	it("offers status only for TaskNotes and column only for Kanban", () => {
-		expect(fieldAppliesTo("status", "tasknotes", true)).toBe(true);
-		expect(fieldAppliesTo("status", "checkbox", true)).toBe(false);
-		expect(fieldAppliesTo("column", "kanban", true)).toBe(true);
-		expect(fieldAppliesTo("column", "tasknotes", true)).toBe(false);
+	it("keeps a card's own fields intact for when the switch comes back on", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [field({ id: "card" })] };
+		activeTaskFields(card, off);
+		expect(card.taskFields).toHaveLength(1);
 	});
 
-	it("needs extended parsing for the emoji-marker dates", () => {
-		expect(fieldAppliesTo("start", "checkbox", true)).toBe(true);
-		expect(fieldAppliesTo("start", "checkbox", false)).toBe(false);
-		expect(fieldAppliesTo("doneDate", "kanban", false)).toBe(false);
+	it("shows nothing — not the old defaults — when on but unconfigured", () => {
+		expect(activeTaskFields({}, on)).toEqual([]);
 	});
 
-	it("always offers due, priority and custom fields", () => {
-		for (const source of ["checkbox", "tasknotes", "kanban"] as const) {
-			expect(fieldAppliesTo("due", source, false)).toBe(true);
-			expect(fieldAppliesTo("priority", source, false)).toBe(true);
-			expect(fieldAppliesTo("fm:project", source, false)).toBe(true);
-		}
+	it("follows the global list", () => {
+		expect(activeTaskFields({}, globalList)?.map((f) => f.id)).toEqual(["global"]);
+	});
+
+	it("lets a card that opted in override the global list", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [field({ id: "card" })] };
+		expect(activeTaskFields(card, globalList)?.map((f) => f.id)).toEqual(["card"]);
+	});
+
+	it("lets a card that opted in show nothing at all", () => {
+		expect(activeTaskFields({ taskFieldsEnabled: true, taskFields: [] }, globalList)).toEqual([]);
+	});
+
+	it("keeps a card that stored fields but never opted in on the global list", () => {
+		const card = { taskFields: [field({ id: "card" })] };
+		expect(activeTaskFields(card, globalList)?.map((f) => f.id)).toEqual(["global"]);
 	});
 });
 
 describe("fieldStyle", () => {
-	it("uses chips for values and text for dates", () => {
-		expect(fieldStyle({ id: "status" }, "list", "tasknotes")).toBe("pill");
-		expect(fieldStyle({ id: "fm:project" }, "list", "tasknotes")).toBe("pill");
-		expect(fieldStyle({ id: "due" }, "list", "checkbox")).toBe("text");
-	});
-
-	it("keeps the Kanban board's bare priority dot as the default", () => {
-		expect(fieldStyle({ id: "priority" }, "kanban", "kanban")).toBe("dot");
-		expect(fieldStyle({ id: "priority" }, "list", "kanban")).toBe("pill");
-		expect(fieldStyle({ id: "priority" }, "kanban", "tasknotes")).toBe("pill");
-	});
-
-	it("lets an explicit style win everywhere", () => {
-		expect(fieldStyle({ id: "priority", style: "text" }, "kanban", "kanban")).toBe("text");
-		expect(fieldStyle({ id: "due", style: "pill" }, "list", "checkbox")).toBe("pill");
-	});
-
-	it("ignores a style the field cannot render", () => {
-		// A relative date label ("Tomorrow") cannot survive being reduced to a dot.
-		expect(fieldStyleOptions("due")).toEqual(["text", "pill"]);
-		expect(fieldStyle({ id: "due", style: "dot" }, "list", "checkbox")).toBe("text");
-		expect(fieldStyleOptions("description")).toEqual([]);
-		expect(fieldStyleOptions("fm:project")).toEqual(["pill", "dot", "text"]);
+	it("defaults to a chip", () => {
+		expect(fieldStyle(field())).toBe("pill");
+		expect(fieldStyle(field({ display: "dot" }))).toBe("dot");
 	});
 });
 
@@ -194,85 +183,66 @@ describe("taskFieldValues", () => {
 	});
 });
 
-describe("colours", () => {
-	it("gives a value the same auto colour every time, ignoring case", () => {
-		expect(autoFieldColor("in-progress")).toBe(autoFieldColor("In-Progress"));
-		expect(autoFieldColor("open")).toMatch(/^var\(--color-[a-z]+\)$/);
+describe("normalizeSourceValue", () => {
+	// The same priority arrives as "⏫" off a checkbox line and as "high" from
+	// TaskNotes frontmatter. A user who maps "high" means both.
+	it("folds the priority emoji onto its level so one mapping covers both", () => {
+		expect(normalizeSourceValue("builtin:priority", "⏫")).toBe("high");
+		expect(normalizeSourceValue("builtin:priority", "🔺")).toBe("highest");
+		expect(normalizeSourceValue("builtin:priority", "High")).toBe("high");
 	});
 
-	// Turning the feature on must not repaint anything, so only chips that did
-	// not exist before — frontmatter properties — colour themselves by default.
-	it("auto-colours new custom chips, never the built-ins, until asked", () => {
-		expect(fieldAutoColor({ id: "fm:project" })).toBe(true);
-		expect(fieldAutoColor({ id: "status" })).toBe(false);
-		expect(fieldAutoColor({ id: "column" })).toBe(false);
-		expect(fieldAutoColor({ id: "priority" })).toBe(false);
-		expect(fieldAutoColor({ id: "status", autoColor: true })).toBe(true);
-		expect(fieldAutoColor({ id: "fm:project", autoColor: false })).toBe(false);
+	it("passes an unrecognised priority through untouched", () => {
+		expect(normalizeSourceValue("builtin:priority", "spicy")).toBe("spicy");
 	});
 
-	it("never colours a field whose colour already means something", () => {
-		expect(fieldColorable("due")).toBe(false);
-		expect(fieldColor({ id: "due", colors: { "*": "#f00" } }, "today")).toBeNull();
-	});
-
-	it("prefers an explicit colour, then a wildcard, then the auto palette", () => {
-		const field: TaskFieldConfig = { id: "status", colors: { done: "#0f0", "*": "#00f" } };
-		expect(fieldColor(field, "Done")).toBe("#0f0");
-		expect(fieldColor(field, "waiting")).toBe("#00f");
-		expect(fieldColor({ id: "fm:project" }, "hearth")).toBe(autoFieldColor("hearth"));
-	});
-
-	it("leaves the stylesheet in charge when auto colour is off", () => {
-		expect(fieldColor({ id: "status" }, "open")).toBeNull();
-		expect(fieldColor({ id: "fm:project", autoColor: false }, "hearth")).toBeNull();
-		expect(fieldColor({ id: "priority" }, "high")).toBeNull();
+	it("leaves every other source alone", () => {
+		expect(normalizeSourceValue("fm:project", "Hearth")).toBe("Hearth");
+		expect(normalizeSourceValue("builtin:status", "In-Progress")).toBe("In-Progress");
 	});
 });
 
-/**
- * The three layers (#157 follow-up): off globally means nothing changes for
- * anyone, on globally means cards follow one list, and a card may take over its
- * own. Each layer has to be a no-op until something is actually configured.
- */
-describe("activeTaskFields", () => {
-	const off = { taskFieldsEnabled: false, taskFields: [] };
-	const on = { taskFieldsEnabled: true, taskFields: [] };
-	const globalList = {
-		taskFieldsEnabled: true,
-		taskFields: [{ id: "due" }, { id: "priority", style: "dot" as const }],
+describe("displayValue", () => {
+	const key = {
+		source: "builtin:status",
+		values: [
+			{ match: "done", label: "Complete", color: "#0f0" },
+			{ match: "in-progress", label: "Working" },
+		],
 	};
 
-	it("ignores every stored list while the master switch is off", () => {
-		const card = { taskFieldsEnabled: true, taskFields: [{ id: "due" }] };
-		expect(activeTaskFields(card, off).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
-		expect(activeTaskFields(card, off).every((f) => !f.hidden && !f.style)).toBe(true);
+	it("uses the mapped label and colour", () => {
+		expect(displayValue(key, "done")).toEqual({ label: "Complete", color: "#0f0" });
 	});
 
-	it("keeps a card's own settings intact for when the switch comes back on", () => {
-		const card = { taskFieldsEnabled: true, taskFields: [{ id: "due" }] };
-		activeTaskFields(card, off);
-		expect(card.taskFields).toEqual([{ id: "due" }]);
+	it("matches case- and whitespace-insensitively", () => {
+		expect(displayValue(key, "  DONE ").label).toBe("Complete");
 	});
 
-	it("changes nothing when the switch is on but nothing is configured", () => {
-		expect(activeTaskFields({}, on).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
+	it("keeps a mapping that only sets a label", () => {
+		expect(displayValue(key, "in-progress")).toEqual({ label: "Working", color: null });
 	});
 
-	it("follows the global list once one is set", () => {
-		expect(activeTaskFields({}, globalList).slice(0, 2).map((f) => f.id)).toEqual([
-			"due",
-			"priority",
-		]);
+	// Nothing may vanish for want of having been mapped — a status added to the
+	// vault after the mapping was written still has to be visible.
+	it("shows an unmapped value as itself, uncoloured", () => {
+		expect(displayValue(key, "blocked")).toEqual({ label: "blocked", color: null });
+		expect(displayValue({ source: "fm:project" }, "Hearth")).toEqual({
+			label: "Hearth",
+			color: null,
+		});
 	});
 
-	it("lets a card that opted in override the global list", () => {
-		const card = { taskFieldsEnabled: true, taskFields: [{ id: "status" }] };
-		expect(activeTaskFields(card, globalList)[0].id).toBe("status");
+	it("lets an earlier entry shadow a later duplicate", () => {
+		const dupes = {
+			source: "fm:x",
+			values: [{ match: "a", label: "First" }, { match: "a", label: "Second" }],
+		};
+		expect(displayValue(dupes, "a").label).toBe("First");
 	});
 
-	it("keeps a card that stored a list but never opted in on the global one", () => {
-		const card = { taskFields: [{ id: "status" }] };
-		expect(activeTaskFields(card, globalList)[0].id).toBe("due");
+	it("ignores a blank label or colour rather than rendering an empty chip", () => {
+		const blank = { source: "fm:x", values: [{ match: "a", label: "  ", color: " " }] };
+		expect(displayValue(blank, "a")).toEqual({ label: "a", color: null });
 	});
 });

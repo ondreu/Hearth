@@ -1,22 +1,27 @@
-import type { TaskFieldConfig, TaskFieldStyle } from "./types";
+import { priorityKey } from "./priority";
+import type { TaskFieldDef, TaskFieldKey, TaskFieldStyle, TaskValueMap } from "./types";
 
 /**
- * Which metadata a "tasks" card shows on each task, in what order, and how each
- * piece is drawn. Everything here is pure config/string logic — no Obsidian, no
- * DOM — so the resolution rules (defaults, ordering, colouring) can be tested
- * without the card registry, the same way priority.ts and taskscope.ts are.
+ * User-defined task fields: what a "tasks" card shows on each task once field
+ * customization is switched on. Pure config/string logic — no Obsidian, no DOM
+ * — so the resolution rules can be tested without the card registry, the same
+ * way priority.ts and taskscope.ts are.
  *
- * A field is either one of the built-ins below (metadata Hearth parses itself)
- * or a frontmatter property, addressed as `fm:<property>`. Both share one
- * ordered list on the card, so a custom chip can sit between two built-ins.
+ * The model is deliberately open. Hearth offers no list of fields to pick from:
+ * a field is something the user builds — a name, a display style, and one or
+ * more keys that feed it. A key reads either a frontmatter property or one of
+ * the values Hearth parses itself, and can map each raw value to a nicer label
+ * and a colour.
+ *
+ * While customization is off, none of this is consulted: the card renders the
+ * fixed metadata it always has (see `renderLegacyTaskFields` in cards/tasks.ts).
  */
 
 
-/** The metadata Hearth parses for every task, in the order a card shows it when
- * the user has not reordered anything. This order is the historical one the
- * card rendered before fields became configurable, so an unconfigured card
- * looks exactly as it did. */
-export const BUILTIN_TASK_FIELDS = [
+/** Values Hearth parses itself, offered as key sources alongside frontmatter.
+ * These are the only way to reach metadata that isn't in frontmatter at all —
+ * a checkbox line's ⏫ priority, a Kanban card's column, a parsed due date. */
+export const TASK_BUILTIN_SOURCES = [
 	"status",
 	"column",
 	"priority",
@@ -27,202 +32,132 @@ export const BUILTIN_TASK_FIELDS = [
 	"description",
 ] as const;
 
-export type BuiltinTaskField = (typeof BUILTIN_TASK_FIELDS)[number];
+export type TaskBuiltinSource = (typeof TASK_BUILTIN_SOURCES)[number];
 
 
-/** Prefix marking a field id as a frontmatter property rather than a built-in.
- * `fm:project` reads the `project` property off the task's note. */
-export const CUSTOM_FIELD_PREFIX = "fm:";
+/** Sources that carry a date, rendered with their own emoji marker and the
+ * overdue treatment rather than as a plain value. */
+const DATE_SOURCES: readonly string[] = ["start", "scheduled", "due", "doneDate"];
 
 
-/** Whether `id` addresses a frontmatter property (`fm:project`) rather than one
- * of the built-in fields. */
-export function isCustomField(id: string): boolean {
-	return id.startsWith(CUSTOM_FIELD_PREFIX);
+const FRONTMATTER_PREFIX = "fm:";
+const BUILTIN_PREFIX = "builtin:";
+
+
+/** The key source addressing a frontmatter property. */
+export function frontmatterSource(property: string): string {
+	return `${FRONTMATTER_PREFIX}${property.trim()}`;
 }
 
 
-/** The frontmatter property a custom field reads, or "" for a built-in. */
-export function customFieldProperty(id: string): string {
-	return isCustomField(id) ? id.slice(CUSTOM_FIELD_PREFIX.length).trim() : "";
+/** The key source addressing one of Hearth's own parsed values. */
+export function builtinSource(id: TaskBuiltinSource): string {
+	return `${BUILTIN_PREFIX}${id}`;
 }
 
 
-/** The field id addressing a frontmatter property. */
-export function customFieldId(property: string): string {
-	return `${CUSTOM_FIELD_PREFIX}${property.trim()}`;
+/** The frontmatter property a source reads, or "" when it isn't one. */
+export function sourceProperty(source: string): string {
+	return source.startsWith(FRONTMATTER_PREFIX)
+		? source.slice(FRONTMATTER_PREFIX.length).trim()
+		: "";
 }
 
 
-/** Whether a field id is one Hearth can render: a known built-in, or a custom
- * field naming a non-empty property. */
-function isKnownField(id: string): boolean {
-	if (isCustomField(id)) return customFieldProperty(id).length > 0;
-	return (BUILTIN_TASK_FIELDS as readonly string[]).includes(id);
+/** The built-in value a source reads, or null when it isn't one. */
+export function sourceBuiltin(source: string): TaskBuiltinSource | null {
+	if (!source.startsWith(BUILTIN_PREFIX)) return null;
+	const id = source.slice(BUILTIN_PREFIX.length).trim();
+	return (TASK_BUILTIN_SOURCES as readonly string[]).includes(id)
+		? (id as TaskBuiltinSource)
+		: null;
 }
 
 
-/** Fields that only exist for a given source/mode, used to hide controls that
- * could never render anything:
- *
- * - `status` is the TaskNotes status value; the other sources have none.
- * - `column` is the Kanban board column a card sits in.
- * - `start`, `scheduled` and `doneDate` come from the Tasks-plugin emoji markers
- *   on a line-based task, so they need extended parsing to be on.
- *
- * `metaEnabled` mirrors the card's `checkboxExtended`/`kanbanExtended` toggle.
- */
-export function fieldAppliesTo(
-	id: string,
-	source: "checkbox" | "tasknotes" | "kanban",
-	metaEnabled: boolean,
-): boolean {
-	if (isCustomField(id)) return true;
-	switch (id as BuiltinTaskField) {
-		case "status":
-			return source === "tasknotes";
-		case "column":
-			return source === "kanban";
-		case "start":
-		case "scheduled":
-		case "doneDate":
-			return source !== "tasknotes" && metaEnabled;
-		case "description":
-			return source !== "tasknotes";
-		default:
-			return true;
-	}
+/** Whether a source is one Hearth can read at all. */
+export function isKnownSource(source: string): boolean {
+	return sourceProperty(source).length > 0 || sourceBuiltin(source) !== null;
 }
 
 
-/** The default, unconfigured field list: every built-in, visible, in order. */
-export function defaultTaskFields(): TaskFieldConfig[] {
-	return BUILTIN_TASK_FIELDS.map((id) => ({ id }));
+/** Whether a source produces a date (rendered with its marker and overdue
+ * treatment) rather than a plain value. */
+export function isDateSource(source: string): boolean {
+	const builtin = sourceBuiltin(source);
+	return builtin !== null && DATE_SOURCES.includes(builtin);
+}
+
+
+/** Whether a source produces the multi-line description block, which is drawn
+ * as sub-bullets and so takes no display style or value mapping. */
+export function isDescriptionSource(source: string): boolean {
+	return sourceBuiltin(source) === "description";
+}
+
+
+/** A fresh field id. Only has to be unique within one card's list, so the
+ * timestamp + random suffix used elsewhere in Hearth is plenty. */
+export function newTaskFieldId(): string {
+	return `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+
+/** An empty field, ready to be named and given keys. */
+export function newTaskField(name: string): TaskFieldDef {
+	return { id: newTaskFieldId(), name, keys: [] };
 }
 
 
 /**
- * The field list a card renders: the stored list with unusable entries dropped
- * and duplicates collapsed, or the defaults when nothing is stored.
+ * The stored field list, with anything unrenderable removed: keys naming a
+ * source Hearth can't read, and (after that) fields left with no keys at all.
  *
- * Built-ins the stored list never mentions are appended (visible) at the end.
- * That only happens for a card configured by an older version that did not know
- * the field yet — the editor always writes every built-in, marking the ones the
- * user turned off `hidden` rather than dropping them, so hiding a field is
- * never mistaken for "this card predates it".
+ * An empty result is a legitimate configuration — "show no metadata" — and is
+ * never substituted with defaults. That is the whole point of the feature: once
+ * it is on, a task shows what was asked for and nothing else.
  */
-export function resolveTaskFields(stored: TaskFieldConfig[] | undefined): TaskFieldConfig[] {
-	if (!stored?.length) return defaultTaskFields();
-	const out: TaskFieldConfig[] = [];
-	const seen = new Set<string>();
+export function resolveTaskFields(stored: TaskFieldDef[] | undefined): TaskFieldDef[] {
+	if (!stored?.length) return [];
+	const out: TaskFieldDef[] = [];
 	for (const field of stored) {
-		const id = field.id?.trim();
-		if (!id || seen.has(id) || !isKnownField(id)) continue;
-		seen.add(id);
-		out.push({ ...field, id });
-	}
-	for (const id of BUILTIN_TASK_FIELDS) {
-		if (!seen.has(id)) out.push({ id });
+		const keys = (field.keys ?? []).filter((k) => isKnownSource(k.source ?? ""));
+		if (!keys.length) continue;
+		out.push({ ...field, keys });
 	}
 	return out;
 }
 
 
 /**
- * The field list a card actually renders, resolving the three layers:
+ * The fields a card renders, or null when it should fall back to the fixed
+ * metadata it has always shown.
  *
- * 1. The global master switch is off (the default) — every card draws the
- *    built-in fields exactly as it always has, whatever is stored on it. A
- *    vault that never enables this never sees a change, and a card configured
- *    while it was on quietly reverts rather than losing its settings.
- * 2. The switch is on and the card follows the global list.
- * 3. The switch is on and the card was given its own list, which wins.
- *
- * Both stored lists are empty by default, and an empty list resolves to the
- * defaults — so each layer is a no-op until something is actually configured.
+ * Three layers: the global master switch (off = null, whatever is stored), the
+ * global field list, and a card that opted out of it with its own.
  */
 export function activeTaskFields(
-	card: { taskFieldsEnabled?: boolean; taskFields?: TaskFieldConfig[] },
-	global: { taskFieldsEnabled: boolean; taskFields: TaskFieldConfig[] },
-): TaskFieldConfig[] {
-	if (!global.taskFieldsEnabled) return defaultTaskFields();
+	card: { taskFieldsEnabled?: boolean; taskFields?: TaskFieldDef[] },
+	global: { taskFieldsEnabled: boolean; taskFields: TaskFieldDef[] },
+): TaskFieldDef[] | null {
+	if (!global.taskFieldsEnabled) return null;
 	if (card.taskFieldsEnabled) return resolveTaskFields(card.taskFields);
 	return resolveTaskFields(global.taskFields);
 }
 
 
-/** The built-in style for each field when the user hasn't chosen one. Dates and
- * the description read as text (they carry their own emoji/bullets); everything
- * else is a chip. */
-const DEFAULT_FIELD_STYLE: Record<BuiltinTaskField, TaskFieldStyle> = {
-	status: "pill",
-	column: "pill",
-	priority: "pill",
-	due: "text",
-	scheduled: "text",
-	start: "text",
-	doneDate: "text",
-	description: "text",
-};
-
-
-/**
- * How a field renders. An explicit `style` always wins; otherwise the field's
- * default applies, with one exception: priority on a Kanban board defaults to a
- * bare dot, because a board card is too narrow for a labelled chip. (That was
- * the hard-coded behaviour before fields were configurable.)
- */
-export function fieldStyle(
-	field: TaskFieldConfig,
-	layout: "list" | "kanban",
-	source: "checkbox" | "tasknotes" | "kanban",
-): TaskFieldStyle {
-	if (field.style && fieldStyleOptions(field.id).includes(field.style)) return field.style;
-	if (field.id === "priority" && layout === "kanban" && source === "kanban") return "dot";
-	if (isCustomField(field.id)) return "pill";
-	return DEFAULT_FIELD_STYLE[field.id as BuiltinTaskField] ?? "text";
-}
-
-
-/** Whether a field can be styled at all. The description is always its own
- * block of sub-bullets — pill/dot make no sense for multi-line text. */
-export function fieldStyleable(id: string): boolean {
-	return id !== "description";
-}
-
-
-/** The styles a field can be drawn in, in the order the editor offers them. A
- * date renders as a relative label ("Tomorrow", "15 Jul") that a bare dot could
- * not convey, so dates are text or a chip — never a dot. */
-export function fieldStyleOptions(id: string): TaskFieldStyle[] {
-	if (!fieldStyleable(id)) return [];
-	if (isCustomField(id)) return ["pill", "dot", "text"];
-	switch (id as BuiltinTaskField) {
-		case "due":
-		case "scheduled":
-		case "start":
-		case "doneDate":
-			return ["text", "pill"];
-		default:
-			return ["pill", "dot", "text"];
-	}
-}
-
-
-/** Whether a field's chips can carry per-value colours. Dates are relative
- * labels ("Tomorrow") whose colour already means something — overdue — so they
- * are left alone. */
-export function fieldColorable(id: string): boolean {
-	if (isCustomField(id)) return true;
-	return id === "status" || id === "column" || id === "priority";
+/** How a field's values are drawn. Dates and the description ignore this: a
+ * date is a relative label that a dot could not convey, and the description is
+ * always its own block of sub-bullets. */
+export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
+	return field.display ?? "pill";
 }
 
 
 /**
- * Coerce a frontmatter value into the chips it renders as. A list property
- * (`contexts: [home, errands]`) becomes one chip per entry, matching how
- * TaskNotes shows multi-value fields; a scalar becomes a single chip. Anything
- * empty, or a nested object with no sensible text, renders nothing.
+ * Coerce a raw value into the values it renders as. A list property
+ * (`contexts: [home, errands]`) becomes one value per entry, matching how
+ * TaskNotes shows multi-value fields; a scalar becomes a single value.
+ * Anything empty, or an object with no sensible text, renders nothing.
  */
 export function taskFieldValues(raw: unknown): string[] {
 	const scalar = (v: unknown): string | null => {
@@ -244,69 +179,57 @@ export function taskFieldValues(raw: unknown): string[] {
 }
 
 
-/** The theme colours auto-assigned to chip values. Obsidian variables (rather
- * than fixed hex) so a chip keeps working in any theme, light or dark. */
-const AUTO_COLOR_VARS = [
-	"--color-blue",
-	"--color-green",
-	"--color-orange",
-	"--color-purple",
-	"--color-cyan",
-	"--color-pink",
-	"--color-yellow",
+/**
+ * Normalize a built-in value so mappings can be written against something
+ * stable. Priority is the case that needs it: the same level arrives as "⏫"
+ * from a checkbox line and as "high" from TaskNotes frontmatter, and a user
+ * mapping "high" means both. Everything else is passed through untouched.
+ */
+export function normalizeSourceValue(source: string, value: string): string {
+	if (sourceBuiltin(source) !== "priority") return value;
+	return priorityKey(value) || value;
+}
+
+
+/** How one value should be displayed: the label to show and the colour to draw
+ * it in. A value with no mapping shows itself, uncoloured — nothing is hidden
+ * for want of having been mapped. */
+export interface TaskValueDisplay {
+	label: string;
+	color: string | null;
+}
+
+
+/** Resolve a raw value against a key's mappings. Matching is case-insensitive
+ * on the trimmed value; the first matching entry wins, so an earlier entry can
+ * deliberately shadow a later one. */
+export function displayValue(key: TaskFieldKey, value: string): TaskValueDisplay {
+	const needle = value.trim().toLowerCase();
+	const hit = (key.values ?? []).find(
+		(v: TaskValueMap) => (v.match ?? "").trim().toLowerCase() === needle,
+	);
+	return {
+		label: hit?.label?.trim() || value,
+		color: hit?.color?.trim() || null,
+	};
+}
+
+
+/** The theme colours the editor offers as quick picks. Obsidian variables
+ * rather than fixed hex, so a chip keeps working in any theme, light or dark. */
+export const TASK_COLOR_PRESETS = [
 	"--color-red",
-];
+	"--color-orange",
+	"--color-yellow",
+	"--color-green",
+	"--color-cyan",
+	"--color-blue",
+	"--color-purple",
+	"--color-pink",
+] as const;
 
 
-/** A stable index into the auto palette for a value: the same status always
- * gets the same colour, on every card and across restarts, without anything
- * being stored. (FNV-1a, chosen for spreading short similar words like
- * "todo"/"done" across different buckets.) */
-function autoColorIndex(value: string): number {
-	let hash = 0x811c9dc5;
-	const key = value.trim().toLowerCase();
-	for (let i = 0; i < key.length; i++) {
-		hash ^= key.charCodeAt(i);
-		hash = Math.imul(hash, 0x01000193);
-	}
-	return (hash >>> 0) % AUTO_COLOR_VARS.length;
-}
-
-
-/** The auto-assigned colour for a value, as a CSS value usable directly. */
-export function autoFieldColor(value: string): string {
-	return `var(${AUTO_COLOR_VARS[autoColorIndex(value)]})`;
-}
-
-
-/**
- * Whether a field colours its chips automatically when no explicit colour is
- * set for a value.
- *
- * On by default only for frontmatter properties: those chips did not exist
- * before the user added them, so there is no established look to change, and a
- * colour is what makes one value tell itself apart from another at a glance.
- * The built-ins default to off — status, board column and priority already had
- * a settled appearance, and turning this feature on must not repaint a card
- * nobody asked to repaint.
- */
-export function fieldAutoColor(field: TaskFieldConfig): boolean {
-	if (!fieldColorable(field.id)) return false;
-	return field.autoColor ?? isCustomField(field.id);
-}
-
-
-/**
- * The colour a value's chip is drawn in, or null to leave it to the stylesheet
- * (the muted default chip, or priority's own level colours).
- *
- * An explicit per-value colour wins, then a `*` entry colouring every value of
- * the field, then the auto palette when the field allows it.
- */
-export function fieldColor(field: TaskFieldConfig, value: string): string | null {
-	if (!fieldColorable(field.id)) return null;
-	const colors = field.colors ?? {};
-	const explicit = colors[value.trim().toLowerCase()] ?? colors["*"];
-	if (explicit) return explicit;
-	return fieldAutoColor(field) ? autoFieldColor(value) : null;
+/** A preset colour as a CSS value. */
+export function presetColor(name: string): string {
+	return `var(${name})`;
 }

@@ -4309,14 +4309,21 @@ body.hearth-dv-resizing {
 	overflow-y: auto;
 }
 
-/* A field the current source can't provide: still listed (so it comes back if
-   the source changes) but visibly inert. */
-.hearth-taskfields-row.is-inactive .setting-item-name {
-	color: var(--text-faint);
-}
-
 .hearth-taskfields-back .setting-item-name {
 	font-weight: 600;
+}
+
+/* A value mapping: value → label, then its colour controls. The two inputs
+   share the row evenly so a long label doesn't squeeze the value it maps. */
+.hearth-taskfields-color .setting-item-control input[type="text"] {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* Rows in the field/key lists carry their source or mapping count as the
+   description; keep it from wrapping the row into two lines. */
+.hearth-taskfields-row .setting-item-description {
+	font-size: 0.82em;
 }
 
 /* Preview of the colour a value currently renders in, beside its picker. */

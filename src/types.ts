@@ -128,34 +128,50 @@ export interface TaskFilterConfig {
 	text?: string;
 }
 
-/** How a single metadata field is drawn on a task: a filled chip, a bare
- * coloured dot (the value moves to the tooltip), or plain text. */
+/** How a value is drawn on a task: a filled chip, a bare coloured dot (the
+ * value moves to the tooltip), or plain text. */
 export type TaskFieldStyle = "pill" | "dot" | "text";
 
-/** One metadata field on a "tasks" card, in the order it is shown. See
- * `src/taskfields.ts` for the built-in ids, the defaults each field falls back
- * to, and how colours are resolved. */
-export interface TaskFieldConfig {
-	/** A built-in field ("status", "priority", "due", …) or `fm:<property>` for
-	 * a frontmatter property read off the task's note. */
-	id: string;
-	/** Hidden, but kept in the list so re-enabling restores its place in the
-	 * order. The editor writes this instead of removing built-ins. */
-	hidden?: boolean;
-	/** How the value is drawn. Unset uses the field's default (chips for
-	 * status/column/priority and custom fields, text for dates). */
-	style?: TaskFieldStyle;
-	/** Custom fields: a prefix shown before the value ("Project: high"). Unset
-	 * shows the bare value, TaskNotes-style. */
+/** One value → what to show for it. Matching is case-insensitive on the
+ * trimmed raw value. A value with no entry here still renders — as itself,
+ * uncoloured — so a status nobody mapped yet is visible rather than lost. */
+export interface TaskValueMap {
+	/** The raw value to match (a frontmatter value, a status, a priority key). */
+	match: string;
+	/** Shown instead of the raw value. Empty shows the raw value. */
 	label?: string;
-	/** Per-value chip colours, keyed by the lowercased value; a `*` entry
-	 * colours every value of the field. Any CSS colour. Values with no entry
-	 * fall back to the auto palette (see `autoColor`). */
-	colors?: Record<string, string>;
-	/** Give values with no explicit colour a stable colour derived from the
-	 * value itself. Defaults to on for status, column and custom fields; off
-	 * for priority, which has its own five-level colour scale. */
-	autoColor?: boolean;
+	/** Any CSS colour for this value's chip or dot. */
+	color?: string;
+}
+
+/** One source a field reads. `source` is either `fm:<property>` for a
+ * frontmatter property or `builtin:<id>` for something Hearth parses itself
+ * (see `TASK_BUILTIN_SOURCES`). Every key with a value renders. */
+export interface TaskFieldKey {
+	source: string;
+	/** Per-value display overrides. */
+	values?: TaskValueMap[];
+}
+
+/**
+ * A field on a task, defined entirely by the user: what it is called, how it is
+ * drawn, and which keys feed it. Fields render in list order, and within a
+ * field each key renders in its own order.
+ *
+ * Only used while task-field customization is on; with it off the card falls
+ * back to the fixed metadata it has always rendered (see `src/taskfields.ts`).
+ */
+export interface TaskFieldDef {
+	/** Stable id, so the editor can address a field while it is renamed. */
+	id: string;
+	/** The user's name for the field. Shown in the editor, and on the task
+	 * itself only when `showName` is on. */
+	name: string;
+	/** Prefix each of this field's chips with the field name. */
+	showName?: boolean;
+	/** How this field's values are drawn. Default "pill". */
+	display?: TaskFieldStyle;
+	keys: TaskFieldKey[];
 }
 
 export interface TasksConfig {
@@ -239,13 +255,13 @@ export interface TasksConfig {
 	taskFilter?: TaskFilterConfig;
 	/** Give this card its own field list instead of following the global one
 	 * from Settings → Hearth → Integrations. Off by default: a card follows the
-	 * global list, which itself defaults to the built-in fields. Only consulted
-	 * while the global `taskFieldsEnabled` master switch is on. */
+	 * global list. Only consulted while the global `taskFieldsEnabled` master
+	 * switch is on. */
 	taskFieldsEnabled?: boolean;
-	/** This card's own field list — which metadata each task shows, in display
-	 * order, and how each piece is drawn. Only used when `taskFieldsEnabled` is
-	 * on for the card. Unset/empty resolves to the built-in defaults. */
-	taskFields?: TaskFieldConfig[];
+	/** This card's own fields, replacing the global list. Only used when
+	 * `taskFieldsEnabled` is on for the card. An empty list is meaningful — it
+	 * shows tasks with no metadata at all. */
+	taskFields?: TaskFieldDef[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
 	/** Max tasks shown, soonest/overdue due date first. Default 10. */
@@ -888,15 +904,15 @@ export interface HomeSettings {
 	/** The status value that counts as "done". */
 	taskNotesDoneValue: string;
 	/** Master switch for task-field customization (off by default). While it is
-	 * off, every "tasks" card draws the built-in metadata exactly as it always
-	 * has and the per-card Fields controls stay hidden — so a vault that never
-	 * goes looking for this never sees it. Turning it on alone changes nothing
-	 * either: `taskFields` starts empty, which resolves to the same defaults.
-	 * See `src/taskfields.ts`. */
+	 * off, every "tasks" card draws the fixed metadata it always has and the
+	 * per-card Fields controls stay hidden — so a vault that never goes looking
+	 * for this never sees it. Turning it on *replaces* that fixed rendering with
+	 * the fields defined below, which start empty: metadata is then shown only
+	 * because it was asked for. See `src/taskfields.ts`. */
 	taskFieldsEnabled: boolean;
-	/** The field list every "tasks" card follows, unless the card opts out with
-	 * its own (`TasksConfig.taskFieldsEnabled`). Empty = the defaults. */
-	taskFields: TaskFieldConfig[];
+	/** The fields every "tasks" card shows, unless the card defines its own
+	 * (`TasksConfig.taskFieldsEnabled`). */
+	taskFields: TaskFieldDef[];
 
 	// ---- File icons / Iconic / Iconize ----
 	/** Show the per-file icons set with the Iconic or Iconize community plugins

@@ -20,7 +20,9 @@ import {
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
-	type TaskFieldConfig,
+	type TaskFieldDef,
+	type TaskFieldKey,
+	type TaskValueMap,
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
@@ -472,40 +474,68 @@ function sanitizeKanbanColumnSort(
 
 const TASK_FIELD_STYLES = ["pill", "dot", "text"] as const;
 
-/** The card's field list. Entries are kept in order and only structurally
- * checked here — which ids are meaningful (and what a missing one falls back
- * to) is `resolveTaskFields`' job at render time, so a list written by a newer
- * version survives a round-trip through an older one. */
-function sanitizeTaskFields(value: unknown): TaskFieldConfig[] | undefined {
+/** One key's value mappings. A mapping with no `match` matches nothing, so it
+ * is dropped rather than kept as a row that can never fire. */
+function sanitizeValueMaps(value: unknown): TaskValueMap[] | undefined {
 	if (!Array.isArray(value)) return undefined;
-	const out: TaskFieldConfig[] = [];
+	const out: TaskValueMap[] = [];
 	for (const raw of value) {
 		if (!raw || typeof raw !== "object") continue;
 		const r = raw as Record<string, unknown>;
-		const id = str(r.id)?.trim();
-		if (!id) continue;
-		const field: TaskFieldConfig = { id };
-		if (r.hidden === true) field.hidden = true;
-		if (
-			TASK_FIELD_STYLES.includes(r.style as (typeof TASK_FIELD_STYLES)[number])
-		) {
-			field.style = r.style as TaskFieldConfig["style"];
-		}
+		const match = str(r.match)?.trim();
+		if (!match) continue;
+		const mapping: TaskValueMap = { match };
 		const label = str(r.label);
-		if (label !== undefined) field.label = label;
-		if (typeof r.autoColor === "boolean") field.autoColor = r.autoColor;
-		if (r.colors && typeof r.colors === "object") {
-			const colors: Record<string, string> = {};
-			for (const [key, color] of Object.entries(
-				r.colors as Record<string, unknown>,
-			)) {
-				if (typeof color === "string" && color.trim()) colors[key] = color;
-			}
-			if (Object.keys(colors).length) field.colors = colors;
-		}
-		out.push(field);
+		if (label !== undefined) mapping.label = label;
+		const color = str(r.color);
+		if (color !== undefined) mapping.color = color;
+		out.push(mapping);
 	}
 	return out.length ? out : undefined;
+}
+
+/** A field's keys. Which sources are meaningful is `resolveTaskFields`' job at
+ * render time; this only checks the shape, so a key written by a newer version
+ * survives a round-trip through an older one. */
+function sanitizeFieldKeys(value: unknown): TaskFieldKey[] {
+	if (!Array.isArray(value)) return [];
+	const out: TaskFieldKey[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const source = str(r.source)?.trim();
+		if (!source) continue;
+		const key: TaskFieldKey = { source };
+		const values = sanitizeValueMaps(r.values);
+		if (values) key.values = values;
+		out.push(key);
+	}
+	return out;
+}
+
+/** The user-defined field list. An empty result is returned as an empty array
+ * rather than undefined: "show nothing" is a real configuration and must not
+ * be mistaken for "not configured". */
+function sanitizeTaskFields(value: unknown): TaskFieldDef[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskFieldDef[] = [];
+	value.forEach((raw, index) => {
+		if (!raw || typeof raw !== "object") return;
+		const r = raw as Record<string, unknown>;
+		const field: TaskFieldDef = {
+			id: str(r.id)?.trim() || `f-${index}`,
+			name: str(r.name) ?? "",
+			keys: sanitizeFieldKeys(r.keys),
+		};
+		if (r.showName === true) field.showName = true;
+		if (
+			TASK_FIELD_STYLES.includes(r.display as (typeof TASK_FIELD_STYLES)[number])
+		) {
+			field.display = r.display as TaskFieldDef["display"];
+		}
+		out.push(field);
+	});
+	return out;
 }
 
 function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {

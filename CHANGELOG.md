@@ -15,20 +15,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Choose what your tasks show.** Turn on **Customize task fields** under
-  Settings → Hearth → Integrations and you decide which metadata a task carries
-  on screen — status, board column, priority, the four dates, the description —
-  which order they come in, and how each is drawn: a chip, a bare coloured dot,
-  or plain text. So a narrow card can show a priority dot and a due date and
-  nothing else, and a vault whose tasks are all open/done can drop the status
-  chip entirely. You can also add any **frontmatter property** as a chip of its
-  own — `project`, `contexts`, whatever your notes use — one chip per entry for
-  list properties, coloured automatically or by hand, per value.
+- **Build your own task fields.** Turn on **Customize task fields** under
+  Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
+  replaced by fields you define yourself. You start from a blank slate — a task
+  shows its text and nothing else — and add fields one at a time:
 
-  The switch is **off by default and changes nothing on its own**: with it off
-  (or on but unconfigured) every Tasks card renders exactly as it did before.
-  The list you set in Settings applies to every Tasks card; an individual card
-  can be given its own list from that card's settings instead (#157).
+  - **Name** the field, and choose how it's drawn: a **chip**, a bare
+    **colored dot**, or **plain text**.
+  - Give it a **key**: any frontmatter property, or one of the values Hearth
+    reads itself (a checkbox line's ⏫ priority, a Kanban board column, a due
+    date, the TaskNotes status). A field can have several keys, and each one
+    that has a value shows one — so related metadata can live under one name.
+  - **Map values** to nicer labels and colors: `high` → *Urgent* in red, `p2` →
+    *Normal* in blue. A value you haven't mapped still shows, as itself, so
+    nothing goes missing while you're still building the mapping up.
+
+  The switch is **off by default**, and while it's off every Tasks card renders
+  exactly as it always has. The fields you define in Settings apply to every
+  Tasks card; an individual card can define its own instead, from that card's
+  settings (#157).
 
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws

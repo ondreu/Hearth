@@ -424,14 +424,15 @@ export const en = {
 			doneValueDesc: "The status value that marks a TaskNotes task complete.",
 			fieldsEnable: "Customize task fields",
 			fieldsEnableDesc:
-				"Choose what Tasks cards show on each task, in what order, and how — " +
-				"and add frontmatter properties as chips of their own. Off by " +
-				"default, and turning it on changes nothing on its own: tasks keep " +
-				"their usual look until you customize something below or on a card.",
+				"Replace the fixed metadata Tasks cards show with fields you define " +
+				"yourself — any frontmatter property or anything Hearth reads, named, " +
+				"colored and ordered how you like. Off by default, and tasks keep " +
+				"their usual look until you turn it on. Turning it on starts from a " +
+				"blank slate: tasks show only the fields you add.",
 			fields: "Fields shown on a task",
 			fieldsDesc:
-				"The fields every Tasks card follows. A single card can be given its " +
-				"own list instead, from that card's settings.",
+				"The fields every Tasks card shows. A single card can define its own " +
+				"instead, from that card's settings.",
 		},
 		fileIcons: {
 			heading: "File icons / Iconic / Iconize",
@@ -857,57 +858,93 @@ export const en = {
 			doneStatusesPlaceholder: "done\ncanceled",
 			fields: "Fields",
 			fieldsFollowGlobal:
-				"Following the global field list from Settings → Hearth → " +
-				"Integrations. Turn on to give this card its own.",
+				"Following the fields from Settings → Hearth → Integrations. Turn on " +
+				"to give this card its own.",
 			fieldsCustomize: "Customize…",
-			fieldsApplyClose: "Apply & close",
-			fieldsApplyDesc: "Apply without closing, to keep adjusting.",
 			fieldsTitle: "Task fields",
 			fieldsHint:
-				"Choose what each task shows, drag the order with the arrows, and pick " +
-				"how each piece is drawn. Add a frontmatter property to show it as a " +
-				"chip of its own. In a list the order is left to right; on a board, " +
-				"dots sit beside the title and everything else in the row below it.",
-			fieldsReset: "Reset fields to default",
-			fieldsNone: "Nothing — tasks show their text only.",
-			fieldNames: {
-				status: "Status",
-				column: "Board column",
-				priority: "Priority",
-				due: "Due date",
-				scheduled: "Scheduled date",
-				start: "Start date",
-				doneDate: "Done date",
-				description: "Description",
-			},
+				"Everything a task shows, in order. A field is yours to define: name " +
+				"it, choose how it's drawn, and give it the keys it reads.",
+			fieldsEmpty: "No fields yet — tasks show their text only.",
+			fieldsNone: "None — tasks show their text only.",
+			fieldsApplyClose: "Apply & close",
+			fieldsApplyDesc: "Apply without closing, to keep adjusting.",
+			fieldsReset: "Remove all fields",
+			fieldUnnamed: "Untitled field",
+			fieldDefaultName: (n: number) => `Field ${n}`,
+			fieldAdd: "Add field",
+			fieldEdit: "Edit field",
+			fieldRemove: "Remove field",
+			fieldMoveUp: "Move up",
+			fieldMoveDown: "Move down",
+			fieldBack: "Back",
+			fieldName: "Name",
+			fieldNameDesc: "What this field is called. Shown on tasks only if you ask below.",
+			fieldNamePlaceholder: "e.g. Priority",
+			fieldShowName: "Show the name on tasks",
+			fieldShowNameDesc: "Prefix each value with the field name (“Priority: Urgent”).",
+			fieldDisplay: "Display",
+			fieldDisplayDesc:
+				"How this field's values are drawn. Dates keep their own format, and " +
+				"a description is always its own block of sub-bullets.",
 			fieldStyles: {
 				pill: "Chip",
 				dot: "Colored dot",
 				text: "Plain text",
 			},
-			fieldShow: "Show this field",
-			fieldNotAvailable: "This source doesn't provide it — nothing will show.",
-			fieldMoveUp: "Move up",
-			fieldMoveDown: "Move down",
-			fieldRemove: "Remove field",
-			fieldColors: "Colors",
-			fieldColorsFor: (field: string) => `${field} colors`,
-			fieldBack: "Back to fields",
-			fieldAutoColor: "Automatic colors",
-			fieldAutoColorDesc:
-				"Give each value its own color, derived from the value itself — the " +
-				"same status is always the same color. Colors set below win over it.",
-			fieldColorEveryValue: "Every value",
-			fieldColorReset: "Clear this color",
-			fieldNoValues: "No values found on notes in this card's scope yet.",
-			fieldAddCustom: "Add a property",
-			fieldAddCustomDesc:
-				"Show a frontmatter property (e.g. “project”) as a chip. A list " +
-				"property shows one chip per entry.",
-			fieldAddCustomPlaceholder: "Property name",
-			fieldPickProperty: "Pick a property found in this card's scope",
-			fieldAdd: "Add",
-			fieldAlreadyAdded: (property: string) => `“${property}” is already shown.`,
+			fieldKeys: "Keys",
+			fieldKeysDesc:
+				"Where this field reads from. Every key that has a value shows one, " +
+				"so a field can gather several pieces of metadata under one name.",
+			fieldKeysEmpty: "No keys yet — this field shows nothing.",
+			fieldNoKeys: "No keys",
+			fieldAddKey: "Add a key",
+			fieldAddKeyDesc:
+				"A frontmatter property by name, or one of the values Hearth reads " +
+				"itself (a checkbox line's priority, a board column, a due date).",
+			fieldAddKeyPlaceholder: "Property name",
+			fieldAddKeyButton: "Add",
+			fieldRemoveKey: "Remove key",
+			fieldPickProperty: "Pick a property found in your notes",
+			fieldPickBuiltin: "Pick something Hearth reads itself",
+			fieldKeyAlreadyAdded: (key: string) => `“${key}” is already a key on this field.`,
+			fieldMapValues: "Values & colors",
+			fieldMappedValues: (n: number) => `${n} value(s) mapped`,
+			fieldNoMappings: "Values shown as they are",
+			fieldMapHint:
+				"Show a nicer label and a color for each value. Values you don't map " +
+				"still show, as themselves.",
+			fieldMapEmpty: "No values mapped yet.",
+			fieldNotMappable:
+				"This key has no discrete values to map — it keeps its own format.",
+			fieldMatchPlaceholder: "Value",
+			fieldLabelPlaceholder: "Show as (optional)",
+			fieldAddMapping: "Add a value",
+			fieldAddMappingButton: "Add",
+			fieldRemoveMapping: "Remove value",
+			fieldPickValue: "Pick a value found in your notes",
+			fieldColor: "Color",
+			fieldColorClear: "No color",
+			colorNames: {
+				"--color-red": "Red",
+				"--color-orange": "Orange",
+				"--color-yellow": "Yellow",
+				"--color-green": "Green",
+				"--color-cyan": "Cyan",
+				"--color-blue": "Blue",
+				"--color-purple": "Purple",
+				"--color-pink": "Pink",
+			},
+			sourceNames: {
+				status: "Status (TaskNotes)",
+				column: "Board column (Kanban)",
+				priority: "Priority",
+				start: "Start date",
+				scheduled: "Scheduled date",
+				due: "Due date",
+				doneDate: "Done date",
+				description: "Description",
+			},
 			showCompleted: "Show completed",
 			showCompletedKanbanDesc:
 				"Completed tasks always appear in the Done column on a Kanban board.",
