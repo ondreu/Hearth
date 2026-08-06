@@ -128,6 +128,29 @@ export function resolveTaskFields(stored: TaskFieldConfig[] | undefined): TaskFi
 }
 
 
+/**
+ * The field list a card actually renders, resolving the three layers:
+ *
+ * 1. The global master switch is off (the default) — every card draws the
+ *    built-in fields exactly as it always has, whatever is stored on it. A
+ *    vault that never enables this never sees a change, and a card configured
+ *    while it was on quietly reverts rather than losing its settings.
+ * 2. The switch is on and the card follows the global list.
+ * 3. The switch is on and the card was given its own list, which wins.
+ *
+ * Both stored lists are empty by default, and an empty list resolves to the
+ * defaults — so each layer is a no-op until something is actually configured.
+ */
+export function activeTaskFields(
+	card: { taskFieldsEnabled?: boolean; taskFields?: TaskFieldConfig[] },
+	global: { taskFieldsEnabled: boolean; taskFields: TaskFieldConfig[] },
+): TaskFieldConfig[] {
+	if (!global.taskFieldsEnabled) return defaultTaskFields();
+	if (card.taskFieldsEnabled) return resolveTaskFields(card.taskFields);
+	return resolveTaskFields(global.taskFields);
+}
+
+
 /** The built-in style for each field when the user hasn't chosen one. Dates and
  * the description read as text (they carry their own emoji/bullets); everything
  * else is a chip. */
@@ -256,14 +279,20 @@ export function autoFieldColor(value: string): string {
 }
 
 
-/** Whether a field colours its chips automatically when no explicit colour is
- * set for a value. On by default for the free-form values (status, board column
- * and frontmatter properties), where a colour is what makes one value tell
- * itself apart from another at a glance; off for priority, which has its own
- * meaningful five-level scale in the stylesheet. */
+/**
+ * Whether a field colours its chips automatically when no explicit colour is
+ * set for a value.
+ *
+ * On by default only for frontmatter properties: those chips did not exist
+ * before the user added them, so there is no established look to change, and a
+ * colour is what makes one value tell itself apart from another at a glance.
+ * The built-ins default to off — status, board column and priority already had
+ * a settled appearance, and turning this feature on must not repaint a card
+ * nobody asked to repaint.
+ */
 export function fieldAutoColor(field: TaskFieldConfig): boolean {
 	if (!fieldColorable(field.id)) return false;
-	return field.autoColor ?? field.id !== "priority";
+	return field.autoColor ?? isCustomField(field.id);
 }
 
 

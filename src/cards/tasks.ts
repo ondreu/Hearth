@@ -14,6 +14,7 @@ import {
 	readPriorityEmoji,
 } from "../priority";
 import {
+	activeTaskFields,
 	type BuiltinTaskField,
 	customFieldId,
 	customFieldProperty,
@@ -489,7 +490,7 @@ function renderTaskFields(
 	layout: "list" | "kanban",
 ): void {
 	const source = cfg.source ?? "checkbox";
-	for (const field of resolveTaskFields(cfg.taskFields)) {
+	for (const field of activeTaskFields(cfg, view.plugin.settings)) {
 		if (field.hidden) continue;
 		if (!fieldAppliesTo(field.id, source, taskMetaEnabled(cfg, hit))) continue;
 		const style = fieldStyle(field, layout, source);
@@ -4026,6 +4027,13 @@ interface TaskFieldDiscovery {
 }
 
 
+/** Copy a field list deeply enough that the copy shares nothing mutable with
+ * the original — the colour maps included. */
+function cloneTaskFields(fields: TaskFieldConfig[]): TaskFieldConfig[] {
+	return fields.map((f) => ({ ...f, colors: f.colors ? { ...f.colors } : undefined }));
+}
+
+
 /** How many values a single field offers colour swatches for. A property with
  * hundreds of distinct values (a date, an id) is not something anyone colours
  * by hand, and the list has to stay navigable. */
@@ -4042,11 +4050,14 @@ const FIELD_VALUE_LIMIT = 40;
  */
 async function discoverTaskFields(
 	app: App,
-	cfg: TasksConfig,
+	cfg: TasksConfig | null,
 	settings: HomeSettings,
 	fields: TaskFieldConfig[],
 ): Promise<TaskFieldDiscovery> {
-	const source = cfg.source ?? "checkbox";
+	// The global list belongs to no card, so it scans the whole vault and offers
+	// the values of every source rather than just one card's.
+	const source = cfg?.source ?? null;
+	const scope = cfg ?? {};
 	const properties = new Set<string>();
 	const values = new Map<string, Set<string>>();
 	const record = (id: string, raw: unknown) => {
@@ -4065,11 +4076,11 @@ async function discoverTaskFields(
 		.filter(Boolean);
 
 	for (const file of app.vault.getMarkdownFiles()) {
-		if (!inTaskScope(file.path, cfg)) continue;
+		if (!inTaskScope(file.path, scope)) continue;
 		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!frontmatter) continue;
 		for (const key of Object.keys(frontmatter)) properties.add(key);
-		if (source === "tasknotes") {
+		if (source === "tasknotes" || source === null) {
 			record("status", frontmatter[statusField]);
 			record("priority", frontmatter[priorityField]);
 		}
@@ -4083,7 +4094,7 @@ async function discoverTaskFields(
 	if (source !== "tasknotes") record("priority", Object.keys(PRIORITY_EMOJI));
 
 	// Board columns are headings in the board note, not frontmatter.
-	if (source === "kanban") {
+	if (source === "kanban" && cfg) {
 		const board = resolveKanbanFile(app, cfg);
 		if (board) {
 			const lines = (await app.vault.cachedRead(board)).split("\n");
@@ -4107,25 +4118,30 @@ async function discoverTaskFields(
  * button drills into its colours: the same modal, with the list swapped for the
  * values that field takes in this vault.
  */
-class TaskFieldsModal extends Modal {
+export class TaskFieldsModal extends Modal {
 	private fields: TaskFieldConfig[];
 	private body: HTMLElement | null = null;
 	private discovery: TaskFieldDiscovery = { properties: [], values: new Map() };
 	/** Non-null while drilled into one field's colours. */
 	private editingColors: string | null = null;
 
+	/**
+	 * @param cfg  The card being edited, or null when editing the global list in
+	 *             Settings → Hearth. A card scopes the vault scan to its folders
+	 *             and greys out fields its source cannot provide; the global list
+	 *             belongs to no source, so it offers every field.
+	 */
 	constructor(
 		app: App,
-		private readonly cfg: TasksConfig,
+		private readonly cfg: TasksConfig | null,
 		private readonly settings: HomeSettings,
-		private readonly onSubmit: (fields: TaskFieldConfig[]) => void,
+		initial: TaskFieldConfig[] | undefined,
+		private readonly onApply: (fields: TaskFieldConfig[]) => void,
 	) {
 		super(app);
-		// Clone (colours included) so Cancel truly discards edits.
-		this.fields = resolveTaskFields(cfg.taskFields).map((f) => ({
-			...f,
-			colors: f.colors ? { ...f.colors } : undefined,
-		}));
+		// Clone (colours included) so Cancel truly discards edits, and so an
+		// Apply that keeps the modal open can't mutate what it already saved.
+		this.fields = cloneTaskFields(resolveTaskFields(initial));
 	}
 
 	onOpen(): void {
@@ -4163,14 +4179,17 @@ class TaskFieldsModal extends Modal {
 
 	private renderFieldList(body: HTMLElement): void {
 		const labels = t().editors.tasks;
-		const source = this.cfg.source ?? "checkbox";
+		const cfg = this.cfg;
+		const source = cfg?.source ?? "checkbox";
 		// Extended parsing is per task kind at render time; for the editor the
 		// card-level toggle is what decides whether the emoji dates can appear.
 		const metaEnabled =
-			source === "kanban" ? (this.cfg.kanbanExtended ?? false) : (this.cfg.checkboxExtended ?? true);
+			source === "kanban" ? (cfg?.kanbanExtended ?? false) : (cfg?.checkboxExtended ?? true);
 
 		this.fields.forEach((field, index) => {
-			const applies = fieldAppliesTo(field.id, source, metaEnabled);
+			// The global list belongs to no single source, so every field is live
+			// there; only a card can say a field its source never produces is inert.
+			const applies = !cfg || fieldAppliesTo(field.id, source, metaEnabled);
 			const row = new Setting(body).setClass("hearth-taskfields-row");
 			row.setName(this.fieldName(field.id));
 			// A field the current source never produces stays listed (so switching
@@ -4192,7 +4211,7 @@ class TaskFieldsModal extends Modal {
 			if (styles.length && !field.hidden) {
 				row.addDropdown((d) => {
 					for (const style of styles) d.addOption(style, labels.fieldStyles[style]);
-					d.setValue(fieldStyle(field, this.cfg.layout ?? "list", source)).onChange((v) => {
+					d.setValue(fieldStyle(field, this.cfg?.layout ?? "list", source)).onChange((v) => {
 						field.style = v as TaskFieldStyle;
 						this.renderBody();
 					});
@@ -4382,16 +4401,31 @@ class TaskFieldsModal extends Modal {
 		this.renderBody();
 	}
 
+	/** Hand the current list to the caller. Always a fresh copy: the modal keeps
+	 * editing its own array after an Apply that leaves it open, and nothing it
+	 * does afterwards may reach into what was already saved. */
+	private apply(): void {
+		this.onApply(cloneTaskFields(this.fields));
+	}
+
 	private renderFooter(parent: HTMLElement): void {
 		new Setting(parent)
 			.addButton((b) =>
 				b
-					.setButtonText(t().cards.tasks.filterApply)
+					.setButtonText(t().editors.tasks.fieldsApplyClose)
 					.setCta()
 					.onClick(() => {
-						this.onSubmit(this.fields);
+						this.apply();
 						this.close();
 					}),
+			)
+			// Apply without closing, so the card behind can be watched while the
+			// fields are tuned.
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setTooltip(t().editors.tasks.fieldsApplyDesc)
+					.onClick(() => this.apply()),
 			)
 			.addButton((b) =>
 				b.setButtonText(t().editors.tasks.fieldsReset).onClick(() => {
@@ -4409,13 +4443,13 @@ class TaskFieldsModal extends Modal {
 }
 
 
-/** A one-line summary of what a card shows, so the editor says whether fields
- * are customized without opening the modal. */
-function taskFieldsSummary(cfg: TasksConfig): string {
+/** A one-line summary of what a card shows, so the editor says what is
+ * configured without opening the modal. */
+function taskFieldsSummary(cfg: TasksConfig, settings: HomeSettings): string {
 	const source = cfg.source ?? "checkbox";
 	const metaEnabled =
 		source === "kanban" ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
-	const shown = resolveTaskFields(cfg.taskFields)
+	const shown = activeTaskFields(cfg, settings)
 		.filter((f) => !f.hidden && fieldAppliesTo(f.id, source, metaEnabled))
 		.map((f) =>
 			isCustomField(f.id)
@@ -4705,25 +4739,47 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		);
 	}
 
-	// Which metadata each task shows, in what order and how — the card's own
-	// display, independent of the field-name mapping in Settings → Hearth (which
-	// says where to *read* a value from, not whether to show it).
-	const fields = new Setting(containerEl)
-		.setName(t().editors.tasks.fields)
-		.setDesc(taskFieldsSummary(cfg));
-	fields.addButton((b) =>
-		b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
-			new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, (next) => {
-				cfg.taskFields = next.length ? next : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-				ctx.opts.rerender();
-			}).open();
-		}),
-	);
-	addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
-		cfg.taskFields = undefined;
-	});
+	// Which metadata each task shows, in what order and how. Only offered once
+	// the feature is switched on globally (Settings → Hearth → Integrations),
+	// so a card nobody has customized shows no controls for it at all. This is
+	// the card's *display*, unrelated to the field-name mapping in those same
+	// settings — that says where to read a value from, not whether to show it.
+	if (ctx.opts.settings.taskFieldsEnabled) {
+		const own = cfg.taskFieldsEnabled ?? false;
+		const fields = new Setting(containerEl)
+			.setName(t().editors.tasks.fields)
+			.setDesc(own ? taskFieldsSummary(cfg, ctx.opts.settings) : t().editors.tasks.fieldsFollowGlobal)
+			.addToggle((tg) =>
+				tg.setValue(own).onChange((v) => {
+					cfg.taskFieldsEnabled = v || undefined;
+					// Start from whatever the card shows right now, so switching to
+					// its own list is a starting point rather than a reset.
+					if (v && !cfg.taskFields?.length) {
+						cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields));
+					}
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+			);
+		if (own) {
+			fields.addButton((b) =>
+				b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+					new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, cfg.taskFields, (next) => {
+						cfg.taskFields = next.length ? next : undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+						// Redraw the board behind the modal so an Apply that keeps it
+						// open shows its effect straight away.
+						ctx.opts.rerender();
+					}).open();
+				}),
+			);
+			addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
+				cfg.taskFields = undefined;
+			});
+		}
+	}
 
 	new Setting(containerEl)
 		.setName(t().editors.tasks.showCompleted)

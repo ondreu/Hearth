@@ -422,6 +422,16 @@ export const en = {
 				"Frontmatter field read for a task's priority indicator.",
 			doneValue: "“Done” status value",
 			doneValueDesc: "The status value that marks a TaskNotes task complete.",
+			fieldsEnable: "Customize task fields",
+			fieldsEnableDesc:
+				"Choose what Tasks cards show on each task, in what order, and how — " +
+				"and add frontmatter properties as chips of their own. Off by " +
+				"default, and turning it on changes nothing on its own: tasks keep " +
+				"their usual look until you customize something below or on a card.",
+			fields: "Fields shown on a task",
+			fieldsDesc:
+				"The fields every Tasks card follows. A single card can be given its " +
+				"own list instead, from that card's settings.",
 		},
 		fileIcons: {
 			heading: "File icons / Iconic / Iconize",
@@ -846,7 +856,12 @@ export const en = {
 				"Add, e.g., “canceled” to count cancelled tasks as complete too.",
 			doneStatusesPlaceholder: "done\ncanceled",
 			fields: "Fields",
+			fieldsFollowGlobal:
+				"Following the global field list from Settings → Hearth → " +
+				"Integrations. Turn on to give this card its own.",
 			fieldsCustomize: "Customize…",
+			fieldsApplyClose: "Apply & close",
+			fieldsApplyDesc: "Apply without closing, to keep adjusting.",
 			fieldsTitle: "Task fields",
 			fieldsHint:
 				"Choose what each task shows, drag the order with the arrows, and pick " +

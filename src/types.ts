@@ -237,9 +237,14 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
-	/** Which metadata each task shows, in display order, and how each piece is
-	 * drawn. Unset shows the built-in fields in their default order and styles —
-	 * exactly what the card rendered before this was configurable. */
+	/** Give this card its own field list instead of following the global one
+	 * from Settings → Hearth → Integrations. Off by default: a card follows the
+	 * global list, which itself defaults to the built-in fields. Only consulted
+	 * while the global `taskFieldsEnabled` master switch is on. */
+	taskFieldsEnabled?: boolean;
+	/** This card's own field list — which metadata each task shows, in display
+	 * order, and how each piece is drawn. Only used when `taskFieldsEnabled` is
+	 * on for the card. Unset/empty resolves to the built-in defaults. */
 	taskFields?: TaskFieldConfig[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
@@ -882,6 +887,16 @@ export interface HomeSettings {
 	taskNotesPriorityField: string;
 	/** The status value that counts as "done". */
 	taskNotesDoneValue: string;
+	/** Master switch for task-field customization (off by default). While it is
+	 * off, every "tasks" card draws the built-in metadata exactly as it always
+	 * has and the per-card Fields controls stay hidden — so a vault that never
+	 * goes looking for this never sees it. Turning it on alone changes nothing
+	 * either: `taskFields` starts empty, which resolves to the same defaults.
+	 * See `src/taskfields.ts`. */
+	taskFieldsEnabled: boolean;
+	/** The field list every "tasks" card follows, unless the card opts out with
+	 * its own (`TasksConfig.taskFieldsEnabled`). Empty = the defaults. */
+	taskFields: TaskFieldConfig[];
 
 	// ---- File icons / Iconic / Iconize ----
 	/** Show the per-file icons set with the Iconic or Iconize community plugins
@@ -964,6 +979,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	taskNotesDueField: "due",
 	taskNotesPriorityField: "priority",
 	taskNotesDoneValue: "done",
+	taskFieldsEnabled: false,
+	taskFields: [],
 
 	// On by default: with neither icon plugin installed this changes nothing,
 	// and with one installed the icons the user already set are what they expect

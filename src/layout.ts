@@ -149,6 +149,8 @@ export function exportSettings(s: HomeSettings): string {
 		taskNotesDueField: s.taskNotesDueField,
 		taskNotesPriorityField: s.taskNotesPriorityField,
 		taskNotesDoneValue: s.taskNotesDoneValue,
+		taskFieldsEnabled: s.taskFieldsEnabled,
+		taskFields: s.taskFields,
 	};
 	return JSON.stringify(data, null, 2);
 }
@@ -574,6 +576,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (taskNotesDoneStatuses) cfg.taskNotesDoneStatuses = taskNotesDoneStatuses;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
+	if (typeof r.taskFieldsEnabled === "boolean")
+		cfg.taskFieldsEnabled = r.taskFieldsEnabled;
 	const taskFields = sanitizeTaskFields(r.taskFields);
 	if (taskFields) cfg.taskFields = taskFields;
 	if (typeof r.showCompleted === "boolean") cfg.showCompleted = r.showCompleted;
@@ -1140,4 +1144,10 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (priorityField !== undefined) s.taskNotesPriorityField = priorityField;
 	const doneValue = str(data.taskNotesDoneValue);
 	if (doneValue !== undefined) s.taskNotesDoneValue = doneValue;
+
+	// Task field customization (the global list every card follows).
+	if (typeof data.taskFieldsEnabled === "boolean")
+		s.taskFieldsEnabled = data.taskFieldsEnabled;
+	const taskFields = sanitizeTaskFields(data.taskFields);
+	if (taskFields) s.taskFields = taskFields;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	BUILTIN_TASK_FIELDS,
+	activeTaskFields,
 	autoFieldColor,
 	customFieldId,
 	customFieldProperty,
@@ -199,12 +200,15 @@ describe("colours", () => {
 		expect(autoFieldColor("open")).toMatch(/^var\(--color-[a-z]+\)$/);
 	});
 
-	it("auto-colours free-form values but leaves priority to its own scale", () => {
-		expect(fieldAutoColor({ id: "status" })).toBe(true);
+	// Turning the feature on must not repaint anything, so only chips that did
+	// not exist before — frontmatter properties — colour themselves by default.
+	it("auto-colours new custom chips, never the built-ins, until asked", () => {
 		expect(fieldAutoColor({ id: "fm:project" })).toBe(true);
+		expect(fieldAutoColor({ id: "status" })).toBe(false);
+		expect(fieldAutoColor({ id: "column" })).toBe(false);
 		expect(fieldAutoColor({ id: "priority" })).toBe(false);
-		expect(fieldAutoColor({ id: "priority", autoColor: true })).toBe(true);
-		expect(fieldAutoColor({ id: "status", autoColor: false })).toBe(false);
+		expect(fieldAutoColor({ id: "status", autoColor: true })).toBe(true);
+		expect(fieldAutoColor({ id: "fm:project", autoColor: false })).toBe(false);
 	});
 
 	it("never colours a field whose colour already means something", () => {
@@ -216,11 +220,59 @@ describe("colours", () => {
 		const field: TaskFieldConfig = { id: "status", colors: { done: "#0f0", "*": "#00f" } };
 		expect(fieldColor(field, "Done")).toBe("#0f0");
 		expect(fieldColor(field, "waiting")).toBe("#00f");
-		expect(fieldColor({ id: "status" }, "waiting")).toBe(autoFieldColor("waiting"));
+		expect(fieldColor({ id: "fm:project" }, "hearth")).toBe(autoFieldColor("hearth"));
 	});
 
 	it("leaves the stylesheet in charge when auto colour is off", () => {
-		expect(fieldColor({ id: "status", autoColor: false }, "open")).toBeNull();
+		expect(fieldColor({ id: "status" }, "open")).toBeNull();
+		expect(fieldColor({ id: "fm:project", autoColor: false }, "hearth")).toBeNull();
 		expect(fieldColor({ id: "priority" }, "high")).toBeNull();
+	});
+});
+
+/**
+ * The three layers (#157 follow-up): off globally means nothing changes for
+ * anyone, on globally means cards follow one list, and a card may take over its
+ * own. Each layer has to be a no-op until something is actually configured.
+ */
+describe("activeTaskFields", () => {
+	const off = { taskFieldsEnabled: false, taskFields: [] };
+	const on = { taskFieldsEnabled: true, taskFields: [] };
+	const globalList = {
+		taskFieldsEnabled: true,
+		taskFields: [{ id: "due" }, { id: "priority", style: "dot" as const }],
+	};
+
+	it("ignores every stored list while the master switch is off", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [{ id: "due" }] };
+		expect(activeTaskFields(card, off).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
+		expect(activeTaskFields(card, off).every((f) => !f.hidden && !f.style)).toBe(true);
+	});
+
+	it("keeps a card's own settings intact for when the switch comes back on", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [{ id: "due" }] };
+		activeTaskFields(card, off);
+		expect(card.taskFields).toEqual([{ id: "due" }]);
+	});
+
+	it("changes nothing when the switch is on but nothing is configured", () => {
+		expect(activeTaskFields({}, on).map((f) => f.id)).toEqual([...BUILTIN_TASK_FIELDS]);
+	});
+
+	it("follows the global list once one is set", () => {
+		expect(activeTaskFields({}, globalList).slice(0, 2).map((f) => f.id)).toEqual([
+			"due",
+			"priority",
+		]);
+	});
+
+	it("lets a card that opted in override the global list", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [{ id: "status" }] };
+		expect(activeTaskFields(card, globalList)[0].id).toBe("status");
+	});
+
+	it("keeps a card that stored a list but never opted in on the global one", () => {
+		const card = { taskFields: [{ id: "status" }] };
+		expect(activeTaskFields(card, globalList)[0].id).toBe("due");
 	});
 });

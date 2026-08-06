@@ -15,18 +15,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Tasks cards let you choose what each task shows.** A new *Fields* section in
-  the card's settings lists every piece of metadata a task can carry — status,
-  board column, priority, the four dates and the description — and lets you turn
-  each one off, reorder them, and pick how it's drawn: a chip, a bare coloured
-  dot, or plain text. So a narrow card can show a priority dot and a due date and
-  nothing else, and a card whose tasks are all open/done can drop the status
-  entirely. You can also add any **frontmatter property** as a chip of its own —
-  `project`, `contexts`, whatever your notes use — with one chip per entry for
-  list properties. Values are coloured automatically (the same status is always
-  the same colour, in any theme), and you can set a colour per value yourself.
-  Cards you already have look exactly as they did until you change something
-  (#157).
+- **Choose what your tasks show.** Turn on **Customize task fields** under
+  Settings → Hearth → Integrations and you decide which metadata a task carries
+  on screen — status, board column, priority, the four dates, the description —
+  which order they come in, and how each is drawn: a chip, a bare coloured dot,
+  or plain text. So a narrow card can show a priority dot and a due date and
+  nothing else, and a vault whose tasks are all open/done can drop the status
+  chip entirely. You can also add any **frontmatter property** as a chip of its
+  own — `project`, `contexts`, whatever your notes use — one chip per entry for
+  list properties, coloured automatically or by hand, per value.
+
+  The switch is **off by default and changes nothing on its own**: with it off
+  (or on but unconfigured) every Tasks card renders exactly as it did before.
+  The list you set in Settings applies to every Tasks card; an individual card
+  can be given its own list from that card's settings instead (#157).
+
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws
   one — Recent files, Favorites, Bookmarks, saved-search cards and the search
