@@ -3,11 +3,16 @@ import { CARD_KINDS, cardDefinition } from "./cards";
 import { type CardEditorContext } from "./cards/definition";
 import { t } from "./i18n";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
-import { type CardKind, type DashboardCard } from "./types";
+import { type CardKind, type DashboardCard, type HomeSettings } from "./types";
 import { confirmAction } from "./ui";
 
 
 export interface CardSettingsOptions {
+	/** The plugin's global settings. Read-only as far as the editors are
+	 * concerned: a couple of kind editors need the global field-name mappings
+	 * (which frontmatter keys the TaskNotes source reads) to offer sensible
+	 * choices, rather than guessing the defaults. */
+	settings: HomeSettings;
 	/** The global favorites list (shared by all favorites cards). */
 	favorites: string[];
 	/** Whether this card is currently pinned to all dashboards. */

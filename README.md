@@ -206,6 +206,14 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   and a quick-add. Leave the mode off to read the board as plain text.
   Everything is written back in Kanban's own format, so the board stays fully
   editable in the Kanban plugin.
+- **Task fields** — each Tasks card decides what its tasks show. Under
+  **Fields** you can turn any piece of metadata off (status, board column,
+  priority, the start/scheduled/due/done dates, the description), reorder them,
+  and pick how each is drawn: a **chip**, a bare **coloured dot**, or **plain
+  text** — so a narrow card can show just a priority dot and a due date. Any
+  **frontmatter property** can be added as a chip of its own (`project`,
+  `contexts`, …), one chip per entry for list properties. Values get a stable
+  automatic colour, and you can set your own colour per value.
 - **Task quick view** — clicking a checkbox task or Kanban card opens a compact
   popover with its metadata and description, editable in place, plus buttons to
   **open the full note** or **delete the task** — instead of jumping straight

@@ -845,6 +845,54 @@ export const en = {
 				"line. Leave empty to use just the done value from Settings → Hearth. " +
 				"Add, e.g., “canceled” to count cancelled tasks as complete too.",
 			doneStatusesPlaceholder: "done\ncanceled",
+			fields: "Fields",
+			fieldsCustomize: "Customize…",
+			fieldsTitle: "Task fields",
+			fieldsHint:
+				"Choose what each task shows, drag the order with the arrows, and pick " +
+				"how each piece is drawn. Add a frontmatter property to show it as a " +
+				"chip of its own. In a list the order is left to right; on a board, " +
+				"dots sit beside the title and everything else in the row below it.",
+			fieldsReset: "Reset fields to default",
+			fieldsNone: "Nothing — tasks show their text only.",
+			fieldNames: {
+				status: "Status",
+				column: "Board column",
+				priority: "Priority",
+				due: "Due date",
+				scheduled: "Scheduled date",
+				start: "Start date",
+				doneDate: "Done date",
+				description: "Description",
+			},
+			fieldStyles: {
+				pill: "Chip",
+				dot: "Colored dot",
+				text: "Plain text",
+			},
+			fieldShow: "Show this field",
+			fieldNotAvailable: "This source doesn't provide it — nothing will show.",
+			fieldMoveUp: "Move up",
+			fieldMoveDown: "Move down",
+			fieldRemove: "Remove field",
+			fieldColors: "Colors",
+			fieldColorsFor: (field: string) => `${field} colors`,
+			fieldBack: "Back to fields",
+			fieldAutoColor: "Automatic colors",
+			fieldAutoColorDesc:
+				"Give each value its own color, derived from the value itself — the " +
+				"same status is always the same color. Colors set below win over it.",
+			fieldColorEveryValue: "Every value",
+			fieldColorReset: "Clear this color",
+			fieldNoValues: "No values found on notes in this card's scope yet.",
+			fieldAddCustom: "Add a property",
+			fieldAddCustomDesc:
+				"Show a frontmatter property (e.g. “project”) as a chip. A list " +
+				"property shows one chip per entry.",
+			fieldAddCustomPlaceholder: "Property name",
+			fieldPickProperty: "Pick a property found in this card's scope",
+			fieldAdd: "Add",
+			fieldAlreadyAdded: (property: string) => `“${property}” is already shown.`,
 			showCompleted: "Show completed",
 			showCompletedKanbanDesc:
 				"Completed tasks always appear in the Done column on a Kanban board.",

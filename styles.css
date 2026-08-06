@@ -4197,9 +4197,145 @@ body.hearth-dv-resizing {
 .hearth-kanban-card-meta {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: 6px;
 	flex-wrap: wrap;
+}
+
+/* Chips read left to right in the card's configured field order, but the last
+   one still hugs the right edge — which is what the row looked like when it
+   held exactly a priority chip and a due date. */
+.hearth-kanban-card-meta > :last-child:not(:first-child) {
+	margin-left: auto;
+}
+
+/* Host for a board card's full-width fields (the description). `contents` keeps
+   the children as direct flex items of the card, so nothing about their layout
+   changes by being grouped. */
+.hearth-kanban-card-block {
+	display: contents;
+}
+
+/* ---- Configurable task field chips ---------------------------------- */
+
+/* One metadata value on a task: a frontmatter property, or a built-in field
+   whose style the user changed. Drawn as a filled chip, a bare coloured dot, or
+   plain text (see src/taskfields.ts). */
+.hearth-task-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+	font-size: 0.72rem;
+	color: var(--text-muted);
+}
+
+.hearth-task-chip.is-pill {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	white-space: nowrap;
+}
+
+/* The optional "Project:" prefix recedes behind the value it names. */
+.hearth-task-chip-label {
+	opacity: 0.7;
+}
+
+.hearth-task-chip-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+/* A value's colour — either picked by the user or auto-assigned from the value
+   itself — arrives as --chip-color. Tinting rather than filling keeps a row of
+   chips readable in both themes and against any theme's card background. */
+.hearth-task-chip.is-colored.is-pill,
+.hearth-task-status.is-colored.is-pill {
+	background: color-mix(in srgb, var(--chip-color) 18%, transparent);
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 32%, transparent);
+}
+
+.hearth-task-chip.is-colored.is-text {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+.hearth-task-chip.is-colored .hearth-task-chip-dot,
+.hearth-task-status.is-colored .hearth-task-chip-dot {
+	background: var(--chip-color);
+}
+
+/* Dot form: no pill behind it, just the dot. */
+.hearth-task-status.is-dot,
+.hearth-task-chip.is-dot {
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+
+/* An explicit colour on a priority value overrides its level colour, including
+   the rings the highest/lowest levels carry. */
+.hearth-task-priority.is-colored .hearth-task-priority-dot {
+	background: var(--chip-color);
+	border: none;
+	box-shadow: none;
+}
+
+.hearth-task-priority.is-colored .hearth-task-priority-label {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+/* Chip form for the date fields, for cards that want them to read as chips
+   rather than as bare text. */
+.hearth-task-due.is-pill,
+.hearth-task-meta.is-pill {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+}
+
+/* ---- Task fields editor --------------------------------------------- */
+
+.hearth-taskfields-hint {
+	margin: 0 0 8px;
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.hearth-taskfields-body {
+	max-height: 50vh;
+	overflow-y: auto;
+}
+
+/* A field the current source can't provide: still listed (so it comes back if
+   the source changes) but visibly inert. */
+.hearth-taskfields-row.is-inactive .setting-item-name {
+	color: var(--text-faint);
+}
+
+.hearth-taskfields-back .setting-item-name {
+	font-weight: 600;
+}
+
+/* Preview of the colour a value currently renders in, beside its picker. */
+.hearth-taskfields-swatch {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--chip-color, var(--background-modifier-hover));
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+.hearth-taskfields-swatch.is-unset {
+	background: transparent;
+}
+
+.hearth-taskfields-empty {
+	padding: 8px 0;
+	color: var(--text-muted);
+	font-size: 0.85em;
 }
 
 /* ---- Kanban column header controls ---------------------------------- */

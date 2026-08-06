@@ -20,6 +20,7 @@ import {
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
+	type TaskFieldConfig,
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
@@ -467,6 +468,44 @@ function sanitizeKanbanColumnSort(
 	return out;
 }
 
+const TASK_FIELD_STYLES = ["pill", "dot", "text"] as const;
+
+/** The card's field list. Entries are kept in order and only structurally
+ * checked here — which ids are meaningful (and what a missing one falls back
+ * to) is `resolveTaskFields`' job at render time, so a list written by a newer
+ * version survives a round-trip through an older one. */
+function sanitizeTaskFields(value: unknown): TaskFieldConfig[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskFieldConfig[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const id = str(r.id)?.trim();
+		if (!id) continue;
+		const field: TaskFieldConfig = { id };
+		if (r.hidden === true) field.hidden = true;
+		if (
+			TASK_FIELD_STYLES.includes(r.style as (typeof TASK_FIELD_STYLES)[number])
+		) {
+			field.style = r.style as TaskFieldConfig["style"];
+		}
+		const label = str(r.label);
+		if (label !== undefined) field.label = label;
+		if (typeof r.autoColor === "boolean") field.autoColor = r.autoColor;
+		if (r.colors && typeof r.colors === "object") {
+			const colors: Record<string, string> = {};
+			for (const [key, color] of Object.entries(
+				r.colors as Record<string, unknown>,
+			)) {
+				if (typeof color === "string" && color.trim()) colors[key] = color;
+			}
+			if (Object.keys(colors).length) field.colors = colors;
+		}
+		out.push(field);
+	}
+	return out.length ? out : undefined;
+}
+
 function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const r = value as Record<string, unknown>;
@@ -535,6 +574,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (taskNotesDoneStatuses) cfg.taskNotesDoneStatuses = taskNotesDoneStatuses;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
+	const taskFields = sanitizeTaskFields(r.taskFields);
+	if (taskFields) cfg.taskFields = taskFields;
 	if (typeof r.showCompleted === "boolean") cfg.showCompleted = r.showCompleted;
 	if (typeof r.count === "number") cfg.count = r.count;
 	if (r.layout === "list" || r.layout === "kanban") cfg.layout = r.layout;

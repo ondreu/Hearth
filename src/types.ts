@@ -128,6 +128,36 @@ export interface TaskFilterConfig {
 	text?: string;
 }
 
+/** How a single metadata field is drawn on a task: a filled chip, a bare
+ * coloured dot (the value moves to the tooltip), or plain text. */
+export type TaskFieldStyle = "pill" | "dot" | "text";
+
+/** One metadata field on a "tasks" card, in the order it is shown. See
+ * `src/taskfields.ts` for the built-in ids, the defaults each field falls back
+ * to, and how colours are resolved. */
+export interface TaskFieldConfig {
+	/** A built-in field ("status", "priority", "due", …) or `fm:<property>` for
+	 * a frontmatter property read off the task's note. */
+	id: string;
+	/** Hidden, but kept in the list so re-enabling restores its place in the
+	 * order. The editor writes this instead of removing built-ins. */
+	hidden?: boolean;
+	/** How the value is drawn. Unset uses the field's default (chips for
+	 * status/column/priority and custom fields, text for dates). */
+	style?: TaskFieldStyle;
+	/** Custom fields: a prefix shown before the value ("Project: high"). Unset
+	 * shows the bare value, TaskNotes-style. */
+	label?: string;
+	/** Per-value chip colours, keyed by the lowercased value; a `*` entry
+	 * colours every value of the field. Any CSS colour. Values with no entry
+	 * fall back to the auto palette (see `autoColor`). */
+	colors?: Record<string, string>;
+	/** Give values with no explicit colour a stable colour derived from the
+	 * value itself. Defaults to on for status, column and custom fields; off
+	 * for priority, which has its own five-level colour scale. */
+	autoColor?: boolean;
+}
+
 export interface TasksConfig {
 	/** "checkbox" (default) scans plain Markdown `- [ ]` checkboxes anywhere
 	 * in scope. "tasknotes" reads frontmatter from the TaskNotes community
@@ -207,6 +237,10 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
+	/** Which metadata each task shows, in display order, and how each piece is
+	 * drawn. Unset shows the built-in fields in their default order and styles —
+	 * exactly what the card rendered before this was configurable. */
+	taskFields?: TaskFieldConfig[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
 	/** Max tasks shown, soonest/overdue due date first. Default 10. */
