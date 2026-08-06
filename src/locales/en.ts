@@ -886,13 +886,20 @@ export const en = {
 			fieldShowNameDesc: "Prefix each value with the field name (“Priority: Urgent”).",
 			fieldDisplay: "Display",
 			fieldDisplayDesc:
-				"How this field's values are drawn. Dates keep their own format, and " +
-				"a description is always its own block of sub-bullets.",
+				"How this field's values are drawn. The last two show nothing on the " +
+				"task and color the whole row or card instead. Dates keep their own " +
+				"format, and a description is always its own block of sub-bullets.",
 			fieldStyles: {
 				pill: "Chip",
 				dot: "Colored dot",
 				text: "Plain text",
+				hue: "Tint the whole task",
+				glow: "Glow around the task",
 			},
+			fieldOpacity: "Strength",
+			fieldOpacityDesc:
+				"How strongly the color is laid on. Only the value's color is used — " +
+				"a value with no color set leaves the task alone.",
 			fieldKeys: "Keys",
 			fieldKeysDesc:
 				"Where this field reads from. Every key that has a value shows one, " +

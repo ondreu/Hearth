@@ -3,7 +3,9 @@ import {
 	activeTaskFields,
 	builtinSource,
 	displayValue,
+	fieldOpacity,
 	fieldStyle,
+	isAmbientStyle,
 	DATE_RELATIONS,
 	dateDisplay,
 	dateRelation,
@@ -160,6 +162,42 @@ describe("fieldStyle", () => {
 	it("defaults to a chip", () => {
 		expect(fieldStyle(field())).toBe("pill");
 		expect(fieldStyle(field({ display: "dot" }))).toBe("dot");
+	});
+});
+
+/**
+ * The ambient styles colour the task itself instead of adding a chip to it, so
+ * they are the two that carry a strength.
+ */
+describe("ambient styles", () => {
+	it("knows which styles paint the whole task", () => {
+		expect(isAmbientStyle("hue")).toBe(true);
+		expect(isAmbientStyle("glow")).toBe(true);
+		expect(isAmbientStyle("pill")).toBe(false);
+		expect(isAmbientStyle("dot")).toBe(false);
+		expect(isAmbientStyle("text")).toBe(false);
+	});
+
+	it("gives a tint and a ring different default strengths", () => {
+		// A tint sits behind the text and has to stay out of its way; a ring sits
+		// outside it and can afford to be bolder.
+		const hue = fieldOpacity(field({ display: "hue" }));
+		const glow = fieldOpacity(field({ display: "glow" }));
+		expect(hue).toBeGreaterThan(0);
+		expect(glow).toBeGreaterThan(hue);
+	});
+
+	it("uses the configured strength when there is one", () => {
+		expect(fieldOpacity(field({ display: "hue", opacity: 60 }))).toBe(60);
+	});
+
+	// The value is persisted, so a hand-edited file can hold anything.
+	it("clamps a stored strength into something renderable", () => {
+		expect(fieldOpacity(field({ display: "hue", opacity: 0 }))).toBe(1);
+		expect(fieldOpacity(field({ display: "hue", opacity: -20 }))).toBe(1);
+		expect(fieldOpacity(field({ display: "hue", opacity: 5000 }))).toBe(100);
+		expect(fieldOpacity(field({ display: "hue", opacity: 42.6 }))).toBe(43);
+		expect(fieldOpacity(field({ display: "hue", opacity: Number.NaN }))).toBeGreaterThan(0);
 	});
 });
 

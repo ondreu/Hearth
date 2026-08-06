@@ -30,6 +30,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     *Normal* in blue. A value you haven't mapped still shows, as itself, so
     nothing goes missing while you're still building the mapping up.
 
+  - Or have the value **color the whole task** instead of adding anything to
+    it: **tint** its background or **glow** around it, at a strength you set.
+    An overdue task can turn the row red without a chip anywhere on it, which
+    is legible across a whole board at a glance.
+
   **Dates know they're dates.** A date key has no values to map — instead you
   color and label it by where it falls: **before today**, **today**, **after
   today**. Leave the label empty to keep the date's own wording and just tint

@@ -21,8 +21,10 @@ import {
 	dateRelation,
 	displayValue,
 	keyIsDate,
+	fieldOpacity,
 	fieldStyle,
 	frontmatterSource,
+	isAmbientStyle,
 	isDateSource,
 	isDescriptionSource,
 	isKnownSource,
@@ -821,6 +823,25 @@ interface TaskFieldHosts {
 	inline: HTMLElement;
 	meta: HTMLElement;
 	block: HTMLElement;
+	/** The whole task — the list row, or the board card. An ambient field
+	 * (`hue`/`glow`) colours this instead of adding anything to the others. */
+	root: HTMLElement;
+}
+
+
+/** Colour the whole task. Applied at most once per task: a row has one
+ * background and one ring, so the first ambient field that resolves a colour
+ * takes them and any later one is ignored rather than fighting over them. */
+function applyAmbientColor(
+	root: HTMLElement,
+	style: TaskFieldStyle,
+	color: string,
+	opacity: number,
+): void {
+	if (root.hasClass("is-hued") || root.hasClass("is-glowing")) return;
+	root.addClass(style === "glow" ? "is-glowing" : "is-hued");
+	root.style.setProperty("--hue-color", color);
+	root.style.setProperty("--hue-alpha", String(opacity));
 }
 
 
@@ -948,6 +969,12 @@ function renderCustomTaskFields(
 ): void {
 	for (const field of fields) {
 		const style = fieldStyle(field);
+		// An ambient field paints the whole task instead of adding to it, so it
+		// needs the colour and nothing else.
+		const ambient = isAmbientStyle(style);
+		const paint = (color: string | null) => {
+			if (color) applyAmbientColor(hosts.root, style, color, fieldOpacity(field));
+		};
 		// A bare dot is compact enough to sit beside a board card's title; on a
 		// list everything shares one row anyway.
 		const host = style === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
@@ -955,7 +982,8 @@ function renderCustomTaskFields(
 
 		for (const key of field.keys) {
 			if (isDescriptionSource(key.source)) {
-				if (hit.description) renderTaskDescription(hosts.block, hit.description);
+				// A description is a block of text; there is no colour in it to take.
+				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
 				continue;
 			}
 			// A date carries no discrete values to map, so it is labelled and
@@ -969,6 +997,12 @@ function renderCustomTaskFields(
 					const shown = date
 						? dateDisplay(key, dateRelation(date, today))
 						: { label: "", color: null };
+					// Colouring a whole row by how overdue it is — the reason to want
+					// an ambient date in the first place.
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
 					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
 					if (el && date && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
@@ -977,6 +1011,10 @@ function renderCustomTaskFields(
 				}
 				for (const date of keyValues(view, hit, key.source)) {
 					const shown = dateDisplay(key, dateRelation(date, today));
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
 					const el = renderCustomDateChip(
 						hosts.meta,
 						date,
@@ -998,6 +1036,10 @@ function renderCustomTaskFields(
 			for (const raw of keyValues(view, hit, key.source)) {
 				const value = normalizeSourceValue(key.source, raw);
 				const shown = displayValue(key, value);
+				if (ambient) {
+					paint(shown.color);
+					continue;
+				}
 				// Priority and status keep their own elements so the five-level
 				// colours and the theme rules written against them still apply.
 				let el: HTMLElement;
@@ -1826,7 +1868,7 @@ function renderTaskRow(
 	// One row, so every field lands in it and the card's configured field order
 	// is exactly the left-to-right order: status/column beside the title, then
 	// priority, dates and any frontmatter chips.
-	renderTaskFields(view, cfg, hit, { inline: row, meta: row, block: row }, today, "list", refresh);
+	renderTaskFields(view, cfg, hit, { inline: row, meta: row, block: row, root: row }, today, "list", refresh);
 
 	const open = () => void openTask(view, cfg, hit, refresh);
 	row.addEventListener("click", open);
@@ -2214,7 +2256,7 @@ function renderTaskKanban(
 			// in the meta row (where the configured order applies).
 			const block = cardEl.createDiv("hearth-kanban-card-block");
 			const meta = cardEl.createDiv("hearth-kanban-card-meta");
-			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block }, today, "kanban", refresh);
+			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh);
 			const open = () => void openTask(view, cfg, hit, refresh);
 			// A real board/checkbox line (not a note-linked card) can have its title
 			// edited inline: double-click swaps the text for an input. Single click
@@ -4777,13 +4819,32 @@ export class TaskFieldsModal extends Modal {
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
-				for (const style of ["pill", "dot", "text"] as const) {
+				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
 					d.addOption(style, labels.fieldStyles[style]);
 				}
 				d.setValue(fieldStyle(field)).onChange((v) => {
 					field.display = v as TaskFieldStyle;
+					// The strength slider only exists for the ambient styles.
+					this.renderBody();
 				});
 			});
+
+		// How hard the tint or ring is laid on. Only the ambient styles have one.
+		if (isAmbientStyle(fieldStyle(field))) {
+			new Setting(detail)
+				.setName(labels.fieldOpacity)
+				.setDesc(labels.fieldOpacityDesc)
+				.addSlider((sl) =>
+					// No setDynamicTooltip: it is deprecated, and current Obsidian
+					// already shows a slider's value inline beside it.
+					sl
+						.setLimits(1, 100, 1)
+						.setValue(fieldOpacity(field))
+						.onChange((v) => {
+							field.opacity = v;
+						}),
+				);
+		}
 
 		new Setting(detail)
 			.setName(labels.fieldShowName)

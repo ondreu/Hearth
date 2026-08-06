@@ -128,9 +128,16 @@ export interface TaskFilterConfig {
 	text?: string;
 }
 
-/** How a value is drawn on a task: a filled chip, a bare coloured dot (the
- * value moves to the tooltip), or plain text. */
-export type TaskFieldStyle = "pill" | "dot" | "text";
+/**
+ * How a value is drawn on a task.
+ *
+ * The first three put something on the row: a filled chip, a bare coloured dot
+ * (the value moves to the tooltip), or plain text. The last two put nothing
+ * there at all and colour the whole task instead — `hue` tints its background,
+ * `glow` rings it — so a board can be read at a glance without any single row
+ * having to be read at all.
+ */
+export type TaskFieldStyle = "pill" | "dot" | "text" | "hue" | "glow";
 
 /** One value → what to show for it. Matching is case-insensitive on the
  * trimmed raw value. A value with no entry here still renders — as itself,
@@ -181,6 +188,10 @@ export interface TaskFieldDef {
 	showName?: boolean;
 	/** How this field's values are drawn. Default "pill". */
 	display?: TaskFieldStyle;
+	/** For the `hue` and `glow` styles: how strongly the colour is applied, 1-100.
+	 * Unset uses a subdued default — strong enough to read across a board,
+	 * light enough to leave the text legible. Ignored by the other styles. */
+	opacity?: number;
 	keys: TaskFieldKey[];
 }
 

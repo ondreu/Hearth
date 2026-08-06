@@ -210,8 +210,9 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   **Customize task fields** (off by default; with it off, tasks look exactly as
   they always have) and you build what a task shows from scratch. You start with
   no fields at all, then add each one: **name** it, pick how it's drawn (a
-  **chip**, a bare **coloured dot**, or **plain text**), and give it one or more
-  **keys** — any frontmatter property, or something Hearth reads itself (a
+  **chip**, a bare **coloured dot**, **plain text** — or let it **tint** the
+  whole row/card or **glow** around it, at a strength you choose), and give it
+  one or more **keys** — any frontmatter property, or something Hearth reads itself (a
   checkbox line's ⏫ priority, a Kanban board column, a due date, a TaskNotes
   status). Every key with a value shows one, so a field can gather related
   metadata under a single name. Each key can **map its values** to nicer labels

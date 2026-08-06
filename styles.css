@@ -4363,6 +4363,36 @@ body.hearth-dv-resizing {
 	margin: 8px 0 0;
 }
 
+/* ---- Ambient field styles (hue / glow) ------------------------------ */
+
+/* An ambient field puts nothing on the task and colours the whole thing
+   instead. The tint is a background *image* rather than a background colour,
+   so it layers over whatever the row or card already paints — the Kanban
+   card's translucent fill, the list row's hover — instead of replacing it. */
+.hearth-task.is-hued,
+.hearth-kanban-card.is-hued {
+	background-image: linear-gradient(
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent)
+	);
+}
+
+/* The ring form: an inner edge plus a soft bloom, both derived from the one
+   strength so a single slider controls the whole effect. */
+.hearth-task.is-glowing,
+.hearth-kanban-card.is-glowing {
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		0 0 8px -1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 0.6%), transparent);
+}
+
+/* A completed task recedes; its colour should recede with it rather than
+   keeping a finished row as loud as a live one. */
+.hearth-task.is-done.is-hued,
+.hearth-task.is-done.is-glowing {
+	opacity: 0.7;
+}
+
 /* Quick picks beside the calendar in the date picker. */
 .hearth-taskdate-shortcuts {
 	display: flex;

@@ -195,6 +195,33 @@ export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
 
 
 /**
+ * Whether a style colours the whole task rather than adding something to it.
+ * An ambient field renders no chip at all: its value is carried by the row's
+ * own tint or ring, which also means it can only say one thing per task.
+ */
+export function isAmbientStyle(style: TaskFieldStyle): boolean {
+	return style === "hue" || style === "glow";
+}
+
+
+/** Default strength for each ambient style, as a percentage. A tint sits behind
+ * the task's text and has to stay out of its way; a ring sits outside it and
+ * can afford to be bolder. */
+const AMBIENT_DEFAULT_OPACITY: Record<string, number> = { hue: 14, glow: 45 };
+
+
+/** How strongly an ambient field colours its task, 1-100. Clamped, because the
+ * value is persisted and a hand-edited 0 (or 5000) would either do nothing or
+ * make the task unreadable. */
+export function fieldOpacity(field: TaskFieldDef): number {
+	const fallback = AMBIENT_DEFAULT_OPACITY[fieldStyle(field)] ?? 100;
+	const raw = field.opacity;
+	if (typeof raw !== "number" || !Number.isFinite(raw)) return fallback;
+	return Math.max(1, Math.min(100, Math.round(raw)));
+}
+
+
+/**
  * Coerce a raw value into the values it renders as. A list property
  * (`contexts: [home, errands]`) becomes one value per entry, matching how
  * TaskNotes shows multi-value fields; a scalar becomes a single value.

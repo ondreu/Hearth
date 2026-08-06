@@ -472,7 +472,7 @@ function sanitizeKanbanColumnSort(
 	return out;
 }
 
-const TASK_FIELD_STYLES = ["pill", "dot", "text"] as const;
+const TASK_FIELD_STYLES = ["pill", "dot", "text", "hue", "glow"] as const;
 
 /** One key's value mappings. A mapping with no `match` matches nothing, so it
  * is dropped rather than kept as a row that can never fire. */
@@ -529,6 +529,9 @@ function sanitizeTaskFields(value: unknown): TaskFieldDef[] | undefined {
 			keys: sanitizeFieldKeys(r.keys),
 		};
 		if (r.showName === true) field.showName = true;
+		if (typeof r.opacity === "number" && Number.isFinite(r.opacity)) {
+			field.opacity = Math.max(1, Math.min(100, Math.round(r.opacity)));
+		}
 		if (
 			TASK_FIELD_STYLES.includes(r.display as (typeof TASK_FIELD_STYLES)[number])
 		) {
