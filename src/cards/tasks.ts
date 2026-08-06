@@ -1,4 +1,17 @@
-import { MarkdownView, Menu, Modal, Notice, setIcon, Setting, TFile, TFolder, type App } from "obsidian";
+import {
+	ButtonComponent,
+	ExtraButtonComponent,
+	MarkdownView,
+	Menu,
+	Modal,
+	Notice,
+	setIcon,
+	Setting,
+	TextComponent,
+	TFile,
+	TFolder,
+	type App,
+} from "obsidian";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
@@ -4681,6 +4694,9 @@ export class TaskFieldsModal extends Modal {
 	 * Named `expanded`, not `open`: `Modal.open()` is a method on the base class
 	 * and shadowing it would break the modal at runtime. */
 	private expanded = new Set<string>();
+	/** The key whose newly added, still-empty value row should take the cursor
+	 * once the editor has been redrawn. */
+	private focusValue: string | null = null;
 
 	/**
 	 * @param cfg  The card being edited, or null when editing the global list in
@@ -4701,8 +4717,12 @@ export class TaskFieldsModal extends Modal {
 	}
 
 	onOpen(): void {
-		const { contentEl } = this;
-		contentEl.addClass("hearth-taskfields-modal");
+		const { contentEl, modalEl } = this;
+		// The width goes on the modal frame rather than its content: a field, its
+		// keys and their value tables are three levels deep, which Obsidian's
+		// default modal width cannot hold without crowding every row.
+		modalEl.addClass("hearth-taskfields-modal");
+		contentEl.addClass("hearth-taskfields");
 		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
 		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
 		this.body = contentEl.createDiv("hearth-taskfields-body");
@@ -4727,15 +4747,58 @@ export class TaskFieldsModal extends Modal {
 		this.renderBody();
 	}
 
-	/** The expand/collapse control every expandable row carries, so the chevron
-	 * always means the same thing and always sits in the same place. */
-	private addDisclosure(row: Setting, key: string): void {
-		row.addExtraButton((b) =>
-			b
-				.setIcon(this.isOpen(key) ? "chevron-down" : "chevron-right")
-				.setTooltip(this.isOpen(key) ? t().editors.tasks.fieldCollapse : t().editors.tasks.fieldExpand)
-				.onClick(() => this.toggleOpen(key)),
-		);
+	/**
+	 * The header every panel carries: a chevron, what the panel is, a one-line
+	 * summary of what it holds, and its own buttons — returned so the caller can
+	 * add them. The whole strip toggles the panel: expanding is the thing done
+	 * most often here, and a chevron alone is a small target for it.
+	 */
+	private panelHead(
+		panel: HTMLElement,
+		openKey: string,
+		title: string,
+		summary: string,
+		expandable: boolean,
+	): HTMLElement {
+		const labels = t().editors.tasks;
+		const open = this.isOpen(openKey);
+		const head = panel.createDiv("hearth-taskfields-head");
+		const chevron = head.createDiv("hearth-taskfields-chevron");
+		if (expandable) setIcon(chevron, open ? "chevron-down" : "chevron-right");
+		const text = head.createDiv("hearth-taskfields-headtext");
+		text.createDiv({ cls: "hearth-taskfields-title", text: title });
+		text.createDiv({ cls: "hearth-taskfields-summary", text: summary });
+		const actions = head.createDiv("hearth-taskfields-actions");
+		// The buttons sit inside the strip that toggles, so their clicks must not
+		// reach it — moving a field would otherwise collapse it.
+		actions.addEventListener("click", (e) => e.stopPropagation());
+		if (expandable) {
+			head.addClass("is-expandable");
+			head.setAttribute("role", "button");
+			head.setAttribute("aria-expanded", String(open));
+			head.setAttribute("aria-label", open ? labels.fieldCollapse : labels.fieldExpand);
+			head.addEventListener("click", () => this.toggleOpen(openKey));
+		}
+		return actions;
+	}
+
+
+	/** One of a panel header's buttons. Disabled means inert, not just greyed:
+	 * the icon buttons are divs, so the guard has to be in the handler. */
+	private iconButton(
+		parent: HTMLElement,
+		icon: string,
+		tooltip: string,
+		disabled: boolean,
+		onClick: () => void,
+	): void {
+		new ExtraButtonComponent(parent)
+			.setIcon(icon)
+			.setTooltip(tooltip)
+			.setDisabled(disabled)
+			.onClick(() => {
+				if (!disabled) onClick();
+			});
 	}
 
 	private renderBody(): void {
@@ -4750,19 +4813,18 @@ export class TaskFieldsModal extends Modal {
 			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
 		}
 
-		new Setting(body).setClass("hearth-taskfields-add").addButton((b) =>
-			b
-				.setButtonText(labels.fieldAdd)
-				.setIcon("plus")
-				.setCta()
-				.onClick(() => {
-					const field = newTaskField(labels.fieldDefaultName(this.fields.length + 1));
-					this.fields.push(field);
-					// Open it: naming it and giving it a key is the point of adding it.
-					this.expanded.add(`field:${field.id}`);
-					this.renderBody();
-				}),
-		);
+		const foot = body.createDiv("hearth-taskfields-foot is-add");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAdd)
+			.setCta()
+			.onClick(() => {
+				const field = newTaskField(labels.fieldDefaultName(this.fields.length + 1));
+				this.fields.push(field);
+				// Open it: naming it and giving it a key is the point of adding it.
+				this.expanded.add(`field:${field.id}`);
+				this.renderBody();
+			});
 	}
 
 	// ---- A field -----------------------------------------------------------
@@ -4770,51 +4832,51 @@ export class TaskFieldsModal extends Modal {
 	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
 		const labels = t().editors.tasks;
 		const openKey = `field:${field.id}`;
+		const open = this.isOpen(openKey);
 
-		const row = new Setting(body).setClass("hearth-taskfields-row").setHeading();
-		row.setName(field.name.trim() || labels.fieldUnnamed);
-		row.setDesc(
+		// A card per field, so where one ends and the next begins is obvious
+		// without counting indentation.
+		const panel = body.createDiv("hearth-taskfields-field");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			field.name.trim() || labels.fieldUnnamed,
 			field.keys.length
-				? field.keys.map((k) => sourceLabel(k.source)).join(", ")
+				? field.keys.map((k) => sourceLabel(k.source)).join(" · ")
 				: labels.fieldNoKeys,
+			true,
 		);
-		this.addDisclosure(row, openKey);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-up")
-				.setTooltip(labels.fieldMoveUp)
-				.setDisabled(index === 0)
-				.onClick(() => this.move(index, index - 1)),
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () =>
+			this.move(index, index - 1),
 		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-down")
-				.setTooltip(labels.fieldMoveDown)
-				.setDisabled(index === this.fields.length - 1)
-				.onClick(() => this.move(index, index + 1)),
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === this.fields.length - 1,
+			() => this.move(index, index + 1),
 		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("trash-2")
-				.setTooltip(labels.fieldRemove)
-				.onClick(() => {
-					this.fields.splice(index, 1);
-					this.expanded.delete(openKey);
-					this.renderBody();
-				}),
-		);
+		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
+			this.fields.splice(index, 1);
+			this.expanded.delete(openKey);
+			this.renderBody();
+		});
 
-		if (!this.isOpen(openKey)) return;
-		const detail = body.createDiv("hearth-taskfields-detail");
+		if (!open) return;
+		const detail = panel.createDiv("hearth-taskfields-panelbody");
 
-		new Setting(detail).setName(labels.fieldName).addText((txt) =>
-			txt
-				.setPlaceholder(labels.fieldNamePlaceholder)
-				.setValue(field.name)
-				.onChange((v) => {
-					field.name = v;
-				}),
-		);
+		new Setting(detail)
+			.setName(labels.fieldName)
+			.setDesc(labels.fieldNameDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(labels.fieldNamePlaceholder)
+					.setValue(field.name)
+					.onChange((v) => {
+						field.name = v;
+					}),
+			);
 
 		new Setting(detail)
 			.setName(labels.fieldDisplay)
@@ -4856,18 +4918,23 @@ export class TaskFieldsModal extends Modal {
 				}),
 			);
 
-		new Setting(detail).setName(labels.fieldKeys).setDesc(labels.fieldKeysDesc);
-		field.keys.forEach((key, keyIndex) => this.renderKey(detail, field, key, keyIndex));
+		// The keys are the substance of a field, so they get a section of their own
+		// rather than another settings row that happens to have rows under it.
+		const section = detail.createDiv("hearth-taskfields-section");
+		const sectionHead = section.createDiv("hearth-taskfields-sectionhead");
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiontitle", text: labels.fieldKeys });
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiondesc", text: labels.fieldKeysDesc });
+		field.keys.forEach((key, keyIndex) => this.renderKey(section, field, key, keyIndex));
 		if (!field.keys.length) {
-			detail.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
+			section.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
 		}
-		this.renderAddKey(detail, field);
+		this.renderAddKey(section, field);
 	}
 
 	// ---- A key on a field --------------------------------------------------
 
 	private renderKey(
-		detail: HTMLElement,
+		section: HTMLElement,
 		field: TaskFieldDef,
 		key: TaskFieldKey,
 		index: number,
@@ -4879,10 +4946,14 @@ export class TaskFieldsModal extends Modal {
 		// configure. Everything else expands.
 		const mappable = !isDescriptionSource(key.source);
 		const mapped = (key.values ?? []).length;
+		const open = mappable && this.isOpen(openKey);
 
-		const row = new Setting(detail).setClass("hearth-taskfields-row");
-		row.setName(sourceLabel(key.source));
-		row.setDesc(
+		const panel = section.createDiv("hearth-taskfields-key");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			sourceLabel(key.source),
 			!mappable
 				? labels.fieldNotMappable
 				: isDate
@@ -4890,42 +4961,28 @@ export class TaskFieldsModal extends Modal {
 					: mapped
 						? labels.fieldMappedValues(mapped)
 						: labels.fieldNoMappings,
+			mappable,
 		);
-		if (mappable) this.addDisclosure(row, openKey);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-up")
-				.setTooltip(labels.fieldMoveUp)
-				.setDisabled(index === 0)
-				.onClick(() => {
-					const [item] = field.keys.splice(index, 1);
-					field.keys.splice(index - 1, 0, item);
-					this.renderBody();
-				}),
+		const swap = (to: number) => {
+			const [item] = field.keys.splice(index, 1);
+			field.keys.splice(to, 0, item);
+			this.renderBody();
+		};
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () => swap(index - 1));
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === field.keys.length - 1,
+			() => swap(index + 1),
 		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-down")
-				.setTooltip(labels.fieldMoveDown)
-				.setDisabled(index === field.keys.length - 1)
-				.onClick(() => {
-					const [item] = field.keys.splice(index, 1);
-					field.keys.splice(index + 1, 0, item);
-					this.renderBody();
-				}),
-		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("trash-2")
-				.setTooltip(labels.fieldRemoveKey)
-				.onClick(() => {
-					field.keys.splice(index, 1);
-					this.renderBody();
-				}),
-		);
+		this.iconButton(actions, "trash-2", labels.fieldRemoveKey, false, () => {
+			field.keys.splice(index, 1);
+			this.renderBody();
+		});
 
-		if (!mappable || !this.isOpen(openKey)) return;
-		const host = detail.createDiv("hearth-taskfields-detail");
+		if (!open) return;
+		const host = panel.createDiv("hearth-taskfields-panelbody");
 		// A frontmatter property could hold anything; only the user knows whether
 		// this one is a date. The built-in date sources are not up for debate.
 		if (!isDateSource(key.source)) {
@@ -4960,6 +5017,7 @@ export class TaskFieldsModal extends Modal {
 		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldDateHint });
 
 		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldWhenColumn);
 		for (const relation of DATE_RELATIONS) {
 			// Rows exist for all three whether or not they have been configured, so
 			// the choice is visible rather than something to discover.
@@ -4969,59 +5027,109 @@ export class TaskFieldsModal extends Modal {
 				values.push(mapping);
 			}
 			const entry = mapping;
-			const row = new Setting(host).setClass("hearth-taskfields-color");
-			row.setName(labels.dateRelations[relation]);
-			row.addText((txt) =>
-				txt
-					.setPlaceholder(labels.fieldDateLabelPlaceholder)
-					.setValue(entry.label ?? "")
-					.onChange((v) => {
-						entry.label = v.trim() || undefined;
-					}),
-			);
-			const swatch = row.controlEl.createDiv("hearth-taskfields-swatch");
-			if (entry.color) swatch.style.setProperty("--chip-color", entry.color);
-			swatch.toggleClass("is-unset", !entry.color);
-			this.addColorControls(row, entry);
+			const row = table.createDiv("hearth-taskfields-trow");
+			row.createDiv({
+				cls: "hearth-taskfields-cell is-fixed",
+				text: labels.dateRelations[relation],
+			});
+			this.textCell(row, labels.fieldDateLabelPlaceholder, entry.label ?? "", (v) => {
+				entry.label = v.trim() || undefined;
+			});
+			this.colorCell(row, entry);
+			// The three relations are the whole set: nothing to add, nothing to
+			// remove. The empty cell keeps the columns lined up with the value table.
+			row.createDiv("hearth-taskfields-cell is-actions");
 		}
 	}
 
-	/** The preset menu + free picker + clear that every colourable row carries. */
-	private addColorControls(row: Setting, mapping: TaskValueMap): void {
+	// ---- The value table shared by mappings and date relations --------------
+
+	/** A grid with a header row, one row per value. The columns line up down the
+	 * table and each input fills its own, instead of every row being a settings
+	 * item with an empty name and its controls crowded to the right. */
+	private valueTable(host: HTMLElement, firstColumn: string): HTMLElement {
 		const labels = t().editors.tasks;
-		row.addExtraButton((b) => {
-			b.setIcon("palette").setTooltip(labels.fieldColor);
-			b.onClick(() => {
-				const menu = new Menu();
-				for (const preset of TASK_COLOR_PRESETS) {
-					menu.addItem((item) =>
-						item.setTitle(labels.colorNames[preset]).onClick(() => {
-							mapping.color = presetColor(preset);
-							this.renderBody();
-						}),
-					);
-				}
-				menu.addSeparator();
+		const table = host.createDiv("hearth-taskfields-table");
+		const head = table.createDiv("hearth-taskfields-trow hearth-taskfields-thead");
+		head.createDiv({ cls: "hearth-taskfields-cell", text: firstColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldShownColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldColorColumn });
+		head.createDiv("hearth-taskfields-cell");
+		return table;
+	}
+
+	/** One text cell of a value row. */
+	private textCell(
+		row: HTMLElement,
+		placeholder: string,
+		value: string,
+		onChange: (value: string) => void,
+	): HTMLInputElement {
+		const cell = row.createDiv("hearth-taskfields-cell");
+		const text = new TextComponent(cell);
+		text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
+		return text.inputEl;
+	}
+
+	/**
+	 * A value's colour: a swatch showing what it currently renders as, which opens
+	 * the theme presets, plus a free picker beside it for anyone matching a
+	 * palette. Neither redraws the editor — the swatch updates itself, so dragging
+	 * through the picker isn't fighting a re-render on every step.
+	 */
+	private colorCell(row: HTMLElement, mapping: TaskValueMap): void {
+		const labels = t().editors.tasks;
+		const cell = row.createDiv("hearth-taskfields-cell is-color");
+		const swatch = cell.createEl("button", {
+			cls: "hearth-taskfields-swatch",
+			attr: { type: "button", "aria-label": labels.fieldColor, title: labels.fieldColor },
+		});
+		const picker = cell.createEl("input", {
+			cls: "hearth-taskfields-picker",
+			attr: {
+				type: "color",
+				"aria-label": labels.fieldColorCustom,
+				title: labels.fieldColorCustom,
+			},
+		});
+		const show = () => {
+			swatch.style.setProperty("--chip-color", mapping.color ?? "");
+			swatch.toggleClass("is-unset", !mapping.color);
+			// The picker only understands hex, so a theme preset leaves it as it is
+			// rather than being coerced into some nearest colour.
+			if (mapping.color?.startsWith("#")) picker.value = mapping.color;
+		};
+		show();
+		swatch.addEventListener("click", () => {
+			const menu = new Menu();
+			for (const preset of TASK_COLOR_PRESETS) {
+				const value = presetColor(preset);
 				menu.addItem((item) =>
 					item
-						.setTitle(labels.fieldColorClear)
-						.setIcon("rotate-ccw")
+						.setTitle(labels.colorNames[preset])
+						.setChecked(mapping.color === value)
 						.onClick(() => {
-							mapping.color = undefined;
-							this.renderBody();
+							mapping.color = value;
+							show();
 						}),
 				);
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
-			});
+			}
+			menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle(labels.fieldColorClear)
+					.setIcon("rotate-ccw")
+					.onClick(() => {
+						mapping.color = undefined;
+						show();
+					}),
+			);
+			const rect = swatch.getBoundingClientRect();
+			menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
 		});
-		// A free colour alongside the presets, for anyone matching a palette.
-		row.addColorPicker((picker) => {
-			if (mapping.color?.startsWith("#")) picker.setValue(mapping.color);
-			picker.onChange((v) => {
-				mapping.color = v;
-				this.renderBody();
-			});
+		picker.addEventListener("input", () => {
+			mapping.color = picker.value;
+			show();
 		});
 	}
 
@@ -5032,40 +5140,31 @@ export class TaskFieldsModal extends Modal {
 		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldMapHint });
 
 		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldValueColumn);
 		values.forEach((mapping, index) => {
-			const row = new Setting(host).setClass("hearth-taskfields-color");
-			row.addText((txt) =>
-				txt
-					.setPlaceholder(labels.fieldMatchPlaceholder)
-					.setValue(mapping.match)
-					.onChange((v) => {
-						mapping.match = v;
-					}),
-			);
-			row.addText((txt) =>
-				txt
-					.setPlaceholder(labels.fieldLabelPlaceholder)
-					.setValue(mapping.label ?? "")
-					.onChange((v) => {
-						mapping.label = v.trim() || undefined;
-					}),
-			);
-			// Preview of the colour as it will render, including the theme presets
-			// (which a colour picker can't show — it only understands hex).
-			const swatch = row.controlEl.createDiv("hearth-taskfields-swatch");
-			if (mapping.color) swatch.style.setProperty("--chip-color", mapping.color);
-			swatch.toggleClass("is-unset", !mapping.color);
-			this.addColorControls(row, mapping);
-			row.addExtraButton((b) =>
-				b
-					.setIcon("trash-2")
-					.setTooltip(labels.fieldRemoveMapping)
-					.onClick(() => {
-						values.splice(index, 1);
-						this.renderBody();
-					}),
-			);
+			const row = table.createDiv("hearth-taskfields-trow");
+			const match = this.textCell(row, labels.fieldMatchPlaceholder, mapping.match, (v) => {
+				mapping.match = v;
+			});
+			this.textCell(row, labels.fieldLabelPlaceholder, mapping.label ?? "", (v) => {
+				mapping.label = v.trim() || undefined;
+			});
+			this.colorCell(row, mapping);
+			const actions = row.createDiv("hearth-taskfields-cell is-actions");
+			this.iconButton(actions, "trash-2", labels.fieldRemoveMapping, false, () => {
+				values.splice(index, 1);
+				this.renderBody();
+			});
+			// A row added by the button below is empty, so put the cursor in it
+			// rather than making the value be clicked for before it can be typed.
+			if (this.focusValue === key.source && index === values.length - 1) {
+				this.focusValue = null;
+				window.setTimeout(() => match.focus(), 0);
+			}
 		});
+		if (!values.length) {
+			table.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldMapEmpty });
+		}
 
 		// Values this key actually takes in the vault, minus the ones already
 		// mapped — so a mapping is usually two clicks, not typing from memory.
@@ -5073,36 +5172,43 @@ export class TaskFieldsModal extends Modal {
 		const suggestions = (this.discovery.values.get(key.source) ?? []).filter(
 			(v) => !mapped.has(v.trim().toLowerCase()),
 		);
-		const add = new Setting(host).setClass("hearth-taskfields-add");
-		add.addExtraButton((b) => {
-			b.setIcon("list").setTooltip(labels.fieldPickValue).setDisabled(!suggestions.length);
-			b.onClick(() => {
-				const menu = new Menu();
-				for (const value of suggestions) {
-					menu.addItem((item) =>
-						item.setTitle(value).onClick(() => {
-							values.push({ match: value });
-							this.renderBody();
-						}),
-					);
-				}
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
-			});
-		});
-		add.addButton((b) =>
-			b.setButtonText(labels.fieldAddMapping).onClick(() => {
+		const foot = host.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAddMapping)
+			.onClick(() => {
 				values.push({ match: "" });
+				this.focusValue = key.source;
 				this.renderBody();
-			}),
-		);
+			});
+		if (suggestions.length) {
+			new ButtonComponent(foot)
+				.setButtonText(labels.fieldValuesFound(suggestions.length))
+				.setTooltip(labels.fieldPickValue)
+				.onClick((e) => {
+					const menu = new Menu();
+					for (const value of suggestions) {
+						menu.addItem((item) =>
+							item.setTitle(value).onClick(() => {
+								values.push({ match: value });
+								this.renderBody();
+							}),
+						);
+					}
+					menu.showAtMouseEvent(e);
+				});
+		}
 	}
 
-	/** Add a key to a field: one of Hearth's own values from the menu, or any
-	 * frontmatter property — picked from what the vault has, or typed. */
-	private renderAddKey(detail: HTMLElement, field: TaskFieldDef): void {
+	/**
+	 * Add a key to a field. Two buttons, each opening the list it belongs to:
+	 * what Hearth reads itself, and the frontmatter properties your notes
+	 * actually use (with typing a name by hand at the end of that list, for a
+	 * property no task carries yet). One button per source of truth beats a text
+	 * box flanked by icons that have to be hovered to find out what they do.
+	 */
+	private renderAddKey(section: HTMLElement, field: TaskFieldDef): void {
 		const labels = t().editors.tasks;
-		let typed = "";
 		const add = (source: string) => {
 			if (!isKnownSource(source)) return;
 			if (field.keys.some((k) => k.source === source)) {
@@ -5115,60 +5221,51 @@ export class TaskFieldsModal extends Modal {
 			// A newly referenced property has values worth suggesting.
 			void this.rescan();
 		};
-
-		const setting = new Setting(detail)
-			.setClass("hearth-taskfields-add")
-			.setName(labels.fieldAddKey)
-			.setDesc(labels.fieldAddKeyDesc);
-
-		setting.addText((txt) => {
-			txt.setPlaceholder(labels.fieldAddKeyPlaceholder).onChange((v) => (typed = v));
-			txt.inputEl.addEventListener("keydown", (e) => {
-				if (e.key !== "Enter") return;
-				e.preventDefault();
-				if (typed.trim()) add(frontmatterSource(typed));
-			});
-		});
-
-		// The property menu: what the scan actually found, minus what this field
-		// already reads.
 		const used = new Set(field.keys.map((k) => k.source));
+
+		const foot = section.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("sparkles")
+			.setButtonText(labels.fieldAddBuiltin)
+			.setTooltip(labels.fieldPickBuiltin)
+			.onClick((e) => {
+				const menu = new Menu();
+				for (const id of TASK_BUILTIN_SOURCES) {
+					if (used.has(builtinSource(id))) continue;
+					menu.addItem((item) =>
+						item.setTitle(labels.sourceNames[id]).onClick(() => add(builtinSource(id))),
+					);
+				}
+				menu.showAtMouseEvent(e);
+			});
+
 		const available = this.discovery.properties.filter((p) => !used.has(frontmatterSource(p)));
-		setting.addExtraButton((b) => {
-			b.setIcon("list").setTooltip(labels.fieldPickProperty).setDisabled(!available.length);
-			b.onClick(() => {
+		new ButtonComponent(foot)
+			.setIcon("file-code")
+			.setButtonText(labels.fieldAddProperty)
+			.setTooltip(labels.fieldPickProperty)
+			.onClick((e) => {
 				const menu = new Menu();
 				for (const property of available) {
 					menu.addItem((item) =>
 						item.setTitle(property).onClick(() => add(frontmatterSource(property))),
 					);
 				}
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
+				if (available.length) menu.addSeparator();
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.fieldAddKeyTyped)
+						.setIcon("pencil")
+						.onClick(() => {
+							new TaskValuePromptModal(this.app, labels.fieldAddKeyPlaceholder, "", (v) =>
+								add(frontmatterSource(v)),
+							).open();
+						}),
+				);
+				menu.showAtMouseEvent(e);
 			});
-		});
 
-		// Hearth's own parsed values, which no frontmatter property can reach.
-		setting.addExtraButton((b) => {
-			b.setIcon("sparkles").setTooltip(labels.fieldPickBuiltin);
-			b.onClick(() => {
-				const menu = new Menu();
-				for (const id of TASK_BUILTIN_SOURCES) {
-					if (used.has(builtinSource(id))) continue;
-					menu.addItem((item) =>
-						item.setTitle(t().editors.tasks.sourceNames[id]).onClick(() => add(builtinSource(id))),
-					);
-				}
-				const rect = b.extraSettingsEl.getBoundingClientRect();
-				menu.showAtPosition({ x: rect.left, y: rect.bottom });
-			});
-		});
-
-		setting.addButton((b) =>
-			b.setButtonText(labels.fieldAddKeyButton).onClick(() => {
-				if (typed.trim()) add(frontmatterSource(typed));
-			}),
-		);
+		foot.createDiv({ cls: "hearth-taskfields-footnote", text: labels.fieldAddKeyDesc });
 	}
 
 	private move(from: number, to: number): void {
@@ -5199,6 +5296,7 @@ export class TaskFieldsModal extends Modal {
 
 	private renderFooter(parent: HTMLElement): void {
 		new Setting(parent)
+			.setClass("hearth-taskfields-footer")
 			.addButton((b) =>
 				b
 					.setButtonText(t().editors.tasks.fieldsApplyClose)
