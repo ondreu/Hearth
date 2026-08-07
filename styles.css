@@ -648,39 +648,30 @@
 	padding-inline: 0;
 }
 
-/* Second half of the fix: tie the checkbox to the text beside it.
+/* Read-only embed and jot hosts. `.hearth-embed-live` (canvas/Excalidraw) is
+ * excluded — it's deliberately edge-to-edge and its body already zeroes all
+ * padding.
  *
- * Obsidian computes `--checkbox-size` once on `body` from `--font-text-size`,
- * but card text is sized in `rem` and doesn't follow that slider. The hanging
- * indent is `1.5 × --checkbox-size` against a list indent of `3ch` measured on
- * the list item, so the two terms scale independently: raise the global font
- * size and the checkbox keeps growing while the indent it hangs out of stays
- * put. No fixed gutter survives that — the overhang has no upper bound.
+ * The start gutter is sized from the hang itself rather than being a flat
+ * number, because the hang has no upper bound. Obsidian computes
+ * `--checkbox-size` once on `body` from `--font-text-size`, while card text is
+ * sized in `rem` and doesn't follow that slider — so `1.5 × --checkbox-size`
+ * grows with the font setting while the `3ch` indent it hangs out of stays put,
+ * and any constant gutter is eventually outgrown (14px still clipped on a large
+ * setting). Both terms resolve here on the host, whose font size is the one the
+ * list items inherit, so the calc measures what the list actually does.
  *
- * Scoping the variable to the host makes it resolve against the card's own text
- * instead, so the hang is always ~1.5em against a ~1.6em indent and the checkbox
- * stays inside its list item at any font-size setting. It also stops an embed
- * from drawing a checkbox several times the height of the line it belongs to. */
-.hearth-embed,
-.hearth-jot-preview {
-	--checkbox-size: 1em;
-}
-
-/* `em` inside a custom property resolves where the value is *used*, not where
- * it's declared — that's the checkbox input, whose font-size is a browser
- * default (~13px) rather than the text it sits next to. Inheriting the font-size
- * onto the input is what makes the `1em` above mean "one line of this card's
- * text", which is also the em the hanging indent is computed in. */
-.hearth-embed .task-list-item-checkbox,
-.hearth-jot-preview .task-list-item-checkbox {
-	font-size: inherit;
-}
-
-/* Read-only embed hosts. `.hearth-embed-live` (canvas/Excalidraw) is excluded —
- * it's deliberately edge-to-edge and its body already zeroes all padding. */
+ * `max()` keeps every ordinary card pixel-identical to the flat gutter: the
+ * hang only widens it once it would otherwise eat in. The gutter is added on
+ * top of the hang, not compared against it, so the checkbox keeps a full
+ * gutter's clearance instead of landing flush against the clip edge. */
 .hearth-card-body.is-embed-host > .hearth-embed:not(.hearth-embed-live),
 .hearth-card-body.is-jot-host .hearth-jot-preview {
-	padding-inline: var(--hearth-card-pad-x);
+	padding-inline-start: max(
+		var(--hearth-card-pad-x),
+		calc(var(--checkbox-size, 1em) * 1.5 - 3ch + var(--hearth-card-pad-x))
+	);
+	padding-inline-end: var(--hearth-card-pad-x);
 }
 
 /* The raw editor is a *sibling* of the preview inside `.hearth-jot`, not a

@@ -76,11 +76,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   off. Obsidian hangs a checkbox outside its list item by one and a half checkbox
   widths, and sizes checkboxes from the global font-size setting — which card
   text doesn't follow — so on a larger setting the checkbox outgrew the indent
-  it hangs out of and spilled past the card's edge. Checkboxes in a card now
-  scale with the card's own text, so they stay in their list item at any font
-  size (and no longer tower over the line they belong to). The card's side gutter
-  also moves onto the embed itself, where it can actually shield content from
-  being clipped; text lands in exactly the same place (#137).
+  it hangs out of and spilled past the card's edge. The card's side gutter now
+  sits on the embed itself, where it can actually shield content from being
+  clipped, and widens to match the checkbox instead of being a fixed number, so
+  it holds at any font size. Checkboxes still scale with your font setting;
+  ordinary cards look exactly as before (#137).
 - **Sorting tasks by priority puts Highest at the top.** The priority sort
   ranked tasks by the coarse colour bucket the priority dot uses, which lumps
   Highest in with High (and Lowest in with Low). Tasks one level apart therefore
