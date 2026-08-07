@@ -248,6 +248,20 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   route each value how you like (date/time into custom frontmatter, description
   into the body, or ignored). The note is linked back to the event by its ID so
   it's reopened rather than duplicated.
+
+  The card can also take **TaskNotes as a source**, mirroring what TaskNotes'
+  own calendar shows: scheduled tasks (sized by their time estimate), due
+  dates, recurring tasks unrolled into one entry per occurrence, timeblocks
+  from your daily notes, and the ICS calendars subscribed inside TaskNotes —
+  no need to re-enter their URLs. It reads TaskNotes' own configuration, so
+  renamed frontmatter fields, custom statuses and priorities (and their
+  colours), and the tag-or-property rule that marks a note as a task all
+  carry over; each layer starts from whatever TaskNotes itself is showing and
+  can be overridden per card. Entries colour by status, priority or one fixed
+  colour, completed tasks show struck through, and a checkbox on each task
+  completes it straight from the calendar — writing exactly what TaskNotes
+  writes, including per-occurrence completion for recurring tasks. Clicking one
+  opens it in TaskNotes' own task editor.
 - **Vault statistics** — notes, attachments, folders, unique tags and your
   daily-note streak, read entirely from the in-memory vault index.
 - **Saved search** — runs a stored query (the same syntax as the search bar) and

@@ -36,7 +36,28 @@ import { t } from "../i18n";
 import { cachedCalendar, eventsByDay, expandEvents, loadCalendar, type IcsOccurrence } from "../ics";
 import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
-import { type CalendarConfig, type DashboardCard } from "../types";
+import {
+	applyCompletion,
+	cachedLocalCalendar,
+	collectTaskNotesTasks,
+	collectTimeblockOccurrences,
+	dailyNoteDayKey,
+	loadLocalCalendar,
+	loadTaskNotesSubscriptions,
+	openInTaskNotes,
+	readTaskAt,
+	readTaskNotesSetup,
+	subscriptionStatus,
+	taskNotesEnabled,
+	taskNotesEvents,
+	taskNotesMeta,
+	taskNotesSubscriptions,
+	type TaskNotesLayerOptions,
+	type TaskNotesMeta,
+	type TaskNotesSetup,
+	type TaskNotesSubscription,
+} from "../tasknotes";
+import { type CalendarConfig, type DashboardCard, type TaskNotesSourceConfig } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -58,10 +79,11 @@ export function renderCalendar(
 	const options = dailyNotesOptions(view);
 	const cfg = card.calendar ?? {};
 	const sources = (cfg.sources ?? []).filter((s) => s.url.trim() && s.enabled !== false);
+	const useTaskNotes = cfg.taskNotes?.enabled === true && taskNotesEnabled(view.app);
 
-	// The card needs a reason to exist: either daily notes (for the note grid) or
-	// at least one external calendar to overlay.
-	if (!options && sources.length === 0) {
+	// The card needs a reason to exist: daily notes (for the note grid), an
+	// external calendar to overlay, or TaskNotes as a source.
+	if (!options && sources.length === 0 && !useTaskNotes) {
 		emptyState(body, "calendar-days", t().cards.empty.dailyEnable);
 		return;
 	}
@@ -115,10 +137,11 @@ export function renderCalendar(
 }
 
 
-/** Per-render helper bundling the external-calendar state for a calendar card:
- * lazily fetches each ICS source, expands events for a given window, and hands
- * the card per-day occurrences plus each source's colour and label. When there
- * are no sources every method is a cheap no-op, so the note grid pays nothing. */
+/** Per-render helper bundling the event state for a calendar card: lazily
+ * fetches each ICS source, reads the TaskNotes source when it's switched on,
+ * expands everything for a given window, and hands the card per-day
+ * occurrences plus each source's colour and label. When there are no sources
+ * every method is a cheap no-op, so the note grid pays nothing. */
 interface IcsContext {
 	/** Recompute the day buckets for `[startMs, endMs)` from cached feeds. */
 	expand(startMs: number, endMs: number): void;
@@ -126,19 +149,68 @@ interface IcsContext {
 	on(dayKey: string): IcsOccurrence[];
 	/** CSS colour for a source id. */
 	color(sourceId: string | undefined): string;
+	/** CSS colour for one occurrence: a TaskNotes entry carries its own status/
+	 * priority colour, anything else takes its source's. */
+	eventColor(ev: IcsOccurrence): string;
 	/** Friendly label for a source id. */
 	label(sourceId: string | undefined): string;
-	/** Whether any external calendars are configured. */
+	/** Whether any event source (ICS feed or TaskNotes) is configured. */
 	readonly hasSources: boolean;
-	/** Whether more than one external calendar is configured (badges shown only
-	 * then, since with a single source the label is redundant). */
+	/** Whether more than one source is configured (badges shown only then,
+	 * since with a single source the label is redundant). */
 	readonly multiSource: boolean;
 	/** The event → note configuration for the "Create note" modal action. */
 	readonly eventNote: EventNoteConfig | undefined;
-	/** Register a redraw to run after a background fetch resolves. */
+	/** The live TaskNotes source, or null when it's off/unavailable. */
+	readonly taskNotes: TaskNotesSource | null;
+	/** Register a redraw to run after a background fetch (or a write) resolves. */
 	onLoaded(cb: () => void): void;
+	/** Redraw now — used after a task is completed from the event popup. */
+	refresh(): void;
 	/** Kick the initial fetch (and schedule auto-refresh). */
 	start(): void;
+}
+
+
+/** The resolved TaskNotes source for one card render. */
+interface TaskNotesSource {
+	setup: TaskNotesSetup;
+	layers: TaskNotesLayerOptions;
+	/** Offer a complete/reopen action in the event popup. */
+	allowComplete: boolean;
+}
+
+
+/** Source id given to every TaskNotes task/timeblock entry, so it resolves a
+ * label and colour through the same lookup as an ICS feed. */
+const TASKNOTES_SOURCE_ID = "hearth:tasknotes";
+
+/** Source id prefix for a calendar subscribed inside TaskNotes. */
+const TASKNOTES_SUB_PREFIX = "hearth:tnsub:";
+
+
+/** Resolve the card's TaskNotes source: its live settings plus the layers to
+ * draw. Each layer follows TaskNotes' own calendar settings unless this card
+ * overrides it, so switching the source on mirrors TaskNotes as configured. */
+function buildTaskNotesSource(view: HomeView, cfg: TaskNotesSourceConfig | undefined): TaskNotesSource | null {
+	if (cfg?.enabled !== true || !taskNotesEnabled(view.app)) return null;
+	const setup = readTaskNotesSetup(view.app);
+	const pick = (own: boolean | undefined, mirrored: boolean): boolean => own ?? mirrored;
+	return {
+		setup,
+		layers: {
+			scheduled: pick(cfg.scheduled, setup.calendar.scheduled),
+			due: pick(cfg.due, setup.calendar.due),
+			recurring: pick(cfg.recurring, setup.calendar.recurring),
+			timeblocks: pick(cfg.timeblocks, setup.calendar.timeblocks),
+			completed: cfg.completed ?? true,
+			archived: cfg.archived ?? false,
+			colorBy: cfg.colorBy ?? "status",
+			fallbackColor: cfg.color || "var(--interactive-accent)",
+			dueColor: cfg.dueColor || "",
+		},
+		allowComplete: cfg.allowComplete !== false,
+	};
 }
 
 
@@ -158,13 +230,76 @@ function buildIcsContext(
 		destroyed = true;
 	});
 
+	const taskNotes = buildTaskNotesSource(view, cfg.taskNotes);
+	// TaskNotes' own calendar subscriptions, mirrored onto this card unless the
+	// user turned that off. They keep their TaskNotes colour and name. The list
+	// is re-read on every load: TaskNotes keeps it in its plugin data, which
+	// only the asynchronous read can reach (see loadTaskNotesSubscriptions).
+	const mirrorSubs = taskNotes !== null && cfg.taskNotes?.subscriptions !== false;
+	let subs: TaskNotesSubscription[] =
+		mirrorSubs && taskNotes
+			? taskNotesSubscriptions(view.app, taskNotes.setup).filter((s) => s.enabled)
+			: [];
+
+	// The vault is read once per render: the card is rebuilt wholesale on any
+	// vault change (liveness: "vault"), so month navigation costs nothing extra.
+	let tasksCache: ReturnType<typeof collectTaskNotesTasks> | null = null;
+	let timeblockCache: IcsOccurrence[] | null = null;
+	const invalidate = (): void => {
+		tasksCache = null;
+		timeblockCache = null;
+	};
+
 	const src = (id: string | undefined) => sources.find((s) => s.id === id);
-	const color = (id: string | undefined): string =>
-		src(id)?.color || "var(--interactive-accent)";
+	const sub = (id: string | undefined) =>
+		id?.startsWith(TASKNOTES_SUB_PREFIX)
+			? subs.find((s) => `${TASKNOTES_SUB_PREFIX}${s.id}` === id)
+			: undefined;
+	const color = (id: string | undefined): string => {
+		if (id === TASKNOTES_SOURCE_ID) return taskNotes?.layers.fallbackColor || "var(--interactive-accent)";
+		return sub(id)?.color || src(id)?.color || "var(--interactive-accent)";
+	};
+	const eventColor = (ev: IcsOccurrence): string =>
+		taskNotesMeta(ev)?.color || color(ev.sourceId);
 	const label = (id: string | undefined): string => {
+		if (id === TASKNOTES_SOURCE_ID) return t().cards.calendar.taskNotesSource;
+		const subscription = sub(id);
+		if (subscription) {
+			return (
+				subscription.name ||
+				(subscription.type === "local"
+					? subscription.filePath
+					: cachedCalendar(subscription.url)?.name || feedHost(subscription.url))
+			);
+		}
 		const s = src(id);
 		if (!s) return "";
 		return s.name.trim() || cachedCalendar(s.url)?.name || feedHost(s.url);
+	};
+
+	/** Every TaskNotes entry inside the window: tasks (scheduled / due /
+	 * recurring occurrences) plus timeblocks from daily notes. */
+	const taskNotesOccurrences = (startMs: number, endMs: number): IcsOccurrence[] => {
+		if (!taskNotes) return [];
+		tasksCache ??= collectTaskNotesTasks(view.app, taskNotes.setup);
+		const out = taskNotesEvents(tasksCache, taskNotes.setup, taskNotes.layers, startMs, endMs);
+		if (taskNotes.layers.timeblocks) {
+			const options = dailyNotesOptions(view);
+			timeblockCache ??= collectTimeblockOccurrences(
+				view.app,
+				(path) =>
+					dailyNoteDayKey(path, (options?.format || "YYYY-MM-DD").trim(), (input, fmt) =>
+						moment(input, fmt, true),
+					),
+				cfg.taskNotes?.timeblockColor || taskNotes.layers.fallbackColor,
+			);
+			for (const o of timeblockCache) {
+				const end = o.end ?? o.start;
+				if (o.start < endMs && end >= startMs) out.push(o);
+			}
+		}
+		for (const o of out) o.sourceId = TASKNOTES_SOURCE_ID;
+		return out;
 	};
 
 	const expand = (startMs: number, endMs: number): void => {
@@ -177,29 +312,62 @@ function buildIcsContext(
 				occ.push(o);
 			}
 		}
+		for (const s of subs) {
+			const cal = s.type === "local" ? cachedLocalCalendar(s.filePath) : cachedCalendar(s.url);
+			if (!cal) continue;
+			for (const o of expandEvents(cal.events, startMs, endMs)) {
+				o.sourceId = `${TASKNOTES_SUB_PREFIX}${s.id}`;
+				occ.push(o);
+			}
+		}
+		occ.push(...taskNotesOccurrences(startMs, endMs));
 		byDay = eventsByDay(occ);
 	};
 
 	const load = (force: boolean): void => {
-		if (sources.length === 0) return;
-		void Promise.all(
-			sources.map((s) => loadCalendar(s.url, { ttlMs, disabled, force })),
-		).then(() => {
+		if (sources.length === 0 && !mirrorSubs) return;
+		void (async () => {
+			// Re-read TaskNotes' subscription list first: it lives in TaskNotes'
+			// plugin data, so the synchronous list above can be empty on the very
+			// first render even when subscriptions exist.
+			if (mirrorSubs && taskNotes) {
+				subs = (await loadTaskNotesSubscriptions(view.app, taskNotes.setup)).filter(
+					(s) => s.enabled,
+				);
+			}
+			if (destroyed) return;
+			const pending: Promise<unknown>[] = sources.map((s) =>
+				loadCalendar(s.url, { ttlMs, disabled, force }),
+			);
+			for (const s of subs) {
+				pending.push(
+					s.type === "local"
+						? loadLocalCalendar(view.app, s.filePath)
+						: loadCalendar(s.url, { ttlMs, disabled, force }),
+				);
+			}
+			await Promise.all(pending);
 			if (destroyed) return;
 			redraw?.();
-		});
+		})();
 	};
 
 	return {
 		expand,
 		on: (key) => byDay.get(key) ?? [],
 		color,
+		eventColor,
 		label,
-		hasSources: sources.length > 0,
-		multiSource: sources.length > 1,
+		hasSources: sources.length > 0 || taskNotes !== null,
+		multiSource: sources.length + subs.length + (taskNotes ? 1 : 0) > 1,
 		eventNote: cfg.eventNote,
+		taskNotes,
 		onLoaded: (cb) => {
 			redraw = cb;
+		},
+		refresh: () => {
+			invalidate();
+			if (!destroyed) redraw?.();
 		},
 		start: () => {
 			load(false);
@@ -311,10 +479,12 @@ class EventDetailModal extends Modal {
 		this.modalEl.addClass("hearth-event-modal");
 		this.titleEl.setText(ev.summary || t().cards.calendar.untitledEvent);
 
+		const task = taskNotesMeta(ev);
 		const rows = this.contentEl.createDiv("hearth-event-rows");
 		this.row(rows, "calendar-days", eventDateLabel(ev));
 		this.row(rows, "clock", eventTimeLabel(ev));
 		if (ev.location) this.row(rows, "map-pin", ev.location);
+		if (task) this.renderTaskRows(rows, task);
 
 		const label = this.ics.label(ev.sourceId);
 		if (label) {
@@ -323,7 +493,7 @@ class EventDetailModal extends Modal {
 			const dot = row.querySelector<HTMLElement>(".hearth-event-icon")!.createDiv(
 				"hearth-event-caldot",
 			);
-			dot.style.setProperty("--ev-color", this.ics.color(ev.sourceId));
+			dot.style.setProperty("--ev-color", this.ics.eventColor(ev));
 		}
 
 		if (ev.description) {
@@ -344,9 +514,78 @@ class EventDetailModal extends Modal {
 			});
 		}
 
-		// "Create note" / "Open note" — the note-from-event action. Shown unless
-		// explicitly disabled in the card's event-note config.
-		if (this.ics.eventNote?.enabled !== false) this.renderNoteAction();
+		// A TaskNotes entry already *is* a note, so it gets its own actions
+		// (open it where TaskNotes would, complete this occurrence) instead of
+		// the create-a-note-from-this-event action an ICS event gets.
+		if (task) this.renderTaskActions(task);
+		else if (this.ics.eventNote?.enabled !== false) this.renderNoteAction();
+	}
+
+	/** The TaskNotes-specific detail rows: status, priority, contexts, projects,
+	 * time estimate and the recurring marker — everything the task carries, so
+	 * the popup shows what TaskNotes itself would. */
+	private renderTaskRows(rows: HTMLElement, task: TaskNotesMeta): void {
+		const strings = t().cards.calendar;
+		if (task.statusLabel) {
+			const row = this.row(rows, null, task.statusLabel);
+			const dot = row.querySelector<HTMLElement>(".hearth-event-icon")!.createDiv(
+				"hearth-event-caldot",
+			);
+			dot.style.setProperty("--ev-color", task.color || "var(--interactive-accent)");
+		}
+		if (task.priorityLabel) this.row(rows, "flag", task.priorityLabel);
+		if (task.contexts.length) this.row(rows, "at-sign", task.contexts.join(", "));
+		if (task.projects.length) {
+			// Project values are often wikilinks — show them as plain names.
+			this.row(rows, "folder", task.projects.map((p) => p.replace(/^\[\[|\]\]$/g, "")).join(", "));
+		}
+		if (task.timeEstimate) this.row(rows, "hourglass", strings.taskEstimate(task.timeEstimate));
+		if (task.recurring) this.row(rows, "repeat", t().cards.tasks.recurring);
+		if (task.kind === "due") this.row(rows, "target", strings.taskDue);
+		if (task.kind === "timeblock") this.row(rows, "layout-grid", strings.taskTimeblock);
+	}
+
+	/** Footer actions for a TaskNotes entry: open it (in TaskNotes' own editor
+	 * when it can be, otherwise the note), and complete/reopen this occurrence. */
+	private renderTaskActions(task: TaskNotesMeta): void {
+		const footer = this.contentEl.createDiv("hearth-event-footer");
+		const open = footer.createEl("button", { cls: "mod-cta" });
+		setIcon(open.createSpan("hearth-event-btnicon"), "file-text");
+		open.createSpan({
+			text: task.kind === "timeblock"
+				? t().cards.calendar.openDailyNote
+				: t().cards.calendar.openTaskNote,
+		});
+		open.addEventListener("click", () => {
+			void this.openTaskTarget(task);
+		});
+
+		if (task.kind === "timeblock" || !this.ics.taskNotes?.allowComplete) return;
+		const toggle = footer.createEl("button");
+		setIcon(toggle.createSpan("hearth-event-btnicon"), task.done ? "rotate-ccw" : "check");
+		toggle.createSpan({
+			text: task.done ? t().cards.calendar.taskReopen : t().cards.calendar.taskComplete,
+		});
+		toggle.addEventListener("click", () => {
+			void toggleTaskCompletion(this.view, task, !task.done, this.ics).then(() => this.close());
+		});
+	}
+
+	/** Open the note behind a TaskNotes entry: a task opens in TaskNotes' edit
+	 * modal when the plugin can resolve it, a timeblock (and any task TaskNotes
+	 * won't open) falls back to the note itself. */
+	private async openTaskTarget(task: TaskNotesMeta): Promise<void> {
+		if (task.kind !== "timeblock" && (await openInTaskNotes(this.app, task.path))) {
+			this.close();
+			return;
+		}
+		const file = this.app.vault.getAbstractFileByPath(task.path);
+		if (file instanceof TFile) {
+			void openFile(this.view, file, "card");
+			this.close();
+		} else {
+			new Notice(t().notices.couldNotOpenTaskNote);
+		}
 	}
 
 	/** The footer button that creates the event's note (or opens it when one
@@ -514,10 +753,22 @@ function showDayMenu(
 	menu.addItem((item) => item.setTitle(t().cards.calendar.eventsHeading).setIsLabel(true));
 	for (const ev of events) {
 		const time = ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT");
+		// TaskNotes entries are recognisable in the picker too: a checked circle
+		// for a finished task, a target for a deadline, a block for a timeblock.
+		const task = taskNotesMeta(ev);
+		const icon = !task
+			? "calendar-clock"
+			: task.kind === "timeblock"
+				? "layout-grid"
+				: task.done
+					? "check-circle-2"
+					: task.kind === "due"
+						? "target"
+						: "circle";
 		menu.addItem((item) =>
 			item
 				.setTitle(`${time}  ${ev.summary || t().cards.calendar.untitledEvent}`)
-				.setIcon("calendar-clock")
+				.setIcon(icon)
 				.onClick(() => showEventDetail(view, ev, ics)),
 		);
 	}
@@ -598,7 +849,10 @@ function renderCalendarGrid(
 			if (file instanceof TFile) dots.createDiv("hearth-calendar-dot");
 			for (const ev of events.slice(0, 3)) {
 				const dot = dots.createDiv("hearth-calendar-evdot");
-				dot.style.setProperty("--ev-color", ics.color(ev.sourceId));
+				dot.style.setProperty("--ev-color", ics.eventColor(ev));
+				// A finished task's dot fades, so a busy day still reads as
+				// "what's left" at a glance — the way TaskNotes shows it.
+				dot.toggleClass("is-done", taskNotesMeta(ev)?.done === true);
 			}
 			if (events.length) {
 				cell.setAttribute(
@@ -711,9 +965,11 @@ function renderCalendarAgenda(
 }
 
 
-/** One external-calendar event line in the agenda: a coloured bullet, its time
- * (or "All day"), and the summary, with the source name as a trailing badge
- * when more than one calendar is subscribed. */
+/** One event line in the agenda: a coloured bullet, its time (or "All day"),
+ * and the summary, with the source name as a trailing badge when more than one
+ * calendar is in play. A TaskNotes entry additionally carries a completion box,
+ * its due/recurring markers, and strikes through once it's done — so the agenda
+ * reads like TaskNotes' own list while staying a calendar. */
 function renderAgendaEvent(
 	view: HomeView,
 	parent: HTMLElement,
@@ -721,15 +977,46 @@ function renderAgendaEvent(
 	day: Moment,
 	ics: IcsContext,
 ): void {
+	const task = taskNotesMeta(ev);
 	const row = parent.createDiv("hearth-agenda-event");
-	const bullet = row.createDiv("hearth-agenda-evbullet");
-	bullet.style.setProperty("--ev-color", ics.color(ev.sourceId));
+	row.toggleClass("is-task", task !== null);
+	row.toggleClass("is-done", task?.done === true);
+
+	// A completable task swaps the bullet for a checkbox that writes straight
+	// back to the note (the whole occurrence for a recurring task).
+	if (task && task.kind !== "timeblock" && ics.taskNotes?.allowComplete) {
+		renderTaskCompleteBox(view, row, task, ics);
+	} else {
+		const bullet = row.createDiv("hearth-agenda-evbullet");
+		bullet.style.setProperty("--ev-color", ics.eventColor(ev));
+	}
 
 	const time = row.createDiv("hearth-agenda-evtime");
 	time.setText(ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT"));
 
 	const body = row.createDiv("hearth-agenda-evbody");
 	body.createSpan({ cls: "hearth-agenda-evtitle", text: ev.summary || t().cards.calendar.untitledEvent });
+	if (task) {
+		if (task.kind === "due") {
+			const badge = body.createSpan({
+				cls: "hearth-agenda-evbadge is-due",
+				text: t().cards.calendar.taskDue,
+			});
+			badge.style.setProperty("--ev-color", ics.eventColor(ev));
+		}
+		if (task.kind === "timeblock") {
+			body.createSpan({
+				cls: "hearth-agenda-evbadge is-timeblock",
+				text: t().cards.calendar.taskTimeblock,
+			});
+		}
+		if (task.recurring) {
+			body.createSpan({ cls: "hearth-agenda-evbadge", text: t().cards.tasks.recurring });
+		}
+		if (task.priorityLabel) {
+			body.createSpan({ cls: "hearth-agenda-evbadge", text: task.priorityLabel });
+		}
+	}
 	if (ics.multiSource) {
 		const label = ics.label(ev.sourceId);
 		if (label) body.createSpan({ cls: "hearth-agenda-evbadge", text: label });
@@ -738,6 +1025,46 @@ function renderAgendaEvent(
 	const open = () => showEventDetail(view, ev, ics);
 	row.addEventListener("click", open);
 	makeClickable(row, open, `${ev.summary || t().cards.calendar.untitledEvent} — ${day.format("MMM D")}`);
+}
+
+
+/** The completion checkbox on a TaskNotes agenda row. Writes exactly what
+ * TaskNotes writes — this day's entry in `complete_instances` for a recurring
+ * task, the status for a one-off — then redraws the card. */
+function renderTaskCompleteBox(
+	view: HomeView,
+	row: HTMLElement,
+	task: TaskNotesMeta,
+	ics: IcsContext,
+): void {
+	const box = row.createEl("input", {
+		cls: "hearth-agenda-evcheck",
+		attr: { type: "checkbox", "aria-label": t().cards.calendar.taskComplete },
+	});
+	box.checked = task.done;
+	box.style.setProperty("--ev-color", task.color || "var(--interactive-accent)");
+	// The row itself opens the event popup; the box must not.
+	box.addEventListener("click", (e) => e.stopPropagation());
+	box.addEventListener("change", () => {
+		void toggleTaskCompletion(view, task, box.checked, ics);
+	});
+}
+
+
+/** Complete (or reopen) one TaskNotes occurrence from the calendar. */
+async function toggleTaskCompletion(
+	view: HomeView,
+	task: TaskNotesMeta,
+	complete: boolean,
+	ics: IcsContext,
+): Promise<void> {
+	const source = ics.taskNotes;
+	if (!source) return;
+	const current = readTaskAt(view.app, source.setup, task.path);
+	if (!current || !(await applyCompletion(view.app, source.setup, current, task.dayKey, complete))) {
+		new Notice(t().notices.couldNotUpdateTaskStatus);
+	}
+	ics.refresh();
 }
 
 
@@ -812,7 +1139,218 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			});
 	}
 
+	taskNotesSourceEditor(ctx, containerEl, cfg);
 	calendarSourcesEditor(ctx, containerEl, cfg);
+}
+
+
+/** The "TaskNotes" section of the calendar editor: switch TaskNotes on as an
+ * event source and choose which of its layers this card mirrors. Each layer
+ * toggle starts from TaskNotes' own calendar settings, so a card that is simply
+ * switched on already shows what TaskNotes shows. */
+export function taskNotesSourceEditor(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: CalendarConfig,
+): void {
+	const strings = t().editors.calendar;
+	const installed = taskNotesEnabled(ctx.app);
+
+	new Setting(containerEl).setName(strings.taskNotesHeading).setHeading();
+	new Setting(containerEl).setDesc(
+		installed ? strings.taskNotesDesc : strings.taskNotesMissing,
+	);
+	// Nothing is written into the card until TaskNotes is actually there to
+	// configure, so a vault without it keeps a clean card config.
+	if (!installed) return;
+	const tn = (cfg.taskNotes ??= {});
+
+	new Setting(containerEl)
+		.setName(strings.taskNotesEnabled)
+		.setDesc(strings.taskNotesEnabledDesc)
+		.addToggle((tg) =>
+			tg.setValue(tn.enabled === true).onChange((v) => {
+				tn.enabled = v || undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+	if (tn.enabled !== true) return;
+
+	// The live TaskNotes settings the unset toggles inherit from, so each row
+	// can say what "follow TaskNotes" currently means.
+	const setup = readTaskNotesSetup(ctx.app);
+	const layer = (
+		name: string,
+		desc: string,
+		read: () => boolean | undefined,
+		write: (v: boolean | undefined) => void,
+		mirrored: boolean,
+	): void => {
+		const setting = new Setting(containerEl)
+			.setName(name)
+			.setDesc(`${desc} ${strings.taskNotesFollows(mirrored)}`);
+		setting.addToggle((tg) =>
+			tg.setValue(read() ?? mirrored).onChange((v) => {
+				write(v === mirrored ? undefined : v);
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+		setting.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(strings.taskNotesFollowReset)
+				.onClick(() => {
+					write(undefined);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	};
+
+	layer(
+		strings.taskNotesScheduled,
+		strings.taskNotesScheduledDesc,
+		() => tn.scheduled,
+		(v) => (tn.scheduled = v),
+		setup.calendar.scheduled,
+	);
+	layer(
+		strings.taskNotesDue,
+		strings.taskNotesDueDesc,
+		() => tn.due,
+		(v) => (tn.due = v),
+		setup.calendar.due,
+	);
+	layer(
+		strings.taskNotesRecurring,
+		strings.taskNotesRecurringDesc,
+		() => tn.recurring,
+		(v) => (tn.recurring = v),
+		setup.calendar.recurring,
+	);
+	layer(
+		strings.taskNotesTimeblocks,
+		strings.taskNotesTimeblocksDesc,
+		() => tn.timeblocks,
+		(v) => (tn.timeblocks = v),
+		setup.calendar.timeblocks,
+	);
+
+	new Setting(containerEl)
+		.setName(strings.taskNotesCompleted)
+		.setDesc(strings.taskNotesCompletedDesc)
+		.addToggle((tg) =>
+			tg.setValue(tn.completed !== false).onChange((v) => {
+				tn.completed = v ? undefined : false;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+
+	new Setting(containerEl)
+		.setName(strings.taskNotesArchived)
+		.setDesc(strings.taskNotesArchivedDesc)
+		.addToggle((tg) =>
+			tg.setValue(tn.archived === true).onChange((v) => {
+				tn.archived = v || undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+
+	new Setting(containerEl)
+		.setName(strings.taskNotesComplete)
+		.setDesc(strings.taskNotesCompleteDesc)
+		.addToggle((tg) =>
+			tg.setValue(tn.allowComplete !== false).onChange((v) => {
+				tn.allowComplete = v ? undefined : false;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+
+	// TaskNotes keeps its subscriptions in its plugin data, so the count may only
+	// be known after an async read — rebuild the editor once when that lands.
+	const known = taskNotesSubscriptions(ctx.app, setup);
+	if (!known.length && ctx.session.tnSubsProbed !== true) {
+		ctx.session.tnSubsProbed = true;
+		void loadTaskNotesSubscriptions(ctx.app, setup).then((found) => {
+			if (found.length) ctx.requestRender();
+		});
+	}
+	new Setting(containerEl)
+		.setName(strings.taskNotesSubscriptions)
+		.setDesc(
+			known.length
+				? strings.taskNotesSubscriptionsDesc(known.length)
+				: strings.taskNotesSubscriptionsNone,
+		)
+		.addToggle((tg) =>
+			tg.setValue(tn.subscriptions !== false).onChange((v) => {
+				tn.subscriptions = v ? undefined : false;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+	if (tn.subscriptions !== false && known.length) {
+		subscriptionStatusList(ctx, containerEl, known);
+	}
+
+	new Setting(containerEl)
+		.setName(strings.taskNotesColorBy)
+		.setDesc(strings.taskNotesColorByDesc)
+		.addDropdown((d) => {
+			d.addOption("status", strings.taskNotesColorStatus);
+			d.addOption("priority", strings.taskNotesColorPriority);
+			d.addOption("fixed", strings.taskNotesColorFixed);
+			d.setValue(tn.colorBy ?? "status").onChange((v) => {
+				tn.colorBy = v === "status" ? undefined : (v as NonNullable<typeof tn.colorBy>);
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	const colorRow = (name: string, desc: string, read: () => string | undefined, write: (v: string | undefined) => void): void => {
+		const setting = new Setting(containerEl).setName(name).setDesc(desc);
+		setting.addColorPicker((c) =>
+			c.setValue(read() || "#7c6cff").onChange((v) => {
+				write(v);
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+		setting.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					write(undefined);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	};
+
+	colorRow(
+		strings.taskNotesColor,
+		strings.taskNotesColorDesc,
+		() => tn.color,
+		(v) => (tn.color = v),
+	);
+	colorRow(
+		strings.taskNotesDueColor,
+		strings.taskNotesDueColorDesc,
+		() => tn.dueColor,
+		(v) => (tn.dueColor = v),
+	);
+	colorRow(
+		strings.taskNotesTimeblockColor,
+		strings.taskNotesTimeblockColorDesc,
+		() => tn.timeblockColor,
+		(v) => (tn.timeblockColor = v),
+	);
 }
 
 
@@ -937,6 +1475,73 @@ export function calendarSourcesEditor(ctx: CardEditorContext, containerEl: HTMLE
 	);
 
 	eventNoteEditor(ctx, containerEl, cfg);
+}
+
+
+/**
+ * One row per TaskNotes subscription, each reporting what actually happened to
+ * it: how many events came through, that it was blocked by the "disable
+ * external calls" setting, or why it failed. A feed that can't be fetched
+ * otherwise just shows nothing on the card, with no way to tell it apart from
+ * an empty calendar — which is exactly the case where a user sees only some of
+ * their subscribed calendars.
+ */
+function subscriptionStatusList(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	subs: TaskNotesSubscription[],
+): void {
+	const strings = t().editors.calendar;
+	for (const sub of subs) {
+		const status = subscriptionStatus(sub);
+		const where = sub.type === "local" ? sub.filePath : feedHost(sub.url);
+		const state = !sub.enabled
+			? strings.taskNotesSubDisabled
+			: status.blocked
+				? strings.taskNotesSubBlocked
+				: status.error
+					? strings.taskNotesSubFailed(subscriptionError(status.error))
+					: status.loaded
+						? strings.taskNotesSubLoaded(status.events)
+						: strings.taskNotesSubPending;
+		new Setting(containerEl)
+			.setName(sub.name || where)
+			.setDesc(`${where} — ${state}`)
+			.setClass("hearth-rss-setting");
+	}
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(strings.taskNotesSubRefresh).onClick(() => {
+			void refreshSubscriptions(ctx, subs).then(() => ctx.requestRender());
+		}),
+	);
+}
+
+
+/** A failure reason in the user's language, falling back to whatever the
+ * network/vault layer reported. */
+function subscriptionError(error: string): string {
+	const strings = t().editors.calendar;
+	if (error === "not-calendar") return strings.taskNotesSubNotCalendar;
+	if (error === "missing-file") return strings.taskNotesSubMissingFile;
+	return error;
+}
+
+
+/** Re-fetch every TaskNotes subscription now, bypassing the freshness window,
+ * so the rows above report a fresh verdict. */
+async function refreshSubscriptions(
+	ctx: CardEditorContext,
+	subs: TaskNotesSubscription[],
+): Promise<void> {
+	const disabled = ctx.opts.externalCallsDisabled;
+	await Promise.all(
+		subs.map((s) =>
+			s.type === "local"
+				? loadLocalCalendar(ctx.app, s.filePath)
+				: loadCalendar(s.url, { ttlMs: 0, disabled, force: true }),
+		),
+	);
 }
 
 
@@ -1158,6 +1763,7 @@ export const calendarCard: CardDefinition<"calendar"> = {
 			copy.calendar = {
 				...source.calendar,
 				sources: source.calendar.sources ? source.calendar.sources.map((s) => ({ ...s })) : undefined,
+				taskNotes: source.calendar.taskNotes ? { ...source.calendar.taskNotes } : undefined,
 				eventNote: source.calendar.eventNote
 					? {
 							...source.calendar.eventNote,

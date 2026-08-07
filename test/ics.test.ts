@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { moment } from "obsidian";
 import "moment/locale/cs";
 import {
+	calendarStatus,
 	eventsByDay,
 	expandEvents,
 	parseIcs,
@@ -281,6 +282,18 @@ describe("expandEvents — recurrence", () => {
 			base + 100_000 * day,
 		);
 		expect(occ.length).toBeLessThanOrEqual(750);
+	});
+});
+
+describe("calendarStatus", () => {
+	it("reports a URL that was never loaded as neither loaded nor failed", () => {
+		expect(calendarStatus("https://example.com/never-fetched.ics")).toEqual({
+			loaded: false,
+			events: 0,
+			fetched: null,
+			error: null,
+			blocked: false,
+		});
 	});
 });
 

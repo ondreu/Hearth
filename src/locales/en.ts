@@ -46,6 +46,7 @@ export const en = {
 		couldNotCreateEventNote: "Hearth: couldn't create a note for that event.",
 		taskNotesCreateFailed: "Hearth: couldn't run TaskNotes: Create new task.",
 		taskChangedOnDisk: "Hearth: that task changed on disk — refreshed.",
+		couldNotOpenTaskNote: "Hearth: couldn't open that task's note.",
 		couldNotUpdateTaskStatus: "Hearth: couldn't update the task status.",
 		couldNotCompleteRecurring:
 			"Hearth: couldn't mark the recurring task instance complete.",
@@ -748,6 +749,57 @@ export const en = {
 			eventNotePropertyPlaceholder: "Property name",
 			eventNoteHeadingPlaceholder: "Heading (optional)",
 			eventNoteFormatPlaceholder: "Format (e.g. HH:mm)",
+			taskNotesHeading: "TaskNotes",
+			taskNotesDesc:
+				"Use TaskNotes as an event source. The card mirrors what TaskNotes' own calendar shows — scheduled tasks, due dates, recurring occurrences, timeblocks and the calendars subscribed inside TaskNotes — using TaskNotes' own field names, statuses and colours.",
+			taskNotesMissing:
+				"TaskNotes isn't enabled in this vault. Install and enable it to use it as a calendar source.",
+			taskNotesEnabled: "Use TaskNotes",
+			taskNotesEnabledDesc: "Draw TaskNotes items on this calendar.",
+			taskNotesScheduled: "Scheduled tasks",
+			taskNotesScheduledDesc:
+				"Tasks on their scheduled date, sized by their time estimate.",
+			taskNotesDue: "Due dates",
+			taskNotesDueDesc: "Tasks on their due date.",
+			taskNotesRecurring: "Recurring tasks",
+			taskNotesRecurringDesc:
+				"Unroll a recurring task into one entry per occurrence. Off shows only its next date.",
+			taskNotesTimeblocks: "Timeblocks",
+			taskNotesTimeblocksDesc: "Timeblocks written into your daily notes.",
+			taskNotesFollows: (on: boolean) =>
+				`TaskNotes currently has this ${on ? "on" : "off"}.`,
+			taskNotesFollowReset: "Follow TaskNotes",
+			taskNotesCompleted: "Show completed",
+			taskNotesCompletedDesc: "Keep finished tasks on the calendar, struck through.",
+			taskNotesArchived: "Show archived",
+			taskNotesArchivedDesc: "Include tasks carrying TaskNotes' archive tag.",
+			taskNotesComplete: "Complete from the calendar",
+			taskNotesCompleteDesc:
+				"Offer a completion box on each task, writing back exactly what TaskNotes writes (per-occurrence for recurring tasks).",
+			taskNotesSubscriptions: "TaskNotes calendars",
+			taskNotesSubscriptionsDesc: (count: number) =>
+				`Also show the ${count} calendar${count === 1 ? "" : "s"} subscribed inside TaskNotes.`,
+			taskNotesSubscriptionsNone: "TaskNotes has no calendar subscriptions to show.",
+			taskNotesSubLoaded: (count: number) =>
+				`${count} event${count === 1 ? "" : "s"} loaded.`,
+			taskNotesSubPending: "Not loaded yet — refresh below.",
+			taskNotesSubDisabled: "Disabled in TaskNotes.",
+			taskNotesSubBlocked: "Not fetched: external calls are disabled in Hearth's settings.",
+			taskNotesSubFailed: (reason: string) => `Couldn't load: ${reason}`,
+			taskNotesSubNotCalendar: "the response wasn't an iCalendar feed.",
+			taskNotesSubMissingFile: "that file isn't in the vault.",
+			taskNotesSubRefresh: "Refresh calendars",
+			taskNotesColorBy: "Colour by",
+			taskNotesColorByDesc: "Where each task's colour comes from.",
+			taskNotesColorStatus: "TaskNotes status",
+			taskNotesColorPriority: "TaskNotes priority",
+			taskNotesColorFixed: "One fixed colour",
+			taskNotesColor: "Task colour",
+			taskNotesColorDesc: "Used for the fixed colour, and when TaskNotes defines none.",
+			taskNotesDueColor: "Due colour",
+			taskNotesDueColorDesc: "Optional separate colour for due-date entries.",
+			taskNotesTimeblockColor: "Timeblock colour",
+			taskNotesTimeblockColorDesc: "Used for timeblocks that carry no colour of their own.",
 		},
 		heatmap: {
 			metric: "Metric",
@@ -1323,6 +1375,16 @@ export const en = {
 			eventNotes: "Notes",
 			createEventNote: "Create note",
 			openEventNote: "Open note",
+			taskNotesSource: "TaskNotes",
+			taskDue: "Due",
+			taskTimeblock: "Timeblock",
+			taskComplete: "Complete",
+			taskReopen: "Reopen",
+			taskEstimate: (minutes: number) =>
+				minutes >= 60
+					? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
+					: `${minutes}m`,
+			openTaskNote: "Open task",
 		},
 		stats: {
 			notes: "Notes",
