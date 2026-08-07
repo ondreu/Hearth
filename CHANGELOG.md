@@ -68,6 +68,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   an API, so Hearth reads their settings directly and quietly falls back to the
   file-type icon if it can't. Turn it off, or point it at a renamed Iconize
   frontmatter property, under Settings → Hearth → Integrations (#132).
+- **Editable notes can use Obsidian's Live Preview editor.** An editable Note
+  embed or Daily note card has a new **Live preview** toggle beside
+  **Editable**. Turned on, the card hosts Obsidian's own editor instead of
+  Hearth's plain raw-Markdown box: formatting renders as you type, there's no
+  double-click to get into edit mode, and links, embeds, undo and your editor
+  plugins all behave exactly as they do in a normal tab. The card's own settings
+  make the choice per card and per embed view, so a scratchpad can stay in raw
+  source while a journal card reads like a page. Like the plugin-view card, the
+  hosted editor is only alive while the card is on screen, and pending
+  keystrokes are flushed to the vault before it's torn down. Left off, the card
+  keeps the double-click raw editor it has always had (#160).
 
 ### Fixed
 
@@ -117,6 +128,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for jots — so the state sticks, whether or not the card is set to editable.
   A tick is reverted if the write can't land, and a click on a checkbox no
   longer opens the raw editor when it lands as part of a double-click (#143).
+- **No grey box under an editable note.** Double-clicking an editable Note
+  embed, Daily note or jot card to edit it dropped a grey form-field panel
+  behind the text — permanently so on mobile, where Obsidian's own textarea
+  rule outranked the transparent background Hearth asks for. The raw editor
+  now keeps the card's surface in every state, so switching between the
+  rendered note and its source no longer changes the card's background (#160).
 - **Theme focus rings no longer break the search bar.** Under Catppuccin (and
   any theme that styles input focus with a body-class-prefixed selector), the
   home-screen search input picked up the theme's own focus ring, so a blue

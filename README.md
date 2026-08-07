@@ -94,7 +94,9 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Embed** — embed a note (`.md`), image, canvas, or `.base` file, rendered
   through Obsidian's own renderer. A per-card **zoom** control scales content to
   fit. Markdown notes can be made **editable** — rendered by default, switch to a
-  raw editor on double-click, saving straight back to the vault. Give a card a
+  raw editor on double-click, saving straight back to the vault. Turn on **Live
+  preview** and the card hosts Obsidian's own editor instead, so formatting
+  renders as you type and there's no double-click to get into it. Give a card a
   **second view** (a second file to embed, with its own zoom and editable
   options) and it grows a **switcher** to flip between the two — shown in the
   card **header** when the card has a title, or as a **floating, hover-only**
@@ -109,7 +111,8 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Daily note** — always shows *today's* daily note (resolved from the core
   Daily notes plugin's date format and folder), with a one-click prompt to
   create it when missing and a hideable button to open it in the editor.
-  Optionally editable in place.
+  Optionally editable in place, in the raw editor or in Obsidian's own Live
+  Preview.
 - **Web page** — embed any `http(s)` URL in a sandboxed iframe, with an
   optional auto-refresh interval and an "open in browser" fallback for sites
   that refuse to be framed.

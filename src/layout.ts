@@ -201,6 +201,7 @@ function sanitizeEmbedView(
 	if (baseView !== undefined) view.baseView = baseView;
 	if (typeof r.scale === "number") view.scale = r.scale;
 	if (typeof r.editable === "boolean") view.editable = r.editable;
+	if (typeof r.livePreview === "boolean") view.livePreview = r.livePreview;
 	return view;
 }
 
@@ -279,6 +280,7 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.scale === "number") card.scale = r.scale;
 	if (typeof r.refreshSec === "number") card.refreshSec = r.refreshSec;
 	if (typeof r.editable === "boolean") card.editable = r.editable;
+	if (typeof r.livePreview === "boolean") card.livePreview = r.livePreview;
 	if (typeof r.hideBaseHeader === "boolean")
 		card.hideBaseHeader = r.hideBaseHeader;
 	if (typeof r.tileSize === "number") card.tileSize = r.tileSize;

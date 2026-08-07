@@ -6,7 +6,9 @@ import {
 	activeEmbedViewParams,
 	embedViews,
 	emptyState,
+	livePreviewSetting,
 	renderEditableEmbed,
+	renderLivePreviewEmbed,
 	renderMarkdownFile,
 	watchedCardPath,
 } from "../cardbodies";
@@ -73,8 +75,11 @@ export function renderEmbed(
 	const isMarkdown = ext === "md" || ext === "markdown";
 	const excalidraw = isExcalidraw(file);
 
-	// Editable Markdown notes are edited in place rather than rendered read-only.
+	// Editable Markdown notes are edited in place rather than rendered read-only —
+	// either in Obsidian's own Live Preview editor, or in Hearth's plain
+	// raw-Markdown box (the fallback when hosting the real editor isn't possible).
 	if (active.editable && isMarkdown && !excalidraw) {
+		if (active.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
 		renderEditableEmbed(view, file, body, component);
 		return;
 	}
@@ -245,8 +250,11 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			tg.setValue(card.editable ?? false).onChange((v) => {
 				card.editable = v || undefined;
 				ctx.opts.save();
+				// The live-preview choice below only exists while editing is on.
+				ctx.requestRender();
 			}),
 		);
+	if (card.editable) livePreviewSetting(ctx, containerEl, card);
 	// Hide-base-header is only relevant to .base embeds; shown when either
 	// view targets one.
 	if (isBaseTarget(card.target) || isBaseTarget(card.secondView?.target)) {
@@ -422,8 +430,10 @@ export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement
 				tg.setValue(view.editable ?? false).onChange((v) => {
 					view.editable = v || undefined;
 					ctx.opts.save();
+					ctx.requestRender();
 				}),
 			);
+		if (view.editable) livePreviewSetting(ctx, containerEl, view);
 	}
 }
 
