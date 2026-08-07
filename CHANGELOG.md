@@ -71,6 +71,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The task filter's Status row is readable again.** With more than a handful
+  of statuses — TaskNotes states, Kanban columns, your own checkbox statuses —
+  the chips took the whole row and squeezed the label down to *Sta…*, then
+  wrapped into a staggered, right-aligned block. Status and Priority now stack
+  their chips under the label and lay them out left to right, so the label stays
+  whole and the chips read as one strip however many there are. Two things that
+  went with it: a preset chip (**Overdue**, **High priority**, …) now shows when
+  it's on and a second click takes it back off, instead of only ever applying;
+  and a status your filter still selects but that no tasks use any more keeps
+  its chip, so you can switch it off rather than having to clear the whole
+  filter. Chips also report their on/off state to screen readers (#164).
 - **A task list keeps one task per line.** A task whose title didn't fit
   alongside its chips broke across two or three lines — the checkbox alone on
   one, the title on the next, its status, priority and dates on a third — so a

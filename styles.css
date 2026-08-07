@@ -3979,6 +3979,22 @@ body.hearth-dv-resizing {
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
+/* Priority and status rows: a strip of chips, and status can carry a dozen
+   custom values (TaskNotes statuses, Kanban columns). Obsidian's side-by-side
+   .setting-item gives the control the room and squeezes the name into a sliver
+   — "Status" arrives as "Sta…" — then right-aligns the wrapped chips into a
+   staggered block (#164). Stack the chips under the label instead and run them
+   left-to-right, the way the other crowded settings in Hearth do. */
+.hearth-taskfilter-row {
+	display: block;
+}
+
+.hearth-taskfilter-row .setting-item-control {
+	margin-top: 8px;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+}
+
 .hearth-taskfilter-chips {
 	display: flex;
 	flex-wrap: wrap;
