@@ -207,18 +207,27 @@ export function parseTaskNotesSettings(raw: unknown): TaskNotesSetup {
 		if (mapped) fields[key] = mapped;
 	}
 
+	// Statuses carry an explicit `order` (the cycle the checkbox walks); keeping
+	// them in it matters because "the first open status" is what a reopened task
+	// is written back to.
 	const statuses: TaskNotesStatus[] = [];
-	for (const entry of Array.isArray(s.customStatuses) ? s.customStatuses : []) {
+	const ordered: { status: TaskNotesStatus; order: number }[] = [];
+	for (const [index, entry] of (Array.isArray(s.customStatuses) ? s.customStatuses : []).entries()) {
 		const rec = asRecord(entry);
 		const value = str(rec?.value);
 		if (!value) continue;
-		statuses.push({
-			value,
-			label: str(rec?.label) || value,
-			color: str(rec?.color),
-			isCompleted: bool(rec?.isCompleted, false),
+		ordered.push({
+			status: {
+				value,
+				label: str(rec?.label) || value,
+				color: str(rec?.color),
+				isCompleted: bool(rec?.isCompleted, false),
+			},
+			order: num(rec?.order) ?? index,
 		});
 	}
+	ordered.sort((a, b) => a.order - b.order);
+	statuses.push(...ordered.map((o) => o.status));
 
 	const priorities: TaskNotesPriority[] = [];
 	for (const entry of Array.isArray(s.customPriorities) ? s.customPriorities : []) {
@@ -244,9 +253,12 @@ export function parseTaskNotesSettings(raw: unknown): TaskNotesSetup {
 			calendarSettings.defaultShowRecurring ?? calendarSettings.showRecurring,
 			true,
 		),
+		// Timeblocking is opt-in inside TaskNotes (`enableTimeblocking`, off by
+		// default) and lives with the calendar settings — a vault that never
+		// turned it on has no timeblocks to draw.
 		timeblocks: bool(
 			calendarSettings.defaultShowTimeblocks ?? calendarSettings.showTimeblocks,
-			bool(s.enableTimeblocking, true),
+			bool(calendarSettings.enableTimeblocking ?? s.enableTimeblocking, false),
 		),
 	};
 
@@ -267,7 +279,10 @@ export function parseTaskNotesSettings(raw: unknown): TaskNotesSetup {
 			property: str(s.taskPropertyName),
 			value: str(s.taskPropertyValue),
 		},
-		defaultTimeEstimate: Math.max(0, num(s.defaultTimeEstimate) ?? 60),
+		// TaskNotes defaults this to 0 ("no estimate"), which is a length a
+		// calendar can't draw — a timed task with no estimate gets an hour, the
+		// same block TaskNotes' own calendar gives it.
+		defaultTimeEstimate: Math.max(0, num(s.defaultTimeEstimate) || 0) || 60,
 		calendar,
 		subscriptions,
 	};
@@ -855,17 +870,27 @@ export function completionEdit(
 }
 
 
-/** The status value a finished task takes: TaskNotes' first completed status,
- * or plain "done" when none is configured. */
+/** The status value a finished task takes: TaskNotes' own first completed
+ * status (in its configured order), or plain "done" when its statuses couldn't
+ * be read. Writing a value TaskNotes doesn't define would leave the task in a
+ * status its own views don't understand, so its list always wins. */
 export function completeStatusValue(setup: TaskNotesSetup): string {
 	return setup.statuses.find((s) => s.isCompleted)?.value ?? "done";
 }
 
 
-/** The status value a reopened task takes: TaskNotes' first open status, or
- * "open". */
+/**
+ * The status value a reopened task takes: TaskNotes' first open status, skipping
+ * its placeholder "none" (which means "no status set", not "open") so reopening
+ * lands a task somewhere its own views actually show it. Falls back to "open".
+ */
 export function openStatusValue(setup: TaskNotesSetup): string {
-	return setup.statuses.find((s) => !s.isCompleted)?.value ?? "open";
+	const open = setup.statuses.filter((s) => !s.isCompleted);
+	return (
+		open.find((s) => s.value.trim().toLowerCase() !== "none")?.value ??
+		open[0]?.value ??
+		"open"
+	);
 }
 
 

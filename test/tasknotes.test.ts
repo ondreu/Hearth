@@ -35,9 +35,10 @@ function settings(overrides: Record<string, unknown> = {}): unknown {
 		taskIdentificationMethod: "tag",
 		fieldMapping: { due: "due", scheduled: "scheduled", status: "status", priority: "priority" },
 		customStatuses: [
-			{ value: "open", label: "Open", color: "#888888", isCompleted: false },
-			{ value: "in-progress", label: "In progress", color: "#3b82f6", isCompleted: false },
-			{ value: "done", label: "Done", color: "#22c55e", isCompleted: true },
+			{ value: "none", label: "None", color: "#cccccc", isCompleted: false, order: 0 },
+			{ value: "open", label: "Open", color: "#888888", isCompleted: false, order: 1 },
+			{ value: "in-progress", label: "In progress", color: "#3b82f6", isCompleted: false, order: 2 },
+			{ value: "done", label: "Done", color: "#22c55e", isCompleted: true, order: 3 },
 		],
 		customPriorities: [
 			{ value: "high", label: "High", color: "#ef4444", weight: 3 },
@@ -81,7 +82,12 @@ describe("parseTaskNotesSettings", () => {
 		expect(setup.fields.completeInstances).toBe("complete_instances");
 		expect(setup.identify).toEqual({ method: "tag", tag: "task", property: "", value: "" });
 		expect(setup.defaultTimeEstimate).toBe(60);
-		expect(setup.calendar).toEqual({ scheduled: true, due: true, recurring: true, timeblocks: true });
+		expect(setup.calendar).toEqual({
+			scheduled: true,
+			due: true,
+			recurring: true,
+			timeblocks: false,
+		});
 	});
 
 	it("reads a remapped field name and leaves the rest defaulted", () => {
@@ -92,8 +98,13 @@ describe("parseTaskNotesSettings", () => {
 
 	it("reads custom statuses and priorities with their colours", () => {
 		const setup = setupFrom();
-		expect(setup.statuses.map((s) => s.value)).toEqual(["open", "in-progress", "done"]);
-		expect(setup.statuses[2].isCompleted).toBe(true);
+		expect(setup.statuses.map((s) => s.value)).toEqual([
+			"none",
+			"open",
+			"in-progress",
+			"done",
+		]);
+		expect(setup.statuses[3].isCompleted).toBe(true);
 		expect(setup.priorities[0]).toEqual({
 			value: "high",
 			label: "High",
@@ -140,11 +151,27 @@ describe("parseTaskNotesSettings", () => {
 
 	it("mirrors TaskNotes' calendar layer toggles", () => {
 		const setup = setupFrom({
-			calendarViewSettings: { defaultShowDue: false, defaultShowTimeblocks: false },
+			calendarViewSettings: { defaultShowDue: false, enableTimeblocking: true },
 		});
 		expect(setup.calendar.due).toBe(false);
-		expect(setup.calendar.timeblocks).toBe(false);
+		expect(setup.calendar.timeblocks).toBe(true);
 		expect(setup.calendar.scheduled).toBe(true);
+	});
+
+	it("keeps statuses in TaskNotes' configured order, not file order", () => {
+		const setup = setupFrom({
+			customStatuses: [
+				{ value: "done", label: "Done", isCompleted: true, order: 2 },
+				{ value: "open", label: "Open", isCompleted: false, order: 1 },
+			],
+		});
+		expect(setup.statuses.map((s) => s.value)).toEqual(["open", "done"]);
+	});
+
+	it("gives a timed task an hour when TaskNotes' default estimate is 0", () => {
+		// TaskNotes ships defaultTimeEstimate: 0, which is not a drawable length.
+		expect(setupFrom({ defaultTimeEstimate: 0 }).defaultTimeEstimate).toBe(60);
+		expect(setupFrom({ defaultTimeEstimate: 25 }).defaultTimeEstimate).toBe(25);
 	});
 });
 
@@ -514,6 +541,27 @@ describe("completionEdit", () => {
 			false,
 		);
 		expect(edit).toEqual({ complete_instances: ["2026-08-17"] });
+	});
+
+	it("skips TaskNotes' placeholder \"none\" status when reopening a task", () => {
+		// "none" means "no status set" — reopening into it would hide the task
+		// from TaskNotes' own status-filtered views.
+		expect(completionEdit(setup, task({ status: "done", done: true }), "2026-08-10", false)).toMatchObject(
+			{ status: "open" },
+		);
+	});
+
+	it("never writes a status TaskNotes doesn't define", () => {
+		const custom = setupFrom({
+			customStatuses: [
+				{ value: "todo", label: "To do", isCompleted: false, order: 0 },
+				{ value: "shipped", label: "Shipped", isCompleted: true, order: 1 },
+			],
+		});
+		expect(completionEdit(custom, task(), "2026-08-10", true)).toMatchObject({ status: "shipped" });
+		expect(
+			completionEdit(custom, task({ status: "shipped", done: true }), "2026-08-10", false),
+		).toMatchObject({ status: "todo" });
 	});
 
 	it("moves a one-off task's status to TaskNotes' own completed status", () => {
