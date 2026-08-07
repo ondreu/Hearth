@@ -15,6 +15,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Choose what a calendar entry shows.** A new **Entry details** section in the
+  calendar card's settings (agenda layout) switches each chip on an entry on or
+  off: the time, the calendar name, and — with TaskNotes as a source — the
+  task's status, its priority, and the due / recurring / timeblock markers. On a
+  narrow card the markers competed with the title itself; now every card shows
+  only what earns its space. Existing cards are unchanged: everything the agenda
+  already showed stays on, and the status chip (new, and only available here) is
+  off until asked for.
 - **TaskNotes as a calendar source.** A calendar card can now pick up your
   TaskNotes calendar and show it as a calendar card: scheduled tasks (sized by
   their time estimate), due dates, recurring tasks unrolled into one entry per

@@ -257,7 +257,12 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   renamed frontmatter fields, custom statuses and priorities (and their
   colours), and the tag-or-property rule that marks a note as a task all
   carry over; each layer starts from whatever TaskNotes itself is showing and
-  can be overridden per card. Entries colour by status, priority or one fixed
+  can be overridden per card.
+
+  **Entry details** decides what each agenda entry shows beside its title —
+  the time, the calendar name, and (with TaskNotes on) status, priority and the
+  due / recurring / timeblock markers — so a narrow card can show only what
+  earns its space. Entries colour by status, priority or one fixed
   colour, completed tasks show struck through, and a checkbox on each task
   completes it straight from the calendar — writing exactly what TaskNotes
   writes, including per-occurrence completion for recurring tasks. Clicking one

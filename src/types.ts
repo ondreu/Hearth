@@ -341,6 +341,35 @@ export interface CalendarConfig {
 	 * instances, timeblocks and TaskNotes' own calendar subscriptions, drawn on
 	 * this card alongside any ICS feeds. Off unless `enabled`. */
 	taskNotes?: TaskNotesSourceConfig;
+	/** Which chips each agenda entry shows. Omitted (or an omitted field) keeps
+	 * the default set. */
+	chips?: CalendarChipConfig;
+}
+
+
+/**
+ * The chips an agenda entry can carry beside its title, each switchable so a
+ * narrow card can show only what earns its space.
+ *
+ * Every field is `false`-to-hide: undefined means "default", which is on for
+ * everything the card has always shown, and off for `status` (a chip that only
+ * exists because it can be asked for).
+ */
+export interface CalendarChipConfig {
+	/** The entry's start time (or "All day") in the left column. */
+	time?: boolean;
+	/** The source calendar's name — only ever shown with more than one source. */
+	source?: boolean;
+	/** A TaskNotes task's status, e.g. "In progress". Off by default. */
+	status?: boolean;
+	/** A TaskNotes task's priority, e.g. "High". */
+	priority?: boolean;
+	/** The "Due" marker on a due-date entry. */
+	due?: boolean;
+	/** The "Timeblock" marker on a timeblock. */
+	timeblock?: boolean;
+	/** The "Recurring" marker on a repeating task. */
+	recurring?: boolean;
 }
 
 
@@ -387,6 +416,27 @@ export interface TaskNotesSourceConfig {
 	/** Offer completing a task straight from the event popup. Default true. */
 	allowComplete?: boolean;
 }
+
+/** Every chip an agenda entry can carry, resolved to a plain on/off. */
+export type ResolvedChips = Required<CalendarChipConfig>;
+
+
+/** Which chips a calendar card's agenda entries show. Everything the agenda has
+ * always shown defaults to on; `status` is a chip that only exists because it
+ * can be asked for, so it defaults to off and an existing card is unchanged. */
+export function calendarChips(cfg: CalendarChipConfig | undefined): ResolvedChips {
+	const c = cfg ?? {};
+	return {
+		time: c.time !== false,
+		source: c.source !== false,
+		status: c.status === true,
+		priority: c.priority !== false,
+		due: c.due !== false,
+		timeblock: c.timeblock !== false,
+		recurring: c.recurring !== false,
+	};
+}
+
 
 /** Per-card configuration for a "search" (query) card. */
 export interface SavedSearchConfig {
