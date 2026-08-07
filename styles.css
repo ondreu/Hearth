@@ -1623,6 +1623,45 @@
 	line-height: 1.5;
 }
 
+/* Keep the raw editor invisible as a *form field* (#160). The `background:
+ * transparent` above is a bare class selector, so it loses to Obsidian's and a
+ * theme's own textarea rules — `body.is-mobile textarea`, and the hover/active
+ * states — which paint `--background-modifier-form-field`. The visible result
+ * was a grey box appearing under the text the moment you double-clicked a note
+ * to edit it. Same reasoning as the focus-ring guard near the end of this file:
+ * this control owns its own surface (it stands in for the rendered preview),
+ * whatever a theme writes. Focus outline/box-shadow are handled there. */
+.hearth-text,
+.hearth-text:hover,
+.hearth-text:active,
+.hearth-text:focus {
+	background: transparent !important;
+	border: none !important;
+}
+
+/* Live-preview note card: Obsidian's real editor hosted in the card body. The
+ * generic `.hearth-leaf-host` rules already make the pane transparent and drop
+ * the view header; what's left is the editor's own page chrome, which is sized
+ * for a full-width tab.
+ *
+ * The two knobs are Obsidian's own editor variables rather than rules aimed at
+ * CodeMirror's internals, so they keep working as that markup changes:
+ * `--file-margins` replaces the wide page padding with the card's own gutter,
+ * and `--file-line-width` drops the readable-line-length cap, which would
+ * otherwise centre a narrow column inside an already-narrow card. */
+.hearth-jot-live {
+	--file-margins: var(--hearth-card-pad-x, 14px);
+	--file-line-width: 100%;
+}
+
+/* The inline title and property table repeat what the card already shows (its
+ * own header names the note, and the read-only embed strips frontmatter the same
+ * way), and on a small card they'd push the text itself out of sight. */
+.hearth-jot-live .inline-title,
+.hearth-jot-live .metadata-container {
+	display: none;
+}
+
 /* Calculator */
 .hearth-calc {
 	height: 100%;

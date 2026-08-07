@@ -2,7 +2,9 @@ import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
 import {
 	dailyNotesOptions,
 	emptyState,
+	livePreviewSetting,
 	renderEditableEmbed,
+	renderLivePreviewEmbed,
 	renderMarkdownFile,
 	todaysDailyNotePath,
 	watchedCardPath,
@@ -68,6 +70,7 @@ export function renderDaily(
 	}
 
 	if (card.editable) {
+		if (card.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
 		renderEditableEmbed(view, file, body, component);
 		return;
 	}
@@ -87,8 +90,11 @@ export function dailyEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			tg.setValue(card.editable ?? false).onChange((v) => {
 				card.editable = v || undefined;
 				ctx.opts.save();
+				// The live-preview choice below only exists while editing is on.
+				ctx.requestRender();
 			}),
 		);
+	if (card.editable) livePreviewSetting(ctx, containerEl, card);
 	new Setting(containerEl)
 		.setName(t().editors.daily.openButton)
 		.setDesc(t().editors.daily.openButtonDesc)

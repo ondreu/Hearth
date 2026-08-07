@@ -583,6 +583,9 @@ export interface EmbedView {
 	scale?: number;
 	/** Edit the embedded note's text in place instead of read-only (Markdown only). */
 	editable?: boolean;
+	/** Edit through Obsidian's own Live Preview editor rather than Hearth's plain
+	 * raw-Markdown box. Only meaningful together with `editable`. */
+	livePreview?: boolean;
 }
 
 /** A single tile inside a "links" (launchpad) card. */
@@ -675,6 +678,11 @@ export interface DashboardCard {
 	/** kind === "embed": edit the embedded note's text in place instead of
 	 * rendering it read-only. Only applies to Markdown notes. */
 	editable?: boolean;
+
+	/** kind === "embed" / "daily": when editing in place, use Obsidian's own
+	 * Live Preview editor (hosted in the card) instead of Hearth's plain
+	 * raw-Markdown box. Only meaningful together with `editable`. */
+	livePreview?: boolean;
 
 	/** kind === "embed": an optional second view the card can switch to. When it
 	 * carries a target, a switcher toggles the body between the primary embed

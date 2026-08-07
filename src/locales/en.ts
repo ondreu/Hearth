@@ -601,6 +601,11 @@ export const en = {
 			editable: "Editable",
 			editableDesc:
 				"Edit the embedded note's text in place (Markdown notes only).",
+			livePreview: "Live preview",
+			livePreviewDesc:
+				"Edit in Obsidian's own Live Preview editor instead of the plain " +
+				"raw-Markdown box, so formatting renders as you type. Off shows the " +
+				"raw Markdown source, edited on double-click.",
 			hideBaseHeader: "Hide base header",
 			hideBaseHeaderDesc:
 				"For embedded .base files, hide the Bases view's own toolbar (view switcher and filter/property controls) so only the results show.",
