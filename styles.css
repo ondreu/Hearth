@@ -1345,8 +1345,48 @@
 }
 
 /* Tasks card */
+
+/* A task list row is one line per task: the checkbox and title on the left, the
+   chips gathered at the right edge, and only the title yielding when there
+   isn't room for everything — it ellipsizes rather than wrapping the row (see
+   the `is-done` rule below for what a completed one looks like). */
+.hearth-task-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	/* Zero basis: a flex item is broken onto the next line by its *content*
+	   width, so a long title would wrap the row however freely it can shrink
+	   afterwards. With no basis to overflow it stays put and shrinks instead. */
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* The chips, held against the right edge. They keep their size until they alone
+   outgrow the row, at which point they wrap among themselves — the title is
+   already down to an ellipsis by then, and chips spilling past the card's edge
+   would be worse than a second line of them. */
+.hearth-task-metas {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 8px;
+	flex: 0 1 auto;
+	min-width: 0;
+	margin-left: auto;
+}
+
+/* A task with no chips at all shouldn't pay for the row's gap. */
+.hearth-task-metas:empty {
+	display: none;
+}
+
+/* The title takes only the width it needs, so anything drawn beside it (the
+   TaskNotes status chip, a Kanban card's column badge) sits against it rather
+   than being pushed to the far edge. */
 .hearth-task-text {
-	flex: 1;
+	flex: 0 1 auto;
+	min-width: 0;
 }
 
 .hearth-task.is-done .hearth-task-text {
@@ -3497,20 +3537,6 @@
    label rather than a field value. */
 .hearth-task-statuschip {
 	text-transform: capitalize;
-}
-
-/* The chip is left-aligned against the task title instead of drifting into the
-   right-hand chip cluster: the title stops filling the row, and the chip's auto
-   right margin pushes the priority and date chips to the far edge. The marker
-   class is set in renderTaskStatus() rather than matched with :has(), which is
-   avoided here for its broad selector-invalidation cost. */
-.hearth-task.has-statuschip .hearth-task-text {
-	flex: 0 1 auto;
-	min-width: 0;
-}
-
-.hearth-task.has-statuschip .hearth-task-statuschip {
-	margin-right: auto;
 }
 
 /* A completed task's status chip recedes with the rest of the row. */

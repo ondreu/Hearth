@@ -71,6 +71,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A task list keeps one task per line.** A task whose title didn't fit
+  alongside its chips broke across two or three lines — the checkbox alone on
+  one, the title on the next, its status, priority and dates on a third — so a
+  list of tasks with mixed title lengths read as a ragged block rather than a
+  list. A row now holds the checkbox and title (with the status chip beside it)
+  on the left and gathers every other chip at the right edge, and the title is
+  the only part that gives way: it ellipsizes instead of wrapping the row. This
+  is how the list already behaved with **Customize task fields** on; both modes
+  now match (#156).
 - **Task checkboxes are no longer clipped in embed, daily and jot cards.** A
   task list embedded in a card could have the left edge of its checkboxes cut
   off. Obsidian hangs a checkbox outside its list item by one and a half checkbox
