@@ -57,7 +57,14 @@ import {
 	type TaskNotesSetup,
 	type TaskNotesSubscription,
 } from "../tasknotes";
-import { type CalendarConfig, type DashboardCard, type TaskNotesSourceConfig } from "../types";
+import {
+	calendarChips,
+	type CalendarChipConfig,
+	type CalendarConfig,
+	type DashboardCard,
+	type ResolvedChips,
+	type TaskNotesSourceConfig,
+} from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -163,6 +170,8 @@ interface IcsContext {
 	readonly eventNote: EventNoteConfig | undefined;
 	/** The live TaskNotes source, or null when it's off/unavailable. */
 	readonly taskNotes: TaskNotesSource | null;
+	/** Which chips an entry may show, resolved from the card's config. */
+	readonly chips: ResolvedChips;
 	/** Register a redraw to run after a background fetch (or a write) resolves. */
 	onLoaded(cb: () => void): void;
 	/** Redraw now — used after a task is completed from the event popup. */
@@ -362,6 +371,7 @@ function buildIcsContext(
 		multiSource: sources.length + subs.length + (taskNotes ? 1 : 0) > 1,
 		eventNote: cfg.eventNote,
 		taskNotes,
+		chips: calendarChips(cfg.chips),
 		onLoaded: (cb) => {
 			redraw = cb;
 		},
@@ -978,6 +988,7 @@ function renderAgendaEvent(
 	ics: IcsContext,
 ): void {
 	const task = taskNotesMeta(ev);
+	const chips = ics.chips;
 	const row = parent.createDiv("hearth-agenda-event");
 	row.toggleClass("is-task", task !== null);
 	row.toggleClass("is-done", task?.done === true);
@@ -991,33 +1002,38 @@ function renderAgendaEvent(
 		bullet.style.setProperty("--ev-color", ics.eventColor(ev));
 	}
 
-	const time = row.createDiv("hearth-agenda-evtime");
-	time.setText(ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT"));
+	if (chips.time) {
+		const time = row.createDiv("hearth-agenda-evtime");
+		time.setText(ev.allDay ? t().cards.calendar.allDay : moment(new Date(ev.start)).format("LT"));
+	}
 
 	const body = row.createDiv("hearth-agenda-evbody");
 	body.createSpan({ cls: "hearth-agenda-evtitle", text: ev.summary || t().cards.calendar.untitledEvent });
 	if (task) {
-		if (task.kind === "due") {
+		if (chips.due && task.kind === "due") {
 			const badge = body.createSpan({
 				cls: "hearth-agenda-evbadge is-due",
 				text: t().cards.calendar.taskDue,
 			});
 			badge.style.setProperty("--ev-color", ics.eventColor(ev));
 		}
-		if (task.kind === "timeblock") {
+		if (chips.timeblock && task.kind === "timeblock") {
 			body.createSpan({
 				cls: "hearth-agenda-evbadge is-timeblock",
 				text: t().cards.calendar.taskTimeblock,
 			});
 		}
-		if (task.recurring) {
+		if (chips.recurring && task.recurring) {
 			body.createSpan({ cls: "hearth-agenda-evbadge", text: t().cards.tasks.recurring });
 		}
-		if (task.priorityLabel) {
+		if (chips.status && task.statusLabel) {
+			body.createSpan({ cls: "hearth-agenda-evbadge", text: task.statusLabel });
+		}
+		if (chips.priority && task.priorityLabel) {
 			body.createSpan({ cls: "hearth-agenda-evbadge", text: task.priorityLabel });
 		}
 	}
-	if (ics.multiSource) {
+	if (chips.source && ics.multiSource) {
 		const label = ics.label(ev.sourceId);
 		if (label) body.createSpan({ cls: "hearth-agenda-evbadge", text: label });
 	}
@@ -1139,8 +1155,93 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			});
 	}
 
+	calendarChipsEditor(ctx, containerEl, cfg);
 	taskNotesSourceEditor(ctx, containerEl, cfg);
 	calendarSourcesEditor(ctx, containerEl, cfg);
+}
+
+
+/** The "Entry details" section: pick which chips each agenda entry carries.
+ * On a narrow card the markers can crowd out the title, and not every vault
+ * wants a priority or a calendar name on every line — so each is switchable.
+ * The task-only chips are offered only when TaskNotes is a source, since
+ * nothing else produces them. */
+export function calendarChipsEditor(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: CalendarConfig,
+): void {
+	const strings = t().editors.calendar;
+	// The chips only appear in the agenda layout; the month grid draws dots.
+	if (cfg.view !== "agenda") return;
+
+	new Setting(containerEl).setName(strings.chipsHeading).setHeading();
+	new Setting(containerEl).setDesc(strings.chipsDesc);
+
+	const chips = (cfg.chips ??= {});
+	const toggle = (
+		name: string,
+		desc: string,
+		read: () => boolean,
+		write: (on: boolean) => void,
+	): void => {
+		new Setting(containerEl)
+			.setName(name)
+			.setDesc(desc)
+			.addToggle((tg) =>
+				tg.setValue(read()).onChange((v) => {
+					write(v);
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	};
+
+	toggle(
+		strings.chipTime,
+		strings.chipTimeDesc,
+		() => chips.time !== false,
+		(on) => (chips.time = on ? undefined : false),
+	);
+	toggle(
+		strings.chipSource,
+		strings.chipSourceDesc,
+		() => chips.source !== false,
+		(on) => (chips.source = on ? undefined : false),
+	);
+
+	if (cfg.taskNotes?.enabled !== true) return;
+
+	toggle(
+		strings.chipStatus,
+		strings.chipStatusDesc,
+		() => chips.status === true,
+		(on) => (chips.status = on || undefined),
+	);
+	toggle(
+		strings.chipPriority,
+		strings.chipPriorityDesc,
+		() => chips.priority !== false,
+		(on) => (chips.priority = on ? undefined : false),
+	);
+	toggle(
+		strings.chipDue,
+		strings.chipDueDesc,
+		() => chips.due !== false,
+		(on) => (chips.due = on ? undefined : false),
+	);
+	toggle(
+		strings.chipRecurring,
+		strings.chipRecurringDesc,
+		() => chips.recurring !== false,
+		(on) => (chips.recurring = on ? undefined : false),
+	);
+	toggle(
+		strings.chipTimeblock,
+		strings.chipTimeblockDesc,
+		() => chips.timeblock !== false,
+		(on) => (chips.timeblock = on ? undefined : false),
+	);
 }
 
 
@@ -1764,6 +1865,7 @@ export const calendarCard: CardDefinition<"calendar"> = {
 				...source.calendar,
 				sources: source.calendar.sources ? source.calendar.sources.map((s) => ({ ...s })) : undefined,
 				taskNotes: source.calendar.taskNotes ? { ...source.calendar.taskNotes } : undefined,
+				chips: source.calendar.chips ? { ...source.calendar.chips } : undefined,
 				eventNote: source.calendar.eventNote
 					? {
 							...source.calendar.eventNote,
