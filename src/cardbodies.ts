@@ -44,10 +44,15 @@ export interface Moment {
 	year(): number;
 	diff(other: Moment, unit?: string): number;
 	valueOf(): number;
+	/** False when the input didn't parse (used for strict format parsing). */
+	isValid(): boolean;
 }
 
 interface MomentFn {
 	(input?: Date | string): Moment;
+	/** Strict parse against an explicit format — how a daily note's date is
+	 * recovered from its filename. */
+	(input: string, format: string, strict?: boolean): Moment;
 	localeData(): { firstDayOfWeek(): number };
 }
 

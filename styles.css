@@ -2608,6 +2608,45 @@
 	background: var(--background-modifier-hover);
 }
 
+/* TaskNotes entries in the agenda: a completion box in place of the bullet,
+   markers for a due date / timeblock, and a struck-through, faded row once the
+   task (or, for a recurring task, this occurrence) is complete. */
+.hearth-agenda-evcheck {
+	flex: 0 0 auto;
+	align-self: center;
+	margin: 0;
+	width: 12px;
+	height: 12px;
+	accent-color: var(--ev-color, var(--interactive-accent));
+	cursor: pointer;
+}
+
+.hearth-agenda-event.is-done .hearth-agenda-evtitle {
+	text-decoration: line-through;
+	color: var(--text-faint);
+}
+
+.hearth-agenda-event.is-done .hearth-agenda-evtime {
+	opacity: 0.6;
+}
+
+.hearth-agenda-evbadge.is-due {
+	color: var(--text-on-accent);
+	background: var(--ev-color, var(--color-red));
+}
+
+.hearth-agenda-evbadge.is-timeblock {
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	background: transparent;
+}
+
+/* A completed task's day-grid dot fades, so a busy day still reads as what is
+   left to do. */
+.hearth-calendar-evdot.is-done {
+	opacity: 0.4;
+}
+
 /* Event details modal (opened from a calendar day picker or agenda event) */
 .hearth-event-modal .modal-content {
 	padding-top: 4px;

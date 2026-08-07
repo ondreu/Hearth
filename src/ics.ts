@@ -45,6 +45,10 @@ export interface IcsEvent {
 	rrule: string | null;
 	/** Epoch ms of excluded occurrence starts (EXDATE). */
 	exdates: number[];
+	/** Opaque payload for events synthesised by a non-ICS provider (currently
+	 * the TaskNotes source), carried onto every occurrence so the card can
+	 * recognise and style them. Never set by the ICS parser. */
+	meta?: unknown;
 }
 
 /** A parsed calendar: its display name plus its events. */
@@ -68,6 +72,8 @@ export interface IcsOccurrence {
 	allDay: boolean;
 	/** Filled by the caller: which configured source this came from. */
 	sourceId?: string;
+	/** The originating event's provider payload (see `IcsEvent.meta`). */
+	meta?: unknown;
 }
 
 interface CacheEntry {
@@ -337,6 +343,7 @@ export function expandEvents(
 					start,
 					end,
 					allDay: ev.allDay,
+					meta: ev.meta,
 				});
 			}
 		};

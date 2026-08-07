@@ -15,6 +15,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **TaskNotes as a calendar source.** A calendar card can now pick up your
+  TaskNotes calendar and show it as a calendar card: scheduled tasks (sized by
+  their time estimate), due dates, recurring tasks unrolled into one entry per
+  occurrence, timeblocks from daily notes, and the ICS calendars subscribed
+  inside TaskNotes itself. Everything is read the way TaskNotes reads it — its
+  field mapping, its tag-or-property rule for what counts as a task, its custom
+  statuses and priorities with their colours — and each layer defaults to
+  whatever TaskNotes' own calendar is showing, so switching the source on
+  mirrors your existing setup. Per card you can override any layer, hide
+  completed or archived tasks, colour entries by status, priority or one fixed
+  colour, and give due dates and timeblocks their own colours. Completed tasks
+  show struck through with a faded day dot; a checkbox on each agenda entry
+  completes it in place (per-occurrence for recurring tasks, exactly as
+  TaskNotes records it), and the event popup shows the task's status, priority,
+  contexts, projects and estimate with an **Open task** button that hands off to
+  TaskNotes' own editor.
+
 - **Choose where Hearth opens notes.** Settings → Hearth → Behaviour → **Opening
   notes** has a single **Open notes in** choice that governs every note Hearth
   opens: **a new tab** (what it has always done), **the current tab**, which

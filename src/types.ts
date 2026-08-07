@@ -337,6 +337,55 @@ export interface CalendarConfig {
 	/** How the "Create note" action in the event modal builds a note from an
 	 * event (template, filename, per-field routing). */
 	eventNote?: EventNoteConfig;
+	/** TaskNotes as an event source: scheduled tasks, due dates, recurring
+	 * instances, timeblocks and TaskNotes' own calendar subscriptions, drawn on
+	 * this card alongside any ICS feeds. Off unless `enabled`. */
+	taskNotes?: TaskNotesSourceConfig;
+}
+
+
+/**
+ * Per-card configuration for the TaskNotes calendar source.
+ *
+ * Every layer toggle is tri-state on purpose: left undefined it follows
+ * TaskNotes' own calendar settings, so a card that was simply switched on
+ * mirrors whatever the user already configured inside TaskNotes. Setting one
+ * here overrides that for this card only.
+ */
+export interface TaskNotesSourceConfig {
+	/** Master switch. Off (the default) means the card reads no TaskNotes data
+	 * at all — not even the plugin's settings. */
+	enabled?: boolean;
+	/** Draw tasks on their `scheduled` date, sized by their time estimate. */
+	scheduled?: boolean;
+	/** Draw tasks on their `due` date. */
+	due?: boolean;
+	/** Unroll recurring tasks into one entry per occurrence. Off draws only the
+	 * task's anchor date. */
+	recurring?: boolean;
+	/** Draw timeblocks written into daily-note frontmatter. */
+	timeblocks?: boolean;
+	/** Include tasks whose status counts as complete (shown struck through).
+	 * Default true — TaskNotes shows them too. */
+	completed?: boolean;
+	/** Include tasks carrying TaskNotes' archive tag. Default false. */
+	archived?: boolean;
+	/** Also overlay the ICS calendars subscribed inside TaskNotes, so both
+	 * plugins show the same feeds without re-entering the URLs. Default true. */
+	subscriptions?: boolean;
+	/** Where an entry's colour comes from: its TaskNotes status colour
+	 * (default), its priority colour, or the fixed colour below. */
+	colorBy?: "status" | "priority" | "fixed";
+	/** Colour used when `colorBy` is "fixed", and whenever the chosen source
+	 * defines none. */
+	color?: string;
+	/** Separate colour for due-date entries, so a deadline reads differently
+	 * from a scheduled block. */
+	dueColor?: string;
+	/** Colour for timeblocks that don't carry their own. */
+	timeblockColor?: string;
+	/** Offer completing a task straight from the event popup. Default true. */
+	allowComplete?: boolean;
 }
 
 /** Per-card configuration for a "search" (query) card. */
