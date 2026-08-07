@@ -1,3 +1,5 @@
+import type { EventNoteConfig } from "./eventnote";
+
 /** The kind of content a dashboard card renders. */
 export type CardKind =
 	| "embed"
@@ -18,7 +20,44 @@ export type CardKind =
 	| "calculator"
 	| "dataview"
 	| "rss"
+	| "jira"
 	| "leaf";
+
+/** A refinement control available on a Jira saved-filter card. */
+export type JiraControl =
+	| "status"
+	| "assignee"
+	| "priority"
+	| "issueType"
+	| "sprint"
+	| "fixVersion";
+
+/** Selected values for each Jira refinement control. Missing keys are unfiltered. */
+export type JiraSelections = Partial<Record<JiraControl, string[]>>;
+
+/** Per-card connection, saved-filter, refinement, and refresh settings for Jira. */
+export interface JiraConfig {
+	/** Jira origin, including http(s) scheme but no API path. */
+	host?: string;
+	/** Bearer personal access token. Stored in Obsidian plugin data. */
+	pat?: string;
+	/** Relative Jira REST base path. Default `/rest/api/latest`. */
+	apiBasePath?: string;
+	/** Jira saved-filter id. */
+	filterId?: string;
+	/** Saved display name for the chosen filter. */
+	filterName?: string;
+	/** Refinement controls shown above the issue list. */
+	controls?: JiraControl[];
+	/** Persisted multi-select refinements. */
+	selections?: JiraSelections;
+	/** Maximum issues shown by the refined query. Default 50. */
+	maxResults?: number;
+	/** Automatic refresh interval in minutes. 0 disables it. */
+	refreshMin?: number;
+	/** In-memory request cache interval in minutes. Default 5. */
+	cacheMin?: number;
+}
 
 /** A single command tile inside a "commands" card. */
 export interface CommandItem {
@@ -87,6 +126,73 @@ export interface TaskFilterConfig {
 	due?: TaskDueFilter;
 	/** Case-insensitive substring the task text must contain. */
 	text?: string;
+}
+
+/**
+ * How a value is drawn on a task.
+ *
+ * The first three put something on the row: a filled chip, a bare coloured dot
+ * (the value moves to the tooltip), or plain text. The last two put nothing
+ * there at all and colour the whole task instead — `hue` tints its background,
+ * `glow` rings it — so a board can be read at a glance without any single row
+ * having to be read at all.
+ */
+export type TaskFieldStyle = "pill" | "dot" | "text" | "hue" | "glow";
+
+/** One value → what to show for it. Matching is case-insensitive on the
+ * trimmed raw value. A value with no entry here still renders — as itself,
+ * uncoloured — so a status nobody mapped yet is visible rather than lost. */
+export interface TaskValueMap {
+	/** The raw value to match (a frontmatter value, a status, a priority key). */
+	match: string;
+	/** Shown instead of the raw value. Empty shows the raw value. */
+	label?: string;
+	/** Any CSS colour for this value's chip or dot. */
+	color?: string;
+}
+
+/** One source a field reads. `source` is either `fm:<property>` for a
+ * frontmatter property or `builtin:<id>` for something Hearth parses itself
+ * (see `TASK_BUILTIN_SOURCES`). Every key with a value renders. */
+export interface TaskFieldKey {
+	source: string;
+	/** Per-value display overrides.
+	 *
+	 * A date key stores its three relations here instead of literal values —
+	 * `<today`, `today` and `>today` — because a date has no discrete values to
+	 * enumerate, only a position relative to now. */
+	values?: TaskValueMap[];
+	/** Treat this key's value as a date: show it as a relative label
+	 * ("Tomorrow"), colour it by its relation to today, and edit it with a
+	 * calendar rather than a list. Implied for the built-in date sources; a
+	 * frontmatter property has to say so, since Hearth can't know a property
+	 * holds a date rather than text that looks like one. */
+	isDate?: boolean;
+}
+
+/**
+ * A field on a task, defined entirely by the user: what it is called, how it is
+ * drawn, and which keys feed it. Fields render in list order, and within a
+ * field each key renders in its own order.
+ *
+ * Only used while task-field customization is on; with it off the card falls
+ * back to the fixed metadata it has always rendered (see `src/taskfields.ts`).
+ */
+export interface TaskFieldDef {
+	/** Stable id, so the editor can address a field while it is renamed. */
+	id: string;
+	/** The user's name for the field. Shown in the editor, and on the task
+	 * itself only when `showName` is on. */
+	name: string;
+	/** Prefix each of this field's chips with the field name. */
+	showName?: boolean;
+	/** How this field's values are drawn. Default "pill". */
+	display?: TaskFieldStyle;
+	/** For the `hue` and `glow` styles: how strongly the colour is applied, 1-100.
+	 * Unset uses a subdued default — strong enough to read across a board,
+	 * light enough to leave the text legible. Ignored by the other styles. */
+	opacity?: number;
+	keys: TaskFieldKey[];
 }
 
 export interface TasksConfig {
@@ -168,6 +274,15 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
+	/** Give this card its own field list instead of following the global one
+	 * from Settings → Hearth → Integrations. Off by default: a card follows the
+	 * global list. Only consulted while the global `taskFieldsEnabled` master
+	 * switch is on. */
+	taskFieldsEnabled?: boolean;
+	/** This card's own fields, replacing the global list. Only used when
+	 * `taskFieldsEnabled` is on for the card. An empty list is meaningful — it
+	 * shows tasks with no metadata at all. */
+	taskFields?: TaskFieldDef[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
 	/** Max tasks shown, soonest/overdue due date first. Default 10. */
@@ -185,15 +300,143 @@ export interface TasksConfig {
 	kanbanDoneColumns?: string[];
 }
 
+/** An external calendar (ICS/iCal) subscription a "calendar" card overlays on
+ * top of its daily-note grid. `url` is an http(s)/webcal `.ics` address; `color`
+ * tints the source's event dots and chips; `name` labels it in the editor. */
+export interface IcsSource {
+	id: string;
+	/** Display label for the source (editor list + agenda badges). */
+	name: string;
+	/** ICS feed URL (http/https/webcal). */
+	url: string;
+	/** CSS color for this source's events. Falls back to the accent color. */
+	color?: string;
+	/** Temporarily hide this source's events without deleting it. */
+	enabled?: boolean;
+}
+
 /** Per-card configuration for a "calendar" card. */
 export interface CalendarConfig {
+	/** Layout: "month" (default) renders the month grid; "agenda" renders a
+	 * chronological list of upcoming days. */
+	view?: "month" | "agenda";
+	/** Agenda view only: how many days ahead to list (including today).
+	 * Default 14. */
+	agendaDays?: number;
 	/** Show an ISO week-number column down the left edge. */
 	showWeekNumbers?: boolean;
 	/** Tint each day by note activity that day (a heatmap). */
 	heatmap?: boolean;
 	/** Which timestamp the heatmap counts. Default "modified". */
 	heatmapMetric?: "modified" | "created";
+	/** External ICS calendars overlaid on the card. */
+	sources?: IcsSource[];
+	/** Auto-refresh interval for external calendars, in minutes. 0 (or omitted →
+	 * default 60) refreshes only when the card is (re)opened or manually. */
+	refreshMin?: number;
+	/** How the "Create note" action in the event modal builds a note from an
+	 * event (template, filename, per-field routing). */
+	eventNote?: EventNoteConfig;
+	/** TaskNotes as an event source: scheduled tasks, due dates, recurring
+	 * instances, timeblocks and TaskNotes' own calendar subscriptions, drawn on
+	 * this card alongside any ICS feeds. Off unless `enabled`. */
+	taskNotes?: TaskNotesSourceConfig;
+	/** Which chips each agenda entry shows. Omitted (or an omitted field) keeps
+	 * the default set. */
+	chips?: CalendarChipConfig;
 }
+
+
+/**
+ * The chips an agenda entry can carry beside its title, each switchable so a
+ * narrow card can show only what earns its space.
+ *
+ * Every field is `false`-to-hide: undefined means "default", which is on for
+ * everything the card has always shown, and off for `status` (a chip that only
+ * exists because it can be asked for).
+ */
+export interface CalendarChipConfig {
+	/** The entry's start time (or "All day") in the left column. */
+	time?: boolean;
+	/** The source calendar's name — only ever shown with more than one source. */
+	source?: boolean;
+	/** A TaskNotes task's status, e.g. "In progress". Off by default. */
+	status?: boolean;
+	/** A TaskNotes task's priority, e.g. "High". */
+	priority?: boolean;
+	/** The "Due" marker on a due-date entry. */
+	due?: boolean;
+	/** The "Timeblock" marker on a timeblock. */
+	timeblock?: boolean;
+	/** The "Recurring" marker on a repeating task. */
+	recurring?: boolean;
+}
+
+
+/**
+ * Per-card configuration for the TaskNotes calendar source.
+ *
+ * Every layer toggle is tri-state on purpose: left undefined it follows
+ * TaskNotes' own calendar settings, so a card that was simply switched on
+ * mirrors whatever the user already configured inside TaskNotes. Setting one
+ * here overrides that for this card only.
+ */
+export interface TaskNotesSourceConfig {
+	/** Master switch. Off (the default) means the card reads no TaskNotes data
+	 * at all — not even the plugin's settings. */
+	enabled?: boolean;
+	/** Draw tasks on their `scheduled` date, sized by their time estimate. */
+	scheduled?: boolean;
+	/** Draw tasks on their `due` date. */
+	due?: boolean;
+	/** Unroll recurring tasks into one entry per occurrence. Off draws only the
+	 * task's anchor date. */
+	recurring?: boolean;
+	/** Draw timeblocks written into daily-note frontmatter. */
+	timeblocks?: boolean;
+	/** Include tasks whose status counts as complete (shown struck through).
+	 * Default true — TaskNotes shows them too. */
+	completed?: boolean;
+	/** Include tasks carrying TaskNotes' archive tag. Default false. */
+	archived?: boolean;
+	/** Also overlay the ICS calendars subscribed inside TaskNotes, so both
+	 * plugins show the same feeds without re-entering the URLs. Default true. */
+	subscriptions?: boolean;
+	/** Where an entry's colour comes from: its TaskNotes status colour
+	 * (default), its priority colour, or the fixed colour below. */
+	colorBy?: "status" | "priority" | "fixed";
+	/** Colour used when `colorBy` is "fixed", and whenever the chosen source
+	 * defines none. */
+	color?: string;
+	/** Separate colour for due-date entries, so a deadline reads differently
+	 * from a scheduled block. */
+	dueColor?: string;
+	/** Colour for timeblocks that don't carry their own. */
+	timeblockColor?: string;
+	/** Offer completing a task straight from the event popup. Default true. */
+	allowComplete?: boolean;
+}
+
+/** Every chip an agenda entry can carry, resolved to a plain on/off. */
+export type ResolvedChips = Required<CalendarChipConfig>;
+
+
+/** Which chips a calendar card's agenda entries show. Everything the agenda has
+ * always shown defaults to on; `status` is a chip that only exists because it
+ * can be asked for, so it defaults to off and an existing card is unchanged. */
+export function calendarChips(cfg: CalendarChipConfig | undefined): ResolvedChips {
+	const c = cfg ?? {};
+	return {
+		time: c.time !== false,
+		source: c.source !== false,
+		status: c.status === true,
+		priority: c.priority !== false,
+		due: c.due !== false,
+		timeblock: c.timeblock !== false,
+		recurring: c.recurring !== false,
+	};
+}
+
 
 /** Per-card configuration for a "search" (query) card. */
 export interface SavedSearchConfig {
@@ -213,6 +456,75 @@ export interface HeatmapConfig {
 	metric?: "modified" | "created";
 	/** How many weeks back to show. Default 26. */
 	weeks?: number;
+}
+
+/** The built-in vault statistics a "stats" card can show. */
+export type StatId =
+	| "notes"
+	| "attachments"
+	| "folders"
+	| "tags"
+	| "dayStreak"
+	| "daysUsing";
+
+/** The built-in stats in their default display order — the fixed layout a
+ * "stats" card has always shown, kept in one place so a card with no advanced
+ * config renders exactly as before. Newer optional stats (see ALL_STATS) are
+ * deliberately excluded so the default card is unchanged. */
+export const DEFAULT_STATS: StatId[] = [
+	"notes",
+	"attachments",
+	"folders",
+	"tags",
+	"dayStreak",
+];
+
+/** Every selectable built-in stat, in editor/display order. Extends
+ * DEFAULT_STATS with opt-in stats a user can turn on in advanced mode. Must
+ * begin with DEFAULT_STATS in the same order so "all defaults selected" round
+ * trips back to the unconfigured (undefined) state. */
+export const ALL_STATS: StatId[] = [...DEFAULT_STATS, "daysUsing"];
+
+/** Lucide icon id (Obsidian setIcon) for each built-in stat. Shared by the card
+ * renderer and its editor so the tile icon and the editor chip never drift. */
+export const STAT_ICONS: Record<StatId, string> = {
+	notes: "file-text",
+	attachments: "paperclip",
+	folders: "folder",
+	tags: "tag",
+	dayStreak: "flame",
+	daysUsing: "calendar-clock",
+};
+
+/** A user-defined stat tile that counts the files matching a query. */
+export interface StatsQuery {
+	/** Stable id, used by the editor to reorder/remove without index churn. */
+	id: string;
+	/** Label under the count. Falls back to the query text when empty. */
+	label?: string;
+	/** Lucide icon id (Obsidian setIcon). Defaults to "hash". */
+	icon?: string;
+	/** The query, same syntax as the search bar: `#tag`, `key:value`, or plain
+	 * text for names/paths. */
+	query: string;
+}
+
+/** Per-card configuration for a "stats" (vault statistics) card. The card shows
+ * its default fixed set of tiles until `advanced` is turned on, which unlocks
+ * choosing which built-in stats appear, breaking attachments out into per
+ * file-type tiles (images, PDFs, …), and adding custom query counts. */
+export interface StatsConfig {
+	/** Opt into the advanced controls. Off (default) => the fixed default set,
+	 * ignoring every other field here. */
+	advanced?: boolean;
+	/** Which built-in stats to show, in order. Undefined => DEFAULT_STATS. Only
+	 * consulted when `advanced` is on. */
+	builtins?: StatId[];
+	/** File-type group ids (see FILE_TYPE_GROUPS) to show as their own count
+	 * tiles — the attachment breakdown. Only consulted when `advanced` is on. */
+	attachmentTypes?: string[];
+	/** User-defined query-count tiles. Only consulted when `advanced` is on. */
+	queries?: StatsQuery[];
 }
 
 /** On-screen keypad tier for a calculator card. "none" hides the pad (just the
@@ -313,7 +625,11 @@ export interface RssConfig {
 export interface ClockConfig {
 	/** Digital (default) or analogue clock face. */
 	mode?: "digital" | "analog";
-	/** Use 24-hour time instead of the locale default. */
+	/** Time format: "auto" follows the locale default, "12"/"24" force a
+	 * 12- or 24-hour clock regardless of locale. Default "auto". */
+	hourFormat?: "auto" | "12" | "24";
+	/** @deprecated Superseded by `hourFormat`. Kept for migration only:
+	 * `true` maps to `hourFormat: "24"`. */
 	use24Hour?: boolean;
 	/** Show seconds in the time. */
 	showSeconds?: boolean;
@@ -366,6 +682,9 @@ export interface EmbedView {
 	scale?: number;
 	/** Edit the embedded note's text in place instead of read-only (Markdown only). */
 	editable?: boolean;
+	/** Edit through Obsidian's own Live Preview editor rather than Hearth's plain
+	 * raw-Markdown box. Only meaningful together with `editable`. */
+	livePreview?: boolean;
 }
 
 /** A single tile inside a "links" (launchpad) card. */
@@ -432,12 +751,17 @@ export interface DashboardCard {
 	savedSearch?: SavedSearchConfig;
 	/** kind === "heatmap": metric and range. */
 	heatmap?: HeatmapConfig;
+	/** kind === "stats": which stats to show, attachment breakdown and custom
+	 * query counts (all gated behind the config's `advanced` flag). */
+	stats?: StatsConfig;
 	/** kind === "calculator": angle unit, last input and history. */
 	calculator?: CalculatorConfig;
 	/** kind === "dataview": the query text and language. */
 	dataview?: DataviewConfig;
 	/** kind === "rss": feed sources, layout and refresh options. */
 	rss?: RssConfig;
+	/** kind === "jira": connection, saved filter, and refinement options. */
+	jira?: JiraConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 
@@ -453,6 +777,11 @@ export interface DashboardCard {
 	/** kind === "embed": edit the embedded note's text in place instead of
 	 * rendering it read-only. Only applies to Markdown notes. */
 	editable?: boolean;
+
+	/** kind === "embed" / "daily": when editing in place, use Obsidian's own
+	 * Live Preview editor (hosted in the card) instead of Hearth's plain
+	 * raw-Markdown box. Only meaningful together with `editable`. */
+	livePreview?: boolean;
 
 	/** kind === "embed": an optional second view the card can switch to. When it
 	 * carries a target, a switcher toggles the body between the primary embed
@@ -475,8 +804,12 @@ export interface DashboardCard {
 	 * free-form and may overlap. */
 	tileAutoFlow?: boolean;
 
-	/** kind === "daily": show a button that opens today's note in the editor.
-	 * Defaults to shown; set false to hide. */
+	/** Show a button that opens the card's file in the editor.
+	 *
+	 * The two cards that offer it default differently, because one of them
+	 * predates the other: on `kind === "daily"` the button is shown unless this
+	 * is `false`, while on `kind === "embed"` (added for #144) it is hidden
+	 * unless this is `true`, so no existing embed card sprouts a new control. */
 	showOpenButton?: boolean;
 
 	/** Show this card on every dashboard, sharing one definition and position
@@ -584,9 +917,69 @@ export interface Dashboard {
 	header?: DashboardHeaderConfig;
 	/** Show the dashboard search/command section (undefined = visible). */
 	showSearch?: boolean;
+	/** Name of a core-Workspace; loading that workspace auto-switches to this
+	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
+	linkedWorkspace?: string;
+	/** Marks this board as the one to open on phones/tablets. When Hearth loads
+	 * on mobile it switches to the first dashboard with this flag, so a board
+	 * tuned for a small screen can be the mobile default without being the
+	 * desktop default. Undefined/false = not a mobile default. */
+	mobileDefault?: boolean;
 }
 
 export type ChromeVisibility = "always" | "hover";
+
+/**
+ * Where Hearth puts a note when you open one from the home view.
+ *
+ * `"same"` reuses the tab Hearth itself is in, so the note replaces the home
+ * view exactly like clicking a link inside a normal editor tab (#106). The
+ * other three map straight onto Obsidian's own pane types — a new tab (the
+ * historical behaviour, and still the default), a split beside the current
+ * pane, or a separate window.
+ */
+export type OpenIn = "tab" | "same" | "split" | "window";
+
+/** Every {@link OpenIn} value, in the order the settings dropdown lists them. */
+export const OPEN_IN_MODES: readonly OpenIn[] = ["tab", "same", "split", "window"];
+
+/**
+ * The kinds of click that open a note, each of which can override the global
+ * choice:
+ *
+ * - `link` — a link inside a rendered note, a task, or the Links card
+ * - `search` — a result from the search bar or the Search card
+ * - `card` — a note listed by a card (Recent, Bookmarks, Favourites, Calendar,
+ *   Heatmap, Tasks) or by a mobile action button
+ * - `newNote` — a note Hearth has just created (new note, daily note, event
+ *   note), which is opened for editing straight away
+ */
+export type OpenSource = "link" | "search" | "card" | "newNote";
+
+/** Every {@link OpenSource}, in the order the settings tab lists them. */
+export const OPEN_SOURCES: readonly OpenSource[] = ["link", "search", "card", "newNote"];
+
+/** A per-source rule: an explicit destination, or `"default"` to follow the
+ * global {@link HomeSettings.openIn} choice. */
+export type OpenInRule = OpenIn | "default";
+
+/**
+ * What happens to a focused Hearth tab when a note is opened by something
+ * Hearth doesn't control — the file explorer, the quick switcher, the graph, or
+ * a view embedded in a card that opens links itself (an embedded Bases table).
+ *
+ * Obsidian makes that call, not Hearth: it reuses the focused tab when the view
+ * in it reports itself navigable, so this is expressed by flipping
+ * `View.navigation` rather than by picking a leaf. Only two outcomes are
+ * possible — Hearth is taken over (`"same"`) or it is left alone and the note
+ * goes to another tab (`"tab"`) — plus `"default"` to follow
+ * {@link HomeSettings.openIn}, where anything but "same tab" counts as leaving
+ * Hearth alone.
+ */
+export type OpenOutsideRule = "default" | "same" | "tab";
+
+/** Every {@link OpenOutsideRule}, in the order the settings dropdown lists. */
+export const OPEN_OUTSIDE_RULES: readonly OpenOutsideRule[] = ["default", "same", "tab"];
 
 export interface HomeSettings {
 	// ---- Header ----
@@ -594,6 +987,10 @@ export interface HomeSettings {
 	showTitle: boolean;
 	/** Emoji or short text shown as a logo next to the title. */
 	logo: string;
+	/** What follows the theme's icon color: nothing (brand-purple crystal and
+	 * normal title text, the historical look), the crystal icon, the title
+	 * text, or both. */
+	themeColorTarget: "none" | "icon" | "title" | "both";
 	searchPlaceholder: string;
 	showNewNoteButton: boolean;
 	/** What the single button beside the search bar does: create a new note, or
@@ -616,6 +1013,17 @@ export interface HomeSettings {
 	// ---- Behaviour ----
 	openOnStartup: boolean;
 	replaceNewTabs: boolean;
+	/** Place keyboard focus in the search field whenever a home view opens, so a
+	 * new Hearth tab can be typed into straight away without reaching for the
+	 * mouse. Desktop only — auto-focusing on mobile would pop the on-screen
+	 * keyboard on every open. */
+	focusSearchOnOpen: boolean;
+	/** Live-refresh open home views when the vault changes (files created,
+	 * modified, deleted or renamed), so cards like Recent, Bookmarks and saved
+	 * queries update without reopening the tab. Debounced, and skipped while a
+	 * board is being arranged. Off by default; a home view already refreshes
+	 * whenever the user switches back to its tab regardless of this setting. */
+	liveRefresh: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -625,10 +1033,24 @@ export interface HomeSettings {
 	/** Buttons shown in the mobile action bar. */
 	mobileActionButtons: MobileActionButton[];
 	/** Block all outbound network requests Hearth would otherwise make. The only
-	 * such request is the calculator's currency-rate fetch (the key-less,
-	 * ECB-backed Frankfurter API); with this on, currency conversions report that
-	 * rates are unavailable instead of reaching out. */
+	 * requests are configured live-content cards (including Jira) and the
+	 * calculator's key-less, ECB-backed currency-rate fetch. */
 	disableExternalCalls: boolean;
+
+	// ---- Opening notes ----
+	/** Where every note Hearth opens goes by default (#106). `"tab"` is the
+	 * historical behaviour. */
+	openIn: OpenIn;
+	/** Per-source exceptions to {@link openIn}. Every source defaults to
+	 * `"default"` (follow the global choice), so the single dropdown above is
+	 * enough for anyone who doesn't want the detail. */
+	openInOverrides: Record<OpenSource, OpenInRule>;
+	/** Whether a note opened from outside Hearth may take over a focused Hearth
+	 * tab. Defaults to `"same"` — the behaviour Hearth has had since #84, where
+	 * the dashboard acts like an ordinary tab and the file explorer's selection
+	 * tracks what you open. Deliberately *not* `"default"`: following the global
+	 * choice would flip this for everyone on upgrade. */
+	openFromOutside: OpenOutsideRule;
 
 	// ---- Appearance (layout density) ----
 	/** Tighten card and top-of-page spacing to enlarge the usable area. */
@@ -680,6 +1102,27 @@ export interface HomeSettings {
 	taskNotesPriorityField: string;
 	/** The status value that counts as "done". */
 	taskNotesDoneValue: string;
+	/** Master switch for task-field customization (off by default). While it is
+	 * off, every "tasks" card draws the fixed metadata it always has and the
+	 * per-card Fields controls stay hidden — so a vault that never goes looking
+	 * for this never sees it. Turning it on *replaces* that fixed rendering with
+	 * the fields defined below, which start empty: metadata is then shown only
+	 * because it was asked for. See `src/taskfields.ts`. */
+	taskFieldsEnabled: boolean;
+	/** The fields every "tasks" card shows, unless the card defines its own
+	 * (`TasksConfig.taskFieldsEnabled`). */
+	taskFields: TaskFieldDef[];
+
+	// ---- File icons / Iconic / Iconize ----
+	/** Show the per-file icons set with the Iconic or Iconize community plugins
+	 * wherever Hearth draws a file icon, instead of Hearth's file-type icon.
+	 * Harmless with neither plugin installed — there is simply nothing to read,
+	 * and every file keeps its type icon. */
+	customFileIcons: boolean;
+	/** Frontmatter property Iconize stores a note's icon in. Iconize lets the
+	 * user rename it, so — as with the TaskNotes fields above — this mirrors its
+	 * default rather than assuming nobody changed it. */
+	iconizeIconProperty: string;
 
 	// ---- Layout ----
 	maxWidth: number;
@@ -696,6 +1139,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	showTitle: true,
 	// Empty => the Hearth crystal icon is shown as the brand mark.
 	logo: "",
+	themeColorTarget: "none",
 	searchPlaceholder: "Search or command",
 	showNewNoteButton: true,
 	newNoteButtonMode: "newNote",
@@ -712,12 +1156,21 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 
 	openOnStartup: true,
 	replaceNewTabs: true,
+	focusSearchOnOpen: false,
+	liveRefresh: false,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
 	// and existing vaults aren't silently reset if the list is emptied.
 	mobileActionButtons: [],
 	disableExternalCalls: false,
+
+	// A new tab is what Hearth has always done; existing vaults must not change
+	// behaviour on upgrade, so both the global default and every per-source rule
+	// start out as "open a new tab".
+	openIn: "tab",
+	openInOverrides: { link: "default", search: "default", card: "default", newNote: "default" },
+	openFromOutside: "same",
 
 	compact: false,
 	arrangeButtonVisibility: "always",
@@ -748,6 +1201,14 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	taskNotesDueField: "due",
 	taskNotesPriorityField: "priority",
 	taskNotesDoneValue: "done",
+	taskFieldsEnabled: false,
+	taskFields: [],
+
+	// On by default: with neither icon plugin installed this changes nothing,
+	// and with one installed the icons the user already set are what they expect
+	// to see. "icon" is Iconize's own default property name.
+	customFileIcons: true,
+	iconizeIconProperty: "icon",
 
 	maxWidth: 1600,
 
@@ -828,26 +1289,6 @@ export function defaultMobileActionButtons(): MobileActionButton[] {
 /** Generate a unique dashboard id. */
 export function newDashboardId(): string {
 	return `dash-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`;
-}
-
-/** Deep-clone a card with a fresh id, so the copy can be added to a dashboard
- * (or a different one) without colliding with the original. */
-export function cloneCard(card: DashboardCard): DashboardCard {
-	const copy: DashboardCard = {
-		...card,
-		id: `card-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
-	};
-	if (card.links) copy.links = card.links.map((l) => ({ ...l }));
-	if (card.commands) copy.commands = card.commands.map((c) => ({ ...c }));
-	if (card.secondView) copy.secondView = { ...card.secondView };
-	if (card.tasks) copy.tasks = { ...card.tasks, folders: card.tasks.folders ? [...card.tasks.folders] : undefined, kanbanOrder: card.tasks.kanbanOrder ? [...card.tasks.kanbanOrder] : undefined, kanbanHidden: card.tasks.kanbanHidden ? [...card.tasks.kanbanHidden] : undefined, kanbanDoneColumns: card.tasks.kanbanDoneColumns ? [...card.tasks.kanbanDoneColumns] : undefined, kanbanColumnSort: card.tasks.kanbanColumnSort ? Object.fromEntries(Object.entries(card.tasks.kanbanColumnSort).map(([k, v]) => [k, { ...v }])) : undefined, sortRules: card.tasks.sortRules ? card.tasks.sortRules.map((r) => ({ ...r })) : undefined };
-	if (card.calendar) copy.calendar = { ...card.calendar };
-	if (card.savedSearch) copy.savedSearch = { ...card.savedSearch };
-	if (card.heatmap) copy.heatmap = { ...card.heatmap };
-	if (card.clock) copy.clock = { ...card.clock };
-	if (card.calculator) copy.calculator = { ...card.calculator };
-	if (card.dataview) copy.dataview = { ...card.dataview, columnWidths: card.dataview.columnWidths ? [...card.dataview.columnWidths] : undefined };
-	return copy;
 }
 
 /** The dashboard currently selected (falls back to the first one). */

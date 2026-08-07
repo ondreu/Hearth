@@ -1,14 +1,16 @@
 # Releasing Hearth
 
-Releases are cut **exclusively by pushing a git tag**. The
-[`Release Obsidian plugin`](.github/workflows/release.yml) workflow builds the
-plugin, attaches `main.js`, `manifest.json` and `styles.css` to a GitHub
-Release, and marks pre-releases correctly so the Obsidian community store keeps
-serving the right build to the right people.
+Releases are cut **exclusively by the
+[`Release Obsidian plugin`](.github/workflows/release.yml) workflow**, which
+builds the plugin, attaches `main.js`, `manifest.json` and `styles.css` to a
+GitHub Release, and marks pre-releases correctly so the Obsidian community store
+keeps serving the right build to the right people. The workflow has two entry
+points — a pushed tag or a manual dispatch — and both run every guard; see
+[How a release is cut](#how-a-release-is-cut).
 
 > **Never create a release by hand through the GitHub UI.** A manual release
 > skips the tag→manifest check, is created as "latest" by default, and — as has
-> happened — can push a beta to every stable user. Tags only.
+> happened — can push a beta to every stable user. The workflow only.
 
 ## Two channels: stable vs. beta
 
@@ -42,6 +44,18 @@ Hearth releases run as a **train**. `main` never freezes:
 4. While the beta soaks, the *next* version's features keep merging into `main`;
    they become the next beta line. Go to 2.
 
+Two rules define the train. Everything else in this document follows from them:
+
+> 1. **A beta is cut from current `main`.** Always — that is the only thing a
+>    beta ever is.
+> 2. **A stable is promoted from a beta that soaked**, unchanged. Always.
+>
+> Together they mean: **a beta cut today can never be promoted today.** Cutting
+> and promoting are two operations separated by the soak, never two halves of
+> one job. If the beta you would promote does not already exist and has not
+> already soaked, you are not doing a promotion — see
+> ["No soaked beta to promote?"](#no-soaked-beta-to-promote).
+
 Two consequences fall out of this and drive the rules below:
 
 - **At promotion time `main` is always ahead of the beta you're promoting.**
@@ -74,12 +88,49 @@ Tags like `1.8.1.4-beta` are **not valid semver** and Obsidian rejects them
 workflow never runs, `--prerelease` is never applied, and the release silently
 becomes "latest" for all users. Use `1.9.0-beta.4`, not `1.8.1.4-beta`.
 
+## How a release is cut
+
+The workflow has two entry points. Both run the identical guard chain
+(tag↔manifest, beta parity, plain-`x.y.z` store manifest), so neither is a way
+to "get around" a failing check — only the trigger differs.
+
+**1. Push the tag** (the default). The tag name **is** the version, no `v`
+prefix:
+
+```sh
+git tag 1.9.0-beta.1
+git push origin 1.9.0-beta.1
+```
+
+**2. Dispatch the workflow** — for when a tag push isn't available. Sandboxed
+environments (Claude Code on the web, and CI runners without tag-push rights)
+have their egress proxy reject `refs/tags/*` pushes with **HTTP 403**; that is
+policy, not a transient failure, so don't retry it. Run the workflow instead:
+
+- From the **Actions tab**: _Release Obsidian plugin_ → _Run workflow_, pick the
+  branch holding the release commit, and set **Version**.
+- Or via the API/MCP equivalent, `workflow_id=release.yml`, `ref=<that branch>`,
+  `inputs={"version": "<exact tag>"}`.
+
+`gh release create` inside the workflow mints the tag on GitHub's side, so the
+tag still ends up pointing at the release commit.
+
+> ⚠️ **Always set the `version` input.** It is optional in the form but defaults
+> to `manifest.json`'s version — i.e. the *stable* line. Dispatching a beta
+> without it silently tries to cut the stable version instead of your beta.
+
+Because the dispatch needs a `ref`, the commit must be on a **pushed branch**
+first (branch pushes are unaffected by the tag-push block). For a promotion that
+means a short-lived branch off the beta-tested commit — `promote-X.Y.Z` by
+convention — which can be deleted once the tag exists.
+
 ## Cutting a beta
 
 1. **Bump `manifest-beta.json` only** — do **not** touch `manifest.json`:
    - `manifest-beta.json` → `"version": "1.9.0-beta.1"`
 2. Commit (e.g. `chore: beta 1.9.0-beta.1`).
-3. **Tag and push** — the tag name **is** the version, no `v` prefix:
+3. **Cut the release** — push the tag, or dispatch the workflow with the beta
+   version; see [How a release is cut](#how-a-release-is-cut).
    ```sh
    git tag 1.9.0-beta.1
    git push origin 1.9.0-beta.1
@@ -103,20 +154,39 @@ becomes "latest" for all users. Use `1.9.0-beta.4`, not `1.8.1.4-beta`.
 > such beta exists). This is what stops a beta's un-tested code — a new feature,
 > a refactor — from riding a stable tag straight into the store.
 
-**First, check what has drifted onto `main` since the beta.** Because the train
-never freezes (see "Release cadence"), `main` is normally ahead of the beta
-you're promoting — and that's fine when the drift is **next-version** work: it
-stays on `main` and becomes the next beta line, while you promote the soaked
-snapshot as-is.
+**`main` being ahead of the beta is not a problem to solve.** Because the train
+never freezes (see "Release cadence"), `main` is *always* ahead of the beta you
+promote. Everything that landed after the snapshot belongs to the **next**
+carriage — it ships in the beta you cut from `main` in this same pass, and
+reaches stable one cycle later. Nothing is stranded and nothing needs folding
+in. Promote the soaked snapshot as-is.
 
-The drift only blocks promotion when it's **this-version** work: a fix or change
-you intend to ship *in the stable you're about to cut* that landed after the
-`x.y.z-beta.N` you soaked. Those changes were **never beta-tested**, so do
-**not** fold them into the promotion. Cut a fresh beta from current `main`
-(bump `manifest-beta.json` to the next `-beta.N`, tag it), let it soak, and
-promote _that_. The beta-parity guard enforces this either way — it will reject
-a stable tag whose build inputs differ from the beta, so this-version work
-cannot ride a promotion without its own beta.
+> **Don't let the changelog talk you out of this.** If `CHANGELOG.md` files work
+> under `[x.y.z]` that is not in the `x.y.z-beta.N` you soaked, the *changelog*
+> is wrong, not the beta. Move those entries to the next version's section
+> (step 5 below) and promote as planned. A mismatch between prose and the
+> snapshot is never a reason to build a new stable out of `main`.
+
+<a id="no-soaked-beta-to-promote"></a>
+
+### No soaked beta to promote?
+
+Then this is not a promotion, and no amount of preparation makes it one. Cutting
+a beta and promoting it in the same pass ships un-soaked code to every user
+while looking like a correct release — the beta-parity guard **passes**, because
+it resolves the newest `x.y.z-beta.*` tag and a beta you just cut is always
+newest.
+
+There are two ways to arrive here, and both end the same way:
+
+- **The line was opened but never soaked** — `manifest-beta.json` holds
+  `x.y.z-beta.1` and no meaningful build was ever cut from it.
+- **Soak found a bug** — the beta you meant to promote is no good.
+
+In both cases: **cut `x.y.z-beta.N` from current `main`, and stop there.** Let
+it soak. Promoting it is a separate, later job — a different day and a different
+run of this document, once someone has decided the build is good. A stable
+release is never the second half of the job that created its beta.
 
 To promote:
 
@@ -129,7 +199,20 @@ To promote:
    A version-only bump like this leaves the build inputs untouched, so the guard
    passes. **Never** carry along extra `src/`/`styles.css` commits here.
 2. Commit (e.g. `chore: release 1.9.0`).
-3. **Tag and push** — the tag must point at that promotion commit:
+
+   > **Expect `verify:manifests` to fail on this commit — that is correct.**
+   > The promotion bumps `manifest.json` to `1.9.0` while `manifest-beta.json`
+   > still holds `1.9.0-beta.1`, so the "beta must be strictly ahead of stable"
+   > invariant is violated by construction. It is resolved a step later, when
+   > the `main`-facing commit opens the next line (`1.10.0-beta.1`). Nothing is
+   > wrong: the promotion branch is never merged to `main`, and neither CI (which
+   > runs only on `main` pushes and PRs) nor the release workflow runs this
+   > script. Run `verify:manifests` on the **`main`-facing** commit of step 5,
+   > which is the one that has to satisfy it.
+
+3. **Cut the release** — the tag must point at that promotion commit. Push the
+   tag, or dispatch the workflow against the branch carrying it; see
+   [How a release is cut](#how-a-release-is-cut).
    ```sh
    git tag 1.9.0
    git push origin 1.9.0

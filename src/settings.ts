@@ -1,8 +1,10 @@
 import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
+import { TaskFieldsModal } from "./cards/tasks";
+import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
-import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton } from "./types";
+import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -32,7 +34,8 @@ type StringSettingKey =
 	| "taskNotesStatusField"
 	| "taskNotesDueField"
 	| "taskNotesPriorityField"
-	| "taskNotesDoneValue";
+	| "taskNotesDoneValue"
+	| "iconizeIconProperty";
 
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
@@ -331,6 +334,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				break;
 			case "behaviour":
 				this.section(body, s.sections.startup, s.sections.startupDesc, (b) => this.startupSection(b));
+				this.section(body, s.sections.opening, s.sections.openingDesc, (b) =>
+					this.openingSection(b),
+				);
 				this.section(body, s.sections.mobileMode, s.sections.mobileModeDesc, (b) =>
 					this.mobileModeSection(b),
 				);
@@ -343,6 +349,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				break;
 			case "integrations":
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
+				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
+					this.fileIconsSection(b),
+				);
 				break;
 			case "backup":
 				this.section(body, s.layout.heading, s.layout.headingDesc, (b) => this.layoutSection(b));
@@ -514,6 +523,23 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			this.addTextReset(logo, txt, "logo");
 		});
+
+		new Setting(containerEl)
+			.setName(t().settings.appearance.themeColorTarget)
+			.setDesc(t().settings.appearance.themeColorTargetDesc)
+			.addDropdown((dd) =>
+				dd
+					.addOption("none", t().settings.appearance.themeColorNone)
+					.addOption("icon", t().settings.appearance.themeColorIcon)
+					.addOption("title", t().settings.appearance.themeColorTitle)
+					.addOption("both", t().settings.appearance.themeColorBoth)
+					.setValue(s.themeColorTarget)
+					.onChange(async (v) => {
+						s.themeColorTarget = v as HomeSettings["themeColorTarget"];
+						await this.save();
+						this.plugin.refreshBrandIcons();
+					}),
+			);
 
 		const width = new Setting(containerEl)
 			.setName(t().settings.appearance.contentWidth)
@@ -704,6 +730,91 @@ export class HomeSettingTab extends PluginSettingTab {
 					await this.save();
 				}),
 			);
+
+		if (!Platform.isMobile) {
+			new Setting(containerEl)
+				.setName(t().settings.behaviour.focusSearchOnOpen)
+				.setDesc(t().settings.behaviour.focusSearchOnOpenDesc)
+				.addToggle((tg) =>
+					tg.setValue(s.focusSearchOnOpen).onChange(async (v) => {
+						s.focusSearchOnOpen = v;
+						await this.save();
+					}),
+				);
+		}
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.liveRefresh)
+			.setDesc(t().settings.behaviour.liveRefreshDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.liveRefresh).onChange(async (v) => {
+					s.liveRefresh = v;
+					await this.save();
+				}),
+			);
+	}
+
+	// ---- Opening notes ---------------------------------------------------
+
+	/**
+	 * Where notes Hearth opens end up (#106). One dropdown decides it for
+	 * everything; the per-source rows below it start on "Same as above", so the
+	 * detail is there for anyone who wants a link to behave differently from a
+	 * search hit without getting in the way of anyone who doesn't.
+	 */
+	private openingSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const labels = t().settings.behaviour.openInModes;
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openIn)
+			.setDesc(t().settings.behaviour.openInDesc)
+			.addDropdown((d) => {
+				for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
+				d.setValue(s.openIn).onChange(async (v) => {
+					s.openIn = v as OpenIn;
+					await this.save();
+				});
+			});
+
+		const sources = t().settings.behaviour.openInSources;
+		const descKey = { link: "linkDesc", search: "searchDesc", card: "cardDesc", newNote: "newNoteDesc" } as const;
+		for (const source of OPEN_SOURCES) {
+			new Setting(containerEl)
+				.setName(sources[source])
+				.setDesc(sources[descKey[source]])
+				.addDropdown((d) => {
+					d.addOption("default", t().settings.behaviour.openInFollow);
+					for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
+					d.setValue(s.openInOverrides?.[source] ?? "default").onChange(async (v) => {
+						// Rebuilt from the defaults so a settings file written before this
+						// feature (or hand-edited into a partial map) ends up complete.
+						const overrides = { ...DEFAULT_SETTINGS.openInOverrides, ...s.openInOverrides };
+						overrides[source] = v as OpenInRule;
+						s.openInOverrides = overrides;
+						await this.save();
+					});
+				});
+		}
+
+		// Not one of the four sources above: Obsidian, not Hearth, decides where
+		// these land, and the only say Hearth has is whether its tab may be taken
+		// over — so the choice is two-way, and it defaults to being taken over
+		// (what Hearth has done since #84) rather than following the global
+		// dropdown, which would change that for everyone on upgrade.
+		const outside = t().settings.behaviour.openFromOutsideModes;
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openFromOutside)
+			.setDesc(t().settings.behaviour.openFromOutsideDesc)
+			.addDropdown((d) => {
+				d.addOption("default", t().settings.behaviour.openInFollow);
+				d.addOption("same", outside.same);
+				d.addOption("tab", outside.tab);
+				d.setValue(s.openFromOutside ?? "same").onChange(async (v) => {
+					s.openFromOutside = v as OpenOutsideRule;
+					await this.save();
+				});
+			});
 	}
 
 	// ---- Privacy & network ----------------------------------------------
@@ -929,6 +1040,75 @@ export class HomeSettingTab extends PluginSettingTab {
 				await this.save();
 			});
 			this.addTextReset(doneValue, txt, "taskNotesDoneValue");
+		});
+
+		// The fields above say where a value is *read* from. The rest of this
+		// section is about what tasks *show*, which is off until asked for: with
+		// the switch off every tasks card renders exactly as it always has, and
+		// the per-card controls stay hidden.
+		new Setting(containerEl)
+			.setName(t().settings.tasks.fieldsEnable)
+			.setDesc(t().settings.tasks.fieldsEnableDesc)
+			.addToggle((tog) =>
+				tog.setValue(s.taskFieldsEnabled).onChange(async (v) => {
+					s.taskFieldsEnabled = v;
+					await this.save();
+					this.rerender();
+				}),
+			);
+
+		if (!s.taskFieldsEnabled) return;
+
+		const fields = new Setting(containerEl)
+			.setName(t().settings.tasks.fields)
+			.setDesc(t().settings.tasks.fieldsDesc);
+		fields.addButton((b) =>
+			b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+				new TaskFieldsModal(this.app, null, s, s.taskFields, (next) => {
+					s.taskFields = next;
+					void this.save();
+				}).open();
+			}),
+		);
+		fields.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().editors.tasks.fieldsReset)
+				.onClick(async () => {
+					s.taskFields = [];
+					await this.save();
+				}),
+		);
+	}
+
+	// ---- File icons (Iconic / Iconize) ----------------------------------
+
+	private fileIconsSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+
+		new Setting(containerEl)
+			.setName(t().settings.fileIcons.enable)
+			.setDesc(
+				hasFileIconPlugin(this.plugin.app)
+					? t().settings.fileIcons.enableDesc
+					: t().settings.fileIcons.enableDescNoPlugin,
+			)
+			.addToggle((tog) =>
+				tog.setValue(s.customFileIcons).onChange(async (v) => {
+					s.customFileIcons = v;
+					await this.save();
+				}),
+			);
+
+		const property = new Setting(containerEl)
+			.setName(t().settings.fileIcons.property)
+			.setDesc(t().settings.fileIcons.propertyDesc);
+		property.addText((txt) => {
+			txt.setValue(s.iconizeIconProperty).onChange(async (v) => {
+				s.iconizeIconProperty = v;
+				await this.save();
+			});
+			this.addTextReset(property, txt, "iconizeIconProperty");
 		});
 	}
 

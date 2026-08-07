@@ -16,9 +16,10 @@ import {
 	HEADER_SPACING_BELOW_MIN,
 	DEFAULT_SETTINGS,
 	newDashboardId,
-	cloneCard,
 } from "./types";
+import { cloneCard } from "./cards";
 import { confirmAction } from "./ui";
+import type { WorkspacesInstance } from "./obsidian-ext";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
 
@@ -154,6 +155,8 @@ function showDashboardMenu(
 					copy.cardBorderWidth = dash.cardBorderWidth;
 				if (dash.header) copy.header = { ...dash.header };
 				if (dash.background) copy.background = { ...dash.background };
+				// linkedWorkspace is intentionally not copied: two dashboards
+				// linked to the same workspace would race on auto-switch.
 				const i = s.dashboards.findIndex((d) => d.id === dash.id);
 				s.dashboards.splice(i + 1, 0, copy);
 				s.activeDashboardId = copy.id;
@@ -311,6 +314,44 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					this.commit();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.mobileDefault)
+			.setDesc(t().dashboards.modal.mobileDefaultDesc)
+			.addToggle((tg) =>
+				tg.setValue(dash.mobileDefault ?? false).onChange((v) => {
+					// Only one board is the mobile default; enabling this one clears
+					// the flag on the others so the first-match lookup is unambiguous.
+					if (v) {
+						for (const d of this.view.plugin.settings.dashboards) {
+							d.mobileDefault = d === dash ? true : undefined;
+						}
+					} else {
+						dash.mobileDefault = undefined;
+					}
+					this.commit();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.linkedWorkspace)
+			.setDesc(t().dashboards.modal.linkedWorkspaceDesc)
+			.addDropdown((dd) => {
+				dd.addOption("", t().dashboards.modal.linkedWorkspaceNone);
+				const instance = this.view.app.internalPlugins.getPluginById(
+					"workspaces",
+				)?.instance as WorkspacesInstance | undefined;
+				const names = Object.keys(instance?.workspaces ?? {});
+				// A link to a deleted/renamed workspace stays listed so it shows
+				// as selected instead of silently falling back to "None".
+				if (dash.linkedWorkspace && !names.includes(dash.linkedWorkspace))
+					names.push(dash.linkedWorkspace);
+				for (const n of names) dd.addOption(n, n);
+				dd.setValue(dash.linkedWorkspace ?? "").onChange((v) => {
+					dash.linkedWorkspace = v || undefined;
+					this.commit();
+				});
+			});
 	}
 
 	private ensureHeader(): DashboardHeaderConfig {

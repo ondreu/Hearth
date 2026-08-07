@@ -11,6 +11,410 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [1.18.0]
+
+### Added
+
+- **Choose what a calendar entry shows.** A new **Entry details** section in the
+  calendar card's settings (agenda layout) switches each chip on an entry on or
+  off: the time, the calendar name, and — with TaskNotes as a source — the
+  task's status, its priority, and the due / recurring / timeblock markers. On a
+  narrow card the markers competed with the title itself; now every card shows
+  only what earns its space. Existing cards are unchanged: everything the agenda
+  already showed stays on, and the status chip (new, and only available here) is
+  off until asked for.
+- **TaskNotes as a calendar source.** A calendar card can now pick up your
+  TaskNotes calendar and show it as a calendar card: scheduled tasks (sized by
+  their time estimate), due dates, recurring tasks unrolled into one entry per
+  occurrence, timeblocks from daily notes, and the ICS calendars subscribed
+  inside TaskNotes itself. Everything is read the way TaskNotes reads it — its
+  field mapping, its tag-or-property rule for what counts as a task, its custom
+  statuses and priorities with their colours — and each layer defaults to
+  whatever TaskNotes' own calendar is showing, so switching the source on
+  mirrors your existing setup. Per card you can override any layer, hide
+  completed or archived tasks, colour entries by status, priority or one fixed
+  colour, and give due dates and timeblocks their own colours. Completed tasks
+  show struck through with a faded day dot; a checkbox on each agenda entry
+  completes it in place (per-occurrence for recurring tasks, exactly as
+  TaskNotes records it), and the event popup shows the task's status, priority,
+  contexts, projects and estimate with an **Open task** button that hands off to
+  TaskNotes' own editor.
+
+- **Choose where Hearth opens notes.** Settings → Hearth → Behaviour → **Opening
+  notes** has a single **Open notes in** choice that governs every note Hearth
+  opens: **a new tab** (what it has always done), **the current tab**, which
+  replaces the home view so Hearth behaves like any other tab and the back
+  arrow brings it straight back, **a split pane**, or **a new window**. Four
+  optional rows under it take exceptions, each starting on *Same as above*, so
+  links, search results, notes listed in cards and notes Hearth creates can each
+  land somewhere different — a search hit taking over the Hearth tab while a
+  link from a card opens beside it. Ctrl/Cmd-click still opens a new tab
+  whatever the setting says, and the modifier combinations Obsidian understands
+  for a split or a window work here too.
+
+  A last row covers what Hearth doesn't control: **Notes opened from outside
+  Hearth** — the file explorer, the quick switcher, the graph — which Obsidian
+  hands to whichever tab is focused, taking a Hearth tab over. It still does by
+  default (the dashboard acts like an ordinary tab, and the explorer's selection
+  follows what you open), but set it to **A new tab** and the Hearth tab is left
+  alone. Links inside an embedded Bases table now follow the **Links** rule too,
+  instead of always replacing the dashboard (#106).
+- **An embedded note can be opened in its own tab.** Note embed cards have a new
+  **Open button** toggle in their card settings; turned on, a button on the card
+  opens the embedded file properly — following the open-behaviour setting above.
+  Off by default, so no existing board changes (#144).
+
+- **Build your own task fields.** Turn on **Customize task fields** under
+  Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
+  replaced by fields you define yourself. You start from a blank slate — a task
+  shows its text and nothing else — and add fields one at a time:
+
+  - **Name** the field, and choose how it's drawn: a **chip**, a bare
+    **colored dot**, or **plain text**.
+  - Give it a **key**: any frontmatter property, or one of the values Hearth
+    reads itself (a checkbox line's ⏫ priority, a Kanban board column, a due
+    date, the TaskNotes status). A field can have several keys, and each one
+    that has a value shows one — so related metadata can live under one name.
+  - **Map values** to nicer labels and colors: `high` → *Urgent* in red, `p2` →
+    *Normal* in blue. A value you haven't mapped still shows, as itself, so
+    nothing goes missing while you're still building the mapping up. Priority is
+    matched in every spelling it comes in, so mapping `high` also catches a ⏫
+    line — and mapping the exact word your notes use (`urgent`, `p1`) keeps its
+    own label and color.
+
+  - Or have the value **color the whole task** instead of adding anything to
+    it: **tint** its background or **glow** around it, at a strength you set.
+    An overdue task can turn the row red without a chip anywhere on it, which
+    is legible across a whole board at a glance.
+
+  **Dates know they're dates.** A date key has no values to map — instead you
+  color and label it by where it falls: **before today**, **today**, **after
+  today**. Leave the label empty to keep the date's own wording and just tint
+  it. A frontmatter property holding a date can be marked as one, and gets the
+  same treatment.
+
+  **Click a value to change it**, in the list and on a board alike: the chip
+  opens a menu of your mapped values (under their own labels), then the other
+  values that key takes elsewhere in your vault, then a free entry for anything
+  new and a clear. A date opens a **calendar** instead, with today / tomorrow /
+  next week shortcuts. Frontmatter is written to the task's own note, so this is
+  offered on TaskNotes tasks and notes made from a Kanban card; a plain checkbox
+  gets it for its priority and dates, which live on the line.
+
+  The switch is **off by default**, and while it's off every Tasks card renders
+  exactly as it always has. The fields you define in Settings apply to every
+  Tasks card; an individual card can define its own instead, from that card's
+  settings (#157).
+
+- **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
+  custom icon set with either plugin keeps that icon everywhere Hearth draws
+  one — Recent files, Favorites, Bookmarks, saved-search cards and the search
+  bar — instead of the generic file-type icon. Bookmarks pointing at a note or
+  folder now also follow the file's *type* icon rather than always showing the
+  same page glyph, so a bookmarked PDF or canvas looks like one. Lucide icons and emoji are both shown; a file
+  using an icon from one of Iconize's downloaded icon packs keeps Hearth's own
+  icon, since those are SVG files rather than named icons. Neither plugin offers
+  an API, so Hearth reads their settings directly and quietly falls back to the
+  file-type icon if it can't. Turn it off, or point it at a renamed Iconize
+  frontmatter property, under Settings → Hearth → Integrations (#132).
+- **Editable notes can use Obsidian's Live Preview editor.** An editable Note
+  embed or Daily note card has a new **Live preview** toggle beside
+  **Editable**. Turned on, the card hosts Obsidian's own editor instead of
+  Hearth's plain raw-Markdown box: formatting renders as you type, there's no
+  double-click to get into edit mode, and links, embeds, undo and your editor
+  plugins all behave exactly as they do in a normal tab. The card's own settings
+  make the choice per card and per embed view, so a scratchpad can stay in raw
+  source while a journal card reads like a page. Like the plugin-view card, the
+  hosted editor is only alive while the card is on screen, and pending
+  keystrokes are flushed to the vault before it's torn down. Left off, the card
+  keeps the double-click raw editor it has always had (#160).
+
+### Fixed
+
+- **Embedded bases follow the card opacity in table view.** A `.base` card in
+  list or cards view faded with the board like any other card, but the table
+  view stayed a solid slab: it fills its container and rows with Obsidian's base
+  surface colour (it needs opaque paint so its sticky header and first column
+  cover what scrolls beneath). Base embeds now clear those surfaces so the
+  card's own translucent background shows through, and the sticky header is
+  painted with the card's surface colour, so it fades with the card instead of
+  staying opaque. Row hover and selection highlights are untouched.
+- **The task filter's Status row is readable again.** With more than a handful
+  of statuses — TaskNotes states, Kanban columns, your own checkbox statuses —
+  the chips took the whole row and squeezed the label down to *Sta…*, then
+  wrapped into a staggered, right-aligned block. Status and Priority now stack
+  their chips under the label and lay them out left to right, so the label stays
+  whole and the chips read as one strip however many there are. Two things that
+  went with it: a preset chip (**Overdue**, **High priority**, …) now shows when
+  it's on and a second click takes it back off, instead of only ever applying;
+  and a status your filter still selects but that no tasks use any more keeps
+  its chip, so you can switch it off rather than having to clear the whole
+  filter. Chips also report their on/off state to screen readers (#164).
+- **A task list keeps one task per line.** A task whose title didn't fit
+  alongside its chips broke across two or three lines — the checkbox alone on
+  one, the title on the next, its status, priority and dates on a third — so a
+  list of tasks with mixed title lengths read as a ragged block rather than a
+  list. A row now holds the checkbox and title (with the status chip beside it)
+  on the left and gathers every other chip at the right edge, and the title is
+  the only part that gives way: it ellipsizes instead of wrapping the row. This
+  is how the list already behaved with **Customize task fields** on; both modes
+  now match (#156).
+- **Task checkboxes are no longer clipped in embed, daily and jot cards.** A
+  task list embedded in a card could have the left edge of its checkboxes cut
+  off. Obsidian hangs a checkbox outside its list item by one and a half checkbox
+  widths, and sizes checkboxes from the global font-size setting — which card
+  text doesn't follow — so on a larger setting the checkbox outgrew the indent
+  it hangs out of and spilled past the card's edge. The card's side gutter now
+  sits on the embed itself, where it can actually shield content from being
+  clipped, and widens to match the checkbox instead of being a fixed number, so
+  it holds at any font size. Checkboxes still scale with your font setting;
+  ordinary cards look exactly as before (#137).
+- **Sorting tasks by priority puts Highest at the top.** The priority sort
+  ranked tasks by the coarse colour bucket the priority dot uses, which lumps
+  Highest in with High (and Lowest in with Low). Tasks one level apart therefore
+  tied, and the order fell through to the next rule — so a High task could sit
+  above a Highest one. Priority now ranks on the exact level, so all five
+  Tasks-plugin levels order Highest → High → Medium → Low → Lowest, with
+  unprioritised tasks last. This applies to the priority sort, the priority step
+  of a custom sort, and the priority tiebreak in the default smart sort (#145).
+- **Checkboxes now stay checked.** Ticking a task in an embedded note, a daily
+  note or a jot card looked like it worked and was lost on the next render:
+  Obsidian only writes a checkbox click back to the file inside a real preview
+  view, and the boxes Hearth renders into a card were live but inert. They now
+  edit their source — the note for embed and daily cards, the card's own text
+  for jots — so the state sticks, whether or not the card is set to editable.
+  A tick is reverted if the write can't land, and a click on a checkbox no
+  longer opens the raw editor when it lands as part of a double-click (#143).
+- **No grey box under an editable note.** Double-clicking an editable Note
+  embed, Daily note or jot card to edit it dropped a grey form-field panel
+  behind the text — permanently so on mobile, where Obsidian's own textarea
+  rule outranked the transparent background Hearth asks for. The raw editor
+  now keeps the card's surface in every state, so switching between the
+  rendered note and its source no longer changes the card's background (#160).
+- **Theme focus rings no longer break the search bar.** Under Catppuccin (and
+  any theme that styles input focus with a body-class-prefixed selector), the
+  home-screen search input picked up the theme's own focus ring, so a blue
+  outline hugged the text field instead of the search bar lighting up as a
+  whole. Those themes' selectors outrank the plain class selectors Hearth used
+  to suppress the ring. The controls that draw their own focus affordance — the
+  search input, the jot/embed editors, the calculator, the card-title field and
+  the task-detail title editor — now hold that suppression against any theme.
+  Inputs with an ordinary border, such as the Kanban editors and the task-detail
+  description field, keep the theme's ring, since for them it is the focus
+  affordance (#138).
+
+### Changed
+
+- **Links inside tasks now open where every other link does.** A `[[wikilink]]`
+  in a task's text took over the current tab, which in a Hearth tab meant
+  replacing the home view — while the same link on a card opened a new tab. Both
+  now follow **Open notes in** (a new tab by default). To keep tasks behaving as
+  they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
+  *The current tab* (#106).
+
+- **Today is marked more quietly in the calendar's agenda.** The current day's
+  row no longer takes a heavy accent fill that made its text hard to read.
+  Today is now carried by an accent ring around the date badge plus a faint tint
+  on the row, with the stronger accent wash kept for hover — so pointing at the
+  row is what lights it up. The row sets both states itself, so a theme's own
+  saturated hover colour can't turn today into an unreadable slab, and hover no
+  longer sticks after a tap on touch devices.
+
+## [1.17.0]
+
+### Added
+
+- **Keep an open dashboard current.** A home view now re-renders when you switch
+  back to its tab, so Recent, Bookmarks and query-driven cards no longer show
+  stale content until the tab is closed and reopened. The first render of a leaf
+  is left alone, and refreshes are skipped mid-drag/resize so arranging a board
+  is never interrupted. A new opt-in **Live refresh on vault changes** Behaviour
+  toggle (default off) additionally re-renders on vault create/modify/delete/
+  rename — debounced to coalesce bursts — so a permanently-visible board stays
+  current without switching tabs (#110).
+- **Completion checkboxes for every TaskNotes task.** Task cards showed a
+  checkbox on recurring TaskNotes tasks but a plain status badge on the rest, so
+  a mixed card looked inconsistent. Non-recurring TaskNotes tasks now get a
+  checkbox too, in both the list and Kanban layouts. In the list, ticking writes
+  the card's done status and unticking restores its first open status; on a
+  Kanban board, ticking advances the task to the next swimlane (and eventually
+  the done column), untick returns it to the first — mirroring how completing a
+  task progresses its status. The checkbox swallows pointer events so ticking it
+  on a draggable card doesn't start a drag. Recurring tasks keep their
+  per-occurrence checkbox; checkbox- and Kanban-source tasks are unchanged (#111).
+- **Status chip on TaskNotes tasks in the list layout.** With the checkbox
+  replacing the old status badge, a task's actual status — open, in-progress,
+  waiting, whatever your setup uses — was no longer visible in the list; the
+  checkbox only says done or not. Each TaskNotes task now carries a small status
+  pill directly after its title, left-aligned against it so it reads as part of
+  the task while the priority and date chips stay on the right edge. It shows
+  the raw frontmatter value (capitalized for reading) with the full value in the
+  tooltip, and fades along with a completed row. Checkbox- and Kanban-source
+  tasks keep their existing badges.
+- **Vault images as tile icons.** Launchpad and command tiles accepted only a
+  Lucide icon id; they now also take a path to an image in your vault (png, jpg,
+  svg, webp, …), which fills the whole tile with the label overlaid on a
+  legibility scrim. A bare Lucide id never resolves to a file, so existing icons
+  are untouched. The icon field in both editors gains a "?" help badge
+  explaining the two accepted forms (#119).
+- **Per-dashboard "Default on mobile" flag.** A dashboard can be marked as the
+  mobile default from its settings (General tab), so a board tuned for a small
+  screen opens on phones and tablets without becoming the desktop default. Only
+  one board can hold the flag. The switch is applied in memory only, because the
+  active-dashboard id is a single synced field — persisting it would drag the
+  desktop's active board along on the next sync (#120).
+- **"Focus search on open" option.** An opt-in Behaviour setting that puts
+  keyboard focus in the search field whenever a home view opens, so a fresh
+  Hearth tab can be typed into straight away. Focus is applied on open only, so
+  a background refresh never steals it mid-interaction. Desktop only — the
+  setting is hidden on mobile, where auto-focus would pop the on-screen keyboard
+  on every open (#115).
+
+### Fixed
+
+- **Opening a task's note jumps to the task's line.** "Jump to Note" (and a
+  click when quick view is off) landed at the top of the note, so a task buried
+  in a long note meant scrolling to find it. The target line is now passed as
+  ephemeral state, which Obsidian applies once the view has mounted, instead of
+  a cursor move that a not-yet-laid-out editor discarded (#118).
+- **Calendar events no longer shift by a day.** Weekly recurring events expanded
+  their by-day rule against a locale-aware week start combined with a
+  Sunday-based day offset, so in any locale whose week starts on Monday (Czech,
+  most of Europe) occurrences landed on the wrong date — off by up to several
+  days. The expansion is now locale-independent. The agenda view's
+  today-highlight is also toned down to a thin outline and a lightly tinted day
+  number; the month grid keeps its existing highlight.
+- **Search filter chips no longer strand across the search bar.** With only a
+  few filters, the chips were distributed edge-to-edge — one at the start, one
+  in the middle, one at the end. They now sit in a left-aligned row whose gap
+  shares out the leftover space, growing from 8px to 48px with the chip count
+  and wrapping only once the minimum no longer fits.
+
+### Changed
+
+- **Kanban boards are as translucent as task lists.** The list layout draws no
+  surface of its own, so a translucent or frosted card shows straight through
+  it — but a Kanban board covered the same card with an opaque column plate and
+  opaque cards, reading as a solid slab on an otherwise see-through board.
+  Columns are now a light tint rather than a plate, and cards a translucent fill
+  with their hairline border defining the edge; both scale with the board's card
+  opacity, so they fade in step with the surface they sit on.
+- **Default background** swapped from an animated GIF to a static wallpaper;
+  the GIF was needlessly power-hungry.
+- **Card architecture modularised into a registry** (internal, behaviour
+  preserving). Adding a card type used to mean editing a dozen scattered
+  enumerations — render and editor switches, the add-card menu, layout-import
+  validation, the live-redraw set, the card cloner, locale records — most of
+  which failed silently when missed. Each of the 20 card kinds is now a
+  self-contained module under `src/cards/` declaring its render, editor,
+  templates, liveness and clone behaviour, collected by a registry whose mapped
+  type turns a missing registration into a compile error. An unknown persisted
+  card kind (from a newer version, a sync conflict or a hand-edited
+  `data.json`) now falls back to an inert definition rather than crashing the
+  whole dashboard render, and a cloned RSS card no longer shares its sources
+  array with the original (#103).
+
+## [1.16.0]
+
+### Added
+
+- **Jira saved-filter card.** Connect a dashboard card to a favorite Jira saved
+  filter using a bearer personal access token, then refine its issues with
+  multi-select status, assignee, priority, issue type, sprint, and fix-version
+  controls. The card derives options from the unrefined filter, preserves
+  selected values, supports manual and automatic refresh, caches successful
+  responses, and keeps REST requests constrained to the configured HTTPS Jira
+  host. Portable exports omit the Jira personal access token.
+
+## [1.15.0]
+
+### Added
+
+- **Calendar card — agenda layout and external ICS calendars.** The calendar
+  card gains a **Layout** setting: the existing month grid, or a new **agenda**
+  view that lists upcoming days (3–60 ahead) as a scrollable timeline. It can
+  also **subscribe to external calendars** by ICS/iCal URL (Google, iCloud,
+  Fastmail, Nextcloud, …) — add multiple sources, each with its own name and
+  colour and an individual show/hide toggle. Events render as coloured dots on
+  the month grid and are listed under each day in the agenda, expanded from the
+  common recurrence rules (daily/weekly/monthly/yearly with interval, count,
+  until, weekly by-day, and exclusions). Feeds are cached and auto-refreshed on
+  a configurable interval, share the RSS card's fetch path (so they work despite
+  browser CORS), and honour the global **disable external calls** privacy
+  setting. `webcal://` links are accepted. Clicking a day that has events opens
+  a picker so you can choose the daily note (open or create) or any event; in
+  the agenda, each listed event is clickable. Either way an event opens a
+  details modal showing its name, date, time, location, notes/description,
+  source calendar and any link. From that modal you can **create a note from
+  the event**, configured to be as flexible as you like: pick a template,
+  choose the target folder and a filename pattern (`{{summary}}`, `{{date}}`,
+  …), and route every event value independently — send the date/time to custom
+  frontmatter properties, append the description to the body under a heading,
+  or ignore a value entirely and just keep the name. Sensible defaults apply
+  out of the box. The note is linked back to the event by its ID (stored in
+  frontmatter), so opening the same event later reopens its note instead of
+  making a duplicate. Timezone note: UTC and all-day times are exact; `TZID`
+  wall-clock times are read in the viewer's local zone.
+- **Vault statistics card — advanced mode.** The stats card gains an **Advanced**
+  toggle in its editor. Off keeps the familiar fixed set of tiles. On unlocks
+  three controls: choose which built-in stats appear (notes, attachments,
+  folders, tags, day streak, and a new **Days using Obsidian** counter measured
+  from the vault's oldest file); break attachments out into a separate count
+  tile per file type (images, PDFs, videos, …); and add custom count tiles that
+  show how many files match a query, using the search bar's syntax (`#tag`,
+  `key:value` for a frontmatter property, or plain text). Each custom tile takes
+  an optional label and icon.
+
+### Fixed
+
+- **Clock card — force a 12- or 24-hour clock regardless of locale.** The clock's
+  "24-hour time" toggle only chose between 24-hour and the OS locale default, so
+  on locales that already default to a 24-hour clock there was no way to get a
+  12-hour clock. It is replaced by a three-way **Time format** selector
+  (Automatic / 12-hour / 24-hour) mapping directly to `Intl`'s `hour12` option.
+  Existing settings are migrated, preserving prior behaviour (#98).
+
+## [1.14.0]
+
+### Added
+
+- **Link a dashboard to a core Workspace (auto-switch).** Each dashboard gets an
+  optional linked workspace, chosen from the core Workspaces plugin's saved
+  workspaces in the dashboard settings (General tab). When that workspace loads,
+  Hearth switches to the linked dashboard automatically. Sync is one-way
+  (workspace → dashboard) and fires once per workspace change; the link survives
+  layout export/import, and duplicating a dashboard deliberately does not copy it
+  (#91).
+- **Theme-following crystal icon.** The ribbon, tab and header crystal is now a
+  vector drawn with `currentColor`, so an optional **Follow theme icon color**
+  Appearance setting (Off / Icon / Title / Icon and title) lets it track the
+  theme's icon color in light and dark. The default keeps the familiar purple
+  crystal (#90).
+- **Plugin view card — show a specific file.** The Plugin view card can now open
+  a chosen vault file in the hosted view, so file-backed views (Excalidraw,
+  canvas, …) render the document instead of an empty "new file" screen. The card
+  editor gains a file field with a fuzzy picker and a clear button; a blank path
+  hosts the bare view as before (#89).
+- **Bookmark groups (folders).** The Bookmarks card now mirrors Obsidian's own
+  bookmarks pane: groups render as collapsible folders (click the header to
+  expand or collapse) and sub-groups nest to any depth, instead of every
+  bookmark being flattened into one list. This also fixes bookmarks inside a
+  group appearing twice — the card previously re-flattened Obsidian's already
+  flat `getBookmarks()` list — and drops groups left empty after orphaned
+  file/folder bookmarks are hidden (#82).
+
+### Fixed
+
+- **Open files in place from the dashboard.** The dashboard view now marks itself
+  navigable, so opening a file (from the file explorer or elsewhere) while the
+  dashboard is focused reuses the tab instead of spawning a new one and leaving
+  the file explorer's selection stuck (#84).
+- **Unnamed bookmarks show the file name, not the full path.** A file or folder
+  bookmark without its own name previously rendered as its whole vault path,
+  which overflowed the card when the path was long. It now shows just the
+  target's basename — matching Obsidian's own bookmarks pane — and still falls
+  back to the last path segment if the target can't be resolved (#92).
+
 ## [1.13.0]
 
 ### Added
@@ -35,13 +439,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   that note's body. The card's title and metadata line is left untouched (#71).
 - **Card border width setting.** A new global setting controls the width of
   card borders (#78).
-- **Bookmark groups (folders).** The Bookmarks card now mirrors Obsidian's own
-  bookmarks pane: groups render as collapsible folders (click the header to
-  expand or collapse) and sub-groups nest to any depth, instead of every
-  bookmark being flattened into one list. This also fixes bookmarks inside a
-  group appearing twice — the card previously re-flattened Obsidian's already
-  flat `getBookmarks()` list — and drops groups left empty after orphaned
-  file/folder bookmarks are hidden (#82).
 
 ### Fixed
 
