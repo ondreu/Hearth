@@ -1,90 +1,91 @@
 import {
-	type App,
-	Component,
-	debounce,
-	getAllTags,
-	MarkdownRenderer,
+	ButtonComponent,
+	ExtraButtonComponent,
 	MarkdownView,
 	Menu,
 	Modal,
-	moment as createMoment,
 	Notice,
 	setIcon,
 	Setting,
+	TextComponent,
 	TFile,
 	TFolder,
+	type App,
 } from "obsidian";
-import type { HomeView } from "./view";
-import type { BookmarkItem } from "./obsidian-ext";
-import type {
-	ClockConfig,
-	CommandItem,
-	DashboardCard,
-	EmbedView,
-	LinkItem,
-	RssLayout,
-	RssSource,
-	TaskDueFilter,
-	TaskFilterConfig,
-	TaskMeta,
-	TaskPriorityLevel,
-	TaskSortField,
-	TaskSortRule,
-	TasksConfig,
-} from "./types";
-import { evaluate as evaluateCalc } from "./calculator";
-import { cachedRates, loadRates } from "./currency";
-import { getDataviewApi } from "./dataview";
-import { cachedFeed, loadFeed, type RssItem } from "./rss";
-import { isViewTypeHostable, mountLeafView } from "./leafview";
-import { EXCALIDRAW_PLUGIN_ID, iconForFile, isExcalidraw } from "./filetypes";
-import { type QueryHit, runQuery, searchFileContents } from "./query";
-import { confirmAction, makeClickable } from "./ui";
-import { parseNaturalDate, formatRelativeDate, localDayKey } from "./dates";
-import { inTaskScope } from "./taskscope";
-import { isEmbeddableBaseViewName } from "./bases";
-import { t } from "./i18n";
+import { emptyState, moment } from "../cardbodies";
+import { formatRelativeDate, parseNaturalDate } from "../dates";
+import { addResetButton } from "../editors";
+import { t } from "../i18n";
+import { openFile, openLink, targetLeaf } from "../opener";
+import { FilePickerModal } from "../pickers";
+import {
+	PRIORITY_EMOJI,
+	priorityClass,
+	priorityDisplayLabel,
+	priorityKey,
+	priorityLevel,
+	priorityRank,
+	readPriorityEmoji,
+} from "../priority";
+import {
+	activeTaskFields,
+	builtinSource,
+	DATE_RELATIONS,
+	dateDisplay,
+	dateRelation,
+	displayValue,
+	keyIsDate,
+	fieldOpacity,
+	fieldStyle,
+	frontmatterSource,
+	isAmbientStyle,
+	isDateSource,
+	isDescriptionSource,
+	isKnownSource,
+	newTaskField,
+	presetColor,
+	resolveTaskFields,
+	sourceBuiltin,
+	sourceProperty,
+	TASK_BUILTIN_SOURCES,
+	type TaskValueDisplay,
+	TASK_COLOR_PRESETS,
+	type TaskBuiltinSource,
+	taskFieldValues,
+} from "../taskfields";
+import { inTaskScope, tasksEventRelevant } from "../taskscope";
+import {
+	type DashboardCard,
+	type HomeSettings,
+	type TaskDueFilter,
+	type TaskFieldDef,
+	type TaskFieldKey,
+	type TaskValueMap,
+	type TaskFieldStyle,
+	type TaskFilterConfig,
+	type TaskMeta,
+	type TaskPriorityLevel,
+	type TasksConfig,
+	type TaskSortField,
+	type TaskSortRule,
+} from "../types";
+import { openInTaskNotes, TASKNOTES_PLUGIN_ID } from "../tasknotes";
+import { confirmAction, makeClickable } from "../ui";
+import { type HomeView } from "../view";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 
-/**
- * moment is bundled with Obsidian, not a direct dependency, so it's imported
- * from "obsidian" rather than the "moment" package. Some toolchains resolve
- * that export's type as `any` (no @types/moment in scope), which would make
- * every call/member-access on it "unsafe" — asserting it to this minimal,
- * explicitly-typed surface (the only bits of the Moment API this file uses)
- * keeps every use provably non-`any` regardless of the toolchain.
- */
-interface Moment {
-	format(fmt?: string): string;
-	clone(): Moment;
-	startOf(unit: string): Moment;
-	endOf(unit: string): Moment;
-	subtract(amount: number, unit: string): Moment;
-	add(amount: number, unit: string): Moment;
-	day(): number;
-	day(value: number): Moment;
-	date(): number;
-	month(): number;
-	year(): number;
-	diff(other: Moment, unit?: string): number;
-}
-interface MomentFn {
-	(input?: Date | string): Moment;
-	localeData(): { firstDayOfWeek(): number };
-}
-const moment: MomentFn = createMoment as unknown as MomentFn;
-
-/** Community plugin id for TaskNotes (used by "tasks" cards in TaskNotes mode). */
-const TASKNOTES_PLUGIN_ID = "tasknotes";
 
 /** Frontmatter key the Kanban plugin writes on every board note. Used both to
  * auto-detect a board when none is configured and to confirm a chosen file is
  * actually a Kanban board. */
 const KANBAN_FRONTMATTER_KEY = "kanban-plugin";
 
+
 /** Marks the start of the Kanban plugin's trailing settings block
  * (`%% kanban:settings`). Everything from this line to end-of-file is board
  * metadata, not cards, so parsing and card insertion stop here. */
 const KANBAN_SETTINGS_RE = /^\s*%%\s*kanban:settings/i;
+
 
 /** A Kanban board column: its `##` heading text and the line range
  * `[headingLine, endLine)` (endLine exclusive) that holds its cards. */
@@ -94,2366 +95,6 @@ interface KanbanColumn {
 	endLine: number;
 }
 
-/** Render a card's body based on its kind. */
-export function renderCardBody(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	switch (card.kind) {
-		case "embed":
-			renderEmbed(view, card, body, component);
-			break;
-		case "daily":
-			renderDaily(view, card, body, component);
-			break;
-		case "web":
-			renderWeb(card, body, component);
-			break;
-		case "bookmarks":
-			renderBookmarks(view, body);
-			break;
-		case "favorites":
-			renderFavorites(view, body);
-			break;
-		case "text":
-			renderText(view, card, body, component);
-			break;
-		case "recent":
-			renderRecent(view, card, body);
-			break;
-		case "links":
-			renderLinks(view, card, body);
-			break;
-		case "commands":
-			renderCommands(view, card, body);
-			break;
-		case "clock":
-			renderClock(view, card, body, component);
-			break;
-		case "tasks":
-			renderTasks(view, card, body);
-			break;
-		case "calendar":
-			renderCalendar(view, card, body);
-			break;
-		case "stats":
-			renderStats(view, body);
-			break;
-		case "search":
-			renderSavedSearch(view, card, body);
-			break;
-		case "heatmap":
-			renderHeatmap(view, card, body);
-			break;
-		case "calculator":
-			renderCalculator(view, card, body);
-			break;
-		case "dataview":
-			renderDataview(view, card, body, component);
-			break;
-		case "rss":
-			renderRss(view, card, body, component);
-			break;
-		case "leaf":
-			renderLeaf(view, card, body, component);
-			break;
-	}
-}
-
-// ---- Leaf (hosted plugin side-panel view) -------------------------------
-
-/** A card that hosts another plugin's (or a core) registered side-panel view —
- * a calendar, outline, tag pane, kanban board, and so on — by mounting a
- * detached workspace leaf inside the card body. Beta.
- *
- * The card shows a friendly prompt when it has no view chosen yet, or when the
- * chosen view type isn't registered right now (the plugin that provides it is
- * disabled or uninstalled). Mounting is best-effort: `mountLeafView` never
- * throws, and the hosted leaf's lifecycle is tied to `component`, so it is torn
- * down cleanly on the next redraw or when the dashboard closes. */
-function renderLeaf(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const type = card.leafView?.viewType?.trim();
-	if (!type) {
-		emptyState(body, "layout-panel-left", t().cards.empty.leafPickView);
-		return;
-	}
-	if (!isViewTypeHostable(view.app, type)) {
-		emptyState(body, "layout-panel-left", t().cards.empty.leafViewMissing);
-		return;
-	}
-
-	const host = body.createDiv("hearth-leaf-host");
-	// Hosted views are natively interactive and manage their own scrolling, so
-	// let them fill the card edge-to-edge like canvas/Excalidraw embeds do.
-	body.addClass("hearth-card-body-live");
-	if (!mountLeafView(view.app, type, host, component)) {
-		host.remove();
-		body.removeClass("hearth-card-body-live");
-		emptyState(body, "layout-panel-left", t().cards.empty.leafViewMissing);
-	}
-}
-
-// ---- Dataview query -----------------------------------------------------
-
-/** A card that renders a Dataview query (DQL or DataviewJS) through Dataview's
- * own renderers, so tables, lists and task lists look exactly as they do in a
- * note. Depends on the Dataview community plugin — the "Add card" picker only
- * offers this card when Dataview is installed, and the card shows a friendly
- * prompt if Dataview is later disabled. Dataview attaches its own refreshable
- * renderer to `component`, so results update live as the vault (and Dataview's
- * index) change, without Hearth having to re-run the query. */
-function renderDataview(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const api = getDataviewApi(view.app);
-	if (!api) {
-		emptyState(body, "database", t().cards.empty.dataviewEnable);
-		return;
-	}
-	// Mutate the card's own config (not a throwaway copy) so a column resize can
-	// be persisted straight onto the card.
-	const cfg = (card.dataview ??= {});
-	const query = (cfg.query ?? "").trim();
-	if (!query) {
-		emptyState(body, "code", t().cards.empty.dataviewNoQuery);
-		return;
-	}
-
-	const host = body.createDiv("hearth-dataview");
-	// The dashboard has no "current note", so queries run with an empty origin
-	// path: global queries (FROM #tag, folder scopes…) work fully, but a query
-	// that relies on `this.file` has no meaningful current file to resolve to.
-	const origin = "";
-	const run =
-		cfg.language === "js"
-			? api.executeJs(query, host, component, origin)
-			: api.execute(query, host, component, origin);
-	// execute/executeJs render their own errors inline, but guard the promise so
-	// an unexpected rejection surfaces as a readable message instead of an
-	// unhandled rejection in the console.
-	void Promise.resolve(run).catch((err: unknown) => {
-		host.empty();
-		const message = err instanceof Error ? err.message : String(err);
-		emptyState(host, "alert-triangle", message);
-	});
-	// Dataview renders internal links as anchors; wire them up so they open like
-	// links elsewhere on the dashboard (Obsidian only resolves link clicks inside
-	// a real Markdown view).
-	wireMarkdownLinks(view, host, origin);
-	// Let a TABLE result's columns be resized by dragging their right edge.
-	setupDataviewColumnResize(view, card, cfg, host, component);
-}
-
-/**
- * Make the columns of a Dataview TABLE result resizable by dragging a header's
- * right edge. Columns auto-fit their content by default; the first drag
- * "freezes" the current widths into a fixed layout, and further drags adjust a
- * single column. Widths persist per card (see {@link DataviewConfig.columnWidths}).
- *
- * Dataview re-renders its table on every index change, replacing the element and
- * wiping our handles, so a MutationObserver re-decorates (and re-applies the
- * stored widths) after each redraw. Our own DOM edits are ignored via a marker
- * dataset flag so the observer never loops.
- */
-function setupDataviewColumnResize(
-	view: HomeView,
-	card: DashboardCard,
-	cfg: NonNullable<DashboardCard["dataview"]>,
-	host: HTMLElement,
-	component: Component,
-): void {
-	const persist = () => void view.plugin.saveData(view.plugin.settings);
-	const decorate = () => {
-		const table = host.querySelector<HTMLTableElement>("table");
-		if (!table || table.dataset.hearthDvResize === "1") return;
-		decorateDataviewTable(card, cfg, table, persist);
-	};
-	const observer = new MutationObserver(() => decorate());
-	observer.observe(host, { childList: true, subtree: true });
-	component.register(() => observer.disconnect());
-	decorate();
-}
-
-/** Read a Dataview table's header cells (thead, falling back to the first row). */
-function dataviewHeaderCells(table: HTMLTableElement): HTMLTableCellElement[] {
-	const thead = Array.from(
-		table.querySelectorAll<HTMLTableCellElement>(":scope > thead > tr > th"),
-	);
-	if (thead.length) return thead;
-	const firstRow = table.querySelector<HTMLTableRowElement>(
-		":scope > thead > tr, :scope > tbody > tr, :scope > tr",
-	);
-	return firstRow ? Array.from(firstRow.cells) : [];
-}
-
-/** Ensure a `<colgroup>` at the front of `table` with `count` sized `<col>`s. */
-function dataviewColgroup(table: HTMLTableElement, count: number, widths: number[]): HTMLElement {
-	let colgroup = table.querySelector<HTMLElement>(":scope > colgroup.hearth-dv-cols");
-	if (!colgroup) {
-		colgroup = table.createEl("colgroup", { cls: "hearth-dv-cols" });
-		table.insertBefore(colgroup, table.firstChild);
-	}
-	colgroup.empty();
-	for (let i = 0; i < count; i++) {
-		const col = colgroup.createEl("col");
-		if (widths[i]) col.style.width = `${widths[i]}px`;
-	}
-	return colgroup;
-}
-
-/** Attach resize handles and (re-)apply stored widths to one Dataview table. */
-function decorateDataviewTable(
-	card: DashboardCard,
-	cfg: NonNullable<DashboardCard["dataview"]>,
-	table: HTMLTableElement,
-	persist: () => void,
-): void {
-	const headers = dataviewHeaderCells(table);
-	if (headers.length === 0) return;
-	// Mark before mutating so the observer skips our own edits (no render loop).
-	table.dataset.hearthDvResize = "1";
-	const colCount = headers.length;
-
-	// Stored widths only apply when they still match the table's shape; a query
-	// that changed its column count drops the stale layout back to auto-fit.
-	let widths: number[] | null =
-		cfg.columnWidths && cfg.columnWidths.length === colCount ? [...cfg.columnWidths] : null;
-	if (cfg.columnWidths && cfg.columnWidths.length !== colCount) {
-		cfg.columnWidths = undefined;
-		persist();
-	}
-
-	const applyManualLayout = () => {
-		// The .hearth-dv-manual class carries `table-layout: fixed; width: auto`
-		// so the per-column <col> widths below are honoured exactly.
-		table.classList.add("hearth-dv-manual");
-		dataviewColgroup(table, colCount, widths ?? []);
-	};
-	if (widths) applyManualLayout();
-
-	headers.forEach((th, index) => {
-		th.classList.add("hearth-dv-th");
-		const handle = th.createDiv("hearth-dv-col-resizer");
-		// Swallow the click so grabbing the handle never toggles Dataview's
-		// column sort (which lives on the header cell's click).
-		handle.addEventListener("click", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-		});
-		handle.addEventListener("pointerdown", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			// First drag: freeze the columns' current auto widths, then switch to a
-			// fixed layout so the drag adjusts one column predictably.
-			if (!widths) {
-				widths = headers.map((cell) => Math.round(cell.getBoundingClientRect().width));
-				applyManualLayout();
-			}
-			const cols = Array.from(
-				table.querySelectorAll<HTMLElement>(":scope > colgroup.hearth-dv-cols > col"),
-			);
-			const startX = e.clientX;
-			const startW = widths[index];
-			// Suppress text selection for the duration of the drag via a body
-			// class (no inline styles). Captured once so a popout window's body
-			// is toggled, not the main document's.
-			const dragDoc = activeDocument;
-			handle.addClass("is-dragging");
-			dragDoc.body.addClass("hearth-dv-resizing");
-			const onMove = (ev: PointerEvent) => {
-				const w = Math.max(40, startW + (ev.clientX - startX));
-				widths![index] = w;
-				if (cols[index]) cols[index].style.width = `${w}px`;
-			};
-			const onUp = () => {
-				window.removeEventListener("pointermove", onMove);
-				window.removeEventListener("pointerup", onUp);
-				handle.removeClass("is-dragging");
-				dragDoc.body.removeClass("hearth-dv-resizing");
-				cfg.columnWidths = widths ? [...widths] : undefined;
-				persist();
-			};
-			window.addEventListener("pointermove", onMove);
-			window.addEventListener("pointerup", onUp);
-		});
-	});
-}
-
-// ---- Query (saved search) ----------------------------------------------
-
-/** A card that runs a saved query (same syntax as the top search bar) and lists
- * the matching files, refreshed on every render. */
-function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const cfg = card.savedSearch ?? {};
-	const query = (cfg.query ?? "").trim();
-	if (!query) {
-		emptyState(body, "search", t().cards.empty.searchNoQuery);
-		return;
-	}
-	const limit = cfg.count && cfg.count > 0 ? cfg.count : 12;
-	const useTiles = (cfg.view ?? "list") === "tiles";
-
-	const hits = runQuery(view.app, query, { limit });
-
-	const render = (all: QueryHit[]) => {
-		const list = all.slice(0, limit);
-		if (list.length === 0) {
-			emptyState(body, "search-x", t().cards.empty.searchNoMatches);
-			return;
-		}
-		body.empty();
-		if (useTiles) {
-			renderQueryTiles(view, body, list);
-		} else {
-			renderQueryList(view, body, list);
-		}
-	};
-
-	render(hits);
-	// Append full-text body matches when enabled (self-guards to name queries).
-	if (view.plugin.settings.searchContents) {
-		const exclude = new Set(hits.map((h) => h.file.path));
-		void searchFileContents(view.app, query, { exclude, limit }).then((extra) => {
-			if (extra.length) render([...hits, ...extra]);
-		});
-	}
-}
-
-function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): void {
-	const el = body.createDiv("hearth-list");
-	for (const hit of list) {
-		const row = el.createDiv("hearth-list-item");
-		setIcon(row.createDiv("hearth-list-icon"), hit.badge?.icon ?? iconForFile(hit.file));
-		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
-		row.createDiv({ cls: "hearth-list-label", text: name });
-		if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
-		const open = () => {
-			if (hit.file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(hit.file);
-		};
-		row.addEventListener("click", open);
-		makeClickable(row, open, name);
-	}
-}
-
-function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): void {
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	for (const hit of list) {
-		const tile = grid.createDiv("hearth-link-tile");
-		setIcon(tile.createDiv("hearth-link-icon"), hit.badge?.icon ?? iconForFile(hit.file));
-		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
-		tile.createDiv({ cls: "hearth-link-label", text: name });
-		const open = () => {
-			if (hit.file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(hit.file);
-		};
-		tile.addEventListener("click", open);
-		makeClickable(tile, open, name);
-	}
-}
-
-function emptyState(body: HTMLElement, icon: string, text: string): void {
-	const empty = body.createDiv("hearth-card-empty");
-	setIcon(empty.createDiv("hearth-card-empty-icon"), icon);
-	empty.createDiv({ cls: "hearth-card-empty-text", text });
-}
-
-// ---- Embed (note / image / base / ...) ---------------------------------
-
-/** Which embed view (0 = primary, 1 = second) each card is currently showing.
- * Transient (not persisted): a WeakMap keyed by the card object so the choice
- * survives body redraws and full view rebuilds — the card objects live in
- * settings and are reused — but resets to the primary when Obsidian reloads. */
-const activeEmbedView = new WeakMap<DashboardCard, number>();
-
-/** The resolved views an embed card can switch between: always the primary
- * (`target`/`scale`/`editable`), plus the second view when it carries a target.
- * Cards without a valid second view return a single-element list. */
-function embedViews(card: DashboardCard): EmbedView[] {
-	const views: EmbedView[] = [
-		{ target: card.target, baseView: card.baseView, scale: card.scale, editable: card.editable },
-	];
-	if (card.secondView?.target?.trim()) views.push(card.secondView);
-	return views;
-}
-
-/** The index of the view a card is currently showing, clamped to the views that
- * still exist (so removing the second view falls back to the primary). */
-function activeEmbedIndex(card: DashboardCard): number {
-	const count = embedViews(card).length;
-	const stored = activeEmbedView.get(card) ?? 0;
-	return Math.min(Math.max(0, stored), count - 1);
-}
-
-/** The embed view a card is currently showing (the primary unless the user has
- * switched to the second view and it still exists). */
-function activeEmbedViewParams(card: DashboardCard): EmbedView {
-	return embedViews(card)[activeEmbedIndex(card)];
-}
-
-/** Whether the embed view a card is currently showing is edited in place. Used
- * by the body watcher to decide whether a modify event should redraw. */
-export function activeEmbedViewEditable(card: DashboardCard): boolean {
-	return !!activeEmbedViewParams(card).editable;
-}
-
-function renderEmbed(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const active = activeEmbedViewParams(card);
-	const target = active.target?.trim();
-	if (!target) {
-		emptyState(body, "file-plus", t().cards.empty.embedPickFile);
-		return;
-	}
-	const file = view.app.vault.getAbstractFileByPath(target);
-	if (!(file instanceof TFile)) {
-		emptyState(body, "file-x", `Not found: ${target}`);
-		return;
-	}
-
-	// Bases (.base) embeds depend on the core Bases plugin being enabled.
-	if (file.extension.toLowerCase() === "base") {
-		const bases = view.app.internalPlugins.getPluginById("bases");
-		if (!bases?.enabled) {
-			emptyState(body, "database", t().cards.empty.embedEnableBases);
-			return;
-		}
-	}
-
-	// Canvas embeds depend on the core Canvas plugin being enabled.
-	if (file.extension.toLowerCase() === "canvas") {
-		const canvas = view.app.internalPlugins.getPluginById("canvas");
-		if (!canvas?.enabled) {
-			emptyState(body, "layout-dashboard", t().cards.empty.embedEnableCanvas);
-			return;
-		}
-	}
-
-	// Excalidraw drawings render through the community Excalidraw plugin.
-	if (isExcalidraw(file)) {
-		if (!view.app.plugins.enabledPlugins.has(EXCALIDRAW_PLUGIN_ID)) {
-			emptyState(body, "pen-tool", t().cards.empty.embedInstallExcalidraw);
-			return;
-		}
-	}
-
-	const ext = file.extension.toLowerCase();
-	const isMarkdown = ext === "md" || ext === "markdown";
-	const excalidraw = isExcalidraw(file);
-
-	// Editable Markdown notes are edited in place rather than rendered read-only.
-	if (active.editable && isMarkdown && !excalidraw) {
-		renderEditableEmbed(view, file, body, component);
-		return;
-	}
-
-	const host = body.createDiv("hearth-embed markdown-rendered");
-	body.addClass("is-embed-host");
-	// Optionally hide the embedded Bases view's own toolbar/header (view switcher
-	// + filter/property controls) so only the results show. Scoped via a class on
-	// the host so it only affects this card's base embed.
-	if (ext === "base" && card.hideBaseHeader) host.addClass("hearth-embed-hide-base-header");
-	// Optional zoom: scale the rendered content and widen it inversely so it
-	// still fills the card width before scaling (the body handles overflow).
-	const scale = active.scale && active.scale > 0 ? active.scale : 1;
-	if (scale !== 1) {
-		host.addClass("is-scaled");
-		host.style.setProperty("--hearth-embed-scale", String(scale));
-	}
-
-	if (isMarkdown && !excalidraw) {
-		// Render the note's actual content so all Markdown (headings, lists,
-		// callouts, links…) shows. A bare ![[embed]] only renders a placeholder
-		// outside a real Markdown view, which looks empty on the dashboard.
-		void renderMarkdownFile(view, file, host, component);
-	} else {
-		// Images, canvas, .base and Excalidraw go through Obsidian's own
-		// transclusion embed, which handles those file types uniformly. Bases can
-		// optionally target a named view with Obsidian's documented #View subpath.
-		const baseView = active.baseView?.trim();
-		const embedTarget =
-			ext === "base" && isEmbeddableBaseViewName(baseView) ? `${target}#${baseView}` : target;
-		void MarkdownRenderer.render(view.app, `![[${embedTarget}]]`, host, target, component);
-
-		// Canvas and Excalidraw embeds are natively interactive (pan/zoom, and
-		// their own in-place edit toggle) — let them fill the card edge-to-edge
-		// instead of sitting in a small box inside a scrolling body, so their
-		// own pan gestures don't fight the card's scrollbar.
-		if (ext === "canvas" || excalidraw) {
-			host.addClass("hearth-embed-live");
-			body.addClass("hearth-card-body-live");
-		}
-	}
-}
-
-/** A short label for a view's switcher button — the embedded file's basename,
- * or a placeholder when the view has no target yet. */
-function embedViewLabel(view: HomeView, ev: EmbedView, index: number): string {
-	const target = ev.target?.trim();
-	if (!target) return t().cards.embed.viewFallback(index + 1);
-	const file = view.app.vault.getAbstractFileByPath(target);
-	return file instanceof TFile ? file.basename : target;
-}
-
-/**
- * Mount the second-view switcher for an embed card, when it has one. A titled
- * card gets an inline segmented control in its header; an untitled (headerless)
- * card gets a floating control that CSS reveals on hover. Selecting a view
- * records the choice (transiently) and redraws just the card body.
- *
- * `head` is the card's header element (hidden by CSS when untitled) and `redraw`
- * re-renders the body via the same closure the live-refresh watchers use.
- */
-export function mountEmbedViewSwitcher(
-	view: HomeView,
-	card: DashboardCard,
-	cardEl: HTMLElement,
-	head: HTMLElement,
-	redraw: () => void,
-): void {
-	if (card.kind !== "embed") return;
-	const views = embedViews(card);
-	if (views.length < 2) return;
-
-	const titled = !!(card.title ?? "").trim();
-	const host = titled
-		? head.createDiv("hearth-embed-switch is-inline")
-		: cardEl.createDiv("hearth-embed-switch is-floating");
-
-	const build = () => {
-		host.empty();
-		const activeIdx = activeEmbedIndex(card);
-		views.forEach((ev, index) => {
-			const label = embedViewLabel(view, ev, index);
-			const btn = host.createEl("button", { cls: "hearth-embed-switch-btn", text: label });
-			btn.toggleClass("is-active", index === activeIdx);
-			btn.setAttribute("title", label);
-			btn.setAttribute("aria-label", t().cards.embed.switchTo(label));
-			// Don't let a click on the switcher start a card drag / bubble to the card.
-			btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				if (index === activeIdx) return;
-				activeEmbedView.set(card, index);
-				redraw();
-				build();
-			});
-		});
-	};
-	build();
-}
-
-/** Strip a leading YAML frontmatter block so it isn't rendered as body content. */
-function stripFrontmatter(text: string): string {
-	const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(text);
-	return match ? text.slice(match[0].length) : text;
-}
-
-/**
- * Make links inside rendered Markdown clickable. Obsidian only resolves link
- * clicks inside a real Markdown view; anchors rendered into a custom container
- * (like a dashboard embed) do nothing on their own. A delegated click listener
- * on the stable host handles internal (wiki) links, external URLs and tags —
- * and keeps working as the content node is re-rendered underneath it.
- */
-function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath: string): void {
-	host.addEventListener("click", (evt) => {
-		const anchor = (evt.target as HTMLElement | null)?.closest("a");
-		if (!(anchor instanceof HTMLAnchorElement) || !host.contains(anchor)) return;
-
-		if (anchor.classList.contains("external-link")) {
-			const href = anchor.getAttribute("href");
-			if (href) {
-				evt.preventDefault();
-				window.open(href, "_blank");
-			}
-			return;
-		}
-
-		if (anchor.classList.contains("tag")) {
-			const tag = anchor.getAttribute("href");
-			if (tag) {
-				evt.preventDefault();
-				const search = view.app.internalPlugins.getPluginById("global-search");
-				const instance = search?.instance as
-					| { openGlobalSearch?: (query: string) => void }
-					| undefined;
-				instance?.openGlobalSearch?.(`tag:${tag}`);
-			}
-			return;
-		}
-
-		if (anchor.classList.contains("internal-link")) {
-			const linktext = anchor.getAttribute("data-href") || anchor.getAttribute("href");
-			if (linktext) {
-				evt.preventDefault();
-				void view.app.workspace.openLinkText(linktext, sourcePath, true);
-			}
-		}
-	});
-}
-
-/** Render a Markdown file's real content (not a transclusion placeholder). */
-async function renderMarkdownFile(
-	view: HomeView,
-	file: TFile,
-	host: HTMLElement,
-	component: Component,
-): Promise<void> {
-	const raw = await view.app.vault.cachedRead(file);
-	await MarkdownRenderer.render(view.app, stripFrontmatter(raw), host, file.path, component);
-	wireMarkdownLinks(view, host, file.path);
-}
-
-/**
- * "Live mode" editable embed: shows the note rendered as Markdown and swaps to a
- * raw editor on double-click (Obsidian doesn't expose a true Live Preview editor
- * for arbitrary containers). Saves back to the vault and stays in sync with
- * external edits without ever interrupting typing.
- */
-function renderEditableEmbed(
-	view: HomeView,
-	file: TFile,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const wrap = body.createDiv("hearth-jot");
-	body.addClass("is-jot-host");
-	const preview = wrap.createDiv("hearth-embed markdown-rendered hearth-jot-preview");
-	preview.setAttribute("title", t().cards.embed.editHint);
-	wireMarkdownLinks(view, preview, file.path);
-	const area = wrap.createEl("textarea", {
-		cls: "hearth-text hearth-embed-edit hearth-jot-edit",
-		attr: { placeholder: t().cards.embed.emptyNotePlaceholder },
-	});
-	area.hide();
-
-	// `saving` guards against reacting to our own writes; `editing` tracks whether
-	// the raw editor is open; `lastSaved` is the content we last wrote so a
-	// no-op leave doesn't trigger a redundant write (and modify event).
-	let saving = false;
-	let editing = false;
-	let lastSaved: string | null = null;
-	let previewChild: Component | null = null;
-	// Monotonic token so overlapping renders (e.g. leaveEdit + a modify event
-	// firing together) can't clobber each other. Only the latest render creates
-	// a component and touches the DOM; stale in-flight renders bail out. Without
-	// this, an earlier render could finish against a component that a later
-	// render already unloaded, which drops async content like fenced code blocks.
-	let renderToken = 0;
-
-	const renderPreview = () => {
-		const token = ++renderToken;
-		if (previewChild) {
-			component.removeChild(previewChild);
-			previewChild = null;
-		}
-		void view.app.vault.cachedRead(file).then((raw) => {
-			// A newer render superseded this one — leave the DOM to the winner.
-			if (token !== renderToken) return;
-			// The card was torn down while we were reading — don't render into a
-			// detached node.
-			if (!preview.isConnected) return;
-			preview.empty();
-			const md = stripFrontmatter(raw);
-			if (!md.trim()) {
-				preview.addClass("is-empty");
-				preview.setText(t().cards.embed.emptyNoteHint);
-				return;
-			}
-			preview.removeClass("is-empty");
-			// Render into a FRESH child node each time rather than into `preview`
-			// itself. Some third-party code-block processors dedupe re-renders by
-			// the block's parent element — e.g. Numerals keeps a
-			// WeakMap<parentEl, source> and, on seeing the same source under the
-			// same parent, removes the block instead of rendering it. Reusing
-			// `preview` (we only empty() it) kept the parent identical across
-			// renders, so leaving raw edit made the math block dedupe itself away
-			// until an unrelated full re-render built a new preview node. A new
-			// content node per render gives each block a fresh parent.
-			const content = preview.createDiv("markdown-rendered");
-			previewChild = new Component();
-			component.addChild(previewChild);
-			void MarkdownRenderer.render(view.app, md, content, file.path, previewChild);
-		});
-	};
-
-	const flush = () => {
-		// Nothing changed since our last write — skip it, so a bare
-		// double-click-then-leave doesn't fire a self-modify event that races
-		// the leaveEdit re-render.
-		if (lastSaved !== null && area.value === lastSaved) return;
-		const current = view.app.vault.getAbstractFileByPath(file.path);
-		if (current instanceof TFile) {
-			saving = true;
-			lastSaved = area.value;
-			void view.app.vault.modify(current, area.value).finally(() => {
-				saving = false;
-			});
-		}
-	};
-
-	const enterEdit = () => {
-		void view.app.vault.read(file).then((content) => {
-			area.value = content;
-			lastSaved = content;
-			editing = true;
-			preview.hide();
-			area.show();
-			area.focus();
-		});
-	};
-	const leaveEdit = () => {
-		flush();
-		editing = false;
-		area.hide();
-		preview.show();
-		renderPreview();
-	};
-
-	// Double-click (not single) so links in the preview stay clickable.
-	preview.addEventListener("dblclick", enterEdit);
-	area.addEventListener("input", debounce(flush, 500, true));
-	area.addEventListener("blur", leaveEdit);
-
-	// Reflect external edits when we aren't the one writing: re-render the preview,
-	// or (if editing but not focused) refresh the buffer without yanking the cursor.
-	component.registerEvent(
-		view.app.vault.on("modify", (changed) => {
-			if (changed.path !== file.path || saving) return;
-			if (editing) {
-				if (area.ownerDocument.activeElement !== area) {
-					void view.app.vault.read(file).then((content) => {
-						area.value = content;
-						lastSaved = content;
-					});
-				}
-			} else {
-				renderPreview();
-			}
-		}),
-	);
-
-	renderPreview();
-}
-
-// ---- Daily note (today) -------------------------------------------------
-
-interface DailyNotesOptions {
-	/** moment.js date format, e.g. "YYYY-MM-DD". */
-	format?: string;
-	/** Folder daily notes live in. */
-	folder?: string;
-	/** Vault path of the template applied to new daily notes. */
-	template?: string;
-}
-
-/** The core Daily notes plugin's options, or null if it's disabled. Shared by
- * every card that resolves a daily-note path (daily, calendar, stats). */
-function dailyNotesOptions(view: HomeView): DailyNotesOptions | null {
-	const plugin = view.app.internalPlugins.getPluginById("daily-notes");
-	if (!plugin?.enabled) return null;
-	return (plugin.instance as { options?: DailyNotesOptions } | undefined)?.options ?? {};
-}
-
-/** Resolve the daily-note path for an arbitrary date from the core Daily
- * notes plugin settings. */
-function dailyNotePath(date: Moment, options: DailyNotesOptions): string {
-	const format = (options.format || "").trim() || "YYYY-MM-DD";
-	const folder = (options.folder || "").trim().replace(/^\/+|\/+$/g, "");
-	return `${folder ? `${folder}/` : ""}${date.format(format)}.md`;
-}
-
-function todaysDailyNotePath(options: DailyNotesOptions): string {
-	return dailyNotePath(moment(), options);
-}
-
-/**
- * Embed today's daily note, resolved fresh on every render so the card always
- * tracks the current day. Falls back to a "create today's note" prompt when the
- * note doesn't exist yet, and respects the per-card editable toggle.
- */
-function renderDaily(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const options = dailyNotesOptions(view);
-	if (!options) {
-		emptyState(body, "calendar", t().cards.empty.dailyEnable);
-		return;
-	}
-
-	const path = todaysDailyNotePath(options);
-	const file = view.app.vault.getAbstractFileByPath(path);
-
-	if (!(file instanceof TFile)) {
-		const empty = body.createDiv("hearth-card-empty");
-		setIcon(empty.createDiv("hearth-card-empty-icon"), "calendar-plus");
-		empty.createDiv({ cls: "hearth-card-empty-text", text: t().cards.daily.noNoteYet });
-		const create = empty.createEl("button", {
-			cls: "hearth-daily-create",
-			text: t().cards.daily.createToday,
-		});
-		create.addEventListener("click", () => {
-			// The core "Open today's daily note" command creates it from the
-			// configured template and opens it.
-			if (!view.app.commands.executeCommandById("daily-notes")) {
-				new Notice(t().notices.couldNotOpenDaily);
-			}
-		});
-		return;
-	}
-
-	// Optional button to open today's note in the editor (hideable). Rendered
-	// as a floating overlay on the card element (not the body) so it doesn't
-	// affect the body's scroll/flow.
-	if (card.showOpenButton !== false) {
-		const cardEl = body.closest(".hearth-card");
-		const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
-		const open = overlay.createEl("button", {
-			cls: "hearth-open-btn",
-			attr: { "aria-label": t().cards.daily.openToday },
-		});
-		setIcon(open, "square-pen");
-		open.addEventListener("click", () => {
-			void view.app.workspace.getLeaf(true).openFile(file);
-		});
-	}
-
-	if (card.editable) {
-		renderEditableEmbed(view, file, body, component);
-		return;
-	}
-
-	const host = body.createDiv("hearth-embed markdown-rendered");
-	body.addClass("is-embed-host");
-	void renderMarkdownFile(view, file, host, component);
-}
-
-/** The vault path an embed/daily card currently tracks, used to refresh the card
- * live when that file changes. Returns null when there's nothing to watch. */
-export function watchedCardPath(view: HomeView, card: DashboardCard): string | null {
-	// Track the view the card is currently showing, so switching to the second
-	// view live-refreshes on that file's changes (and back again).
-	if (card.kind === "embed") return activeEmbedViewParams(card).target?.trim() || null;
-	if (card.kind === "daily") {
-		const options = dailyNotesOptions(view);
-		if (!options) return null;
-		return todaysDailyNotePath(options);
-	}
-	return null;
-}
-
-// ---- Mini calendar -------------------------------------------------------
-
-/** A month grid resolved against the core Daily notes plugin's format/folder:
- * dots mark days with an existing note, clicking one opens it, clicking
- * today when it doesn't exist yet safely falls back to the core "Open
- * today's daily note" command (template-aware). Other empty days are left
- * alone rather than guessing at template handling for arbitrary dates. */
-function renderCalendar(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const options = dailyNotesOptions(view);
-	if (!options) {
-		emptyState(body, "calendar-days", t().cards.empty.dailyEnable);
-		return;
-	}
-
-	const cfg = card.calendar ?? {};
-	const wrap = body.createDiv("hearth-calendar");
-	// Activity counts are only needed for the heatmap tint.
-	const activity = cfg.heatmap ? activityByDay(view.app, cfg.heatmapMetric ?? "modified") : null;
-	let cursor: Moment = moment().startOf("month");
-
-	const draw = () => {
-		wrap.empty();
-		renderCalendarHead(wrap, cursor, {
-			onPrev: () => {
-				cursor = cursor.clone().subtract(1, "month");
-				draw();
-			},
-			onNext: () => {
-				cursor = cursor.clone().add(1, "month");
-				draw();
-			},
-			onToday: () => {
-				cursor = moment().startOf("month");
-				draw();
-			},
-		});
-		renderCalendarGrid(view, wrap, cursor, options, cfg, activity);
-	};
-	draw();
-}
-
-function renderCalendarHead(
-	wrap: HTMLElement,
-	cursor: Moment,
-	handlers: { onPrev: () => void; onNext: () => void; onToday: () => void },
-): void {
-	const head = wrap.createDiv("hearth-calendar-head");
-	const prev = head.createEl("button", { cls: "hearth-calendar-nav", attr: { "aria-label": t().cards.calendar.previousMonth } });
-	setIcon(prev, "chevron-left");
-	prev.addEventListener("click", handlers.onPrev);
-
-	const label = head.createDiv({ cls: "hearth-calendar-label", text: cursor.format("MMMM YYYY") });
-	label.setAttribute("title", t().cards.calendar.backToToday);
-	label.addEventListener("click", handlers.onToday);
-
-	const next = head.createEl("button", { cls: "hearth-calendar-nav", attr: { "aria-label": t().cards.calendar.nextMonth } });
-	setIcon(next, "chevron-right");
-	next.addEventListener("click", handlers.onNext);
-}
-
-function renderCalendarGrid(
-	view: HomeView,
-	wrap: HTMLElement,
-	cursor: Moment,
-	options: DailyNotesOptions,
-	cfg: NonNullable<DashboardCard["calendar"]>,
-	activity: Map<string, number> | null,
-): void {
-	const grid = wrap.createDiv("hearth-calendar-grid");
-	const startOfWeek = moment.localeData().firstDayOfWeek();
-	const weekNumbers = cfg.showWeekNumbers === true;
-	if (weekNumbers) {
-		// One extra leading column for the week number.
-		grid.addClass("has-week-numbers");
-		grid.createDiv({ cls: "hearth-calendar-dow hearth-calendar-wk", text: "wk" });
-	}
-
-	for (let i = 0; i < 7; i++) {
-		const dow = (startOfWeek + i) % 7;
-		grid.createDiv({ cls: "hearth-calendar-dow", text: moment().day(dow).format("dd") });
-	}
-
-	const monthStart = cursor.clone().startOf("month");
-	const monthEnd = cursor.clone().endOf("month");
-	const gridStart = monthStart.clone().subtract((monthStart.day() - startOfWeek + 7) % 7, "days");
-	const totalCells = Math.ceil((monthEnd.diff(gridStart, "days") + 1) / 7) * 7;
-
-	// Highest edit count in the visible range, so the heatmap tint is relative.
-	let peak = 1;
-	if (activity) {
-		for (let i = 0; i < totalCells; i++) {
-			const key = gridStart.clone().add(i, "days").format("YYYY-MM-DD");
-			peak = Math.max(peak, activity.get(key) ?? 0);
-		}
-	}
-
-	const today: string = moment().format("YYYY-MM-DD");
-	for (let i = 0; i < totalCells; i++) {
-		const day = gridStart.clone().add(i, "days");
-		if (weekNumbers && i % 7 === 0) {
-			grid.createDiv({ cls: "hearth-calendar-wk", text: day.format("W") });
-		}
-		const path = dailyNotePath(day, options);
-		const file = view.app.vault.getAbstractFileByPath(path);
-		const isToday = day.format("YYYY-MM-DD") === today;
-
-		const cell = grid.createDiv("hearth-calendar-day");
-		cell.toggleClass("is-outside", day.month() !== cursor.month());
-		cell.toggleClass("is-today", isToday);
-		cell.toggleClass("has-note", file instanceof TFile);
-		if (activity) {
-			const count = activity.get(day.format("YYYY-MM-DD")) ?? 0;
-			cell.style.setProperty("--heat", count > 0 ? String(heatLevel(count, peak)) : "0");
-			cell.toggleClass("has-heat", count > 0);
-			cell.setAttribute("aria-label", t().cards.calendar.dayEdited(day.format("MMM D"), count));
-		}
-		cell.createDiv({ cls: "hearth-calendar-daynum", text: String(day.date()) });
-		if (file instanceof TFile) cell.createDiv("hearth-calendar-dot");
-
-		const activate = () => {
-			if (file instanceof TFile) {
-				void view.app.workspace.getLeaf(true).openFile(file);
-			} else if (isToday) {
-				if (!view.app.commands.executeCommandById("daily-notes")) {
-					new Notice(t().notices.couldNotOpenDaily);
-				}
-			} else {
-				// Offer to create the missing daily note for that day.
-				void createDailyNoteAt(view, day, options).then((created) => {
-					if (created) void view.app.workspace.getLeaf(true).openFile(created);
-					else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
-				});
-			}
-		};
-		cell.addEventListener("click", activate);
-		makeClickable(cell, activate, day.format("MMMM D, YYYY"));
-	}
-}
-
-/** Bucket an edit count into a 1–4 heat level relative to the range peak. */
-function heatLevel(count: number, peak: number): number {
-	if (count <= 0) return 0;
-	return Math.min(4, Math.ceil((count / peak) * 4));
-}
-
-/** Create a daily note for `day` at the plugin's configured path (making any
- * missing parent folders), returning the file or null on failure. Applies the
- * core Daily notes template (with the usual {{date}}/{{time}}/{{title}}
- * substitutions) so a note made here matches Obsidian's own defaults. */
-async function createDailyNoteAt(
-	view: HomeView,
-	day: Moment,
-	options: DailyNotesOptions,
-): Promise<TFile | null> {
-	const path = dailyNotePath(day, options);
-	const existing = view.app.vault.getAbstractFileByPath(path);
-	if (existing instanceof TFile) return existing;
-	const folder = path.split("/").slice(0, -1).join("/");
-	if (folder && !view.app.vault.getAbstractFileByPath(folder)) {
-		try {
-			await view.app.vault.createFolder(folder);
-		} catch {
-			// Folder may have been created concurrently — ignore and try the file.
-		}
-	}
-	const format = (options.format || "").trim() || "YYYY-MM-DD";
-	let content = "";
-	const templatePath = (options.template || "").trim();
-	if (templatePath) {
-		const tpl =
-			view.app.vault.getAbstractFileByPath(templatePath) ??
-			view.app.vault.getAbstractFileByPath(`${templatePath}.md`);
-		if (tpl instanceof TFile) {
-			try {
-				content = applyDailyTemplate(await view.app.vault.read(tpl), day, format);
-			} catch {
-				content = "";
-			}
-		}
-	}
-	try {
-		return await view.app.vault.create(path, content);
-	} catch {
-		return null;
-	}
-}
-
-/** Substitute the daily-note template variables Obsidian's core plugin supports
- * for an arbitrary date: {{date}}, {{time}}, {{title}} and their {{date:FMT}}/
- * {{time:FMT}} formatted variants. */
-function applyDailyTemplate(raw: string, day: Moment, format: string): string {
-	return raw
-		.replace(/\{\{\s*date\s*:\s*([^}]+?)\s*\}\}/gi, (_m, f: string) => day.format(f))
-		.replace(/\{\{\s*time\s*:\s*([^}]+?)\s*\}\}/gi, (_m, f: string) => day.format(f))
-		.replace(/\{\{\s*date\s*\}\}/gi, day.format(format))
-		.replace(/\{\{\s*time\s*\}\}/gi, day.format("HH:mm"))
-		.replace(/\{\{\s*title\s*\}\}/gi, day.format(format));
-}
-
-/** Count files edited (or created) per calendar day, keyed by YYYY-MM-DD. Read
- * entirely from the in-memory file stats — no file reads. Shared by the
- * calendar heatmap tint and the activity-heatmap card. */
-function activityByDay(app: HomeView["app"], metric: "modified" | "created"): Map<string, number> {
-	const counts = new Map<string, number>();
-	for (const file of app.vault.getMarkdownFiles()) {
-		const ts = metric === "created" ? file.stat.ctime : file.stat.mtime;
-		const key = localDayKey(ts);
-		counts.set(key, (counts.get(key) ?? 0) + 1);
-	}
-	return counts;
-}
-
-// ---- Vault statistics -----------------------------------------------------
-
-/** Cheap vault stats — everything here comes from the already-loaded vault
- * index and metadata cache, never a file read, so it's fast even on large
- * vaults. */
-function renderStats(view: HomeView, body: HTMLElement): void {
-	const vault = view.app.vault;
-	let notes = 0;
-	let attachments = 0;
-	let folders = 0;
-	// Single pass over the loaded files: counts plus the tag set (collected
-	// inline for markdown files) instead of a second full getMarkdownFiles scan.
-	const tags = new Set<string>();
-	for (const f of vault.getAllLoadedFiles()) {
-		if (f instanceof TFolder) {
-			if (f.path !== "/") folders++;
-		} else if (f instanceof TFile) {
-			if (f.extension.toLowerCase() === "md") {
-				notes++;
-				const cache = view.app.metadataCache.getFileCache(f);
-				if (cache) {
-					for (const t of getAllTags(cache) ?? []) tags.add(t.toLowerCase());
-				}
-			} else {
-				attachments++;
-			}
-		}
-	}
-
-	const grid = body.createDiv("hearth-stats");
-	addStat(grid, "file-text", notes, t().cards.stats.notes);
-	addStat(grid, "paperclip", attachments, t().cards.stats.attachments);
-	addStat(grid, "folder", folders, t().cards.stats.folders);
-	addStat(grid, "tag", tags.size, t().cards.stats.tags);
-
-	const streak = dailyNoteStreak(view);
-	if (streak !== null) addStat(grid, "flame", streak, t().cards.stats.dayStreak);
-}
-
-function addStat(grid: HTMLElement, icon: string, value: number, label: string): void {
-	const cell = grid.createDiv("hearth-stat");
-	setIcon(cell.createDiv("hearth-stat-icon"), icon);
-	cell.createDiv({ cls: "hearth-stat-value", text: String(value) });
-	cell.createDiv({ cls: "hearth-stat-label", text: label });
-}
-
-/** Consecutive days with an existing daily note, counting back from today —
- * or from yesterday if today's isn't written yet, so an otherwise-unbroken
- * streak doesn't read as zero just because the day isn't over. */
-function dailyNoteStreak(view: HomeView): number | null {
-	const options = dailyNotesOptions(view);
-	if (!options) return null;
-
-	let day: Moment = moment();
-	if (!(view.app.vault.getAbstractFileByPath(dailyNotePath(day, options)) instanceof TFile)) {
-		day = day.clone().subtract(1, "day");
-	}
-
-	let streak = 0;
-	while (view.app.vault.getAbstractFileByPath(dailyNotePath(day, options)) instanceof TFile) {
-		streak++;
-		day = day.clone().subtract(1, "day");
-		if (streak > 3650) break;
-	}
-	return streak;
-}
-
-// ---- Activity heatmap (GitHub-style) ------------------------------------
-
-/** A contribution-style grid: one square per day for the last N weeks, tinted
- * by how many notes were edited (or created) that day. */
-function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const cfg = card.heatmap ?? {};
-	const metric = cfg.metric ?? "modified";
-	const weeks = cfg.weeks && cfg.weeks > 0 ? Math.min(cfg.weeks, 53) : 26;
-	const activity = activityByDay(view.app, metric);
-	const options = dailyNotesOptions(view);
-
-	const wrap = body.createDiv("hearth-heatmap");
-	const startOfWeek = moment.localeData().firstDayOfWeek();
-	const today = moment().startOf("day");
-	const todayKey: string = today.format("YYYY-MM-DD");
-	// Start `weeks - 1` weeks back, aligned to the start of that week, so the
-	// last column is the current (partial) week.
-	let start = today.clone().subtract((weeks - 1) * 7, "days");
-	start = start.clone().subtract((start.day() - startOfWeek + 7) % 7, "days");
-
-	// Relative peak over the visible, non-future days.
-	let peak = 1;
-	for (let i = 0; i < weeks * 7; i++) {
-		const key = start.clone().add(i, "days").format("YYYY-MM-DD");
-		if (key <= todayKey) peak = Math.max(peak, activity.get(key) ?? 0);
-	}
-
-	const grid = wrap.createDiv("hearth-heatmap-grid");
-	grid.style.gridTemplateColumns = `repeat(${weeks}, 1fr)`;
-	// Column-major fill (top-to-bottom, then next week): 7 rows, auto-flow column.
-	for (let w = 0; w < weeks; w++) {
-		for (let r = 0; r < 7; r++) {
-			const day = start.clone().add(w * 7 + r, "days");
-			const key: string = day.format("YYYY-MM-DD");
-			const cellEl = grid.createDiv("hearth-heatmap-cell");
-			if (key > todayKey) {
-				cellEl.addClass("is-empty");
-				continue;
-			}
-			const count = activity.get(key) ?? 0;
-			cellEl.style.setProperty("--heat", String(heatLevel(count, peak)));
-			cellEl.toggleClass("has-heat", count > 0);
-			cellEl.setAttribute("aria-label", t().cards.calendar.dayMetric(day.format("MMM D, YYYY"), count, metric));
-			cellEl.setAttribute("title", `${day.format("MMM D, YYYY")} · ${count} ${metric}`);
-			if (options) {
-				const activate = () => {
-					void createDailyNoteAt(view, day, options).then((f) => {
-						if (f) void view.app.workspace.getLeaf(true).openFile(f);
-					});
-				};
-				cellEl.addEventListener("click", activate);
-				makeClickable(cellEl, activate, day.format("MMMM D, YYYY"));
-			}
-		}
-	}
-
-	// A small Less→More legend.
-	const legend = wrap.createDiv("hearth-heatmap-legend");
-	legend.createSpan({ cls: "hearth-heatmap-legend-label", text: t().cards.heatmap.less });
-	for (let l = 0; l <= 4; l++) {
-		const sq = legend.createDiv("hearth-heatmap-cell");
-		sq.style.setProperty("--heat", String(l));
-		if (l > 0) sq.addClass("has-heat");
-	}
-	legend.createSpan({ cls: "hearth-heatmap-legend-label", text: t().cards.heatmap.more });
-}
-
-// ---- Web / iframe embed -------------------------------------------------
-
-function renderWeb(card: DashboardCard, body: HTMLElement, component: Component): void {
-	const url = card.url?.trim();
-	if (!url) {
-		emptyState(body, "globe", t().cards.empty.webNoUrl);
-		return;
-	}
-	// Only allow http(s) URLs into the iframe.
-	if (!/^https?:\/\//i.test(url)) {
-		emptyState(body, "globe", "URL must start with http:// or https://");
-		return;
-	}
-
-	body.addClass("hearth-web-body");
-	const frame = body.createEl("iframe", { cls: "hearth-web" });
-	frame.setAttribute("src", url);
-	frame.setAttribute("loading", "lazy");
-	frame.setAttribute("referrerpolicy", "no-referrer");
-	// Sandbox keeps embedded pages from reaching into the app while still
-	// letting normal sites run their scripts. `allow-same-origin` together with
-	// `allow-scripts` is the well-known combination that can let framed content
-	// escape the sandbox, so it's opt-in per card ("trusted") rather than the
-	// default — most sites render fine without it.
-	const tokens = ["allow-scripts", "allow-popups", "allow-forms"];
-	if (card.sandboxTrusted) tokens.push("allow-same-origin");
-	frame.setAttribute("sandbox", tokens.join(" "));
-
-	// A small always-available "open in browser" button, plus a fallback shown
-	// if the frame never loads (e.g. the site refuses framing via
-	// X-Frame-Options / CSP, which can't be detected reliably cross-origin).
-	const openExternally = () => window.open(url, "_blank");
-	const ext = body.createEl("button", {
-		cls: "hearth-web-external",
-		attr: { "aria-label": t().cards.web.openInBrowser },
-	});
-	setIcon(ext, "external-link");
-	ext.addEventListener("click", openExternally);
-
-	let loaded = false;
-	frame.addEventListener("load", () => {
-		loaded = true;
-		body.removeClass("hearth-web-blocked");
-		// A slow but successful load can arrive after the fallback showed — clear it.
-		body.querySelector(".hearth-web-fallback")?.remove();
-	});
-	const timer = window.setTimeout(() => {
-		if (loaded) return;
-		body.addClass("hearth-web-blocked");
-		const fallback = body.createDiv("hearth-web-fallback");
-		setIcon(fallback.createDiv("hearth-card-empty-icon"), "globe");
-		fallback.createDiv({
-			cls: "hearth-card-empty-text",
-			text: t().cards.web.mayRefuse,
-		});
-		const open = fallback.createEl("button", { cls: "hearth-daily-create", text: t().cards.web.openInBrowser });
-		open.addEventListener("click", openExternally);
-	}, 4000);
-	component.register(() => window.clearTimeout(timer));
-}
-
-// ---- Bookmarks (Obsidian core) -----------------------------------------
-
-function flattenBookmarks(items: BookmarkItem[], out: BookmarkItem[]): void {
-	for (const item of items) {
-		if (item.type === "group" && item.items) {
-			flattenBookmarks(item.items, out);
-		} else {
-			out.push(item);
-		}
-	}
-}
-
-function renderBookmarks(view: HomeView, body: HTMLElement): void {
-	const plugin = view.app.internalPlugins.getPluginById("bookmarks");
-	const instance = plugin?.instance as
-		| { getBookmarks?: () => BookmarkItem[] }
-		| undefined;
-
-	if (!plugin?.enabled || !instance?.getBookmarks) {
-		emptyState(body, "bookmark", t().cards.empty.bookmarksEnable);
-		return;
-	}
-
-	const items: BookmarkItem[] = [];
-	flattenBookmarks(instance.getBookmarks() ?? [], items);
-
-	// Obsidian keeps a file/folder bookmark in its store even after the target is
-	// deleted (the entry only goes away if the bookmark itself is removed), but its
-	// native pane hides those orphans. `getBookmarks()` returns the raw store, so we
-	// drop file/folder bookmarks whose target no longer exists to match Obsidian and
-	// avoid rendering dead, unclickable rows (see issue #41).
-	const live = items.filter((item) => {
-		if ((item.type === "file" || item.type === "folder") && item.path) {
-			return view.app.vault.getAbstractFileByPath(item.path) !== null;
-		}
-		return true;
-	});
-
-	if (live.length === 0) {
-		emptyState(body, "bookmark", t().cards.empty.bookmarksEmpty);
-		return;
-	}
-
-	const list = body.createDiv("hearth-list");
-	for (const item of live) {
-		const label =
-			item.title ||
-			item.path ||
-			item.url ||
-			item.query ||
-			t().cards.bookmarks.untitled;
-		const row = list.createDiv("hearth-list-item");
-		const iconEl = row.createDiv("hearth-list-icon");
-		if (item.type === "url" && item.url) {
-			renderFavicon(iconEl, item.url);
-		} else {
-			const icon =
-				item.type === "folder" ? "folder" :
-				item.type === "search" ? "search" : "file-text";
-			setIcon(iconEl, icon);
-		}
-		row.createDiv({ cls: "hearth-list-label", text: label });
-		const open = () => openBookmark(view, item);
-		row.addEventListener("click", open);
-		makeClickable(row, open, label);
-	}
-}
-
-/** Show a site favicon for a URL bookmark, falling back to the globe icon if the
- * URL can't be parsed or the favicon fails to load (e.g. offline). */
-function renderFavicon(iconEl: HTMLElement, url: string): void {
-	let host: string;
-	try {
-		host = new URL(url).hostname;
-	} catch {
-		setIcon(iconEl, "globe");
-		return;
-	}
-	const img = iconEl.createEl("img", { cls: "hearth-favicon" });
-	img.setAttribute("loading", "lazy");
-	img.setAttribute("referrerpolicy", "no-referrer");
-	img.addEventListener("error", () => {
-		img.remove();
-		setIcon(iconEl, "globe");
-	});
-	img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
-}
-
-function openBookmark(view: HomeView, item: BookmarkItem): void {
-	if (item.type === "url" && item.url) {
-		window.open(item.url, "_blank");
-		return;
-	}
-	if (item.path) {
-		const file = view.app.vault.getAbstractFileByPath(item.path);
-		if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
-	}
-}
-
-// ---- Favorites (curated note cards) ------------------------------------
-
-function renderFavorites(view: HomeView, body: HTMLElement): void {
-	const paths = view.plugin.settings.favorites;
-	if (!paths.length) {
-		emptyState(body, "star", t().cards.empty.favoritesEmpty);
-		return;
-	}
-
-	const grid = body.createDiv("hearth-favorites");
-	for (const path of paths) {
-		const file = view.app.vault.getAbstractFileByPath(path);
-		const card = grid.createDiv("hearth-fav-card");
-		if (file instanceof TFile) {
-			setIcon(card.createDiv("hearth-fav-icon"), iconForFile(file));
-			card.createDiv({ cls: "hearth-fav-name", text: file.basename });
-			const open = () => void view.app.workspace.getLeaf(true).openFile(file);
-			card.addEventListener("click", open);
-			makeClickable(card, open, file.basename);
-		} else {
-			card.addClass("is-missing");
-			setIcon(card.createDiv("hearth-fav-icon"), "file-x");
-			card.createDiv({ cls: "hearth-fav-name", text: path });
-		}
-	}
-}
-
-// ---- Text / jot-down ----------------------------------------------------
-
-function renderText(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const wrap = body.createDiv("hearth-jot");
-	body.addClass("is-jot-host");
-	const preview = wrap.createDiv("hearth-jot-preview markdown-rendered");
-	preview.setAttribute("title", t().cards.embed.editHint);
-	wireMarkdownLinks(view, preview, "");
-	const area = wrap.createEl("textarea", {
-		cls: "hearth-text hearth-jot-edit",
-		attr: { placeholder: t().cards.text.placeholder },
-	});
-	area.hide();
-
-	const placeholder = t().cards.text.placeholder;
-	const renderPreview = () => {
-		preview.empty();
-		const text = card.text ?? "";
-		if (!text.trim()) {
-			preview.addClass("is-empty");
-			preview.setText(placeholder);
-			return;
-		}
-		preview.removeClass("is-empty");
-		// Render the jotted text as Markdown so headings, lists, checkboxes and
-		// links all show, just like a note.
-		void MarkdownRenderer.render(view.app, text, preview, "", component);
-	};
-
-	const enterEdit = () => {
-		area.value = card.text ?? "";
-		preview.hide();
-		area.show();
-		area.focus();
-	};
-	const leaveEdit = () => {
-		area.hide();
-		preview.show();
-		renderPreview();
-	};
-
-	// Double-click (not single) so links in the preview stay clickable.
-	preview.addEventListener("dblclick", enterEdit);
-
-	const save = debounce(
-		() => {
-			card.text = area.value;
-			void view.plugin.saveData(view.plugin.settings);
-		},
-		500,
-		true,
-	);
-	area.addEventListener("input", save);
-	area.addEventListener("blur", () => {
-		card.text = area.value;
-		void view.plugin.saveData(view.plugin.settings);
-		leaveEdit();
-	});
-
-	renderPreview();
-}
-
-// ---- Calculator ---------------------------------------------------------
-
-/** One key on the on-screen keypad. `insert` is spliced in at the caret; keys
- * with no `insert` carry a named `action` (equals / clear / backspace). */
-interface CalcKey {
-	label: string;
-	insert?: string;
-	action?: "equals" | "clear" | "back";
-	/** Extra CSS class for accent keys (operators, equals). */
-	cls?: string;
-}
-
-/** The basic pad: digits and the four operations plus edit keys. */
-const CALC_BASIC_KEYS: CalcKey[] = [
-	{ label: "C", action: "clear", cls: "is-fn" },
-	{ label: "(", insert: "(" },
-	{ label: ")", insert: ")" },
-	{ label: "⌫", action: "back", cls: "is-fn" },
-	{ label: "7", insert: "7" }, { label: "8", insert: "8" }, { label: "9", insert: "9" },
-	{ label: "÷", insert: "/", cls: "is-op" },
-	{ label: "4", insert: "4" }, { label: "5", insert: "5" }, { label: "6", insert: "6" },
-	{ label: "×", insert: "*", cls: "is-op" },
-	{ label: "1", insert: "1" }, { label: "2", insert: "2" }, { label: "3", insert: "3" },
-	{ label: "−", insert: "-", cls: "is-op" },
-	{ label: "0", insert: "0" }, { label: ".", insert: "." },
-	{ label: "=", action: "equals", cls: "is-eq" },
-	{ label: "+", insert: "+", cls: "is-op" },
-];
-
-/** Extra keys prepended for the scientific tier: functions, powers, constants. */
-const CALC_SCI_KEYS: CalcKey[] = [
-	{ label: "sin", insert: "sin(", cls: "is-fn" },
-	{ label: "cos", insert: "cos(", cls: "is-fn" },
-	{ label: "tan", insert: "tan(", cls: "is-fn" },
-	{ label: "√", insert: "sqrt(", cls: "is-fn" },
-	{ label: "ln", insert: "ln(", cls: "is-fn" },
-	{ label: "log", insert: "log(", cls: "is-fn" },
-	{ label: "xʸ", insert: "^", cls: "is-fn" },
-	{ label: "π", insert: "pi", cls: "is-fn" },
-	{ label: "e", insert: "e", cls: "is-fn" },
-	{ label: "!", insert: "!", cls: "is-fn" },
-	{ label: "%", insert: "%", cls: "is-fn" },
-	{ label: "mod", insert: " mod ", cls: "is-fn" },
-];
-
-/** A free-text calculator: arithmetic, unit/currency conversions and
- * plain-language queries (à la Wolfram Alpha's input box), evaluated live as
- * you type. The on-screen keypad tier is chosen in card settings. */
-function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const cfg = (card.calculator ??= {});
-	const angleUnit = cfg.angleUnit ?? "deg";
-
-	const wrap = body.createDiv("hearth-calc");
-
-	const input = wrap.createEl("input", {
-		cls: "hearth-calc-input",
-		attr: {
-			type: "text",
-			placeholder: t().cards.calculator.placeholder,
-			spellcheck: "false",
-			"aria-label": t().cards.calculator.placeholder,
-		},
-	});
-	input.value = cfg.lastInput ?? "";
-
-	const resultEl = wrap.createDiv("hearth-calc-result");
-	const noteEl = wrap.createDiv("hearth-calc-note");
-	const keysEl = wrap.createDiv("hearth-calc-keys");
-
-	// Currency conversions need exchange rates. To stay local-first, rates are
-	// only fetched lazily — the first time a query actually needs them (see the
-	// error branch in update) — never just because a calculator card exists.
-	const currentRates = () => cachedRates()?.rates;
-	let triedRates = false;
-
-	const persist = debounce(
-		() => void view.plugin.saveData(view.plugin.settings),
-		600,
-		true,
-	);
-
-	// Show the live result of the current input.
-	const update = () => {
-		const raw = input.value;
-		cfg.lastInput = raw;
-		if (!raw.trim()) {
-			resultEl.setText("");
-			resultEl.removeClass("is-error");
-			noteEl.setText("");
-			persist();
-			return;
-		}
-		const res = evaluateCalc(raw, { angleUnit, rates: currentRates() });
-		if (res.ok) {
-			resultEl.removeClass("is-error");
-			resultEl.setText(res.formatted);
-			noteEl.setText(res.note ?? "");
-		} else {
-			resultEl.addClass("is-error");
-			resultEl.setText(res.error ? "…" : "");
-			// Surface a currency/rates hint (but not routine "still typing" errors).
-			noteEl.setText(/rate|currency/i.test(res.error) ? res.error : "");
-			// A currency query needs rates we don't have yet — fetch them once,
-			// then re-evaluate so the answer fills in without a manual retry.
-			// Skipped entirely when external calls are disabled.
-			if (
-				!triedRates &&
-				!view.plugin.settings.disableExternalCalls &&
-				/rate/i.test(res.error) &&
-				!currentRates()
-			) {
-				triedRates = true;
-				void loadRates().then((rates) => {
-					if (rates) update();
-				});
-			}
-		}
-		persist();
-	};
-
-	// Enter / "=" just re-evaluates and selects the input so the next query
-	// overwrites it (results are already shown live as you type).
-	const commit = () => {
-		update();
-		input.select();
-	};
-
-	// The caret, treating a not-yet-focused input as "at the end" — an unfocused
-	// text input reports selectionStart 0, not null, so keys would otherwise
-	// insert at the start on the first tap after a render with restored text.
-	const caret = (): [number, number] => {
-		if (activeDocument.activeElement !== input) return [input.value.length, input.value.length];
-		return [input.selectionStart ?? input.value.length, input.selectionEnd ?? input.value.length];
-	};
-
-	// Splice text in at the caret (or over the selection) and re-evaluate.
-	const insertAtCaret = (text: string) => {
-		const [start, end] = caret();
-		input.value = input.value.slice(0, start) + text + input.value.slice(end);
-		const pos = start + text.length;
-		input.setSelectionRange(pos, pos);
-		input.focus();
-		update();
-	};
-
-	const backspace = () => {
-		const [start, end] = caret();
-		if (start !== end) {
-			input.value = input.value.slice(0, start) + input.value.slice(end);
-			input.setSelectionRange(start, start);
-		} else if (start > 0) {
-			input.value = input.value.slice(0, start - 1) + input.value.slice(start);
-			input.setSelectionRange(start - 1, start - 1);
-		}
-		input.focus();
-		update();
-	};
-
-	const renderKeys = () => {
-		keysEl.empty();
-		const tier = cfg.keypad ?? "none";
-		keysEl.toggleClass("is-hidden", tier === "none");
-		if (tier === "none") return;
-		const keys = tier === "scientific" ? [...CALC_SCI_KEYS, ...CALC_BASIC_KEYS] : CALC_BASIC_KEYS;
-		for (const key of keys) {
-			const btn = keysEl.createEl("button", {
-				cls: `hearth-calc-key${key.cls ? " " + key.cls : ""}`,
-				text: key.label,
-				attr: { type: "button" },
-			});
-			btn.addEventListener("click", () => {
-				if (key.action === "equals") commit();
-				else if (key.action === "clear") {
-					input.value = "";
-					input.focus();
-					update();
-				} else if (key.action === "back") backspace();
-				else if (key.insert !== undefined) insertAtCaret(key.insert);
-			});
-		}
-	};
-
-	input.addEventListener("input", update);
-	input.addEventListener("keydown", (e) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			commit();
-		}
-	});
-	// Keep the board's drag/keyboard handlers from stealing typing.
-	input.addEventListener("keydown", (e) => e.stopPropagation());
-
-	renderKeys();
-	update();
-}
-
-// ---- Recent files -------------------------------------------------------
-
-function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const count = card.count && card.count > 0 ? card.count : 8;
-	const files = view.app.workspace
-		.getLastOpenFiles()
-		.map((p) => view.app.vault.getAbstractFileByPath(p))
-		.filter((f): f is TFile => f instanceof TFile)
-		.slice(0, count);
-
-	if (files.length === 0) {
-		emptyState(body, "history", t().cards.empty.recentEmpty);
-		return;
-	}
-
-	const list = body.createDiv("hearth-list");
-	for (const file of files) {
-		const row = list.createDiv("hearth-list-item");
-		setIcon(row.createDiv("hearth-list-icon"), iconForFile(file));
-		row.createDiv({ cls: "hearth-list-label", text: file.basename });
-		const open = () => void view.app.workspace.getLeaf(true).openFile(file);
-		row.addEventListener("click", open);
-		makeClickable(row, open, file.basename);
-	}
-}
-
-// ---- Links / launchpad --------------------------------------------------
-
-function renderLinks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const links = card.links ?? [];
-	if (links.length === 0) {
-		emptyState(body, "layout-grid", t().cards.empty.linksEmpty);
-		return;
-	}
-
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = card.tileSize && card.tileSize > 0 ? card.tileSize : 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	// Flag the card body so CSS can disable the card drag overlay over tiles in
-	// arrange mode (tiles are self-contained widgets with their own resize).
-	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
-	for (const link of links) {
-		const tile = grid.createDiv("hearth-link-tile");
-		applyTileSize(tile, link.sizeW, link.sizeH, link.size, baseTile, link.col, link.row);
-		setIcon(tile.createDiv("hearth-link-icon"), link.icon || "link");
-		tile.createDiv({ cls: "hearth-link-label", text: link.label || link.target });
-		const open = () => openLink(view, link);
-		// In arrange mode, clicking a tile must NOT trigger its action — the
-		// click is almost always the tail end of a resize/drag gesture.
-		if (!view.arrangeMode) {
-			tile.addEventListener("click", open);
-			makeClickable(tile, open, link.label || link.target);
-		}
-
-		// Tiles can only be resized/repositioned while the dashboard is in
-		// arrange mode.
-		if (view.arrangeMode) {
-			makeTileResizable(view, tile, baseTile, () => link.sizeW, (v) => {
-				link.sizeW = v;
-			}, () => link.sizeH, (v) => {
-				link.sizeH = v;
-			}, () => link.size, (v) => {
-				link.size = v;
-			});
-			makeTileDraggable(view, grid, tile, links, link, card.tileAutoFlow === true);
-		}
-	}
-
-	// Flag tiles obscured behind a sibling so the overlap is visible (always,
-	// not just in arrange mode — a hidden tile is a problem either way).
-	markOverlappingTiles(grid);
-}
-
-/** Apply a per-tile size: converts pixel width/height into grid column/row
- * spans (relative to the fine cell size). Each tile is placed on the grid
- * spanning N columns × M rows, so it can independently span multiple rows
- * without its row's height being governed by the tallest tile. When the tile
- * has an explicit free-form position (col/row), it's pinned to that grid line
- * instead of auto-flowing. */
-function applyTileSize(
-	tile: HTMLElement,
-	sizeW: number | undefined,
-	sizeH: number | undefined,
-	legacySize: number | undefined,
-	baseTile: number,
-	col?: number,
-	row?: number,
-): void {
-	// Migrate a legacy single `size` into independent width/height on read.
-	const w = sizeW ?? legacySize;
-	const h = sizeH ?? legacySize;
-	// Use the fine cell size for span calculation so sizing is granular.
-	const cell = TILE_CELL;
-	const rowH = Math.round(TILE_CELL * 0.78);
-	const cs = w && w > 0 ? Math.max(1, Math.round(w / cell)) : DEFAULT_TILE_CS;
-	const rs = h && h > 0 ? Math.max(1, Math.round(h / rowH)) : DEFAULT_TILE_RS;
-	tile.style.setProperty("--hearth-tile-cs", String(cs));
-	tile.style.setProperty("--hearth-tile-rs", String(rs));
-	applyTileIconOnly(tile, cs, rs);
-	// Free-form position: pin to a grid line (1-based). When either is missing
-	// the tile auto-flows into the next available cell.
-	if (col != null && col > 0) tile.style.setProperty("--hearth-tile-col", String(col));
-	else tile.style.removeProperty("--hearth-tile-col");
-	if (row != null && row > 0) tile.style.setProperty("--hearth-tile-row", String(row));
-	else tile.style.removeProperty("--hearth-tile-row");
-}
-
-/** Toggle icon-only mode when a tile is too small to show its label. Below two
- * fine rows there's no vertical room for text, and at a single column there's
- * no horizontal room; in both cases the label ellipsises away to nothing while
- * still reserving its line + gap, which pushes the icon off-centre. Dropping
- * the label (and its gap) then lets the icon sit dead-centre. */
-function applyTileIconOnly(tile: HTMLElement, cs: number, rs: number): void {
-	tile.toggleClass("is-icon-only", rs <= 1 || cs <= 1);
-}
-
-/** Default span for a tile with no explicit size: 2 columns × 2 rows on the
- * fine grid (≈88×68px), matching the visual size of the old 90px default. */
-const DEFAULT_TILE_CS = 2;
-const DEFAULT_TILE_RS = 2;
-
-/** Fine grid (px) that tile sizes snap to, so tiles align like Android widgets. */
-const TILE_GRID = 4;
-
-/** Base cell size (px) for the tile grid. Smaller = finer granularity: a tile
- * can span more columns/rows in smaller steps, so sizing feels precise rather
- * than chunky. Half of the visual default so 2 cells ≈ one old tile. */
-const TILE_CELL = 44;
-
-/** Attach a widget-style resize handle to a tile. The handle is a clear,
- * grabbable corner grip (bottom-right) that resizes width and height together
- * on a fine grid. Fully self-contained: stops propagation so the card's drag
- * engine never interferes. */
-function makeTileResizable(
-	view: HomeView,
-	tile: HTMLElement,
-	baseTile: number,
-	getW: () => number | undefined,
-	setW: (size: number | undefined) => void,
-	getH: () => number | undefined,
-	setH: (size: number | undefined) => void,
-	getLegacy: () => number | undefined,
-	setLegacy: (size: number | undefined) => void,
-): void {
-	const handle = tile.createDiv("hearth-tile-resize");
-	handle.setAttribute("aria-hidden", "true");
-
-	const stop = (e: PointerEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-	};
-
-	let resizing = false;
-	let startW = 0;
-	let startH = 0;
-	let startX = 0;
-	let startY = 0;
-
-	handle.addEventListener("pointerdown", (e) => {
-		stop(e);
-		resizing = true;
-		// Seed from legacy `size` (which used to drive both axes) so a tile
-		// resized before this split still starts from its stored footprint.
-		const legacy = getLegacy();
-		startW = getW() ?? legacy ?? baseTile;
-		if (legacy != null && getW() == null) setW(legacy);
-		startH = getH() ?? legacy ?? Math.round(baseTile * 0.78);
-		if (legacy != null && getH() == null) setH(legacy);
-		startX = e.clientX;
-		startY = e.clientY;
-		handle.setPointerCapture(e.pointerId);
-		tile.addClass("is-tile-resizing");
-		tile.closest(".hearth-card")?.addClass("has-tile-gesture");
-	});
-
-	handle.addEventListener("pointermove", (e) => {
-		if (!resizing) return;
-		e.preventDefault();
-		e.stopPropagation();
-		const dx = e.clientX - startX;
-		const dy = e.clientY - startY;
-		// Snap to the fine grid so tiles stay aligned like widgets.
-		const w = Math.max(TILE_CELL, Math.min(480, snap(startW + dx, TILE_GRID)));
-		const h = Math.max(34, Math.min(480, snap(startH + dy, TILE_GRID)));
-		setW(w === baseTile ? undefined : w);
-		setH(h === Math.round(baseTile * 0.78) ? undefined : h);
-		setLegacy(undefined);
-		// Convert live pixel size to grid spans using the fine cell size so
-		// the tile grows in small, precise steps.
-		const cell = TILE_CELL;
-		const rowH = Math.round(TILE_CELL * 0.78);
-		const cs = Math.max(1, Math.round(w / cell));
-		const rs = Math.max(1, Math.round(h / rowH));
-		tile.style.setProperty("--hearth-tile-cs", String(cs));
-		tile.style.setProperty("--hearth-tile-rs", String(rs));
-		applyTileIconOnly(tile, cs, rs);
-	});
-
-	const end = (e: PointerEvent) => {
-		if (!resizing) return;
-		resizing = false;
-		try {
-			handle.releasePointerCapture(e.pointerId);
-		} catch {
-			// pointer already released
-		}
-		tile.removeClass("is-tile-resizing");
-		tile.closest(".hearth-card")?.removeClass("has-tile-gesture");
-		void view.plugin.saveData(view.plugin.settings);
-	};
-	handle.addEventListener("pointerup", end);
-	handle.addEventListener("pointercancel", end);
-}
-
-/** Snap a value to the nearest multiple of `grid`. */
-function snap(value: number, grid: number): number {
-	return Math.round(value / grid) * grid;
-}
-
-/** Make a tile draggable (to reposition it within its card) in arrange mode.
- *  Uses pointer events (not HTML5 DnD) so it coexists with the resize handle
- *  and doesn't trigger the card's drag engine.
- *
- *  Two modes:
- *  - Free-form (default, `autoFlow = false`): the tile floats under the
- *    pointer and lands on the cell under it on drop. Tiles may overlap and
- *    be placed anywhere; siblings never move. Overlapping tiles are flagged
- *    with a glow (see `markOverlappingTiles`) so a hidden tile is visible.
- *  - Auto-shift (beta, `autoFlow = true`): a dashed placeholder occupies the
- *    target slot and siblings swap aside live (phone-widget style). See
- *    `makeTileAutoFlowDrag`. */
-function makeTileDraggable<T extends { id: string; col?: number; row?: number }>(
-	view: HomeView,
-	container: HTMLElement,
-	tile: HTMLElement,
-	items: T[],
-	item: T,
-	autoFlow: boolean,
-): void {
-	if (autoFlow) {
-		makeTileAutoFlowDrag(view, container, tile, item);
-	} else {
-		makeTileFreeFormDrag(view, container, tile, item);
-	}
-	tile.setAttribute("data-tile-id", item.id);
-	// Double-click a pinned tile to clear its position and let it auto-flow.
-	if (item.col != null || item.row != null) {
-		tile.addEventListener("dblclick", (e) => {
-			e.stopPropagation();
-			delete item.col;
-			delete item.row;
-			void view.plugin.saveData(view.plugin.settings);
-			view.render();
-		});
-	}
-}
-
-/** Free-form drag: the tile floats under the pointer via a transform (delta
- *  from the grab point) and lands on whatever cell the pointer is over on
- *  drop. Siblings don't move; tiles may overlap. A dashed ghost outline
- *  follows the pointer so the drop target is visible. Overlapping tiles glow
- *  so a hidden tile stays visible (an undesirable state worth flagging).
- *  Using a transform (not absolute positioning) avoids any offset/jump —
- *  the tile simply translates by the pointer delta from its grid slot. */
-function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number }>(
-	view: HomeView,
-	container: HTMLElement,
-	tile: HTMLElement,
-	item: T,
-): void {
-	let dragging = false;
-	let startX = 0;
-	let startY = 0;
-	let moved = false;
-	let pointerId = -1;
-	const DRAG_THRESHOLD = 5;
-	// Dashed ghost showing the drop target cell under the pointer.
-	let ghost: HTMLElement | null = null;
-
-	tile.addEventListener("pointerdown", (e) => {
-		if ((e.target as HTMLElement).closest(".hearth-tile-resize")) return;
-		e.stopPropagation();
-		startX = e.clientX;
-		startY = e.clientY;
-		dragging = true;
-		moved = false;
-		pointerId = e.pointerId;
-		tile.setPointerCapture(e.pointerId);
-	});
-
-	tile.addEventListener("pointermove", (e) => {
-		if (!dragging || e.pointerId !== pointerId) return;
-		const dx = e.clientX - startX;
-		const dy = e.clientY - startY;
-		if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-		e.preventDefault();
-		e.stopPropagation();
-		if (!moved) {
-			moved = true;
-			tile.addClass("is-tile-dragging");
-			tile.closest(".hearth-card")?.addClass("has-tile-gesture");
-			// Insert a dashed ghost outline that will follow the pointer.
-			ghost = container.createDiv("hearth-tile-ghost");
-			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS);
-			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || String(DEFAULT_TILE_RS);
-			ghost.style.setProperty("--hearth-tile-cs", cs);
-			ghost.style.setProperty("--hearth-tile-rs", rs);
-		}
-		// Float the tile by the pointer delta — no position/size changes, so
-		// there's no offset or jump. The grid slot stays reserved.
-		tile.setCssStyles({ transform: `translate(${dx}px, ${dy}px)` });
-		// Move the ghost outline to the cell under the pointer.
-		if (ghost) {
-			const cell = pickGridCell(container, e.clientX, e.clientY, tile);
-			if (cell) {
-				ghost.style.setProperty("--hearth-tile-col", String(cell.col));
-				ghost.style.setProperty("--hearth-tile-row", String(cell.row));
-			}
-		}
-		// Live-flag tiles the dragged tile is covering so overlaps are visible
-		// as it moves (the dragged tile is on top and ignored by the marker).
-		markOverlappingTiles(container);
-	});
-
-	const end = (e: PointerEvent) => {
-		if (!dragging || e.pointerId !== pointerId) return;
-		dragging = false;
-		const wasMoved = moved;
-		moved = false;
-		tile.removeClass("is-tile-dragging");
-		tile.setCssStyles({});
-		if (ghost) {
-			ghost.remove();
-			ghost = null;
-		}
-		tile.closest(".hearth-card")?.removeClass("has-tile-gesture");
-		try {
-			tile.releasePointerCapture(e.pointerId);
-		} catch {
-			// already released
-		}
-		if (!wasMoved) return;
-		// Drop on the cell under the pointer (free-form; may overlap others).
-		const cell = pickGridCell(container, e.clientX, e.clientY, tile);
-		if (cell) {
-			item.col = cell.col;
-			item.row = cell.row;
-		}
-		void view.plugin.saveData(view.plugin.settings);
-		view.render();
-	};
-	tile.addEventListener("pointerup", end);
-	tile.addEventListener("pointercancel", end);
-}
-
-/** Auto-shift drag (beta): a dashed placeholder occupies the dragged tile's
- *  target slot and siblings swap aside live, like phone widgets. On drop,
- *  only the dragged tile's `col`/`row` is persisted; siblings revert to
- *  their stored positions (a full re-render follows), so a tile that was
- *  shoved aside comes back if its slot wasn't taken. */
-function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number }>(
-	view: HomeView,
-	container: HTMLElement,
-	tile: HTMLElement,
-	item: T,
-): void {
-	let dragging = false;
-	let startX = 0;
-	let startY = 0;
-	let moved = false;
-	let pointerId = -1;
-	const DRAG_THRESHOLD = 5;
-
-	// The tile's offset within the container at drag start, so we can position
-	// it absolutely without a jump (delta-based movement).
-	let baseLeft = 0;
-	let baseTop = 0;
-	let baseWidth = 0;
-	let baseHeight = 0;
-
-	let placeholder: HTMLElement | null = null;
-	let placeholderPos: { col: number; row: number } | null = null;
-
-	tile.addEventListener("pointerdown", (e) => {
-		if ((e.target as HTMLElement).closest(".hearth-tile-resize")) return;
-		e.stopPropagation();
-		startX = e.clientX;
-		startY = e.clientY;
-		dragging = true;
-		moved = false;
-		pointerId = e.pointerId;
-		tile.setPointerCapture(e.pointerId);
-	});
-
-	tile.addEventListener("pointermove", (e) => {
-		if (!dragging || e.pointerId !== pointerId) return;
-		const dx = e.clientX - startX;
-		const dy = e.clientY - startY;
-		if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-		e.preventDefault();
-		e.stopPropagation();
-		if (!moved) {
-			moved = true;
-			tile.addClass("is-tile-dragging");
-			tile.closest(".hearth-card")?.addClass("has-tile-gesture");
-			// Measure the tile's position relative to the container BEFORE
-			// removing it from flow, so we can place it absolutely at the
-			// same spot (then move by the pointer delta — no jump).
-			const rect = tile.getBoundingClientRect();
-			const containerRect = container.getBoundingClientRect();
-			baseLeft = rect.left - containerRect.left;
-			baseTop = rect.top - containerRect.top;
-			baseWidth = rect.width;
-			baseHeight = rect.height;
-			placeholderPos = getTileCell(tile, container) ?? {
-				col: item.col ?? 1,
-				row: item.row ?? 1,
-			};
-			placeholder = container.createDiv("hearth-tile-placeholder");
-			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS);
-			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || String(DEFAULT_TILE_RS);
-			placeholder.style.setProperty("--hearth-tile-cs", cs);
-			placeholder.style.setProperty("--hearth-tile-rs", rs);
-			placeholder.style.setProperty("--hearth-tile-col", String(placeholderPos.col));
-			placeholder.style.setProperty("--hearth-tile-row", String(placeholderPos.row));
-			// Freeze every sibling tile to its current cell so a swap with the
-			// placeholder moves exactly one tile.
-			const siblings = Array.from(
-				container.querySelectorAll<HTMLElement>(".hearth-link-tile"),
-			);
-			for (const sib of siblings) {
-				if (sib === tile) continue;
-				const cell = getTileCell(sib, container);
-				if (cell) {
-					sib.style.setProperty("--hearth-tile-col", String(cell.col));
-					sib.style.setProperty("--hearth-tile-row", String(cell.row));
-				}
-			}
-			// Take the tile out of flow and immediately pin it to its current
-			// spot so it doesn't jump before the first delta is applied.
-			tile.setCssStyles({
-				position: "absolute",
-				width: `${rect.width}px`,
-				height: `${rect.height}px`,
-				left: `${baseLeft}px`,
-				top: `${baseTop}px`,
-			});
-		}
-		// Move by the pointer delta from the grab point — no offset issues.
-		tile.setCssStyles({
-			position: "absolute",
-			width: `${baseWidth}px`,
-			height: `${baseHeight}px`,
-			left: `${baseLeft + dx}px`,
-			top: `${baseTop + dy}px`,
-		});
-		if (!placeholder || !placeholderPos) return;
-		const other = findTileUnderPointer(container, e.clientX, e.clientY, tile);
-		if (other) {
-			const otherPos = getTileCell(other, container);
-			if (otherPos) {
-				other.style.setProperty("--hearth-tile-col", String(placeholderPos.col));
-				other.style.setProperty("--hearth-tile-row", String(placeholderPos.row));
-				placeholder.style.setProperty("--hearth-tile-col", String(otherPos.col));
-				placeholder.style.setProperty("--hearth-tile-row", String(otherPos.row));
-				placeholderPos = otherPos;
-			}
-		} else {
-			const cell = pickGridCell(container, e.clientX, e.clientY, tile);
-			if (cell) {
-				placeholder.style.setProperty("--hearth-tile-col", String(cell.col));
-				placeholder.style.setProperty("--hearth-tile-row", String(cell.row));
-				placeholderPos = cell;
-			}
-		}
-	});
-
-	const end = (e: PointerEvent) => {
-		if (!dragging || e.pointerId !== pointerId) return;
-		dragging = false;
-		const wasMoved = moved;
-		moved = false;
-		tile.removeClass("is-tile-dragging");
-		tile.setCssStyles({});
-		tile.closest(".hearth-card")?.removeClass("has-tile-gesture");
-		const dropPos = placeholderPos;
-		if (placeholder) {
-			placeholder.remove();
-			placeholder = null;
-		}
-		const siblings = Array.from(
-			container.querySelectorAll<HTMLElement>(".hearth-link-tile"),
-		);
-		for (const sib of siblings) {
-			if (sib === tile) continue;
-			sib.style.removeProperty("--hearth-tile-col");
-			sib.style.removeProperty("--hearth-tile-row");
-		}
-		try {
-			tile.releasePointerCapture(e.pointerId);
-		} catch {
-			// already released
-		}
-		if (!wasMoved) return;
-		if (dropPos) {
-			item.col = dropPos.col;
-			item.row = dropPos.row;
-		}
-		void view.plugin.saveData(view.plugin.settings);
-		view.render();
-	};
-	tile.addEventListener("pointerup", end);
-	tile.addEventListener("pointercancel", end);
-}
-
-/** Mark tiles that are obscured behind another tile in the same card, so the
- *  user can see (and fix) the undesirable overlap. A tile counts as obscured
- *  when another sibling tile's rect covers a meaningful part of it. The
- *  actively-dragged tile is skipped (it's on top, so it can't be "obscured"),
- *  but a tile it covers IS flagged. Only runs in arrange mode. */
-function markOverlappingTiles(container: HTMLElement): void {
-	const tiles = Array.from(container.querySelectorAll<HTMLElement>(".hearth-link-tile"));
-	for (const t of tiles) t.removeClass("is-obscured");
-	const rects = tiles.map((t) => ({
-		t,
-		r: t.getBoundingClientRect(),
-		dragging: t.classList.contains("is-tile-dragging"),
-	}));
-	for (let i = 0; i < rects.length; i++) {
-		const a = rects[i];
-		if (a.dragging) continue; // the dragged tile floats on top — never obscured
-		// A tile is obscured if any other tile (drawn later, i.e. on top in
-		// DOM order, or the floating dragged tile) overlaps more than a sliver
-		// of its area.
-		for (let j = i + 1; j < rects.length; j++) {
-			const b = rects[j];
-			const ix = Math.max(0, Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left));
-			const iy = Math.max(0, Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top));
-			const overlap = ix * iy;
-			const aArea = a.r.width * a.r.height;
-			// Flag `a` (the lower-DOM, i.e. underneath) tile when `b` covers
-			// more than 15% of it.
-			if (aArea > 0 && overlap / aArea > 0.15) {
-				a.t.addClass("is-obscured");
-			}
-		}
-	}
-}
-
-/** Read a tile's current grid cell from the DOM. Prefers the inline
- *  `--hearth-tile-col/row` (set for pinned tiles), falling back to the tile's
- *  rendered position mapped onto the grid's metrics. Returns null when the
- *  metrics can't be measured reliably. */
-function getTileCell(
-	tile: HTMLElement,
-	container: HTMLElement,
-): { col: number; row: number } | null {
-	const colAttr = tile.style.getPropertyValue("--hearth-tile-col");
-	const rowAttr = tile.style.getPropertyValue("--hearth-tile-row");
-	if (colAttr && rowAttr) {
-		const col = parseInt(colAttr, 10);
-		const row = parseInt(rowAttr, 10);
-		if (Number.isFinite(col) && Number.isFinite(row)) return { col, row };
-	}
-	const rect = tile.getBoundingClientRect();
-	const cRect = container.getBoundingClientRect();
-	if (cRect.width <= 0) return null;
-	const gap = 6;
-	const columns = Math.max(1, Math.floor((cRect.width + gap) / (TILE_CELL + gap)));
-	const colW = (cRect.width - (columns - 1) * gap) / columns;
-	const rowH = Math.round(TILE_CELL * 0.78);
-	const relX = rect.left - cRect.left;
-	const relY = rect.top - cRect.top;
-	const col = Math.max(1, Math.round(relX / (colW + gap)) + 1);
-	const row = Math.max(1, Math.round(relY / (rowH + gap)) + 1);
-	return { col, row };
-}
-
-/** Find the `.hearth-link-tile` under a pointer, excluding the dragged tile
- *  (and anything inside it, like its resize handle). The dragged tile has
- *  pointer-events: none while dragging, so elementFromPoint already skips it,
- *  but we also guard against its descendants in case a child overrides. */
-function findTileUnderPointer(
-	container: HTMLElement,
-	clientX: number,
-	clientY: number,
-	except: HTMLElement,
-): HTMLElement | null {
-	const el = activeDocument.elementFromPoint(clientX, clientY) as HTMLElement | null;
-	if (!el) return null;
-	if (except.contains(el)) return null;
-	const tile = el.closest<HTMLElement>(".hearth-link-tile");
-	if (!tile || tile === except || !container.contains(tile)) return null;
-	return tile;
-}
-
-/** Work out the (col, row) grid cell under a pointer, relative to the card's
- *  tile grid. `container` is the `.hearth-links` grid element. Returns null
- *  when the metrics can't be measured reliably. Clamps to the grid's bounds
- *  so a tile dropped near the edge lands on the last valid cell, not off-board.
- *  `tile` is the dragged element (its span is used so the drop keeps the tile
- *  fully inside the grid — the column count limits the start column). */
-function pickGridCell(
-	container: HTMLElement,
-	clientX: number,
-	clientY: number,
-	tile: HTMLElement,
-): { col: number; row: number } | null {
-	const rect = container.getBoundingClientRect();
-	if (rect.width <= 0) return null;
-	const gap = 6;
-	// auto-fill column count at the current card width (matches the CSS
-	// `repeat(auto-fill, minmax(44px, 1fr))` grid).
-	const columns = Math.max(1, Math.floor((rect.width + gap) / (TILE_CELL + gap)));
-	// Actual column width (the 1fr columns expand past the 44px minimum, so
-	// use the real width to map the pointer to a column line).
-	const colW = (rect.width - (columns - 1) * gap) / columns;
-	// The dragged tile's column span, so we keep its start within bounds.
-	const cs = parseInt(
-		tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS),
-		10,
-	) || DEFAULT_TILE_CS;
-	const rowH = Math.round(TILE_CELL * 0.78);
-	// Pointer relative to the grid's content box, in cells (1-based lines).
-	const relX = clientX - rect.left;
-	const relY = clientY - rect.top;
-	let col = Math.round(relX / (colW + gap)) + 1;
-	let row = Math.round(relY / (rowH + gap)) + 1;
-	col = Math.max(1, Math.min(col, Math.max(1, columns - cs + 1)));
-	row = Math.max(1, row);
-	return { col, row };
-}
-
-function openLink(view: HomeView, link: LinkItem): void {
-	switch (link.type) {
-		case "url":
-			if (link.target) window.open(link.target, "_blank");
-			break;
-		case "command":
-			if (link.target) view.app.commands.executeCommandById(link.target);
-			break;
-		case "note": {
-			const file = view.app.vault.getAbstractFileByPath(link.target);
-			if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
-			else if (link.target) void view.app.workspace.openLinkText(link.target, "", true);
-			break;
-		}
-	}
-}
-
-// ---- Commands / command palette tiles -----------------------------------
-
-function renderCommands(view: HomeView, card: DashboardCard, body: HTMLElement): void {
-	const commands = card.commands ?? [];
-	if (commands.length === 0) {
-		emptyState(body, "terminal", t().cards.empty.commandsEmpty);
-		return;
-	}
-
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = card.tileSize && card.tileSize > 0 ? card.tileSize : 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
-	for (const cmd of commands) {
-		const tile = grid.createDiv("hearth-link-tile");
-		// A per-tile size overrides the card default: it drives the tile's own
-		// height/icon (via --hearth-tile) and, when larger than the base, makes
-		// the tile span proportionally more grid columns so it's wider too.
-		applyTileSize(tile, cmd.sizeW, cmd.sizeH, cmd.size, baseTile, cmd.col, cmd.row);
-		setIcon(tile.createDiv("hearth-link-icon"), cmd.icon || "terminal-square");
-		tile.createDiv({ cls: "hearth-link-label", text: cmd.name || cmd.id });
-		const run = () => runCommand(view, cmd);
-		// In arrange mode, clicking a tile must NOT trigger its action.
-		if (!view.arrangeMode) {
-			tile.addEventListener("click", run);
-			makeClickable(tile, run, cmd.name || cmd.id);
-		}
-
-		if (view.arrangeMode) {
-			makeTileResizable(view, tile, baseTile, () => cmd.sizeW, (v) => {
-				cmd.sizeW = v;
-			}, () => cmd.sizeH, (v) => {
-				cmd.sizeH = v;
-			}, () => cmd.size, (v) => {
-				cmd.size = v;
-			});
-			makeTileDraggable(view, grid, tile, commands, cmd, card.tileAutoFlow === true);
-		}
-	}
-
-	// Flag tiles obscured behind a sibling so the overlap is visible (always,
-	// not just in arrange mode — a hidden tile is a problem either way).
-	markOverlappingTiles(grid);
-}
-
-function runCommand(view: HomeView, cmd: CommandItem): void {
-	if (cmd.id) view.app.commands.executeCommandById(cmd.id);
-}
 
 // ---- Tasks ---------------------------------------------------------------
 
@@ -2508,6 +149,7 @@ interface TaskHit {
 	checkboxStatus?: string;
 }
 
+
 /** The default checkbox task states shown as Kanban columns when the card has
  * no custom set: To do ` `, In progress `/`, Done `x` (done). */
 function defaultCheckboxStatuses(): { symbol: string; label: string; done?: boolean }[] {
@@ -2518,6 +160,7 @@ function defaultCheckboxStatuses(): { symbol: string; label: string; done?: bool
 	];
 }
 
+
 /** The card's configured checkbox statuses, or the default set. Blank/malformed
  * entries are dropped; a status without a label falls back to its symbol. */
 function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; done?: boolean }[] {
@@ -2527,12 +170,14 @@ function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; do
 	return custom.length ? custom : defaultCheckboxStatuses();
 }
 
-function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+
+export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.tasks ?? {};
 	const container = body.createDiv("hearth-tasks-wrap");
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
 	refresh();
 }
+
 
 /** Resolve TaskNotes' "create new task" command id. Prefer a live lookup (the
  * plugin's command ids have shifted between versions) and fall back to the
@@ -2544,6 +189,7 @@ function taskNotesCreateCommandId(view: HomeView): string {
 		commands.find((c) => /tasknotes/i.test(c.id) && /create.*task/i.test(c.name));
 	return match?.id ?? "tasknotes:create-new-task";
 }
+
 
 /** A small "+" button that triggers TaskNotes' create-task command, appended to
  * `parent`. */
@@ -2561,6 +207,7 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
 		}
 	});
 }
+
 
 /** Places the list layout's controls: the filter/sort controls and a
  * source-appropriate add control (TaskNotes' create command, or a Kanban
@@ -2595,6 +242,7 @@ function renderTasksListHeader(
 	}
 }
 
+
 /** Resolve where the list-layout controls (filter/sort/add) should live and
  * return the element to render them into.
  *
@@ -2620,6 +268,7 @@ function resolveTaskActionsHost(view: HomeView, container: HTMLElement): HTMLEle
 	return container.createDiv("hearth-tasks-head hearth-tasks-listhead-actions");
 }
 
+
 /** A short, human-readable label for a recurrence rule (e.g. "FREQ=WEEKLY;
  * INTERVAL=2" → "Repeats weekly"). Returns null if the rule is empty or
  * unparseable. */
@@ -2643,11 +292,13 @@ function recurrenceLabel(rule: string | undefined): string | null {
 	return interval > 1 ? t().recurrence.everyMany(interval, unit) : t().recurrence.everyOne(unit);
 }
 
+
 /** The date used for display/sorting — `due` wins, but recurring tasks use
  * `scheduled` (the next occurrence) since they have no fixed due date. */
 function effectiveDate(hit: TaskHit): string | null {
 	return hit.due ?? hit.scheduled ?? null;
 }
+
 
 /** Format a due/next-occurrence date for display as a short, human-relative
  * label ("Today", "Tomorrow", "Yesterday", "Friday", "Next Friday", "15 Jul").
@@ -2660,74 +311,768 @@ function formatDueLabel(hit: TaskHit): string | null {
 	return `${formatRelativeDate(raw)}${tail}`;
 }
 
-/** Map a raw priority value to a coarse level for coloring the indicator. */
-function priorityLevel(priority: string): "high" | "medium" | "low" | "other" {
-	const v = priority.trim().toLowerCase();
-	if (/^(high|urgent|critical|highest|p1|1|!!!|🔺|⏫)$/.test(v)) return "high";
-	if (/^(medium|normal|med|moderate|p2|2|🔼)$/.test(v)) return "medium";
-	if (/^(low|lowest|minor|p3|3|🔽|⏬)$/.test(v)) return "low";
-	return "other";
+
+/** Put a value's colour on a chip. It rides on a custom property rather than a
+ * style attribute so the stylesheet decides what it tints — background, border
+ * or dot — per chip style. */
+function applyChipColor(el: HTMLElement, color: string | null): void {
+	if (!color) return;
+	el.addClass("is-colored");
+	el.style.setProperty("--chip-color", color);
 }
 
-/** A readable label for a priority value: a raw word (e.g. TaskNotes' "high")
- * is shown as-is, but an emoji priority (🔺⏫🔼🔽⏬) is mapped to its key word
- * (highest/high/medium/low/lowest) so the list doesn't show a bare emoji. */
-function priorityDisplayLabel(priority: string): string {
-	if (/[a-z]/i.test(priority)) return priority;
-	return priorityKey(priority) || priority; // CSS capitalizes the word
+
+/** Draw one value: a filled chip, a bare coloured dot with the value in the
+ * tooltip, or plain text. `extraCls` carries a field's long-standing class
+ * names so existing stylesheet (and theme) rules keep applying underneath. */
+function renderValueChip(
+	parent: HTMLElement,
+	opts: {
+		text: string;
+		style: TaskFieldStyle;
+		color?: string | null;
+		prefix?: string;
+		title?: string;
+		extraCls?: string;
+	},
+): HTMLElement {
+	const cls = `hearth-task-chip is-${opts.style}${opts.extraCls ? ` ${opts.extraCls}` : ""}`;
+	const el = parent.createDiv(cls);
+	if (opts.style === "dot") {
+		el.createDiv("hearth-task-chip-dot");
+	} else {
+		if (opts.prefix) el.createSpan({ cls: "hearth-task-chip-label", text: opts.prefix });
+		el.createSpan({ cls: "hearth-task-chip-value", text: opts.text });
+	}
+	applyChipColor(el, opts.color ?? null);
+	el.setAttribute("title", opts.title ?? opts.text);
+	return el;
 }
 
-/** The fine-grained CSS level class for a priority: distinguishes all five
- * Tasks-plugin levels (highest/high/medium/low/lowest) so, e.g., "highest" and
- * "high" get different colours. Falls back to "other". */
-function priorityClass(priority: string): string {
-	return priorityKey(priority) || "other";
+
+/** A task's priority: the five-level coloured dot, a labelled chip, or plain
+ * text. The dot-only form (a Kanban board card) keeps the value in the tooltip.
+ * An explicit colour overrides the level colours from the stylesheet. */
+function renderPriorityChip(
+	parent: HTMLElement,
+	priority: string,
+	style: TaskFieldStyle,
+	color: string | null = null,
+	label = priorityDisplayLabel(priority),
+): HTMLElement {
+	const chip = parent.createDiv(`hearth-task-priority is-${priorityClass(priority)} is-${style}`);
+	// The historical class for the compact board form, kept so the existing
+	// stylesheet rule (and any theme overriding it) still matches.
+	if (style === "dot") chip.addClass("is-dot-only");
+	if (style !== "text") chip.createDiv("hearth-task-priority-dot");
+	if (style !== "dot") chip.createSpan({ cls: "hearth-task-priority-label", text: label });
+	applyChipColor(chip, color);
+	chip.setAttribute("title", `Priority: ${label}`);
+	return chip;
 }
 
-/** A small colored dot showing a task's priority. With `dotOnly` (used by
- * Kanban board cards to keep them compact) it renders just the coloured dot
- * inline, with the value in the tooltip; otherwise it also shows a readable
- * label beside the dot. */
-function renderPriority(parent: HTMLElement, priority: string, dotOnly = false): void {
-	const chip = parent.createDiv(`hearth-task-priority is-${priorityClass(priority)}`);
-	if (dotOnly) chip.addClass("is-dot-only");
-	chip.createDiv("hearth-task-priority-dot");
-	if (!dotOnly) chip.createSpan({ cls: "hearth-task-priority-label", text: priorityDisplayLabel(priority) });
-	chip.setAttribute("title", `Priority: ${priorityDisplayLabel(priority)}`);
+
+/** A pill showing a TaskNotes task's raw status value. The list layout's
+ * completion checkbox only says done/not-done, so the actual status (open,
+ * in-progress, waiting, …) needs a chip of its own. Where it lands is the
+ * caller's choice of host: the fixed layout puts it beside the title, so it
+ * reads as part of the task rather than floating among the right-hand chips.
+ *
+ * Callers only reach here with a value in hand, so there is no empty case. */
+function renderStatusChip(
+	parent: HTMLElement,
+	status: string,
+	style: TaskFieldStyle,
+	color: string | null,
+	label = status.trim(),
+): HTMLElement {
+	const chip = parent.createDiv(`hearth-task-status hearth-task-statuschip is-${style}`);
+	if (style === "dot") chip.createDiv("hearth-task-chip-dot");
+	else chip.setText(label);
+	applyChipColor(chip, color);
+	chip.setAttribute("title", `Status: ${label}`);
+	return chip;
 }
 
-/** Render a task's date indicators into `parent`: start (🛫), scheduled (⏳),
- * the due/next-occurrence label, and the done date (✅). Start/scheduled/done
- * chips are shown only for Kanban cards (the source that parses them); the due
- * label keeps its existing recurrence/overdue treatment for every source. */
-function renderTaskDateChips(parent: HTMLElement, hit: TaskHit, today: string): void {
+
+/** The date a date source reads off a task. */
+function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
+	if (id === "start") return hit.start ?? null;
+	if (id === "scheduled") return hit.scheduled;
+	if (id === "doneDate") return hit.doneDate ?? null;
+	return hit.due;
+}
+
+
+/** Render one of a task's date indicators: start (🛫), scheduled (⏳), the
+ * due/next-occurrence label, or the done date (✅). The due label keeps its
+ * recurrence/overdue treatment for every source. Renders nothing when the task
+ * has no such date.
+ *
+ * `restrict` applies the fixed layout's two extra rules: start/scheduled/done
+ * only on line-based tasks (checkbox + Kanban), and no scheduled chip on a
+ * recurring card, whose scheduled date is already what the due label shows as
+ * its next occurrence. A user-defined field asked for the key by name, so it
+ * renders whatever the task actually holds — a TaskNotes task carries a real
+ * `scheduled` date, and hiding it because the fixed layout never showed one
+ * made the field silently do nothing (#157). */
+function renderTaskDateChip(
+	parent: HTMLElement,
+	hit: TaskHit,
+	id: TaskBuiltinSource,
+	today: string,
+	style: TaskFieldStyle,
+	shown: TaskValueDisplay = { label: "", color: null },
+	restrict = true,
+): HTMLElement | null {
 	const overdue = (d: string | null | undefined) => !hit.done && !!d && d.slice(0, 10) < today;
-	const chip = (emoji: string, date: string, kind: string, title: string, markOverdue: boolean) => {
-		const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind}` });
-		el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
-		el.appendText(formatRelativeDate(date));
-		el.setAttribute("title", `${title}: ${date}`);
-		if (markOverdue) el.toggleClass("is-overdue", overdue(date));
-	};
-	// Line-based tasks (checkbox + Kanban) show start and scheduled chips; for
-	// recurring cards scheduled is folded into the due label, so skip it then to
-	// avoid duplication. (TaskNotes uses line -1 and keeps its own treatment.)
-	if (hit.line >= 0 && hit.start) chip("🛫", hit.start, "start", t().cards.tasks.startDate, true);
-	if (hit.line >= 0 && hit.scheduled && !hit.recurrence)
-		chip("⏳", hit.scheduled, "scheduled", t().cards.tasks.scheduledDate, true);
 
-	const dueLabel = formatDueLabel(hit);
-	if (dueLabel) {
-		const due = parent.createDiv({ cls: "hearth-task-due", text: dueLabel });
-		due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
+	if (id === "due") {
+		const dueLabel = formatDueLabel(hit);
+		if (!dueLabel) return null;
+		// A relation label ("Overdue") replaces the date's own wording; the ↻ that
+		// marks a recurring task's next occurrence stays either way.
+		const text = shown.label ? `${shown.label}${hit.recurrence ? " ↻" : ""}` : dueLabel;
+		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text });
+		// An explicit colour for the relation supersedes the built-in overdue red,
+		// which is the point of being able to set one.
+		if (shown.color) applyChipColor(due, shown.color);
+		else due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
 		if (hit.recurrence) {
 			due.addClass("is-recurring");
 			due.setAttribute("title", recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring);
 		}
+		return due;
 	}
 
-	if (hit.line >= 0 && hit.doneDate) chip("✅", hit.doneDate, "done", t().cards.tasks.doneDate, false);
+	if (restrict && hit.line < 0) return null;
+	if (restrict && id === "scheduled" && hit.recurrence) return null;
+	const date = taskSourceDate(hit, id);
+	if (!date) return null;
+
+	const emoji = id === "start" ? "🛫" : id === "scheduled" ? "⏳" : "✅";
+	const title =
+		id === "start"
+			? t().cards.tasks.startDate
+			: id === "scheduled"
+				? t().cards.tasks.scheduledDate
+				: t().cards.tasks.doneDate;
+	// "done" rather than "doneDate" keeps the long-standing class name.
+	const kind = id === "doneDate" ? "done" : id;
+	const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind} is-${style}` });
+	el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
+	el.appendText(shown.label || formatRelativeDate(date));
+	el.setAttribute("title", `${title}: ${date}`);
+	if (shown.color) applyChipColor(el, shown.color);
+	// A done date is history — it is never overdue.
+	else if (id !== "doneDate") el.toggleClass("is-overdue", overdue(date));
+	return el;
 }
+
+
+/** A date held in a frontmatter property the user marked as a date: the same
+ * relative label and relation colouring as a built-in date, without the emoji
+ * marker (which belongs to the Tasks-plugin fields, not to arbitrary keys). */
+function renderCustomDateChip(
+	parent: HTMLElement,
+	date: string,
+	today: string,
+	style: TaskFieldStyle,
+	shown: TaskValueDisplay,
+	prefix: string | undefined,
+	done: boolean,
+): HTMLElement {
+	const el = renderValueChip(parent, {
+		text: shown.label || formatRelativeDate(date),
+		style,
+		color: shown.color,
+		prefix,
+		title: date,
+		extraCls: "hearth-task-datechip",
+	});
+	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
+	return el;
+}
+
+
+// ---- Editing a value from the task itself ---------------------------------
+
+/**
+ * Whether a key's value can be changed by clicking its chip.
+ *
+ * Frontmatter is only writable when the task *is* a note — a TaskNotes task, or
+ * a Kanban card converted to one. For a plain checkbox the frontmatter belongs
+ * to whatever note the line happens to sit in, which is not the task's own
+ * metadata, and writing there on a click would edit something the user never
+ * pointed at.
+ *
+ * Of the built-ins only status and priority are values to pick from a list. A
+ * date needs a date picker (the task's quick view has one), the board column is
+ * changed by dragging the card, and the description is free text.
+ */
+function taskKeyEditable(hit: TaskHit, source: string): boolean {
+	const builtin = sourceBuiltin(source);
+	if (builtin === "doneDate") return false;
+	if (builtin === "start") return hit.line >= 0;
+	if (builtin === "due" || builtin === "scheduled") {
+		// A recurring task's date is computed from its rule and rolls forward on
+		// completion; setting it by hand would be undone by the next tick.
+		return !hit.recurrence;
+	}
+	if (builtin) return builtin === "status" || builtin === "priority";
+	if (!sourceProperty(source)) return false;
+	return hit.line < 0 || !!hit.linkedFile;
+}
+
+
+/** Write a new value for a key onto a task, or clear it when `value` is null.
+ * Returns false when the write couldn't be made. */
+async function writeTaskFieldValue(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	source: string,
+	value: string | null,
+): Promise<boolean> {
+	const builtin = sourceBuiltin(source);
+
+	// A line-based task keeps its priority in the line's emoji marker, so it goes
+	// through the same rewrite the metadata editor uses.
+	if (builtin === "priority" && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: value ? priorityKey(value) : "",
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
+	// A line-based task keeps its dates in the same emoji markers, written
+	// through the same rewrite.
+	if (builtin && isDateSource(source) && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: priorityKey(hit.priority ?? ""),
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		if (builtin === "start") meta.start = value ?? "";
+		else if (builtin === "scheduled") meta.scheduled = value ?? "";
+		else meta.due = value ?? "";
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
+	// Everything else is a frontmatter write on the task's own note.
+	const s = view.plugin.settings;
+	const property =
+		builtin === "status"
+			? s.taskNotesStatusField.trim() || "status"
+			: builtin === "priority"
+				? s.taskNotesPriorityField.trim() || "priority"
+				: builtin === "due"
+					? s.taskNotesDueField.trim() || "due"
+					: builtin === "scheduled"
+						? "scheduled"
+						: sourceProperty(source);
+	if (!property) return false;
+	const file = fieldSourceFile(hit);
+	try {
+		await view.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			if (value === null) delete fm[property];
+			else fm[property] = value;
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+
+/**
+ * A calendar for setting a task's date. The native date input is what puts a
+ * real calendar on screen (and the platform's own one on mobile); the shortcuts
+ * beside it cover what people actually pick — today, tomorrow, next week — and
+ * Clear removes the date entirely.
+ */
+class TaskDatePickerModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		initial: string,
+		private readonly onSubmit: (value: string | null) => void,
+	) {
+		super(app);
+		// The stored value may carry a time or be natural-language wording; the
+		// input only understands YYYY-MM-DD.
+		this.value = /^\d{4}-\d{2}-\d{2}/.test(initial) ? initial.slice(0, 10) : "";
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.addClass("hearth-taskdate-modal");
+		contentEl.createEl("h3", { text: t().cards.tasks.dateTitle });
+
+		const commit = (value: string | null) => {
+			this.onSubmit(value);
+			this.close();
+		};
+
+		let input: HTMLInputElement | null = null;
+		new Setting(contentEl).setName(t().cards.tasks.dateOn).addText((txt) => {
+			txt.inputEl.type = "date";
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit(this.value || null);
+			});
+			input = txt.inputEl;
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+
+		const shortcuts = contentEl.createDiv("hearth-taskdate-shortcuts");
+		const shortcut = (label: string, days: number) => {
+			const btn = shortcuts.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+			btn.addEventListener("click", () => {
+				const date = moment().add(days, "days").format("YYYY-MM-DD");
+				this.value = date;
+				if (input) input.value = date;
+			});
+		};
+		shortcut(t().cards.tasks.dateToday, 0);
+		shortcut(t().cards.tasks.dateTomorrow, 1);
+		shortcut(t().cards.tasks.dateNextWeek, 7);
+
+		new Setting(contentEl)
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setCta()
+					.onClick(() => commit(this.value || null)),
+			)
+			.addButton((b) => b.setButtonText(t().cards.tasks.dateClear).onClick(() => commit(null)))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+/** Ask for a value the vault hasn't seen yet — the only way to introduce, say,
+ * a first "blocked" status without editing the note by hand. */
+class TaskValuePromptModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		private readonly title: string,
+		initial: string,
+		private readonly onSubmit: (value: string) => void,
+	) {
+		super(app);
+		this.value = initial;
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.createEl("h3", { text: this.title });
+		const commit = () => {
+			const value = this.value.trim();
+			if (!value) return;
+			this.onSubmit(value);
+			this.close();
+		};
+		new Setting(contentEl).addText((txt) => {
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit();
+			});
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+		new Setting(contentEl)
+			.addButton((b) => b.setButtonText(t().cards.tasks.filterApply).setCta().onClick(commit))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+/**
+ * The value picker opened by clicking a chip: the field's mapped values first
+ * (under their own labels, so the menu reads the way the task does), then the
+ * other values that key actually takes elsewhere in the vault, then a free
+ * entry and a clear.
+ *
+ * Mapped-only would make a value you hadn't got round to mapping unreachable;
+ * vault-only would lose the labels and colours the field was built around. The
+ * two lists are shown in that order because the mapped ones are the vocabulary
+ * the user chose, and the rest are what the vault happens to contain.
+ */
+async function openTaskValuePicker(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	position: { x: number; y: number },
+	refresh: () => void,
+): Promise<void> {
+	const labels = t().cards.tasks;
+	const set = (value: string | null) => {
+		void writeTaskFieldValue(view, cfg, hit, key.source, value).then((ok) => {
+			if (!ok) new Notice(t().notices.couldNotUpdateTaskStatus);
+			refresh();
+		});
+	};
+
+	// A date is picked from a calendar, not from a list of everything the vault
+	// happens to contain.
+	if (keyIsDate(key)) {
+		new TaskDatePickerModal(view.app, current, set).open();
+		return;
+	}
+
+	const mapped = (key.values ?? []).map((v) => v.match.trim()).filter(Boolean);
+	const seen = new Set(mapped.map((v) => v.toLowerCase()));
+	// The scan is a metadataCache read, not file I/O, but it still walks the
+	// vault — so it happens on the click rather than on every render.
+	const found = await discoverSourceValues(view, cfg, key.source);
+	const rest = found.filter((v) => !seen.has(v.trim().toLowerCase()));
+
+	const menu = new Menu();
+	const item = (value: string, label: string) =>
+		menu.addItem((mi) =>
+			mi
+				.setTitle(label)
+				.setChecked(value.trim().toLowerCase() === current.trim().toLowerCase())
+				.onClick(() => set(value)),
+		);
+
+	for (const value of mapped) item(value, displayValue(key, value).label);
+	if (mapped.length && rest.length) menu.addSeparator();
+	for (const value of rest) item(value, value);
+
+	if (mapped.length || rest.length) menu.addSeparator();
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueCustom)
+			.setIcon("pencil")
+			.onClick(() => {
+				new TaskValuePromptModal(view.app, labels.valueCustomTitle, current, (v) => set(v)).open();
+			}),
+	);
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueClear)
+			.setIcon("x")
+			.onClick(() => set(null)),
+	);
+	menu.showAtPosition(position);
+}
+
+
+/** The values one source takes across the card's scope, for the picker. */
+async function discoverSourceValues(
+	view: HomeView,
+	cfg: TasksConfig,
+	source: string,
+): Promise<string[]> {
+	const found = await discoverTaskFields(view.app, cfg, view.plugin.settings, [
+		{ id: "probe", name: "", keys: [{ source }] },
+	]);
+	return found.values.get(source) ?? [];
+}
+
+
+/** Make a chip open its value picker on click. The row underneath opens the
+ * task, so the click must not reach it. */
+function makeChipEditable(
+	el: HTMLElement,
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	refresh: () => void,
+): void {
+	el.addClass("is-editable");
+	el.setAttribute("aria-label", t().cards.tasks.valueChange);
+	const stop = (e: Event) => e.stopPropagation();
+	el.addEventListener("mousedown", stop);
+	el.addEventListener("pointerdown", stop);
+	el.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		void openTaskValuePicker(view, cfg, hit, key, current, { x: e.clientX, y: e.clientY }, refresh);
+	});
+}
+
+
+/** Where each field is drawn. The list layout is a single row, so all three are
+ * the same element and the configured order is the visual order. A Kanban card
+ * is three stacked areas (title row, description block, meta row), so a dot
+ * sits beside the title, the description gets the block, and the rest are chips
+ * in the meta row — with the configured order applying within each. */
+interface TaskFieldHosts {
+	inline: HTMLElement;
+	meta: HTMLElement;
+	block: HTMLElement;
+	/** The whole task — the list row, or the board card. An ambient field
+	 * (`hue`/`glow`) colours this instead of adding anything to the others. */
+	root: HTMLElement;
+}
+
+
+/** Colour the whole task. Applied at most once per task: a row has one
+ * background and one ring, so the first ambient field that resolves a colour
+ * takes them and any later one is ignored rather than fighting over them. */
+function applyAmbientColor(
+	root: HTMLElement,
+	style: TaskFieldStyle,
+	color: string,
+	opacity: number,
+): void {
+	if (root.hasClass("is-hued") || root.hasClass("is-glowing")) return;
+	root.addClass(style === "glow" ? "is-glowing" : "is-hued");
+	root.style.setProperty("--hue-color", color);
+	root.style.setProperty("--hue-alpha", String(opacity));
+}
+
+
+/** Draw a task's metadata: the fields the card defines, or — when field
+ * customization is off — the fixed set the card has always rendered. */
+function renderTaskFields(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+	refresh: () => void,
+): void {
+	const fields = activeTaskFields(cfg, view.plugin.settings);
+	if (fields === null) renderLegacyTaskFields(cfg, hit, hosts, today, layout);
+	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh);
+}
+
+
+/**
+ * The metadata a task showed before any of this was configurable, and still
+ * shows whenever field customization is off: the status chip and board column
+ * beside the title, then priority, the dates in chronological order, and the
+ * description.
+ *
+ * Kept as its own function rather than expressed as a default field list. It is
+ * what the overwhelming majority of vaults render, it must not drift, and a
+ * few of its rules (the priority dot only on a Kanban-source board, the status
+ * chip aligning the title) are particular to it rather than general.
+ */
+function renderLegacyTaskFields(
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+): void {
+	const source = cfg.source ?? "checkbox";
+
+	if (layout === "list") {
+		// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
+		// …) and the checkbox can't express it, so show it right after the title.
+		if (hit.status) renderStatusChip(hosts.inline, hit.status, "pill", null);
+		// Kanban cards show the board column they belong to as a small badge.
+		if (hit.boardColumn) {
+			hosts.inline.createDiv({
+				cls: "hearth-task-status hearth-task-column",
+				text: hit.boardColumn,
+			});
+		}
+		// The list has room for a labelled priority chip (a bare dot is easy to
+		// miss); board cards stay dot-only for compactness.
+		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "pill");
+	} else {
+		// Kanban priority shows as a single coloured dot inline with the title;
+		// the other sources keep their labelled chip in the meta row below.
+		if (source === "kanban" && hit.priority) {
+			renderPriorityChip(hosts.inline, hit.priority, "dot");
+		}
+		if (hit.description) renderTaskDescription(hosts.block, hit.description);
+		if (source !== "kanban" && hit.priority) {
+			renderPriorityChip(hosts.meta, hit.priority, "pill");
+		}
+	}
+
+	for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
+		renderTaskDateChip(hosts.meta, hit, id, today, "text");
+	}
+
+	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description);
+}
+
+
+/** The note a frontmatter key reads from: the task's own note for a TaskNotes
+ * task, the linked note for a Kanban card converted to one, and otherwise the
+ * note the task line lives in. */
+function fieldSourceFile(hit: TaskHit): TFile {
+	return hit.linkedFile ?? hit.file;
+}
+
+
+/** The raw values one of Hearth's own parsed sources holds for a task. Dates
+ * and the description are drawn by their own renderers and never come through
+ * here. */
+function builtinSourceValues(hit: TaskHit, id: TaskBuiltinSource): string[] {
+	switch (id) {
+		case "status":
+			return hit.status ? [hit.status] : [];
+		case "column":
+			return hit.boardColumn ? [hit.boardColumn] : [];
+		case "priority":
+			return hit.priority ? [hit.priority] : [];
+		default:
+			return [];
+	}
+}
+
+
+/** The raw values a key holds for a task, before any mapping. */
+function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
+	const builtin = sourceBuiltin(source);
+	if (builtin) return builtinSourceValues(hit, builtin);
+	const property = sourceProperty(source);
+	if (!property) return [];
+	const frontmatter = view.app.metadataCache.getFileCache(fieldSourceFile(hit))?.frontmatter;
+	return taskFieldValues(frontmatter?.[property]);
+}
+
+
+/**
+ * Draw the fields the user defined, in order — and only those. Every key of a
+ * field that holds a value renders; a value with no mapping renders as itself,
+ * uncoloured, so nothing goes missing for want of having been mapped.
+ */
+function renderCustomTaskFields(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+	fields: TaskFieldDef[],
+	refresh: () => void,
+): void {
+	for (const field of fields) {
+		const style = fieldStyle(field);
+		// An ambient field paints the whole task instead of adding to it, so it
+		// needs the colour and nothing else.
+		const ambient = isAmbientStyle(style);
+		const paint = (color: string | null) => {
+			if (color) applyAmbientColor(hosts.root, style, color, fieldOpacity(field));
+		};
+		// A bare dot is compact enough to sit beside a board card's title; on a
+		// list everything shares one row anyway.
+		const host = style === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
+		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : undefined;
+
+		for (const key of field.keys) {
+			if (isDescriptionSource(key.source)) {
+				// A description is a block of text; there is no colour in it to take.
+				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
+				continue;
+			}
+			// A date carries no discrete values to map, so it is labelled and
+			// coloured by where it falls relative to today, and edited with a
+			// calendar. A dot would hide the one thing a date is for.
+			if (keyIsDate(key)) {
+				const dateStyle = style === "dot" ? "text" : style;
+				const id = sourceBuiltin(key.source);
+				if (id && isDateSource(key.source)) {
+					const date = id === "due" ? effectiveDate(hit) : taskSourceDate(hit, id);
+					const shown = date
+						? dateDisplay(key, dateRelation(date, today))
+						: { label: "", color: null };
+					// Colouring a whole row by how overdue it is — the reason to want
+					// an ambient date in the first place.
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
+					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
+					if (el && date && taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+					continue;
+				}
+				for (const date of keyValues(view, hit, key.source)) {
+					const shown = dateDisplay(key, dateRelation(date, today));
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
+					const el = renderCustomDateChip(
+						hosts.meta,
+						date,
+						today,
+						dateStyle,
+						shown,
+						prefix,
+						hit.done,
+					);
+					if (taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+				}
+				continue;
+			}
+
+			const builtin = sourceBuiltin(key.source);
+			const editable = taskKeyEditable(hit, key.source);
+			for (const raw of keyValues(view, hit, key.source)) {
+				// Resolved from the raw value: displayValue() tries its aliases itself,
+				// so a mapping written against what the vault holds ("urgent") is found
+				// before the level it folds onto ("high").
+				const shown = displayValue(key, raw);
+				if (ambient) {
+					paint(shown.color);
+					continue;
+				}
+				// Priority and status keep their own elements so the five-level
+				// colours and the theme rules written against them still apply.
+				let el: HTMLElement;
+				if (builtin === "priority") {
+					el = renderPriorityChip(host, raw, style, shown.color, shown.label);
+				} else if (builtin === "status") {
+					el = renderStatusChip(host, raw, style, shown.color, shown.label);
+				} else {
+					el = renderValueChip(host, {
+						text: shown.label,
+						style,
+						color: shown.color,
+						prefix,
+						title: prefix ? `${prefix} ${shown.label}` : shown.label,
+						extraCls: builtin === "column" ? "hearth-task-status hearth-task-column" : undefined,
+					});
+				}
+				// Click the chip to change the value in place, rather than opening
+				// the task to edit one field.
+				if (editable) makeChipEditable(el, view, cfg, hit, key, raw, refresh);
+			}
+		}
+	}
+}
+
+
 
 /** Render a card's description as muted plain-text sub-bullets (one per line),
  * with no Markdown formatting applied. */
@@ -2742,6 +1087,7 @@ function renderTaskDescription(parent: HTMLElement, description: string): void {
 	}
 }
 
+
 /** Whether a line-based task's inline Tasks-plugin metadata (dates, priority,
  * repeat marks) is managed — parsed for display/sorting and written on edits.
  * Kanban cards (identified by `boardColumn`) follow `kanbanExtended` (off by
@@ -2750,19 +1096,6 @@ function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
 }
 
-/** Coarse rank of a priority value for ordering: high → medium → low → other. */
-function priorityRank(p: string | undefined): number {
-	switch (priorityLevel(p ?? "")) {
-		case "high":
-			return 0;
-		case "medium":
-			return 1;
-		case "low":
-			return 2;
-		default:
-			return 3;
-	}
-}
 
 /** The default "smart" ordering: due date → scheduled date → priority → created
  * date. Dates compare as strings (YYYY-MM-DD sorts lexically); tasks missing a
@@ -2780,13 +1113,16 @@ function compareSmart(a: TaskHit, b: TaskHit): number {
 	return a.created - b.created;
 }
 
+
 /** A chosen sort key + direction. An absent `key` means "smart" (the default
  * chain); an absent `reverse` means ascending. */
 type SortKey = NonNullable<TasksConfig["sortKey"]>;
+
 interface SortState {
 	key?: SortKey;
 	reverse?: boolean;
 }
+
 
 /** Sort a list of tasks in place by the given key and direction. Incomplete
  * tasks always come before completed ones (so "show completed" adds them below
@@ -2822,6 +1158,7 @@ function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void {
 	});
 }
 
+
 /** Compare two tasks on a single custom-sort field, ascending. Tasks missing a
  * value for the field sort after those that have one; ties return 0 so the
  * next rule (or the created-date backstop) decides. */
@@ -2852,6 +1189,7 @@ function compareByField(a: TaskHit, b: TaskHit, field: TaskSortField): number {
 	return 0;
 }
 
+
 /** Sort tasks in place by an ordered list of custom rules: each rule is applied
  * as a tiebreaker for the previous, with the file creation time as the final
  * backstop. Like the single-key sort, incomplete tasks always come first. */
@@ -2866,10 +1204,12 @@ function sortHitsByRules(hits: TaskHit[], rules: TaskSortRule[]): void {
 	});
 }
 
+
 /** Whether a custom-rules sort is configured (a non-empty rule list). */
 function hasCustomSort(cfg: TasksConfig): boolean {
 	return !!cfg.sortRules?.length;
 }
+
 
 /** Sort tasks by the card's persistent (whole-list) sort setting: the custom
  * rule list when set, otherwise the single sort key + direction. */
@@ -2878,8 +1218,10 @@ function sortTasks(hits: TaskHit[], cfg: TasksConfig): void {
 	else sortHits(hits, cfg.sortKey ?? "smart", !!cfg.sortReverse);
 }
 
+
 /** Available sort keys, in the order shown in the sort menu. */
 const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "priority", "created", "alpha"];
+
 
 /** A minimalistic sort control: a small button that opens a menu to pick a sort
  * key or reverse the direction. `compact` renders it icon-only (for Kanban
@@ -2924,8 +1266,10 @@ function renderTaskSortControl(
 	});
 }
 
+
 /** Fields offered by the custom-sort modal, in menu order. */
 const TASK_SORT_FIELDS: TaskSortField[] = ["due", "scheduled", "priority", "created", "alpha", "status"];
+
 
 /**
  * The list header's sort control. Like {@link renderTaskSortControl} it offers
@@ -3007,6 +1351,7 @@ function renderTaskListSortControl(
 		menu.showAtMouseEvent(e);
 	});
 }
+
 
 /**
  * The custom-sort modal: an ordered list of rules (field + direction) applied
@@ -3147,6 +1492,7 @@ class TaskSortModal extends Modal {
 	}
 }
 
+
 // ---- List filter ---------------------------------------------------------
 
 /** The status-like value a task exposes for filtering: the TaskNotes status or
@@ -3156,6 +1502,7 @@ function hitStatusValue(hit: TaskHit): string | null {
 	return hit.status ?? hit.boardColumn ?? null;
 }
 
+
 /** The coarse priority bucket of a task for filtering. No priority — or a value
  * that doesn't map to high/medium/low — counts as "none". */
 function hitPriorityLevel(hit: TaskHit): TaskPriorityLevel {
@@ -3164,12 +1511,14 @@ function hitPriorityLevel(hit: TaskHit): TaskPriorityLevel {
 	return lvl === "other" ? "none" : lvl;
 }
 
+
 /** Whether a filter constrains anything. An all-empty filter is inactive and
  * shows everything, so the control renders as "off" and nothing is filtered. */
 function isTaskFilterActive(f: TaskFilterConfig | undefined): boolean {
 	if (!f) return false;
 	return !!(f.statuses?.length || f.priorities?.length || f.due || (f.text && f.text.trim()));
 }
+
 
 /** Whether a task satisfies a due-date constraint. Dates compare as YYYY-MM-DD
  * strings; "week" means due today through seven days out. */
@@ -3194,6 +1543,7 @@ function taskMatchesDue(hit: TaskHit, due: TaskDueFilter, today: string): boolea
 	return true;
 }
 
+
 /** Whether a task passes an active filter: it must satisfy every set criterion
  * (statuses, priorities, due, text) — unset criteria impose no constraint. */
 function taskMatchesFilter(hit: TaskHit, f: TaskFilterConfig, today: string): boolean {
@@ -3209,6 +1559,7 @@ function taskMatchesFilter(hit: TaskHit, f: TaskFilterConfig, today: string): bo
 	}
 	return true;
 }
+
 
 /** A filter button styled like the sort control. Shows "active" when the card
  * carries a filter, and opens a modal to edit it (presets + custom criteria). */
@@ -3236,8 +1587,18 @@ function renderTaskFilterControl(
 	});
 }
 
+
 /** The order priority chips appear in the filter modal. */
 const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "none"];
+
+
+/** Paint a filter chip as on or off, and say so for screen readers — the
+ * accent fill is the only other cue that a chip is selected. */
+function setChipState(chip: HTMLElement, on: boolean): void {
+	chip.toggleClass("is-on", on);
+	chip.setAttribute("aria-pressed", String(on));
+}
+
 
 /** The filter modal: quick presets across the top, then editable criteria
  * (due, priority, status, text). Edits are applied on "Apply"; "Cancel"
@@ -3245,6 +1606,9 @@ const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "non
 class TaskFilterModal extends Modal {
 	private working: TaskFilterConfig;
 	private body: HTMLElement | null = null;
+	/** Re-reads each preset chip's on/off state from `working`. Kept so a chip
+	 * or dropdown below can leave the presets showing the truth. */
+	private presetSyncs: (() => void)[] = [];
 
 	constructor(
 		app: App,
@@ -3272,22 +1636,47 @@ class TaskFilterModal extends Modal {
 		this.renderFooter(contentEl);
 	}
 
-	/** Preset chips that fill in the criteria below, then re-render the body. */
+	/** Preset chips that fill in the criteria below, then re-render the body.
+	 * Each one reads as on while the criteria below still match it, and a
+	 * second click takes it back off — a preset you can only apply, never
+	 * undo, reads as broken. */
 	private renderPresets(parent: HTMLElement): void {
 		const labels = t().cards.tasks.filterPresets;
 		const row = parent.createDiv("hearth-taskfilter-presets");
-		const preset = (label: string, apply: () => void) => {
-			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+		this.presetSyncs = [];
+		const preset = (label: string, isOn: () => boolean, apply: (on: boolean) => void) => {
+			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+			const sync = () => setChipState(chip, isOn());
+			sync();
+			this.presetSyncs.push(sync);
 			chip.addEventListener("click", () => {
-				apply();
+				apply(!isOn());
 				this.renderBody();
+				this.syncPresets();
 			});
 		};
-		preset(labels.overdue, () => (this.working.due = "overdue"));
-		preset(labels.today, () => (this.working.due = "today"));
-		preset(labels.week, () => (this.working.due = "week"));
-		preset(labels.highPriority, () => (this.working.priorities = ["high"]));
-		preset(labels.noDate, () => (this.working.due = "noDate"));
+		const duePreset = (label: string, value: TaskDueFilter) =>
+			preset(label, () => this.working.due === value, (on) => {
+				this.working.due = on ? value : undefined;
+			});
+		duePreset(labels.overdue, "overdue");
+		duePreset(labels.today, "today");
+		duePreset(labels.week, "week");
+		preset(
+			labels.highPriority,
+			() => {
+				const levels = this.working.priorities ?? [];
+				return levels.length === 1 && levels[0] === "high";
+			},
+			(on) => {
+				this.working.priorities = on ? ["high"] : undefined;
+			},
+		);
+		duePreset(labels.noDate, "noDate");
+	}
+
+	private syncPresets(): void {
+		for (const sync of this.presetSyncs) sync();
 	}
 
 	/** The editable criteria; rebuilt whenever a preset or toggle changes them. */
@@ -3308,11 +1697,12 @@ class TaskFilterModal extends Modal {
 			d.setValue(this.working.due ?? "");
 			d.onChange((v) => {
 				this.working.due = v ? (v as TaskDueFilter) : undefined;
+				this.syncPresets();
 			});
 		});
 
 		// Priority buckets (multi-select chips).
-		const prioRow = new Setting(body).setName(labels.filterPriority);
+		const prioRow = new Setting(body).setName(labels.filterPriority).setClass("hearth-taskfilter-row");
 		const prioHost = prioRow.controlEl.createDiv("hearth-taskfilter-chips");
 		for (const level of TASK_PRIORITY_LEVELS) {
 			this.toggleChip(prioHost, labels.filterPriorityLevels[level], () => (this.working.priorities ?? []).includes(level), () => {
@@ -3324,10 +1714,11 @@ class TaskFilterModal extends Modal {
 		}
 
 		// Status/column chips (only when the source exposes statuses).
-		if (this.availableStatuses.length) {
-			const statusRow = new Setting(body).setName(labels.filterStatus);
+		const statuses = this.statusOptions();
+		if (statuses.length) {
+			const statusRow = new Setting(body).setName(labels.filterStatus).setClass("hearth-taskfilter-row");
 			const statusHost = statusRow.controlEl.createDiv("hearth-taskfilter-chips");
-			for (const status of this.availableStatuses) {
+			for (const status of statuses) {
 				this.toggleChip(statusHost, status, () => (this.working.statuses ?? []).some((s) => s.toLowerCase() === status.toLowerCase()), () => {
 					const cur = this.working.statuses ?? [];
 					const has = cur.some((s) => s.toLowerCase() === status.toLowerCase());
@@ -3344,13 +1735,32 @@ class TaskFilterModal extends Modal {
 		});
 	}
 
-	/** A single multi-select chip: reflects `isOn()` and flips it on click. */
+	/** The statuses to offer as chips: those the card's tasks actually use,
+	 * plus any the working filter still selects that no longer appear. Without
+	 * the second group a filter kept from an earlier state (a status renamed,
+	 * or its last task deleted) would go on hiding tasks with no chip left to
+	 * switch it off. */
+	private statusOptions(): string[] {
+		const out = [...this.availableStatuses];
+		const seen = new Set(out.map((s) => s.toLowerCase()));
+		for (const status of this.working.statuses ?? []) {
+			if (seen.has(status.toLowerCase())) continue;
+			seen.add(status.toLowerCase());
+			out.push(status);
+		}
+		return out;
+	}
+
+	/** A single multi-select chip: reflects `isOn()` and flips it on click.
+	 * Updated in place rather than by re-rendering the row, so the chip you
+	 * just clicked keeps keyboard focus. */
 	private toggleChip(host: HTMLElement, label: string, isOn: () => boolean, flip: () => void): void {
-		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
-		chip.toggleClass("is-on", isOn());
+		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+		setChipState(chip, isOn());
 		chip.addEventListener("click", () => {
 			flip();
-			chip.toggleClass("is-on", isOn());
+			setChipState(chip, isOn());
+			this.syncPresets();
 		});
 	}
 
@@ -3369,6 +1779,7 @@ class TaskFilterModal extends Modal {
 				b.setButtonText(t().cards.tasks.filterClear).onClick(() => {
 					this.working = {};
 					this.renderBody();
+					this.syncPresets();
 				}),
 			)
 			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
@@ -3378,6 +1789,7 @@ class TaskFilterModal extends Modal {
 		this.contentEl.empty();
 	}
 }
+
 
 async function loadAndRenderTasks(
 	view: HomeView,
@@ -3452,9 +1864,16 @@ async function loadAndRenderTasks(
 		return;
 	}
 
+	// The card's "open" status for TaskNotes tasks: the first non-done status
+	// value present. Used when a list checkbox reopens a completed task, so it
+	// returns to a real open status (e.g. "open") rather than being cleared.
+	// Falls back to empty (no status = open) when the card has none to offer.
+	const openStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
+
 	const listEl = container.createDiv("hearth-list hearth-tasks");
-	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh);
+	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh, openStatus);
 }
+
 
 function renderTaskRow(
 	view: HomeView,
@@ -3463,6 +1882,7 @@ function renderTaskRow(
 	hit: TaskHit,
 	today: string,
 	refresh: () => void,
+	openStatus: string,
 ): void {
 	const row = listEl.createDiv("hearth-list-item hearth-task");
 	row.toggleClass("is-done", hit.done);
@@ -3499,19 +1919,28 @@ function renderTaskRow(
 		// next scheduled), not by flipping status — a checkbox does that without
 		// needing a status column to drag into.
 		renderRecurringCheckbox(view, hit, today, row, refresh);
-	} else if (hit.status) {
-		row.createDiv({ cls: "hearth-task-status", text: hit.status });
+	} else {
+		// Non-recurring TaskNotes task: a completion checkbox, matching the
+		// recurring case so the list reads consistently instead of mixing
+		// checkboxes with text status badges (#111). Checking sets the done
+		// status; unchecking restores the card's open status — mirroring how
+		// completing a TaskNotes task moves it to the next/done status.
+		renderTaskNotesCheckbox(view, cfg, hit, row, refresh, openStatus);
 	}
 
-	const label = row.createDiv({ cls: "hearth-list-label hearth-task-text" });
+	// Two groups on the one row: the title (with whatever sits beside it) holds
+	// the left and is the only part allowed to shrink, and every other chip
+	// gathers at the right edge. Grouping them is what keeps a task to a single
+	// line — a long title ellipsizes instead of pushing the chips onto a line of
+	// their own (#156). The card's configured field order still reads
+	// left-to-right, since a list draws all its chips into the one meta group.
+	const main = row.createDiv("hearth-task-main");
+	const meta = row.createDiv("hearth-task-metas");
+	const label = main.createDiv({ cls: "hearth-list-label hearth-task-text" });
 	fillTaskText(view, label, hit.text || hit.file.basename, hit.file.path);
-	// Kanban cards show the board column they belong to as a small badge.
-	if (hit.boardColumn) row.createDiv({ cls: "hearth-task-status hearth-task-column", text: hit.boardColumn });
-	// The list has room for a labelled priority chip (a bare dot is easy to
-	// miss); board cards stay dot-only for compactness.
-	if (hit.priority) renderPriority(row, hit.priority);
-	renderTaskDateChips(row, hit, today);
-	if (hit.description) renderTaskDescription(row, hit.description);
+	// The description is the one field that gets its own line, so it goes to the
+	// row itself rather than into either group.
+	renderTaskFields(view, cfg, hit, { inline: main, meta, block: row, root: row }, today, "list", refresh);
 
 	const open = () => void openTask(view, cfg, hit, refresh);
 	row.addEventListener("click", open);
@@ -3520,6 +1949,7 @@ function renderTaskRow(
 	// menu; checkboxes get the edit-details item, Kanban also convert/delete.
 	if (hit.line >= 0) attachKanbanCardMenu(view, cfg, hit, row, refresh);
 }
+
 
 /** A Kanban board: tasks grouped into status columns, draggable between them.
  * For checkbox tasks the columns are To do / Done; for TaskNotes they're the
@@ -3868,21 +2298,67 @@ function renderTaskKanban(
 					refresh();
 				});
 			});
+			} else if (source === "tasknotes") {
+				// Non-recurring TaskNotes card: a checkbox that advances the card to
+				// the next swimlane (status column) on tick — stepping through the
+				// statuses and eventually into the done column — and back to the
+				// first column on untick, mirroring how a task progresses its status
+				// (#111). moveTo writes the target column's status to the note.
+				const check = textRow.createEl("input", {
+					cls: "hearth-task-check",
+					attr: { type: "checkbox" },
+				});
+				check.checked = hit.done;
+				const stop = (e: Event) => e.stopPropagation();
+				check.addEventListener("click", stop);
+				check.addEventListener("mousedown", stop);
+				check.addEventListener("pointerdown", stop);
+				check.addEventListener("change", () => {
+					const idx = visible.indexOf(col);
+					const target = check.checked ? visible[idx + 1] : visible[0];
+					if (target && target !== col) moveTo(hit, target);
+					else refresh();
+				});
 		}
 		const cardText = textRow.createDiv({ cls: "hearth-kanban-card-text" });
 		fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
-			// Kanban priority shows as a single coloured dot inline with the title;
-			// TaskNotes keeps its labelled chip in the meta row below.
-			if (source === "kanban" && hit.priority) renderPriority(textRow, hit.priority, true);
-			if (hit.description) renderTaskDescription(cardEl, hit.description);
+			// A board card is three stacked areas, so the hosts are created up front
+			// and each field lands in the one its style suits: a bare dot fits beside
+			// the title, the description is its own block, everything else is a chip
+			// in the meta row (where the configured order applies).
+			const block = cardEl.createDiv("hearth-kanban-card-block");
 			const meta = cardEl.createDiv("hearth-kanban-card-meta");
-			if (source !== "kanban" && hit.priority) renderPriority(meta, hit.priority);
-			renderTaskDateChips(meta, hit, today);
+			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh);
 			const open = () => void openTask(view, cfg, hit, refresh);
-			cardEl.addEventListener("click", open);
+			// A real board/checkbox line (not a note-linked card) can have its title
+			// edited inline: double-click swaps the text for an input. Single click
+			// still opens the card, so the open is deferred just long enough for a
+			// following double-click to cancel it and start editing instead.
+			const canEditTitle = hit.line >= 0 && !hit.linkedFile;
+			if (canEditTitle) {
+				let clickTimer: number | null = null;
+				cardEl.addEventListener("click", () => {
+					if (clickTimer != null) return;
+					clickTimer = window.setTimeout(() => {
+						clickTimer = null;
+						open();
+					}, 220);
+				});
+				cardEl.addEventListener("dblclick", (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					if (clickTimer != null) {
+						window.clearTimeout(clickTimer);
+						clickTimer = null;
+					}
+					startCardTitleEdit(view, cfg, hit, textRow, cardText, cardEl, refresh);
+				});
+			} else {
+				cardEl.addEventListener("click", open);
+			}
 			makeClickable(cardEl, open, hit.text || hit.file.basename);
 			// Line-based cards (Kanban cards and plain checkboxes) get the
-			// right-click menu: edit metadata, plus convert/delete for Kanban.
+			// right-click menu: edit title/metadata, plus convert/delete for Kanban.
 			if (hit.line >= 0) attachKanbanCardMenu(view, cfg, hit, cardEl, refresh);
 		}
 
@@ -3896,6 +2372,7 @@ function renderTaskKanban(
 		}
 	}
 }
+
 
 /** Render a compact "+ Add card" control at the bottom of a Kanban column. On
  * click it swaps to a small form: a text input plus, in extended mode, a due
@@ -4021,10 +2498,12 @@ function renderKanbanAddCard(
 	});
 }
 
+
 /** An empty metadata set. */
 function emptyMeta(): TaskMeta {
 	return { priority: "", recurrence: "", start: "", scheduled: "", due: "" };
 }
+
 
 /** Build the Tasks-plugin metadata tail for a card (e.g. " ⏫ 🔁 every week 🛫
  * 2024-01-10 ⏳ 2024-01-12 📅 2024-01-15"). Emits markers in the Tasks-plugin's
@@ -4040,9 +2519,11 @@ function buildMetadataSuffix(meta: TaskMeta): string {
 	return s;
 }
 
+
 /** The repeat units offered by the deterministic recurrence picker, mapped to
  * the singular word the Tasks plugin expects ("every day/week/month/year"). */
 const RECURRENCE_UNITS = ["day", "week", "month", "year"] as const;
+
 
 /** Parse a Tasks-plugin recurrence string into the picker's {unit, interval}.
  * Handles "every day", "every week", "every 2 weeks", etc. Unknown/empty rules
@@ -4053,6 +2534,7 @@ function parseRecurrence(rule: string): { unit: string; interval: number } {
 	return { unit: m[2].toLowerCase(), interval: Math.max(1, parseInt(m[1] ?? "1", 10) || 1) };
 }
 
+
 /** Build a Tasks-plugin recurrence string from the picker's {unit, interval}
  * (e.g. "every week", "every 2 weeks"). Empty unit means no recurrence. */
 function buildRecurrence(unit: string, interval: number): string {
@@ -4060,6 +2542,7 @@ function buildRecurrence(unit: string, interval: number): string {
 	const n = Math.max(1, interval || 1);
 	return n > 1 ? `every ${n} ${unit}s` : `every ${unit}`;
 }
+
 
 /** Build the shared task-detail fields (priority, repeat, and start/scheduled/
  * due dates) into `parent`, prefilled from `meta`, and return a getter for the
@@ -4182,6 +2665,7 @@ function buildTaskDetailFields(
 	};
 }
 
+
 /** A modal to edit a Kanban card's dates, priority and description via {@link
  * buildTaskDetailFields}, prefilled from the card; submits the new values. */
 class TaskMetadataModal extends Modal {
@@ -4220,6 +2704,7 @@ class TaskMetadataModal extends Modal {
 	}
 }
 
+
 /** A compact quick-view for a line-based task, opened by clicking it: shows the
  * task title, its Tasks-plugin metadata and (for Kanban cards) description, and
  * offers to open the full note or delete the task. When the task's metadata is
@@ -4230,6 +2715,13 @@ class TaskDetailModal extends Modal {
 	/** For a linked card, the editable description textarea (its content is
 	 * written back to the note body on save). */
 	private linkedDescArea: HTMLTextAreaElement | null = null;
+	/** For an editable line-based card, the title input (its value is written
+	 * back onto the card line on save). */
+	private titleInput: HTMLTextAreaElement | null = null;
+	/** Description editor shown for Kanban cards when metadata isn't managed
+	 * (non-extended mode); saved as sub-bullets under the card, or — for a linked
+	 * card — into its note body. Null when the extended-mode fields own it. */
+	private descArea: HTMLTextAreaElement | null = null;
 	constructor(
 		private readonly view: HomeView,
 		private readonly cfg: TasksConfig,
@@ -4248,9 +2740,21 @@ class TaskDetailModal extends Modal {
 		// (edited here, written back there) and its description inside the note
 		// body (edited in a textarea below the metadata, written back to the note).
 		const linked = !!hit.linkedFile;
+		// A real board/checkbox line (not a note-linked card) can have its title
+		// rewritten here; a linked card's title is its note, so it stays read-only.
+		const canEditTitle = hit.line >= 0 && !linked;
 
-		const title = contentEl.createEl("h3", { cls: "hearth-taskdetail-title" });
-		fillTaskText(view, title, hit.text || hit.file.basename, hit.file.path);
+		if (canEditTitle) {
+			const titleInput = contentEl.createEl("textarea", {
+				cls: "hearth-taskdetail-title-edit",
+				attr: { rows: "1", "aria-label": t().cards.tasks.editTitle, placeholder: t().cards.tasks.titlePlaceholder },
+			});
+			titleInput.value = hit.text || "";
+			this.titleInput = titleInput;
+		} else {
+			const title = contentEl.createEl("h3", { cls: "hearth-taskdetail-title" });
+			fillTaskText(view, title, hit.text || hit.file.basename, hit.file.path);
+		}
 
 		if (editable) {
 			const current: TaskMeta = {
@@ -4279,41 +2783,79 @@ class TaskDetailModal extends Modal {
 			}
 		} else {
 			// Read-only summary of whatever metadata the task carries (from the card
-			// or, for a linked card, its note's frontmatter), plus its description.
+			// or, for a linked card, its note's frontmatter) — metadata editing stays
+			// behind the "Dates & priorities" toggle. The description, however, is
+			// editable here for Kanban cards even with that toggle off.
 			const today: string = moment().format("YYYY-MM-DD");
 			const chips = contentEl.createDiv("hearth-taskdetail-readonly");
-			if (hit.priority) renderPriority(chips, hit.priority);
-			renderTaskDateChips(chips, hit, today);
+			// The quick view is the task's detail sheet, so it shows every piece of
+			// metadata in its default style — independent of which fields the card
+			// it was opened from happens to display.
+			if (hit.priority) renderPriorityChip(chips, hit.priority, "pill");
+			for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
+				renderTaskDateChip(chips, hit, id, today, "text");
+			}
 			if (!chips.childNodes.length)
 				chips.createSpan({ cls: "hearth-taskdetail-empty", text: t().cards.tasks.noMetadata });
-			if (linked && hit.linkedFile) {
-				const descHost = contentEl.createDiv();
-				void readNoteDescription(view, hit.linkedFile).then((desc) => {
-					if (desc) renderTaskDescription(descHost, desc);
+			if (isKanban) {
+				// Kanban card: an editable description (sub-bullets under the card, or
+				// the note body for a linked card).
+				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
+				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
+				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
+				const area = descRow.createEl("textarea", {
+					cls: "hearth-taskdetail-desc",
+					attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
 				});
+				this.descArea = area;
+				if (linked && hit.linkedFile) {
+					void readNoteDescription(view, hit.linkedFile).then((desc) => {
+						// Don't clobber edits the user already started typing.
+						if (!area.value) area.value = desc;
+					});
+				} else {
+					area.value = hit.description ?? "";
+				}
 			} else if (hit.description) {
+				// Plain checkbox: nested lines may be sub-tasks, so show read-only.
 				renderTaskDescription(contentEl, hit.description);
 			}
 		}
 
 		const actions = new Setting(contentEl);
-		if (editable) {
+		if (editable || canEditTitle || this.descArea) {
 			actions.addButton((b) =>
 				b
 					.setButtonText(t().cards.tasks.save)
 					.setCta()
 					.onClick(() => {
-						if (this.read) {
-							const r = this.read();
-							const descArea = this.linkedDescArea;
-							void (async () => {
+						const r = this.read?.();
+						const linkedDescArea = this.linkedDescArea;
+						const ownDescArea = this.descArea;
+						const newTitle = this.titleInput?.value.trim();
+						void (async () => {
+							// Write metadata first (it also rewrites the description
+							// sub-bullets and preserves the card's current title), then the
+							// title — that order keeps each write's stored-line guard matching.
+							if (r) {
 								const ok = await setKanbanCardMetadata(view, hit, r.meta, r.description);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
-								// A linked card's description is written back to the note body.
-								if (hit.linkedFile && descArea) await writeNoteDescription(view, hit.linkedFile, descArea.value);
-								this.refresh();
-							})();
-						}
+							} else if (ownDescArea && !hit.linkedFile) {
+								// Non-extended Kanban card: description-only write (no metadata
+								// managed, so the card's markers are left untouched).
+								const ok = await setKanbanCardDescription(view, hit, ownDescArea.value);
+								if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							}
+							if (canEditTitle && newTitle && newTitle !== (hit.text || "")) {
+								const ok = await setKanbanCardText(view, hit, newTitle, editable);
+								if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							}
+							// A linked card's description is written back to the note body,
+							// whichever mode edited it.
+							const linkedDesc = linkedDescArea ?? ownDescArea;
+							if (hit.linkedFile && linkedDesc) await writeNoteDescription(view, hit.linkedFile, linkedDesc.value);
+							this.refresh();
+						})();
 						this.close();
 					}),
 			);
@@ -4351,6 +2893,7 @@ class TaskDetailModal extends Modal {
 		this.contentEl.empty();
 	}
 }
+
 
 /** Scan plain Markdown `- [ ]`/`- [x]` checkboxes in every in-scope note,
  * reading the full obsidian-tasks emoji metadata (priority, repeat, and the
@@ -4436,6 +2979,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 	return hits;
 }
 
+
 /** Read TaskNotes task notes directly via frontmatter (see TasksConfig.source
  * doc for why: no stable public API, and field names are user-remappable).
  * Only files that actually have the configured status field are treated as
@@ -4453,6 +2997,7 @@ function doneStatusMatcher(cfg: TasksConfig, globalDoneValue: string): (status: 
 	return (status: string) => done.has(status.trim().toLowerCase());
 }
 
+
 /** Coerce a frontmatter scalar to a string, treating missing, empty, or
  * non-scalar (object/array) values as absent. Guards against a YAML object
  * being rendered as the literal "[object Object]" in task metadata. */
@@ -4461,6 +3006,7 @@ function scalarField(v: unknown): string | undefined {
 	if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
 	return undefined;
 }
+
 
 function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	const s = view.plugin.settings;
@@ -4523,24 +3069,26 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	return hits;
 }
 
+
 // ---- Kanban plugin board -------------------------------------------------
 
 /** Resolve the Kanban board note for a card. Prefers the explicitly configured
  * `kanbanFile` path; otherwise auto-detects the first in-scope note whose
  * frontmatter carries the `kanban-plugin` key the Kanban plugin writes. */
-function resolveKanbanFile(view: HomeView, cfg: TasksConfig): TFile | null {
+function resolveKanbanFile(app: App, cfg: TasksConfig): TFile | null {
 	const path = cfg.kanbanFile?.trim();
 	if (path) {
-		const f = view.app.vault.getAbstractFileByPath(path);
+		const f = app.vault.getAbstractFileByPath(path);
 		return f instanceof TFile ? f : null;
 	}
-	for (const file of view.app.vault.getMarkdownFiles()) {
+	for (const file of app.vault.getMarkdownFiles()) {
 		if (!inTaskScope(file.path, cfg)) continue;
-		const fm = view.app.metadataCache.getFileCache(file)?.frontmatter;
+		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (fm && KANBAN_FRONTMATTER_KEY in fm) return file;
 	}
 	return null;
 }
+
 
 /** Parse a Kanban board's `##` headings into ordered columns with the line
  * range that holds each column's cards. Frontmatter and the trailing
@@ -4574,10 +3122,12 @@ function parseKanbanColumns(lines: string[]): { columns: KanbanColumn[]; footerS
 	return { columns, footerStart };
 }
 
+
 /** The checkbox-item pattern shared by the Kanban parser (a card is a plain
  * Markdown task item, same as a checkbox task). The status char may be any
  * single character so custom statuses (`[/]`, `[-]`, …) are handled too. */
 const KANBAN_CARD_RE = /^\s*[-*+]\s\[(.)\]\s*(.*)$/;
+
 
 /** The extent of a Kanban card starting at `cardLine`: its item line plus any
  * deeper-indented, non-blank continuation lines (the card's description). `end`
@@ -4597,6 +3147,7 @@ function cardBlockRange(lines: string[], cardLine: number): { end: number; descL
 	return { end, descLines };
 }
 
+
 /** Build the nested description bullet lines for a card whose item line has the
  * given indent (each non-empty description line becomes an indented `- ` item,
  * one level deeper). */
@@ -4607,6 +3158,7 @@ function descriptionBullets(description: string, itemIndent: string): string[] {
 		.filter(Boolean)
 		.map((l) => `${itemIndent}\t- ${l}`);
 }
+
 
 /** If `text` is essentially a single link to a note (`[[Note]]`, `[[Note|alias]]`
  * or `[alias](Note.md)`) — the shape "Convert to note" leaves on the board —
@@ -4636,6 +3188,7 @@ function soleLinkedNote(view: HomeView, text: string, sourcePath: string): TFile
 	return f instanceof TFile ? f : null;
 }
 
+
 /** Read a linked note's body (frontmatter stripped) as plain description lines,
  * with any leading list marker removed. Joined with "\n"; empty when the note
  * has no body. Used to show a converted card's description "inside the note". */
@@ -4653,6 +3206,7 @@ async function readNoteDescription(view: HomeView, file: TFile): Promise<string>
 		.filter(Boolean)
 		.join("\n");
 }
+
 
 /** Write a linked note's description (the body below its frontmatter) from the
  * quick-view editor: keeps the frontmatter intact and replaces the body with the
@@ -4674,6 +3228,7 @@ async function writeNoteDescription(view: HomeView, file: TFile, description: st
 	}
 }
 
+
 /** Read a Kanban board note: each `##` heading is a column and each checkbox
  * item beneath it is a card. In extended mode the Tasks-plugin emoji metadata
  * (📅 due, ⏫/🔼/🔽 priority, 🔁 recurrence) is parsed off each card so due dates
@@ -4683,7 +3238,7 @@ async function collectKanbanTasks(
 	view: HomeView,
 	cfg: TasksConfig,
 ): Promise<{ hits: TaskHit[]; columns: KanbanColumn[]; file: TFile | null }> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return { hits: [], columns: [], file: null };
 	const content = await view.app.vault.cachedRead(file);
 	const lines = content.split("\n");
@@ -4780,44 +3335,17 @@ async function collectKanbanTasks(
 	return { hits, columns, file };
 }
 
-/** The Tasks-plugin priority emoji present on a card (highest→lowest), or
- * undefined. Returned raw; priorityLevel()/renderPriority() map it to a level
- * and show it as the label. */
-function readPriorityEmoji(text: string): string | undefined {
-	const m = /[🔺⏫🔼🔽⏬]/u.exec(text);
-	return m ? m[0] : undefined;
-}
-
-/** Tasks-plugin priority keys, in descending order, mapped to their emoji. */
-const PRIORITY_EMOJI: Record<string, string> = {
-	highest: "🔺",
-	high: "⏫",
-	medium: "🔼",
-	low: "🔽",
-	lowest: "⏬",
-};
-
-/** The priority key ("high", "lowest", …) for a raw priority value — an emoji
- * (⏫) or a word ("high") — or "" when none/unrecognized. Used to prefill the
- * editor and to round-trip the emoji through the pickers. */
-function priorityKey(priority: string | undefined): string {
-	if (!priority) return "";
-	for (const [key, emoji] of Object.entries(PRIORITY_EMOJI)) {
-		if (priority === emoji || priority.toLowerCase() === key) return key;
-	}
-	// Fall back to the coarse level for words like "urgent"/"minor".
-	const level = priorityLevel(priority);
-	return level === "other" ? "" : level;
-}
 
 /** Every Tasks-plugin metadata emoji marker, used to strip metadata from a
  * card's display text and to compare cards ignoring their metadata. */
 const TASK_EMOJI_CLASS = "📅⏳🛫🔁✅❌➕⏫🔼🔽🔺⏬";
 
+
 /** The subset of metadata emoji Hearth's editor manages (due/scheduled/start/
  * recurrence/priority). Completion (✅), created (➕) and cancelled (❌) markers
  * are left untouched when rewriting a card's metadata. */
 const MANAGED_EMOJI_CLASS = "📅⏳🛫🔁⏫🔼🔽🔺⏬";
+
 
 /** The single source of truth for turning a raw date expression — an ISO date
  * (YYYY-MM-DD) or natural-language wording ("today", "next friday", "in 3
@@ -4833,6 +3361,7 @@ function resolveDate(expr: string): string | null {
 	return parseNaturalDate(expr);
 }
 
+
 /** Read a Tasks-plugin date field (e.g. 📅) and resolve it to YYYY-MM-DD, or
  * "" when absent/unparseable. Accepts natural-language wording. */
 function readEmojiDate(text: string, emoji: string): string {
@@ -4840,6 +3369,7 @@ function readEmojiDate(text: string, emoji: string): string {
 	if (!expr) return "";
 	return resolveDate(expr) ?? "";
 }
+
 
 /** Strip all Tasks-plugin emoji metadata (each marker and its trailing value up
  * to the next marker) from a task's text, collapsing leftover whitespace. Used
@@ -4850,6 +3380,7 @@ function stripTaskMetadata(text: string): string {
 	return text.replace(re, "").replace(/\s+/g, " ").trim();
 }
 
+
 /** Add or remove the Tasks-plugin done-date marker (✅ YYYY-MM-DD) on a card's
  * text: any existing ✅ field is dropped, then today's is appended when `done`.
  * Used to keep the completion date in sync as cards are checked/unchecked. */
@@ -4859,6 +3390,7 @@ function withDoneDate(text: string, done: boolean, today: string): string {
 	return done ? `${base} ✅ ${today}`.trim() : base;
 }
 
+
 /** Set (or, when null, remove) a Tasks-plugin date field (e.g. 📅/⏳/🛫) on a
  * task's text to `date`, replacing any existing value for that marker. */
 function withEmojiDate(text: string, emoji: string, date: string | null): string {
@@ -4866,6 +3398,7 @@ function withEmojiDate(text: string, emoji: string, date: string | null): string
 	const base = text.replace(re, "").replace(/\s+/g, " ").trim();
 	return date ? `${base} ${emoji} ${date}`.trim() : base;
 }
+
 
 /** Complete (or un-complete) the current occurrence of a recurring checkbox /
  * Kanban task in place, TaskNotes-style: the line stays unchecked (a recurring
@@ -4920,6 +3453,7 @@ async function setLineRecurringInstanceDone(
 	return true;
 }
 
+
 /** Flip a Kanban card's checkbox to `done` in place, and — in extended mode —
  * add/remove its ✅ done date to match. Bails (false) if the stored line no
  * longer matches the card. */
@@ -4942,6 +3476,7 @@ async function setKanbanCardDone(
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
 }
+
 
 /** Move a Kanban card's checkbox line (plus any nested continuation lines) out
  * of its current column and under `targetHeading` in the board note. The card's
@@ -4991,6 +3526,7 @@ async function moveKanbanCard(
 	return true;
 }
 
+
 /** Append a new card under `heading` in the configured board note, checked when
  * `markDone` (the target is a "done column") and unchecked otherwise. Any
  * `description` is written as plain-text sub-bullets under the card. */
@@ -5003,7 +3539,7 @@ async function addKanbanCard(
 	doneDate?: string,
 	description?: string,
 ): Promise<boolean> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return false;
 	const content = await view.app.vault.read(file);
 	const lines = content.split("\n");
@@ -5014,6 +3550,7 @@ async function addKanbanCard(
 	await view.app.vault.modify(file, lines.join("\n"));
 	return true;
 }
+
 
 /** Add a new Kanban card as its own note (a link on the board) instead of an
  * inline checkbox — the same result as adding a card and immediately converting
@@ -5030,7 +3567,7 @@ async function addKanbanCardAsNote(
 	markDone?: boolean,
 	doneDate?: string,
 ): Promise<boolean> {
-	const board = resolveKanbanFile(view, cfg);
+	const board = resolveKanbanFile(view.app, cfg);
 	if (!board) return false;
 	const safeTitle =
 		(title || "Untitled").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled";
@@ -5077,6 +3614,7 @@ async function addKanbanCardAsNote(
 	return true;
 }
 
+
 /** Mark a batch of Kanban cards (all in the same board note) done in a single
  * write, stamping the ✅ done date when `doneDate` is given. Skips any line that
  * no longer matches its card. Used when a column is toggled into a "done
@@ -5101,6 +3639,7 @@ async function markCardsDone(view: HomeView, hits: TaskHit[], doneDate?: string)
 	}
 	if (changed) await view.app.vault.modify(file, lines.join("\n"));
 }
+
 
 /** Attach a right-click menu to a task row/card. Every metadata-capable task
  * (Kanban cards, and plain checkboxes — which always read their marks) offers
@@ -5176,6 +3715,7 @@ function attachKanbanCardMenu(
 	});
 }
 
+
 /** Render task text into `el`, turning `[[wikilinks]]` and `[label](url)` into
  * clickable links (the rest stays plain text). Link clicks open the target and
  * stop propagation so they don't also trigger the card's open-on-click. */
@@ -5191,7 +3731,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 			link.addEventListener("click", (ev) => {
 				ev.stopPropagation();
 				ev.preventDefault();
-				void view.app.workspace.openLinkText(target.trim(), sourcePath, false);
+				void openLink(view, target.trim(), sourcePath, "link", ev);
 			});
 		} else {
 			const link = el.createSpan({ cls: "hearth-task-link", text: m[2] });
@@ -5200,7 +3740,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 				ev.stopPropagation();
 				ev.preventDefault();
 				if (/^https?:\/\//i.test(url)) window.open(url, "_blank");
-				else void view.app.workspace.openLinkText(url, sourcePath, false);
+				else void openLink(view, url, sourcePath, "link", ev);
 			});
 		}
 		last = re.lastIndex;
@@ -5208,6 +3748,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 	if (last < text.length) el.appendText(text.slice(last));
 	if (!el.childNodes.length) el.appendText(text);
 }
+
 
 /** Set (or clear) a Kanban card's due date and priority, rewriting the card
  * line's Tasks-plugin metadata in place while preserving its text and any link.
@@ -5248,6 +3789,78 @@ async function setKanbanCardMetadata(
 	return true;
 }
 
+
+/** Rewrite a line-based card's title text in place, preserving its checkbox mark
+ * and any Tasks-plugin metadata markers (dates, priority, repeat, and the ✅/➕/❌
+ * stamps). Only the descriptive text is replaced; nested description lines are
+ * left untouched. `extended` mirrors {@link taskMetaEnabled}: when on, the emoji
+ * markers are treated as metadata and reattached after the new title; when off,
+ * the whole line text is the title and is replaced verbatim. Bails (returns
+ * false) if the stored line no longer matches the card, or the new title is empty. */
+async function setKanbanCardText(
+	view: HomeView,
+	hit: TaskHit,
+	newText: string,
+	extended: boolean,
+): Promise<boolean> {
+	const content = await view.app.vault.read(hit.file);
+	const lines = content.split("\n");
+	const cur = lines[hit.line];
+	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
+	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	const clean = newText.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+	if (!clean) return false; // never write a text-less card
+	const prefix = cur.slice(0, cur.length - m[2].length);
+	let rest: string;
+	if (extended) {
+		// Pull out every metadata marker (in order) so interspersed dates/priority
+		// survive, then reattach them after the freshly-typed title.
+		const markerRe = new RegExp(`[${TASK_EMOJI_CLASS}][^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
+		const markers: string[] = [];
+		let mm: RegExpExecArray | null;
+		while ((mm = markerRe.exec(m[2])) !== null) markers.push(mm[0].trim());
+		rest = [clean, ...markers].join(" ").replace(/\s+/g, " ").trim();
+	} else {
+		rest = clean;
+	}
+	const newItem = `${prefix}${rest}`.trimEnd();
+	if (newItem === cur) return true; // no-op edit
+	lines[hit.line] = newItem;
+	await view.app.vault.modify(hit.file, lines.join("\n"));
+	return true;
+}
+
+
+/** Set (or clear) a Kanban card's description, independent of its metadata: a
+ * card linked to a note writes it to the note body; a normal card replaces the
+ * nested `- ` sub-bullets under its item line, leaving the item line (title and
+ * metadata) untouched. This is the description-only path used when Tasks-plugin
+ * metadata isn't managed (`kanbanExtended` off), so no markers are rewritten.
+ * Bails (returns false) if the stored line no longer matches the card. */
+async function setKanbanCardDescription(
+	view: HomeView,
+	hit: TaskHit,
+	description: string,
+): Promise<boolean> {
+	if (hit.linkedFile) {
+		await writeNoteDescription(view, hit.linkedFile, description);
+		return true;
+	}
+	const content = await view.app.vault.read(hit.file);
+	const lines = content.split("\n");
+	const cur = lines[hit.line];
+	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
+	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
+	const { end } = cardBlockRange(lines, hit.line);
+	// Swap just the description sub-bullets (item line + 1 … block end) for the
+	// freshly-built ones, keeping the card's title/metadata line as-is.
+	lines.splice(hit.line + 1, end - (hit.line + 1), ...descriptionBullets(description, itemIndent));
+	await view.app.vault.modify(hit.file, lines.join("\n"));
+	return true;
+}
+
+
 /** Delete a Kanban card (its checkbox line plus any nested continuation lines,
  * and one trailing blank line) from the board note. Bails if the stored line no
  * longer matches the card. */
@@ -5271,6 +3884,73 @@ async function deleteKanbanCard(view: HomeView, hit: TaskHit): Promise<boolean> 
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
 }
+
+
+/** Swap a card's title for an inline text input so it can be renamed in place,
+ * mirroring the column rename. Enter (or blur) commits, Escape cancels; the
+ * card's drag is suspended while editing so selecting text doesn't start a drag,
+ * and clicks on the input are kept from bubbling to the card's open handler. */
+function startCardTitleEdit(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	row: HTMLElement,
+	textEl: HTMLElement,
+	card: HTMLElement,
+	refresh: () => void,
+): void {
+	const extended = taskMetaEnabled(cfg, hit);
+	const wasDraggable = card.getAttribute("draggable");
+	card.setAttribute("draggable", "false");
+	textEl.hide();
+	const input = row.createEl("textarea", {
+		cls: "hearth-kanban-card-edit",
+		attr: { rows: "1", "aria-label": t().cards.tasks.editTitleHint },
+	});
+	row.insertBefore(input, textEl);
+	input.value = hit.text || "";
+	input.focus();
+	input.select();
+	let done = false;
+	const cleanup = () => {
+		input.remove();
+		textEl.show();
+		if (wasDraggable != null) card.setAttribute("draggable", wasDraggable);
+	};
+	const commit = () => {
+		if (done) return;
+		done = true;
+		const next = input.value.trim();
+		cleanup();
+		if (next && next !== (hit.text || "")) {
+			void setKanbanCardText(view, hit, next, extended).then((ok) => {
+				if (!ok) new Notice(t().notices.taskChangedOnDisk);
+				refresh();
+			});
+		}
+	};
+	const cancel = () => {
+		if (done) return;
+		done = true;
+		cleanup();
+	};
+	input.addEventListener("keydown", (ke) => {
+		// Enter commits (a card title is a single line); Shift+Enter is ignored so
+		// it can't split the title. Escape cancels.
+		if (ke.key === "Enter" && !ke.shiftKey) {
+			ke.preventDefault();
+			commit();
+		} else if (ke.key === "Escape") {
+			ke.preventDefault();
+			cancel();
+		}
+	});
+	input.addEventListener("blur", commit);
+	// Keep clicks/drags on the input from bubbling to the card's open/drag handlers.
+	for (const type of ["mousedown", "click", "dblclick", "pointerdown"])
+		input.addEventListener(type, (e) => e.stopPropagation());
+}
+
 
 /** Swap a Kanban column's title span for an inline text input to rename it.
  * Enter (or blur) commits, Escape cancels; the header's drag is suspended while
@@ -5327,6 +4007,7 @@ function startColumnRename(
 		input.addEventListener(type, (e) => e.stopPropagation());
 }
 
+
 /** Rename a Kanban board column: rewrite its `## heading` line and remap the
  * card's stored column keys (order/hidden/done) from the old to the new key. */
 async function renameKanbanColumn(
@@ -5335,7 +4016,7 @@ async function renameKanbanColumn(
 	oldHeading: string,
 	newHeading: string,
 ): Promise<void> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return;
 	const content = await view.app.vault.read(file);
 	const lines = content.split("\n");
@@ -5353,6 +4034,7 @@ async function renameKanbanColumn(
 	cfg.kanbanDoneColumns = remap(cfg.kanbanDoneColumns);
 	await view.plugin.saveData(view.plugin.settings);
 }
+
 
 /** Convert a Kanban card into its own note (like the Kanban plugin): create a
  * note in the user's default new-note location named after the card, then
@@ -5420,6 +4102,7 @@ async function convertKanbanCardToNote(view: HomeView, cfg: TasksConfig, hit: Ta
 	await view.app.vault.modify(board, lines.join("\n"));
 }
 
+
 /** Substitute the note-template variables supported for convert-to-note:
  * {{title}}, {{date}}, {{time}} and their {{date:FMT}}/{{time:FMT}} formatted
  * variants (mirrors the daily-note template substitution). */
@@ -5433,6 +4116,7 @@ function applyConvertTemplate(raw: string, title: string): string {
 		.replace(/\{\{\s*title\s*\}\}/gi, title);
 }
 
+
 /** Substitute only the date/time template variables (leaving {{title}} for when
  * the card's title is known at create time). Used to preview a template's body
  * in the add-card form. */
@@ -5444,6 +4128,7 @@ function substituteConvertDateTime(raw: string): string {
 		.replace(/\{\{\s*date\s*\}\}/gi, now.format("YYYY-MM-DD"))
 		.replace(/\{\{\s*time\s*\}\}/gi, now.format("HH:mm"));
 }
+
 
 /** Write a card's Tasks-plugin metadata (read from its raw text) into a note's
  * YAML frontmatter, using conventional keys (priority, due, scheduled, start,
@@ -5470,6 +4155,7 @@ async function writeTaskFrontmatter(view: HomeView, note: TFile, rawText: string
 	}
 }
 
+
 /** Write edited task metadata into a note's YAML frontmatter, using the same
  * conventional keys convert-to-note scrapes to (priority/recurrence/start/
  * scheduled/due). Empty fields are removed. Used when editing a converted
@@ -5494,6 +4180,7 @@ async function writeMetadataFrontmatter(view: HomeView, file: TFile, meta: TaskM
 	return true;
 }
 
+
 /** The substring of a card's text from its first Tasks-plugin metadata emoji to
  * the end (trimmed), or "" when the card carries no metadata. Used to keep
  * due/priority markers on the card when its text is replaced with a link. */
@@ -5501,6 +4188,7 @@ function extractMetadataTail(text: string): string {
 	const idx = text.search(new RegExp(`[${TASK_EMOJI_CLASS}]`, "u"));
 	return idx >= 0 ? text.slice(idx).trim() : "";
 }
+
 
 /** Insert a card block after the last existing card in the named column (or
  * right after the heading when the column is empty), keeping a blank line
@@ -5523,6 +4211,7 @@ function insertCardBlock(lines: string[], heading: string, block: string[]): boo
 	return true;
 }
 
+
 /** Read the value of a Tasks-plugin emoji field from a checkbox line, e.g.
  * `📅 tomorrow` or `📅 2024-01-15`. Returns the trimmed value up to the next
  * known emoji marker or end of line, or null when the marker isn't present. */
@@ -5536,6 +4225,7 @@ function readEmojiField(text: string, emoji: string): string | null {
 	const value = rest.trim();
 	return value || null;
 }
+
 
 /** The checkbox marker at the start of a list item, capturing the state char so
  * only that bracket is flipped (never a stray "[x]" elsewhere in the text). The
@@ -5570,8 +4260,46 @@ async function setCheckboxSymbol(
 	return true;
 }
 
+
 /** Write a TaskNotes task's status frontmatter field (used by the Kanban board
  * when a card is dragged to another status column). */
+/** The status value written when a TaskNotes task is marked done: the card's
+ * first configured "done" status when set (so a card treating both "done" and
+ * "canceled" as complete writes "done"), otherwise the global done value. */
+function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
+	const custom = (cfg.taskNotesDoneStatuses ?? []).map((v) => v.trim()).filter(Boolean);
+	return custom[0] ?? (view.plugin.settings.taskNotesDoneValue.trim() || "done");
+}
+
+/** A completion checkbox for a non-recurring TaskNotes task (list layout).
+ * Checking writes the done status; unchecking restores the card's open status
+ * (see openStatus in renderTaskList). Clicks are swallowed so ticking the box
+ * doesn't also open the note. */
+function renderTaskNotesCheckbox(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	row: HTMLElement,
+	refresh: () => void,
+	openStatus: string,
+): void {
+	const check = row.createEl("input", {
+		cls: "hearth-task-check",
+		attr: { type: "checkbox" },
+	});
+	check.checked = hit.done;
+	// Swallow the pointer/click so ticking the box neither opens the note nor
+	// (on a draggable Kanban card) starts a drag.
+	const stop = (e: Event) => e.stopPropagation();
+	check.addEventListener("click", stop);
+	check.addEventListener("mousedown", stop);
+	check.addEventListener("pointerdown", stop);
+	check.addEventListener("change", () => {
+		const value = check.checked ? doneWriteValue(view, cfg) : openStatus;
+		void setTaskNotesStatus(view, hit, value).then(refresh);
+	});
+}
+
 async function setTaskNotesStatus(view: HomeView, hit: TaskHit, value: string): Promise<void> {
 	const field = view.plugin.settings.taskNotesStatusField.trim() || "status";
 	try {
@@ -5582,6 +4310,7 @@ async function setTaskNotesStatus(view: HomeView, hit: TaskHit, value: string): 
 		new Notice(t().notices.couldNotUpdateTaskStatus);
 	}
 }
+
 
 /** Compute the next occurrence date (YYYY-MM-DD) of a TaskNotes recurrence
  * rule strictly after `fromDate` (YYYY-MM-DD). Handles the common FREQ values
@@ -5650,6 +4379,7 @@ function nextOccurrence(rule: string, fromDate: string): string | null {
 	return null;
 }
 
+
 /** Next occurrence strictly after `fromDate` for either an RRULE ("FREQ=…") or
  * a Tasks-plugin "every N unit" recurrence string (e.g. "every 2 weeks"), as
  * YYYY-MM-DD. Null when the rule is empty or unparseable. Used to roll a
@@ -5661,6 +4391,7 @@ function nextRecurrenceDate(rule: string, fromDate: string): string | null {
 	if (!unit) return null;
 	return moment(fromDate).add(interval, unit).format("YYYY-MM-DD");
 }
+
 
 /** Mark today's occurrence of a recurring TaskNotes task complete the way
  * TaskNotes does: append today's YYYY-MM-DD to `complete_instances` (deduped,
@@ -5692,6 +4423,7 @@ async function completeRecurringInstance(view: HomeView, hit: TaskHit, targetFil
 	}
 }
 
+
 /** Undo today's completion of a recurring TaskNotes task: remove today from
  * `complete_instances` and roll `scheduled` back to today (the occurrence we
  * just un-completed). Used when the user unchecks the box to cancel a
@@ -5715,6 +4447,7 @@ async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, targetF
 		new Notice(t().notices.couldNotUndoRecurring);
 	}
 }
+
 
 /** Render a small checkbox that completes today's occurrence of a recurring
  * TaskNotes task on check, and undoes it on uncheck (removes today from
@@ -5755,6 +4488,7 @@ function renderRecurringCheckbox(
 	});
 }
 
+
 /** Render the per-occurrence completion checkbox for a recurring checkbox /
  * Kanban task (one carrying a 🔁 mark). Checked when the task's ✅ done date is
  * today; checking stamps today and rolls the reference date to the next
@@ -5785,33 +4519,6 @@ function renderLineRecurringCheckbox(
 	});
 }
 
-/** Best-effort: open a TaskNotes task in TaskNotes' own editor rather than the
- * raw Markdown note. TaskNotes exposes no stable public API, so this tries a
- * couple of plausible instance/api methods and returns whether one handled it;
- * the caller falls back to opening the file when it didn't. */
-function openInTaskNotes(view: HomeView, file: TFile): boolean {
-	const plugin = view.app.plugins.plugins[TASKNOTES_PLUGIN_ID] as
-		| Record<string, unknown>
-		| undefined;
-	if (!plugin) return false;
-	const targets: unknown[] = [plugin, plugin.api];
-	for (const target of targets) {
-		if (!target || typeof target !== "object") continue;
-		const obj = target as Record<string, unknown>;
-		for (const method of ["openTaskEditModal", "openTask"]) {
-			const fn = obj[method];
-			if (typeof fn === "function") {
-				try {
-					(fn as (f: TFile) => void).call(obj, file);
-					return true;
-				} catch {
-					// Wrong signature or internal error — fall through to file open.
-				}
-			}
-		}
-	}
-	return false;
-}
 
 async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
 	// Line-based tasks (checkboxes / Kanban cards) open a compact quick-view by
@@ -5826,377 +4533,1237 @@ async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh:
 	await openTaskFile(view, hit);
 }
 
+
 /** Open a task's underlying file: TaskNotes tasks in TaskNotes' own editor when
  * possible, otherwise the note, scrolled to the task's line for line-based
  * tasks. */
 async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 	// A card that links to a note opens that note directly (not the board line).
 	if (hit.linkedFile) {
-		await view.app.workspace.getLeaf(true).openFile(hit.linkedFile);
+		await openFile(view, hit.linkedFile, "card");
 		return;
 	}
 	// TaskNotes tasks (no line) open in TaskNotes' own editor when possible.
-	if (hit.line < 0 && openInTaskNotes(view, hit.file)) return;
+	if (hit.line < 0 && (await openInTaskNotes(view.app, hit.file.path))) return;
 
-	const leaf = view.app.workspace.getLeaf(true);
-	await leaf.openFile(hit.file);
+	const leaf = targetLeaf(view, "card");
+	// Scroll to the task's line via ephemeral state rather than a setCursor call
+	// right after openFile: in a freshly created leaf the editor isn't laid out
+	// yet, so an immediate scroll is discarded and the note opens at the top
+	// (#118). Obsidian applies `eState.line` once the MarkdownView has mounted,
+	// so the note lands on the task. The setCursor below then places the caret.
+	const openState = hit.line >= 0 ? { eState: { line: hit.line } } : undefined;
+	await leaf.openFile(hit.file, openState);
 	if (hit.line >= 0 && leaf.view instanceof MarkdownView) {
-		const pos = { line: hit.line, ch: 0 };
-		leaf.view.editor.setCursor(pos);
-		leaf.view.editor.scrollIntoView({ from: pos, to: pos }, true);
+		leaf.view.editor.setCursor({ line: hit.line, ch: 0 });
 	}
 }
 
-// ---- Clock / greeting ---------------------------------------------------
 
-/** Time-of-day buckets used to pick a fitting greeting. */
-function greetingBucket(hour: number): number {
-	if (hour < 5) return 0; // late night
-	if (hour < 8) return 1; // early morning
-	if (hour < 12) return 2; // morning
-	if (hour < 17) return 3; // afternoon
-	if (hour < 22) return 4; // evening
-	return 5; // night
+// ---- Field customization -------------------------------------------------
+
+/** What the fields editor found in the vault: the frontmatter properties a key
+ * could read, and the distinct values each source actually takes — so a value
+ * mapping is picked from what the vault really contains rather than typed from
+ * memory. */
+interface TaskFieldDiscovery {
+	properties: string[];
+	values: Map<string, string[]>;
 }
 
-function pickGreeting(hour: number, playful: boolean): string {
-	if (!playful) {
-		return hour < 12 ? t().clock.greetingMorning : hour < 18 ? t().clock.greetingAfternoon : t().clock.greetingEvening;
-	}
-	const pool = t().clock.playfulGreetings[greetingBucket(hour)];
-	return pool[Math.floor(Math.random() * pool.length)];
+
+/** How many values a single source offers as suggestions. A property with
+ * hundreds of distinct values (a date, an id) is not something anyone maps by
+ * hand, and the list has to stay navigable. */
+const FIELD_VALUE_LIMIT = 40;
+
+
+/** Copy a field list deeply enough that the copy shares nothing mutable with
+ * the original — keys and value mappings included. */
+function cloneTaskFields(fields: TaskFieldDef[]): TaskFieldDef[] {
+	return fields.map((f) => ({
+		...f,
+		keys: f.keys.map((k) => ({ ...k, values: k.values?.map((v) => ({ ...v })) })),
+	}));
 }
 
-function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, custom?: string): string {
-	switch (mode) {
-		case "short":
-			return now.toLocaleDateString(undefined, { dateStyle: "short" });
-		case "long":
-			return now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-		case "iso": {
-			const iso: string = moment(now).format("YYYY-MM-DD");
-			return iso;
+
+/**
+ * Scan the card's scope for the values its keys can take.
+ *
+ * Deliberately a light frontmatter read rather than the render-time collectors:
+ * the editor only needs distinct values and property names, it runs without a
+ * view, and `metadataCache` already holds every frontmatter block parsed. The
+ * Kanban board is the one file actually read, for its column headings.
+ */
+async function discoverTaskFields(
+	app: App,
+	cfg: TasksConfig | null,
+	settings: HomeSettings,
+	fields: TaskFieldDef[],
+): Promise<TaskFieldDiscovery> {
+	// The global list belongs to no card, so it scans the whole vault and offers
+	// the values of every source rather than just one card's.
+	const source = cfg?.source ?? null;
+	const scope = cfg ?? {};
+	const properties = new Set<string>();
+	const values = new Map<string, Set<string>>();
+	const record = (key: string, raw: unknown) => {
+		const set = values.get(key) ?? new Set<string>();
+		for (const value of taskFieldValues(raw)) {
+			if (set.size < FIELD_VALUE_LIMIT) set.add(value);
 		}
-		case "weekday":
-			return now.toLocaleDateString(undefined, { weekday: "long" });
-		case "custom": {
-			const formatted: string = custom?.trim() ? moment(now).format(custom) : "";
-			return formatted;
+		values.set(key, set);
+	};
+
+	const statusField = settings.taskNotesStatusField.trim() || "status";
+	const priorityField = settings.taskNotesPriorityField.trim() || "priority";
+	const wanted = new Set(
+		fields.flatMap((f) => f.keys.map((k) => sourceProperty(k.source)).filter(Boolean)),
+	);
+
+	for (const file of app.vault.getMarkdownFiles()) {
+		if (!inTaskScope(file.path, scope)) continue;
+		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (!frontmatter) continue;
+		for (const key of Object.keys(frontmatter)) properties.add(key);
+		if (source === "tasknotes" || source === null) {
+			record(builtinSource("status"), frontmatter[statusField]);
+			record(builtinSource("priority"), frontmatter[priorityField]);
 		}
-		case "full":
-		default:
-			return now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+		for (const property of wanted) {
+			record(frontmatterSource(property), frontmatter[property]);
+		}
 	}
+
+	// Priority on the line-based sources is one of the five Tasks-plugin levels,
+	// which are known without scanning anything. Recorded as the normalized keys
+	// ("high", not "⏫"), matching what a mapping is compared against.
+	if (source !== "tasknotes") record(builtinSource("priority"), Object.keys(PRIORITY_EMOJI));
+
+	// Board columns are headings in the board note, not frontmatter.
+	if (source === "kanban" && cfg) {
+		const board = resolveKanbanFile(app, cfg);
+		if (board) {
+			const lines = (await app.vault.cachedRead(board)).split("\n");
+			record(builtinSource("column"), parseKanbanColumns(lines).columns.map((c) => c.heading));
+		}
+	}
+
+	return {
+		properties: [...properties].sort((a, b) => a.localeCompare(b)),
+		values: new Map(
+			[...values].map(([id, set]) => [id, [...set].sort((a, b) => a.localeCompare(b))]),
+		),
+	};
 }
 
-function svgEl(
-	parent: Element,
-	tag: keyof SVGElementTagNameMap,
-	attrs: Record<string, string>,
-	cls?: string,
-): SVGElement {
-	return parent.createSvg(tag, { attr: attrs, cls });
+
+/** A human label for a key's source, for the editor's rows. */
+function sourceLabel(source: string): string {
+	const builtin = sourceBuiltin(source);
+	if (builtin) return t().editors.tasks.sourceNames[builtin];
+	return sourceProperty(source) || source;
 }
 
-/** Draw an analogue clock face and return a tick() to rotate its hands. */
-function renderAnalogClock(wrap: HTMLElement, cfg: ClockConfig): (now: Date) => void {
-	const svg = svgEl(wrap, "svg", { viewBox: "0 0 100 100" }, "hearth-analog");
-	svgEl(svg, "circle", { cx: "50", cy: "50", r: "48" }, "hearth-analog-face");
-	for (let i = 0; i < 12; i++) {
-		const a = (i / 12) * Math.PI * 2;
-		const major = i % 3 === 0;
-		const r1 = major ? 38 : 42;
-		svgEl(
-			svg,
-			"line",
-			{
-				x1: String(50 + Math.sin(a) * r1),
-				y1: String(50 - Math.cos(a) * r1),
-				x2: String(50 + Math.sin(a) * 46),
-				y2: String(50 - Math.cos(a) * 46),
-			},
-			major ? "hearth-analog-tick-major" : "hearth-analog-tick",
+
+/**
+ * The fields editor.
+ *
+ * Nothing here is a fixed list of Hearth's metadata: a field is built by the
+ * user — a name, a display style, and the keys that feed it. Each key reads one
+ * frontmatter property or one of Hearth's own parsed values, and can map each
+ * raw value to a nicer label and a colour. Values with no mapping still show,
+ * as themselves.
+ *
+ * Everything expands in place rather than drilling into panes: a field opens to
+ * show its keys, a key opens to show its value mappings, and the fields above
+ * and below stay on screen throughout. Building a second field that mirrors the
+ * first is the common case, and it needs both visible.
+ */
+export class TaskFieldsModal extends Modal {
+	private fields: TaskFieldDef[];
+	private body: HTMLElement | null = null;
+	private discovery: TaskFieldDiscovery = { properties: [], values: new Map() };
+	/** Which fields and keys are expanded, by `field:<id>` / `key:<id>:<n>`.
+	 * Named `expanded`, not `open`: `Modal.open()` is a method on the base class
+	 * and shadowing it would break the modal at runtime. */
+	private expanded = new Set<string>();
+	/** The key whose newly added, still-empty value row should take the cursor
+	 * once the editor has been redrawn. */
+	private focusValue: string | null = null;
+
+	/**
+	 * @param cfg  The card being edited, or null when editing the global list in
+	 *             Settings → Hearth. A card scopes the vault scan to its folders;
+	 *             the global list belongs to no card and scans everything.
+	 */
+	constructor(
+		app: App,
+		private readonly cfg: TasksConfig | null,
+		private readonly settings: HomeSettings,
+		initial: TaskFieldDef[] | undefined,
+		private readonly onApply: (fields: TaskFieldDef[]) => void,
+	) {
+		super(app);
+		// Clone so Cancel truly discards edits, and so an Apply that keeps the
+		// modal open can't mutate what it already saved.
+		this.fields = cloneTaskFields(resolveTaskFields(initial));
+	}
+
+	onOpen(): void {
+		const { contentEl, modalEl } = this;
+		// The width goes on the modal frame rather than its content: a field, its
+		// keys and their value tables are three levels deep, which Obsidian's
+		// default modal width cannot hold without crowding every row.
+		modalEl.addClass("hearth-taskfields-modal");
+		contentEl.addClass("hearth-taskfields");
+		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
+		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
+		this.body = contentEl.createDiv("hearth-taskfields-body");
+		this.renderBody();
+		this.renderFooter(contentEl);
+		// Values arrive from a vault scan; redraw once they do so the mappings
+		// can be picked from real values.
+		void this.rescan();
+	}
+
+	private async rescan(): Promise<void> {
+		this.discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		this.renderBody();
+	}
+
+	private isOpen(key: string): boolean {
+		return this.expanded.has(key);
+	}
+
+	private toggleOpen(key: string): void {
+		if (!this.expanded.delete(key)) this.expanded.add(key);
+		this.renderBody();
+	}
+
+	/**
+	 * The header every panel carries: a chevron, what the panel is, a one-line
+	 * summary of what it holds, and its own buttons — returned so the caller can
+	 * add them. The whole strip toggles the panel: expanding is the thing done
+	 * most often here, and a chevron alone is a small target for it.
+	 */
+	private panelHead(
+		panel: HTMLElement,
+		openKey: string,
+		title: string,
+		summary: string,
+		expandable: boolean,
+	): HTMLElement {
+		const labels = t().editors.tasks;
+		const open = this.isOpen(openKey);
+		const head = panel.createDiv("hearth-taskfields-head");
+		const chevron = head.createDiv("hearth-taskfields-chevron");
+		if (expandable) setIcon(chevron, open ? "chevron-down" : "chevron-right");
+		const text = head.createDiv("hearth-taskfields-headtext");
+		text.createDiv({ cls: "hearth-taskfields-title", text: title });
+		text.createDiv({ cls: "hearth-taskfields-summary", text: summary });
+		const actions = head.createDiv("hearth-taskfields-actions");
+		// The buttons sit inside the strip that toggles, so their clicks must not
+		// reach it — moving a field would otherwise collapse it.
+		actions.addEventListener("click", (e) => e.stopPropagation());
+		if (expandable) {
+			head.addClass("is-expandable");
+			head.setAttribute("role", "button");
+			head.setAttribute("aria-expanded", String(open));
+			head.setAttribute("aria-label", open ? labels.fieldCollapse : labels.fieldExpand);
+			head.addEventListener("click", () => this.toggleOpen(openKey));
+		}
+		return actions;
+	}
+
+
+	/** One of a panel header's buttons. Disabled means inert, not just greyed:
+	 * the icon buttons are divs, so the guard has to be in the handler. */
+	private iconButton(
+		parent: HTMLElement,
+		icon: string,
+		tooltip: string,
+		disabled: boolean,
+		onClick: () => void,
+	): void {
+		new ExtraButtonComponent(parent)
+			.setIcon(icon)
+			.setTooltip(tooltip)
+			.setDisabled(disabled)
+			.onClick(() => {
+				if (!disabled) onClick();
+			});
+	}
+
+	private renderBody(): void {
+		const body = this.body;
+		if (!body) return;
+		body.empty();
+		const labels = t().editors.tasks;
+
+		this.fields.forEach((field, index) => this.renderField(body, field, index));
+
+		if (!this.fields.length) {
+			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
+		}
+
+		const foot = body.createDiv("hearth-taskfields-foot is-add");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAdd)
+			.setCta()
+			.onClick(() => {
+				const field = newTaskField(labels.fieldDefaultName(this.fields.length + 1));
+				this.fields.push(field);
+				// Open it: naming it and giving it a key is the point of adding it.
+				this.expanded.add(`field:${field.id}`);
+				this.renderBody();
+			});
+	}
+
+	// ---- A field -----------------------------------------------------------
+
+	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
+		const labels = t().editors.tasks;
+		const openKey = `field:${field.id}`;
+		const open = this.isOpen(openKey);
+
+		// A card per field, so where one ends and the next begins is obvious
+		// without counting indentation.
+		const panel = body.createDiv("hearth-taskfields-field");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			field.name.trim() || labels.fieldUnnamed,
+			field.keys.length
+				? field.keys.map((k) => sourceLabel(k.source)).join(" · ")
+				: labels.fieldNoKeys,
+			true,
 		);
-	}
-	const hand = (cls: string, length: number) =>
-		svgEl(svg, "line", { x1: "50", y1: "50", x2: "50", y2: String(50 - length) }, cls);
-	const hourHand = hand("hearth-analog-hour", 26);
-	const minHand = hand("hearth-analog-min", 38);
-	const secHand = cfg.showSeconds ? hand("hearth-analog-sec", 42) : null;
-	svgEl(svg, "circle", { cx: "50", cy: "50", r: "2.5" }, "hearth-analog-pin");
-
-	const rotate = (el: SVGElement, deg: number) =>
-		el.setAttribute("transform", `rotate(${deg} 50 50)`);
-
-	return (now: Date) => {
-		const s = now.getSeconds();
-		const m = now.getMinutes();
-		const h = now.getHours() % 12;
-		rotate(hourHand, (h + m / 60) * 30);
-		rotate(minHand, (m + s / 60) * 6);
-		if (secHand) rotate(secHand, s * 6);
-	};
-}
-
-// ---- RSS (lightweight feed reader) -------------------------------------
-
-/** Which source tab each rss card is showing. Transient (not persisted): keyed
- * by the card object so the choice survives body redraws and full rebuilds —
- * the card objects live in settings and are reused — but resets on reload. */
-const rssActiveTab = new WeakMap<DashboardCard, string>();
-
-/** moment's `.fromNow()` isn't on the shared Moment shim; assert it locally. */
-interface RelativeMoment {
-	fromNow(): string;
-}
-
-/** A source's short host label, e.g. "https://blog.foo.com/feed" → "blog.foo.com". */
-function feedHost(url: string): string {
-	try {
-		return new URL(url).hostname.replace(/^www\./, "");
-	} catch {
-		return url;
-	}
-}
-
-function renderRss(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const cfg = card.rss ?? {};
-	const sources = (cfg.sources ?? []).filter((s) => s.url.trim());
-	if (sources.length === 0) {
-		emptyState(body, "rss", t().cards.empty.rssNoSources);
-		return;
-	}
-
-	const layout: RssLayout = cfg.layout ?? "list";
-	const limit = cfg.itemLimit && cfg.itemLimit > 0 ? cfg.itemLimit : 15;
-	const refreshMin = cfg.refreshMin ?? 30;
-	const disabled = view.plugin.settings.disableExternalCalls;
-	// Freshness window for the cache: at least a minute so re-renders don't spam.
-	const ttlMs = Math.max(refreshMin, 1) * 60_000;
-
-	/** A header tab: one source, or the merged "All" view over several. */
-	interface Tab {
-		id: string;
-		urls: string[];
-	}
-	const tabs: Tab[] = [];
-	if (cfg.mergeAll && sources.length > 1) {
-		tabs.push({ id: "all", urls: sources.map((s) => s.url) });
-	}
-	for (const s of sources) tabs.push({ id: s.id, urls: [s.url] });
-
-	let activeId = rssActiveTab.get(card) ?? tabs[0].id;
-	if (!tabs.some((tab) => tab.id === activeId)) activeId = tabs[0].id;
-
-	// Async loads may resolve after the card is torn down and rebuilt; ignore them.
-	let destroyed = false;
-	component.register(() => {
-		destroyed = true;
-	});
-	let loading = false;
-
-	const wrap = body.createDiv("hearth-rss");
-
-	const sourceById = (id: string): RssSource | undefined =>
-		sources.find((s) => s.id === id);
-
-	/** Friendly label for a source: its name, else the feed's own title, else host. */
-	const sourceLabel = (source: RssSource): string =>
-		source.name.trim() || cachedFeed(source.url)?.title || feedHost(source.url);
-
-	const tabLabel = (tab: Tab): string =>
-		tab.id === "all"
-			? t().cards.rss.allTab
-			: sourceLabel(sourceById(tab.id) ?? { id: tab.id, name: "", url: tab.urls[0] });
-
-	const activeTab = (): Tab =>
-		tabs.find((tab) => tab.id === activeId) ?? tabs[0];
-
-	const openItem = (item: RssItem): void => {
-		if (item.link && /^https?:\/\//i.test(item.link)) {
-			window.open(item.link, "_blank");
-		}
-	};
-
-	const renderItem = (
-		container: HTMLElement,
-		item: RssItem,
-		badge: string,
-	): void => {
-		const row = container.createDiv("hearth-rss-item");
-		makeClickable(row, () => openItem(item), item.title || t().cards.rss.untitled);
-		row.addEventListener("click", () => openItem(item));
-
-		if (layout === "cards" && cfg.showImages !== false && item.image) {
-			const thumb = row.createDiv("hearth-rss-thumb");
-			const img = thumb.createEl("img");
-			img.setAttribute("src", item.image);
-			img.setAttribute("loading", "lazy");
-			img.setAttribute("referrerpolicy", "no-referrer");
-			// Drop the thumbnail slot entirely if the image can't be fetched.
-			img.addEventListener("error", () => thumb.remove());
-		}
-
-		const main = row.createDiv("hearth-rss-main");
-		main.createDiv({
-			cls: "hearth-rss-title",
-			text: item.title || t().cards.rss.untitled,
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () =>
+			this.move(index, index - 1),
+		);
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === this.fields.length - 1,
+			() => this.move(index, index + 1),
+		);
+		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
+			this.fields.splice(index, 1);
+			this.expanded.delete(openKey);
+			this.renderBody();
 		});
-		if (layout === "cards" && cfg.showExcerpt !== false && item.excerpt) {
-			main.createDiv({ cls: "hearth-rss-excerpt", text: item.excerpt });
+
+		if (!open) return;
+		const detail = panel.createDiv("hearth-taskfields-panelbody");
+
+		new Setting(detail)
+			.setName(labels.fieldName)
+			.setDesc(labels.fieldNameDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(labels.fieldNamePlaceholder)
+					.setValue(field.name)
+					.onChange((v) => {
+						field.name = v;
+					}),
+			);
+
+		new Setting(detail)
+			.setName(labels.fieldDisplay)
+			.setDesc(labels.fieldDisplayDesc)
+			.addDropdown((d) => {
+				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
+					d.addOption(style, labels.fieldStyles[style]);
+				}
+				d.setValue(fieldStyle(field)).onChange((v) => {
+					field.display = v as TaskFieldStyle;
+					// The strength slider only exists for the ambient styles.
+					this.renderBody();
+				});
+			});
+
+		// How hard the tint or ring is laid on. Only the ambient styles have one.
+		if (isAmbientStyle(fieldStyle(field))) {
+			new Setting(detail)
+				.setName(labels.fieldOpacity)
+				.setDesc(labels.fieldOpacityDesc)
+				.addSlider((sl) =>
+					// No setDynamicTooltip: it is deprecated, and current Obsidian
+					// already shows a slider's value inline beside it.
+					sl
+						.setLimits(1, 100, 1)
+						.setValue(fieldOpacity(field))
+						.onChange((v) => {
+							field.opacity = v;
+						}),
+				);
 		}
 
-		const metaBits: string[] = [];
-		if (badge) metaBits.push(badge);
-		if (cfg.showDate !== false && item.published) {
-			metaBits.push(
-				(createMoment(new Date(item.published)) as unknown as RelativeMoment).fromNow(),
+		new Setting(detail)
+			.setName(labels.fieldShowName)
+			.setDesc(labels.fieldShowNameDesc)
+			.addToggle((tg) =>
+				tg.setValue(!!field.showName).onChange((v) => {
+					field.showName = v || undefined;
+				}),
+			);
+
+		// The keys are the substance of a field, so they get a section of their own
+		// rather than another settings row that happens to have rows under it.
+		const section = detail.createDiv("hearth-taskfields-section");
+		const sectionHead = section.createDiv("hearth-taskfields-sectionhead");
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiontitle", text: labels.fieldKeys });
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiondesc", text: labels.fieldKeysDesc });
+		field.keys.forEach((key, keyIndex) => this.renderKey(section, field, key, keyIndex));
+		if (!field.keys.length) {
+			section.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
+		}
+		this.renderAddKey(section, field);
+	}
+
+	// ---- A key on a field --------------------------------------------------
+
+	private renderKey(
+		section: HTMLElement,
+		field: TaskFieldDef,
+		key: TaskFieldKey,
+		index: number,
+	): void {
+		const labels = t().editors.tasks;
+		const openKey = `key:${field.id}:${index}`;
+		const isDate = keyIsDate(key);
+		// The description is a block of text: no values, no dates, nothing to
+		// configure. Everything else expands.
+		const mappable = !isDescriptionSource(key.source);
+		const mapped = (key.values ?? []).length;
+		const open = mappable && this.isOpen(openKey);
+
+		const panel = section.createDiv("hearth-taskfields-key");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			sourceLabel(key.source),
+			!mappable
+				? labels.fieldNotMappable
+				: isDate
+					? labels.fieldDateKey
+					: mapped
+						? labels.fieldMappedValues(mapped)
+						: labels.fieldNoMappings,
+			mappable,
+		);
+		const swap = (to: number) => {
+			const [item] = field.keys.splice(index, 1);
+			field.keys.splice(to, 0, item);
+			this.renderBody();
+		};
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () => swap(index - 1));
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === field.keys.length - 1,
+			() => swap(index + 1),
+		);
+		this.iconButton(actions, "trash-2", labels.fieldRemoveKey, false, () => {
+			field.keys.splice(index, 1);
+			this.renderBody();
+		});
+
+		if (!open) return;
+		const host = panel.createDiv("hearth-taskfields-panelbody");
+		// A frontmatter property could hold anything; only the user knows whether
+		// this one is a date. The built-in date sources are not up for debate.
+		if (!isDateSource(key.source)) {
+			new Setting(host)
+				.setName(labels.fieldIsDate)
+				.setDesc(labels.fieldIsDateDesc)
+				.addToggle((tg) =>
+					tg.setValue(!!key.isDate).onChange((v) => {
+						key.isDate = v || undefined;
+						// The two modes store different things under `values`; keeping
+						// the old rows would leave dead entries behind either way.
+						key.values = undefined;
+						this.renderBody();
+					}),
+				);
+		}
+		if (isDate) this.renderDateRelations(host, key);
+		else this.renderMappings(host, key);
+	}
+
+	// ---- A date key: the three relations to today ---------------------------
+
+	/**
+	 * A date has no values to enumerate, so what it offers instead is the only
+	 * distinction that means anything on a task: is it behind us, is it today, or
+	 * is it still ahead. Each gets an optional label and colour — the label
+	 * replaces the date's own wording ("Overdue" rather than "Yesterday"), which
+	 * is why it is optional: most people want the colour and keep the date.
+	 */
+	private renderDateRelations(host: HTMLElement, key: TaskFieldKey): void {
+		const labels = t().editors.tasks;
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldDateHint });
+
+		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldWhenColumn);
+		for (const relation of DATE_RELATIONS) {
+			// Rows exist for all three whether or not they have been configured, so
+			// the choice is visible rather than something to discover.
+			let mapping = values.find((v) => v.match === relation);
+			if (!mapping) {
+				mapping = { match: relation };
+				values.push(mapping);
+			}
+			const entry = mapping;
+			const row = table.createDiv("hearth-taskfields-trow");
+			row.createDiv({
+				cls: "hearth-taskfields-cell is-fixed",
+				text: labels.dateRelations[relation],
+			});
+			this.textCell(row, labels.fieldDateLabelPlaceholder, entry.label ?? "", (v) => {
+				entry.label = v.trim() || undefined;
+			});
+			this.colorCell(row, entry);
+			// The three relations are the whole set: nothing to add, nothing to
+			// remove. The empty cell keeps the columns lined up with the value table.
+			row.createDiv("hearth-taskfields-cell is-actions");
+		}
+	}
+
+	// ---- The value table shared by mappings and date relations --------------
+
+	/** A grid with a header row, one row per value. The columns line up down the
+	 * table and each input fills its own, instead of every row being a settings
+	 * item with an empty name and its controls crowded to the right. */
+	private valueTable(host: HTMLElement, firstColumn: string): HTMLElement {
+		const labels = t().editors.tasks;
+		const table = host.createDiv("hearth-taskfields-table");
+		const head = table.createDiv("hearth-taskfields-trow hearth-taskfields-thead");
+		head.createDiv({ cls: "hearth-taskfields-cell", text: firstColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldShownColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldColorColumn });
+		head.createDiv("hearth-taskfields-cell");
+		return table;
+	}
+
+	/** One text cell of a value row. */
+	private textCell(
+		row: HTMLElement,
+		placeholder: string,
+		value: string,
+		onChange: (value: string) => void,
+	): HTMLInputElement {
+		const cell = row.createDiv("hearth-taskfields-cell");
+		const text = new TextComponent(cell);
+		text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
+		return text.inputEl;
+	}
+
+	/**
+	 * A value's colour: a swatch showing what it currently renders as, which opens
+	 * the theme presets, plus a free picker beside it for anyone matching a
+	 * palette. Neither redraws the editor — the swatch updates itself, so dragging
+	 * through the picker isn't fighting a re-render on every step.
+	 */
+	private colorCell(row: HTMLElement, mapping: TaskValueMap): void {
+		const labels = t().editors.tasks;
+		const cell = row.createDiv("hearth-taskfields-cell is-color");
+		// Deliberately not a <button>: Obsidian's and a theme's button rules set a
+		// background at a specificity a plugin class can't reliably beat, which
+		// left every swatch grey however it was coloured. A div with the button
+		// role has nothing to fight and the same keyboard behaviour.
+		const swatch = cell.createDiv({
+			cls: "hearth-taskfields-swatch",
+			attr: {
+				role: "button",
+				tabindex: "0",
+				"aria-label": labels.fieldColor,
+				title: labels.fieldColor,
+			},
+		});
+		const picker = cell.createEl("input", {
+			cls: "hearth-taskfields-picker",
+			attr: {
+				type: "color",
+				"aria-label": labels.fieldColorCustom,
+				title: labels.fieldColorCustom,
+			},
+		});
+		const show = () => {
+			// The colour is set inline rather than through a class or a custom
+			// property: Obsidian and themes style controls inside a modal at a
+			// specificity no plugin selector can be sure of beating, and a swatch
+			// that shows grey whatever was picked is worse than no preview at all.
+			// An inline background beats all of it. "No colour" is an empty ring.
+			swatch.style.backgroundColor = mapping.color ?? "transparent";
+			// The picker only understands hex, so a theme preset leaves it as it is
+			// rather than being coerced into some nearest colour.
+			if (mapping.color?.startsWith("#")) picker.value = mapping.color;
+		};
+		show();
+		const openPalette = () => {
+			const menu = new Menu();
+			for (const preset of TASK_COLOR_PRESETS) {
+				const value = presetColor(preset);
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.colorNames[preset])
+						.setChecked(mapping.color === value)
+						.onClick(() => {
+							mapping.color = value;
+							show();
+						}),
+				);
+			}
+			menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle(labels.fieldColorClear)
+					.setIcon("rotate-ccw")
+					.onClick(() => {
+						mapping.color = undefined;
+						show();
+					}),
+			);
+			const rect = swatch.getBoundingClientRect();
+			menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+		};
+		swatch.addEventListener("click", openPalette);
+		swatch.addEventListener("keydown", (e) => {
+			if (e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			openPalette();
+		});
+		picker.addEventListener("input", () => {
+			mapping.color = picker.value;
+			show();
+		});
+	}
+
+	// ---- One key's value mappings ------------------------------------------
+
+	private renderMappings(host: HTMLElement, key: TaskFieldKey): void {
+		const labels = t().editors.tasks;
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldMapHint });
+
+		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldValueColumn);
+		values.forEach((mapping, index) => {
+			const row = table.createDiv("hearth-taskfields-trow");
+			const match = this.textCell(row, labels.fieldMatchPlaceholder, mapping.match, (v) => {
+				mapping.match = v;
+			});
+			this.textCell(row, labels.fieldLabelPlaceholder, mapping.label ?? "", (v) => {
+				mapping.label = v.trim() || undefined;
+			});
+			this.colorCell(row, mapping);
+			const actions = row.createDiv("hearth-taskfields-cell is-actions");
+			this.iconButton(actions, "trash-2", labels.fieldRemoveMapping, false, () => {
+				values.splice(index, 1);
+				this.renderBody();
+			});
+			// A row added by the button below is empty, so put the cursor in it
+			// rather than making the value be clicked for before it can be typed.
+			if (this.focusValue === key.source && index === values.length - 1) {
+				this.focusValue = null;
+				window.setTimeout(() => match.focus(), 0);
+			}
+		});
+		if (!values.length) {
+			table.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldMapEmpty });
+		}
+
+		// Values this key actually takes in the vault, minus the ones already
+		// mapped — so a mapping is usually two clicks, not typing from memory.
+		const mapped = new Set(values.map((v) => v.match.trim().toLowerCase()));
+		const suggestions = (this.discovery.values.get(key.source) ?? []).filter(
+			(v) => !mapped.has(v.trim().toLowerCase()),
+		);
+		const foot = host.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAddMapping)
+			.onClick(() => {
+				values.push({ match: "" });
+				this.focusValue = key.source;
+				this.renderBody();
+			});
+		if (suggestions.length) {
+			new ButtonComponent(foot)
+				.setButtonText(labels.fieldValuesFound(suggestions.length))
+				.setTooltip(labels.fieldPickValue)
+				.onClick((e) => {
+					const menu = new Menu();
+					for (const value of suggestions) {
+						menu.addItem((item) =>
+							item.setTitle(value).onClick(() => {
+								values.push({ match: value });
+								this.renderBody();
+							}),
+						);
+					}
+					menu.showAtMouseEvent(e);
+				});
+		}
+	}
+
+	/**
+	 * Add a key to a field. Two buttons, each opening the list it belongs to:
+	 * what Hearth reads itself, and the frontmatter properties your notes
+	 * actually use (with typing a name by hand at the end of that list, for a
+	 * property no task carries yet). One button per source of truth beats a text
+	 * box flanked by icons that have to be hovered to find out what they do.
+	 */
+	private renderAddKey(section: HTMLElement, field: TaskFieldDef): void {
+		const labels = t().editors.tasks;
+		const add = (source: string) => {
+			if (!isKnownSource(source)) return;
+			if (field.keys.some((k) => k.source === source)) {
+				new Notice(labels.fieldKeyAlreadyAdded(sourceLabel(source)));
+				return;
+			}
+			field.keys.push({ source });
+			this.expanded.add(`key:${field.id}:${field.keys.length - 1}`);
+			this.renderBody();
+			// A newly referenced property has values worth suggesting.
+			void this.rescan();
+		};
+		const used = new Set(field.keys.map((k) => k.source));
+
+		const foot = section.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("sparkles")
+			.setButtonText(labels.fieldAddBuiltin)
+			.setTooltip(labels.fieldPickBuiltin)
+			.onClick((e) => {
+				const menu = new Menu();
+				for (const id of TASK_BUILTIN_SOURCES) {
+					if (used.has(builtinSource(id))) continue;
+					menu.addItem((item) =>
+						item.setTitle(labels.sourceNames[id]).onClick(() => add(builtinSource(id))),
+					);
+				}
+				menu.showAtMouseEvent(e);
+			});
+
+		const available = this.discovery.properties.filter((p) => !used.has(frontmatterSource(p)));
+		new ButtonComponent(foot)
+			.setIcon("file-code")
+			.setButtonText(labels.fieldAddProperty)
+			.setTooltip(labels.fieldPickProperty)
+			.onClick((e) => {
+				const menu = new Menu();
+				for (const property of available) {
+					menu.addItem((item) =>
+						item.setTitle(property).onClick(() => add(frontmatterSource(property))),
+					);
+				}
+				if (available.length) menu.addSeparator();
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.fieldAddKeyTyped)
+						.setIcon("pencil")
+						.onClick(() => {
+							new TaskValuePromptModal(this.app, labels.fieldAddKeyPlaceholder, "", (v) =>
+								add(frontmatterSource(v)),
+							).open();
+						}),
+				);
+				menu.showAtMouseEvent(e);
+			});
+
+		foot.createDiv({ cls: "hearth-taskfields-footnote", text: labels.fieldAddKeyDesc });
+	}
+
+	private move(from: number, to: number): void {
+		if (to < 0 || to >= this.fields.length) return;
+		const [item] = this.fields.splice(from, 1);
+		this.fields.splice(to, 0, item);
+		this.renderBody();
+	}
+
+	/** Hand the current list to the caller. Always a fresh copy: the modal keeps
+	 * editing its own array after an Apply that leaves it open, and nothing it
+	 * does afterwards may reach into what was already saved. */
+	private apply(): void {
+		const fields = cloneTaskFields(this.fields);
+		// The date editor materialises a row for all three relations so the choice
+		// is visible; the ones left untouched carry nothing and are dropped rather
+		// than stored. Typed value mappings are left alone — a match with no label
+		// yet is work in progress, not an empty row.
+		for (const f of fields) {
+			for (const k of f.keys) {
+				if (!keyIsDate(k) || !k.values) continue;
+				const kept = k.values.filter((v) => v.label?.trim() || v.color?.trim());
+				k.values = kept.length ? kept : undefined;
+			}
+		}
+		this.onApply(fields);
+	}
+
+	private renderFooter(parent: HTMLElement): void {
+		new Setting(parent)
+			.setClass("hearth-taskfields-footer")
+			.addButton((b) =>
+				b
+					.setButtonText(t().editors.tasks.fieldsApplyClose)
+					.setCta()
+					.onClick(() => {
+						this.apply();
+						this.close();
+					}),
+			)
+			// Apply without closing, so the card behind can be watched while the
+			// fields are built up.
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setTooltip(t().editors.tasks.fieldsApplyDesc)
+					.onClick(() => this.apply()),
+			)
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+
+/** A one-line summary of what a card shows, so the editor says what is
+ * configured without opening the modal. */
+function taskFieldsSummary(fields: TaskFieldDef[]): string {
+	const names = fields.map((f) => f.name.trim()).filter(Boolean);
+	return names.length ? names.join(", ") : t().editors.tasks.fieldsNone;
+}
+
+
+
+export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const cfg = (ctx.card.tasks ??= {});
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.source)
+		.setDesc(t().editors.tasks.sourceDesc)
+		.addDropdown((d) => {
+			d.addOption("checkbox", t().editors.tasks.sourceCheckbox);
+			d.addOption("tasknotes", t().editors.tasks.sourceTaskNotes);
+			d.addOption("kanban", t().editors.tasks.sourceKanban);
+			d.setValue(cfg.source ?? "checkbox").onChange((v) => {
+				cfg.source = v as TasksConfig["source"];
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	// Kanban source: pick the board note and choose plain vs. Tasks-plugin
+	// (extended) card parsing.
+	if (cfg.source === "kanban") {
+		const boardSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanBoard)
+			.setDesc(t().editors.tasks.kanbanBoardDesc);
+		boardSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.kanbanBoardPlaceholder)
+				.setValue(cfg.kanbanFile ?? "")
+				.onChange((v) => {
+					cfg.kanbanFile = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+		boardSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.tasks.pickBoard)
+				.onClick(() => {
+					new FilePickerModal(
+						ctx.app,
+						(file) => {
+							cfg.kanbanFile = file.path;
+							ctx.opts.save();
+							ctx.requestRender();
+						},
+						t().editors.tasks.pickBoard,
+						(file) => {
+							const fm =
+								ctx.app.metadataCache.getFileCache(file)?.frontmatter;
+							return !!fm && "kanban-plugin" in fm;
+						},
+					).open();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanExtended)
+			.setDesc(t().editors.tasks.kanbanExtendedDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.kanbanExtended ?? false).onChange((v) => {
+					cfg.kanbanExtended = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+
+		// Convert-to-note options (the card right-click "Convert to note"
+		// action): seed the new note from a template, and/or scrape the card's
+		// metadata into the note's frontmatter instead of onto the board link.
+		const tplSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.convertTemplate)
+			.setDesc(t().editors.tasks.convertTemplateDesc);
+		tplSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.convertTemplatePlaceholder)
+				.setValue(cfg.convertNoteTemplate ?? "")
+				.onChange((v) => {
+					cfg.convertNoteTemplate = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+		tplSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.tasks.pickTemplate)
+				.onClick(() => {
+					new FilePickerModal(
+						ctx.app,
+						(file) => {
+							cfg.convertNoteTemplate = file.path;
+							ctx.opts.save();
+							ctx.requestRender();
+						},
+						t().editors.tasks.pickTemplate,
+					).open();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.convertScrape)
+			.setDesc(t().editors.tasks.convertScrapeDesc)
+			.addToggle((tg) =>
+				tg
+					.setValue(cfg.convertMetadataToFrontmatter ?? false)
+					.onChange((v) => {
+						cfg.convertMetadataToFrontmatter = v || undefined;
+						ctx.opts.save();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.newTaskAsNote)
+			.setDesc(t().editors.tasks.newTaskAsNoteDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.newTaskAsNote ?? false).onChange((v) => {
+					cfg.newTaskAsNote = v || undefined;
+					ctx.opts.save();
+				}),
+			);
+	}
+
+	// Checkbox source: parse the inline Tasks-plugin metadata (dates, priority,
+	// repeat) — the counterpart of the Kanban "Dates & priorities" toggle. On
+	// by default; storing `false` opts out and reads checkboxes as plain text.
+	if ((cfg.source ?? "checkbox") === "checkbox") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.checkboxExtended)
+			.setDesc(t().editors.tasks.checkboxExtendedDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.checkboxExtended ?? true).onChange((v) => {
+					cfg.checkboxExtended = v ? undefined : false;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+			);
+
+		// Custom checkbox statuses: the board columns / task states, one per
+		// line as `[symbol] Label`, with a trailing "(done)" to mark completed
+		// states. Blank uses the default set (To do / In progress / Done).
+		const defaultStatusText =
+			`[ ] ${t().cards.tasks.toDo}\n` +
+			`[/] ${t().cards.tasks.statusInProgress}\n` +
+			`[x] ${t().cards.tasks.done} (done)`;
+		const statusText = (cfg.checkboxStatuses ?? []).length
+			? (cfg.checkboxStatuses ?? [])
+					.map((s) => `[${s.symbol}] ${s.label}${s.done ? " (done)" : ""}`)
+					.join("\n")
+			: defaultStatusText;
+		new Setting(containerEl)
+			.setName(t().editors.tasks.checkboxStatuses)
+			.setDesc(t().editors.tasks.checkboxStatusesDesc)
+			.addTextArea((ta) => {
+				ta.setValue(statusText)
+					.setPlaceholder(defaultStatusText)
+					.onChange((v) => {
+						const parsed = v
+							.split("\n")
+							.map((line) => {
+								const m = /^\s*\[(.)\]\s*(.*)$/.exec(line);
+								if (!m) return null;
+								let label = m[2].trim();
+								let done = false;
+								const dm = /\(done\)\s*$/i.exec(label);
+								if (dm) {
+									done = true;
+									label = label.slice(0, dm.index).trim();
+								}
+								return {
+									symbol: m[1],
+									label: label || m[1],
+									done: done || undefined,
+								};
+							})
+							.filter(
+								(
+									s,
+								): s is {
+									symbol: string;
+									label: string;
+									done: boolean | undefined;
+								} => s !== null,
+							);
+						cfg.checkboxStatuses = parsed.length ? parsed : undefined;
+						ctx.opts.save();
+					});
+				ta.inputEl.rows = 4;
+				ta.inputEl.addClass("hearth-tasks-statuses-input");
+			});
+	}
+
+	// TaskNotes source: which status values count as complete. Empty uses the
+	// single global done value (Settings → Hearth); listing values here (e.g.
+	// "done" and "canceled") treats each as complete.
+	if (cfg.source === "tasknotes") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.doneStatuses)
+			.setDesc(t().editors.tasks.doneStatusesDesc)
+			.addTextArea((ta) => {
+				ta.setValue((cfg.taskNotesDoneStatuses ?? []).join("\n"))
+					.setPlaceholder(t().editors.tasks.doneStatusesPlaceholder)
+					.onChange((v) => {
+						const parsed = v
+							.split("\n")
+							.map((s) => s.trim())
+							.filter(Boolean);
+						cfg.taskNotesDoneStatuses = parsed.length ? parsed : undefined;
+						ctx.opts.save();
+					});
+				ta.inputEl.rows = 3;
+				ta.inputEl.addClass("hearth-tasks-statuses-input");
+			});
+	}
+
+	// Quick-view on click applies to line-based tasks (checkboxes and Kanban
+	// cards); TaskNotes tasks always open in their own editor.
+	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.quickView)
+			.setDesc(t().editors.tasks.quickViewDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.taskQuickView ?? true).onChange((v) => {
+					cfg.taskQuickView = v ? undefined : false;
+					ctx.opts.save();
+				}),
+			);
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.layout)
+		.setDesc(t().editors.tasks.layoutDesc)
+		.addDropdown((d) => {
+			d.addOption("list", t().editors.tasks.layoutList);
+			d.addOption("kanban", t().editors.tasks.layoutKanban);
+			d.setValue(cfg.layout ?? "list").onChange((v) => {
+				cfg.layout = v === "kanban" ? "kanban" : undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	if (
+		cfg.layout === "kanban" &&
+		(cfg.kanbanHidden?.length ||
+			cfg.kanbanOrder?.length ||
+			cfg.kanbanDoneColumns?.length)
+	) {
+		const parts: string[] = [];
+		if (cfg.kanbanHidden?.length)
+			parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
+		if (cfg.kanbanDoneColumns?.length)
+			parts.push(
+				t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
+			);
+		const reset = new Setting(containerEl)
+			.setName(t().editors.tasks.kanbanColumns)
+			.setDesc(
+				parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
+			);
+		if (cfg.kanbanHidden?.length) {
+			reset.addButton((b) =>
+				b.setButtonText(t().editors.tasks.showAll).onClick(() => {
+					cfg.kanbanHidden = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
 			);
 		}
-		if (metaBits.length) {
-			main.createDiv({ cls: "hearth-rss-meta", text: metaBits.join(" · ") });
-		}
-	};
-
-	/** Paint the item list (or a loading/empty/offline state) for the active tab. */
-	const paint = (content: HTMLElement): void => {
-		const tab = activeTab();
-		const merged = tab.urls.length > 1;
-		const rows: { item: RssItem; badge: string }[] = [];
-		let anyCached = false;
-		for (const url of tab.urls) {
-			const feed = cachedFeed(url);
-			if (!feed) continue;
-			anyCached = true;
-			const src = sources.find((s) => s.url === url);
-			const badge = merged && src ? sourceLabel(src) : "";
-			for (const item of feed.items) rows.push({ item, badge });
-		}
-		if (merged) {
-			rows.sort((a, b) => (b.item.published ?? 0) - (a.item.published ?? 0));
-		}
-		const items = rows.slice(0, limit);
-
-		if (items.length === 0) {
-			if (loading) {
-				emptyState(content, "rss", t().cards.rss.loading);
-			} else if (disabled && !anyCached) {
-				emptyState(content, "wifi-off", t().cards.rss.disabled);
-			} else if (anyCached) {
-				emptyState(content, "rss", t().cards.rss.empty);
-			} else {
-				emptyState(content, "rss", t().cards.rss.error);
-			}
-			return;
-		}
-		for (const row of items) renderItem(content, row.item, row.badge);
-	};
-
-	/** Rebuild tab bar + content from the current cache and loading flag. */
-	const rebuild = (): void => {
-		wrap.empty();
-
-		const bar = wrap.createDiv("hearth-rss-tabs");
-		const tabsEl = bar.createDiv("hearth-rss-tablist");
-		if (tabs.length > 1) {
-			for (const tab of tabs) {
-				const btn = tabsEl.createEl("button", {
-					cls: "hearth-rss-tab",
-					text: tabLabel(tab),
-				});
-				if (tab.id === activeId) btn.addClass("is-active");
-				btn.addEventListener("click", () => {
-					activeId = tab.id;
-					rssActiveTab.set(card, tab.id);
-					load(false);
-				});
-			}
-		}
-		const refresh = bar.createEl("button", {
-			cls: "hearth-rss-refresh",
-			attr: { "aria-label": t().cards.rss.refresh },
-		});
-		setIcon(refresh, "refresh-cw");
-		if (loading) refresh.addClass("is-loading");
-		refresh.addEventListener("click", () => load(true));
-
-		const content = wrap.createDiv(`hearth-rss-content hearth-rss-${layout}`);
-		paint(content);
-	};
-
-	/** Show cached content immediately, then fetch and repaint. `force` bypasses
-	 * the cache TTL (used by the manual refresh button and the auto-refresh timer). */
-	const load = (force: boolean): void => {
-		const tab = activeTab();
-		// Only show the loading placeholder when there's nothing cached to show.
-		loading = tab.urls.every((url) => !cachedFeed(url));
-		rebuild();
-		void Promise.all(
-			tab.urls.map((url) => loadFeed(url, { ttlMs, disabled, force })),
-		).then(() => {
-			if (destroyed) return;
-			loading = false;
-			rebuild();
-		});
-	};
-
-	load(false);
-	if (refreshMin > 0) {
-		component.registerInterval(
-			window.setInterval(() => load(true), refreshMin * 60_000),
+		reset.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().editors.tasks.resetColumns)
+				.onClick(() => {
+					cfg.kanbanHidden = undefined;
+					cfg.kanbanOrder = undefined;
+					cfg.kanbanDoneColumns = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
 		);
+	}
+
+	// Which metadata each task shows, in what order and how. Only offered once
+	// the feature is switched on globally (Settings → Hearth → Integrations),
+	// so a card nobody has customized shows no controls for it at all. This is
+	// the card's *display*, unrelated to the field-name mapping in those same
+	// settings — that says where to read a value from, not whether to show it.
+	if (ctx.opts.settings.taskFieldsEnabled) {
+		const own = cfg.taskFieldsEnabled ?? false;
+		const fields = new Setting(containerEl)
+			.setName(t().editors.tasks.fields)
+			.setDesc(
+				own
+					? taskFieldsSummary(resolveTaskFields(cfg.taskFields))
+					: t().editors.tasks.fieldsFollowGlobal,
+			)
+			.addToggle((tg) =>
+				tg.setValue(own).onChange((v) => {
+					cfg.taskFieldsEnabled = v || undefined;
+					// Start from whatever the card shows right now, so switching to
+					// its own list is a starting point rather than a reset.
+					if (v && !cfg.taskFields?.length) {
+						cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields));
+					}
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+			);
+		if (own) {
+			fields.addButton((b) =>
+				b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+					new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, cfg.taskFields, (next) => {
+						cfg.taskFields = next.length ? next : undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+						// Redraw the board behind the modal so an Apply that keeps it
+						// open shows its effect straight away.
+						ctx.opts.rerender();
+					}).open();
+				}),
+			);
+			addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
+				cfg.taskFields = [];
+			});
+		}
+	}
+
+	new Setting(containerEl)
+		.setName(t().editors.tasks.showCompleted)
+		.setDesc(
+			cfg.layout === "kanban"
+				? t().editors.tasks.showCompletedKanbanDesc
+				: "",
+		)
+		.addToggle((t) =>
+			t.setValue(cfg.showCompleted ?? false).onChange((v) => {
+				cfg.showCompleted = v || undefined;
+				ctx.opts.save();
+			}),
+		);
+
+	const maxTasks = new Setting(containerEl)
+		.setName(t().editors.tasks.maxTasks)
+		.setDesc(t().editors.tasks.maxTasksDesc);
+	maxTasks.addText((t) => {
+		t.setValue(String(cfg.count ?? 10)).onChange((v) => {
+			const n = parseInt(v, 10);
+			cfg.count = Number.isNaN(n) || n <= 0 ? undefined : n;
+			ctx.opts.save();
+		});
+		t.inputEl.type = "number";
+		t.inputEl.addClass("hearth-count-input");
+	});
+	addResetButton(ctx, maxTasks, t().settings.resetField, () => {
+		cfg.count = undefined;
+	});
+
+	new Setting(containerEl).setName(t().editors.tasks.folders).setHeading();
+	new Setting(containerEl)
+		.setName(t().editors.tasks.scope)
+		.addDropdown((d) => {
+			d.addOption("all", t().editors.tasks.scopeAll);
+			d.addOption("whitelist", t().editors.tasks.scopeWhitelist);
+			d.addOption("blacklist", t().editors.tasks.scopeBlacklist);
+			d.setValue(cfg.folderScope ?? "all").onChange((v) => {
+				cfg.folderScope = v as TasksConfig["folderScope"];
+				ctx.opts.save();
+				ctx.requestRender();
+			});
+		});
+
+	if ((cfg.folderScope ?? "all") !== "all") {
+		new Setting(containerEl)
+			.setDesc(t().editors.tasks.foldersDesc)
+			.addTextArea((t) => {
+				t.setValue((cfg.folders ?? []).join("\n")).onChange((v) => {
+					cfg.folders = v
+						.split("\n")
+						.map((s) => s.trim())
+						.filter(Boolean);
+					ctx.opts.save();
+				});
+				t.inputEl.rows = 3;
+			});
 	}
 }
 
-function renderClock(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
-	const cfg = card.clock ?? {};
-	const showGreeting = cfg.showGreeting !== false;
-	const dateMode = cfg.dateMode ?? "full";
-	const analog = cfg.mode === "analog";
-
-	const wrap = body.createDiv("hearth-clock");
-	const greetingEl = showGreeting ? wrap.createDiv("hearth-clock-greeting") : null;
-
-	// Pick the greeting once per time bucket so playful ones don't flicker.
-	let bucket = -1;
-	const refreshGreeting = (hour: number) => {
-		if (!greetingEl) return;
-		const override = cfg.greetingText?.trim();
-		if (override) {
-			greetingEl.setText(override);
-			return;
-		}
-		if (greetingBucket(hour) === bucket) return;
-		bucket = greetingBucket(hour);
-		greetingEl.setText(pickGreeting(hour, cfg.playfulGreetings ?? false));
-	};
-
-	const tickAnalog = analog ? renderAnalogClock(wrap, cfg) : null;
-	const timeEl = analog ? null : wrap.createDiv("hearth-clock-time");
-	const dateEl = dateMode === "none" ? null : wrap.createDiv("hearth-clock-date");
-
-	const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
-	if (cfg.use24Hour) timeOpts.hour12 = false;
-	if (cfg.showSeconds) timeOpts.second = "2-digit";
-
-	const update = () => {
-		const now = new Date();
-		refreshGreeting(now.getHours());
-		if (tickAnalog) tickAnalog(now);
-		if (timeEl) timeEl.setText(now.toLocaleTimeString(undefined, timeOpts));
-		if (dateEl) dateEl.setText(formatClockDate(now, dateMode, cfg.dateFormat));
-	};
-
-	update();
-	component.registerInterval(window.setInterval(update, 1000));
-}
+/** Tasks pulled from the vault, as a list or kanban board. Redraws live, but a
+ * folder-scoped card ignores changes it can provably never read. */
+export const tasksCard: CardDefinition<"tasks"> = {
+	kind: "tasks",
+	templates: [
+		{ id: "tasks", name: "Tasks", icon: "list-todo", build: () => ({ kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 }) },
+	],
+	render: (view, card, body) => renderTasks(view, card, body),
+	renderEditor: (container, ctx) => tasksEditor(ctx, container),
+	cloneConfig: (source, copy) => {
+		if (source.tasks)
+			copy.tasks = {
+				...source.tasks,
+				folders: source.tasks.folders ? [...source.tasks.folders] : undefined,
+				kanbanOrder: source.tasks.kanbanOrder ? [...source.tasks.kanbanOrder] : undefined,
+				kanbanHidden: source.tasks.kanbanHidden ? [...source.tasks.kanbanHidden] : undefined,
+				kanbanDoneColumns: source.tasks.kanbanDoneColumns
+					? [...source.tasks.kanbanDoneColumns]
+					: undefined,
+				kanbanColumnSort: source.tasks.kanbanColumnSort
+					? Object.fromEntries(
+							Object.entries(source.tasks.kanbanColumnSort).map(([k, v]) => [k, { ...v }]),
+						)
+					: undefined,
+				sortRules: source.tasks.sortRules ? source.tasks.sortRules.map((r) => ({ ...r })) : undefined,
+				taskFields: source.tasks.taskFields
+					? cloneTaskFields(source.tasks.taskFields)
+					: undefined,
+			};
+	},
+	liveness: {
+		mode: "vault",
+		shouldRedraw: (card, ev) => tasksEventRelevant(card.tasks, ev.file, ev.oldPath),
+	},
+};

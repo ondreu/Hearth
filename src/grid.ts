@@ -686,26 +686,34 @@ export function applyEdgeMerging(gridEl: HTMLElement): void {
 	updateFrostLayers(gridEl);
 }
 
-/** Card corner radius (px), matching `border-radius` in styles.css. Merged
- *  corners flatten to 0 (the .merge-tl/tr/bl/br rules), so the frost mask must
- *  round the same corners the cards do. */
-const CARD_RADIUS = 14;
+/** Fallback card corner radius (px), matching the `border-radius` fallback in
+ *  styles.css, used when the board hasn't set --hearth-card-radius. */
+const CARD_RADIUS_FALLBACK = 14;
+
+/** Resolve the board's live corner radius (px) from the --hearth-card-radius
+ *  CSS variable set by renderDashboard, so the frost mask rounds by exactly the
+ *  same amount the cards do. Falls back to the design baseline if unset. */
+function resolveGridRadius(gridEl: HTMLElement): number {
+	const raw = getComputedStyle(gridEl).getPropertyValue("--hearth-card-radius");
+	const n = parseFloat(raw);
+	return Number.isFinite(n) && n >= 0 ? n : CARD_RADIUS_FALLBACK;
+}
 
 /** SVG path for one card's border-box silhouette, rounding each corner to
- *  CARD_RADIUS unless that corner is merged flat. A zero-radius elliptical arc
+ *  `radius` unless that corner is merged flat. A zero-radius elliptical arc
  *  renders as a straight line to its endpoint, so all four arcs are always
  *  emitted regardless of merge state. Coordinates are in the grid's own pixel
  *  space (offset* is relative to the positioned grid). */
-function cardSilhouettePath(el: HTMLElement): string {
+function cardSilhouettePath(el: HTMLElement, radius: number): string {
 	const x = el.offsetLeft;
 	const y = el.offsetTop;
 	const w = el.offsetWidth;
 	const h = el.offsetHeight;
 	const cl = el.classList;
-	const tl = cl.contains("merge-tl") ? 0 : CARD_RADIUS;
-	const tr = cl.contains("merge-tr") ? 0 : CARD_RADIUS;
-	const br = cl.contains("merge-br") ? 0 : CARD_RADIUS;
-	const bl = cl.contains("merge-bl") ? 0 : CARD_RADIUS;
+	const tl = cl.contains("merge-tl") ? 0 : radius;
+	const tr = cl.contains("merge-tr") ? 0 : radius;
+	const br = cl.contains("merge-br") ? 0 : radius;
+	const bl = cl.contains("merge-bl") ? 0 : radius;
 	return (
 		`M${x + tl},${y}` +
 		`L${x + w - tr},${y}A${tr},${tr} 0 0 1 ${x + w},${y + tr}` +
@@ -750,6 +758,7 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 
 	const w = gridEl.clientWidth;
 	const h = gridEl.clientHeight;
+	const radius = resolveGridRadius(gridEl);
 	const seen = new Set<string>();
 	for (const [blur, group] of byBlur) {
 		seen.add(blur);
@@ -764,7 +773,7 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 		layer.style.setProperty("backdrop-filter", filter);
 		layer.style.setProperty("-webkit-backdrop-filter", filter);
 		const paths = group
-			.map((c) => `<path d="${cardSilhouettePath(c)}" fill="#fff"/>`)
+			.map((c) => `<path d="${cardSilhouettePath(c, radius)}" fill="#fff"/>`)
 			.join("");
 		const svg =
 			`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +

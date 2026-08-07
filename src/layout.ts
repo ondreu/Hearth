@@ -14,15 +14,28 @@ import {
 	type LeafViewConfig,
 	type LinkItem,
 	type MobileActionButton,
+	type JiraConfig,
+	type JiraControl,
 	newDashboardId,
+	OPEN_IN_MODES,
+	OPEN_OUTSIDE_RULES,
+	OPEN_SOURCES,
+	type OpenIn,
+	type OpenInRule,
+	type OpenOutsideRule,
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
+	type TaskFieldDef,
+	type TaskFieldKey,
+	type TaskValueMap,
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
 	activeDashboard,
+	CARD_BORDER_WIDTH_MAX,
 } from "./types";
+import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
 import { t } from "./i18n";
 
@@ -58,37 +71,31 @@ const RANGE = {
 	cardW: { min: 1, max: 16 },
 	cardH: { min: 1, max: 60 },
 	cardBlur: { min: 0, max: 24 },
+	cardRadius: { min: 0, max: 14 },
+	cardBorderWidth: { min: 0, max: CARD_BORDER_WIDTH_MAX },
+	headerScale: { min: 0.6, max: 1.8 },
+	headerMarginTop: { min: 0, max: 96 },
+	headerSpacingBelow: { min: 0, max: 96 },
 };
-
-const CARD_KINDS: CardKind[] = [
-	"embed",
-	"daily",
-	"web",
-	"bookmarks",
-	"favorites",
-	"text",
-	"recent",
-	"links",
-	"commands",
-	"clock",
-	"tasks",
-	"calendar",
-	"stats",
-	"search",
-	"heatmap",
-	"calculator",
-	"dataview",
-	"rss",
-	"leaf",
-];
 
 /** Build the portable layout payload (the dashboard setup and its globals). */
 function layoutPayload(s: HomeSettings): LayoutExport {
+	// SECURITY-REVIEW: Jira PATs authenticate outbound requests and must never be
+	// copied into portable layout/settings artifacts. Clone only the affected
+	// card/config objects so live settings retain their credentials unchanged.
+	const scrubCard = (card: DashboardCard): DashboardCard =>
+		card.jira?.pat === undefined
+			? card
+			: { ...card, jira: { ...card.jira, pat: undefined } };
+	const dashboards = s.dashboards.map((dashboard) => ({
+		...dashboard,
+		cards: dashboard.cards.map(scrubCard),
+	}));
 	return {
 		hearthLayout: LAYOUT_SCHEMA,
-		dashboards: s.dashboards,
+		dashboards,
 		activeDashboardId: s.activeDashboardId,
-		pinnedCards: s.pinnedCards,
+		pinnedCards: s.pinnedCards.map(scrubCard),
 		gridColumns: s.gridColumns,
 		rowHeight: s.rowHeight,
 		fitToPage: s.fitToPage,
@@ -134,11 +141,16 @@ export function exportSettings(s: HomeSettings): string {
 		showMobileActionBar: s.showMobileActionBar,
 		mobileActionButtons: s.mobileActionButtons,
 		disableExternalCalls: s.disableExternalCalls,
+		openIn: s.openIn,
+		openInOverrides: s.openInOverrides,
+		openFromOutside: s.openFromOutside,
 
 		// Appearance
 		compact: s.compact,
 		cardOpacity: s.cardOpacity,
 		cardBlur: s.cardBlur,
+		cardRadius: s.cardRadius,
+		cardBorderWidth: s.cardBorderWidth,
 
 		// Search filters
 		hiddenFilters: s.hiddenFilters,
@@ -148,6 +160,8 @@ export function exportSettings(s: HomeSettings): string {
 		taskNotesDueField: s.taskNotesDueField,
 		taskNotesPriorityField: s.taskNotesPriorityField,
 		taskNotesDoneValue: s.taskNotesDoneValue,
+		taskFieldsEnabled: s.taskFieldsEnabled,
+		taskFields: s.taskFields,
 	};
 	return JSON.stringify(data, null, 2);
 }
@@ -163,6 +177,15 @@ function clampNum(
 	fallback: number,
 ): number {
 	return Math.max(min, Math.min(max, Math.round(num(value, fallback))));
+}
+
+function clampFloat(
+	value: unknown,
+	min: number,
+	max: number,
+	fallback: number,
+): number {
+	return Math.max(min, Math.min(max, num(value, fallback)));
 }
 
 function str(value: unknown): string | undefined {
@@ -187,6 +210,7 @@ function sanitizeEmbedView(
 	if (baseView !== undefined) view.baseView = baseView;
 	if (typeof r.scale === "number") view.scale = r.scale;
 	if (typeof r.editable === "boolean") view.editable = r.editable;
+	if (typeof r.livePreview === "boolean") view.livePreview = r.livePreview;
 	return view;
 }
 
@@ -265,6 +289,7 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.scale === "number") card.scale = r.scale;
 	if (typeof r.refreshSec === "number") card.refreshSec = r.refreshSec;
 	if (typeof r.editable === "boolean") card.editable = r.editable;
+	if (typeof r.livePreview === "boolean") card.livePreview = r.livePreview;
 	if (typeof r.hideBaseHeader === "boolean")
 		card.hideBaseHeader = r.hideBaseHeader;
 	if (typeof r.tileSize === "number") card.tileSize = r.tileSize;
@@ -313,6 +338,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (r.rss && typeof r.rss === "object") {
 		card.rss = sanitizeRss(r.rss as Record<string, unknown>);
 	}
+	if (r.jira !== undefined) {
+		card.jira = sanitizeJira(r.jira);
+	}
 	if (r.dataview && typeof r.dataview === "object") {
 		card.dataview = sanitizeDataview(r.dataview as Record<string, unknown>);
 	}
@@ -343,7 +371,13 @@ function sanitizeCommand(raw: unknown): CommandItem | null {
 function sanitizeClock(r: Record<string, unknown>): ClockConfig {
 	const clock: ClockConfig = {};
 	if (r.mode === "digital" || r.mode === "analog") clock.mode = r.mode;
-	if (typeof r.use24Hour === "boolean") clock.use24Hour = r.use24Hour;
+	if (r.hourFormat === "auto" || r.hourFormat === "12" || r.hourFormat === "24") {
+		clock.hourFormat = r.hourFormat;
+	} else if (typeof r.use24Hour === "boolean") {
+		// Migrate the pre-hourFormat boolean: true forced 24-hour, false meant
+		// "follow the locale default" (now "auto").
+		clock.hourFormat = r.use24Hour ? "24" : "auto";
+	}
 	if (typeof r.showSeconds === "boolean") clock.showSeconds = r.showSeconds;
 	if (typeof r.showGreeting === "boolean") clock.showGreeting = r.showGreeting;
 	if (typeof r.playfulGreetings === "boolean")
@@ -449,6 +483,76 @@ function sanitizeKanbanColumnSort(
 	return out;
 }
 
+const TASK_FIELD_STYLES = ["pill", "dot", "text", "hue", "glow"] as const;
+
+/** One key's value mappings. A mapping with no `match` matches nothing, so it
+ * is dropped rather than kept as a row that can never fire. */
+function sanitizeValueMaps(value: unknown): TaskValueMap[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskValueMap[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const match = str(r.match)?.trim();
+		if (!match) continue;
+		const mapping: TaskValueMap = { match };
+		const label = str(r.label);
+		if (label !== undefined) mapping.label = label;
+		const color = str(r.color);
+		if (color !== undefined) mapping.color = color;
+		out.push(mapping);
+	}
+	return out.length ? out : undefined;
+}
+
+/** A field's keys. Which sources are meaningful is `resolveTaskFields`' job at
+ * render time; this only checks the shape, so a key written by a newer version
+ * survives a round-trip through an older one. */
+function sanitizeFieldKeys(value: unknown): TaskFieldKey[] {
+	if (!Array.isArray(value)) return [];
+	const out: TaskFieldKey[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const source = str(r.source)?.trim();
+		if (!source) continue;
+		const key: TaskFieldKey = { source };
+		if (r.isDate === true) key.isDate = true;
+		const values = sanitizeValueMaps(r.values);
+		if (values) key.values = values;
+		out.push(key);
+	}
+	return out;
+}
+
+/** The user-defined field list. An empty result is returned as an empty array
+ * rather than undefined: "show nothing" is a real configuration and must not
+ * be mistaken for "not configured". */
+function sanitizeTaskFields(value: unknown): TaskFieldDef[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskFieldDef[] = [];
+	value.forEach((raw, index) => {
+		if (!raw || typeof raw !== "object") return;
+		const r = raw as Record<string, unknown>;
+		const field: TaskFieldDef = {
+			id: str(r.id)?.trim() || `f-${index}`,
+			name: str(r.name) ?? "",
+			keys: sanitizeFieldKeys(r.keys),
+		};
+		if (r.showName === true) field.showName = true;
+		if (typeof r.opacity === "number" && Number.isFinite(r.opacity)) {
+			field.opacity = Math.max(1, Math.min(100, Math.round(r.opacity)));
+		}
+		if (
+			TASK_FIELD_STYLES.includes(r.display as (typeof TASK_FIELD_STYLES)[number])
+		) {
+			field.display = r.display as TaskFieldDef["display"];
+		}
+		out.push(field);
+	});
+	return out;
+}
+
 function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const r = value as Record<string, unknown>;
@@ -517,6 +621,10 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (taskNotesDoneStatuses) cfg.taskNotesDoneStatuses = taskNotesDoneStatuses;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
+	if (typeof r.taskFieldsEnabled === "boolean")
+		cfg.taskFieldsEnabled = r.taskFieldsEnabled;
+	const taskFields = sanitizeTaskFields(r.taskFields);
+	if (taskFields) cfg.taskFields = taskFields;
 	if (typeof r.showCompleted === "boolean") cfg.showCompleted = r.showCompleted;
 	if (typeof r.count === "number") cfg.count = r.count;
 	if (r.layout === "list" || r.layout === "kanban") cfg.layout = r.layout;
@@ -602,6 +710,60 @@ function sanitizeRss(r: Record<string, unknown>): RssConfig {
 	return cfg;
 }
 
+const JIRA_CONTROLS: JiraControl[] = [
+	"status",
+	"assignee",
+	"priority",
+	"issueType",
+	"sprint",
+	"fixVersion",
+];
+
+/** Allowlist and clamp an imported Jira card configuration. */
+export function sanitizeJira(raw: unknown): JiraConfig {
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+	const r = raw as Record<string, unknown>;
+	const cfg: JiraConfig = {};
+	const host = str(r.host)?.trim().replace(/\/+$/, "");
+	if (host !== undefined) cfg.host = host;
+	const pat = str(r.pat);
+	if (pat !== undefined) cfg.pat = pat;
+	const apiBasePath = str(r.apiBasePath);
+	if (apiBasePath !== undefined) cfg.apiBasePath = apiBasePath;
+	const filterId = str(r.filterId);
+	if (filterId !== undefined) cfg.filterId = filterId;
+	const filterName = str(r.filterName);
+	if (filterName !== undefined) cfg.filterName = filterName;
+	if (Array.isArray(r.controls)) {
+		cfg.controls = r.controls.filter(
+			(control): control is JiraControl =>
+				typeof control === "string" &&
+				JIRA_CONTROLS.includes(control as JiraControl),
+		);
+	}
+	if (r.selections && typeof r.selections === "object" && !Array.isArray(r.selections)) {
+		const rawSelections = r.selections as Record<string, unknown>;
+		cfg.selections = {};
+		for (const control of JIRA_CONTROLS) {
+			const values = rawSelections[control];
+			if (!Array.isArray(values)) continue;
+			cfg.selections[control] = values.filter(
+				(value): value is string => typeof value === "string",
+			);
+		}
+	}
+	if (typeof r.maxResults === "number" && Number.isFinite(r.maxResults)) {
+		cfg.maxResults = Math.max(1, Math.min(200, Math.round(r.maxResults)));
+	}
+	if (typeof r.refreshMin === "number" && Number.isFinite(r.refreshMin)) {
+		cfg.refreshMin = Math.max(0, Math.min(1440, Math.round(r.refreshMin)));
+	}
+	if (typeof r.cacheMin === "number" && Number.isFinite(r.cacheMin)) {
+		cfg.cacheMin = Math.max(0, Math.min(1440, Math.round(r.cacheMin)));
+	}
+	return cfg;
+}
+
 function sanitizeDataview(r: Record<string, unknown>): DataviewConfig {
 	const cfg: DataviewConfig = {};
 	const query = str(r.query);
@@ -619,6 +781,9 @@ function sanitizeLeafView(r: Record<string, unknown>): LeafViewConfig {
 	const cfg: LeafViewConfig = {};
 	const viewType = str(r.viewType);
 	if (viewType !== undefined) cfg.viewType = viewType;
+	const file = str(r.file);
+	if (file !== undefined) cfg.file = file;
+	if (typeof r.hideHeader === "boolean") cfg.hideHeader = r.hideHeader;
 	return cfg;
 }
 
@@ -675,6 +840,55 @@ function sanitizeDashboard(
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
+	const linkedWorkspace = str(r.linkedWorkspace);
+	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
+		dash.linkedWorkspace = linkedWorkspace;
+	const rawHeader = r.header;
+	if (rawHeader && typeof rawHeader === "object") {
+		const h = rawHeader as Record<string, unknown>;
+		const header: NonNullable<Dashboard["header"]> = {};
+		if (typeof h.showTitle === "boolean") header.showTitle = h.showTitle;
+		const title = str(h.title);
+		if (title !== undefined) header.title = title;
+		const logo = str(h.logo);
+		if (logo !== undefined) header.logo = logo;
+		if (h.align === "left" || h.align === "center" || h.align === "right") {
+			header.align = h.align;
+		}
+		if (typeof h.titleScale === "number") {
+			header.titleScale = clampFloat(
+				h.titleScale,
+				RANGE.headerScale.min,
+				RANGE.headerScale.max,
+				1,
+			);
+		}
+		if (typeof h.logoScale === "number") {
+			header.logoScale = clampFloat(
+				h.logoScale,
+				RANGE.headerScale.min,
+				RANGE.headerScale.max,
+				1,
+			);
+		}
+		if (typeof h.marginTop === "number") {
+			header.marginTop = clampNum(
+				h.marginTop,
+				RANGE.headerMarginTop.min,
+				RANGE.headerMarginTop.max,
+				0,
+			);
+		}
+		if (typeof h.spacingBelow === "number") {
+			header.spacingBelow = clampNum(
+				h.spacingBelow,
+				RANGE.headerSpacingBelow.min,
+				RANGE.headerSpacingBelow.max,
+				0,
+			);
+		}
+		if (Object.keys(header).length > 0) dash.header = header;
+	}
 	if (typeof r.maxWidth === "number") {
 		dash.maxWidth = clampNum(
 			r.maxWidth,
@@ -692,6 +906,22 @@ function sanitizeDashboard(
 			RANGE.cardBlur.min,
 			RANGE.cardBlur.max,
 			s.cardBlur,
+		);
+	}
+	if (typeof r.cardRadius === "number") {
+		dash.cardRadius = clampNum(
+			r.cardRadius,
+			RANGE.cardRadius.min,
+			RANGE.cardRadius.max,
+			s.cardRadius,
+		);
+	}
+	if (typeof r.cardBorderWidth === "number") {
+		dash.cardBorderWidth = clampNum(
+			r.cardBorderWidth,
+			RANGE.cardBorderWidth.min,
+			RANGE.cardBorderWidth.max,
+			s.cardBorderWidth,
 		);
 	}
 	const bg = sanitizeBackground(r.background);
@@ -853,6 +1083,28 @@ function sanitizeMobileActionButton(raw: unknown): MobileActionButton | null {
 
 /** Apply the non-layout settings carried by a full settings export, each field
  * validated/clamped so an untrusted backup can only set values the UI could. */
+/** Where notes open (#106). The global choice and each per-source rule are
+ * validated on their own, so a file from another version — or one hand-edited
+ * into a partial map — imports what it can and leaves the rest alone. */
+function applyOpenIn(s: HomeSettings, data: Record<string, unknown>): void {
+	if (OPEN_IN_MODES.includes(data.openIn as OpenIn)) s.openIn = data.openIn as OpenIn;
+	if (OPEN_OUTSIDE_RULES.includes(data.openFromOutside as OpenOutsideRule)) {
+		s.openFromOutside = data.openFromOutside as OpenOutsideRule;
+	}
+	const raw = data.openInOverrides;
+	if (!raw || typeof raw !== "object") return;
+	const map = raw as Record<string, unknown>;
+	const overrides = { ...s.openInOverrides };
+	for (const source of OPEN_SOURCES) {
+		const rule = map[source];
+		if (rule === "default" || OPEN_IN_MODES.includes(rule as OpenIn)) {
+			overrides[source] = rule as OpenInRule;
+		}
+	}
+	s.openInOverrides = overrides;
+}
+
+
 function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	// Header
 	const title = str(data.title);
@@ -912,6 +1164,7 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 	if (typeof data.disableExternalCalls === "boolean")
 		s.disableExternalCalls = data.disableExternalCalls;
+	applyOpenIn(s, data);
 
 	// Appearance
 	if (typeof data.compact === "boolean") s.compact = data.compact;
@@ -924,6 +1177,22 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 			RANGE.cardBlur.min,
 			RANGE.cardBlur.max,
 			s.cardBlur,
+		);
+	}
+	if (typeof data.cardRadius === "number") {
+		s.cardRadius = clampNum(
+			data.cardRadius,
+			RANGE.cardRadius.min,
+			RANGE.cardRadius.max,
+			s.cardRadius,
+		);
+	}
+	if (typeof data.cardBorderWidth === "number") {
+		s.cardBorderWidth = clampNum(
+			data.cardBorderWidth,
+			RANGE.cardBorderWidth.min,
+			RANGE.cardBorderWidth.max,
+			s.cardBorderWidth,
 		);
 	}
 
@@ -943,4 +1212,10 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (priorityField !== undefined) s.taskNotesPriorityField = priorityField;
 	const doneValue = str(data.taskNotesDoneValue);
 	if (doneValue !== undefined) s.taskNotesDoneValue = doneValue;
+
+	// Task field customization (the global list every card follows).
+	if (typeof data.taskFieldsEnabled === "boolean")
+		s.taskFieldsEnabled = data.taskFieldsEnabled;
+	const taskFields = sanitizeTaskFields(data.taskFields);
+	if (taskFields) s.taskFields = taskFields;
 }

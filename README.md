@@ -94,7 +94,9 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Embed** — embed a note (`.md`), image, canvas, or `.base` file, rendered
   through Obsidian's own renderer. A per-card **zoom** control scales content to
   fit. Markdown notes can be made **editable** — rendered by default, switch to a
-  raw editor on double-click, saving straight back to the vault. Give a card a
+  raw editor on double-click, saving straight back to the vault. Turn on **Live
+  preview** and the card hosts Obsidian's own editor instead, so formatting
+  renders as you type and there's no double-click to get into it. Give a card a
   **second view** (a second file to embed, with its own zoom and editable
   options) and it grows a **switcher** to flip between the two — shown in the
   card **header** when the card has a title, or as a **floating, hover-only**
@@ -109,7 +111,8 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Daily note** — always shows *today's* daily note (resolved from the core
   Daily notes plugin's date format and folder), with a one-click prompt to
   create it when missing and a hideable button to open it in the editor.
-  Optionally editable in place.
+  Optionally editable in place, in the raw editor or in Obsidian's own Live
+  Preview.
 - **Web page** — embed any `http(s)` URL in a sandboxed iframe, with an
   optional auto-refresh interval and an "open in browser" fallback for sites
   that refuse to be framed.
@@ -206,6 +209,25 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   and a quick-add. Leave the mode off to read the board as plain text.
   Everything is written back in Kanban's own format, so the board stays fully
   editable in the Kanban plugin.
+- **Task fields** — opt in under Settings → Hearth → Integrations →
+  **Customize task fields** (off by default; with it off, tasks look exactly as
+  they always have) and you build what a task shows from scratch. You start with
+  no fields at all, then add each one: **name** it, pick how it's drawn (a
+  **chip**, a bare **coloured dot**, **plain text** — or let it **tint** the
+  whole row/card or **glow** around it, at a strength you choose), and give it
+  one or more **keys** — any frontmatter property, or something Hearth reads itself (a
+  checkbox line's ⏫ priority, a Kanban board column, a due date, a TaskNotes
+  status). Every key with a value shows one, so a field can gather related
+  metadata under a single name. Each key can **map its values** to nicer labels
+  and colours (`high` → *Urgent* in red); values you haven't mapped still show
+  as themselves. **Date keys** skip mapping altogether: they're colored and
+  labelled by whether they fall **before today, today or after today**, and a
+  frontmatter property holding a date can be marked as one. **Clicking a value
+  changes it** — the chip opens a menu of your mapped values, then the other
+  values that key takes in your vault, then a free entry; a date opens a
+  **calendar** — in both the list and the Kanban layouts. The fields you define apply
+  to every Tasks card, and a single card can define **its own** instead, from
+  that card's settings.
 - **Task quick view** — clicking a checkbox task or Kanban card opens a compact
   popover with its metadata and description, editable in place, plus buttons to
   **open the full note** or **delete the task** — instead of jumping straight
@@ -215,17 +237,52 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Mini calendar** — a month grid resolved from the core Daily notes plugin's
   format/folder, with a dot on days that already have a note. Optional ISO week
   numbers and an edit-count heatmap tint; click an empty day to create that
-  day's note.
+  day's note. Switch it to an **agenda** layout to list upcoming days as a
+  scrollable timeline instead. It can also **subscribe to external calendars**
+  via ICS/iCal URLs (Google, iCloud, Fastmail, Nextcloud…): events show as
+  coloured dots on the grid and are listed under each day in the agenda,
+  auto-refreshed on a configurable interval and honouring the "disable external
+  calls" privacy setting. Clicking an event opens a details modal (name, date,
+  time, location, description, calendar, link) from which you can **create a
+  note from the event** — pick a template, a folder and filename pattern, and
+  route each value how you like (date/time into custom frontmatter, description
+  into the body, or ignored). The note is linked back to the event by its ID so
+  it's reopened rather than duplicated.
+
+  The card can also take **TaskNotes as a source**, mirroring what TaskNotes'
+  own calendar shows: scheduled tasks (sized by their time estimate), due
+  dates, recurring tasks unrolled into one entry per occurrence, timeblocks
+  from your daily notes, and the ICS calendars subscribed inside TaskNotes —
+  no need to re-enter their URLs. It reads TaskNotes' own configuration, so
+  renamed frontmatter fields, custom statuses and priorities (and their
+  colours), and the tag-or-property rule that marks a note as a task all
+  carry over; each layer starts from whatever TaskNotes itself is showing and
+  can be overridden per card.
+
+  **Entry details** decides what each agenda entry shows beside its title —
+  the time, the calendar name, and (with TaskNotes on) status, priority and the
+  due / recurring / timeblock markers — so a narrow card can show only what
+  earns its space. Entries colour by status, priority or one fixed
+  colour, completed tasks show struck through, and a checkbox on each task
+  completes it straight from the calendar — writing exactly what TaskNotes
+  writes, including per-occurrence completion for recurring tasks. Clicking one
+  opens it in TaskNotes' own task editor.
 - **Vault statistics** — notes, attachments, folders, unique tags and your
   daily-note streak, read entirely from the in-memory vault index.
 - **Saved search** — runs a stored query (the same syntax as the search bar) and
   lists the matching files, refreshed live.
+- **Jira filter** — connects over HTTPS to a Jira saved filter with bearer PAT
+  authentication and shows a rich issue list. Portable layout/settings exports
+  omit the PAT. Narrow the base filter with
+  multi-select status, assignee, priority, issue type, sprint, and fix-version
+  controls; refresh manually or on a per-card interval.
 - **Activity heatmap** — a GitHub-style contribution grid tinted by how many
   notes were edited (or created) each day.
 - **Bookmarks** — pulls from Obsidian's core Bookmarks plugin, with site
   favicons next to URL bookmarks.
 - **Favorites** — a grid of curated note cards.
-- **Recent files** — your recently opened files (configurable count).
+- **Recent files** — your recently opened files (configurable count, with an
+  optional file-type filter — pick any combination of types to list).
 - **Links / launchpad** — a grid of tiles opening notes, URLs or commands.
   Tiles live on a **CSS grid** with independent **column and row spans**, so a
   tile can be 2×2, 4×1, or any proportion. In arrange mode, drag a tile to
@@ -249,8 +306,8 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   (basic or scientific, chosen in card settings) is handy on mobile. Everything
   except currency is computed locally; exchange rates are fetched once and
   cached, and currency degrades gracefully offline. The currency lookup uses the
-  free, key-less [Frankfurter API](https://www.frankfurter.app/) (ECB rates) and
-  is the only outbound network request Hearth makes — it can be turned off under
+  free, key-less [Frankfurter API](https://www.frankfurter.app/) (ECB rates) and,
+  like Jira and other external-content cards, can be turned off under
   **Settings → Hearth → Behaviour → Privacy & network → Disable external
   calls**.
 - **Dataview query** *(requires the [Dataview](https://github.com/blacksmithgu/obsidian-dataview)
@@ -271,12 +328,19 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Plugin view** *(beta)* — host another plugin's — or a core — registered
   **side-panel view** (calendar, outline, tag pane, a Kanban board view…)
   right inside a dashboard card. Pick from the views your enabled plugins and
-  Obsidian's core panes provide; the card hosts a **detached workspace leaf**,
-  so it never shows up in your saved layout or disturbs your other panes, and it
-  cleans itself up when the card redraws or the dashboard closes. It honours the
+  Obsidian's core panes provide, and optionally point the card at a **specific
+  file** to show — an Excalidraw drawing, a canvas, a note — instead of the
+  view's empty "new file" screen, and optionally **hide the view's own header**
+  (breadcrumbs, nav arrows, kebab menu) for a clean single-file card. The card
+  hosts a **detached workspace leaf**, so it never shows up in your saved layout
+  or disturbs your other panes, and it cleans itself up when the card redraws or
+  the dashboard closes. To keep memory in check it only runs the hosted view
+  while the card is **on screen** — it's torn down when scrolled out of view or
+  when you switch to another tab, and rebuilt when you come back. It honours the
   card's opacity and blur (frosted glass) like every other card, and shows a
-  friendly prompt when the chosen view's plugin is disabled. Some views expect a
-  real sidebar and may size oddly on a wide card — hence beta.
+  friendly prompt when the chosen view's plugin is disabled. Hosting a live view
+  costs more than an ordinary card and some views expect a real sidebar and may
+  size oddly on a wide card — hence beta; use a few at most.
 
 ### Live content
 
@@ -359,6 +423,11 @@ toolbar; configure each one from the card itself (title, content, colors, size).
 - **Card blur (frosted glass)** — blur the dashboard behind translucent cards
   for a frosted-glass look, at global, per-dashboard and per-card levels. On by
   default for fresh installs; merged cards blur as one seamless surface.
+- **Card corner radius** — a **Card corner radius** slider controls how rounded
+  card corners are, from the default 14 px down to sharp 0 px corners, at global
+  (Settings → Dashboard) and per-dashboard levels. Merged-together cards still
+  flatten their touching corners as usual, and the frosted-glass layer follows
+  the same radius.
 
 ## Mobile
 
@@ -386,10 +455,12 @@ many fields have a reset (↺) button back to their default.
   engine (built-in / Omnisearch), file-type filters.
 - **Dashboard** — fit to page, columns, row height, max width, card opacity,
   **card blur** (frosted glass).
-- **Behaviour** — open on startup, replace empty new tabs, mobile search-only,
+- **Behaviour** — open on startup, replace empty new tabs, **where notes open**
+  (a new tab, the current tab replacing Hearth, a split, or a new window — with
+  per-source exceptions for links, search results, cards, new notes, and notes
+  opened from outside Hearth such as the file explorer), mobile search-only,
   mobile action bar, and a **Privacy & network** toggle to disable external
-  calls (the calculator's currency-rate lookup — the only outbound request
-  Hearth makes).
+  calls (Jira, calendars, RSS, and currency rates).
 - **Integrations** — Tasks / TaskNotes frontmatter field names and the status
   value(s) that count as "done".
 - **Backup** — import / export the current dashboard's layout as JSON.

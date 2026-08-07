@@ -25,8 +25,39 @@ interface Moment {
 }
 interface MomentFn {
 	(input?: string): Moment;
+	/** Format-restricted strict parse — never falls back to `new Date()`. */
+	(input: string, formats: unknown, strict: boolean): Moment;
 }
 const moment = createMoment as unknown as MomentFn;
+
+/** moment's ISO_8601 format constant: strict ISO parsing (dates and
+ * datetimes) without the RFC2822/`new Date()` fallback of a bare
+ * `moment(string)` call. */
+const ISO_8601: unknown = (createMoment as unknown as { ISO_8601?: unknown }).ISO_8601;
+
+/* The human date formats the final fallback accepts, matched strictly. This
+ * deliberately replaces bare `moment(raw)`: when input is neither ISO nor
+ * RFC2822, that call degrades to engine-dependent `new Date()` parsing AND
+ * prints a console deprecation warning for every attempt — and task fields
+ * routinely hold non-dates ("📅 [[260801]] #sd"), which spammed the console on
+ * every vault scan (#52). Year-less forms default to the current year. */
+const FALLBACK_FORMATS = [
+	"YYYY-M-D",
+	"YYYY/M/D",
+	"D.M.YYYY",
+	"M/D/YYYY",
+	"M/D",
+	"MMM D",
+	"MMM D YYYY",
+	"MMM D, YYYY",
+	"MMMM D",
+	"MMMM D YYYY",
+	"MMMM D, YYYY",
+	"D MMM",
+	"D MMM YYYY",
+	"D MMMM",
+	"D MMMM YYYY",
+];
 
 const WEEKDAYS: Record<string, number> = {
 	// 1=Mon … 7=Sun (ISO weekday)
@@ -64,7 +95,16 @@ export function localDayKey(ts: number): string {
 
 /** Parse a natural-language date expression to YYYY-MM-DD (null if not a date). */
 export function parseNaturalDate(input: string): string | null {
-	const raw = input.trim().toLowerCase();
+	let text = input.trim();
+	// Task fields often carry trailing tags ("2026-08-01 #home") and dates are
+	// often written as links to daily notes ("[[2026-08-01]]", with or without
+	// an |alias). Peel both off to get at the date-bearing text; a link whose
+	// note name still isn't a recognisable date falls through to null like any
+	// other non-date.
+	text = stripTrailingTags(text);
+	const link = /^\[\[([^\]|]+)(?:\|[^\]]*)?\]\]$/.exec(text);
+	if (link) text = (link[1].split("/").pop() ?? "").trim();
+	const raw = text.toLowerCase();
 	if (!raw) return null;
 
 	// Already an ISO date — pass through so existing YYYY-MM-DD entries work.
@@ -127,16 +167,42 @@ export function parseNaturalDate(input: string): string | null {
 	const sow = /^start\s+of\s+(week|month|year)$/.exec(raw);
 	if (sow) return today.clone().startOf(sow[1]).format("YYYY-MM-DD");
 
-	// "next monday" already handled above; fall back to moment's own parser
-	// for anything else (covers some locale-aware forms) — but only accept it
-	// when it lands within a sane window (±5 years) so stray words don't get
-	// silently coerced into weird dates.
-	const guessed = moment(raw);
-	if (guessed.isValid()) {
+	// Anything else: the strict, warning-free moment parse — but only accept a
+	// date within a sane window (±5 years) so stray words don't get silently
+	// coerced into weird dates. Parse the case-preserved text: ISO's "T"
+	// separator is case-sensitive, and strict month-name matching handles case
+	// itself.
+	const guessed = strictMoment(text);
+	if (guessed) {
 		const diff = Math.abs(guessed.diff(today, "year"));
-		if (diff <= 5) return guessed.format("YYYY-MM-DD");
+		return diff <= 5 ? guessed.format("YYYY-MM-DD") : null;
 	}
 	return null;
+}
+
+/** Strict, warning-free moment parse: ISO first (dates and datetimes), then
+ * FALLBACK_FORMATS. Never reaches moment's `new Date()` fallback, so it cannot
+ * print the RFC2822/ISO deprecation warning no matter what the input is.
+ * Returns null when nothing matches. */
+function strictMoment(text: string): Moment | null {
+	for (const formats of [ISO_8601, FALLBACK_FORMATS]) {
+		const m = moment(text, formats, true);
+		if (m.isValid()) return m;
+	}
+	return null;
+}
+
+/** Strip whitespace-separated trailing #tag tokens ("due 2026-08-01 #home
+ * #errand" → "due 2026-08-01"). Leading/only-tag strings are left alone —
+ * they're not dates and fail parsing on their own. */
+function stripTrailingTags(s: string): string {
+	let out = s;
+	for (;;) {
+		const m = /\s+#[^\s]+$/.exec(out);
+		if (!m) break;
+		out = out.slice(0, m.index);
+	}
+	return out.trim();
 }
 
 /** Format a YYYY-MM-DD (or datetime) as a short, human-relative label for the
@@ -146,9 +212,12 @@ export function parseNaturalDate(input: string): string | null {
  *  the ↻ recurring suffix and the overdue tint; this returns only the date
  *  wording. Falls back to the raw string when it can't be parsed as a date. */
 export function formatRelativeDate(dateStr: string): string {
+	// TaskNotes scheduled values reach here as raw frontmatter strings, so this
+	// must tolerate arbitrary text — strictMoment (unlike bare moment()) can't
+	// spam the console with deprecation warnings for non-dates (#52).
 	const iso = dateStr.slice(0, 10);
-	const target = moment(iso);
-	if (!target.isValid()) return dateStr;
+	const target = strictMoment(iso);
+	if (!target) return dateStr;
 	const today = moment().startOf("day");
 	const m = target.startOf("day");
 	const diff = Math.round(m.diff(today, "day"));

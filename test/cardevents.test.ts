@@ -3,11 +3,11 @@ import { TFile } from "obsidian";
 import type { App, EventRef } from "obsidian";
 import {
 	createVaultEventHub,
-	liveCardShouldRedraw,
 	type VaultEvent,
 	type VaultEventKind,
 	watchedCardReactsToKind,
 } from "../src/cardevents";
+import { CARD_DEFINITIONS } from "../src/cards";
 import type { DashboardCard } from "../src/types";
 
 /**
@@ -16,7 +16,8 @@ import type { DashboardCard } from "../src/types";
  * longer refreshes when it should — from both ends:
  *   - the hub fans every vault event out to every subscriber (lazily, and
  *     isolating one subscriber's failure from the rest);
- *   - the two pure decisions reproduce the old per-card behaviour exactly.
+ *   - the pure decisions — the registry's per-kind `liveness.shouldRedraw`
+ *     and `watchedCardReactsToKind` — reproduce the old per-card behaviour.
  */
 
 const ALL_KINDS: VaultEventKind[] = ["create", "delete", "rename", "modify", "meta"];
@@ -119,30 +120,36 @@ function ev(kind: VaultEventKind, path = "Any.md", oldPath?: string): VaultEvent
 	return { kind, file: file(path), oldPath };
 }
 
-describe("liveCardShouldRedraw", () => {
+/** The dashboard's vault-mode dispatch (see mountCardBody): a vault-live card
+ * redraws unless its definition's `shouldRedraw` filter skips the event. */
+function liveCardRedraws(c: DashboardCard, e: VaultEvent): boolean {
+	const live = CARD_DEFINITIONS[c.kind].liveness;
+	if (live.mode !== "vault") throw new Error(`${c.kind} is not a vault-live kind`);
+	return !live.shouldRedraw || live.shouldRedraw(c, e);
+}
+
+describe("vault-live redraw decision (registry liveness.shouldRedraw)", () => {
 	it("non-tasks live cards redraw on every event kind", () => {
 		for (const kind of ["stats", "calendar", "search", "heatmap"] as const) {
 			for (const k of ALL_KINDS) {
-				expect(liveCardShouldRedraw(card(kind), ev(k))).toBe(true);
+				expect(liveCardRedraws(card(kind), ev(k))).toBe(true);
 			}
 		}
 	});
 
 	it("a default (all-scope) tasks card redraws on every event kind — unchanged from before", () => {
 		for (const k of ALL_KINDS) {
-			expect(liveCardShouldRedraw(card("tasks"), ev(k))).toBe(true);
-			expect(liveCardShouldRedraw(card("tasks", { folderScope: "all" }), ev(k))).toBe(true);
+			expect(liveCardRedraws(card("tasks"), ev(k))).toBe(true);
+			expect(liveCardRedraws(card("tasks", { folderScope: "all" }), ev(k))).toBe(true);
 		}
 	});
 
 	it("a folder-scoped tasks card redraws for in-scope events and skips out-of-scope ones", () => {
 		const scoped = card("tasks", { folderScope: "whitelist", folders: ["Tasks"] });
-		expect(liveCardShouldRedraw(scoped, ev("modify", "Tasks/todo.md"))).toBe(true);
-		expect(liveCardShouldRedraw(scoped, ev("modify", "Journal/x.md"))).toBe(false);
+		expect(liveCardRedraws(scoped, ev("modify", "Tasks/todo.md"))).toBe(true);
+		expect(liveCardRedraws(scoped, ev("modify", "Journal/x.md"))).toBe(false);
 		// A rename that touches the scope on either side still redraws.
-		expect(liveCardShouldRedraw(scoped, ev("rename", "Archive/todo.md", "Tasks/todo.md"))).toBe(
-			true,
-		);
+		expect(liveCardRedraws(scoped, ev("rename", "Archive/todo.md", "Tasks/todo.md"))).toBe(true);
 	});
 });
 

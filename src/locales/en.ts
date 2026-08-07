@@ -43,8 +43,10 @@ export const en = {
 		commandNotFound: (id: string) => `Hearth: command not found: ${id}`,
 		couldNotCreateNoteForDay: (day: string) =>
 			`Hearth: couldn't create a note for ${day}.`,
+		couldNotCreateEventNote: "Hearth: couldn't create a note for that event.",
 		taskNotesCreateFailed: "Hearth: couldn't run TaskNotes: Create new task.",
 		taskChangedOnDisk: "Hearth: that task changed on disk — refreshed.",
+		couldNotOpenTaskNote: "Hearth: couldn't open that task's note.",
 		couldNotUpdateTaskStatus: "Hearth: couldn't update the task status.",
 		couldNotCompleteRecurring:
 			"Hearth: couldn't mark the recurring task instance complete.",
@@ -57,7 +59,8 @@ export const en = {
 		layoutImportError: (error: string) => `Hearth: ${error}`,
 		settingsExported: "Hearth: settings exported.",
 		settingsImported: "Hearth: settings imported.",
-		exportedToVault: (file: string) => `Hearth: saved ${file} to your vault's root folder.`,
+		exportedToVault: (file: string) =>
+			`Hearth: saved ${file} to your vault's root folder.`,
 		exportFailed: "Hearth: couldn't save the export file.",
 		cardCopied: "Card copied to the dashboard.",
 	},
@@ -137,6 +140,14 @@ export const en = {
 		deleteConfirm: "Delete",
 		modal: {
 			title: "Dashboard settings",
+			/** Tabs across the top of the dashboard settings modal. */
+			tabs: {
+				general: "General",
+				header: "Header",
+				layout: "Layout",
+				style: "Style",
+				background: "Background",
+			},
 			name: "Name",
 			switcherIcon: "Switcher icon",
 			switcherIconDesc:
@@ -147,6 +158,37 @@ export const en = {
 			lucidePlaceholder: "home",
 			showSearch: "Show search section",
 			showSearchDesc: "Show the search and command bar with its results and filter buttons on this dashboard.",
+			linkedWorkspace: "Linked workspace",
+			linkedWorkspaceDesc:
+				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
+			linkedWorkspaceNone: "None",
+			mobileDefault: "Default on mobile",
+			mobileDefaultDesc:
+				"Open this dashboard when Hearth loads on a phone or tablet. Only one board can be the mobile default; enabling this clears it on the others.",
+			titleVisibility: "Title visibility",
+			titleVisibilityDesc:
+				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
+			titleVisibilityDefault: (state: string) => `Use global default (${state})`,
+			visibilityShown: "shown",
+			visibilityHidden: "hidden",
+			visibilityShow: "Show title",
+			visibilityHide: "Hide title",
+			titleText: "Title text",
+			titleTextDesc: "Override the global title text for this dashboard.",
+			logoText: "Logo text",
+			logoTextDesc:
+				"Override the global logo for this dashboard. Empty uses the Hearth crystal icon.",
+			titleAlign: "Title alignment",
+			titleAlignDesc:
+				"Align only the title/logo block. The search bar keeps its own layout.",
+			alignDefault: "Default (center)",
+			alignLeft: "Left",
+			alignCenter: "Center",
+			alignRight: "Right",
+			titleSize: "Title size",
+			logoSize: "Logo size",
+			titleTopMargin: "Title top margin",
+			headerSpacingBelow: "Spacing below title/header",
 			contentWidth: "Content width",
 			fitToPage: "Fit to page",
 			fitToPageDesc: "Override scrolling for this board.",
@@ -157,10 +199,16 @@ export const en = {
 			fitOptionScroll: "Allow scrolling",
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
+			cardRadius: "Card corner radius",
+			cardBorderWidth: "Card border",
 			done: "Done",
 			overriding: "Overriding the global default.",
 			usingGlobal: (value: number | string) =>
 				`Using global default (${value}).`,
+			usingDefault: (value: number | string) =>
+				`Using default (${value}).`,
+			usingDefaultText: (value: string) =>
+				`Using default (${value}).`,
 			background: "Background",
 			backgroundDesc: "Override the global background for this dashboard.",
 			backgroundValue: "Background value",
@@ -220,6 +268,8 @@ export const en = {
 				"Transparency and frosted-glass blur applied to every card.",
 			startup: "Startup & tabs",
 			startupDesc: "When and where the home view opens.",
+			opening: "Opening notes",
+			openingDesc: "Where a note opens when you click it in Hearth.",
 			mobileMode: "Mobile mode",
 			mobileModeDesc: "How Hearth behaves on phones and tablets.",
 			privacy: "Privacy & network",
@@ -256,6 +306,14 @@ export const en = {
 			logo: "Logo",
 			logoDesc:
 				"An emoji or short text shown next to the title. Leave empty for the Hearth crystal icon.",
+			themeColorTarget: "Follow theme icon color",
+			themeColorTargetDesc:
+				"Draw the crystal icon and/or the title text in your theme's icon " +
+				"color instead of the default purple crystal and normal text.",
+			themeColorNone: "Off",
+			themeColorIcon: "Icon",
+			themeColorTitle: "Title",
+			themeColorBoth: "Icon and title",
 			searchPlaceholder: "Search placeholder",
 			searchContents: "Search note contents",
 			searchContentsDesc:
@@ -313,16 +371,59 @@ export const en = {
 			openOnStartupDesc: "Open the home view when the vault loads.",
 			replaceNewTabs: "Replace new tabs",
 			replaceNewTabsDesc: "Show the home view instead of an empty new tab.",
+			focusSearchOnOpen: "Focus search on open",
+			focusSearchOnOpenDesc:
+				"Place the cursor in the search field whenever a home view opens, so " +
+				"you can start typing right away. Desktop only.",
+			liveRefresh: "Live refresh on vault changes",
+			liveRefreshDesc:
+				"Keep an open home view current as the vault changes — Recent, Bookmarks " +
+				"and saved-query cards update without reopening the tab. Switching back to " +
+				"the Hearth tab always refreshes it regardless of this setting.",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
 				"field. No effect on desktop.",
 			disableExternalCalls: "Disable external calls",
 			disableExternalCallsDesc:
-				"Block all outbound network requests Hearth makes. The only such " +
-				"request is the calculator's currency-rate lookup (the free, key-less " +
-				"Frankfurter API). With this on, currency conversions report that rates " +
-				"are unavailable instead of reaching out to the internet.",
+				"Block all outbound network requests Hearth makes, including Jira, " +
+				"external calendars, RSS feeds, and the calculator's currency-rate lookup.",
+			openIn: "Open notes in",
+			openInDesc:
+				"Where a note goes when you open one from Hearth. \"Current tab\" replaces " +
+				"the home view, so Hearth behaves like any other tab. Ctrl/Cmd-click always " +
+				"opens a new tab regardless.",
+			openInModes: {
+				tab: "A new tab",
+				same: "The current tab (replace Hearth)",
+				split: "A split pane",
+				window: "A new window",
+			},
+			/** The extra choice each per-source dropdown offers on top of the four
+			 * destinations: follow whatever "Open notes in" is set to. */
+			openInFollow: "Same as above",
+			openInSources: {
+				link: "Links",
+				linkDesc: "Links inside notes, tasks and the Links card.",
+				search: "Search results",
+				searchDesc: "Hits from the search bar and the Search card.",
+				card: "Notes in cards",
+				cardDesc:
+					"Notes listed by Recent, Bookmarks, Favourites, Calendar, Heatmap and " +
+					"Tasks cards, and by mobile action buttons.",
+				newNote: "Notes Hearth creates",
+				newNoteDesc: "New notes, daily notes and event notes, opened as they're made.",
+			},
+			openFromOutside: "Notes opened from outside Hearth",
+			openFromOutsideDesc:
+				"The file explorer, the quick switcher, the graph — and anything a card " +
+				"embeds that opens links itself. Obsidian hands those to whichever tab " +
+				"is focused, so a Hearth tab gets taken over. Choose \"a new tab\" to keep " +
+				"the Hearth tab; the file explorer then stops following what you open.",
+			openFromOutsideModes: {
+				same: "The current tab (replace Hearth)",
+				tab: "A new tab (keep Hearth open)",
+			},
 		},
 		mobileActions: {
 			heading: "Mobile action bar",
@@ -360,6 +461,38 @@ export const en = {
 				"Frontmatter field read for a task's priority indicator.",
 			doneValue: "“Done” status value",
 			doneValueDesc: "The status value that marks a TaskNotes task complete.",
+			fieldsEnable: "Customize task fields",
+			fieldsEnableDesc:
+				"Replace the fixed metadata Tasks cards show with fields you define " +
+				"yourself — any frontmatter property or anything Hearth reads, named, " +
+				"colored and ordered how you like. Off by default, and tasks keep " +
+				"their usual look until you turn it on. Turning it on starts from a " +
+				"blank slate: tasks show only the fields you add.",
+			fields: "Fields shown on a task",
+			fieldsDesc:
+				"The fields every Tasks card shows. A single card can define its own " +
+				"instead, from that card's settings.",
+		},
+		fileIcons: {
+			heading: "File icons / Iconic / Iconize",
+			headingDesc:
+				"Use the per-file icons you've set with the Iconic or Iconize " +
+				"plugins wherever Hearth shows a file — Recent, Favorites, saved " +
+				"searches and the search bar. Lucide icons and emoji are shown; " +
+				"files using an icon from a downloaded icon pack keep Hearth's own " +
+				"file-type icon.",
+			enable: "Use icons from Iconic / Iconize",
+			enableDesc:
+				"Off shows Hearth's file-type icon for every file, ignoring both plugins.",
+			enableDescNoPlugin:
+				"Neither Iconic nor Iconize is enabled right now, so every file " +
+				"shows Hearth's file-type icon. This can stay on — it takes effect " +
+				"as soon as one of them is installed.",
+			property: "Iconize frontmatter property",
+			propertyDesc:
+				"Property Iconize stores a note's icon in, for icons set through " +
+				"frontmatter rather than its menu. Match this to Iconize's own " +
+				"setting if you renamed it (its default is “icon”).",
 		},
 		filters: {
 			heading: "Search filters",
@@ -392,6 +525,12 @@ export const en = {
 			cardBlur: "Card blur",
 			cardBlurDesc:
 				"Frosted-glass blur behind translucent cards. Needs card opacity below 100% to show. 0 = off.",
+			cardRadius: "Card corner radius",
+			cardRadiusDesc:
+				"How rounded card corners are, in pixels. 14 is the default; lower makes corners sharper.",
+			cardBorderWidth: "Card border",
+			cardBorderWidthDesc:
+				"Thickness of the card border and header divider, in pixels. 0 hides the border.",
 			cards: "Cards",
 			cardsDesc:
 				"Add and configure cards on the dashboard itself: open the home view, " +
@@ -405,7 +544,8 @@ export const en = {
 			export: "Export layout",
 			exportDesc: "Download the current dashboard layout as a JSON file.",
 			exportButton: "Export file",
-			exportMobileTooltip: "On mobile the file is saved to your vault's root folder.",
+			exportMobileTooltip:
+				"On mobile the file is saved to your vault's root folder.",
 			import: "Import layout",
 			importDesc:
 				"Choose a previously exported layout file. This replaces your current dashboards.",
@@ -430,6 +570,17 @@ export const en = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "Card settings",
+		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
+		iconHelp:
+			"Enter a Lucide icon id (e.g. “home”, “star”, “calendar”) — browse them at " +
+			"lucide.dev/icons. You can also enter a vault image path (e.g. " +
+			"Attachments/icon.png) to use your own picture as the icon.",
+		/** Tabs across the top of the card settings modal. */
+		tabs: {
+			content: "Content",
+			style: "Style",
+			layout: "Layout",
+		},
 		type: "Type",
 		typeDesc: "What this card shows.",
 		cardTitle: "Title",
@@ -462,6 +613,7 @@ export const en = {
 			calculator: "Calculator",
 			dataview: "Dataview query",
 			rss: "RSS feed",
+			jira: "Jira filter",
 			leaf: "Plugin view (beta)",
 		},
 		linkTypes: {
@@ -488,6 +640,11 @@ export const en = {
 			editable: "Editable",
 			editableDesc:
 				"Edit the embedded note's text in place (Markdown notes only).",
+			livePreview: "Live preview",
+			livePreviewDesc:
+				"Edit in Obsidian's own Live Preview editor instead of the plain " +
+				"raw-Markdown box, so formatting renders as you type. Off shows the " +
+				"raw Markdown source, edited on double-click.",
 			hideBaseHeader: "Hide base header",
 			hideBaseHeaderDesc:
 				"For embedded .base files, hide the Bases view's own toolbar (view switcher and filter/property controls) so only the results show.",
@@ -496,6 +653,9 @@ export const en = {
 			secondViewFileDesc:
 				"Optional. When set, the card shows a switcher between the two views — in the header when the card has a title, or floating (on hover) when it doesn't.",
 			secondViewClear: "Remove second view",
+			openButton: "Open button",
+			openButtonDesc:
+				"Show a button that opens the embedded file in its own tab (#144). Off by default.",
 		},
 		daily: {
 			editable: "Editable",
@@ -522,18 +682,165 @@ export const en = {
 		recent: {
 			count: "Number of files",
 			countDesc: "How many recently-opened files to list.",
+			types: "File types",
+			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
 		},
 		calendar: {
+			view: "Layout",
+			viewDesc: "Month shows a grid; agenda lists upcoming days.",
+			viewMonth: "Month grid",
+			viewAgenda: "Agenda",
+			agendaDays: "Days ahead",
+			agendaDaysDesc: "How many days the agenda lists, starting from today.",
 			weekNumbers: "Week numbers",
 			weekNumbersDesc: "Show an ISO week-number column down the left edge.",
 			heatmap: "Heatmap",
 			heatmapDesc: "Tint each day by note activity that day.",
 			heatmapCounts: "Heatmap counts",
+			externalCalendars: "External calendars",
+			externalCalendarsDesc:
+				"Subscribe to ICS/iCal feeds (Google, iCloud, Fastmail, Nextcloud…). Events appear as coloured dots on the grid and are listed in the agenda view.",
+			sourceNamePlaceholder: "Name",
+			sourceUrlPlaceholder: "ICS/iCal URL (https:// or webcal://)",
+			sourceShow: "Show this calendar",
+			sourceHide: "Hide this calendar",
+			sourceRemove: "Remove calendar",
+			addCalendar: "Add calendar",
+			refresh: "Refresh every",
+			refreshDesc: "How often to re-fetch calendars, in minutes. 0 fetches only on open.",
+			eventNoteHeading: "Event notes",
+			eventNoteDesc:
+				"Configure the “Create note” action in the event popup: pick a template, choose a folder and filename, and decide what happens to each event value.",
+			eventNoteEnabled: "Show “Create note”",
+			eventNoteEnabledDesc: "Offer a create-note button in the event details popup.",
+			eventNoteFolder: "Folder",
+			eventNoteFolderDesc: "Where new event notes are created. Empty = vault root.",
+			eventNoteFilename: "Filename",
+			eventNoteFilenameDesc: "Note name. Placeholders: {{summary}}, {{date}}, {{start}}, {{location}}, …",
+			eventNoteTemplate: "Template",
+			eventNoteTemplateDesc:
+				"Optional note whose contents seed the body. The same {{…}} placeholders are substituted.",
+			eventNotePickTemplate: "Pick template file",
+			eventNoteClearTemplate: "Clear template",
+			eventNoteLinkKey: "Link property",
+			eventNoteLinkKeyDesc:
+				"Frontmatter property that stores the event’s ID, so an event always maps to one note. Empty to disable linking.",
+			eventNoteCustomize: "Customise field routing",
+			eventNoteCustomizeDesc:
+				"Off uses sensible defaults (date & time as properties, description in the body). On lets you route each value.",
+			eventNoteFieldsHeading: "Field routing",
+			eventNoteAddField: "Add field",
+			eventNoteRemoveField: "Remove",
+			eventFieldNames: {
+				summary: "Name",
+				date: "Date",
+				start: "Start time",
+				end: "End time",
+				location: "Location",
+				description: "Description",
+				url: "URL",
+				calendar: "Calendar",
+			},
+			eventFieldActions: {
+				ignore: "Ignore",
+				frontmatter: "Property",
+				body: "Append to body",
+			},
+			eventNotePropertyPlaceholder: "Property name",
+			eventNoteHeadingPlaceholder: "Heading (optional)",
+			eventNoteFormatPlaceholder: "Format (e.g. HH:mm)",
+			chipsHeading: "Entry details",
+			chipsDesc:
+				"Choose what each agenda entry shows beside its title. Turn off what you don't need — on a narrow card the markers compete with the title itself.",
+			chipTime: "Time",
+			chipTimeDesc: "The start time, or “All day”.",
+			chipSource: "Calendar name",
+			chipSourceDesc: "Which calendar an entry came from. Only ever shown with more than one source.",
+			chipStatus: "Status",
+			chipStatusDesc: "A task's TaskNotes status, e.g. “In progress”. Off by default.",
+			chipPriority: "Priority",
+			chipPriorityDesc: "A task's TaskNotes priority, e.g. “High”.",
+			chipDue: "Due marker",
+			chipDueDesc: "The “Due” badge on a due-date entry.",
+			chipRecurring: "Recurring marker",
+			chipRecurringDesc: "The “Recurring” badge on a repeating task.",
+			chipTimeblock: "Timeblock marker",
+			chipTimeblockDesc: "The “Timeblock” badge on a timeblock.",
+			taskNotesHeading: "TaskNotes",
+			taskNotesDesc:
+				"Use TaskNotes as an event source. The card mirrors what TaskNotes' own calendar shows — scheduled tasks, due dates, recurring occurrences, timeblocks and the calendars subscribed inside TaskNotes — using TaskNotes' own field names, statuses and colours.",
+			taskNotesMissing:
+				"TaskNotes isn't enabled in this vault. Install and enable it to use it as a calendar source.",
+			taskNotesEnabled: "Use TaskNotes",
+			taskNotesEnabledDesc: "Draw TaskNotes items on this calendar.",
+			taskNotesScheduled: "Scheduled tasks",
+			taskNotesScheduledDesc:
+				"Tasks on their scheduled date, sized by their time estimate.",
+			taskNotesDue: "Due dates",
+			taskNotesDueDesc: "Tasks on their due date.",
+			taskNotesRecurring: "Recurring tasks",
+			taskNotesRecurringDesc:
+				"Unroll a recurring task into one entry per occurrence. Off shows only its next date.",
+			taskNotesTimeblocks: "Timeblocks",
+			taskNotesTimeblocksDesc: "Timeblocks written into your daily notes.",
+			taskNotesFollows: (on: boolean) =>
+				`TaskNotes currently has this ${on ? "on" : "off"}.`,
+			taskNotesFollowReset: "Follow TaskNotes",
+			taskNotesCompleted: "Show completed",
+			taskNotesCompletedDesc: "Keep finished tasks on the calendar, struck through.",
+			taskNotesArchived: "Show archived",
+			taskNotesArchivedDesc: "Include tasks carrying TaskNotes' archive tag.",
+			taskNotesComplete: "Complete from the calendar",
+			taskNotesCompleteDesc:
+				"Offer a completion box on each task, writing back exactly what TaskNotes writes (per-occurrence for recurring tasks).",
+			taskNotesSubscriptions: "TaskNotes calendars",
+			taskNotesSubscriptionsDesc: (count: number) =>
+				`Also show the ${count} calendar${count === 1 ? "" : "s"} subscribed inside TaskNotes.`,
+			taskNotesSubscriptionsNone: "TaskNotes has no calendar subscriptions to show.",
+			taskNotesSubLoaded: (count: number) =>
+				`${count} event${count === 1 ? "" : "s"} loaded.`,
+			taskNotesSubPending: "Not loaded yet — refresh below.",
+			taskNotesSubDisabled: "Disabled in TaskNotes.",
+			taskNotesSubBlocked: "Not fetched: external calls are disabled in Hearth's settings.",
+			taskNotesSubFailed: (reason: string) => `Couldn't load: ${reason}`,
+			taskNotesSubNotCalendar: "the response wasn't an iCalendar feed.",
+			taskNotesSubMissingFile: "that file isn't in the vault.",
+			taskNotesSubRefresh: "Refresh calendars",
+			taskNotesColorBy: "Colour by",
+			taskNotesColorByDesc: "Where each task's colour comes from.",
+			taskNotesColorStatus: "TaskNotes status",
+			taskNotesColorPriority: "TaskNotes priority",
+			taskNotesColorFixed: "One fixed colour",
+			taskNotesColor: "Task colour",
+			taskNotesColorDesc: "Used for the fixed colour, and when TaskNotes defines none.",
+			taskNotesDueColor: "Due colour",
+			taskNotesDueColorDesc: "Optional separate colour for due-date entries.",
+			taskNotesTimeblockColor: "Timeblock colour",
+			taskNotesTimeblockColorDesc: "Used for timeblocks that carry no colour of their own.",
 		},
 		heatmap: {
 			metric: "Metric",
 			weeks: "Weeks",
 			weeksDesc: "How many weeks of history to show.",
+		},
+		stats: {
+			advanced: "Advanced",
+			advancedDesc:
+				"Choose which stats to show, break attachments out by file type, and add " +
+				"custom counts. Off shows the default set.",
+			builtins: "Stats to show",
+			builtinsDesc: "Pick which built-in stats appear. The day streak only shows when daily notes are set up.",
+			attachmentTypes: "Attachment breakdown",
+			attachmentTypesDesc: "Add a separate count tile for each selected file type (images, PDFs, …).",
+			customCounts: "Custom counts",
+			customCountsDesc:
+				"Each row counts the files matching a query and shows the total as a tile. " +
+				"Query syntax matches the search bar: #tag, key:value for a property, or plain text.",
+			labelPlaceholder: "Label",
+			iconPlaceholder: "Icon",
+			queryPlaceholder: "#project or status:active",
+			addCount: "Add count",
+			removeCount: "Remove count",
 		},
 		metricOptions: {
 			modified: "Notes edited",
@@ -664,6 +971,124 @@ export const en = {
 				"line. Leave empty to use just the done value from Settings → Hearth. " +
 				"Add, e.g., “canceled” to count cancelled tasks as complete too.",
 			doneStatusesPlaceholder: "done\ncanceled",
+			fields: "Fields",
+			fieldsFollowGlobal:
+				"Following the fields from Settings → Hearth → Integrations. Turn on " +
+				"to give this card its own.",
+			fieldsCustomize: "Customize…",
+			fieldsTitle: "Task fields",
+			fieldsHint:
+				"Everything a task shows, in order. A field is yours to define: name " +
+				"it, choose how it's drawn, and give it the keys it reads.",
+			fieldsEmpty: "No fields yet — tasks show their text only.",
+			fieldsNone: "None — tasks show their text only.",
+			fieldsApplyClose: "Apply & close",
+			fieldsApplyDesc: "Apply without closing, to keep adjusting.",
+			fieldsReset: "Remove all fields",
+			fieldUnnamed: "Untitled field",
+			fieldDefaultName: (n: number) => `Field ${n}`,
+			fieldAdd: "Add field",
+			fieldEdit: "Edit field",
+			fieldRemove: "Remove field",
+			fieldMoveUp: "Move up",
+			fieldMoveDown: "Move down",
+			fieldExpand: "Expand",
+			fieldCollapse: "Collapse",
+			fieldName: "Name",
+			fieldNameDesc: "What this field is called. Shown on tasks only if you ask below.",
+			fieldNamePlaceholder: "e.g. Priority",
+			fieldShowName: "Show the name on tasks",
+			fieldShowNameDesc: "Prefix each value with the field name (“Priority: Urgent”).",
+			fieldDisplay: "Display",
+			fieldDisplayDesc:
+				"How this field's values are drawn. The last two show nothing on the " +
+				"task and color the whole row or card instead. Dates keep their own " +
+				"format, and a description is always its own block of sub-bullets.",
+			fieldStyles: {
+				pill: "Chip",
+				dot: "Colored dot",
+				text: "Plain text",
+				hue: "Tint the whole task",
+				glow: "Glow around the task",
+			},
+			fieldOpacity: "Strength",
+			fieldOpacityDesc:
+				"How strongly the color is laid on. Only the value's color is used — " +
+				"a value with no color set leaves the task alone.",
+			fieldKeys: "Keys",
+			fieldKeysDesc:
+				"Where this field reads from. Every key that has a value shows one, " +
+				"so a field can gather several pieces of metadata under one name.",
+			fieldKeysEmpty: "No keys yet — this field shows nothing.",
+			fieldNoKeys: "No keys",
+			fieldAddKey: "Add a key",
+			fieldAddKeyDesc:
+				"Hearth's own values reach a checkbox line's priority, a board column " +
+				"and the parsed dates; a property reads anything in your frontmatter.",
+			fieldAddBuiltin: "What Hearth reads",
+			fieldAddProperty: "Frontmatter property",
+			fieldAddKeyTyped: "Type a property name…",
+			fieldAddKeyPlaceholder: "Property name",
+			fieldRemoveKey: "Remove key",
+			fieldPickProperty: "Properties found in your notes",
+			fieldPickBuiltin: "Values Hearth parses itself",
+			fieldKeyAlreadyAdded: (key: string) => `“${key}” is already a key on this field.`,
+			fieldMapValues: "Values & colors",
+			fieldMappedValues: (n: number) => `${n} value(s) mapped`,
+			fieldNoMappings: "Values shown as they are",
+			fieldMapHint:
+				"Show a nicer label and a color for each value. Values you don't map " +
+				"still show, as themselves.",
+			fieldMapEmpty: "No values mapped yet.",
+			fieldDateKey: "Shown as a date",
+			fieldIsDate: "Treat as a date",
+			fieldIsDateDesc:
+				"Show this property as a relative date (“Tomorrow”), color it by " +
+				"whether it's past, today or upcoming, and edit it with a calendar.",
+			fieldDateHint:
+				"A date has no fixed values to map, so it's colored by where it " +
+				"falls. A label is optional — leave it empty to keep the date itself.",
+			fieldDateLabelPlaceholder: "Show as (optional)",
+			dateRelations: {
+				"<today": "Before today",
+				today: "Today",
+				">today": "After today",
+			},
+			fieldNotMappable:
+				"This key has no discrete values to map — it keeps its own format.",
+			fieldMatchPlaceholder: "e.g. high",
+			fieldLabelPlaceholder: "Optional",
+			fieldValueColumn: "Value in your notes",
+			fieldWhenColumn: "When the date falls",
+			fieldShownColumn: "Shown on the task as",
+			fieldColorColumn: "Color",
+			fieldAddMapping: "Add a value",
+			fieldValuesFound: (n: number) => `From your notes (${n})`,
+			fieldRemoveMapping: "Remove value",
+			fieldPickValue: "Values this key takes elsewhere in your vault",
+			fieldColor: "Color",
+			fieldColorCustom: "Custom color",
+			fieldColorClear: "No color",
+			colorNames: {
+				"--color-red": "Red",
+				"--color-orange": "Orange",
+				"--color-yellow": "Yellow",
+				"--color-green": "Green",
+				"--color-cyan": "Cyan",
+				"--color-blue": "Blue",
+				"--color-purple": "Purple",
+				"--color-pink": "Pink",
+			},
+			sourceNames: {
+				status: "Status (TaskNotes)",
+				column: "Board column (Kanban)",
+				priority: "Priority",
+				start: "Start date",
+				scheduled: "Scheduled date",
+				due: "Due date",
+				doneDate: "Done date",
+				description: "Description",
+			},
 			showCompleted: "Show completed",
 			showCompletedKanbanDesc:
 				"Completed tasks always appear in the Done column on a Kanban board.",
@@ -688,7 +1113,10 @@ export const en = {
 			style: "Style",
 			styleDigital: "Digital",
 			styleAnalog: "Analog",
-			hour24: "24-hour time",
+			hourFormat: "Time format",
+			hourFormatAuto: "Automatic (locale)",
+			hourFormat12: "12-hour",
+			hourFormat24: "24-hour",
 			showSeconds: "Show seconds",
 			showGreeting: "Show greeting",
 			playful: "Playful greetings",
@@ -743,6 +1171,17 @@ export const en = {
 			urlPlaceholder: "https://example.com/feed.xml",
 			addFeed: "Add feed",
 			removeFeed: "Remove feed",
+			github: "Add from GitHub",
+			githubDesc:
+				"Enter a repository as owner/repo (or paste its URL) and pick what to follow — Hearth builds the Atom feed for you.",
+			githubPlaceholder: "owner/repo",
+			githubReleases: "Releases",
+			githubCommits: "Commits",
+			githubBoth: "Releases & commits",
+			githubAdd: "Add repo",
+			githubInvalid: "Enter a repository as owner/repo.",
+			githubReleasesName: "{repo} releases",
+			githubCommitsName: "{repo} commits",
 			mergeAll: "Combined “All” tab",
 			mergeAllDesc:
 				"Add a leading tab that merges every feed into one stream, newest first.",
@@ -763,6 +1202,32 @@ export const en = {
 			showDate: "Show date",
 			showDateDesc: "Show each item's publish time.",
 		},
+		jira: {
+			host: "Jira host",
+			hostDesc: "The Jira site origin. HTTPS is required when sending a personal access token.",
+			hostPlaceholder: "https://jira.example.com",
+			pat: "Personal access token",
+			patDesc: "Bearer PAT used for this card. Stored in Hearth's plugin data.",
+			apiBase: "API base path",
+			apiBaseDesc: "A relative Jira REST path. Full URLs are rejected.",
+			apiBasePlaceholder: "/rest/api/latest",
+			savedFilter: "Saved filter",
+			savedFilterDesc: "Load your favorite Jira filters, then choose one.",
+			selectedFilter: (name: string) => `Selected: ${name}`,
+			loadFilters: "Load favorite filters",
+			chooseFilter: "Choose a filter…",
+			noFavoriteFilters: "Jira returned no favorite filters.",
+			loadFailed: "Couldn't load Jira filters. Check the host, API path, and token.",
+			externalCallsDisabled:
+				"Favorite filters can't be loaded while external calls are disabled in Hearth settings.",
+			controls: "Filter controls",
+			maxResults: "Max results",
+			maxResultsDesc: "The most refined issues to show, up to 200.",
+			refresh: "Auto-refresh (minutes)",
+			refreshDesc: "How often to refresh Jira. 0 = only when opened or refreshed manually.",
+			cache: "Cache interval (minutes)",
+			cacheDesc: "How long successful Jira responses stay in memory. 0 disables caching.",
+		},
 		leaf: {
 			view: "View to host",
 			viewDesc:
@@ -771,6 +1236,21 @@ export const en = {
 				"plugins are enabled.",
 			pickPlaceholder: "Pick a view…",
 			none: "No hostable views found. Enable a plugin that provides a side-panel view.",
+			file: "File to show",
+			fileDesc:
+				"Optional. Open a specific vault file in the hosted view — an " +
+				"Excalidraw drawing, a canvas, a note. Leave empty to host the view " +
+				"without a file (some views then show a blank or \"new file\" screen).",
+			filePlaceholder: "e.g. Drawings/Sketch.excalidraw.md",
+			pickFile: "Choose file",
+			clearFile: "Clear file",
+			hideHeader: "Hide view header",
+			hideHeaderDesc:
+				"Hide the hosted view's own header — its breadcrumbs, back/forward " +
+				"arrows and menu. Handy when the card shows a single file.",
+			perfNote:
+				"Hosting a live plugin view is heavier than a normal card and may " +
+				"affect performance — use a few at most.",
 			note: "Beta",
 			noteDesc:
 				"Hosts another plugin's view inside the card. Some views expect a " +
@@ -841,6 +1321,7 @@ export const en = {
 				"This view isn't available — enable the plugin that provides it",
 		},
 		embed: {
+			openFile: "Open this file",
 			editHint: "Double-click to edit",
 			emptyNotePlaceholder: "Empty note…",
 			emptyNoteHint: "Empty note — double-click to edit",
@@ -863,6 +1344,27 @@ export const en = {
 			disabled: "Feeds are off (external calls disabled)",
 			refresh: "Refresh",
 		},
+		jira: {
+			controls: {
+				status: "Status",
+				assignee: "Assignee",
+				priority: "Priority",
+				issueType: "Issue type",
+				sprint: "Sprint",
+				fixVersion: "Fix version",
+			},
+			controlCount: (label: string, count: number) => `${label} (${count})`,
+			searchPlaceholder: "Search options…",
+			searchAria: (label: string) => `Search ${label} options`,
+			noOptions: "No options",
+			noMatchingOptions: "No matching options",
+			refresh: "Refresh Jira issues",
+			loading: "Loading Jira issues…",
+			error: "Couldn't load Jira issues",
+			empty: "No issues match these filters",
+			disabled: "Jira is off (external calls disabled)",
+			notConfigured: "Configure a Jira host, token, and saved filter in card settings",
+		},
 		daily: {
 			createToday: "Create today's note",
 			openToday: "Open today's note",
@@ -879,6 +1381,27 @@ export const en = {
 			dayEdited: (date: string, count: number) => `${date}: ${count} edited`,
 			dayMetric: (date: string, count: number, metric: string) =>
 				`${date}: ${count} ${metric}`,
+			dayEvents: (date: string, count: number) =>
+				`${date}: ${count} ${count === 1 ? "event" : "events"}`,
+			agendaNoNote: "No note",
+			allDay: "All day",
+			untitledEvent: "(No title)",
+			openDailyNote: "Open daily note",
+			createDailyNote: "Create daily note",
+			eventsHeading: "Events",
+			eventNotes: "Notes",
+			createEventNote: "Create note",
+			openEventNote: "Open note",
+			taskNotesSource: "TaskNotes",
+			taskDue: "Due",
+			taskTimeblock: "Timeblock",
+			taskComplete: "Complete",
+			taskReopen: "Reopen",
+			taskEstimate: (minutes: number) =>
+				minutes >= 60
+					? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
+					: `${minutes}m`,
+			openTaskNote: "Open task",
 		},
 		stats: {
 			notes: "Notes",
@@ -886,6 +1409,7 @@ export const en = {
 			folders: "Folders",
 			tags: "Tags",
 			dayStreak: "Day streak",
+			daysUsing: "Days using Obsidian",
 		},
 		web: {
 			openInBrowser: "Open in browser",
@@ -937,6 +1461,9 @@ export const en = {
 			description: "Description",
 			descriptionPlaceholder: "Notes… (plain text)",
 			renameColumnHint: "Double-click to rename",
+			editTitle: "Edit title",
+			editTitleHint: "Double-click to edit",
+			titlePlaceholder: "Card title…",
 			priority: "Priority",
 			priorityNone: "No priority",
 			priorityHighest: "Highest priority",
@@ -999,6 +1526,16 @@ export const en = {
 			filterTextPlaceholder: "Search task text…",
 			filterApply: "Apply",
 			filterClear: "Clear",
+			valueChange: "Change value",
+			dateTitle: "Set date",
+			dateOn: "Date",
+			dateToday: "Today",
+			dateTomorrow: "Tomorrow",
+			dateNextWeek: "Next week",
+			dateClear: "Clear date",
+			valueCustom: "Other value…",
+			valueCustomTitle: "Set value",
+			valueClear: "Clear value",
 		},
 	},
 
@@ -1097,6 +1634,7 @@ export const en = {
 		calculator: "Calculator",
 		dataview: "Dataview query",
 		rss: "RSS feed",
+		jira: "Jira filter",
 		leaf: "Plugin view (beta)",
 	},
 
@@ -1124,7 +1662,9 @@ export const en = {
 		notAnObject: "Layout must be a JSON object.",
 		noValidDashboards: "Layout contained no valid dashboards.",
 		noValidCards: "Layout contained no valid cards.",
-		notAHearthLayout: 'Not a Hearth layout — no "dashboards" or "cards" array found.',
-		notHearthSettings: 'Not a Hearth settings backup — no "hearthSettings" marker or layout found.',
+		notAHearthLayout:
+			'Not a Hearth layout — no "dashboards" or "cards" array found.',
+		notHearthSettings:
+			'Not a Hearth settings backup — no "hearthSettings" marker or layout found.',
 	},
 };

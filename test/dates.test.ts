@@ -175,6 +175,65 @@ describe("parseNaturalDate — unrecognised input", () => {
 	});
 });
 
+/* Regression tests for #52's console spam: a bare moment(raw) call falls back
+ * to `new Date()` parsing for non-ISO/RFC2822 input and prints a deprecation
+ * warning on every attempt — once per unparseable task field per vault scan.
+ * The parser must never take that path, and the field shapes that triggered it
+ * (wikilink due dates, trailing tags) should be handled sensibly. */
+describe("parseNaturalDate — task-field noise (#52)", () => {
+	beforeEach(() => freezeAt("2026-07-15"));
+
+	it("rejects a non-date wikilink + tag without moment's Date() fallback warning", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			expect(parseNaturalDate("[[260801]] #sd")).toBeNull();
+			expect(warn).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("never warns for arbitrary gibberish either", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			expect(parseNaturalDate("read chapter 12 of moby dick")).toBeNull();
+			expect(warn).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("parses a due date written as a daily-note wikilink", () => {
+		expect(parseNaturalDate("[[2026-08-01]]")).toBe("2026-08-01");
+		expect(parseNaturalDate("[[Daily/2026-08-01|due]]")).toBe("2026-08-01");
+	});
+
+	it("ignores trailing #tags after a date expression", () => {
+		expect(parseNaturalDate("2026-08-01 #home")).toBe("2026-08-01");
+		expect(parseNaturalDate("tomorrow #errand #home")).toBe("2026-07-16");
+	});
+
+	it("still accepts the human forms the old Date() fallback covered", () => {
+		expect(parseNaturalDate("Jul 20")).toBe("2026-07-20");
+		expect(parseNaturalDate("20 Jul 2026")).toBe("2026-07-20");
+		expect(parseNaturalDate("July 20, 2026")).toBe("2026-07-20");
+		expect(parseNaturalDate("2026/7/5")).toBe("2026-07-05");
+		expect(parseNaturalDate("15.7.2026")).toBe("2026-07-15");
+	});
+
+	it("still accepts an ISO datetime (strict ISO path)", () => {
+		expect(parseNaturalDate("2026-08-01T09:30")).toBe("2026-08-01");
+	});
+
+	// Exact ISO (YYYY-MM-DD) passes through verbatim regardless of how far out
+	// (see resolveDate in cards.ts); the ±5y sanity window applies only to the
+	// fallback-format guesses.
+	it("still rejects fallback-parsed dates outside the ±5 year window", () => {
+		expect(parseNaturalDate("1/1/1993")).toBeNull();
+		expect(parseNaturalDate("1993-01-01")).toBe("1993-01-01");
+	});
+});
+
 describe("formatRelativeDate", () => {
 	beforeEach(() => freezeAt("2026-07-15")); // Wednesday
 
@@ -211,6 +270,18 @@ describe("formatRelativeDate", () => {
 	// root cause as the parseNaturalDate case — the isValid guard now fires.
 	it("echoes the raw string verbatim when it can't be parsed", () => {
 		expect(formatRelativeDate("blabla")).toBe("blabla");
+	});
+
+	// #52: raw TaskNotes scheduled strings land here unresolved, so an
+	// unparseable value must not trip moment's Date() fallback warning either.
+	it("doesn't warn for non-date input (no moment Date() fallback)", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			expect(formatRelativeDate("[[260801]]")).toBe("[[260801]]");
+			expect(warn).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+		}
 	});
 });
 

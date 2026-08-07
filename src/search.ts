@@ -1,8 +1,10 @@
 import { Command, Component, debounce, Platform, setIcon, TAbstractFile, TFile, TFolder } from "obsidian";
 import type { HomeView } from "./view";
-import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, iconForFile, OTHER_GROUP_ID } from "./filetypes";
+import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
+import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";
 import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
+import { openFile as openInLeaf } from "./opener";
 import { t } from "./i18n";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
@@ -184,6 +186,11 @@ export class SearchSection {
 		if (groups.length === 0) return;
 
 		const row = parent.createDiv("hearth-filters");
+		// The column-gap splits the row's leftover space between the chips, so
+		// the stylesheet needs the chip count. We know it exactly here, so set
+		// it directly: deriving it in CSS took a ladder of :has() rules, which
+		// carries a broad selector-invalidation cost and capped out at 14 chips.
+		row.style.setProperty("--n", String(groups.length));
 		for (const group of groups) {
 			const chip = row.createDiv("hearth-filter");
 			chip.toggleClass("is-active", this.activeFilter === group.id);
@@ -332,8 +339,10 @@ export class SearchSection {
 			this.showEmpty();
 			return;
 		}
+		const icons = fileIconOptions(this.view.plugin.settings);
 		hits.forEach((hit, i) => {
-			const row = this.newRow(i, hit.badge?.icon ?? iconForFile(hit.file));
+			// A badge icon says why the file matched, so it outranks the file's own.
+			const row = this.newRow(i, hit.badge?.icon ?? resolveFileIcon(this.view.app, hit.file, icons));
 			const text = row.createDiv("hearth-result-text");
 			const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 			this.renderName(text.createDiv("hearth-result-name"), name || "/", hit.matches);
@@ -369,12 +378,12 @@ export class SearchSection {
 		this.finishResults();
 	}
 
-	private newRow(index: number, icon: string): HTMLElement {
+	private newRow(index: number, icon: ResolvedIcon | string): HTMLElement {
 		const row = this.resultsEl.createDiv("hearth-result");
 		row.id = `${this.resultsId}-opt-${index}`;
 		row.setAttribute("role", "option");
 		row.setAttribute("aria-selected", "false");
-		setIcon(row.createDiv("hearth-result-icon"), icon);
+		applyFileIcon(row.createDiv("hearth-result-icon"), icon);
 		return row;
 	}
 
@@ -472,7 +481,7 @@ export class SearchSection {
 	private openFile(file: TAbstractFile): void {
 		if (file instanceof TFile) {
 			this.pushHistory(file.path);
-			void this.view.app.workspace.getLeaf(true).openFile(file);
+			void openInLeaf(this.view, file, "search");
 			this.hide();
 		} else if (file instanceof TFolder) {
 			// Reveal the folder in the file explorer.

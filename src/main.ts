@@ -1,8 +1,16 @@
-import { addIcon, Plugin, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, apiVersion, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
-import { HEARTH_ICON_ID, HEARTH_ICON_SVG } from "./icon";
+import {
+	HEARTH_ICON_ID,
+	HEARTH_ICON_SVG,
+	HEARTH_ICON_THEMED_ID,
+	HEARTH_ICON_THEMED_SVG,
+	hearthIconIdFor,
+} from "./icon";
+import type { WorkspacesInstance } from "./obsidian-ext";
+import { openFile } from "./opener";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
@@ -16,21 +24,57 @@ export default class HearthPlugin extends Plugin {
 	 * as opposed to an existing vault that simply predates a given setting.
 	 * Used so the "What's new" dialog greets upgraders but not first-timers. */
 	isFirstRun = false;
+	/** The ribbon crystal, kept so the icon can be swapped when the
+	 * themeColorTarget setting changes. */
+	private ribbonEl?: HTMLElement;
+
+	/** Home-view leaves that have already been the active leaf at least once.
+	 * Their first activation was the fresh onOpen render, so the focus refresh
+	 * (#110) skips it and only re-renders on genuine re-focus (this also avoids
+	 * clobbering any search focus set on open). A WeakSet so closed leaves are
+	 * collected with no manual bookkeeping. */
+	private seenActiveHomeLeaves = new WeakSet<WorkspaceLeaf>();
+
+	/** Debounced live-refresh of open home views on vault changes (#110).
+	 * resetTimer=true so a burst of writes (a sync, a bulk edit) coalesces into a
+	 * single re-render ~600ms after the last change. */
+	private liveRefreshDebounced = debounce(() => this.runLiveRefresh(), 600, true);
 
 	async onload() {
+		// Temporary #52 diagnostic: one report has the settings pane blank with
+		// zero console output even from the render-path warns in settings.ts,
+		// which is only possible if the tab never renders at all — this line
+		// tells apart "an older build is still installed" from "this build is
+		// loaded but its settings tab is never rendered". It also embeds the
+		// environment details every hypothesis so far has hinged on (app/API
+		// version, Electron installer version, CPU architecture), so one
+		// screenshot answers them all. Remove together with the render-path
+		// warns once #52 is closed out.
+		const proc = (window as unknown as { process?: { versions?: Record<string, string>; arch?: string } }).process;
+		console.warn(
+			`Hearth ${this.manifest.version} loaded (Obsidian API ${apiVersion}, ` +
+				`electron ${proc?.versions?.electron ?? "n/a"}, arch ${proc?.arch ?? "n/a"})`,
+		);
+
 		// Pick the locale from Obsidian's UI language before anything renders or
 		// registers a translated command name.
 		setLanguage();
 
 		await this.loadSettings();
 
-		// Register the Hearth crystal so it can be used as the ribbon, tab and
-		// header icon.
+		// Register both Hearth crystals (brand purple and themeable) so either
+		// can be used as the ribbon, tab and header icon per the
+		// themeColorTarget setting.
 		addIcon(HEARTH_ICON_ID, HEARTH_ICON_SVG);
+		addIcon(HEARTH_ICON_THEMED_ID, HEARTH_ICON_THEMED_SVG);
 
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
 
-		this.addRibbonIcon(HEARTH_ICON_ID, t().ribbon.openHome, () => this.activateView());
+		this.ribbonEl = this.addRibbonIcon(
+			hearthIconIdFor(this.settings.themeColorTarget),
+			t().ribbon.openHome,
+			() => this.activateView(),
+		);
 
 		this.addCommand({
 			id: "open-home",
@@ -66,12 +110,36 @@ export default class HearthPlugin extends Plugin {
 
 		this.addSettingTab(new HomeSettingTab(this.app, this));
 
-		// Replace freshly-opened empty tabs with the home view.
+		// Replace freshly-opened empty tabs with the home view, and refresh a home
+		// view whenever the user switches back to its tab (#110).
 		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", (leaf) => this.maybeReplaceNewTab(leaf)),
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				this.maybeReplaceNewTab(leaf);
+				this.maybeRefreshOnFocus(leaf);
+			}),
+		);
+
+		// Opt-in live refresh: when enabled, re-render open home views a beat after
+		// the vault changes so Recent/Bookmarks/query cards stay current without
+		// reopening the tab. Registered unconditionally; the handler checks the
+		// setting so toggling it takes effect without a reload. Debounced so a burst
+		// of writes (a sync, a bulk edit) coalesces into a single re-render.
+		const onVaultChange = () => this.liveRefreshDebounced();
+		this.registerEvent(this.app.vault.on("create", onVaultChange));
+		this.registerEvent(this.app.vault.on("delete", onVaultChange));
+		this.registerEvent(this.app.vault.on("rename", onVaultChange));
+		this.registerEvent(this.app.vault.on("modify", onVaultChange));
+
+		// Follow core-Workspace loads: when the active workspace matches a
+		// dashboard's linked workspace, switch to that dashboard. There is no
+		// dedicated "workspace loaded" event, so listen to layout-change;
+		// setActiveDashboard no-ops when the dashboard is already active.
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => this.followLinkedWorkspace()),
 		);
 
 		this.app.workspace.onLayoutReady(() => {
+			this.applyMobileDefaultDashboard();
 			if (this.settings.openOnStartup) void this.activateView();
 			// Pop the release-notes dialog after an update (but not on a fresh
 			// install). Runs once layout is ready so it doesn't fight startup.
@@ -87,6 +155,38 @@ export default class HearthPlugin extends Plugin {
 		if (!leaf || !this.settings.replaceNewTabs) return;
 		if (leaf.getViewState().type !== "empty") return;
 		void leaf.setViewState({ type: VIEW_TYPE_HOME });
+	}
+
+	/** Name of the workspace we last reacted to, so the link fires once per
+	 * workspace load instead of pinning the dashboard on every layout-change. */
+	private lastWorkspace?: string;
+
+	/** Switch to the dashboard linked to the currently loaded core-Workspace,
+	 * if any. One-way sync: workspace → dashboard, never the reverse. */
+	private followLinkedWorkspace() {
+		const instance = this.app.internalPlugins.getPluginById("workspaces")
+			?.instance as WorkspacesInstance | undefined;
+		const active = instance?.activeWorkspace;
+		if (!active || active === this.lastWorkspace) return;
+		this.lastWorkspace = active;
+		const match = this.settings.dashboards.find(
+			(d) => d.linkedWorkspace === active,
+		);
+		if (match) this.setActiveDashboard(match.id);
+	}
+
+	/** On mobile, switch to the first dashboard flagged as the mobile default so
+	 * a phone/tablet opens on the board tuned for a small screen (#120). Applied
+	 * in memory only, without saving: `activeDashboardId` is a single field shared
+	 * with desktop through synced settings, so persisting the mobile choice would
+	 * drag the desktop's active board along with it on the next sync. Any already
+	 * open home view is re-rendered to reflect the switch. */
+	private applyMobileDefaultDashboard() {
+		if (!Platform.isMobile) return;
+		const mobile = this.settings.dashboards.find((d) => d.mobileDefault);
+		if (!mobile || this.settings.activeDashboardId === mobile.id) return;
+		this.settings.activeDashboardId = mobile.id;
+		this.refreshViews();
 	}
 
 	/** Switch the active dashboard and refresh any open home views. */
@@ -153,16 +253,22 @@ export default class HearthPlugin extends Plugin {
 		await workspace.revealLeaf(leaf);
 	}
 
-	/** Create a new note in the user's configured default location and open it. */
-	async createNewNote() {
+	/** Create a new note in the user's configured default location and open it.
+	 * `from` is the view the "New note" button was pressed in, so the note can
+	 * replace that Hearth tab when the user asked for "same tab" (#106); the
+	 * command palette has no view and falls back to the active leaf. */
+	async createNewNote(from?: HomeView) {
 		try {
 			const parent = this.app.fileManager.getNewFileParent("");
 			const file = await this.app.fileManager.createNewMarkdownFile(
 				parent instanceof TFolder ? parent : this.app.vault.getRoot(),
 				"Untitled",
 			);
-			const leaf = this.app.workspace.getLeaf(true);
-			await leaf.openFile(file);
+			await openFile(
+				from ?? { app: this.app, settings: this.settings },
+				file,
+				"newNote",
+			);
 		} catch (err) {
 			// Fall back to the core command if the internal API shape changes.
 			if (!this.app.commands.executeCommandById("file-explorer:new-file")) {
@@ -249,10 +355,48 @@ export default class HearthPlugin extends Plugin {
 		this.refreshViews();
 	}
 
+	/** Re-apply the brand/themed crystal to the ribbon and open tab headers
+	 * after the themeColorTarget setting changes. */
+	refreshBrandIcons() {
+		if (this.ribbonEl) setIcon(this.ribbonEl, hearthIconIdFor(this.settings.themeColorTarget));
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
+			// updateHeader is undocumented; when absent the tab icon simply
+			// refreshes the next time the leaf re-renders.
+			(leaf as WorkspaceLeaf & { updateHeader?: () => void }).updateHeader?.();
+		});
+	}
+
 	refreshViews() {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
 			if (view instanceof HomeView) view.render();
+		});
+	}
+
+	/** Re-render a home view when it becomes the active leaf again, so content
+	 * that changed while it was backgrounded (recents, bookmarks, saved-query
+	 * results) is current (#110). The first activation of a leaf was its fresh
+	 * onOpen render, so that one is skipped; genuine re-focus re-renders. Skipped
+	 * while the board is being arranged so a drag/resize isn't interrupted. */
+	private maybeRefreshOnFocus(leaf: WorkspaceLeaf | null) {
+		if (!leaf) return;
+		const view = leaf.view;
+		if (!(view instanceof HomeView)) return;
+		if (!this.seenActiveHomeLeaves.has(leaf)) {
+			this.seenActiveHomeLeaves.add(leaf);
+			return;
+		}
+		if (view.arrangeMode) return;
+		view.render();
+	}
+
+	/** Live-refresh handler behind {@link liveRefreshDebounced}. No-op unless the
+	 * setting is on; never rebuilds a board mid-arrange. */
+	private runLiveRefresh() {
+		if (!this.settings.liveRefresh) return;
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
+			const view = leaf.view;
+			if (view instanceof HomeView && !view.arrangeMode) view.render();
 		});
 	}
 }

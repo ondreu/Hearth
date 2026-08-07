@@ -1,8 +1,18 @@
 import { type Component, Platform, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
-import { HEARTH_ICON_ID } from "./icon";
-import { effectiveShowSearch } from "./types";
+import { hearthIconIdFor } from "./icon";
+import {
+	effectiveHeaderAlign,
+	effectiveHeaderLogoScale,
+	effectiveHeaderMarginTop,
+	effectiveHeaderSpacingBelow,
+	effectiveHeaderTitleScale,
+	effectiveLogo,
+	effectiveShowSearch,
+	effectiveShowTitle,
+	effectiveTitle,
+} from "./types";
 import { t } from "./i18n";
 
 /** The search engine used by the “Search online” button action.
@@ -22,18 +32,36 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	const s = view.plugin.settings;
 	const mobileOnly = Platform.isMobile && s.mobileSearchOnly;
 
-	if (s.showTitle) {
+	container.addClass(`is-title-align-${effectiveHeaderAlign(s)}`);
+	const spacingBelow = effectiveHeaderSpacingBelow(s);
+	if (spacingBelow !== undefined) {
+		container.style.setProperty("--hearth-header-spacing-below", `${spacingBelow}px`);
+	}
+
+	if (effectiveShowTitle(s)) {
 		const titleRow = container.createDiv("hearth-title");
-		const logo = s.logo.trim();
+		// Tint the crystal and/or title text with the theme's icon color per
+		// the themeColorTarget setting (see styles.css).
+		const target = s.themeColorTarget;
+		if (target === "icon" || target === "both") titleRow.addClass("is-icon-themed");
+		if (target === "title" || target === "both") titleRow.addClass("is-title-themed");
+		titleRow.style.setProperty("--hearth-title-scale", String(effectiveHeaderTitleScale(s)));
+		titleRow.style.setProperty("--hearth-logo-scale", String(effectiveHeaderLogoScale(s)));
+		const marginTop = effectiveHeaderMarginTop(s);
+		if (marginTop !== undefined) {
+			titleRow.style.setProperty("--hearth-title-margin-top", `${marginTop}px`);
+		}
+
+		const logo = effectiveLogo(s).trim();
 		// A custom emoji/text logo is shown verbatim; otherwise fall back to the
 		// Hearth crystal icon as the brand mark.
 		if (logo === "") {
 			const logoEl = titleRow.createSpan({ cls: "hearth-logo hearth-logo-icon" });
-			setIcon(logoEl, HEARTH_ICON_ID);
+			setIcon(logoEl, hearthIconIdFor(target));
 		} else {
 			titleRow.createSpan({ cls: "hearth-logo", text: logo });
 		}
-		titleRow.createSpan({ cls: "hearth-title-text", text: s.title });
+		titleRow.createSpan({ cls: "hearth-title-text", text: effectiveTitle(s) });
 	}
 
 	if (!effectiveShowSearch(s)) return;
@@ -85,22 +113,24 @@ function searchOnline(bar: HTMLElement): void {
 
 /** The original New-note button: creates a new note on click. */
 function createNewNoteButton(view: HomeView): HTMLElement {
-	const btn = activeDocument.createElement("button");
-	btn.className = "hearth-newnote";
-	btn.setAttribute("aria-label", t().header.newNoteAria);
+	const btn = createEl("button", {
+		cls: "hearth-newnote",
+		attr: { "aria-label": t().header.newNoteAria },
+	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.newNote });
 	btn.addEventListener("click", () => {
-		void view.plugin.createNewNote();
+		void view.plugin.createNewNote(view);
 	});
 	return btn;
 }
 
 /** The Search-online button: runs a web search for the current query. */
 function createSearchOnlineButton(bar: HTMLElement): HTMLElement {
-	const btn = activeDocument.createElement("button");
-	btn.className = "hearth-newnote hearth-newnote-search";
-	btn.setAttribute("aria-label", t().header.searchOnlineAria);
+	const btn = createEl("button", {
+		cls: "hearth-newnote hearth-newnote-search",
+		attr: { "aria-label": t().header.searchOnlineAria },
+	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "globe");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.searchOnline });
 	btn.addEventListener("click", () => searchOnline(bar));
