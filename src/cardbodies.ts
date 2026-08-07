@@ -4,6 +4,7 @@ import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./c
 import { localDayKey } from "./dates";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
+import { openLink } from "./opener";
 import { type DashboardCard, type EmbedView } from "./types";
 import { type HomeView } from "./view";
 
@@ -169,7 +170,7 @@ export function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath:
 			const linktext = anchor.getAttribute("data-href") || anchor.getAttribute("href");
 			if (linktext) {
 				evt.preventDefault();
-				void view.app.workspace.openLinkText(linktext, sourcePath, true);
+				void openLink(view, linktext, sourcePath, "link", evt);
 			}
 		}
 	});

@@ -4,7 +4,7 @@ import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
-import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton } from "./types";
+import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -334,6 +334,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				break;
 			case "behaviour":
 				this.section(body, s.sections.startup, s.sections.startupDesc, (b) => this.startupSection(b));
+				this.section(body, s.sections.opening, s.sections.openingDesc, (b) =>
+					this.openingSection(b),
+				);
 				this.section(body, s.sections.mobileMode, s.sections.mobileModeDesc, (b) =>
 					this.mobileModeSection(b),
 				);
@@ -749,6 +752,50 @@ export class HomeSettingTab extends PluginSettingTab {
 					await this.save();
 				}),
 			);
+	}
+
+	// ---- Opening notes ---------------------------------------------------
+
+	/**
+	 * Where notes Hearth opens end up (#106). One dropdown decides it for
+	 * everything; the per-source rows below it start on "Same as above", so the
+	 * detail is there for anyone who wants a link to behave differently from a
+	 * search hit without getting in the way of anyone who doesn't.
+	 */
+	private openingSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const labels = t().settings.behaviour.openInModes;
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openIn)
+			.setDesc(t().settings.behaviour.openInDesc)
+			.addDropdown((d) => {
+				for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
+				d.setValue(s.openIn).onChange(async (v) => {
+					s.openIn = v as OpenIn;
+					await this.save();
+				});
+			});
+
+		const sources = t().settings.behaviour.openInSources;
+		const descKey = { link: "linkDesc", search: "searchDesc", card: "cardDesc", newNote: "newNoteDesc" } as const;
+		for (const source of OPEN_SOURCES) {
+			new Setting(containerEl)
+				.setName(sources[source])
+				.setDesc(sources[descKey[source]])
+				.addDropdown((d) => {
+					d.addOption("default", t().settings.behaviour.openInFollow);
+					for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
+					d.setValue(s.openInOverrides?.[source] ?? "default").onChange(async (v) => {
+						// Rebuilt from the defaults so a settings file written before this
+						// feature (or hand-edited into a partial map) ends up complete.
+						const overrides = { ...DEFAULT_SETTINGS.openInOverrides, ...s.openInOverrides };
+						overrides[source] = v as OpenInRule;
+						s.openInOverrides = overrides;
+						await this.save();
+					});
+				});
+		}
 	}
 
 	// ---- Privacy & network ----------------------------------------------

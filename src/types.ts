@@ -705,8 +705,12 @@ export interface DashboardCard {
 	 * free-form and may overlap. */
 	tileAutoFlow?: boolean;
 
-	/** kind === "daily": show a button that opens today's note in the editor.
-	 * Defaults to shown; set false to hide. */
+	/** Show a button that opens the card's file in the editor.
+	 *
+	 * The two cards that offer it default differently, because one of them
+	 * predates the other: on `kind === "daily"` the button is shown unless this
+	 * is `false`, while on `kind === "embed"` (added for #144) it is hidden
+	 * unless this is `true`, so no existing embed card sprouts a new control. */
 	showOpenButton?: boolean;
 
 	/** Show this card on every dashboard, sharing one definition and position
@@ -826,6 +830,40 @@ export interface Dashboard {
 
 export type ChromeVisibility = "always" | "hover";
 
+/**
+ * Where Hearth puts a note when you open one from the home view.
+ *
+ * `"same"` reuses the tab Hearth itself is in, so the note replaces the home
+ * view exactly like clicking a link inside a normal editor tab (#106). The
+ * other three map straight onto Obsidian's own pane types — a new tab (the
+ * historical behaviour, and still the default), a split beside the current
+ * pane, or a separate window.
+ */
+export type OpenIn = "tab" | "same" | "split" | "window";
+
+/** Every {@link OpenIn} value, in the order the settings dropdown lists them. */
+export const OPEN_IN_MODES: readonly OpenIn[] = ["tab", "same", "split", "window"];
+
+/**
+ * The kinds of click that open a note, each of which can override the global
+ * choice:
+ *
+ * - `link` — a link inside a rendered note, a task, or the Links card
+ * - `search` — a result from the search bar or the Search card
+ * - `card` — a note listed by a card (Recent, Bookmarks, Favourites, Calendar,
+ *   Heatmap, Tasks) or by a mobile action button
+ * - `newNote` — a note Hearth has just created (new note, daily note, event
+ *   note), which is opened for editing straight away
+ */
+export type OpenSource = "link" | "search" | "card" | "newNote";
+
+/** Every {@link OpenSource}, in the order the settings tab lists them. */
+export const OPEN_SOURCES: readonly OpenSource[] = ["link", "search", "card", "newNote"];
+
+/** A per-source rule: an explicit destination, or `"default"` to follow the
+ * global {@link HomeSettings.openIn} choice. */
+export type OpenInRule = OpenIn | "default";
+
 export interface HomeSettings {
 	// ---- Header ----
 	title: string;
@@ -881,6 +919,15 @@ export interface HomeSettings {
 	 * requests are configured live-content cards (including Jira) and the
 	 * calculator's key-less, ECB-backed currency-rate fetch. */
 	disableExternalCalls: boolean;
+
+	// ---- Opening notes ----
+	/** Where every note Hearth opens goes by default (#106). `"tab"` is the
+	 * historical behaviour. */
+	openIn: OpenIn;
+	/** Per-source exceptions to {@link openIn}. Every source defaults to
+	 * `"default"` (follow the global choice), so the single dropdown above is
+	 * enough for anyone who doesn't want the detail. */
+	openInOverrides: Record<OpenSource, OpenInRule>;
 
 	// ---- Appearance (layout density) ----
 	/** Tighten card and top-of-page spacing to enlarge the usable area. */
@@ -994,6 +1041,12 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// and existing vaults aren't silently reset if the list is emptied.
 	mobileActionButtons: [],
 	disableExternalCalls: false,
+
+	// A new tab is what Hearth has always done; existing vaults must not change
+	// behaviour on upgrade, so both the global default and every per-source rule
+	// start out as "open a new tab".
+	openIn: "tab",
+	openInOverrides: { link: "default", search: "default", card: "default", newNote: "default" },
 
 	compact: false,
 	arrangeButtonVisibility: "always",

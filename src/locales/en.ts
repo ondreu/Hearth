@@ -267,6 +267,8 @@ export const en = {
 				"Transparency and frosted-glass blur applied to every card.",
 			startup: "Startup & tabs",
 			startupDesc: "When and where the home view opens.",
+			opening: "Opening notes",
+			openingDesc: "Where a note opens when you click it in Hearth.",
 			mobileMode: "Mobile mode",
 			mobileModeDesc: "How Hearth behaves on phones and tablets.",
 			privacy: "Privacy & network",
@@ -385,6 +387,32 @@ export const en = {
 			disableExternalCallsDesc:
 				"Block all outbound network requests Hearth makes, including Jira, " +
 				"external calendars, RSS feeds, and the calculator's currency-rate lookup.",
+			openIn: "Open notes in",
+			openInDesc:
+				"Where a note goes when you open one from Hearth. \"Current tab\" replaces " +
+				"the home view, so Hearth behaves like any other tab. Ctrl/Cmd-click always " +
+				"opens a new tab regardless.",
+			openInModes: {
+				tab: "A new tab",
+				same: "The current tab (replace Hearth)",
+				split: "A split pane",
+				window: "A new window",
+			},
+			/** The extra choice each per-source dropdown offers on top of the four
+			 * destinations: follow whatever "Open notes in" is set to. */
+			openInFollow: "Same as above",
+			openInSources: {
+				link: "Links",
+				linkDesc: "Links inside notes, tasks and the Links card.",
+				search: "Search results",
+				searchDesc: "Hits from the search bar and the Search card.",
+				card: "Notes in cards",
+				cardDesc:
+					"Notes listed by Recent, Bookmarks, Favourites, Calendar, Heatmap and " +
+					"Tasks cards, and by mobile action buttons.",
+				newNote: "Notes Hearth creates",
+				newNoteDesc: "New notes, daily notes and event notes, opened as they're made.",
+			},
 		},
 		mobileActions: {
 			heading: "Mobile action bar",
@@ -614,6 +642,9 @@ export const en = {
 			secondViewFileDesc:
 				"Optional. When set, the card shows a switcher between the two views — in the header when the card has a title, or floating (on hover) when it doesn't.",
 			secondViewClear: "Remove second view",
+			openButton: "Open button",
+			openButtonDesc:
+				"Show a button that opens the embedded file in its own tab (#144). Off by default.",
 		},
 		daily: {
 			editable: "Editable",
@@ -1211,6 +1242,7 @@ export const en = {
 				"This view isn't available — enable the plugin that provides it",
 		},
 		embed: {
+			openFile: "Open this file",
 			editHint: "Double-click to edit",
 			emptyNotePlaceholder: "Empty note…",
 			emptyNoteHint: "Empty note — double-click to edit",

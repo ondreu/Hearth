@@ -10,6 +10,7 @@ import {
 	hearthIconIdFor,
 } from "./icon";
 import type { WorkspacesInstance } from "./obsidian-ext";
+import { openFile } from "./opener";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
@@ -252,16 +253,22 @@ export default class HearthPlugin extends Plugin {
 		await workspace.revealLeaf(leaf);
 	}
 
-	/** Create a new note in the user's configured default location and open it. */
-	async createNewNote() {
+	/** Create a new note in the user's configured default location and open it.
+	 * `from` is the view the "New note" button was pressed in, so the note can
+	 * replace that Hearth tab when the user asked for "same tab" (#106); the
+	 * command palette has no view and falls back to the active leaf. */
+	async createNewNote(from?: HomeView) {
 		try {
 			const parent = this.app.fileManager.getNewFileParent("");
 			const file = await this.app.fileManager.createNewMarkdownFile(
 				parent instanceof TFolder ? parent : this.app.vault.getRoot(),
 				"Untitled",
 			);
-			const leaf = this.app.workspace.getLeaf(true);
-			await leaf.openFile(file);
+			await openFile(
+				from ?? { app: this.app, settings: this.settings },
+				file,
+				"newNote",
+			);
 		} catch (err) {
 			// Fall back to the core command if the internal API shape changes.
 			if (!this.app.commands.executeCommandById("file-explorer:new-file")) {

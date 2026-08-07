@@ -436,9 +436,11 @@ many fields have a reset (↺) button back to their default.
   engine (built-in / Omnisearch), file-type filters.
 - **Dashboard** — fit to page, columns, row height, max width, card opacity,
   **card blur** (frosted glass).
-- **Behaviour** — open on startup, replace empty new tabs, mobile search-only,
-  mobile action bar, and a **Privacy & network** toggle to disable external
-  calls (Jira, calendars, RSS, and currency rates).
+- **Behaviour** — open on startup, replace empty new tabs, **where notes open**
+  (a new tab, the current tab replacing Hearth, a split, or a new window — with
+  per-source exceptions for links, search results, cards and new notes),
+  mobile search-only, mobile action bar, and a **Privacy & network** toggle to
+  disable external calls (Jira, calendars, RSS, and currency rates).
 - **Integrations** — Tasks / TaskNotes frontmatter field names and the status
   value(s) that count as "done".
 - **Backup** — import / export the current dashboard's layout as JSON.
