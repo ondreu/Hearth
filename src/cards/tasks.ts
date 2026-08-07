@@ -1,8 +1,22 @@
-import { MarkdownView, Menu, Modal, Notice, setIcon, Setting, TFile, TFolder, type App } from "obsidian";
+import {
+	ButtonComponent,
+	ExtraButtonComponent,
+	MarkdownView,
+	Menu,
+	Modal,
+	Notice,
+	setIcon,
+	Setting,
+	TextComponent,
+	TFile,
+	TFolder,
+	type App,
+} from "obsidian";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
 import { t } from "../i18n";
+import { openFile, openLink, targetLeaf } from "../opener";
 import { FilePickerModal } from "../pickers";
 import {
 	PRIORITY_EMOJI,
@@ -13,10 +27,41 @@ import {
 	priorityRank,
 	readPriorityEmoji,
 } from "../priority";
+import {
+	activeTaskFields,
+	builtinSource,
+	DATE_RELATIONS,
+	dateDisplay,
+	dateRelation,
+	displayValue,
+	keyIsDate,
+	fieldOpacity,
+	fieldStyle,
+	frontmatterSource,
+	isAmbientStyle,
+	isDateSource,
+	isDescriptionSource,
+	isKnownSource,
+	newTaskField,
+	presetColor,
+	resolveTaskFields,
+	sourceBuiltin,
+	sourceProperty,
+	TASK_BUILTIN_SOURCES,
+	type TaskValueDisplay,
+	TASK_COLOR_PRESETS,
+	type TaskBuiltinSource,
+	taskFieldValues,
+} from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
 	type DashboardCard,
+	type HomeSettings,
 	type TaskDueFilter,
+	type TaskFieldDef,
+	type TaskFieldKey,
+	type TaskValueMap,
+	type TaskFieldStyle,
 	type TaskFilterConfig,
 	type TaskMeta,
 	type TaskPriorityLevel,
@@ -24,13 +69,10 @@ import {
 	type TaskSortField,
 	type TaskSortRule,
 } from "../types";
+import { openInTaskNotes, TASKNOTES_PLUGIN_ID } from "../tasknotes";
 import { confirmAction, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
-
-/** Community plugin id for TaskNotes (used by "tasks" cards in TaskNotes mode). */
-const TASKNOTES_PLUGIN_ID = "tasknotes";
 
 
 /** Frontmatter key the Kanban plugin writes on every board note. Used both to
@@ -270,69 +312,766 @@ function formatDueLabel(hit: TaskHit): string | null {
 }
 
 
-/** A small colored dot showing a task's priority. With `dotOnly` (used by
- * Kanban board cards to keep them compact) it renders just the coloured dot
- * inline, with the value in the tooltip; otherwise it also shows a readable
- * label beside the dot. */
-function renderPriority(parent: HTMLElement, priority: string, dotOnly = false): void {
-	const chip = parent.createDiv(`hearth-task-priority is-${priorityClass(priority)}`);
-	if (dotOnly) chip.addClass("is-dot-only");
-	chip.createDiv("hearth-task-priority-dot");
-	if (!dotOnly) chip.createSpan({ cls: "hearth-task-priority-label", text: priorityDisplayLabel(priority) });
-	chip.setAttribute("title", `Priority: ${priorityDisplayLabel(priority)}`);
+/** Put a value's colour on a chip. It rides on a custom property rather than a
+ * style attribute so the stylesheet decides what it tints — background, border
+ * or dot — per chip style. */
+function applyChipColor(el: HTMLElement, color: string | null): void {
+	if (!color) return;
+	el.addClass("is-colored");
+	el.style.setProperty("--chip-color", color);
 }
 
 
-/** A small pill showing a TaskNotes task's raw status value. The list layout's
+/** Draw one value: a filled chip, a bare coloured dot with the value in the
+ * tooltip, or plain text. `extraCls` carries a field's long-standing class
+ * names so existing stylesheet (and theme) rules keep applying underneath. */
+function renderValueChip(
+	parent: HTMLElement,
+	opts: {
+		text: string;
+		style: TaskFieldStyle;
+		color?: string | null;
+		prefix?: string;
+		title?: string;
+		extraCls?: string;
+	},
+): HTMLElement {
+	const cls = `hearth-task-chip is-${opts.style}${opts.extraCls ? ` ${opts.extraCls}` : ""}`;
+	const el = parent.createDiv(cls);
+	if (opts.style === "dot") {
+		el.createDiv("hearth-task-chip-dot");
+	} else {
+		if (opts.prefix) el.createSpan({ cls: "hearth-task-chip-label", text: opts.prefix });
+		el.createSpan({ cls: "hearth-task-chip-value", text: opts.text });
+	}
+	applyChipColor(el, opts.color ?? null);
+	el.setAttribute("title", opts.title ?? opts.text);
+	return el;
+}
+
+
+/** A task's priority: the five-level coloured dot, a labelled chip, or plain
+ * text. The dot-only form (a Kanban board card) keeps the value in the tooltip.
+ * An explicit colour overrides the level colours from the stylesheet. */
+function renderPriorityChip(
+	parent: HTMLElement,
+	priority: string,
+	style: TaskFieldStyle,
+	color: string | null = null,
+	label = priorityDisplayLabel(priority),
+): HTMLElement {
+	const chip = parent.createDiv(`hearth-task-priority is-${priorityClass(priority)} is-${style}`);
+	// The historical class for the compact board form, kept so the existing
+	// stylesheet rule (and any theme overriding it) still matches.
+	if (style === "dot") chip.addClass("is-dot-only");
+	if (style !== "text") chip.createDiv("hearth-task-priority-dot");
+	if (style !== "dot") chip.createSpan({ cls: "hearth-task-priority-label", text: label });
+	applyChipColor(chip, color);
+	chip.setAttribute("title", `Priority: ${label}`);
+	return chip;
+}
+
+
+/** A pill showing a TaskNotes task's raw status value. The list layout's
  * completion checkbox only says done/not-done, so the actual status (open,
- * in-progress, waiting, …) needs a chip of its own. It's rendered straight
- * after the task title and left-aligned against it (see the `has-statuschip`
- * rules in styles.css) so it reads as part of the task rather than floating
- * among the right-hand priority/date chips. */
-function renderTaskStatus(row: HTMLElement, status: string): void {
-	const label = status.trim();
-	if (!label) return;
-	const chip = row.createDiv({ cls: "hearth-task-status hearth-task-statuschip", text: label });
+ * in-progress, waiting, …) needs a chip of its own. Where it lands is the
+ * caller's choice of host: the fixed layout puts it beside the title, so it
+ * reads as part of the task rather than floating among the right-hand chips.
+ *
+ * Callers only reach here with a value in hand, so there is no empty case. */
+function renderStatusChip(
+	parent: HTMLElement,
+	status: string,
+	style: TaskFieldStyle,
+	color: string | null,
+	label = status.trim(),
+): HTMLElement {
+	const chip = parent.createDiv(`hearth-task-status hearth-task-statuschip is-${style}`);
+	if (style === "dot") chip.createDiv("hearth-task-chip-dot");
+	else chip.setText(label);
+	applyChipColor(chip, color);
 	chip.setAttribute("title", `Status: ${label}`);
-	// Marks the row so the title stops growing to fill it, letting the chip sit
-	// against the title. Set here rather than matched with :has(), which is
-	// avoided in this stylesheet for its broad selector-invalidation cost.
-	row.addClass("has-statuschip");
+	return chip;
 }
 
 
-/** Render a task's date indicators into `parent`: start (🛫), scheduled (⏳),
- * the due/next-occurrence label, and the done date (✅). Start/scheduled/done
- * chips are shown only for Kanban cards (the source that parses them); the due
- * label keeps its existing recurrence/overdue treatment for every source. */
-function renderTaskDateChips(parent: HTMLElement, hit: TaskHit, today: string): void {
-	const overdue = (d: string | null | undefined) => !hit.done && !!d && d.slice(0, 10) < today;
-	const chip = (emoji: string, date: string, kind: string, title: string, markOverdue: boolean) => {
-		const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind}` });
-		el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
-		el.appendText(formatRelativeDate(date));
-		el.setAttribute("title", `${title}: ${date}`);
-		if (markOverdue) el.toggleClass("is-overdue", overdue(date));
-	};
-	// Line-based tasks (checkbox + Kanban) show start and scheduled chips; for
-	// recurring cards scheduled is folded into the due label, so skip it then to
-	// avoid duplication. (TaskNotes uses line -1 and keeps its own treatment.)
-	if (hit.line >= 0 && hit.start) chip("🛫", hit.start, "start", t().cards.tasks.startDate, true);
-	if (hit.line >= 0 && hit.scheduled && !hit.recurrence)
-		chip("⏳", hit.scheduled, "scheduled", t().cards.tasks.scheduledDate, true);
+/** The date a date source reads off a task. */
+function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
+	if (id === "start") return hit.start ?? null;
+	if (id === "scheduled") return hit.scheduled;
+	if (id === "doneDate") return hit.doneDate ?? null;
+	return hit.due;
+}
 
-	const dueLabel = formatDueLabel(hit);
-	if (dueLabel) {
-		const due = parent.createDiv({ cls: "hearth-task-due", text: dueLabel });
-		due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
+
+/** Render one of a task's date indicators: start (🛫), scheduled (⏳), the
+ * due/next-occurrence label, or the done date (✅). The due label keeps its
+ * recurrence/overdue treatment for every source. Renders nothing when the task
+ * has no such date.
+ *
+ * `restrict` applies the fixed layout's two extra rules: start/scheduled/done
+ * only on line-based tasks (checkbox + Kanban), and no scheduled chip on a
+ * recurring card, whose scheduled date is already what the due label shows as
+ * its next occurrence. A user-defined field asked for the key by name, so it
+ * renders whatever the task actually holds — a TaskNotes task carries a real
+ * `scheduled` date, and hiding it because the fixed layout never showed one
+ * made the field silently do nothing (#157). */
+function renderTaskDateChip(
+	parent: HTMLElement,
+	hit: TaskHit,
+	id: TaskBuiltinSource,
+	today: string,
+	style: TaskFieldStyle,
+	shown: TaskValueDisplay = { label: "", color: null },
+	restrict = true,
+): HTMLElement | null {
+	const overdue = (d: string | null | undefined) => !hit.done && !!d && d.slice(0, 10) < today;
+
+	if (id === "due") {
+		const dueLabel = formatDueLabel(hit);
+		if (!dueLabel) return null;
+		// A relation label ("Overdue") replaces the date's own wording; the ↻ that
+		// marks a recurring task's next occurrence stays either way.
+		const text = shown.label ? `${shown.label}${hit.recurrence ? " ↻" : ""}` : dueLabel;
+		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text });
+		// An explicit colour for the relation supersedes the built-in overdue red,
+		// which is the point of being able to set one.
+		if (shown.color) applyChipColor(due, shown.color);
+		else due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
 		if (hit.recurrence) {
 			due.addClass("is-recurring");
 			due.setAttribute("title", recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring);
 		}
+		return due;
 	}
 
-	if (hit.line >= 0 && hit.doneDate) chip("✅", hit.doneDate, "done", t().cards.tasks.doneDate, false);
+	if (restrict && hit.line < 0) return null;
+	if (restrict && id === "scheduled" && hit.recurrence) return null;
+	const date = taskSourceDate(hit, id);
+	if (!date) return null;
+
+	const emoji = id === "start" ? "🛫" : id === "scheduled" ? "⏳" : "✅";
+	const title =
+		id === "start"
+			? t().cards.tasks.startDate
+			: id === "scheduled"
+				? t().cards.tasks.scheduledDate
+				: t().cards.tasks.doneDate;
+	// "done" rather than "doneDate" keeps the long-standing class name.
+	const kind = id === "doneDate" ? "done" : id;
+	const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind} is-${style}` });
+	el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
+	el.appendText(shown.label || formatRelativeDate(date));
+	el.setAttribute("title", `${title}: ${date}`);
+	if (shown.color) applyChipColor(el, shown.color);
+	// A done date is history — it is never overdue.
+	else if (id !== "doneDate") el.toggleClass("is-overdue", overdue(date));
+	return el;
 }
+
+
+/** A date held in a frontmatter property the user marked as a date: the same
+ * relative label and relation colouring as a built-in date, without the emoji
+ * marker (which belongs to the Tasks-plugin fields, not to arbitrary keys). */
+function renderCustomDateChip(
+	parent: HTMLElement,
+	date: string,
+	today: string,
+	style: TaskFieldStyle,
+	shown: TaskValueDisplay,
+	prefix: string | undefined,
+	done: boolean,
+): HTMLElement {
+	const el = renderValueChip(parent, {
+		text: shown.label || formatRelativeDate(date),
+		style,
+		color: shown.color,
+		prefix,
+		title: date,
+		extraCls: "hearth-task-datechip",
+	});
+	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
+	return el;
+}
+
+
+// ---- Editing a value from the task itself ---------------------------------
+
+/**
+ * Whether a key's value can be changed by clicking its chip.
+ *
+ * Frontmatter is only writable when the task *is* a note — a TaskNotes task, or
+ * a Kanban card converted to one. For a plain checkbox the frontmatter belongs
+ * to whatever note the line happens to sit in, which is not the task's own
+ * metadata, and writing there on a click would edit something the user never
+ * pointed at.
+ *
+ * Of the built-ins only status and priority are values to pick from a list. A
+ * date needs a date picker (the task's quick view has one), the board column is
+ * changed by dragging the card, and the description is free text.
+ */
+function taskKeyEditable(hit: TaskHit, source: string): boolean {
+	const builtin = sourceBuiltin(source);
+	if (builtin === "doneDate") return false;
+	if (builtin === "start") return hit.line >= 0;
+	if (builtin === "due" || builtin === "scheduled") {
+		// A recurring task's date is computed from its rule and rolls forward on
+		// completion; setting it by hand would be undone by the next tick.
+		return !hit.recurrence;
+	}
+	if (builtin) return builtin === "status" || builtin === "priority";
+	if (!sourceProperty(source)) return false;
+	return hit.line < 0 || !!hit.linkedFile;
+}
+
+
+/** Write a new value for a key onto a task, or clear it when `value` is null.
+ * Returns false when the write couldn't be made. */
+async function writeTaskFieldValue(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	source: string,
+	value: string | null,
+): Promise<boolean> {
+	const builtin = sourceBuiltin(source);
+
+	// A line-based task keeps its priority in the line's emoji marker, so it goes
+	// through the same rewrite the metadata editor uses.
+	if (builtin === "priority" && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: value ? priorityKey(value) : "",
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
+	// A line-based task keeps its dates in the same emoji markers, written
+	// through the same rewrite.
+	if (builtin && isDateSource(source) && hit.line >= 0 && !hit.linkedFile) {
+		const meta: TaskMeta = {
+			priority: priorityKey(hit.priority ?? ""),
+			recurrence: hit.recurrence ?? "",
+			start: hit.start ?? "",
+			scheduled: hit.scheduled ?? "",
+			due: hit.dueRaw ?? hit.due ?? "",
+		};
+		if (builtin === "start") meta.start = value ?? "";
+		else if (builtin === "scheduled") meta.scheduled = value ?? "";
+		else meta.due = value ?? "";
+		return setKanbanCardMetadata(view, hit, meta, hit.description ?? "");
+	}
+
+	// Everything else is a frontmatter write on the task's own note.
+	const s = view.plugin.settings;
+	const property =
+		builtin === "status"
+			? s.taskNotesStatusField.trim() || "status"
+			: builtin === "priority"
+				? s.taskNotesPriorityField.trim() || "priority"
+				: builtin === "due"
+					? s.taskNotesDueField.trim() || "due"
+					: builtin === "scheduled"
+						? "scheduled"
+						: sourceProperty(source);
+	if (!property) return false;
+	const file = fieldSourceFile(hit);
+	try {
+		await view.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			if (value === null) delete fm[property];
+			else fm[property] = value;
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+
+/**
+ * A calendar for setting a task's date. The native date input is what puts a
+ * real calendar on screen (and the platform's own one on mobile); the shortcuts
+ * beside it cover what people actually pick — today, tomorrow, next week — and
+ * Clear removes the date entirely.
+ */
+class TaskDatePickerModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		initial: string,
+		private readonly onSubmit: (value: string | null) => void,
+	) {
+		super(app);
+		// The stored value may carry a time or be natural-language wording; the
+		// input only understands YYYY-MM-DD.
+		this.value = /^\d{4}-\d{2}-\d{2}/.test(initial) ? initial.slice(0, 10) : "";
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.addClass("hearth-taskdate-modal");
+		contentEl.createEl("h3", { text: t().cards.tasks.dateTitle });
+
+		const commit = (value: string | null) => {
+			this.onSubmit(value);
+			this.close();
+		};
+
+		let input: HTMLInputElement | null = null;
+		new Setting(contentEl).setName(t().cards.tasks.dateOn).addText((txt) => {
+			txt.inputEl.type = "date";
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit(this.value || null);
+			});
+			input = txt.inputEl;
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+
+		const shortcuts = contentEl.createDiv("hearth-taskdate-shortcuts");
+		const shortcut = (label: string, days: number) => {
+			const btn = shortcuts.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+			btn.addEventListener("click", () => {
+				const date = moment().add(days, "days").format("YYYY-MM-DD");
+				this.value = date;
+				if (input) input.value = date;
+			});
+		};
+		shortcut(t().cards.tasks.dateToday, 0);
+		shortcut(t().cards.tasks.dateTomorrow, 1);
+		shortcut(t().cards.tasks.dateNextWeek, 7);
+
+		new Setting(contentEl)
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setCta()
+					.onClick(() => commit(this.value || null)),
+			)
+			.addButton((b) => b.setButtonText(t().cards.tasks.dateClear).onClick(() => commit(null)))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+/** Ask for a value the vault hasn't seen yet — the only way to introduce, say,
+ * a first "blocked" status without editing the note by hand. */
+class TaskValuePromptModal extends Modal {
+	private value: string;
+
+	constructor(
+		app: App,
+		private readonly title: string,
+		initial: string,
+		private readonly onSubmit: (value: string) => void,
+	) {
+		super(app);
+		this.value = initial;
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		contentEl.createEl("h3", { text: this.title });
+		const commit = () => {
+			const value = this.value.trim();
+			if (!value) return;
+			this.onSubmit(value);
+			this.close();
+		};
+		new Setting(contentEl).addText((txt) => {
+			txt.setValue(this.value).onChange((v) => (this.value = v));
+			txt.inputEl.addEventListener("keydown", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				commit();
+			});
+			window.setTimeout(() => txt.inputEl.focus(), 0);
+		});
+		new Setting(contentEl)
+			.addButton((b) => b.setButtonText(t().cards.tasks.filterApply).setCta().onClick(commit))
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+/**
+ * The value picker opened by clicking a chip: the field's mapped values first
+ * (under their own labels, so the menu reads the way the task does), then the
+ * other values that key actually takes elsewhere in the vault, then a free
+ * entry and a clear.
+ *
+ * Mapped-only would make a value you hadn't got round to mapping unreachable;
+ * vault-only would lose the labels and colours the field was built around. The
+ * two lists are shown in that order because the mapped ones are the vocabulary
+ * the user chose, and the rest are what the vault happens to contain.
+ */
+async function openTaskValuePicker(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	position: { x: number; y: number },
+	refresh: () => void,
+): Promise<void> {
+	const labels = t().cards.tasks;
+	const set = (value: string | null) => {
+		void writeTaskFieldValue(view, cfg, hit, key.source, value).then((ok) => {
+			if (!ok) new Notice(t().notices.couldNotUpdateTaskStatus);
+			refresh();
+		});
+	};
+
+	// A date is picked from a calendar, not from a list of everything the vault
+	// happens to contain.
+	if (keyIsDate(key)) {
+		new TaskDatePickerModal(view.app, current, set).open();
+		return;
+	}
+
+	const mapped = (key.values ?? []).map((v) => v.match.trim()).filter(Boolean);
+	const seen = new Set(mapped.map((v) => v.toLowerCase()));
+	// The scan is a metadataCache read, not file I/O, but it still walks the
+	// vault — so it happens on the click rather than on every render.
+	const found = await discoverSourceValues(view, cfg, key.source);
+	const rest = found.filter((v) => !seen.has(v.trim().toLowerCase()));
+
+	const menu = new Menu();
+	const item = (value: string, label: string) =>
+		menu.addItem((mi) =>
+			mi
+				.setTitle(label)
+				.setChecked(value.trim().toLowerCase() === current.trim().toLowerCase())
+				.onClick(() => set(value)),
+		);
+
+	for (const value of mapped) item(value, displayValue(key, value).label);
+	if (mapped.length && rest.length) menu.addSeparator();
+	for (const value of rest) item(value, value);
+
+	if (mapped.length || rest.length) menu.addSeparator();
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueCustom)
+			.setIcon("pencil")
+			.onClick(() => {
+				new TaskValuePromptModal(view.app, labels.valueCustomTitle, current, (v) => set(v)).open();
+			}),
+	);
+	menu.addItem((mi) =>
+		mi
+			.setTitle(labels.valueClear)
+			.setIcon("x")
+			.onClick(() => set(null)),
+	);
+	menu.showAtPosition(position);
+}
+
+
+/** The values one source takes across the card's scope, for the picker. */
+async function discoverSourceValues(
+	view: HomeView,
+	cfg: TasksConfig,
+	source: string,
+): Promise<string[]> {
+	const found = await discoverTaskFields(view.app, cfg, view.plugin.settings, [
+		{ id: "probe", name: "", keys: [{ source }] },
+	]);
+	return found.values.get(source) ?? [];
+}
+
+
+/** Make a chip open its value picker on click. The row underneath opens the
+ * task, so the click must not reach it. */
+function makeChipEditable(
+	el: HTMLElement,
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	key: TaskFieldKey,
+	current: string,
+	refresh: () => void,
+): void {
+	el.addClass("is-editable");
+	el.setAttribute("aria-label", t().cards.tasks.valueChange);
+	const stop = (e: Event) => e.stopPropagation();
+	el.addEventListener("mousedown", stop);
+	el.addEventListener("pointerdown", stop);
+	el.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		void openTaskValuePicker(view, cfg, hit, key, current, { x: e.clientX, y: e.clientY }, refresh);
+	});
+}
+
+
+/** Where each field is drawn. The list layout is a single row, so all three are
+ * the same element and the configured order is the visual order. A Kanban card
+ * is three stacked areas (title row, description block, meta row), so a dot
+ * sits beside the title, the description gets the block, and the rest are chips
+ * in the meta row — with the configured order applying within each. */
+interface TaskFieldHosts {
+	inline: HTMLElement;
+	meta: HTMLElement;
+	block: HTMLElement;
+	/** The whole task — the list row, or the board card. An ambient field
+	 * (`hue`/`glow`) colours this instead of adding anything to the others. */
+	root: HTMLElement;
+}
+
+
+/** Colour the whole task. Applied at most once per task: a row has one
+ * background and one ring, so the first ambient field that resolves a colour
+ * takes them and any later one is ignored rather than fighting over them. */
+function applyAmbientColor(
+	root: HTMLElement,
+	style: TaskFieldStyle,
+	color: string,
+	opacity: number,
+): void {
+	if (root.hasClass("is-hued") || root.hasClass("is-glowing")) return;
+	root.addClass(style === "glow" ? "is-glowing" : "is-hued");
+	root.style.setProperty("--hue-color", color);
+	root.style.setProperty("--hue-alpha", String(opacity));
+}
+
+
+/** Draw a task's metadata: the fields the card defines, or — when field
+ * customization is off — the fixed set the card has always rendered. */
+function renderTaskFields(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+	refresh: () => void,
+): void {
+	const fields = activeTaskFields(cfg, view.plugin.settings);
+	if (fields === null) renderLegacyTaskFields(cfg, hit, hosts, today, layout);
+	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh);
+}
+
+
+/**
+ * The metadata a task showed before any of this was configurable, and still
+ * shows whenever field customization is off: the status chip and board column
+ * beside the title, then priority, the dates in chronological order, and the
+ * description.
+ *
+ * Kept as its own function rather than expressed as a default field list. It is
+ * what the overwhelming majority of vaults render, it must not drift, and a
+ * few of its rules (the priority dot only on a Kanban-source board, the status
+ * chip aligning the title) are particular to it rather than general.
+ */
+function renderLegacyTaskFields(
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+): void {
+	const source = cfg.source ?? "checkbox";
+
+	if (layout === "list") {
+		// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
+		// …) and the checkbox can't express it, so show it right after the title.
+		if (hit.status) renderStatusChip(hosts.inline, hit.status, "pill", null);
+		// Kanban cards show the board column they belong to as a small badge.
+		if (hit.boardColumn) {
+			hosts.inline.createDiv({
+				cls: "hearth-task-status hearth-task-column",
+				text: hit.boardColumn,
+			});
+		}
+		// The list has room for a labelled priority chip (a bare dot is easy to
+		// miss); board cards stay dot-only for compactness.
+		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "pill");
+	} else {
+		// Kanban priority shows as a single coloured dot inline with the title;
+		// the other sources keep their labelled chip in the meta row below.
+		if (source === "kanban" && hit.priority) {
+			renderPriorityChip(hosts.inline, hit.priority, "dot");
+		}
+		if (hit.description) renderTaskDescription(hosts.block, hit.description);
+		if (source !== "kanban" && hit.priority) {
+			renderPriorityChip(hosts.meta, hit.priority, "pill");
+		}
+	}
+
+	for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
+		renderTaskDateChip(hosts.meta, hit, id, today, "text");
+	}
+
+	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description);
+}
+
+
+/** The note a frontmatter key reads from: the task's own note for a TaskNotes
+ * task, the linked note for a Kanban card converted to one, and otherwise the
+ * note the task line lives in. */
+function fieldSourceFile(hit: TaskHit): TFile {
+	return hit.linkedFile ?? hit.file;
+}
+
+
+/** The raw values one of Hearth's own parsed sources holds for a task. Dates
+ * and the description are drawn by their own renderers and never come through
+ * here. */
+function builtinSourceValues(hit: TaskHit, id: TaskBuiltinSource): string[] {
+	switch (id) {
+		case "status":
+			return hit.status ? [hit.status] : [];
+		case "column":
+			return hit.boardColumn ? [hit.boardColumn] : [];
+		case "priority":
+			return hit.priority ? [hit.priority] : [];
+		default:
+			return [];
+	}
+}
+
+
+/** The raw values a key holds for a task, before any mapping. */
+function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
+	const builtin = sourceBuiltin(source);
+	if (builtin) return builtinSourceValues(hit, builtin);
+	const property = sourceProperty(source);
+	if (!property) return [];
+	const frontmatter = view.app.metadataCache.getFileCache(fieldSourceFile(hit))?.frontmatter;
+	return taskFieldValues(frontmatter?.[property]);
+}
+
+
+/**
+ * Draw the fields the user defined, in order — and only those. Every key of a
+ * field that holds a value renders; a value with no mapping renders as itself,
+ * uncoloured, so nothing goes missing for want of having been mapped.
+ */
+function renderCustomTaskFields(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	hosts: TaskFieldHosts,
+	today: string,
+	layout: "list" | "kanban",
+	fields: TaskFieldDef[],
+	refresh: () => void,
+): void {
+	for (const field of fields) {
+		const style = fieldStyle(field);
+		// An ambient field paints the whole task instead of adding to it, so it
+		// needs the colour and nothing else.
+		const ambient = isAmbientStyle(style);
+		const paint = (color: string | null) => {
+			if (color) applyAmbientColor(hosts.root, style, color, fieldOpacity(field));
+		};
+		// A bare dot is compact enough to sit beside a board card's title; on a
+		// list everything shares one row anyway.
+		const host = style === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
+		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : undefined;
+
+		for (const key of field.keys) {
+			if (isDescriptionSource(key.source)) {
+				// A description is a block of text; there is no colour in it to take.
+				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
+				continue;
+			}
+			// A date carries no discrete values to map, so it is labelled and
+			// coloured by where it falls relative to today, and edited with a
+			// calendar. A dot would hide the one thing a date is for.
+			if (keyIsDate(key)) {
+				const dateStyle = style === "dot" ? "text" : style;
+				const id = sourceBuiltin(key.source);
+				if (id && isDateSource(key.source)) {
+					const date = id === "due" ? effectiveDate(hit) : taskSourceDate(hit, id);
+					const shown = date
+						? dateDisplay(key, dateRelation(date, today))
+						: { label: "", color: null };
+					// Colouring a whole row by how overdue it is — the reason to want
+					// an ambient date in the first place.
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
+					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
+					if (el && date && taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+					continue;
+				}
+				for (const date of keyValues(view, hit, key.source)) {
+					const shown = dateDisplay(key, dateRelation(date, today));
+					if (ambient) {
+						paint(shown.color);
+						continue;
+					}
+					const el = renderCustomDateChip(
+						hosts.meta,
+						date,
+						today,
+						dateStyle,
+						shown,
+						prefix,
+						hit.done,
+					);
+					if (taskKeyEditable(hit, key.source)) {
+						makeChipEditable(el, view, cfg, hit, key, date, refresh);
+					}
+				}
+				continue;
+			}
+
+			const builtin = sourceBuiltin(key.source);
+			const editable = taskKeyEditable(hit, key.source);
+			for (const raw of keyValues(view, hit, key.source)) {
+				// Resolved from the raw value: displayValue() tries its aliases itself,
+				// so a mapping written against what the vault holds ("urgent") is found
+				// before the level it folds onto ("high").
+				const shown = displayValue(key, raw);
+				if (ambient) {
+					paint(shown.color);
+					continue;
+				}
+				// Priority and status keep their own elements so the five-level
+				// colours and the theme rules written against them still apply.
+				let el: HTMLElement;
+				if (builtin === "priority") {
+					el = renderPriorityChip(host, raw, style, shown.color, shown.label);
+				} else if (builtin === "status") {
+					el = renderStatusChip(host, raw, style, shown.color, shown.label);
+				} else {
+					el = renderValueChip(host, {
+						text: shown.label,
+						style,
+						color: shown.color,
+						prefix,
+						title: prefix ? `${prefix} ${shown.label}` : shown.label,
+						extraCls: builtin === "column" ? "hearth-task-status hearth-task-column" : undefined,
+					});
+				}
+				// Click the chip to change the value in place, rather than opening
+				// the task to edit one field.
+				if (editable) makeChipEditable(el, view, cfg, hit, key, raw, refresh);
+			}
+		}
+	}
+}
+
 
 
 /** Render a card's description as muted plain-text sub-bullets (one per line),
@@ -853,12 +1592,23 @@ function renderTaskFilterControl(
 const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "none"];
 
 
+/** Paint a filter chip as on or off, and say so for screen readers — the
+ * accent fill is the only other cue that a chip is selected. */
+function setChipState(chip: HTMLElement, on: boolean): void {
+	chip.toggleClass("is-on", on);
+	chip.setAttribute("aria-pressed", String(on));
+}
+
+
 /** The filter modal: quick presets across the top, then editable criteria
  * (due, priority, status, text). Edits are applied on "Apply"; "Cancel"
  * discards them and "Clear" empties every field. */
 class TaskFilterModal extends Modal {
 	private working: TaskFilterConfig;
 	private body: HTMLElement | null = null;
+	/** Re-reads each preset chip's on/off state from `working`. Kept so a chip
+	 * or dropdown below can leave the presets showing the truth. */
+	private presetSyncs: (() => void)[] = [];
 
 	constructor(
 		app: App,
@@ -886,22 +1636,47 @@ class TaskFilterModal extends Modal {
 		this.renderFooter(contentEl);
 	}
 
-	/** Preset chips that fill in the criteria below, then re-render the body. */
+	/** Preset chips that fill in the criteria below, then re-render the body.
+	 * Each one reads as on while the criteria below still match it, and a
+	 * second click takes it back off — a preset you can only apply, never
+	 * undo, reads as broken. */
 	private renderPresets(parent: HTMLElement): void {
 		const labels = t().cards.tasks.filterPresets;
 		const row = parent.createDiv("hearth-taskfilter-presets");
-		const preset = (label: string, apply: () => void) => {
-			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+		this.presetSyncs = [];
+		const preset = (label: string, isOn: () => boolean, apply: (on: boolean) => void) => {
+			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+			const sync = () => setChipState(chip, isOn());
+			sync();
+			this.presetSyncs.push(sync);
 			chip.addEventListener("click", () => {
-				apply();
+				apply(!isOn());
 				this.renderBody();
+				this.syncPresets();
 			});
 		};
-		preset(labels.overdue, () => (this.working.due = "overdue"));
-		preset(labels.today, () => (this.working.due = "today"));
-		preset(labels.week, () => (this.working.due = "week"));
-		preset(labels.highPriority, () => (this.working.priorities = ["high"]));
-		preset(labels.noDate, () => (this.working.due = "noDate"));
+		const duePreset = (label: string, value: TaskDueFilter) =>
+			preset(label, () => this.working.due === value, (on) => {
+				this.working.due = on ? value : undefined;
+			});
+		duePreset(labels.overdue, "overdue");
+		duePreset(labels.today, "today");
+		duePreset(labels.week, "week");
+		preset(
+			labels.highPriority,
+			() => {
+				const levels = this.working.priorities ?? [];
+				return levels.length === 1 && levels[0] === "high";
+			},
+			(on) => {
+				this.working.priorities = on ? ["high"] : undefined;
+			},
+		);
+		duePreset(labels.noDate, "noDate");
+	}
+
+	private syncPresets(): void {
+		for (const sync of this.presetSyncs) sync();
 	}
 
 	/** The editable criteria; rebuilt whenever a preset or toggle changes them. */
@@ -922,11 +1697,12 @@ class TaskFilterModal extends Modal {
 			d.setValue(this.working.due ?? "");
 			d.onChange((v) => {
 				this.working.due = v ? (v as TaskDueFilter) : undefined;
+				this.syncPresets();
 			});
 		});
 
 		// Priority buckets (multi-select chips).
-		const prioRow = new Setting(body).setName(labels.filterPriority);
+		const prioRow = new Setting(body).setName(labels.filterPriority).setClass("hearth-taskfilter-row");
 		const prioHost = prioRow.controlEl.createDiv("hearth-taskfilter-chips");
 		for (const level of TASK_PRIORITY_LEVELS) {
 			this.toggleChip(prioHost, labels.filterPriorityLevels[level], () => (this.working.priorities ?? []).includes(level), () => {
@@ -938,10 +1714,11 @@ class TaskFilterModal extends Modal {
 		}
 
 		// Status/column chips (only when the source exposes statuses).
-		if (this.availableStatuses.length) {
-			const statusRow = new Setting(body).setName(labels.filterStatus);
+		const statuses = this.statusOptions();
+		if (statuses.length) {
+			const statusRow = new Setting(body).setName(labels.filterStatus).setClass("hearth-taskfilter-row");
 			const statusHost = statusRow.controlEl.createDiv("hearth-taskfilter-chips");
-			for (const status of this.availableStatuses) {
+			for (const status of statuses) {
 				this.toggleChip(statusHost, status, () => (this.working.statuses ?? []).some((s) => s.toLowerCase() === status.toLowerCase()), () => {
 					const cur = this.working.statuses ?? [];
 					const has = cur.some((s) => s.toLowerCase() === status.toLowerCase());
@@ -958,13 +1735,32 @@ class TaskFilterModal extends Modal {
 		});
 	}
 
-	/** A single multi-select chip: reflects `isOn()` and flips it on click. */
+	/** The statuses to offer as chips: those the card's tasks actually use,
+	 * plus any the working filter still selects that no longer appear. Without
+	 * the second group a filter kept from an earlier state (a status renamed,
+	 * or its last task deleted) would go on hiding tasks with no chip left to
+	 * switch it off. */
+	private statusOptions(): string[] {
+		const out = [...this.availableStatuses];
+		const seen = new Set(out.map((s) => s.toLowerCase()));
+		for (const status of this.working.statuses ?? []) {
+			if (seen.has(status.toLowerCase())) continue;
+			seen.add(status.toLowerCase());
+			out.push(status);
+		}
+		return out;
+	}
+
+	/** A single multi-select chip: reflects `isOn()` and flips it on click.
+	 * Updated in place rather than by re-rendering the row, so the chip you
+	 * just clicked keeps keyboard focus. */
 	private toggleChip(host: HTMLElement, label: string, isOn: () => boolean, flip: () => void): void {
-		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
-		chip.toggleClass("is-on", isOn());
+		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+		setChipState(chip, isOn());
 		chip.addEventListener("click", () => {
 			flip();
-			chip.toggleClass("is-on", isOn());
+			setChipState(chip, isOn());
+			this.syncPresets();
 		});
 	}
 
@@ -983,6 +1779,7 @@ class TaskFilterModal extends Modal {
 				b.setButtonText(t().cards.tasks.filterClear).onClick(() => {
 					this.working = {};
 					this.renderBody();
+					this.syncPresets();
 				}),
 			)
 			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
@@ -1131,18 +1928,19 @@ function renderTaskRow(
 		renderTaskNotesCheckbox(view, cfg, hit, row, refresh, openStatus);
 	}
 
-	const label = row.createDiv({ cls: "hearth-list-label hearth-task-text" });
+	// Two groups on the one row: the title (with whatever sits beside it) holds
+	// the left and is the only part allowed to shrink, and every other chip
+	// gathers at the right edge. Grouping them is what keeps a task to a single
+	// line — a long title ellipsizes instead of pushing the chips onto a line of
+	// their own (#156). The card's configured field order still reads
+	// left-to-right, since a list draws all its chips into the one meta group.
+	const main = row.createDiv("hearth-task-main");
+	const meta = row.createDiv("hearth-task-metas");
+	const label = main.createDiv({ cls: "hearth-list-label hearth-task-text" });
 	fillTaskText(view, label, hit.text || hit.file.basename, hit.file.path);
-	// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
-	// …) and the checkbox can't express it, so show it right after the title.
-	if (hit.status) renderTaskStatus(row, hit.status);
-	// Kanban cards show the board column they belong to as a small badge.
-	if (hit.boardColumn) row.createDiv({ cls: "hearth-task-status hearth-task-column", text: hit.boardColumn });
-	// The list has room for a labelled priority chip (a bare dot is easy to
-	// miss); board cards stay dot-only for compactness.
-	if (hit.priority) renderPriority(row, hit.priority);
-	renderTaskDateChips(row, hit, today);
-	if (hit.description) renderTaskDescription(row, hit.description);
+	// The description is the one field that gets its own line, so it goes to the
+	// row itself rather than into either group.
+	renderTaskFields(view, cfg, hit, { inline: main, meta, block: row, root: row }, today, "list", refresh);
 
 	const open = () => void openTask(view, cfg, hit, refresh);
 	row.addEventListener("click", open);
@@ -1524,13 +2322,13 @@ function renderTaskKanban(
 		}
 		const cardText = textRow.createDiv({ cls: "hearth-kanban-card-text" });
 		fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
-			// Kanban priority shows as a single coloured dot inline with the title;
-			// TaskNotes keeps its labelled chip in the meta row below.
-			if (source === "kanban" && hit.priority) renderPriority(textRow, hit.priority, true);
-			if (hit.description) renderTaskDescription(cardEl, hit.description);
+			// A board card is three stacked areas, so the hosts are created up front
+			// and each field lands in the one its style suits: a bare dot fits beside
+			// the title, the description is its own block, everything else is a chip
+			// in the meta row (where the configured order applies).
+			const block = cardEl.createDiv("hearth-kanban-card-block");
 			const meta = cardEl.createDiv("hearth-kanban-card-meta");
-			if (source !== "kanban" && hit.priority) renderPriority(meta, hit.priority);
-			renderTaskDateChips(meta, hit, today);
+			renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh);
 			const open = () => void openTask(view, cfg, hit, refresh);
 			// A real board/checkbox line (not a note-linked card) can have its title
 			// edited inline: double-click swaps the text for an input. Single click
@@ -1990,8 +2788,13 @@ class TaskDetailModal extends Modal {
 			// editable here for Kanban cards even with that toggle off.
 			const today: string = moment().format("YYYY-MM-DD");
 			const chips = contentEl.createDiv("hearth-taskdetail-readonly");
-			if (hit.priority) renderPriority(chips, hit.priority);
-			renderTaskDateChips(chips, hit, today);
+			// The quick view is the task's detail sheet, so it shows every piece of
+			// metadata in its default style — independent of which fields the card
+			// it was opened from happens to display.
+			if (hit.priority) renderPriorityChip(chips, hit.priority, "pill");
+			for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
+				renderTaskDateChip(chips, hit, id, today, "text");
+			}
 			if (!chips.childNodes.length)
 				chips.createSpan({ cls: "hearth-taskdetail-empty", text: t().cards.tasks.noMetadata });
 			if (isKanban) {
@@ -2272,15 +3075,15 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 /** Resolve the Kanban board note for a card. Prefers the explicitly configured
  * `kanbanFile` path; otherwise auto-detects the first in-scope note whose
  * frontmatter carries the `kanban-plugin` key the Kanban plugin writes. */
-function resolveKanbanFile(view: HomeView, cfg: TasksConfig): TFile | null {
+function resolveKanbanFile(app: App, cfg: TasksConfig): TFile | null {
 	const path = cfg.kanbanFile?.trim();
 	if (path) {
-		const f = view.app.vault.getAbstractFileByPath(path);
+		const f = app.vault.getAbstractFileByPath(path);
 		return f instanceof TFile ? f : null;
 	}
-	for (const file of view.app.vault.getMarkdownFiles()) {
+	for (const file of app.vault.getMarkdownFiles()) {
 		if (!inTaskScope(file.path, cfg)) continue;
-		const fm = view.app.metadataCache.getFileCache(file)?.frontmatter;
+		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (fm && KANBAN_FRONTMATTER_KEY in fm) return file;
 	}
 	return null;
@@ -2435,7 +3238,7 @@ async function collectKanbanTasks(
 	view: HomeView,
 	cfg: TasksConfig,
 ): Promise<{ hits: TaskHit[]; columns: KanbanColumn[]; file: TFile | null }> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return { hits: [], columns: [], file: null };
 	const content = await view.app.vault.cachedRead(file);
 	const lines = content.split("\n");
@@ -2736,7 +3539,7 @@ async function addKanbanCard(
 	doneDate?: string,
 	description?: string,
 ): Promise<boolean> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return false;
 	const content = await view.app.vault.read(file);
 	const lines = content.split("\n");
@@ -2764,7 +3567,7 @@ async function addKanbanCardAsNote(
 	markDone?: boolean,
 	doneDate?: string,
 ): Promise<boolean> {
-	const board = resolveKanbanFile(view, cfg);
+	const board = resolveKanbanFile(view.app, cfg);
 	if (!board) return false;
 	const safeTitle =
 		(title || "Untitled").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled";
@@ -2928,7 +3731,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 			link.addEventListener("click", (ev) => {
 				ev.stopPropagation();
 				ev.preventDefault();
-				void view.app.workspace.openLinkText(target.trim(), sourcePath, false);
+				void openLink(view, target.trim(), sourcePath, "link", ev);
 			});
 		} else {
 			const link = el.createSpan({ cls: "hearth-task-link", text: m[2] });
@@ -2937,7 +3740,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 				ev.stopPropagation();
 				ev.preventDefault();
 				if (/^https?:\/\//i.test(url)) window.open(url, "_blank");
-				else void view.app.workspace.openLinkText(url, sourcePath, false);
+				else void openLink(view, url, sourcePath, "link", ev);
 			});
 		}
 		last = re.lastIndex;
@@ -3213,7 +4016,7 @@ async function renameKanbanColumn(
 	oldHeading: string,
 	newHeading: string,
 ): Promise<void> {
-	const file = resolveKanbanFile(view, cfg);
+	const file = resolveKanbanFile(view.app, cfg);
 	if (!file) return;
 	const content = await view.app.vault.read(file);
 	const lines = content.split("\n");
@@ -3717,69 +4520,6 @@ function renderLineRecurringCheckbox(
 }
 
 
-/** The slice of TaskNotes' plugin surface this uses. All optional and duck-typed:
- * TaskNotes ships no stable public types, so each accessor is probed before use
- * and may be absent or reshaped between versions. */
-interface TaskNotesLike {
-	openTaskEditModal?: (task: unknown) => unknown;
-	cacheManager?: { getTaskInfo?: (path: string) => unknown };
-	api?: { tasks?: { get?: (path: string) => unknown } };
-}
-
-
-/** Best-effort: open a TaskNotes task in TaskNotes' own edit modal rather than
- * the raw Markdown note. TaskNotes exposes no stable public API, so this resolves
- * the plugin's own task object for the file and hands it to `openTaskEditModal`,
- * returning whether it handled the open; the caller falls back to opening the
- * file when it didn't.
- *
- * The modal requires TaskNotes' `TaskInfo` (title/status/priority/…), not a
- * `TFile`: passing the file leaves the modal with a broken change-detection
- * baseline that traps every button but Delete (see issue #72). `openTaskEditModal`
- * is async, so a bad argument never throws synchronously — resolving the info up
- * front (and awaiting the open) is the only way to know we really handled it. */
-async function openInTaskNotes(view: HomeView, file: TFile): Promise<boolean> {
-	const plugin = view.app.plugins.plugins[TASKNOTES_PLUGIN_ID] as TaskNotesLike | undefined;
-	if (!plugin || typeof plugin.openTaskEditModal !== "function") return false;
-	const task = await resolveTaskNotesInfo(plugin, file.path);
-	if (!task) return false;
-	try {
-		await plugin.openTaskEditModal(task);
-		return true;
-	} catch {
-		// Internal error — fall through to a plain file open.
-		return false;
-	}
-}
-
-
-/** Resolve TaskNotes' `TaskInfo` for a note path via whichever accessor the
- * installed version exposes: the cache manager first, then the public runtime
- * API (`api.tasks.get`). Both are best-effort and may be absent or reshaped
- * between TaskNotes versions, so failures fall through to the next. */
-async function resolveTaskNotesInfo(plugin: TaskNotesLike, path: string): Promise<unknown> {
-	const cache = plugin.cacheManager;
-	if (typeof cache?.getTaskInfo === "function") {
-		try {
-			const info = await cache.getTaskInfo(path);
-			if (info) return info;
-		} catch {
-			// Fall through to the public API.
-		}
-	}
-	const get = plugin.api?.tasks?.get;
-	if (typeof get === "function") {
-		try {
-			const info = await get(path);
-			if (info) return info;
-		} catch {
-			// No resolver worked.
-		}
-	}
-	return null;
-}
-
-
 async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
 	// Line-based tasks (checkboxes / Kanban cards) open a compact quick-view by
 	// default — metadata + description with open-note / delete actions — instead
@@ -3800,13 +4540,13 @@ async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh:
 async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 	// A card that links to a note opens that note directly (not the board line).
 	if (hit.linkedFile) {
-		await view.app.workspace.getLeaf(true).openFile(hit.linkedFile);
+		await openFile(view, hit.linkedFile, "card");
 		return;
 	}
 	// TaskNotes tasks (no line) open in TaskNotes' own editor when possible.
-	if (hit.line < 0 && (await openInTaskNotes(view, hit.file))) return;
+	if (hit.line < 0 && (await openInTaskNotes(view.app, hit.file.path))) return;
 
-	const leaf = view.app.workspace.getLeaf(true);
+	const leaf = targetLeaf(view, "card");
 	// Scroll to the task's line via ephemeral state rather than a setCursor call
 	// right after openFile: in a freshly created leaf the editor isn't laid out
 	// yet, so an immediate scroll is discarded and the note opens at the top
@@ -3818,6 +4558,793 @@ async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 		leaf.view.editor.setCursor({ line: hit.line, ch: 0 });
 	}
 }
+
+
+// ---- Field customization -------------------------------------------------
+
+/** What the fields editor found in the vault: the frontmatter properties a key
+ * could read, and the distinct values each source actually takes — so a value
+ * mapping is picked from what the vault really contains rather than typed from
+ * memory. */
+interface TaskFieldDiscovery {
+	properties: string[];
+	values: Map<string, string[]>;
+}
+
+
+/** How many values a single source offers as suggestions. A property with
+ * hundreds of distinct values (a date, an id) is not something anyone maps by
+ * hand, and the list has to stay navigable. */
+const FIELD_VALUE_LIMIT = 40;
+
+
+/** Copy a field list deeply enough that the copy shares nothing mutable with
+ * the original — keys and value mappings included. */
+function cloneTaskFields(fields: TaskFieldDef[]): TaskFieldDef[] {
+	return fields.map((f) => ({
+		...f,
+		keys: f.keys.map((k) => ({ ...k, values: k.values?.map((v) => ({ ...v })) })),
+	}));
+}
+
+
+/**
+ * Scan the card's scope for the values its keys can take.
+ *
+ * Deliberately a light frontmatter read rather than the render-time collectors:
+ * the editor only needs distinct values and property names, it runs without a
+ * view, and `metadataCache` already holds every frontmatter block parsed. The
+ * Kanban board is the one file actually read, for its column headings.
+ */
+async function discoverTaskFields(
+	app: App,
+	cfg: TasksConfig | null,
+	settings: HomeSettings,
+	fields: TaskFieldDef[],
+): Promise<TaskFieldDiscovery> {
+	// The global list belongs to no card, so it scans the whole vault and offers
+	// the values of every source rather than just one card's.
+	const source = cfg?.source ?? null;
+	const scope = cfg ?? {};
+	const properties = new Set<string>();
+	const values = new Map<string, Set<string>>();
+	const record = (key: string, raw: unknown) => {
+		const set = values.get(key) ?? new Set<string>();
+		for (const value of taskFieldValues(raw)) {
+			if (set.size < FIELD_VALUE_LIMIT) set.add(value);
+		}
+		values.set(key, set);
+	};
+
+	const statusField = settings.taskNotesStatusField.trim() || "status";
+	const priorityField = settings.taskNotesPriorityField.trim() || "priority";
+	const wanted = new Set(
+		fields.flatMap((f) => f.keys.map((k) => sourceProperty(k.source)).filter(Boolean)),
+	);
+
+	for (const file of app.vault.getMarkdownFiles()) {
+		if (!inTaskScope(file.path, scope)) continue;
+		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (!frontmatter) continue;
+		for (const key of Object.keys(frontmatter)) properties.add(key);
+		if (source === "tasknotes" || source === null) {
+			record(builtinSource("status"), frontmatter[statusField]);
+			record(builtinSource("priority"), frontmatter[priorityField]);
+		}
+		for (const property of wanted) {
+			record(frontmatterSource(property), frontmatter[property]);
+		}
+	}
+
+	// Priority on the line-based sources is one of the five Tasks-plugin levels,
+	// which are known without scanning anything. Recorded as the normalized keys
+	// ("high", not "⏫"), matching what a mapping is compared against.
+	if (source !== "tasknotes") record(builtinSource("priority"), Object.keys(PRIORITY_EMOJI));
+
+	// Board columns are headings in the board note, not frontmatter.
+	if (source === "kanban" && cfg) {
+		const board = resolveKanbanFile(app, cfg);
+		if (board) {
+			const lines = (await app.vault.cachedRead(board)).split("\n");
+			record(builtinSource("column"), parseKanbanColumns(lines).columns.map((c) => c.heading));
+		}
+	}
+
+	return {
+		properties: [...properties].sort((a, b) => a.localeCompare(b)),
+		values: new Map(
+			[...values].map(([id, set]) => [id, [...set].sort((a, b) => a.localeCompare(b))]),
+		),
+	};
+}
+
+
+/** A human label for a key's source, for the editor's rows. */
+function sourceLabel(source: string): string {
+	const builtin = sourceBuiltin(source);
+	if (builtin) return t().editors.tasks.sourceNames[builtin];
+	return sourceProperty(source) || source;
+}
+
+
+/**
+ * The fields editor.
+ *
+ * Nothing here is a fixed list of Hearth's metadata: a field is built by the
+ * user — a name, a display style, and the keys that feed it. Each key reads one
+ * frontmatter property or one of Hearth's own parsed values, and can map each
+ * raw value to a nicer label and a colour. Values with no mapping still show,
+ * as themselves.
+ *
+ * Everything expands in place rather than drilling into panes: a field opens to
+ * show its keys, a key opens to show its value mappings, and the fields above
+ * and below stay on screen throughout. Building a second field that mirrors the
+ * first is the common case, and it needs both visible.
+ */
+export class TaskFieldsModal extends Modal {
+	private fields: TaskFieldDef[];
+	private body: HTMLElement | null = null;
+	private discovery: TaskFieldDiscovery = { properties: [], values: new Map() };
+	/** Which fields and keys are expanded, by `field:<id>` / `key:<id>:<n>`.
+	 * Named `expanded`, not `open`: `Modal.open()` is a method on the base class
+	 * and shadowing it would break the modal at runtime. */
+	private expanded = new Set<string>();
+	/** The key whose newly added, still-empty value row should take the cursor
+	 * once the editor has been redrawn. */
+	private focusValue: string | null = null;
+
+	/**
+	 * @param cfg  The card being edited, or null when editing the global list in
+	 *             Settings → Hearth. A card scopes the vault scan to its folders;
+	 *             the global list belongs to no card and scans everything.
+	 */
+	constructor(
+		app: App,
+		private readonly cfg: TasksConfig | null,
+		private readonly settings: HomeSettings,
+		initial: TaskFieldDef[] | undefined,
+		private readonly onApply: (fields: TaskFieldDef[]) => void,
+	) {
+		super(app);
+		// Clone so Cancel truly discards edits, and so an Apply that keeps the
+		// modal open can't mutate what it already saved.
+		this.fields = cloneTaskFields(resolveTaskFields(initial));
+	}
+
+	onOpen(): void {
+		const { contentEl, modalEl } = this;
+		// The width goes on the modal frame rather than its content: a field, its
+		// keys and their value tables are three levels deep, which Obsidian's
+		// default modal width cannot hold without crowding every row.
+		modalEl.addClass("hearth-taskfields-modal");
+		contentEl.addClass("hearth-taskfields");
+		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
+		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
+		this.body = contentEl.createDiv("hearth-taskfields-body");
+		this.renderBody();
+		this.renderFooter(contentEl);
+		// Values arrive from a vault scan; redraw once they do so the mappings
+		// can be picked from real values.
+		void this.rescan();
+	}
+
+	private async rescan(): Promise<void> {
+		this.discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		this.renderBody();
+	}
+
+	private isOpen(key: string): boolean {
+		return this.expanded.has(key);
+	}
+
+	private toggleOpen(key: string): void {
+		if (!this.expanded.delete(key)) this.expanded.add(key);
+		this.renderBody();
+	}
+
+	/**
+	 * The header every panel carries: a chevron, what the panel is, a one-line
+	 * summary of what it holds, and its own buttons — returned so the caller can
+	 * add them. The whole strip toggles the panel: expanding is the thing done
+	 * most often here, and a chevron alone is a small target for it.
+	 */
+	private panelHead(
+		panel: HTMLElement,
+		openKey: string,
+		title: string,
+		summary: string,
+		expandable: boolean,
+	): HTMLElement {
+		const labels = t().editors.tasks;
+		const open = this.isOpen(openKey);
+		const head = panel.createDiv("hearth-taskfields-head");
+		const chevron = head.createDiv("hearth-taskfields-chevron");
+		if (expandable) setIcon(chevron, open ? "chevron-down" : "chevron-right");
+		const text = head.createDiv("hearth-taskfields-headtext");
+		text.createDiv({ cls: "hearth-taskfields-title", text: title });
+		text.createDiv({ cls: "hearth-taskfields-summary", text: summary });
+		const actions = head.createDiv("hearth-taskfields-actions");
+		// The buttons sit inside the strip that toggles, so their clicks must not
+		// reach it — moving a field would otherwise collapse it.
+		actions.addEventListener("click", (e) => e.stopPropagation());
+		if (expandable) {
+			head.addClass("is-expandable");
+			head.setAttribute("role", "button");
+			head.setAttribute("aria-expanded", String(open));
+			head.setAttribute("aria-label", open ? labels.fieldCollapse : labels.fieldExpand);
+			head.addEventListener("click", () => this.toggleOpen(openKey));
+		}
+		return actions;
+	}
+
+
+	/** One of a panel header's buttons. Disabled means inert, not just greyed:
+	 * the icon buttons are divs, so the guard has to be in the handler. */
+	private iconButton(
+		parent: HTMLElement,
+		icon: string,
+		tooltip: string,
+		disabled: boolean,
+		onClick: () => void,
+	): void {
+		new ExtraButtonComponent(parent)
+			.setIcon(icon)
+			.setTooltip(tooltip)
+			.setDisabled(disabled)
+			.onClick(() => {
+				if (!disabled) onClick();
+			});
+	}
+
+	private renderBody(): void {
+		const body = this.body;
+		if (!body) return;
+		body.empty();
+		const labels = t().editors.tasks;
+
+		this.fields.forEach((field, index) => this.renderField(body, field, index));
+
+		if (!this.fields.length) {
+			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
+		}
+
+		const foot = body.createDiv("hearth-taskfields-foot is-add");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAdd)
+			.setCta()
+			.onClick(() => {
+				const field = newTaskField(labels.fieldDefaultName(this.fields.length + 1));
+				this.fields.push(field);
+				// Open it: naming it and giving it a key is the point of adding it.
+				this.expanded.add(`field:${field.id}`);
+				this.renderBody();
+			});
+	}
+
+	// ---- A field -----------------------------------------------------------
+
+	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
+		const labels = t().editors.tasks;
+		const openKey = `field:${field.id}`;
+		const open = this.isOpen(openKey);
+
+		// A card per field, so where one ends and the next begins is obvious
+		// without counting indentation.
+		const panel = body.createDiv("hearth-taskfields-field");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			field.name.trim() || labels.fieldUnnamed,
+			field.keys.length
+				? field.keys.map((k) => sourceLabel(k.source)).join(" · ")
+				: labels.fieldNoKeys,
+			true,
+		);
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () =>
+			this.move(index, index - 1),
+		);
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === this.fields.length - 1,
+			() => this.move(index, index + 1),
+		);
+		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
+			this.fields.splice(index, 1);
+			this.expanded.delete(openKey);
+			this.renderBody();
+		});
+
+		if (!open) return;
+		const detail = panel.createDiv("hearth-taskfields-panelbody");
+
+		new Setting(detail)
+			.setName(labels.fieldName)
+			.setDesc(labels.fieldNameDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(labels.fieldNamePlaceholder)
+					.setValue(field.name)
+					.onChange((v) => {
+						field.name = v;
+					}),
+			);
+
+		new Setting(detail)
+			.setName(labels.fieldDisplay)
+			.setDesc(labels.fieldDisplayDesc)
+			.addDropdown((d) => {
+				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
+					d.addOption(style, labels.fieldStyles[style]);
+				}
+				d.setValue(fieldStyle(field)).onChange((v) => {
+					field.display = v as TaskFieldStyle;
+					// The strength slider only exists for the ambient styles.
+					this.renderBody();
+				});
+			});
+
+		// How hard the tint or ring is laid on. Only the ambient styles have one.
+		if (isAmbientStyle(fieldStyle(field))) {
+			new Setting(detail)
+				.setName(labels.fieldOpacity)
+				.setDesc(labels.fieldOpacityDesc)
+				.addSlider((sl) =>
+					// No setDynamicTooltip: it is deprecated, and current Obsidian
+					// already shows a slider's value inline beside it.
+					sl
+						.setLimits(1, 100, 1)
+						.setValue(fieldOpacity(field))
+						.onChange((v) => {
+							field.opacity = v;
+						}),
+				);
+		}
+
+		new Setting(detail)
+			.setName(labels.fieldShowName)
+			.setDesc(labels.fieldShowNameDesc)
+			.addToggle((tg) =>
+				tg.setValue(!!field.showName).onChange((v) => {
+					field.showName = v || undefined;
+				}),
+			);
+
+		// The keys are the substance of a field, so they get a section of their own
+		// rather than another settings row that happens to have rows under it.
+		const section = detail.createDiv("hearth-taskfields-section");
+		const sectionHead = section.createDiv("hearth-taskfields-sectionhead");
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiontitle", text: labels.fieldKeys });
+		sectionHead.createDiv({ cls: "hearth-taskfields-sectiondesc", text: labels.fieldKeysDesc });
+		field.keys.forEach((key, keyIndex) => this.renderKey(section, field, key, keyIndex));
+		if (!field.keys.length) {
+			section.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldKeysEmpty });
+		}
+		this.renderAddKey(section, field);
+	}
+
+	// ---- A key on a field --------------------------------------------------
+
+	private renderKey(
+		section: HTMLElement,
+		field: TaskFieldDef,
+		key: TaskFieldKey,
+		index: number,
+	): void {
+		const labels = t().editors.tasks;
+		const openKey = `key:${field.id}:${index}`;
+		const isDate = keyIsDate(key);
+		// The description is a block of text: no values, no dates, nothing to
+		// configure. Everything else expands.
+		const mappable = !isDescriptionSource(key.source);
+		const mapped = (key.values ?? []).length;
+		const open = mappable && this.isOpen(openKey);
+
+		const panel = section.createDiv("hearth-taskfields-key");
+		panel.toggleClass("is-open", open);
+		const actions = this.panelHead(
+			panel,
+			openKey,
+			sourceLabel(key.source),
+			!mappable
+				? labels.fieldNotMappable
+				: isDate
+					? labels.fieldDateKey
+					: mapped
+						? labels.fieldMappedValues(mapped)
+						: labels.fieldNoMappings,
+			mappable,
+		);
+		const swap = (to: number) => {
+			const [item] = field.keys.splice(index, 1);
+			field.keys.splice(to, 0, item);
+			this.renderBody();
+		};
+		this.iconButton(actions, "chevron-up", labels.fieldMoveUp, index === 0, () => swap(index - 1));
+		this.iconButton(
+			actions,
+			"chevron-down",
+			labels.fieldMoveDown,
+			index === field.keys.length - 1,
+			() => swap(index + 1),
+		);
+		this.iconButton(actions, "trash-2", labels.fieldRemoveKey, false, () => {
+			field.keys.splice(index, 1);
+			this.renderBody();
+		});
+
+		if (!open) return;
+		const host = panel.createDiv("hearth-taskfields-panelbody");
+		// A frontmatter property could hold anything; only the user knows whether
+		// this one is a date. The built-in date sources are not up for debate.
+		if (!isDateSource(key.source)) {
+			new Setting(host)
+				.setName(labels.fieldIsDate)
+				.setDesc(labels.fieldIsDateDesc)
+				.addToggle((tg) =>
+					tg.setValue(!!key.isDate).onChange((v) => {
+						key.isDate = v || undefined;
+						// The two modes store different things under `values`; keeping
+						// the old rows would leave dead entries behind either way.
+						key.values = undefined;
+						this.renderBody();
+					}),
+				);
+		}
+		if (isDate) this.renderDateRelations(host, key);
+		else this.renderMappings(host, key);
+	}
+
+	// ---- A date key: the three relations to today ---------------------------
+
+	/**
+	 * A date has no values to enumerate, so what it offers instead is the only
+	 * distinction that means anything on a task: is it behind us, is it today, or
+	 * is it still ahead. Each gets an optional label and colour — the label
+	 * replaces the date's own wording ("Overdue" rather than "Yesterday"), which
+	 * is why it is optional: most people want the colour and keep the date.
+	 */
+	private renderDateRelations(host: HTMLElement, key: TaskFieldKey): void {
+		const labels = t().editors.tasks;
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldDateHint });
+
+		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldWhenColumn);
+		for (const relation of DATE_RELATIONS) {
+			// Rows exist for all three whether or not they have been configured, so
+			// the choice is visible rather than something to discover.
+			let mapping = values.find((v) => v.match === relation);
+			if (!mapping) {
+				mapping = { match: relation };
+				values.push(mapping);
+			}
+			const entry = mapping;
+			const row = table.createDiv("hearth-taskfields-trow");
+			row.createDiv({
+				cls: "hearth-taskfields-cell is-fixed",
+				text: labels.dateRelations[relation],
+			});
+			this.textCell(row, labels.fieldDateLabelPlaceholder, entry.label ?? "", (v) => {
+				entry.label = v.trim() || undefined;
+			});
+			this.colorCell(row, entry);
+			// The three relations are the whole set: nothing to add, nothing to
+			// remove. The empty cell keeps the columns lined up with the value table.
+			row.createDiv("hearth-taskfields-cell is-actions");
+		}
+	}
+
+	// ---- The value table shared by mappings and date relations --------------
+
+	/** A grid with a header row, one row per value. The columns line up down the
+	 * table and each input fills its own, instead of every row being a settings
+	 * item with an empty name and its controls crowded to the right. */
+	private valueTable(host: HTMLElement, firstColumn: string): HTMLElement {
+		const labels = t().editors.tasks;
+		const table = host.createDiv("hearth-taskfields-table");
+		const head = table.createDiv("hearth-taskfields-trow hearth-taskfields-thead");
+		head.createDiv({ cls: "hearth-taskfields-cell", text: firstColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldShownColumn });
+		head.createDiv({ cls: "hearth-taskfields-cell", text: labels.fieldColorColumn });
+		head.createDiv("hearth-taskfields-cell");
+		return table;
+	}
+
+	/** One text cell of a value row. */
+	private textCell(
+		row: HTMLElement,
+		placeholder: string,
+		value: string,
+		onChange: (value: string) => void,
+	): HTMLInputElement {
+		const cell = row.createDiv("hearth-taskfields-cell");
+		const text = new TextComponent(cell);
+		text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
+		return text.inputEl;
+	}
+
+	/**
+	 * A value's colour: a swatch showing what it currently renders as, which opens
+	 * the theme presets, plus a free picker beside it for anyone matching a
+	 * palette. Neither redraws the editor — the swatch updates itself, so dragging
+	 * through the picker isn't fighting a re-render on every step.
+	 */
+	private colorCell(row: HTMLElement, mapping: TaskValueMap): void {
+		const labels = t().editors.tasks;
+		const cell = row.createDiv("hearth-taskfields-cell is-color");
+		// Deliberately not a <button>: Obsidian's and a theme's button rules set a
+		// background at a specificity a plugin class can't reliably beat, which
+		// left every swatch grey however it was coloured. A div with the button
+		// role has nothing to fight and the same keyboard behaviour.
+		const swatch = cell.createDiv({
+			cls: "hearth-taskfields-swatch",
+			attr: {
+				role: "button",
+				tabindex: "0",
+				"aria-label": labels.fieldColor,
+				title: labels.fieldColor,
+			},
+		});
+		const picker = cell.createEl("input", {
+			cls: "hearth-taskfields-picker",
+			attr: {
+				type: "color",
+				"aria-label": labels.fieldColorCustom,
+				title: labels.fieldColorCustom,
+			},
+		});
+		const show = () => {
+			// The colour is set inline rather than through a class or a custom
+			// property: Obsidian and themes style controls inside a modal at a
+			// specificity no plugin selector can be sure of beating, and a swatch
+			// that shows grey whatever was picked is worse than no preview at all.
+			// An inline background beats all of it. "No colour" is an empty ring.
+			swatch.style.backgroundColor = mapping.color ?? "transparent";
+			// The picker only understands hex, so a theme preset leaves it as it is
+			// rather than being coerced into some nearest colour.
+			if (mapping.color?.startsWith("#")) picker.value = mapping.color;
+		};
+		show();
+		const openPalette = () => {
+			const menu = new Menu();
+			for (const preset of TASK_COLOR_PRESETS) {
+				const value = presetColor(preset);
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.colorNames[preset])
+						.setChecked(mapping.color === value)
+						.onClick(() => {
+							mapping.color = value;
+							show();
+						}),
+				);
+			}
+			menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle(labels.fieldColorClear)
+					.setIcon("rotate-ccw")
+					.onClick(() => {
+						mapping.color = undefined;
+						show();
+					}),
+			);
+			const rect = swatch.getBoundingClientRect();
+			menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+		};
+		swatch.addEventListener("click", openPalette);
+		swatch.addEventListener("keydown", (e) => {
+			if (e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			openPalette();
+		});
+		picker.addEventListener("input", () => {
+			mapping.color = picker.value;
+			show();
+		});
+	}
+
+	// ---- One key's value mappings ------------------------------------------
+
+	private renderMappings(host: HTMLElement, key: TaskFieldKey): void {
+		const labels = t().editors.tasks;
+		host.createDiv({ cls: "hearth-taskfields-hint", text: labels.fieldMapHint });
+
+		const values = (key.values ??= []);
+		const table = this.valueTable(host, labels.fieldValueColumn);
+		values.forEach((mapping, index) => {
+			const row = table.createDiv("hearth-taskfields-trow");
+			const match = this.textCell(row, labels.fieldMatchPlaceholder, mapping.match, (v) => {
+				mapping.match = v;
+			});
+			this.textCell(row, labels.fieldLabelPlaceholder, mapping.label ?? "", (v) => {
+				mapping.label = v.trim() || undefined;
+			});
+			this.colorCell(row, mapping);
+			const actions = row.createDiv("hearth-taskfields-cell is-actions");
+			this.iconButton(actions, "trash-2", labels.fieldRemoveMapping, false, () => {
+				values.splice(index, 1);
+				this.renderBody();
+			});
+			// A row added by the button below is empty, so put the cursor in it
+			// rather than making the value be clicked for before it can be typed.
+			if (this.focusValue === key.source && index === values.length - 1) {
+				this.focusValue = null;
+				window.setTimeout(() => match.focus(), 0);
+			}
+		});
+		if (!values.length) {
+			table.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldMapEmpty });
+		}
+
+		// Values this key actually takes in the vault, minus the ones already
+		// mapped — so a mapping is usually two clicks, not typing from memory.
+		const mapped = new Set(values.map((v) => v.match.trim().toLowerCase()));
+		const suggestions = (this.discovery.values.get(key.source) ?? []).filter(
+			(v) => !mapped.has(v.trim().toLowerCase()),
+		);
+		const foot = host.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("plus")
+			.setButtonText(labels.fieldAddMapping)
+			.onClick(() => {
+				values.push({ match: "" });
+				this.focusValue = key.source;
+				this.renderBody();
+			});
+		if (suggestions.length) {
+			new ButtonComponent(foot)
+				.setButtonText(labels.fieldValuesFound(suggestions.length))
+				.setTooltip(labels.fieldPickValue)
+				.onClick((e) => {
+					const menu = new Menu();
+					for (const value of suggestions) {
+						menu.addItem((item) =>
+							item.setTitle(value).onClick(() => {
+								values.push({ match: value });
+								this.renderBody();
+							}),
+						);
+					}
+					menu.showAtMouseEvent(e);
+				});
+		}
+	}
+
+	/**
+	 * Add a key to a field. Two buttons, each opening the list it belongs to:
+	 * what Hearth reads itself, and the frontmatter properties your notes
+	 * actually use (with typing a name by hand at the end of that list, for a
+	 * property no task carries yet). One button per source of truth beats a text
+	 * box flanked by icons that have to be hovered to find out what they do.
+	 */
+	private renderAddKey(section: HTMLElement, field: TaskFieldDef): void {
+		const labels = t().editors.tasks;
+		const add = (source: string) => {
+			if (!isKnownSource(source)) return;
+			if (field.keys.some((k) => k.source === source)) {
+				new Notice(labels.fieldKeyAlreadyAdded(sourceLabel(source)));
+				return;
+			}
+			field.keys.push({ source });
+			this.expanded.add(`key:${field.id}:${field.keys.length - 1}`);
+			this.renderBody();
+			// A newly referenced property has values worth suggesting.
+			void this.rescan();
+		};
+		const used = new Set(field.keys.map((k) => k.source));
+
+		const foot = section.createDiv("hearth-taskfields-foot");
+		new ButtonComponent(foot)
+			.setIcon("sparkles")
+			.setButtonText(labels.fieldAddBuiltin)
+			.setTooltip(labels.fieldPickBuiltin)
+			.onClick((e) => {
+				const menu = new Menu();
+				for (const id of TASK_BUILTIN_SOURCES) {
+					if (used.has(builtinSource(id))) continue;
+					menu.addItem((item) =>
+						item.setTitle(labels.sourceNames[id]).onClick(() => add(builtinSource(id))),
+					);
+				}
+				menu.showAtMouseEvent(e);
+			});
+
+		const available = this.discovery.properties.filter((p) => !used.has(frontmatterSource(p)));
+		new ButtonComponent(foot)
+			.setIcon("file-code")
+			.setButtonText(labels.fieldAddProperty)
+			.setTooltip(labels.fieldPickProperty)
+			.onClick((e) => {
+				const menu = new Menu();
+				for (const property of available) {
+					menu.addItem((item) =>
+						item.setTitle(property).onClick(() => add(frontmatterSource(property))),
+					);
+				}
+				if (available.length) menu.addSeparator();
+				menu.addItem((item) =>
+					item
+						.setTitle(labels.fieldAddKeyTyped)
+						.setIcon("pencil")
+						.onClick(() => {
+							new TaskValuePromptModal(this.app, labels.fieldAddKeyPlaceholder, "", (v) =>
+								add(frontmatterSource(v)),
+							).open();
+						}),
+				);
+				menu.showAtMouseEvent(e);
+			});
+
+		foot.createDiv({ cls: "hearth-taskfields-footnote", text: labels.fieldAddKeyDesc });
+	}
+
+	private move(from: number, to: number): void {
+		if (to < 0 || to >= this.fields.length) return;
+		const [item] = this.fields.splice(from, 1);
+		this.fields.splice(to, 0, item);
+		this.renderBody();
+	}
+
+	/** Hand the current list to the caller. Always a fresh copy: the modal keeps
+	 * editing its own array after an Apply that leaves it open, and nothing it
+	 * does afterwards may reach into what was already saved. */
+	private apply(): void {
+		const fields = cloneTaskFields(this.fields);
+		// The date editor materialises a row for all three relations so the choice
+		// is visible; the ones left untouched carry nothing and are dropped rather
+		// than stored. Typed value mappings are left alone — a match with no label
+		// yet is work in progress, not an empty row.
+		for (const f of fields) {
+			for (const k of f.keys) {
+				if (!keyIsDate(k) || !k.values) continue;
+				const kept = k.values.filter((v) => v.label?.trim() || v.color?.trim());
+				k.values = kept.length ? kept : undefined;
+			}
+		}
+		this.onApply(fields);
+	}
+
+	private renderFooter(parent: HTMLElement): void {
+		new Setting(parent)
+			.setClass("hearth-taskfields-footer")
+			.addButton((b) =>
+				b
+					.setButtonText(t().editors.tasks.fieldsApplyClose)
+					.setCta()
+					.onClick(() => {
+						this.apply();
+						this.close();
+					}),
+			)
+			// Apply without closing, so the card behind can be watched while the
+			// fields are built up.
+			.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.filterApply)
+					.setTooltip(t().editors.tasks.fieldsApplyDesc)
+					.onClick(() => this.apply()),
+			)
+			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+
+
+/** A one-line summary of what a card shows, so the editor says what is
+ * configured without opening the modal. */
+function taskFieldsSummary(fields: TaskFieldDef[]): string {
+	const names = fields.map((f) => f.name.trim()).filter(Boolean);
+	return names.length ? names.join(", ") : t().editors.tasks.fieldsNone;
+}
+
 
 
 export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
@@ -4099,6 +5626,52 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		);
 	}
 
+	// Which metadata each task shows, in what order and how. Only offered once
+	// the feature is switched on globally (Settings → Hearth → Integrations),
+	// so a card nobody has customized shows no controls for it at all. This is
+	// the card's *display*, unrelated to the field-name mapping in those same
+	// settings — that says where to read a value from, not whether to show it.
+	if (ctx.opts.settings.taskFieldsEnabled) {
+		const own = cfg.taskFieldsEnabled ?? false;
+		const fields = new Setting(containerEl)
+			.setName(t().editors.tasks.fields)
+			.setDesc(
+				own
+					? taskFieldsSummary(resolveTaskFields(cfg.taskFields))
+					: t().editors.tasks.fieldsFollowGlobal,
+			)
+			.addToggle((tg) =>
+				tg.setValue(own).onChange((v) => {
+					cfg.taskFieldsEnabled = v || undefined;
+					// Start from whatever the card shows right now, so switching to
+					// its own list is a starting point rather than a reset.
+					if (v && !cfg.taskFields?.length) {
+						cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields));
+					}
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+			);
+		if (own) {
+			fields.addButton((b) =>
+				b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+					new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, cfg.taskFields, (next) => {
+						cfg.taskFields = next.length ? next : undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+						// Redraw the board behind the modal so an Apply that keeps it
+						// open shows its effect straight away.
+						ctx.opts.rerender();
+					}).open();
+				}),
+			);
+			addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
+				cfg.taskFields = [];
+			});
+		}
+	}
+
 	new Setting(containerEl)
 		.setName(t().editors.tasks.showCompleted)
 		.setDesc(
@@ -4184,6 +5757,9 @@ export const tasksCard: CardDefinition<"tasks"> = {
 						)
 					: undefined,
 				sortRules: source.tasks.sortRules ? source.tasks.sortRules.map((r) => ({ ...r })) : undefined,
+				taskFields: source.tasks.taskFields
+					? cloneTaskFields(source.tasks.taskFields)
+					: undefined,
 			};
 	},
 	liveness: {

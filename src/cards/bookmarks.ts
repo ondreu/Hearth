@@ -3,6 +3,7 @@ import { emptyState } from "../cardbodies";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { type BookmarkItem } from "../obsidian-ext";
+import { openFile } from "../opener";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition } from "./definition";
@@ -187,7 +188,7 @@ function openBookmark(view: HomeView, item: BookmarkItem): void {
 	}
 	if (item.path) {
 		const file = view.app.vault.getAbstractFileByPath(item.path);
-		if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
+		if (file instanceof TFile) void openFile(view, file, "card");
 	}
 }
 

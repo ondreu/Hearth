@@ -1,4 +1,4 @@
-import { App, Component, debounce, TFile, WorkspaceLeaf } from "obsidian";
+import { App, Component, debounce, TextFileView, TFile, WorkspaceLeaf } from "obsidian";
 
 /** Hearth's own view type — hosting it inside itself makes no sense, so it is
  * excluded from the leaf card's picker. Kept as a literal (rather than imported
@@ -121,6 +121,31 @@ function createHostedLeaf(
 	}
 }
 
+/** Build a detached leaf showing `file` in Obsidian's own Markdown editor and
+ * mount it into `container`. Returns the leaf, or null if construction failed.
+ * Best-effort: never throws. */
+function createEditorLeaf(app: App, file: TFile, container: HTMLElement): WorkspaceLeaf | null {
+	try {
+		const LeafCtor = WorkspaceLeaf as unknown as { new (app: App): WorkspaceLeaf };
+		const leaf = new LeafCtor(app);
+		container.appendChild(leaf.containerEl);
+		// `mode: "source"` selects the editing (not reading) sub-view, and the
+		// `source` flag inside it picks raw Markdown (true) over Live Preview
+		// (false). These are the same two keys Obsidian persists for every markdown
+		// leaf in workspace.json — there is no typed API for the Live Preview flag,
+		// so the state object is the only way to ask for it. active:false keeps
+		// focus and the active-leaf pointer where they are.
+		void leaf
+			.openFile(file, { active: false, state: { mode: "source", source: false } })
+			.catch(() => {
+				/* the file failed to load; the empty leaf is harmless and cleaned up */
+			});
+		return leaf;
+	} catch {
+		return null;
+	}
+}
+
 /** Tear a hosted leaf down, best-effort. Resetting to the empty view first runs
  * the previous view's `onunload`, so heavy views (Excalidraw's React app and its
  * autosave/animation loops, a canvas' renderer) actually release their memory
@@ -134,13 +159,29 @@ function teardownHostedLeaf(leaf: WorkspaceLeaf): void {
 			/* the leaf may already be gone; nothing to clean up */
 		}
 	};
+	const unload = () => {
+		try {
+			// setViewState is async; unload the view, then detach whether it resolved
+			// or rejected. Promise.resolve tolerates a future API that returns void.
+			void Promise.resolve(leaf.setViewState({ type: "empty" })).then(detach, detach);
+		} catch {
+			detach();
+		}
+	};
 	try {
-		// setViewState is async; unload the view, then detach whether it resolved
-		// or rejected. Promise.resolve tolerates a future API that returns void.
-		void Promise.resolve(leaf.setViewState({ type: "empty" })).then(detach, detach);
+		// A hosted text editor (the live-preview note card, a canvas) can be holding
+		// keystrokes that TextFileView has only scheduled to write — `requestSave` is
+		// debounced two seconds out. Flush them before the view is unloaded, so
+		// scrolling the card off screen or closing the dashboard can't drop an edit.
+		const view = leaf.view;
+		if (view instanceof TextFileView) {
+			void Promise.resolve(view.save()).then(unload, unload);
+			return;
+		}
 	} catch {
-		detach();
+		/* couldn't reach the view; fall through to a plain unload */
 	}
+	unload();
 }
 
 /**
@@ -175,6 +216,46 @@ export function mountLeafView(
 	component: Component,
 	file?: string,
 ): boolean {
+	return hostLeafIn(app, container, component, () =>
+		createHostedLeaf(app, viewType, container, file),
+	);
+}
+
+
+/**
+ * Host Obsidian's own Markdown editor for `file` inside `container`, opened in
+ * Live Preview. Same detached-leaf hosting (and same visibility-driven
+ * mount/unmount lifecycle) as `mountLeafView`, so an off-screen card costs
+ * nothing and the editor is torn down — after flushing any pending save — when
+ * the card is redrawn or the dashboard closes.
+ *
+ * This is what the editable note cards use instead of their plain textarea when
+ * "Live preview" is on: it's the real editor, so wikilinks, embeds, formatting
+ * and every editor plugin behave exactly as they do in a normal tab.
+ *
+ * Best-effort: returns false rather than throwing when hosting can't be set up,
+ * so the caller can fall back to the plain editor.
+ */
+export function mountMarkdownEditor(
+	app: App,
+	file: TFile,
+	container: HTMLElement,
+	component: Component,
+): boolean {
+	return hostLeafIn(app, container, component, () => createEditorLeaf(app, file, container));
+}
+
+
+/** The shared hosting lifecycle behind `mountLeafView` and
+ * `mountMarkdownEditor`: build the leaf lazily when the card is on screen, tear
+ * it down when it leaves, and release everything with `component`. `create`
+ * supplies the leaf and is only ever called once per mount. */
+function hostLeafIn(
+	app: App,
+	container: HTMLElement,
+	component: Component,
+	create: () => WorkspaceLeaf | null,
+): boolean {
 	try {
 		let leaf: WorkspaceLeaf | null = null;
 		let destroyed = false;
@@ -188,7 +269,7 @@ export function mountLeafView(
 			// startup this is a straight-through call.
 			app.workspace.onLayoutReady(() => {
 				if (leaf || destroyed) return;
-				leaf = createHostedLeaf(app, viewType, container, file);
+				leaf = create();
 			});
 		};
 		const unmount = () => {
