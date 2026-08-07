@@ -43,12 +43,14 @@ import {
 	collectTimeblockOccurrences,
 	dailyNoteDayKey,
 	loadLocalCalendar,
+	loadTaskNotesSubscriptions,
 	openInTaskNotes,
 	readTaskAt,
 	readTaskNotesSetup,
 	taskNotesEnabled,
 	taskNotesEvents,
 	taskNotesMeta,
+	taskNotesSubscriptions,
 	type TaskNotesLayerOptions,
 	type TaskNotesMeta,
 	type TaskNotesSetup,
@@ -229,10 +231,13 @@ function buildIcsContext(
 
 	const taskNotes = buildTaskNotesSource(view, cfg.taskNotes);
 	// TaskNotes' own calendar subscriptions, mirrored onto this card unless the
-	// user turned that off. They keep their TaskNotes colour and name.
-	const subs: TaskNotesSubscription[] =
-		taskNotes && cfg.taskNotes?.subscriptions !== false
-			? taskNotes.setup.subscriptions.filter((s) => s.enabled)
+	// user turned that off. They keep their TaskNotes colour and name. The list
+	// is re-read on every load: TaskNotes keeps it in its plugin data, which
+	// only the asynchronous read can reach (see loadTaskNotesSubscriptions).
+	const mirrorSubs = taskNotes !== null && cfg.taskNotes?.subscriptions !== false;
+	let subs: TaskNotesSubscription[] =
+		mirrorSubs && taskNotes
+			? taskNotesSubscriptions(view.app, taskNotes.setup).filter((s) => s.enabled)
 			: [];
 
 	// The vault is read once per render: the card is rebuilt wholesale on any
@@ -319,21 +324,31 @@ function buildIcsContext(
 	};
 
 	const load = (force: boolean): void => {
-		const pending: Promise<unknown>[] = sources.map((s) =>
-			loadCalendar(s.url, { ttlMs, disabled, force }),
-		);
-		for (const s of subs) {
-			pending.push(
-				s.type === "local"
-					? loadLocalCalendar(view.app, s.filePath)
-					: loadCalendar(s.url, { ttlMs, disabled, force }),
+		if (sources.length === 0 && !mirrorSubs) return;
+		void (async () => {
+			// Re-read TaskNotes' subscription list first: it lives in TaskNotes'
+			// plugin data, so the synchronous list above can be empty on the very
+			// first render even when subscriptions exist.
+			if (mirrorSubs && taskNotes) {
+				subs = (await loadTaskNotesSubscriptions(view.app, taskNotes.setup)).filter(
+					(s) => s.enabled,
+				);
+			}
+			if (destroyed) return;
+			const pending: Promise<unknown>[] = sources.map((s) =>
+				loadCalendar(s.url, { ttlMs, disabled, force }),
 			);
-		}
-		if (pending.length === 0) return;
-		void Promise.all(pending).then(() => {
+			for (const s of subs) {
+				pending.push(
+					s.type === "local"
+						? loadLocalCalendar(view.app, s.filePath)
+						: loadCalendar(s.url, { ttlMs, disabled, force }),
+				);
+			}
+			await Promise.all(pending);
 			if (destroyed) return;
 			redraw?.();
-		});
+		})();
 	};
 
 	return {
@@ -1255,11 +1270,20 @@ export function taskNotesSourceEditor(
 			}),
 		);
 
+	// TaskNotes keeps its subscriptions in its plugin data, so the count may only
+	// be known after an async read — rebuild the editor once when that lands.
+	const known = taskNotesSubscriptions(ctx.app, setup);
+	if (!known.length && ctx.session.tnSubsProbed !== true) {
+		ctx.session.tnSubsProbed = true;
+		void loadTaskNotesSubscriptions(ctx.app, setup).then((found) => {
+			if (found.length) ctx.requestRender();
+		});
+	}
 	new Setting(containerEl)
 		.setName(strings.taskNotesSubscriptions)
 		.setDesc(
-			setup.subscriptions.length
-				? strings.taskNotesSubscriptionsDesc(setup.subscriptions.length)
+			known.length
+				? strings.taskNotesSubscriptionsDesc(known.length)
 				: strings.taskNotesSubscriptionsNone,
 		)
 		.addToggle((tg) =>

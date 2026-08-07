@@ -6,6 +6,7 @@ import {
 	isCompletedStatus,
 	normalizeRecurrence,
 	parseTaskDate,
+	parseSubscriptions,
 	parseTaskNotesSettings,
 	readTaskNotesTask,
 	readTimeblocks,
@@ -101,7 +102,7 @@ describe("parseTaskNotesSettings", () => {
 		});
 	});
 
-	it("reads calendar subscriptions, classifying local files and remote feeds", () => {
+	it("reads calendar subscriptions from settings when a version keeps them there", () => {
 		const setup = setupFrom({
 			icsIntegration: {
 				subscriptions: [
@@ -133,6 +134,10 @@ describe("parseTaskNotesSettings", () => {
 		]);
 	});
 
+	it("finds no subscriptions in the settings of a current TaskNotes (they live in its plugin data)", () => {
+		expect(setupFrom().subscriptions).toEqual([]);
+	});
+
 	it("mirrors TaskNotes' calendar layer toggles", () => {
 		const setup = setupFrom({
 			calendarViewSettings: { defaultShowDue: false, defaultShowTimeblocks: false },
@@ -140,6 +145,39 @@ describe("parseTaskNotesSettings", () => {
 		expect(setup.calendar.due).toBe(false);
 		expect(setup.calendar.timeblocks).toBe(false);
 		expect(setup.calendar.scheduled).toBe(true);
+	});
+});
+
+describe("parseSubscriptions", () => {
+	it("reads the list TaskNotes persists in its plugin data", () => {
+		// Exactly the shape TaskNotes' subscription service writes under
+		// `icsSubscriptions` in .obsidian/plugins/tasknotes/data.json.
+		const list = parseSubscriptions([
+			{
+				id: "ics_1",
+				name: "Family",
+				type: "remote",
+				url: "https://calendar.google.com/basic.ics",
+				enabled: true,
+				refreshInterval: 60,
+				color: "#3b82f6",
+			},
+			{ id: "ics_2", name: "Holidays", type: "local", filePath: "Calendars/holidays.ics", enabled: true },
+		]);
+		expect(list.map((s) => [s.id, s.type, s.enabled])).toEqual([
+			["ics_1", "remote", true],
+			["ics_2", "local", true],
+		]);
+	});
+
+	it("infers a missing type from which location is set", () => {
+		expect(parseSubscriptions([{ id: "x", url: "https://a/b.ics" }])[0].type).toBe("remote");
+		expect(parseSubscriptions([{ id: "y", filePath: "a.ics" }])[0].type).toBe("local");
+	});
+
+	it("ignores anything that isn't a list of fetchable subscriptions", () => {
+		expect(parseSubscriptions(undefined)).toEqual([]);
+		expect(parseSubscriptions([{ id: "z", name: "No location" }, "nonsense"])).toEqual([]);
 	});
 });
 

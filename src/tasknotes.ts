@@ -242,30 +242,11 @@ export function parseTaskNotesSettings(raw: unknown): TaskNotesSetup {
 		),
 	};
 
+	// Calendar subscriptions normally live in TaskNotes' plugin *data* rather
+	// than its settings (see `loadTaskNotesSubscriptions`); these two keys are
+	// only the fallback for versions that do keep them in settings.
 	const ics = asRecord(s.icsIntegration) ?? {};
-	const subs = Array.isArray(ics.subscriptions)
-		? ics.subscriptions
-		: Array.isArray(s.icsSubscriptions)
-			? s.icsSubscriptions
-			: [];
-	const subscriptions: TaskNotesSubscription[] = [];
-	for (const entry of subs) {
-		const rec = asRecord(entry);
-		if (!rec) continue;
-		const url = str(rec.url);
-		const filePath = str(rec.filePath);
-		if (!url && !filePath) continue;
-		const type = str(rec.type).toLowerCase() === "local" || (!url && filePath) ? "local" : "remote";
-		subscriptions.push({
-			id: str(rec.id) || url || filePath,
-			name: str(rec.name),
-			type,
-			url,
-			filePath,
-			color: str(rec.color),
-			enabled: bool(rec.enabled, true),
-		});
-	}
+	const subscriptions = parseSubscriptions(ics.subscriptions ?? s.icsSubscriptions);
 
 	const method = str(s.taskIdentificationMethod).toLowerCase() === "property" ? "property" : "tag";
 	return {
@@ -282,6 +263,34 @@ export function parseTaskNotesSettings(raw: unknown): TaskNotesSetup {
 		calendar,
 		subscriptions,
 	};
+}
+
+
+/** Read a list of TaskNotes calendar subscriptions from whatever shape it
+ * arrives in (its settings, its plugin data, or its subscription service).
+ * Entries with neither a URL nor a file path are dropped — there is nothing to
+ * fetch — and a missing `type` is inferred from which of the two is set. */
+export function parseSubscriptions(raw: unknown): TaskNotesSubscription[] {
+	if (!Array.isArray(raw)) return [];
+	const out: TaskNotesSubscription[] = [];
+	for (const entry of raw) {
+		const rec = asRecord(entry);
+		if (!rec) continue;
+		const url = str(rec.url);
+		const filePath = str(rec.filePath);
+		if (!url && !filePath) continue;
+		const type = str(rec.type).toLowerCase() === "local" || (!url && filePath) ? "local" : "remote";
+		out.push({
+			id: str(rec.id) || url || filePath,
+			name: str(rec.name),
+			type,
+			url,
+			filePath,
+			color: str(rec.color),
+			enabled: bool(rec.enabled, true),
+		});
+	}
+	return out;
 }
 
 
@@ -862,6 +871,12 @@ export interface TaskNotesLike {
 	openTaskEditModal?: (task: unknown) => unknown;
 	cacheManager?: { getTaskInfo?: (path: string) => unknown };
 	api?: { tasks?: { get?: (path: string) => unknown } };
+	/** TaskNotes' calendar-subscription service. Its `getSubscriptions()` is the
+	 * live list, including any added since the plugin loaded. */
+	icsSubscriptionService?: { getSubscriptions?: () => unknown };
+	/** Obsidian's own plugin-data reader. TaskNotes persists its subscriptions
+	 * under `icsSubscriptions` in that data, *outside* its settings object. */
+	loadData?: () => Promise<unknown>;
 }
 
 
@@ -876,6 +891,72 @@ export function taskNotesPlugin(app: App): TaskNotesLike | null {
  * isn't installed (so callers never branch on null). */
 export function readTaskNotesSetup(app: App): TaskNotesSetup {
 	return parseTaskNotesSettings(taskNotesPlugin(app)?.settings);
+}
+
+
+/** Last list read from TaskNotes' plugin data, so a synchronous caller (a card
+ * render, the editor) can show subscriptions the async read already found. */
+let dataSubscriptions: TaskNotesSubscription[] | null = null;
+
+
+/**
+ * TaskNotes' calendar subscriptions, read synchronously.
+ *
+ * They are *not* part of TaskNotes' settings object: its subscription service
+ * persists them under `icsSubscriptions` in the plugin's own data file. So the
+ * live service is asked first, then whatever the last async read of that data
+ * found, and only then the settings — which older versions did use.
+ */
+export function taskNotesSubscriptions(app: App, setup: TaskNotesSetup): TaskNotesSubscription[] {
+	const service = taskNotesPlugin(app)?.icsSubscriptionService;
+	if (typeof service?.getSubscriptions === "function") {
+		try {
+			const live = parseSubscriptions(service.getSubscriptions());
+			if (live.length) return live;
+		} catch {
+			// Service present but unhappy — fall through to the cached data.
+		}
+	}
+	if (dataSubscriptions?.length) return dataSubscriptions;
+	return setup.subscriptions;
+}
+
+
+/** Re-read TaskNotes' subscriptions, including the asynchronous plugin-data
+ * path the synchronous reader can't take. Call it alongside a feed refresh;
+ * the result is cached for `taskNotesSubscriptions`. */
+export async function loadTaskNotesSubscriptions(
+	app: App,
+	setup: TaskNotesSetup,
+): Promise<TaskNotesSubscription[]> {
+	const plugin = taskNotesPlugin(app);
+	const service = plugin?.icsSubscriptionService;
+	if (typeof service?.getSubscriptions === "function") {
+		try {
+			const live = parseSubscriptions(service.getSubscriptions());
+			if (live.length) {
+				dataSubscriptions = live;
+				return live;
+			}
+		} catch {
+			// Fall through to the plugin data.
+		}
+	}
+	if (typeof plugin?.loadData === "function") {
+		try {
+			const data = await plugin.loadData();
+			const stored = parseSubscriptions(
+				(data && typeof data === "object" ? (data as Record<string, unknown>) : {}).icsSubscriptions,
+			);
+			if (stored.length) {
+				dataSubscriptions = stored;
+				return stored;
+			}
+		} catch {
+			// Unreadable data — fall back to the settings copy.
+		}
+	}
+	return taskNotesSubscriptions(app, setup);
 }
 
 
