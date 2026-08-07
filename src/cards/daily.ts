@@ -2,12 +2,15 @@ import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
 import {
 	dailyNotesOptions,
 	emptyState,
+	livePreviewSetting,
 	renderEditableEmbed,
+	renderLivePreviewEmbed,
 	renderMarkdownFile,
 	todaysDailyNotePath,
 	watchedCardPath,
 } from "../cardbodies";
 import { t } from "../i18n";
+import { openFile } from "../opener";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -63,11 +66,12 @@ export function renderDaily(
 		});
 		setIcon(open, "square-pen");
 		open.addEventListener("click", () => {
-			void view.app.workspace.getLeaf(true).openFile(file);
+			void openFile(view, file, "card");
 		});
 	}
 
 	if (card.editable) {
+		if (card.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
 		renderEditableEmbed(view, file, body, component);
 		return;
 	}
@@ -87,8 +91,11 @@ export function dailyEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			tg.setValue(card.editable ?? false).onChange((v) => {
 				card.editable = v || undefined;
 				ctx.opts.save();
+				// The live-preview choice below only exists while editing is on.
+				ctx.requestRender();
 			}),
 		);
+	if (card.editable) livePreviewSetting(ctx, containerEl, card);
 	new Setting(containerEl)
 		.setName(t().editors.daily.openButton)
 		.setDesc(t().editors.daily.openButtonDesc)

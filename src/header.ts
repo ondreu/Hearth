@@ -120,7 +120,7 @@ function createNewNoteButton(view: HomeView): HTMLElement {
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.newNote });
 	btn.addEventListener("click", () => {
-		void view.plugin.createNewNote();
+		void view.plugin.createNewNote(view);
 	});
 	return btn;
 }

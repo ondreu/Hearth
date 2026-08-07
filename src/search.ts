@@ -4,6 +4,7 @@ import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } fr
 import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";
 import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
+import { openFile as openInLeaf } from "./opener";
 import { t } from "./i18n";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
@@ -480,7 +481,7 @@ export class SearchSection {
 	private openFile(file: TAbstractFile): void {
 		if (file instanceof TFile) {
 			this.pushHistory(file.path);
-			void this.view.app.workspace.getLeaf(true).openFile(file);
+			void openInLeaf(this.view, file, "search");
 			this.hide();
 		} else if (file instanceof TFolder) {
 			// Reveal the folder in the file explorer.

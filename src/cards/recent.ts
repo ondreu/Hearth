@@ -4,6 +4,7 @@ import { addResetButton } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile } from "../filetypes";
 import { t } from "../i18n";
+import { openFile } from "../opener";
 import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -41,7 +42,7 @@ export function renderRecent(view: HomeView, card: DashboardCard, body: HTMLElem
 		const row = list.createDiv("hearth-list-item");
 		applyFileIcon(row.createDiv("hearth-list-icon"), resolveFileIcon(view.app, file, icons));
 		row.createDiv({ cls: "hearth-list-label", text: file.basename });
-		const open = () => void view.app.workspace.getLeaf(true).openFile(file);
+		const open = () => void openFile(view, file, "card");
 		row.addEventListener("click", open);
 		makeClickable(row, open, file.basename);
 	}

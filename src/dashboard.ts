@@ -367,6 +367,7 @@ function renderCardControls(
 function openCardSettings(view: HomeView, card: DashboardCard): void {
 	const s = view.plugin.settings;
 	new CardSettingsModal(view.app, card, {
+		settings: s,
 		favorites: s.favorites,
 		isPinned: s.pinnedCards.includes(card),
 		externalCallsDisabled: s.disableExternalCalls,

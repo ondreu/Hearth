@@ -3,6 +3,7 @@ import { emptyState } from "../cardbodies";
 import { moveItem } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
+import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -26,7 +27,7 @@ export function renderFavorites(view: HomeView, body: HTMLElement): void {
 		if (file instanceof TFile) {
 			applyFileIcon(card.createDiv("hearth-fav-icon"), resolveFileIcon(view.app, file, icons));
 			card.createDiv({ cls: "hearth-fav-name", text: file.basename });
-			const open = () => void view.app.workspace.getLeaf(true).openFile(file);
+			const open = () => void openFile(view, file, "card");
 			card.addEventListener("click", open);
 			makeClickable(card, open, file.basename);
 		} else {
