@@ -2,6 +2,7 @@ import { setTooltip, Setting, TFile } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
+import { openFile, openLink as openLinkTarget } from "../opener";
 import { CommandPickerModal } from "../pickers";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
@@ -68,8 +69,8 @@ function openLink(view: HomeView, link: LinkItem): void {
 			break;
 		case "note": {
 			const file = view.app.vault.getAbstractFileByPath(link.target);
-			if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
-			else if (link.target) void view.app.workspace.openLinkText(link.target, "", true);
+			if (file instanceof TFile) void openFile(view, file, "link");
+			else if (link.target) void openLinkTarget(view, link.target, "", "link");
 			break;
 		}
 	}

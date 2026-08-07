@@ -58,6 +58,15 @@ export class MarkdownRenderer {}
 export class MarkdownView {}
 export class WorkspaceLeaf {}
 export class ButtonComponent {}
+
+// `opener.ts` imports Keymap for its runtime modifier check. The pure decision
+// functions under test never reach it — a call here would mean a test wandered
+// into the Obsidian API.
+export class Keymap {
+	static isModEvent(): never {
+		throw new Error("Keymap.isModEvent is not implemented in tests (Obsidian API)");
+	}
+}
 export class SliderComponent {}
 export class TextComponent {}
 

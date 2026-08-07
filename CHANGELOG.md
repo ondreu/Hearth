@@ -15,6 +15,97 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Choose what a calendar entry shows.** A new **Entry details** section in the
+  calendar card's settings (agenda layout) switches each chip on an entry on or
+  off: the time, the calendar name, and — with TaskNotes as a source — the
+  task's status, its priority, and the due / recurring / timeblock markers. On a
+  narrow card the markers competed with the title itself; now every card shows
+  only what earns its space. Existing cards are unchanged: everything the agenda
+  already showed stays on, and the status chip (new, and only available here) is
+  off until asked for.
+- **TaskNotes as a calendar source.** A calendar card can now pick up your
+  TaskNotes calendar and show it as a calendar card: scheduled tasks (sized by
+  their time estimate), due dates, recurring tasks unrolled into one entry per
+  occurrence, timeblocks from daily notes, and the ICS calendars subscribed
+  inside TaskNotes itself. Everything is read the way TaskNotes reads it — its
+  field mapping, its tag-or-property rule for what counts as a task, its custom
+  statuses and priorities with their colours — and each layer defaults to
+  whatever TaskNotes' own calendar is showing, so switching the source on
+  mirrors your existing setup. Per card you can override any layer, hide
+  completed or archived tasks, colour entries by status, priority or one fixed
+  colour, and give due dates and timeblocks their own colours. Completed tasks
+  show struck through with a faded day dot; a checkbox on each agenda entry
+  completes it in place (per-occurrence for recurring tasks, exactly as
+  TaskNotes records it), and the event popup shows the task's status, priority,
+  contexts, projects and estimate with an **Open task** button that hands off to
+  TaskNotes' own editor.
+
+- **Choose where Hearth opens notes.** Settings → Hearth → Behaviour → **Opening
+  notes** has a single **Open notes in** choice that governs every note Hearth
+  opens: **a new tab** (what it has always done), **the current tab**, which
+  replaces the home view so Hearth behaves like any other tab and the back
+  arrow brings it straight back, **a split pane**, or **a new window**. Four
+  optional rows under it take exceptions, each starting on *Same as above*, so
+  links, search results, notes listed in cards and notes Hearth creates can each
+  land somewhere different — a search hit taking over the Hearth tab while a
+  link from a card opens beside it. Ctrl/Cmd-click still opens a new tab
+  whatever the setting says, and the modifier combinations Obsidian understands
+  for a split or a window work here too.
+
+  A last row covers what Hearth doesn't control: **Notes opened from outside
+  Hearth** — the file explorer, the quick switcher, the graph — which Obsidian
+  hands to whichever tab is focused, taking a Hearth tab over. It still does by
+  default (the dashboard acts like an ordinary tab, and the explorer's selection
+  follows what you open), but set it to **A new tab** and the Hearth tab is left
+  alone. Links inside an embedded Bases table now follow the **Links** rule too,
+  instead of always replacing the dashboard (#106).
+- **An embedded note can be opened in its own tab.** Note embed cards have a new
+  **Open button** toggle in their card settings; turned on, a button on the card
+  opens the embedded file properly — following the open-behaviour setting above.
+  Off by default, so no existing board changes (#144).
+
+- **Build your own task fields.** Turn on **Customize task fields** under
+  Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
+  replaced by fields you define yourself. You start from a blank slate — a task
+  shows its text and nothing else — and add fields one at a time:
+
+  - **Name** the field, and choose how it's drawn: a **chip**, a bare
+    **colored dot**, or **plain text**.
+  - Give it a **key**: any frontmatter property, or one of the values Hearth
+    reads itself (a checkbox line's ⏫ priority, a Kanban board column, a due
+    date, the TaskNotes status). A field can have several keys, and each one
+    that has a value shows one — so related metadata can live under one name.
+  - **Map values** to nicer labels and colors: `high` → *Urgent* in red, `p2` →
+    *Normal* in blue. A value you haven't mapped still shows, as itself, so
+    nothing goes missing while you're still building the mapping up. Priority is
+    matched in every spelling it comes in, so mapping `high` also catches a ⏫
+    line — and mapping the exact word your notes use (`urgent`, `p1`) keeps its
+    own label and color.
+
+  - Or have the value **color the whole task** instead of adding anything to
+    it: **tint** its background or **glow** around it, at a strength you set.
+    An overdue task can turn the row red without a chip anywhere on it, which
+    is legible across a whole board at a glance.
+
+  **Dates know they're dates.** A date key has no values to map — instead you
+  color and label it by where it falls: **before today**, **today**, **after
+  today**. Leave the label empty to keep the date's own wording and just tint
+  it. A frontmatter property holding a date can be marked as one, and gets the
+  same treatment.
+
+  **Click a value to change it**, in the list and on a board alike: the chip
+  opens a menu of your mapped values (under their own labels), then the other
+  values that key takes elsewhere in your vault, then a free entry for anything
+  new and a clear. A date opens a **calendar** instead, with today / tomorrow /
+  next week shortcuts. Frontmatter is written to the task's own note, so this is
+  offered on TaskNotes tasks and notes made from a Kanban card; a plain checkbox
+  gets it for its priority and dates, which live on the line.
+
+  The switch is **off by default**, and while it's off every Tasks card renders
+  exactly as it always has. The fields you define in Settings apply to every
+  Tasks card; an individual card can define its own instead, from that card's
+  settings (#157).
+
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws
   one — Recent files, Favorites, Bookmarks, saved-search cards and the search
@@ -26,9 +117,58 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   an API, so Hearth reads their settings directly and quietly falls back to the
   file-type icon if it can't. Turn it off, or point it at a renamed Iconize
   frontmatter property, under Settings → Hearth → Integrations (#132).
+- **Editable notes can use Obsidian's Live Preview editor.** An editable Note
+  embed or Daily note card has a new **Live preview** toggle beside
+  **Editable**. Turned on, the card hosts Obsidian's own editor instead of
+  Hearth's plain raw-Markdown box: formatting renders as you type, there's no
+  double-click to get into edit mode, and links, embeds, undo and your editor
+  plugins all behave exactly as they do in a normal tab. The card's own settings
+  make the choice per card and per embed view, so a scratchpad can stay in raw
+  source while a journal card reads like a page. Like the plugin-view card, the
+  hosted editor is only alive while the card is on screen, and pending
+  keystrokes are flushed to the vault before it's torn down. Left off, the card
+  keeps the double-click raw editor it has always had (#160).
 
 ### Fixed
 
+- **Embedded bases follow the card opacity in table view.** A `.base` card in
+  list or cards view faded with the board like any other card, but the table
+  view stayed a solid slab: it fills its container and rows with Obsidian's base
+  surface colour (it needs opaque paint so its sticky header and first column
+  cover what scrolls beneath). Base embeds now clear those surfaces so the
+  card's own translucent background shows through, and the sticky header is
+  painted with the card's surface colour, so it fades with the card instead of
+  staying opaque. Row hover and selection highlights are untouched.
+- **The task filter's Status row is readable again.** With more than a handful
+  of statuses — TaskNotes states, Kanban columns, your own checkbox statuses —
+  the chips took the whole row and squeezed the label down to *Sta…*, then
+  wrapped into a staggered, right-aligned block. Status and Priority now stack
+  their chips under the label and lay them out left to right, so the label stays
+  whole and the chips read as one strip however many there are. Two things that
+  went with it: a preset chip (**Overdue**, **High priority**, …) now shows when
+  it's on and a second click takes it back off, instead of only ever applying;
+  and a status your filter still selects but that no tasks use any more keeps
+  its chip, so you can switch it off rather than having to clear the whole
+  filter. Chips also report their on/off state to screen readers (#164).
+- **A task list keeps one task per line.** A task whose title didn't fit
+  alongside its chips broke across two or three lines — the checkbox alone on
+  one, the title on the next, its status, priority and dates on a third — so a
+  list of tasks with mixed title lengths read as a ragged block rather than a
+  list. A row now holds the checkbox and title (with the status chip beside it)
+  on the left and gathers every other chip at the right edge, and the title is
+  the only part that gives way: it ellipsizes instead of wrapping the row. This
+  is how the list already behaved with **Customize task fields** on; both modes
+  now match (#156).
+- **Task checkboxes are no longer clipped in embed, daily and jot cards.** A
+  task list embedded in a card could have the left edge of its checkboxes cut
+  off. Obsidian hangs a checkbox outside its list item by one and a half checkbox
+  widths, and sizes checkboxes from the global font-size setting — which card
+  text doesn't follow — so on a larger setting the checkbox outgrew the indent
+  it hangs out of and spilled past the card's edge. The card's side gutter now
+  sits on the embed itself, where it can actually shield content from being
+  clipped, and widens to match the checkbox instead of being a fixed number, so
+  it holds at any font size. Checkboxes still scale with your font setting;
+  ordinary cards look exactly as before (#137).
 - **Sorting tasks by priority puts Highest at the top.** The priority sort
   ranked tasks by the coarse colour bucket the priority dot uses, which lumps
   Highest in with High (and Lowest in with Low). Tasks one level apart therefore
@@ -45,6 +185,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for jots — so the state sticks, whether or not the card is set to editable.
   A tick is reverted if the write can't land, and a click on a checkbox no
   longer opens the raw editor when it lands as part of a double-click (#143).
+- **No grey box under an editable note.** Double-clicking an editable Note
+  embed, Daily note or jot card to edit it dropped a grey form-field panel
+  behind the text — permanently so on mobile, where Obsidian's own textarea
+  rule outranked the transparent background Hearth asks for. The raw editor
+  now keeps the card's surface in every state, so switching between the
+  rendered note and its source no longer changes the card's background (#160).
 - **Theme focus rings no longer break the search bar.** Under Catppuccin (and
   any theme that styles input focus with a body-class-prefixed selector), the
   home-screen search input picked up the theme's own focus ring, so a blue
@@ -56,6 +202,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Inputs with an ordinary border, such as the Kanban editors and the task-detail
   description field, keep the theme's ring, since for them it is the focus
   affordance (#138).
+
+### Changed
+
+- **Links inside tasks now open where every other link does.** A `[[wikilink]]`
+  in a task's text took over the current tab, which in a Hearth tab meant
+  replacing the home view — while the same link on a card opened a new tab. Both
+  now follow **Open notes in** (a new tab by default). To keep tasks behaving as
+  they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
+  *The current tab* (#106).
+
+- **Today is marked more quietly in the calendar's agenda.** The current day's
+  row no longer takes a heavy accent fill that made its text hard to read.
+  Today is now carried by an accent ring around the date badge plus a faint tint
+  on the row, with the stronger accent wash kept for hover — so pointing at the
+  row is what lights it up. The row sets both states itself, so a theme's own
+  saturated hover colour can't turn today into an unreadable slab, and hover no
+  longer sticks after a tap on touch devices.
 
 ## [1.17.0]
 

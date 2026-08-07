@@ -1,7 +1,10 @@
-import { Component, debounce, MarkdownRenderer, moment as createMoment, setIcon, TFile } from "obsidian";
+import { Component, debounce, MarkdownRenderer, moment as createMoment, setIcon, Setting, TFile } from "obsidian";
+import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
 import { localDayKey } from "./dates";
 import { t } from "./i18n";
+import { mountMarkdownEditor } from "./leafview";
+import { internalLinkText, openLink } from "./opener";
 import { type DashboardCard, type EmbedView } from "./types";
 import { type HomeView } from "./view";
 
@@ -41,10 +44,15 @@ export interface Moment {
 	year(): number;
 	diff(other: Moment, unit?: string): number;
 	valueOf(): number;
+	/** False when the input didn't parse (used for strict format parsing). */
+	isValid(): boolean;
 }
 
 interface MomentFn {
 	(input?: Date | string): Moment;
+	/** Strict parse against an explicit format — how a daily note's date is
+	 * recovered from its filename. */
+	(input: string, format: string, strict?: boolean): Moment;
 	localeData(): { firstDayOfWeek(): number };
 }
 
@@ -72,7 +80,13 @@ export const activeEmbedView = new WeakMap<DashboardCard, number>();
  * Cards without a valid second view return a single-element list. */
 export function embedViews(card: DashboardCard): EmbedView[] {
 	const views: EmbedView[] = [
-		{ target: card.target, baseView: card.baseView, scale: card.scale, editable: card.editable },
+		{
+			target: card.target,
+			baseView: card.baseView,
+			scale: card.scale,
+			editable: card.editable,
+			livePreview: card.livePreview,
+		},
 	];
 	if (card.secondView?.target?.trim()) views.push(card.secondView);
 	return views;
@@ -92,6 +106,27 @@ export function activeEmbedIndex(card: DashboardCard): number {
  * switched to the second view and it still exists). */
 export function activeEmbedViewParams(card: DashboardCard): EmbedView {
 	return embedViews(card)[activeEmbedIndex(card)];
+}
+
+
+/** The "Live preview" toggle shared by every card that can edit a note in
+ * place (embed — primary and second view — and daily). `target` is whichever
+ * object owns the flag: the card itself, or one of its embed views. */
+export function livePreviewSetting(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	target: { livePreview?: boolean },
+): void {
+	new Setting(containerEl)
+		.setName(t().editors.embed.livePreview)
+		.setDesc(t().editors.embed.livePreviewDesc)
+		.addToggle((tg) =>
+			tg.setValue(target.livePreview ?? false).onChange((v) => {
+				target.livePreview = v || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
 }
 
 
@@ -136,12 +171,17 @@ export function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath:
 			return;
 		}
 
-		if (anchor.classList.contains("internal-link")) {
-			const linktext = anchor.getAttribute("data-href") || anchor.getAttribute("href");
-			if (linktext) {
-				evt.preventDefault();
-				void view.app.workspace.openLinkText(linktext, sourcePath, true);
-			}
+		// Not gated on the `internal-link` class: an embedded Bases view (and
+		// other plugin-rendered content) draws note links without it, and those
+		// clicks would otherwise fall through to Obsidian's own handler, which
+		// always takes over the tab the click came from — the Hearth tab (#106).
+		const linktext = internalLinkText(
+			anchor.getAttribute("data-href"),
+			anchor.getAttribute("href"),
+		);
+		if (linktext) {
+			evt.preventDefault();
+			void openLink(view, linktext, sourcePath, "link", evt);
 		}
 	});
 }
@@ -252,10 +292,41 @@ export async function renderMarkdownFile(
 
 
 /**
+ * Editable embed backed by Obsidian's own editor, opened in Live Preview: the
+ * note is always editable (no double-click dance), formatting renders as you
+ * type, and saving, undo, external-edit sync and every editor plugin are
+ * Obsidian's job rather than ours.
+ *
+ * Hosted as a detached workspace leaf, exactly like the plugin-view card, so it
+ * is only alive while the card is on screen. Returns false when hosting can't be
+ * set up, leaving `body` untouched so the caller can fall back to
+ * `renderEditableEmbed`.
+ */
+export function renderLivePreviewEmbed(
+	view: HomeView,
+	file: TFile,
+	body: HTMLElement,
+	component: Component,
+): boolean {
+	// `hearth-leaf-host` carries the transparency rules that let a hosted view
+	// show the card's own translucent surface; `hearth-leaf-hide-header` drops the
+	// breadcrumb/kebab bar, which is pure noise on a single-file card.
+	const host = body.createDiv("hearth-leaf-host hearth-leaf-hide-header hearth-jot-live");
+	body.addClass("hearth-card-body-live");
+	if (mountMarkdownEditor(view.app, file, host, component)) return true;
+	host.remove();
+	body.removeClass("hearth-card-body-live");
+	return false;
+}
+
+
+/**
  * "Live mode" editable embed: shows the note rendered as Markdown and swaps to a
- * raw editor on double-click (Obsidian doesn't expose a true Live Preview editor
- * for arbitrary containers). Saves back to the vault and stays in sync with
- * external edits without ever interrupting typing.
+ * raw Markdown editor on double-click. Saves back to the vault and stays in sync
+ * with external edits without ever interrupting typing.
+ *
+ * The plain-editor half of the pair — see `renderLivePreviewEmbed` for the card
+ * setting that hosts Obsidian's real editor instead.
  */
 export function renderEditableEmbed(
 	view: HomeView,

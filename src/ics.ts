@@ -45,6 +45,10 @@ export interface IcsEvent {
 	rrule: string | null;
 	/** Epoch ms of excluded occurrence starts (EXDATE). */
 	exdates: number[];
+	/** Opaque payload for events synthesised by a non-ICS provider (currently
+	 * the TaskNotes source), carried onto every occurrence so the card can
+	 * recognise and style them. Never set by the ICS parser. */
+	meta?: unknown;
 }
 
 /** A parsed calendar: its display name plus its events. */
@@ -68,11 +72,31 @@ export interface IcsOccurrence {
 	allDay: boolean;
 	/** Filled by the caller: which configured source this came from. */
 	sourceId?: string;
+	/** The originating event's provider payload (see `IcsEvent.meta`). */
+	meta?: unknown;
+}
+
+/** What became of the last attempt to load a feed. A failed fetch is otherwise
+ * invisible — the card just shows nothing for that calendar — so the reason is
+ * kept here for the editor to report. */
+export interface IcsStatus {
+	/** Whether a calendar has ever been parsed for this URL. */
+	loaded: boolean;
+	/** Events in the last successfully parsed calendar. */
+	events: number;
+	/** When that parse happened (epoch ms), or null. */
+	fetched: number | null;
+	/** Why the last attempt failed, or null when it didn't. */
+	error: string | null;
+	/** Whether an attempt was skipped because external calls are disabled. */
+	blocked: boolean;
 }
 
 interface CacheEntry {
 	cal: IcsCalendar | null;
 	inflight: Promise<IcsCalendar | null> | null;
+	error: string | null;
+	blocked: boolean;
 }
 
 const cache = new Map<string, CacheEntry>();
@@ -80,6 +104,19 @@ const cache = new Map<string, CacheEntry>();
 /** The last-fetched calendar for a URL (possibly stale), or null if never loaded. */
 export function cachedCalendar(url: string): IcsCalendar | null {
 	return cache.get(url)?.cal ?? null;
+}
+
+/** How the last load of a feed went: loaded and how many events, blocked by the
+ * privacy setting, failed (and why), or never attempted. */
+export function calendarStatus(url: string): IcsStatus {
+	const entry = cache.get(url);
+	return {
+		loaded: !!entry?.cal,
+		events: entry?.cal?.events.length ?? 0,
+		fetched: entry?.cal?.fetched ?? null,
+		error: entry?.error ?? null,
+		blocked: entry?.blocked ?? false,
+	};
 }
 
 /**
@@ -97,10 +134,14 @@ export async function loadCalendar(
 ): Promise<IcsCalendar | null> {
 	let entry = cache.get(url);
 	if (!entry) {
-		entry = { cal: null, inflight: null };
+		entry = { cal: null, inflight: null, error: null, blocked: false };
 		cache.set(url, entry);
 	}
-	if (opts.disabled) return entry.cal;
+	if (opts.disabled) {
+		entry.blocked = true;
+		return entry.cal;
+	}
+	entry.blocked = false;
 	const fresh = entry.cal && Date.now() - entry.cal.fetched < opts.ttlMs;
 	if (fresh && !opts.force) return entry.cal;
 	if (entry.inflight) return entry.inflight;
@@ -110,13 +151,28 @@ export async function loadCalendar(
 		try {
 			// webcal:// is just https for subscription URLs; normalise it so
 			// requestUrl (and pasted Apple/Google links) work unchanged.
-			const res = await requestUrl({ url: url.replace(/^webcal:/i, "https:") });
+			// `throw: false` keeps the HTTP status readable — "HTTP 403" tells the
+			// user their feed needs a different (secret/public) address, where a
+			// bare thrown error would not.
+			const res = await requestUrl({ url: url.replace(/^webcal:/i, "https:"), throw: false });
+			if (res.status >= 400) {
+				current.error = `HTTP ${res.status}`;
+				return current.cal;
+			}
 			const parsed = parseIcs(res.text);
-			// Keep prior events when a fetch returns something unparseable.
-			if (parsed) current.cal = parsed;
+			// Keep prior events when a fetch returns something unparseable, but
+			// record that it wasn't a calendar — otherwise the feed just silently
+			// shows nothing and there's no way to tell why.
+			if (parsed) {
+				current.cal = parsed;
+				current.error = null;
+			} else {
+				current.error = "not-calendar";
+			}
 			return current.cal;
-		} catch {
-			// Offline or blocked — keep any prior events.
+		} catch (e) {
+			// Offline, blocked or refused — keep any prior events and remember why.
+			current.error = e instanceof Error ? e.message : String(e);
 			return current.cal;
 		} finally {
 			current.inflight = null;
@@ -337,6 +393,7 @@ export function expandEvents(
 					start,
 					end,
 					allDay: ev.allDay,
+					meta: ev.meta,
 				});
 			}
 		};
