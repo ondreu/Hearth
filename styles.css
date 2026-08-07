@@ -511,12 +511,17 @@
 	border-radius: var(--hearth-card-radius, 14px);
 	border: var(--card-border-width, 1px) solid
 		var(--background-modifier-border);
-	/* --card-opacity (0..1) tints the card surface without dimming content. */
-	background: color-mix(
+	/* --card-opacity (0..1) tints the card surface without dimming content.
+	 * Published as a variable so content INSIDE the card that has to paint its
+	 * own surface (a Bases table's sticky header, say) can reuse the exact same
+	 * colour. It resolves here, against the card's real --background-primary, so
+	 * it stays correct even where a descendant neutralises that variable. */
+	--hearth-card-surface: color-mix(
 		in srgb,
 		var(--background-primary) calc(var(--card-opacity, 1) * 100%),
 		transparent
 	);
+	background: var(--hearth-card-surface);
 	/* Drop shadow via a variable so merged edges can drop it (see below) and
 	 * hover can lift it without re-declaring the whole shadow. */
 	--hearth-card-lift: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -791,6 +796,12 @@
 	--background-primary-alt: transparent;
 	--background-secondary: transparent;
 	--background-secondary-alt: transparent;
+	/* A hosted view may be a Bases table, which paints through the table
+	 * variables as well — see the .hearth-embed-base block for the reasoning. */
+	--table-background: transparent;
+	--table-row-background: transparent;
+	--table-row-alt-background: transparent;
+	--table-header-background: var(--hearth-card-surface, var(--background-primary));
 }
 
 .hearth-leaf-host > .workspace-leaf {
@@ -4103,6 +4114,48 @@ body.hearth-dv-resizing {
 .hearth-embed-hide-base-header .bases-header,
 .hearth-embed-hide-base-header .bases-toolbar {
 	display: none !important;
+}
+
+/* Embedded Bases: let the view show the card's translucent surface (#opacity).
+ * The list/cards views paint nothing of their own, so they honoured
+ * --card-opacity for free; the table view fills its container, rows and cells
+ * with the base surface (it needs opaque paint for its sticky header and sticky
+ * first column to cover what scrolls beneath), which read as a solid slab on a
+ * translucent card.
+ *
+ * Same fix as .hearth-leaf-host: rather than chase every element that paints —
+ * Bases' internals are not a public API and its class names can change between
+ * releases — neutralise the base-surface variables *within the embed host*, so
+ * whichever element does the painting resolves to transparent and the card's own
+ * tint shows through. Accent surfaces (hover, selection, form fields) use
+ * --*-modifier-* variables, which are untouched, so row hover and selection keep
+ * their look. Scoped to .base embeds so no other embed kind is affected. */
+.hearth-embed-base {
+	--background-primary: transparent;
+	--background-primary-alt: transparent;
+	--background-secondary: transparent;
+	--background-secondary-alt: transparent;
+	/* Obsidian's table variables default to the base surfaces above, but a theme
+	 * may point them at a literal colour, so clear them here too. */
+	--table-background: transparent;
+	--table-row-background: transparent;
+	--table-row-alt-background: transparent;
+	/* The header row is sticky, so it can't be fully transparent or the rows
+	 * scrolling under it would collide with the column titles. Give it the card's
+	 * own surface colour: at opacity 1 it's exactly the old opaque header, and
+	 * below 1 it fades with the card like everything else. */
+	--table-header-background: var(--hearth-card-surface, var(--background-primary));
+}
+
+/* Belt-and-braces, mirroring the leaf-host rule: clear the structural wrappers
+ * directly in case a theme hard-codes their fill to a literal colour instead of
+ * the variables neutralised above. Deliberately limited to containers — cells
+ * and rows are left alone so hover/selection highlights still paint. */
+.hearth-embed-base .bases-view,
+.hearth-embed-base .bases-table-container,
+.hearth-embed-base .bases-table,
+.hearth-embed-base .bases-tbody {
+	background: transparent !important;
 }
 
 /* ---- Embed second-view switcher ------------------------------------- */

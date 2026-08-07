@@ -95,6 +95,10 @@ export function renderEmbed(
 
 	const host = body.createDiv("hearth-embed markdown-rendered");
 	body.addClass("is-embed-host");
+	// A Bases view paints its own surfaces (the table view most of all), which
+	// hides the card's translucent background. This class scopes the CSS that
+	// makes those surfaces defer to the card's --card-opacity.
+	if (ext === "base") host.addClass("hearth-embed-base");
 	// Optionally hide the embedded Bases view's own toolbar/header (view switcher
 	// + filter/property controls) so only the results show. Scoped via a class on
 	// the host so it only affects this card's base embed.

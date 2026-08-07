@@ -106,6 +106,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Embedded bases follow the card opacity in table view.** A `.base` card in
+  list or cards view faded with the board like any other card, but the table
+  view stayed a solid slab: it fills its container and rows with Obsidian's base
+  surface colour (it needs opaque paint so its sticky header and first column
+  cover what scrolls beneath). Base embeds now clear those surfaces so the
+  card's own translucent background shows through, and the sticky header is
+  painted with the card's surface colour, so it fades with the card instead of
+  staying opaque. Row hover and selection highlights are untouched.
 - **The task filter's Status row is readable again.** With more than a handful
   of statuses — TaskNotes states, Kanban columns, your own checkbox statuses —
   the chips took the whole row and squeezed the label down to *Sta…*, then
