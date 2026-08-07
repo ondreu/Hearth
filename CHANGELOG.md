@@ -220,6 +220,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   saturated hover colour can't turn today into an unreadable slab, and hover no
   longer sticks after a tap on touch devices.
 
+### Removed
+
+- **The deprecated `commandId` field on mobile action buttons is gone.**
+  Scheduled for removal in 1.11.0 when the 1.9.0 migration landed, it is now
+  retired: the field no longer exists on a button, and `actionTarget()` no
+  longer falls back to reading it. **This changes nothing about how your buttons
+  behave.** The load-time migration that folds a legacy `commandId` into
+  `target` is deliberately kept, so a vault upgrading from before 1.9.0 — even
+  one that skipped every release since — still has its buttons migrated in place
+  exactly as before, as does an imported backup. The one-way caveat from 1.9.0
+  is unchanged: downgrading below 1.9.0 loses any button whose action was stored
+  *only* as `commandId`.
+
 ## [1.17.0]
 
 ### Added

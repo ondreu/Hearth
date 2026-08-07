@@ -655,17 +655,12 @@ export interface MobileActionButton {
 	id: string;
 	label: string;
 	icon: string;
-	/** What the button does. Defaults to "command" when absent (older buttons
-	 * stored only `commandId`). */
+	/** What the button does. Defaults to "command" when absent (buttons stored
+	 * before this field existed carried a bare command id, which
+	 * `migrateSettings` folds into `target` on load). */
 	type?: "command" | "note" | "url";
 	/** Command id, vault path, or URL depending on `type`. */
 	target?: string;
-	/** @deprecated Legacy command id from before `type`/`target` existed.
-	 * `migrateSettings` folds it into `target` on load (one-way); the fallback
-	 * read in `actionTarget` is a transitional safety net.
-	 * Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
-	 * migration has run for everyone — together with that fallback. */
-	commandId?: string;
 }
 
 /** A secondary embed a card can switch to. Only `target` is required; `scale`
@@ -1579,17 +1574,18 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// This does NOT round-trip — a user who upgrades and then downgrades below
 	// 1.9.0 loses any button whose action was stored only as `commandId`. See
 	// CHANGELOG.
-	// Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
-	// migration has run for everyone — together with the `commandId` field on
-	// MobileActionButton and the fallback read in actionTarget().
+	// The `commandId` field itself was removed from MobileActionButton in
+	// 1.18.0, along with the fallback read that used to back it up in
+	// actionTarget(). This fold is deliberately kept: stored settings can still
+	// carry the legacy key, and it is now the only thing standing between a
+	// vault that skipped 1.9.0–1.17.0 and a row of dead buttons. It reads the
+	// key through an untyped view of the button, since the type no longer
+	// admits it, and it self-converges — once folded, it stops re-firing.
 	let migratedCommandId = false;
 	if (Array.isArray(s.mobileActionButtons)) {
 		for (const btn of s.mobileActionButtons) {
-			// Reading (and below, deleting) `commandId` intentionally trips
-			// no-deprecated — the repo forbids silencing that rule, so the
-			// warnings stay visible until the field is removed in 1.11.0. That is
-			// expected: a migration must touch the field it is retiring.
-			const legacy = btn.commandId;
+			const legacyBtn = btn as MobileActionButton & { commandId?: string };
+			const legacy = legacyBtn.commandId;
 			if (legacy === undefined) continue;
 			// Only lift the value into `target` when `target` is unset: a button
 			// that already carries a `target` (a newer version or a manual edit)
@@ -1607,7 +1603,7 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 			// so there is nothing to preserve. This also lets the migration fully
 			// converge, so it stops re-firing (and re-saving) on later loads.
 			if ((btn.target !== undefined && btn.target !== "") || legacy === "") {
-				delete btn.commandId;
+				delete legacyBtn.commandId;
 				migratedCommandId = true;
 			}
 		}
