@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Full history + all tags so the beta-parity guard below can diff the
           # stable commit against its x.y.z-beta.* tag.
