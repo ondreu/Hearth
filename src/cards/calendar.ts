@@ -59,7 +59,6 @@ import {
 } from "../tasknotes";
 import {
 	calendarChips,
-	type CalendarChipConfig,
 	type CalendarConfig,
 	type DashboardCard,
 	type ResolvedChips,
