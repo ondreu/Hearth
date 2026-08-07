@@ -633,8 +633,8 @@
  * than the list's own `3ch` indent. Padding on the body sits *outside* the clip
  * box and so can't absorb the overhang — the checkbox is simply cut off. Reading
  * view avoids this because its `--file-margins` gutter is interior. The rules
- * below zero the body's inline padding and re-apply the same value on the
- * scroll/clip elements themselves, so text lands in exactly the same place. */
+ * below zero the body's inline padding and re-apply it on the scroll/clip
+ * elements themselves, so text lands in exactly the same place. */
 .hearth-card-body.is-embed-host,
 .hearth-card-body.is-jot-host {
 	overflow: hidden;
@@ -648,18 +648,45 @@
 	padding-inline: 0;
 }
 
+/* Second half of the fix: tie the checkbox to the text beside it.
+ *
+ * Obsidian computes `--checkbox-size` once on `body` from `--font-text-size`,
+ * but card text is sized in `rem` and doesn't follow that slider. The hanging
+ * indent is `1.5 × --checkbox-size` against a list indent of `3ch` measured on
+ * the list item, so the two terms scale independently: raise the global font
+ * size and the checkbox keeps growing while the indent it hangs out of stays
+ * put. No fixed gutter survives that — the overhang has no upper bound.
+ *
+ * Scoping the variable to the host makes it resolve against the card's own text
+ * instead, so the hang is always ~1.5em against a ~1.6em indent and the checkbox
+ * stays inside its list item at any font-size setting. It also stops an embed
+ * from drawing a checkbox several times the height of the line it belongs to. */
+.hearth-embed,
+.hearth-jot-preview {
+	--checkbox-size: 1em;
+}
+
+/* `em` inside a custom property resolves where the value is *used*, not where
+ * it's declared — that's the checkbox input, whose font-size is a browser
+ * default (~13px) rather than the text it sits next to. Inheriting the font-size
+ * onto the input is what makes the `1em` above mean "one line of this card's
+ * text", which is also the em the hanging indent is computed in. */
+.hearth-embed .task-list-item-checkbox,
+.hearth-jot-preview .task-list-item-checkbox {
+	font-size: inherit;
+}
+
 /* Read-only embed hosts. `.hearth-embed-live` (canvas/Excalidraw) is excluded —
  * it's deliberately edge-to-edge and its body already zeroes all padding. */
-.hearth-card-body.is-embed-host > .hearth-embed:not(.hearth-embed-live) {
+.hearth-card-body.is-embed-host > .hearth-embed:not(.hearth-embed-live),
+.hearth-card-body.is-jot-host .hearth-jot-preview {
 	padding-inline: var(--hearth-card-pad-x);
 }
 
-/* Editable hosts: the preview and the raw textarea are siblings inside
- * `.hearth-jot`, so both need the gutter or the two views disagree on their
- * left edge as the card toggles between them. Covers the jot card
- * (`.hearth-jot-preview` alone) and the editable embed (which also carries
- * `.hearth-embed`). */
-.hearth-card-body.is-jot-host .hearth-jot-preview,
+/* The raw editor is a *sibling* of the preview inside `.hearth-jot`, not a
+ * descendant, so it needs the gutter too or the two views disagree on their
+ * left edge as the card toggles between them. Plain text, no checkbox to hang,
+ * so the flat gutter is enough. Covers the jot card and the editable embed. */
 .hearth-card-body.is-jot-host .hearth-jot-edit {
 	padding-inline: var(--hearth-card-pad-x);
 }

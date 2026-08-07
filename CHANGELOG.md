@@ -73,13 +73,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 - **Task checkboxes are no longer clipped in embed, daily and jot cards.** A
   task list embedded in a card could have the left edge of its checkboxes cut
-  off. Obsidian pulls a checkbox back out of its list item by one and a half
-  checkbox widths, and when the embedded text renders smaller than the global
-  font size that pull-back is wider than the list's own indent. The card's side
-  padding sat on the card body, one level above the element that clips
-  horizontally, so it couldn't absorb the overhang. The gutter now sits on the
-  embed itself: text lands in exactly the same place, and the checkbox has room
-  (#137).
+  off. Obsidian hangs a checkbox outside its list item by one and a half checkbox
+  widths, and sizes checkboxes from the global font-size setting — which card
+  text doesn't follow — so on a larger setting the checkbox outgrew the indent
+  it hangs out of and spilled past the card's edge. Checkboxes in a card now
+  scale with the card's own text, so they stay in their list item at any font
+  size (and no longer tower over the line they belong to). The card's side gutter
+  also moves onto the embed itself, where it can actually shield content from
+  being clipped; text lands in exactly the same place (#137).
 - **Sorting tasks by priority puts Highest at the top.** The priority sort
   ranked tasks by the coarse colour bucket the priority dot uses, which lumps
   Highest in with High (and Lowest in with Low). Tasks one level apart therefore
