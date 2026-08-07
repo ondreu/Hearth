@@ -864,6 +864,24 @@ export const OPEN_SOURCES: readonly OpenSource[] = ["link", "search", "card", "n
  * global {@link HomeSettings.openIn} choice. */
 export type OpenInRule = OpenIn | "default";
 
+/**
+ * What happens to a focused Hearth tab when a note is opened by something
+ * Hearth doesn't control — the file explorer, the quick switcher, the graph, or
+ * a view embedded in a card that opens links itself (an embedded Bases table).
+ *
+ * Obsidian makes that call, not Hearth: it reuses the focused tab when the view
+ * in it reports itself navigable, so this is expressed by flipping
+ * `View.navigation` rather than by picking a leaf. Only two outcomes are
+ * possible — Hearth is taken over (`"same"`) or it is left alone and the note
+ * goes to another tab (`"tab"`) — plus `"default"` to follow
+ * {@link HomeSettings.openIn}, where anything but "same tab" counts as leaving
+ * Hearth alone.
+ */
+export type OpenOutsideRule = "default" | "same" | "tab";
+
+/** Every {@link OpenOutsideRule}, in the order the settings dropdown lists. */
+export const OPEN_OUTSIDE_RULES: readonly OpenOutsideRule[] = ["default", "same", "tab"];
+
 export interface HomeSettings {
 	// ---- Header ----
 	title: string;
@@ -928,6 +946,12 @@ export interface HomeSettings {
 	 * `"default"` (follow the global choice), so the single dropdown above is
 	 * enough for anyone who doesn't want the detail. */
 	openInOverrides: Record<OpenSource, OpenInRule>;
+	/** Whether a note opened from outside Hearth may take over a focused Hearth
+	 * tab. Defaults to `"same"` — the behaviour Hearth has had since #84, where
+	 * the dashboard acts like an ordinary tab and the file explorer's selection
+	 * tracks what you open. Deliberately *not* `"default"`: following the global
+	 * choice would flip this for everyone on upgrade. */
+	openFromOutside: OpenOutsideRule;
 
 	// ---- Appearance (layout density) ----
 	/** Tighten card and top-of-page spacing to enlarge the usable area. */
@@ -1047,6 +1071,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// start out as "open a new tab".
 	openIn: "tab",
 	openInOverrides: { link: "default", search: "default", card: "default", newNote: "default" },
+	openFromOutside: "same",
 
 	compact: false,
 	arrangeButtonVisibility: "always",

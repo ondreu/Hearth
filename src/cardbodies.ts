@@ -4,7 +4,7 @@ import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./c
 import { localDayKey } from "./dates";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
-import { openLink } from "./opener";
+import { internalLinkText, openLink } from "./opener";
 import { type DashboardCard, type EmbedView } from "./types";
 import { type HomeView } from "./view";
 
@@ -166,12 +166,17 @@ export function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath:
 			return;
 		}
 
-		if (anchor.classList.contains("internal-link")) {
-			const linktext = anchor.getAttribute("data-href") || anchor.getAttribute("href");
-			if (linktext) {
-				evt.preventDefault();
-				void openLink(view, linktext, sourcePath, "link", evt);
-			}
+		// Not gated on the `internal-link` class: an embedded Bases view (and
+		// other plugin-rendered content) draws note links without it, and those
+		// clicks would otherwise fall through to Obsidian's own handler, which
+		// always takes over the tab the click came from — the Hearth tab (#106).
+		const linktext = internalLinkText(
+			anchor.getAttribute("data-href"),
+			anchor.getAttribute("href"),
+		);
+		if (linktext) {
+			evt.preventDefault();
+			void openLink(view, linktext, sourcePath, "link", evt);
 		}
 	});
 }

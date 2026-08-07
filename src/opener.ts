@@ -77,6 +77,47 @@ export function resolveOpenIn(settings: HomeSettings, source: OpenSource): OpenI
 	return OPEN_IN_MODES.includes(mode) ? mode : "tab";
 }
 
+/**
+ * Whether the Hearth view should report itself as navigable.
+ *
+ * Obsidian reuses the focused leaf for a file opened from the file explorer,
+ * the quick switcher or the graph — but only when the view in it says it is
+ * navigable. That is the only lever Hearth has over those opens, since the
+ * click never reaches Hearth's own code (the same goes for a view embedded in a
+ * card that resolves links itself, such as an embedded Bases table).
+ *
+ * Defaults to navigable, which is the behaviour since #84: the dashboard acts
+ * like an ordinary tab, so the explorer's selection follows what you open
+ * instead of getting stuck on a note in a tab you can't see.
+ */
+export function hearthLeafIsNavigable(settings: HomeSettings): boolean {
+	const rule = settings.openFromOutside;
+	if (rule === "same") return true;
+	if (rule === "tab") return false;
+	// "default" (and any unknown value) follows the global choice — not a
+	// per-source rule, since Hearth never sees which kind of click this was.
+	// Only "the current tab" means Hearth is there to be taken over.
+	return settings.openIn === "same";
+}
+
+/**
+ * The vault link an anchor points at, or null when it isn't one.
+ *
+ * `data-href` is what Obsidian's Markdown renderer emits, but content rendered
+ * by other things inside a card — an embedded Bases view, a plugin's own
+ * output — doesn't always carry it, or the `internal-link` class, so a plain
+ * relative `href` counts too. Anything with a URL scheme (`https:`, `mailto:`,
+ * `obsidian:`) belongs to the external-link path, and a fragment-only href is a
+ * footnote or heading jump within the rendered content rather than a link to a
+ * note.
+ */
+export function internalLinkText(dataHref: string | null, href: string | null): string | null {
+	if (dataHref) return dataHref;
+	if (!href || href.startsWith("#")) return null;
+	if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return null;
+	return href;
+}
+
 /** Resolve the modifier state for an open: the triggering event when the caller
  * has one, otherwise the last user interaction Obsidian recorded — which is how
  * commands see modifier keys they were never handed. */

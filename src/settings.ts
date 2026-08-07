@@ -4,7 +4,7 @@ import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
-import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule } from "./types";
+import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -796,6 +796,25 @@ export class HomeSettingTab extends PluginSettingTab {
 					});
 				});
 		}
+
+		// Not one of the four sources above: Obsidian, not Hearth, decides where
+		// these land, and the only say Hearth has is whether its tab may be taken
+		// over — so the choice is two-way, and it defaults to being taken over
+		// (what Hearth has done since #84) rather than following the global
+		// dropdown, which would change that for everyone on upgrade.
+		const outside = t().settings.behaviour.openFromOutsideModes;
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.openFromOutside)
+			.setDesc(t().settings.behaviour.openFromOutsideDesc)
+			.addDropdown((d) => {
+				d.addOption("default", t().settings.behaviour.openInFollow);
+				d.addOption("same", outside.same);
+				d.addOption("tab", outside.tab);
+				d.setValue(s.openFromOutside ?? "same").onChange(async (v) => {
+					s.openFromOutside = v as OpenOutsideRule;
+					await this.save();
+				});
+			});
 	}
 
 	// ---- Privacy & network ----------------------------------------------

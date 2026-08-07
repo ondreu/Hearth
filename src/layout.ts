@@ -18,9 +18,11 @@ import {
 	type JiraControl,
 	newDashboardId,
 	OPEN_IN_MODES,
+	OPEN_OUTSIDE_RULES,
 	OPEN_SOURCES,
 	type OpenIn,
 	type OpenInRule,
+	type OpenOutsideRule,
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
@@ -141,6 +143,7 @@ export function exportSettings(s: HomeSettings): string {
 		disableExternalCalls: s.disableExternalCalls,
 		openIn: s.openIn,
 		openInOverrides: s.openInOverrides,
+		openFromOutside: s.openFromOutside,
 
 		// Appearance
 		compact: s.compact,
@@ -1085,6 +1088,9 @@ function sanitizeMobileActionButton(raw: unknown): MobileActionButton | null {
  * into a partial map — imports what it can and leaves the rest alone. */
 function applyOpenIn(s: HomeSettings, data: Record<string, unknown>): void {
 	if (OPEN_IN_MODES.includes(data.openIn as OpenIn)) s.openIn = data.openIn as OpenIn;
+	if (OPEN_OUTSIDE_RULES.includes(data.openFromOutside as OpenOutsideRule)) {
+		s.openFromOutside = data.openFromOutside as OpenOutsideRule;
+	}
 	const raw = data.openInOverrides;
 	if (!raw || typeof raw !== "object") return;
 	const map = raw as Record<string, unknown>;

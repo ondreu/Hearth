@@ -13,6 +13,7 @@ import {
 	renderCards,
 } from "./types";
 import { hearthIconIdFor } from "./icon";
+import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
 
 export const VIEW_TYPE_HOME = "hearth-home-view";
@@ -20,13 +21,17 @@ export const VIEW_TYPE_HOME = "hearth-home-view";
 export class HomeView extends ItemView {
 	plugin: HearthPlugin;
 	/**
-	 * Mark the dashboard as a navigable pane (the base `View` default is
+	 * Whether the dashboard is a navigable pane (the base `View` default is
 	 * `false`). A non-navigable leaf is treated like the file explorer or
 	 * calendar: Obsidian won't reuse it to open a file, so clicking a note in
 	 * the file explorer while the dashboard is focused spawns a *new* tab and
 	 * leaves the file explorer's selection stuck on that note (#84). With
 	 * navigation enabled, opening a file replaces the dashboard in place — the
 	 * dashboard behaves like any editor tab and the selection tracks correctly.
+	 *
+	 * That is still the default, but it is now the user's call: it is also the
+	 * only lever over opens Hearth never sees (#106), so `render()` keeps it in
+	 * step with the "Notes opened from outside Hearth" setting.
 	 */
 	navigation = true;
 	/** Whether the dashboard is in layout/arrange mode (drag & resize). */
@@ -121,6 +126,12 @@ export class HomeView extends ItemView {
 
 	/** Full rebuild of the view. Cheap enough to call on any settings change. */
 	render(): void {
+		// Re-read on every render (which includes every settings save) so the
+		// choice takes effect without reopening the tab. Obsidian reads this at
+		// the moment it looks for a leaf to open a file in, so the current value
+		// is the one that counts.
+		this.navigation = hearthLeafIsNavigable(this.plugin.settings);
+
 		this.cleanupChild();
 		const child = new Component();
 		this.addChild(child);

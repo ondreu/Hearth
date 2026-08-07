@@ -413,6 +413,16 @@ export const en = {
 				newNote: "Notes Hearth creates",
 				newNoteDesc: "New notes, daily notes and event notes, opened as they're made.",
 			},
+			openFromOutside: "Notes opened from outside Hearth",
+			openFromOutsideDesc:
+				"The file explorer, the quick switcher, the graph — and anything a card " +
+				"embeds that opens links itself. Obsidian hands those to whichever tab " +
+				"is focused, so a Hearth tab gets taken over. Choose \"a new tab\" to keep " +
+				"the Hearth tab; the file explorer then stops following what you open.",
+			openFromOutsideModes: {
+				same: "The current tab (replace Hearth)",
+				tab: "A new tab (keep Hearth open)",
+			},
 		},
 		mobileActions: {
 			heading: "Mobile action bar",

@@ -438,9 +438,10 @@ many fields have a reset (↺) button back to their default.
   **card blur** (frosted glass).
 - **Behaviour** — open on startup, replace empty new tabs, **where notes open**
   (a new tab, the current tab replacing Hearth, a split, or a new window — with
-  per-source exceptions for links, search results, cards and new notes),
-  mobile search-only, mobile action bar, and a **Privacy & network** toggle to
-  disable external calls (Jira, calendars, RSS, and currency rates).
+  per-source exceptions for links, search results, cards, new notes, and notes
+  opened from outside Hearth such as the file explorer), mobile search-only,
+  mobile action bar, and a **Privacy & network** toggle to disable external
+  calls (Jira, calendars, RSS, and currency rates).
 - **Integrations** — Tasks / TaskNotes frontmatter field names and the status
   value(s) that count as "done".
 - **Backup** — import / export the current dashboard's layout as JSON.

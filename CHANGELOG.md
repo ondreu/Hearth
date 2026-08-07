@@ -25,7 +25,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   land somewhere different — a search hit taking over the Hearth tab while a
   link from a card opens beside it. Ctrl/Cmd-click still opens a new tab
   whatever the setting says, and the modifier combinations Obsidian understands
-  for a split or a window work here too (#106).
+  for a split or a window work here too.
+
+  A last row covers what Hearth doesn't control: **Notes opened from outside
+  Hearth** — the file explorer, the quick switcher, the graph — which Obsidian
+  hands to whichever tab is focused, taking a Hearth tab over. It still does by
+  default (the dashboard acts like an ordinary tab, and the explorer's selection
+  follows what you open), but set it to **A new tab** and the Hearth tab is left
+  alone. Links inside an embedded Bases table now follow the **Links** rule too,
+  instead of always replacing the dashboard (#106).
 - **An embedded note can be opened in its own tab.** Note embed cards have a new
   **Open button** toggle in their card settings; turned on, a button on the card
   opens the embedded file properly — following the open-behaviour setting above.

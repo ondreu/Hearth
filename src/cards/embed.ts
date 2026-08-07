@@ -11,6 +11,7 @@ import {
 	renderLivePreviewEmbed,
 	renderMarkdownFile,
 	watchedCardPath,
+	wireMarkdownLinks,
 } from "../cardbodies";
 import { EXCALIDRAW_PLUGIN_ID, isExcalidraw } from "../filetypes";
 import { t } from "../i18n";
@@ -119,6 +120,12 @@ export function renderEmbed(
 		const embedTarget =
 			ext === "base" && isEmbeddableBaseViewName(baseView) ? `${target}#${baseView}` : target;
 		void MarkdownRenderer.render(view.app, `![[${embedTarget}]]`, host, target, component);
+		// A transclusion renders content that resolves its own links — a Bases
+		// table's note column, most of all. Left alone, those clicks go to
+		// Obsidian's default handler, which opens into the tab the click came
+		// from, i.e. this Hearth tab, whatever the open-behaviour setting says
+		// (#106). Delegated from the host, so it survives the async render above.
+		wireMarkdownLinks(view, host, target);
 
 		// Canvas and Excalidraw embeds are natively interactive (pan/zoom, and
 		// their own in-place edit toggle) — let them fill the card edge-to-edge
