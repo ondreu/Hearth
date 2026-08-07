@@ -1,4 +1,5 @@
 import { setIcon, TFile } from "obsidian";
+import { openFile, openLink } from "./opener";
 import type { HomeView } from "./view";
 import type { MobileActionButton } from "./types";
 
@@ -48,8 +49,8 @@ function runMobileAction(view: HomeView, btn: MobileActionButton): void {
 			break;
 		case "note": {
 			const file = view.app.vault.getAbstractFileByPath(target);
-			if (file instanceof TFile) void view.app.workspace.getLeaf(true).openFile(file);
-			else void view.app.workspace.openLinkText(target, "", true);
+			if (file instanceof TFile) void openFile(view, file, "card");
+			else void openLink(view, target, "", "card");
 			break;
 		}
 		case "command":

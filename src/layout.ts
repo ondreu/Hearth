@@ -17,6 +17,12 @@ import {
 	type JiraConfig,
 	type JiraControl,
 	newDashboardId,
+	OPEN_IN_MODES,
+	OPEN_OUTSIDE_RULES,
+	OPEN_SOURCES,
+	type OpenIn,
+	type OpenInRule,
+	type OpenOutsideRule,
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
@@ -135,6 +141,9 @@ export function exportSettings(s: HomeSettings): string {
 		showMobileActionBar: s.showMobileActionBar,
 		mobileActionButtons: s.mobileActionButtons,
 		disableExternalCalls: s.disableExternalCalls,
+		openIn: s.openIn,
+		openInOverrides: s.openInOverrides,
+		openFromOutside: s.openFromOutside,
 
 		// Appearance
 		compact: s.compact,
@@ -1074,6 +1083,28 @@ function sanitizeMobileActionButton(raw: unknown): MobileActionButton | null {
 
 /** Apply the non-layout settings carried by a full settings export, each field
  * validated/clamped so an untrusted backup can only set values the UI could. */
+/** Where notes open (#106). The global choice and each per-source rule are
+ * validated on their own, so a file from another version — or one hand-edited
+ * into a partial map — imports what it can and leaves the rest alone. */
+function applyOpenIn(s: HomeSettings, data: Record<string, unknown>): void {
+	if (OPEN_IN_MODES.includes(data.openIn as OpenIn)) s.openIn = data.openIn as OpenIn;
+	if (OPEN_OUTSIDE_RULES.includes(data.openFromOutside as OpenOutsideRule)) {
+		s.openFromOutside = data.openFromOutside as OpenOutsideRule;
+	}
+	const raw = data.openInOverrides;
+	if (!raw || typeof raw !== "object") return;
+	const map = raw as Record<string, unknown>;
+	const overrides = { ...s.openInOverrides };
+	for (const source of OPEN_SOURCES) {
+		const rule = map[source];
+		if (rule === "default" || OPEN_IN_MODES.includes(rule as OpenIn)) {
+			overrides[source] = rule as OpenInRule;
+		}
+	}
+	s.openInOverrides = overrides;
+}
+
+
 function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	// Header
 	const title = str(data.title);
@@ -1133,6 +1164,7 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 	if (typeof data.disableExternalCalls === "boolean")
 		s.disableExternalCalls = data.disableExternalCalls;
+	applyOpenIn(s, data);
 
 	// Appearance
 	if (typeof data.compact === "boolean") s.compact = data.compact;

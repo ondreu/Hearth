@@ -1,4 +1,4 @@
-import { Component, MarkdownRenderer, Setting, TFile } from "obsidian";
+import { Component, MarkdownRenderer, setIcon, Setting, TFile } from "obsidian";
 import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
 	activeEmbedIndex,
@@ -11,9 +11,11 @@ import {
 	renderLivePreviewEmbed,
 	renderMarkdownFile,
 	watchedCardPath,
+	wireMarkdownLinks,
 } from "../cardbodies";
 import { EXCALIDRAW_PLUGIN_ID, isExcalidraw } from "../filetypes";
 import { t } from "../i18n";
+import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
 import { type DashboardCard, type EmbedView } from "../types";
 import { type HomeView } from "../view";
@@ -71,6 +73,13 @@ export function renderEmbed(
 		}
 	}
 
+	// An embedded note is read (and often edited) right here on the board, so
+	// there was no way to get to it in its own tab (#144). This optional overlay
+	// button is that way. Off unless asked for — unlike the Daily card's button,
+	// which predates the setting and stays on by default — so no existing board
+	// grows a control it never had.
+	if (card.showOpenButton === true) renderEmbedOpenButton(view, file, body);
+
 	const ext = file.extension.toLowerCase();
 	const isMarkdown = ext === "md" || ext === "markdown";
 	const excalidraw = isExcalidraw(file);
@@ -111,6 +120,12 @@ export function renderEmbed(
 		const embedTarget =
 			ext === "base" && isEmbeddableBaseViewName(baseView) ? `${target}#${baseView}` : target;
 		void MarkdownRenderer.render(view.app, `![[${embedTarget}]]`, host, target, component);
+		// A transclusion renders content that resolves its own links — a Bases
+		// table's note column, most of all. Left alone, those clicks go to
+		// Obsidian's default handler, which opens into the tab the click came
+		// from, i.e. this Hearth tab, whatever the open-behaviour setting says
+		// (#106). Delegated from the host, so it survives the async render above.
+		wireMarkdownLinks(view, host, target);
 
 		// Canvas and Excalidraw embeds are natively interactive (pan/zoom, and
 		// their own in-place edit toggle) — let them fill the card edge-to-edge
@@ -188,6 +203,24 @@ export function mountEmbedViewSwitcher(
 // can be owned by its module. Each takes a CardEditorContext instead of the
 // modal's `this`. Phase B relocates these into src/cards/<kind>/.
 
+/** The "open this file in a tab" button, floated over the card like the Daily
+ * card's. It lives on the card element rather than the body so it doesn't take
+ * part in the body's scroll or flow. Where the file lands follows the global
+ * open-behaviour setting (#106). */
+function renderEmbedOpenButton(view: HomeView, file: TFile, body: HTMLElement): void {
+	const cardEl = body.closest(".hearth-card");
+	const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
+	const open = overlay.createEl("button", {
+		cls: "hearth-open-btn",
+		attr: { "aria-label": t().cards.embed.openFile },
+	});
+	setIcon(open, "square-arrow-out-up-right");
+	open.addEventListener("click", (evt) => {
+		void openFile(view, file, "card", evt);
+	});
+}
+
+
 export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
 	const setting = new Setting(containerEl)
@@ -255,6 +288,16 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			}),
 		);
 	if (card.editable) livePreviewSetting(ctx, containerEl, card);
+	new Setting(containerEl)
+		.setName(t().editors.embed.openButton)
+		.setDesc(t().editors.embed.openButtonDesc)
+		.addToggle((tg) =>
+			tg.setValue(card.showOpenButton === true).onChange((v) => {
+				card.showOpenButton = v || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
 	// Hide-base-header is only relevant to .base embeds; shown when either
 	// view targets one.
 	if (isBaseTarget(card.target) || isBaseTarget(card.secondView?.target)) {

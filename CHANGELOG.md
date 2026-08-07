@@ -15,6 +15,30 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Choose where Hearth opens notes.** Settings → Hearth → Behaviour → **Opening
+  notes** has a single **Open notes in** choice that governs every note Hearth
+  opens: **a new tab** (what it has always done), **the current tab**, which
+  replaces the home view so Hearth behaves like any other tab and the back
+  arrow brings it straight back, **a split pane**, or **a new window**. Four
+  optional rows under it take exceptions, each starting on *Same as above*, so
+  links, search results, notes listed in cards and notes Hearth creates can each
+  land somewhere different — a search hit taking over the Hearth tab while a
+  link from a card opens beside it. Ctrl/Cmd-click still opens a new tab
+  whatever the setting says, and the modifier combinations Obsidian understands
+  for a split or a window work here too.
+
+  A last row covers what Hearth doesn't control: **Notes opened from outside
+  Hearth** — the file explorer, the quick switcher, the graph — which Obsidian
+  hands to whichever tab is focused, taking a Hearth tab over. It still does by
+  default (the dashboard acts like an ordinary tab, and the explorer's selection
+  follows what you open), but set it to **A new tab** and the Hearth tab is left
+  alone. Links inside an embedded Bases table now follow the **Links** rule too,
+  instead of always replacing the dashboard (#106).
+- **An embedded note can be opened in its own tab.** Note embed cards have a new
+  **Open button** toggle in their card settings; turned on, a button on the card
+  opens the embedded file properly — following the open-behaviour setting above.
+  Off by default, so no existing board changes (#144).
+
 - **Build your own task fields.** Turn on **Customize task fields** under
   Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
   replaced by fields you define yourself. You start from a blank slate — a task
@@ -145,6 +169,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Inputs with an ordinary border, such as the Kanban editors and the task-detail
   description field, keep the theme's ring, since for them it is the focus
   affordance (#138).
+
+### Changed
+
+- **Links inside tasks now open where every other link does.** A `[[wikilink]]`
+  in a task's text took over the current tab, which in a Hearth tab meant
+  replacing the home view — while the same link on a card opened a new tab. Both
+  now follow **Open notes in** (a new tab by default). To keep tasks behaving as
+  they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
+  *The current tab* (#106).
 
 ## [1.17.0]
 

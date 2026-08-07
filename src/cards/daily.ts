@@ -10,6 +10,7 @@ import {
 	watchedCardPath,
 } from "../cardbodies";
 import { t } from "../i18n";
+import { openFile } from "../opener";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -65,7 +66,7 @@ export function renderDaily(
 		});
 		setIcon(open, "square-pen");
 		open.addEventListener("click", () => {
-			void view.app.workspace.getLeaf(true).openFile(file);
+			void openFile(view, file, "card");
 		});
 	}
 

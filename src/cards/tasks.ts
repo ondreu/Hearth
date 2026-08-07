@@ -16,6 +16,7 @@ import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
 import { t } from "../i18n";
+import { openFile, openLink, targetLeaf } from "../opener";
 import { FilePickerModal } from "../pickers";
 import {
 	PRIORITY_EMOJI,
@@ -3733,7 +3734,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 			link.addEventListener("click", (ev) => {
 				ev.stopPropagation();
 				ev.preventDefault();
-				void view.app.workspace.openLinkText(target.trim(), sourcePath, false);
+				void openLink(view, target.trim(), sourcePath, "link", ev);
 			});
 		} else {
 			const link = el.createSpan({ cls: "hearth-task-link", text: m[2] });
@@ -3742,7 +3743,7 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 				ev.stopPropagation();
 				ev.preventDefault();
 				if (/^https?:\/\//i.test(url)) window.open(url, "_blank");
-				else void view.app.workspace.openLinkText(url, sourcePath, false);
+				else void openLink(view, url, sourcePath, "link", ev);
 			});
 		}
 		last = re.lastIndex;
@@ -4605,13 +4606,13 @@ async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh:
 async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 	// A card that links to a note opens that note directly (not the board line).
 	if (hit.linkedFile) {
-		await view.app.workspace.getLeaf(true).openFile(hit.linkedFile);
+		await openFile(view, hit.linkedFile, "card");
 		return;
 	}
 	// TaskNotes tasks (no line) open in TaskNotes' own editor when possible.
 	if (hit.line < 0 && (await openInTaskNotes(view, hit.file))) return;
 
-	const leaf = view.app.workspace.getLeaf(true);
+	const leaf = targetLeaf(view, "card");
 	// Scroll to the task's line via ephemeral state rather than a setCursor call
 	// right after openFile: in a freshly created leaf the editor isn't laid out
 	// yet, so an immediate scroll is discarded and the note opens at the top

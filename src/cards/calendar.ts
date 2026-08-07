@@ -34,6 +34,7 @@ import {
 } from "../eventnote";
 import { t } from "../i18n";
 import { cachedCalendar, eventsByDay, expandEvents, loadCalendar, type IcsOccurrence } from "../ics";
+import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
 import { type CalendarConfig, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
@@ -241,7 +242,7 @@ function openDailyNote(
 	isToday: boolean,
 ): void {
 	if (file instanceof TFile) {
-		void view.app.workspace.getLeaf(true).openFile(file);
+		void openFile(view, file, "card");
 	} else if (!options) {
 		// Calendar-only card: nothing to open or create.
 	} else if (isToday) {
@@ -250,7 +251,7 @@ function openDailyNote(
 		}
 	} else {
 		void createDailyNoteAt(view, day, options).then((created) => {
-			if (created) void view.app.workspace.getLeaf(true).openFile(created);
+			if (created) void openFile(view, created, "newNote");
 			else new Notice(t().notices.couldNotCreateNoteForDay(day.format("MMM D, YYYY")));
 		});
 	}
@@ -269,7 +270,7 @@ function eventTimeLabel(ev: IcsOccurrence): string {
 /** Open the full event-details modal — the "view this event" action from the
  * day picker and the agenda. */
 function showEventDetail(view: HomeView, ev: IcsOccurrence, ics: IcsContext): void {
-	new EventDetailModal(view.app, ev, ics).open();
+	new EventDetailModal(view, ev, ics).open();
 }
 
 
@@ -298,11 +299,11 @@ function eventDateLabel(ev: IcsOccurrence): string {
  * simply skipped, so a bare event shows just its name and when. */
 class EventDetailModal extends Modal {
 	constructor(
-		app: App,
+		private readonly view: HomeView,
 		private readonly ev: IcsOccurrence,
 		private readonly ics: IcsContext,
 	) {
-		super(app);
+		super(view.app);
 	}
 
 	onOpen(): void {
@@ -365,13 +366,13 @@ class EventDetailModal extends Modal {
 		});
 		btn.addEventListener("click", () => {
 			if (existing instanceof TFile) {
-				void this.app.workspace.getLeaf(true).openFile(existing);
+				void openFile(this.view, existing, "card");
 				this.close();
 				return;
 			}
 			void createEventNote(this.app, this.ev, this.ics).then((file) => {
 				if (file) {
-					void this.app.workspace.getLeaf(true).openFile(file);
+					void openFile(this.view, file, "newNote");
 					this.close();
 				} else {
 					new Notice(t().notices.couldNotCreateEventNote);
