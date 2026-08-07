@@ -47,6 +47,7 @@ import {
 	openInTaskNotes,
 	readTaskAt,
 	readTaskNotesSetup,
+	subscriptionStatus,
 	taskNotesEnabled,
 	taskNotesEvents,
 	taskNotesMeta,
@@ -1293,6 +1294,9 @@ export function taskNotesSourceEditor(
 				ctx.requestRender();
 			}),
 		);
+	if (tn.subscriptions !== false && known.length) {
+		subscriptionStatusList(ctx, containerEl, known);
+	}
 
 	new Setting(containerEl)
 		.setName(strings.taskNotesColorBy)
@@ -1471,6 +1475,73 @@ export function calendarSourcesEditor(ctx: CardEditorContext, containerEl: HTMLE
 	);
 
 	eventNoteEditor(ctx, containerEl, cfg);
+}
+
+
+/**
+ * One row per TaskNotes subscription, each reporting what actually happened to
+ * it: how many events came through, that it was blocked by the "disable
+ * external calls" setting, or why it failed. A feed that can't be fetched
+ * otherwise just shows nothing on the card, with no way to tell it apart from
+ * an empty calendar — which is exactly the case where a user sees only some of
+ * their subscribed calendars.
+ */
+function subscriptionStatusList(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	subs: TaskNotesSubscription[],
+): void {
+	const strings = t().editors.calendar;
+	for (const sub of subs) {
+		const status = subscriptionStatus(sub);
+		const where = sub.type === "local" ? sub.filePath : feedHost(sub.url);
+		const state = !sub.enabled
+			? strings.taskNotesSubDisabled
+			: status.blocked
+				? strings.taskNotesSubBlocked
+				: status.error
+					? strings.taskNotesSubFailed(subscriptionError(status.error))
+					: status.loaded
+						? strings.taskNotesSubLoaded(status.events)
+						: strings.taskNotesSubPending;
+		new Setting(containerEl)
+			.setName(sub.name || where)
+			.setDesc(`${where} — ${state}`)
+			.setClass("hearth-rss-setting");
+	}
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(strings.taskNotesSubRefresh).onClick(() => {
+			void refreshSubscriptions(ctx, subs).then(() => ctx.requestRender());
+		}),
+	);
+}
+
+
+/** A failure reason in the user's language, falling back to whatever the
+ * network/vault layer reported. */
+function subscriptionError(error: string): string {
+	const strings = t().editors.calendar;
+	if (error === "not-calendar") return strings.taskNotesSubNotCalendar;
+	if (error === "missing-file") return strings.taskNotesSubMissingFile;
+	return error;
+}
+
+
+/** Re-fetch every TaskNotes subscription now, bypassing the freshness window,
+ * so the rows above report a fresh verdict. */
+async function refreshSubscriptions(
+	ctx: CardEditorContext,
+	subs: TaskNotesSubscription[],
+): Promise<void> {
+	const disabled = ctx.opts.externalCallsDisabled;
+	await Promise.all(
+		subs.map((s) =>
+			s.type === "local"
+				? loadLocalCalendar(ctx.app, s.filePath)
+				: loadCalendar(s.url, { ttlMs: 0, disabled, force: true }),
+		),
+	);
 }
 
 

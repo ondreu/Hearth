@@ -25,7 +25,15 @@
  */
 import { TFile, type App } from "obsidian";
 import { localDayKey } from "./dates";
-import { expandEvents, parseIcs, type IcsCalendar, type IcsEvent, type IcsOccurrence } from "./ics";
+import {
+	calendarStatus,
+	expandEvents,
+	parseIcs,
+	type IcsCalendar,
+	type IcsEvent,
+	type IcsOccurrence,
+	type IcsStatus,
+} from "./ics";
 
 
 /** Community plugin id for TaskNotes. */
@@ -1050,22 +1058,34 @@ export function readTaskAt(app: App, setup: TaskNotesSetup, path: string): TaskN
 
 /** Cache for local (in-vault) .ics subscriptions, keyed by path and
  * invalidated by the file's mtime — the remote ones are cached by ics.ts. */
-const localCache = new Map<string, { mtime: number; cal: IcsCalendar | null }>();
+const localCache = new Map<string, { mtime: number; cal: IcsCalendar | null; error: string | null }>();
 
 
 /** The parsed calendar for an in-vault .ics file, re-read only when the file
- * changed. Never throws: an unreadable or unparseable file yields null. */
+ * changed. Never throws: an unreadable or unparseable file yields null, with
+ * the reason kept for `subscriptionStatus`. */
 export async function loadLocalCalendar(app: App, path: string): Promise<IcsCalendar | null> {
 	const file = app.vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) return null;
+	if (!(file instanceof TFile)) {
+		localCache.set(path, { mtime: 0, cal: null, error: "missing-file" });
+		return null;
+	}
 	const cached = localCache.get(path);
 	if (cached && cached.mtime === file.stat.mtime) return cached.cal;
 	try {
 		const cal = parseIcs(await app.vault.cachedRead(file));
-		localCache.set(path, { mtime: file.stat.mtime, cal });
+		localCache.set(path, {
+			mtime: file.stat.mtime,
+			cal,
+			error: cal ? null : "not-calendar",
+		});
 		return cal;
-	} catch {
-		localCache.set(path, { mtime: file.stat.mtime, cal: null });
+	} catch (e) {
+		localCache.set(path, {
+			mtime: file.stat.mtime,
+			cal: null,
+			error: e instanceof Error ? e.message : String(e),
+		});
 		return null;
 	}
 }
@@ -1074,6 +1094,22 @@ export async function loadLocalCalendar(app: App, path: string): Promise<IcsCale
 /** The last-read calendar for an in-vault .ics file, without touching disk. */
 export function cachedLocalCalendar(path: string): IcsCalendar | null {
 	return localCache.get(path)?.cal ?? null;
+}
+
+
+/** How the last load of one subscription went, whichever kind it is — so the
+ * editor can say which calendar didn't come through, and why, instead of the
+ * card silently showing nothing for it. */
+export function subscriptionStatus(sub: TaskNotesSubscription): IcsStatus {
+	if (sub.type !== "local") return calendarStatus(sub.url);
+	const entry = localCache.get(sub.filePath);
+	return {
+		loaded: !!entry?.cal,
+		events: entry?.cal?.events.length ?? 0,
+		fetched: entry?.cal?.fetched ?? null,
+		error: entry?.error ?? null,
+		blocked: false,
+	};
 }
 
 

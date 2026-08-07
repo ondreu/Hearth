@@ -780,6 +780,15 @@ export const en = {
 			taskNotesSubscriptionsDesc: (count: number) =>
 				`Also show the ${count} calendar${count === 1 ? "" : "s"} subscribed inside TaskNotes.`,
 			taskNotesSubscriptionsNone: "TaskNotes has no calendar subscriptions to show.",
+			taskNotesSubLoaded: (count: number) =>
+				`${count} event${count === 1 ? "" : "s"} loaded.`,
+			taskNotesSubPending: "Not loaded yet — refresh below.",
+			taskNotesSubDisabled: "Disabled in TaskNotes.",
+			taskNotesSubBlocked: "Not fetched: external calls are disabled in Hearth's settings.",
+			taskNotesSubFailed: (reason: string) => `Couldn't load: ${reason}`,
+			taskNotesSubNotCalendar: "the response wasn't an iCalendar feed.",
+			taskNotesSubMissingFile: "that file isn't in the vault.",
+			taskNotesSubRefresh: "Refresh calendars",
 			taskNotesColorBy: "Colour by",
 			taskNotesColorByDesc: "Where each task's colour comes from.",
 			taskNotesColorStatus: "TaskNotes status",
