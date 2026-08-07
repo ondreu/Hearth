@@ -422,6 +422,17 @@ export const en = {
 				"Frontmatter field read for a task's priority indicator.",
 			doneValue: "“Done” status value",
 			doneValueDesc: "The status value that marks a TaskNotes task complete.",
+			fieldsEnable: "Customize task fields",
+			fieldsEnableDesc:
+				"Replace the fixed metadata Tasks cards show with fields you define " +
+				"yourself — any frontmatter property or anything Hearth reads, named, " +
+				"colored and ordered how you like. Off by default, and tasks keep " +
+				"their usual look until you turn it on. Turning it on starts from a " +
+				"blank slate: tasks show only the fields you add.",
+			fields: "Fields shown on a task",
+			fieldsDesc:
+				"The fields every Tasks card shows. A single card can define its own " +
+				"instead, from that card's settings.",
 		},
 		fileIcons: {
 			heading: "File icons / Iconic / Iconize",
@@ -845,6 +856,124 @@ export const en = {
 				"line. Leave empty to use just the done value from Settings → Hearth. " +
 				"Add, e.g., “canceled” to count cancelled tasks as complete too.",
 			doneStatusesPlaceholder: "done\ncanceled",
+			fields: "Fields",
+			fieldsFollowGlobal:
+				"Following the fields from Settings → Hearth → Integrations. Turn on " +
+				"to give this card its own.",
+			fieldsCustomize: "Customize…",
+			fieldsTitle: "Task fields",
+			fieldsHint:
+				"Everything a task shows, in order. A field is yours to define: name " +
+				"it, choose how it's drawn, and give it the keys it reads.",
+			fieldsEmpty: "No fields yet — tasks show their text only.",
+			fieldsNone: "None — tasks show their text only.",
+			fieldsApplyClose: "Apply & close",
+			fieldsApplyDesc: "Apply without closing, to keep adjusting.",
+			fieldsReset: "Remove all fields",
+			fieldUnnamed: "Untitled field",
+			fieldDefaultName: (n: number) => `Field ${n}`,
+			fieldAdd: "Add field",
+			fieldEdit: "Edit field",
+			fieldRemove: "Remove field",
+			fieldMoveUp: "Move up",
+			fieldMoveDown: "Move down",
+			fieldExpand: "Expand",
+			fieldCollapse: "Collapse",
+			fieldName: "Name",
+			fieldNameDesc: "What this field is called. Shown on tasks only if you ask below.",
+			fieldNamePlaceholder: "e.g. Priority",
+			fieldShowName: "Show the name on tasks",
+			fieldShowNameDesc: "Prefix each value with the field name (“Priority: Urgent”).",
+			fieldDisplay: "Display",
+			fieldDisplayDesc:
+				"How this field's values are drawn. The last two show nothing on the " +
+				"task and color the whole row or card instead. Dates keep their own " +
+				"format, and a description is always its own block of sub-bullets.",
+			fieldStyles: {
+				pill: "Chip",
+				dot: "Colored dot",
+				text: "Plain text",
+				hue: "Tint the whole task",
+				glow: "Glow around the task",
+			},
+			fieldOpacity: "Strength",
+			fieldOpacityDesc:
+				"How strongly the color is laid on. Only the value's color is used — " +
+				"a value with no color set leaves the task alone.",
+			fieldKeys: "Keys",
+			fieldKeysDesc:
+				"Where this field reads from. Every key that has a value shows one, " +
+				"so a field can gather several pieces of metadata under one name.",
+			fieldKeysEmpty: "No keys yet — this field shows nothing.",
+			fieldNoKeys: "No keys",
+			fieldAddKey: "Add a key",
+			fieldAddKeyDesc:
+				"Hearth's own values reach a checkbox line's priority, a board column " +
+				"and the parsed dates; a property reads anything in your frontmatter.",
+			fieldAddBuiltin: "What Hearth reads",
+			fieldAddProperty: "Frontmatter property",
+			fieldAddKeyTyped: "Type a property name…",
+			fieldAddKeyPlaceholder: "Property name",
+			fieldRemoveKey: "Remove key",
+			fieldPickProperty: "Properties found in your notes",
+			fieldPickBuiltin: "Values Hearth parses itself",
+			fieldKeyAlreadyAdded: (key: string) => `“${key}” is already a key on this field.`,
+			fieldMapValues: "Values & colors",
+			fieldMappedValues: (n: number) => `${n} value(s) mapped`,
+			fieldNoMappings: "Values shown as they are",
+			fieldMapHint:
+				"Show a nicer label and a color for each value. Values you don't map " +
+				"still show, as themselves.",
+			fieldMapEmpty: "No values mapped yet.",
+			fieldDateKey: "Shown as a date",
+			fieldIsDate: "Treat as a date",
+			fieldIsDateDesc:
+				"Show this property as a relative date (“Tomorrow”), color it by " +
+				"whether it's past, today or upcoming, and edit it with a calendar.",
+			fieldDateHint:
+				"A date has no fixed values to map, so it's colored by where it " +
+				"falls. A label is optional — leave it empty to keep the date itself.",
+			fieldDateLabelPlaceholder: "Show as (optional)",
+			dateRelations: {
+				"<today": "Before today",
+				today: "Today",
+				">today": "After today",
+			},
+			fieldNotMappable:
+				"This key has no discrete values to map — it keeps its own format.",
+			fieldMatchPlaceholder: "e.g. high",
+			fieldLabelPlaceholder: "Optional",
+			fieldValueColumn: "Value in your notes",
+			fieldWhenColumn: "When the date falls",
+			fieldShownColumn: "Shown on the task as",
+			fieldColorColumn: "Color",
+			fieldAddMapping: "Add a value",
+			fieldValuesFound: (n: number) => `From your notes (${n})`,
+			fieldRemoveMapping: "Remove value",
+			fieldPickValue: "Values this key takes elsewhere in your vault",
+			fieldColor: "Color",
+			fieldColorCustom: "Custom color",
+			fieldColorClear: "No color",
+			colorNames: {
+				"--color-red": "Red",
+				"--color-orange": "Orange",
+				"--color-yellow": "Yellow",
+				"--color-green": "Green",
+				"--color-cyan": "Cyan",
+				"--color-blue": "Blue",
+				"--color-purple": "Purple",
+				"--color-pink": "Pink",
+			},
+			sourceNames: {
+				status: "Status (TaskNotes)",
+				column: "Board column (Kanban)",
+				priority: "Priority",
+				start: "Start date",
+				scheduled: "Scheduled date",
+				due: "Due date",
+				doneDate: "Done date",
+				description: "Description",
+			},
 			showCompleted: "Show completed",
 			showCompletedKanbanDesc:
 				"Completed tasks always appear in the Done column on a Kanban board.",
@@ -1271,6 +1400,16 @@ export const en = {
 			filterTextPlaceholder: "Search task text…",
 			filterApply: "Apply",
 			filterClear: "Clear",
+			valueChange: "Change value",
+			dateTitle: "Set date",
+			dateOn: "Date",
+			dateToday: "Today",
+			dateTomorrow: "Tomorrow",
+			dateNextWeek: "Next week",
+			dateClear: "Clear date",
+			valueCustom: "Other value…",
+			valueCustomTitle: "Set value",
+			valueClear: "Clear value",
 		},
 	},
 

@@ -128,6 +128,73 @@ export interface TaskFilterConfig {
 	text?: string;
 }
 
+/**
+ * How a value is drawn on a task.
+ *
+ * The first three put something on the row: a filled chip, a bare coloured dot
+ * (the value moves to the tooltip), or plain text. The last two put nothing
+ * there at all and colour the whole task instead — `hue` tints its background,
+ * `glow` rings it — so a board can be read at a glance without any single row
+ * having to be read at all.
+ */
+export type TaskFieldStyle = "pill" | "dot" | "text" | "hue" | "glow";
+
+/** One value → what to show for it. Matching is case-insensitive on the
+ * trimmed raw value. A value with no entry here still renders — as itself,
+ * uncoloured — so a status nobody mapped yet is visible rather than lost. */
+export interface TaskValueMap {
+	/** The raw value to match (a frontmatter value, a status, a priority key). */
+	match: string;
+	/** Shown instead of the raw value. Empty shows the raw value. */
+	label?: string;
+	/** Any CSS colour for this value's chip or dot. */
+	color?: string;
+}
+
+/** One source a field reads. `source` is either `fm:<property>` for a
+ * frontmatter property or `builtin:<id>` for something Hearth parses itself
+ * (see `TASK_BUILTIN_SOURCES`). Every key with a value renders. */
+export interface TaskFieldKey {
+	source: string;
+	/** Per-value display overrides.
+	 *
+	 * A date key stores its three relations here instead of literal values —
+	 * `<today`, `today` and `>today` — because a date has no discrete values to
+	 * enumerate, only a position relative to now. */
+	values?: TaskValueMap[];
+	/** Treat this key's value as a date: show it as a relative label
+	 * ("Tomorrow"), colour it by its relation to today, and edit it with a
+	 * calendar rather than a list. Implied for the built-in date sources; a
+	 * frontmatter property has to say so, since Hearth can't know a property
+	 * holds a date rather than text that looks like one. */
+	isDate?: boolean;
+}
+
+/**
+ * A field on a task, defined entirely by the user: what it is called, how it is
+ * drawn, and which keys feed it. Fields render in list order, and within a
+ * field each key renders in its own order.
+ *
+ * Only used while task-field customization is on; with it off the card falls
+ * back to the fixed metadata it has always rendered (see `src/taskfields.ts`).
+ */
+export interface TaskFieldDef {
+	/** Stable id, so the editor can address a field while it is renamed. */
+	id: string;
+	/** The user's name for the field. Shown in the editor, and on the task
+	 * itself only when `showName` is on. */
+	name: string;
+	/** Prefix each of this field's chips with the field name. */
+	showName?: boolean;
+	/** How this field's values are drawn. Default "pill". */
+	display?: TaskFieldStyle;
+	/** For the `hue` and `glow` styles: how strongly the colour is applied, 1-100.
+	 * Unset uses a subdued default — strong enough to read across a board,
+	 * light enough to leave the text legible. Ignored by the other styles. */
+	opacity?: number;
+	keys: TaskFieldKey[];
+}
+
 export interface TasksConfig {
 	/** "checkbox" (default) scans plain Markdown `- [ ]` checkboxes anywhere
 	 * in scope. "tasknotes" reads frontmatter from the TaskNotes community
@@ -207,6 +274,15 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
+	/** Give this card its own field list instead of following the global one
+	 * from Settings → Hearth → Integrations. Off by default: a card follows the
+	 * global list. Only consulted while the global `taskFieldsEnabled` master
+	 * switch is on. */
+	taskFieldsEnabled?: boolean;
+	/** This card's own fields, replacing the global list. Only used when
+	 * `taskFieldsEnabled` is on for the card. An empty list is meaningful — it
+	 * shows tasks with no metadata at all. */
+	taskFields?: TaskFieldDef[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
 	/** Max tasks shown, soonest/overdue due date first. Default 10. */
@@ -848,6 +924,16 @@ export interface HomeSettings {
 	taskNotesPriorityField: string;
 	/** The status value that counts as "done". */
 	taskNotesDoneValue: string;
+	/** Master switch for task-field customization (off by default). While it is
+	 * off, every "tasks" card draws the fixed metadata it always has and the
+	 * per-card Fields controls stay hidden — so a vault that never goes looking
+	 * for this never sees it. Turning it on *replaces* that fixed rendering with
+	 * the fields defined below, which start empty: metadata is then shown only
+	 * because it was asked for. See `src/taskfields.ts`. */
+	taskFieldsEnabled: boolean;
+	/** The fields every "tasks" card shows, unless the card defines its own
+	 * (`TasksConfig.taskFieldsEnabled`). */
+	taskFields: TaskFieldDef[];
 
 	// ---- File icons / Iconic / Iconize ----
 	/** Show the per-file icons set with the Iconic or Iconize community plugins
@@ -930,6 +1016,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	taskNotesDueField: "due",
 	taskNotesPriorityField: "priority",
 	taskNotesDoneValue: "done",
+	taskFieldsEnabled: false,
+	taskFields: [],
 
 	// On by default: with neither icon plugin installed this changes nothing,
 	// and with one installed the icons the user already set are what they expect

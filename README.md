@@ -206,6 +206,25 @@ toolbar; configure each one from the card itself (title, content, colors, size).
   and a quick-add. Leave the mode off to read the board as plain text.
   Everything is written back in Kanban's own format, so the board stays fully
   editable in the Kanban plugin.
+- **Task fields** — opt in under Settings → Hearth → Integrations →
+  **Customize task fields** (off by default; with it off, tasks look exactly as
+  they always have) and you build what a task shows from scratch. You start with
+  no fields at all, then add each one: **name** it, pick how it's drawn (a
+  **chip**, a bare **coloured dot**, **plain text** — or let it **tint** the
+  whole row/card or **glow** around it, at a strength you choose), and give it
+  one or more **keys** — any frontmatter property, or something Hearth reads itself (a
+  checkbox line's ⏫ priority, a Kanban board column, a due date, a TaskNotes
+  status). Every key with a value shows one, so a field can gather related
+  metadata under a single name. Each key can **map its values** to nicer labels
+  and colours (`high` → *Urgent* in red); values you haven't mapped still show
+  as themselves. **Date keys** skip mapping altogether: they're colored and
+  labelled by whether they fall **before today, today or after today**, and a
+  frontmatter property holding a date can be marked as one. **Clicking a value
+  changes it** — the chip opens a menu of your mapped values, then the other
+  values that key takes in your vault, then a free entry; a date opens a
+  **calendar** — in both the list and the Kanban layouts. The fields you define apply
+  to every Tasks card, and a single card can define **its own** instead, from
+  that card's settings.
 - **Task quick view** — clicking a checkbox task or Kanban card opens a compact
   popover with its metadata and description, editable in place, plus buttons to
   **open the full note** or **delete the task** — instead of jumping straight

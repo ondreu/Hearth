@@ -20,6 +20,9 @@ import {
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
+	type TaskFieldDef,
+	type TaskFieldKey,
+	type TaskValueMap,
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
@@ -148,6 +151,8 @@ export function exportSettings(s: HomeSettings): string {
 		taskNotesDueField: s.taskNotesDueField,
 		taskNotesPriorityField: s.taskNotesPriorityField,
 		taskNotesDoneValue: s.taskNotesDoneValue,
+		taskFieldsEnabled: s.taskFieldsEnabled,
+		taskFields: s.taskFields,
 	};
 	return JSON.stringify(data, null, 2);
 }
@@ -467,6 +472,76 @@ function sanitizeKanbanColumnSort(
 	return out;
 }
 
+const TASK_FIELD_STYLES = ["pill", "dot", "text", "hue", "glow"] as const;
+
+/** One key's value mappings. A mapping with no `match` matches nothing, so it
+ * is dropped rather than kept as a row that can never fire. */
+function sanitizeValueMaps(value: unknown): TaskValueMap[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskValueMap[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const match = str(r.match)?.trim();
+		if (!match) continue;
+		const mapping: TaskValueMap = { match };
+		const label = str(r.label);
+		if (label !== undefined) mapping.label = label;
+		const color = str(r.color);
+		if (color !== undefined) mapping.color = color;
+		out.push(mapping);
+	}
+	return out.length ? out : undefined;
+}
+
+/** A field's keys. Which sources are meaningful is `resolveTaskFields`' job at
+ * render time; this only checks the shape, so a key written by a newer version
+ * survives a round-trip through an older one. */
+function sanitizeFieldKeys(value: unknown): TaskFieldKey[] {
+	if (!Array.isArray(value)) return [];
+	const out: TaskFieldKey[] = [];
+	for (const raw of value) {
+		if (!raw || typeof raw !== "object") continue;
+		const r = raw as Record<string, unknown>;
+		const source = str(r.source)?.trim();
+		if (!source) continue;
+		const key: TaskFieldKey = { source };
+		if (r.isDate === true) key.isDate = true;
+		const values = sanitizeValueMaps(r.values);
+		if (values) key.values = values;
+		out.push(key);
+	}
+	return out;
+}
+
+/** The user-defined field list. An empty result is returned as an empty array
+ * rather than undefined: "show nothing" is a real configuration and must not
+ * be mistaken for "not configured". */
+function sanitizeTaskFields(value: unknown): TaskFieldDef[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const out: TaskFieldDef[] = [];
+	value.forEach((raw, index) => {
+		if (!raw || typeof raw !== "object") return;
+		const r = raw as Record<string, unknown>;
+		const field: TaskFieldDef = {
+			id: str(r.id)?.trim() || `f-${index}`,
+			name: str(r.name) ?? "",
+			keys: sanitizeFieldKeys(r.keys),
+		};
+		if (r.showName === true) field.showName = true;
+		if (typeof r.opacity === "number" && Number.isFinite(r.opacity)) {
+			field.opacity = Math.max(1, Math.min(100, Math.round(r.opacity)));
+		}
+		if (
+			TASK_FIELD_STYLES.includes(r.display as (typeof TASK_FIELD_STYLES)[number])
+		) {
+			field.display = r.display as TaskFieldDef["display"];
+		}
+		out.push(field);
+	});
+	return out;
+}
+
 function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const r = value as Record<string, unknown>;
@@ -535,6 +610,10 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (taskNotesDoneStatuses) cfg.taskNotesDoneStatuses = taskNotesDoneStatuses;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
+	if (typeof r.taskFieldsEnabled === "boolean")
+		cfg.taskFieldsEnabled = r.taskFieldsEnabled;
+	const taskFields = sanitizeTaskFields(r.taskFields);
+	if (taskFields) cfg.taskFields = taskFields;
 	if (typeof r.showCompleted === "boolean") cfg.showCompleted = r.showCompleted;
 	if (typeof r.count === "number") cfg.count = r.count;
 	if (r.layout === "list" || r.layout === "kanban") cfg.layout = r.layout;
@@ -1099,4 +1178,10 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (priorityField !== undefined) s.taskNotesPriorityField = priorityField;
 	const doneValue = str(data.taskNotesDoneValue);
 	if (doneValue !== undefined) s.taskNotesDoneValue = doneValue;
+
+	// Task field customization (the global list every card follows).
+	if (typeof data.taskFieldsEnabled === "boolean")
+		s.taskFieldsEnabled = data.taskFieldsEnabled;
+	const taskFields = sanitizeTaskFields(data.taskFields);
+	if (taskFields) s.taskFields = taskFields;
 }

@@ -15,6 +15,48 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Build your own task fields.** Turn on **Customize task fields** under
+  Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
+  replaced by fields you define yourself. You start from a blank slate — a task
+  shows its text and nothing else — and add fields one at a time:
+
+  - **Name** the field, and choose how it's drawn: a **chip**, a bare
+    **colored dot**, or **plain text**.
+  - Give it a **key**: any frontmatter property, or one of the values Hearth
+    reads itself (a checkbox line's ⏫ priority, a Kanban board column, a due
+    date, the TaskNotes status). A field can have several keys, and each one
+    that has a value shows one — so related metadata can live under one name.
+  - **Map values** to nicer labels and colors: `high` → *Urgent* in red, `p2` →
+    *Normal* in blue. A value you haven't mapped still shows, as itself, so
+    nothing goes missing while you're still building the mapping up. Priority is
+    matched in every spelling it comes in, so mapping `high` also catches a ⏫
+    line — and mapping the exact word your notes use (`urgent`, `p1`) keeps its
+    own label and color.
+
+  - Or have the value **color the whole task** instead of adding anything to
+    it: **tint** its background or **glow** around it, at a strength you set.
+    An overdue task can turn the row red without a chip anywhere on it, which
+    is legible across a whole board at a glance.
+
+  **Dates know they're dates.** A date key has no values to map — instead you
+  color and label it by where it falls: **before today**, **today**, **after
+  today**. Leave the label empty to keep the date's own wording and just tint
+  it. A frontmatter property holding a date can be marked as one, and gets the
+  same treatment.
+
+  **Click a value to change it**, in the list and on a board alike: the chip
+  opens a menu of your mapped values (under their own labels), then the other
+  values that key takes elsewhere in your vault, then a free entry for anything
+  new and a clear. A date opens a **calendar** instead, with today / tomorrow /
+  next week shortcuts. Frontmatter is written to the task's own note, so this is
+  offered on TaskNotes tasks and notes made from a Kanban card; a plain checkbox
+  gets it for its priority and dates, which live on the line.
+
+  The switch is **off by default**, and while it's off every Tasks card renders
+  exactly as it always has. The fields you define in Settings apply to every
+  Tasks card; an individual card can define its own instead, from that card's
+  settings (#157).
+
 - **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
   custom icon set with either plugin keeps that icon everywhere Hearth draws
   one — Recent files, Favorites, Bookmarks, saved-search cards and the search

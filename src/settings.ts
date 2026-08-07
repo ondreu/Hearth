@@ -1,5 +1,6 @@
 import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
+import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
@@ -974,6 +975,44 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			this.addTextReset(doneValue, txt, "taskNotesDoneValue");
 		});
+
+		// The fields above say where a value is *read* from. The rest of this
+		// section is about what tasks *show*, which is off until asked for: with
+		// the switch off every tasks card renders exactly as it always has, and
+		// the per-card controls stay hidden.
+		new Setting(containerEl)
+			.setName(t().settings.tasks.fieldsEnable)
+			.setDesc(t().settings.tasks.fieldsEnableDesc)
+			.addToggle((tog) =>
+				tog.setValue(s.taskFieldsEnabled).onChange(async (v) => {
+					s.taskFieldsEnabled = v;
+					await this.save();
+					this.rerender();
+				}),
+			);
+
+		if (!s.taskFieldsEnabled) return;
+
+		const fields = new Setting(containerEl)
+			.setName(t().settings.tasks.fields)
+			.setDesc(t().settings.tasks.fieldsDesc);
+		fields.addButton((b) =>
+			b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+				new TaskFieldsModal(this.app, null, s, s.taskFields, (next) => {
+					s.taskFields = next;
+					void this.save();
+				}).open();
+			}),
+		);
+		fields.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().editors.tasks.fieldsReset)
+				.onClick(async () => {
+					s.taskFields = [];
+					await this.save();
+				}),
+		);
 	}
 
 	// ---- File icons (Iconic / Iconize) ----------------------------------

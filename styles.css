@@ -4197,9 +4197,548 @@ body.hearth-dv-resizing {
 .hearth-kanban-card-meta {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: 6px;
 	flex-wrap: wrap;
+}
+
+/* Chips read left to right in the card's configured field order, but the last
+   one still hugs the right edge — which is what the row looked like when it
+   held exactly a priority chip and a due date. */
+.hearth-kanban-card-meta > :last-child:not(:first-child) {
+	margin-left: auto;
+}
+
+/* Host for a board card's full-width fields (the description). `contents` keeps
+   the children as direct flex items of the card, so nothing about their layout
+   changes by being grouped. */
+.hearth-kanban-card-block {
+	display: contents;
+}
+
+/* ---- Configurable task field chips ---------------------------------- */
+
+/* One metadata value on a task: a frontmatter property, or a built-in field
+   whose style the user changed. Drawn as a filled chip, a bare coloured dot, or
+   plain text (see src/taskfields.ts). */
+.hearth-task-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+	font-size: 0.72rem;
+	color: var(--text-muted);
+}
+
+.hearth-task-chip.is-pill {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	white-space: nowrap;
+}
+
+/* The optional "Project:" prefix recedes behind the value it names. */
+.hearth-task-chip-label {
+	opacity: 0.7;
+}
+
+.hearth-task-chip-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+/* A value's colour — either picked by the user or auto-assigned from the value
+   itself — arrives as --chip-color. Tinting rather than filling keeps a row of
+   chips readable in both themes and against any theme's card background. */
+.hearth-task-chip.is-colored.is-pill,
+.hearth-task-status.is-colored.is-pill {
+	background: color-mix(in srgb, var(--chip-color) 18%, transparent);
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 32%, transparent);
+}
+
+.hearth-task-chip.is-colored.is-text {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+.hearth-task-chip.is-colored .hearth-task-chip-dot,
+.hearth-task-status.is-colored .hearth-task-chip-dot {
+	background: var(--chip-color);
+}
+
+/* Dot form: no pill behind it, just the dot. */
+.hearth-task-status.is-dot,
+.hearth-task-chip.is-dot {
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+
+/* An explicit colour on a priority value overrides its level colour, including
+   the rings the highest/lowest levels carry. */
+.hearth-task-priority.is-colored .hearth-task-priority-dot {
+	background: var(--chip-color);
+	border: none;
+	box-shadow: none;
+}
+
+.hearth-task-priority.is-colored .hearth-task-priority-label {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+/* Chip form for the date fields, for cards that want them to read as chips
+   rather than as bare text. */
+.hearth-task-due.is-pill,
+.hearth-task-meta.is-pill {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+}
+
+/* A date field coloured by its relation to today (before / on / after). These
+   sit after the `.is-overdue` and `.is-recurring` rules above and match them
+   for specificity, so a colour the user set wins over the built-in red and
+   accent. The overdue class is only applied when no colour is configured, so
+   the two never actually contend. */
+.hearth-task-due.is-colored,
+.hearth-task-meta.is-colored {
+	color: color-mix(in srgb, var(--chip-color) 70%, var(--text-normal));
+}
+
+.hearth-task-due.is-colored.is-pill,
+.hearth-task-meta.is-colored.is-pill {
+	background: color-mix(in srgb, var(--chip-color) 18%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 32%, transparent);
+}
+
+.hearth-task-meta.is-colored .hearth-task-meta-emoji {
+	opacity: 1;
+}
+
+/* ---- Task fields editor --------------------------------------------- */
+
+/* A field, its keys and their value tables are three levels deep, which the
+   default modal width cannot hold without crowding every row in the table.
+   Height is a flex chain rather than a `vh` cap on the list: the modal frame
+   knows how tall it may be (and on a phone that is the whole screen), so the
+   list takes the room that is left over and scrolls inside it. A fixed cap
+   plus a header and a footer adds up to more than the frame allows, and the
+   difference is cut off with nothing to scroll. */
+.hearth-taskfields-modal {
+	display: flex;
+	flex-direction: column;
+	width: min(840px, 94vw);
+	max-width: min(840px, 94vw);
+}
+
+/* The class is doubled to outweigh a theme's own `.modal-content` rules: the
+   column layout here is what makes the list scroll instead of being cut off,
+   so it must not be a cascade coin toss. */
+.hearth-taskfields.hearth-taskfields {
+	display: flex;
+	flex-direction: column;
+	/* min-height: 0 at every step, or a flex item refuses to shrink below its
+	   content and the scroll never engages. */
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-taskfields h3 {
+	margin: 0 0 4px;
+	flex: 0 0 auto;
+}
+
+.hearth-taskfields > .hearth-taskfields-hint,
+.hearth-taskfields > .setting-item {
+	flex: 0 0 auto;
+}
+
+.hearth-taskfields-hint {
+	margin: 0 0 14px;
+	color: var(--text-muted);
+	font-size: 0.88em;
+	line-height: 1.45;
+}
+
+.hearth-taskfields-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	/* The scroller: it takes whatever height the frame has left, never more. */
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	/* Room for focus rings on the outermost controls, which a scroll container
+	   would otherwise clip. */
+	padding: 2px;
+}
+
+/* Nothing inside a bounded flex column may shrink. A field card is `overflow:
+   hidden` for its rounded corners, so a shrunk card doesn't overflow visibly —
+   it silently cuts its own content off, and the list has nothing left to
+   scroll. The rows must keep their height and let the scroller do its job. */
+.hearth-taskfields-body > *,
+.hearth-taskfields-section > *,
+.hearth-taskfields-table > * {
+	flex-shrink: 0;
+}
+
+/* ---- Panels: a card per field, a lighter card per key --------------- */
+
+.hearth-taskfields-field,
+.hearth-taskfields-key {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-secondary);
+	overflow: hidden;
+}
+
+.hearth-taskfields-key {
+	background: var(--background-primary);
+	border-radius: 8px;
+}
+
+/* An open panel is outlined so its body reads as belonging to it rather than
+   to whatever follows. */
+.hearth-taskfields-field.is-open,
+.hearth-taskfields-key.is-open {
+	border-color: var(--background-modifier-border-hover);
+}
+
+/* The header strip: chevron, what it is and what it holds, then its buttons. */
+.hearth-taskfields-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 14px;
+}
+
+.hearth-taskfields-head.is-expandable {
+	cursor: pointer;
+}
+
+.hearth-taskfields-head.is-expandable:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-taskfields-key .hearth-taskfields-head {
+	padding: 10px 12px;
+}
+
+.hearth-taskfields-chevron {
+	display: flex;
+	align-items: center;
+	width: 16px;
+	color: var(--text-muted);
+}
+
+.hearth-taskfields-headtext {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-taskfields-title {
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.hearth-taskfields-summary {
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 0.82em;
+	line-height: 1.35;
+}
+
+.hearth-taskfields-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+/* What a panel expands into. */
+.hearth-taskfields-panelbody {
+	padding: 0 14px 14px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-taskfields-key .hearth-taskfields-panelbody {
+	padding: 0 12px 12px;
+}
+
+/* Obsidian's own rows, given room to breathe and no rule between them: the
+   panel edges already say where one group ends. */
+.hearth-taskfields-panelbody .setting-item {
+	padding: 14px 0 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-taskfields-panelbody > .setting-item:first-child {
+	border-top: none;
+}
+
+.hearth-taskfields-panelbody .hearth-taskfields-hint {
+	margin: 12px 0 0;
+}
+
+/* ---- The keys section inside a field ------------------------------- */
+
+.hearth-taskfields-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-taskfields-sectiontitle {
+	font-weight: 600;
+	font-size: 0.95em;
+}
+
+.hearth-taskfields-sectiondesc {
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 0.85em;
+	line-height: 1.45;
+}
+
+/* ---- The value table ----------------------------------------------- */
+
+/* One grid per key: the columns line up down the whole table and each input
+   fills its own, rather than every row being a settings item with an empty
+   name and its controls crowded against the right edge. */
+.hearth-taskfields-table {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 12px 0 10px;
+}
+
+.hearth-taskfields-trow {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+	gap: 10px;
+	align-items: center;
+}
+
+.hearth-taskfields-thead {
+	color: var(--text-faint);
+	font-size: 0.74em;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.hearth-taskfields-cell {
+	min-width: 0;
+}
+
+/* The fixed first column of the date table ("Before today"). */
+.hearth-taskfields-cell.is-fixed {
+	font-size: 0.9em;
+}
+
+.hearth-taskfields-trow input[type="text"] {
+	width: 100%;
+}
+
+.hearth-taskfields-cell.is-color {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-taskfields-cell.is-actions {
+	display: flex;
+	justify-content: flex-end;
+	/* Reserve the button's width on the rows that have none, so every column
+	   above and below still lines up. */
+	min-width: 26px;
+}
+
+/* Preview of the colour a value renders in, and what opens the palette. The
+   colour itself is set inline by the editor (see `colorCell`), because no
+   selector here can be sure of outranking what Obsidian and themes apply to
+   controls inside a modal; this only gives the swatch its shape. */
+.hearth-taskfields-cell.is-color .hearth-taskfields-swatch {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background-image: none;
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+	cursor: pointer;
+}
+
+.hearth-taskfields-cell.is-color .hearth-taskfields-swatch:hover {
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+}
+
+.hearth-taskfields-cell.is-color .hearth-taskfields-swatch:focus-visible {
+	box-shadow:
+		inset 0 0 0 1px var(--background-modifier-border),
+		0 0 0 2px var(--interactive-accent);
+	outline: none;
+}
+
+/* The free picker beside it. Deliberately a rounded square rather than a second
+   dot: the circle previews what the value renders as, this opens the OS colour
+   picker, and two identical dots would read as two previews. */
+.hearth-taskfields-cell.is-color .hearth-taskfields-picker {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: none;
+	cursor: pointer;
+}
+
+.hearth-taskfields-picker::-webkit-color-swatch-wrapper {
+	padding: 2px;
+}
+
+.hearth-taskfields-picker::-webkit-color-swatch {
+	border: none;
+	border-radius: 4px;
+}
+
+/* Two lines per value on a narrow screen: the value it matches owns the first,
+   its label and colour share the second. Each value is then ruled off from the
+   next, so a table that has become six lines tall still reads as three rows. */
+@media (max-width: 620px) {
+	.hearth-taskfields-table {
+		gap: 0;
+	}
+
+	.hearth-taskfields-trow {
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		row-gap: 6px;
+		padding-bottom: 10px;
+		margin-bottom: 10px;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.hearth-taskfields-trow:last-child {
+		padding-bottom: 0;
+		margin-bottom: 0;
+		border-bottom: none;
+	}
+
+	/* The matched value, on its own line above the rest. */
+	.hearth-taskfields-trow > .hearth-taskfields-cell:first-child {
+		grid-column: 1 / -1;
+	}
+
+	.hearth-taskfields-thead {
+		display: none;
+	}
+}
+
+/* ---- Footers: the buttons that add things -------------------------- */
+
+.hearth-taskfields-foot {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.hearth-taskfields-foot.is-add {
+	margin-top: 4px;
+}
+
+.hearth-taskfields-foot button {
+	/* Obsidian's default button margins would break the row's own gap. */
+	margin: 0;
+}
+
+.hearth-taskfields-footnote {
+	flex: 1 1 220px;
+	min-width: 0;
+	color: var(--text-muted);
+	font-size: 0.82em;
+	line-height: 1.4;
+}
+
+.hearth-taskfields-footer {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+/* ---- Ambient field styles (hue / glow) ------------------------------ */
+
+/* An ambient field puts nothing on the task and colours the whole thing
+   instead. The tint is a background *image* rather than a background colour,
+   so it layers over whatever the row or card already paints — the Kanban
+   card's translucent fill, the list row's hover — instead of replacing it. */
+.hearth-task.is-hued,
+.hearth-kanban-card.is-hued {
+	background-image: linear-gradient(
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent)
+	);
+}
+
+/* The ring form: an inner edge plus a soft bloom, both derived from the one
+   strength so a single slider controls the whole effect. */
+.hearth-task.is-glowing,
+.hearth-kanban-card.is-glowing {
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		0 0 8px -1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 0.6%), transparent);
+}
+
+/* A completed task recedes; its colour should recede with it rather than
+   keeping a finished row as loud as a live one. */
+.hearth-task.is-done.is-hued,
+.hearth-task.is-done.is-glowing {
+	opacity: 0.7;
+}
+
+/* Quick picks beside the calendar in the date picker. */
+.hearth-taskdate-shortcuts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 4px 0 12px;
+}
+
+/* A date held in a frontmatter property carries no emoji marker, so it leans on
+   the same overdue colour the Tasks-plugin dates use. */
+.hearth-task-datechip.is-overdue {
+	color: var(--text-error);
+}
+
+/* A chip whose value can be changed by clicking it. The affordance stays quiet
+   until hover: a task row is already clickable, and every chip advertising
+   itself would make the list noisy. */
+.hearth-task-chip.is-editable,
+.hearth-task-status.is-editable,
+.hearth-task-priority.is-editable {
+	cursor: pointer;
+}
+
+.hearth-task-chip.is-editable:hover,
+.hearth-task-status.is-editable:hover,
+.hearth-task-priority.is-editable:hover {
+	box-shadow: 0 0 0 1px var(--background-modifier-border-hover);
+}
+
+.hearth-task-priority.is-editable.is-dot:hover .hearth-task-priority-dot,
+.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
+}
+
+.hearth-taskfields-empty {
+	padding: 8px 0;
+	color: var(--text-muted);
+	font-size: 0.85em;
 }
 
 /* ---- Kanban column header controls ---------------------------------- */
