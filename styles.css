@@ -616,17 +616,70 @@
 	flex: 1;
 	min-height: 0;
 	overflow: auto;
-	padding: 12px 14px;
+	--hearth-card-pad-x: 14px;
+	padding: 12px var(--hearth-card-pad-x);
 }
 
 /* When a card body holds a read-only embed/daily-note host directly, the host
  * is the scroll container (one vertical scrollbar) — the body itself doesn't
  * scroll, so it can't stack a second scrollbar next to the embed's. The same
  * applies to the editable embed wrapper (.hearth-jot), whose preview/textarea
- * handle their own scrolling. */
+ * handle their own scrolling.
+ *
+ * Those hosts also clip horizontally, so the side gutter has to move *inside*
+ * them (issue #137): Obsidian pulls a task-list checkbox back out of its list
+ * item (`margin-inline-start: calc(var(--checkbox-size) * -1.5)`), and when the
+ * embedded text renders smaller than `--font-text-size` that pull-back is wider
+ * than the list's own `3ch` indent. Padding on the body sits *outside* the clip
+ * box and so can't absorb the overhang — the checkbox is simply cut off. Reading
+ * view avoids this because its `--file-margins` gutter is interior. The rules
+ * below zero the body's inline padding and re-apply it on the scroll/clip
+ * elements themselves, so text lands in exactly the same place. */
 .hearth-card-body.is-embed-host,
 .hearth-card-body.is-jot-host {
 	overflow: hidden;
+}
+
+/* Scoped through `.hearth-card` purely for specificity: compact mode sets the
+ * body's `padding` shorthand later in this file, which would otherwise put the
+ * inline padding back and double it against the host's own. */
+.hearth-card > .hearth-card-body.is-embed-host,
+.hearth-card > .hearth-card-body.is-jot-host {
+	padding-inline: 0;
+}
+
+/* Read-only embed and jot hosts. `.hearth-embed-live` (canvas/Excalidraw) is
+ * excluded — it's deliberately edge-to-edge and its body already zeroes all
+ * padding.
+ *
+ * The start gutter is sized from the hang itself rather than being a flat
+ * number, because the hang has no upper bound. Obsidian computes
+ * `--checkbox-size` once on `body` from `--font-text-size`, while card text is
+ * sized in `rem` and doesn't follow that slider — so `1.5 × --checkbox-size`
+ * grows with the font setting while the `3ch` indent it hangs out of stays put,
+ * and any constant gutter is eventually outgrown (14px still clipped on a large
+ * setting). Both terms resolve here on the host, whose font size is the one the
+ * list items inherit, so the calc measures what the list actually does.
+ *
+ * `max()` keeps every ordinary card pixel-identical to the flat gutter: the
+ * hang only widens it once it would otherwise eat in. The gutter is added on
+ * top of the hang, not compared against it, so the checkbox keeps a full
+ * gutter's clearance instead of landing flush against the clip edge. */
+.hearth-card-body.is-embed-host > .hearth-embed:not(.hearth-embed-live),
+.hearth-card-body.is-jot-host .hearth-jot-preview {
+	padding-inline-start: max(
+		var(--hearth-card-pad-x),
+		calc(var(--checkbox-size, 1em) * 1.5 - 3ch + var(--hearth-card-pad-x))
+	);
+	padding-inline-end: var(--hearth-card-pad-x);
+}
+
+/* The raw editor is a *sibling* of the preview inside `.hearth-jot`, not a
+ * descendant, so it needs the gutter too or the two views disagree on their
+ * left edge as the card toggles between them. Plain text, no checkbox to hang,
+ * so the flat gutter is enough. Covers the jot card and the editable embed. */
+.hearth-card-body.is-jot-host .hearth-jot-edit {
+	padding-inline: var(--hearth-card-pad-x);
 }
 
 /* Empty states */
@@ -3239,8 +3292,11 @@
 	padding: 6px 10px;
 }
 
+/* Sets the gutter through `--hearth-card-pad-x` so embed/jot hosts, which carry
+ * the inline padding themselves (see `.is-embed-host` above), follow suit. */
 .hearth-compact .hearth-card-body {
-	padding: 8px 10px;
+	--hearth-card-pad-x: 10px;
+	padding: 8px var(--hearth-card-pad-x);
 }
 
 /* ---- Calendar: week numbers & heatmap ------------------------------- */
