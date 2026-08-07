@@ -1594,12 +1594,23 @@ function renderTaskFilterControl(
 const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "none"];
 
 
+/** Paint a filter chip as on or off, and say so for screen readers — the
+ * accent fill is the only other cue that a chip is selected. */
+function setChipState(chip: HTMLElement, on: boolean): void {
+	chip.toggleClass("is-on", on);
+	chip.setAttribute("aria-pressed", String(on));
+}
+
+
 /** The filter modal: quick presets across the top, then editable criteria
  * (due, priority, status, text). Edits are applied on "Apply"; "Cancel"
  * discards them and "Clear" empties every field. */
 class TaskFilterModal extends Modal {
 	private working: TaskFilterConfig;
 	private body: HTMLElement | null = null;
+	/** Re-reads each preset chip's on/off state from `working`. Kept so a chip
+	 * or dropdown below can leave the presets showing the truth. */
+	private presetSyncs: (() => void)[] = [];
 
 	constructor(
 		app: App,
@@ -1627,22 +1638,47 @@ class TaskFilterModal extends Modal {
 		this.renderFooter(contentEl);
 	}
 
-	/** Preset chips that fill in the criteria below, then re-render the body. */
+	/** Preset chips that fill in the criteria below, then re-render the body.
+	 * Each one reads as on while the criteria below still match it, and a
+	 * second click takes it back off — a preset you can only apply, never
+	 * undo, reads as broken. */
 	private renderPresets(parent: HTMLElement): void {
 		const labels = t().cards.tasks.filterPresets;
 		const row = parent.createDiv("hearth-taskfilter-presets");
-		const preset = (label: string, apply: () => void) => {
-			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
+		this.presetSyncs = [];
+		const preset = (label: string, isOn: () => boolean, apply: (on: boolean) => void) => {
+			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+			const sync = () => setChipState(chip, isOn());
+			sync();
+			this.presetSyncs.push(sync);
 			chip.addEventListener("click", () => {
-				apply();
+				apply(!isOn());
 				this.renderBody();
+				this.syncPresets();
 			});
 		};
-		preset(labels.overdue, () => (this.working.due = "overdue"));
-		preset(labels.today, () => (this.working.due = "today"));
-		preset(labels.week, () => (this.working.due = "week"));
-		preset(labels.highPriority, () => (this.working.priorities = ["high"]));
-		preset(labels.noDate, () => (this.working.due = "noDate"));
+		const duePreset = (label: string, value: TaskDueFilter) =>
+			preset(label, () => this.working.due === value, (on) => {
+				this.working.due = on ? value : undefined;
+			});
+		duePreset(labels.overdue, "overdue");
+		duePreset(labels.today, "today");
+		duePreset(labels.week, "week");
+		preset(
+			labels.highPriority,
+			() => {
+				const levels = this.working.priorities ?? [];
+				return levels.length === 1 && levels[0] === "high";
+			},
+			(on) => {
+				this.working.priorities = on ? ["high"] : undefined;
+			},
+		);
+		duePreset(labels.noDate, "noDate");
+	}
+
+	private syncPresets(): void {
+		for (const sync of this.presetSyncs) sync();
 	}
 
 	/** The editable criteria; rebuilt whenever a preset or toggle changes them. */
@@ -1663,11 +1699,12 @@ class TaskFilterModal extends Modal {
 			d.setValue(this.working.due ?? "");
 			d.onChange((v) => {
 				this.working.due = v ? (v as TaskDueFilter) : undefined;
+				this.syncPresets();
 			});
 		});
 
 		// Priority buckets (multi-select chips).
-		const prioRow = new Setting(body).setName(labels.filterPriority);
+		const prioRow = new Setting(body).setName(labels.filterPriority).setClass("hearth-taskfilter-row");
 		const prioHost = prioRow.controlEl.createDiv("hearth-taskfilter-chips");
 		for (const level of TASK_PRIORITY_LEVELS) {
 			this.toggleChip(prioHost, labels.filterPriorityLevels[level], () => (this.working.priorities ?? []).includes(level), () => {
@@ -1679,10 +1716,11 @@ class TaskFilterModal extends Modal {
 		}
 
 		// Status/column chips (only when the source exposes statuses).
-		if (this.availableStatuses.length) {
-			const statusRow = new Setting(body).setName(labels.filterStatus);
+		const statuses = this.statusOptions();
+		if (statuses.length) {
+			const statusRow = new Setting(body).setName(labels.filterStatus).setClass("hearth-taskfilter-row");
 			const statusHost = statusRow.controlEl.createDiv("hearth-taskfilter-chips");
-			for (const status of this.availableStatuses) {
+			for (const status of statuses) {
 				this.toggleChip(statusHost, status, () => (this.working.statuses ?? []).some((s) => s.toLowerCase() === status.toLowerCase()), () => {
 					const cur = this.working.statuses ?? [];
 					const has = cur.some((s) => s.toLowerCase() === status.toLowerCase());
@@ -1699,13 +1737,32 @@ class TaskFilterModal extends Modal {
 		});
 	}
 
-	/** A single multi-select chip: reflects `isOn()` and flips it on click. */
+	/** The statuses to offer as chips: those the card's tasks actually use,
+	 * plus any the working filter still selects that no longer appear. Without
+	 * the second group a filter kept from an earlier state (a status renamed,
+	 * or its last task deleted) would go on hiding tasks with no chip left to
+	 * switch it off. */
+	private statusOptions(): string[] {
+		const out = [...this.availableStatuses];
+		const seen = new Set(out.map((s) => s.toLowerCase()));
+		for (const status of this.working.statuses ?? []) {
+			if (seen.has(status.toLowerCase())) continue;
+			seen.add(status.toLowerCase());
+			out.push(status);
+		}
+		return out;
+	}
+
+	/** A single multi-select chip: reflects `isOn()` and flips it on click.
+	 * Updated in place rather than by re-rendering the row, so the chip you
+	 * just clicked keeps keyboard focus. */
 	private toggleChip(host: HTMLElement, label: string, isOn: () => boolean, flip: () => void): void {
-		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", text: label });
-		chip.toggleClass("is-on", isOn());
+		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+		setChipState(chip, isOn());
 		chip.addEventListener("click", () => {
 			flip();
-			chip.toggleClass("is-on", isOn());
+			setChipState(chip, isOn());
+			this.syncPresets();
 		});
 	}
 
@@ -1724,6 +1781,7 @@ class TaskFilterModal extends Modal {
 				b.setButtonText(t().cards.tasks.filterClear).onClick(() => {
 					this.working = {};
 					this.renderBody();
+					this.syncPresets();
 				}),
 			)
 			.addButton((b) => b.setButtonText(t().cards.tasks.cancel).onClick(() => this.close()));
