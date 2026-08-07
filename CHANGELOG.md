@@ -204,6 +204,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
   *The current tab* (#106).
 
+- **Today is marked more quietly in the calendar's agenda.** The current day's
+  row no longer takes a heavy accent fill that made its text hard to read.
+  Today is now carried by an accent ring around the date badge plus a faint tint
+  on the row, with the stronger accent wash kept for hover — so pointing at the
+  row is what lights it up. The row sets both states itself, so a theme's own
+  saturated hover colour can't turn today into an unreadable slab, and hover no
+  longer sticks after a tap on touch devices.
+
 ## [1.17.0]
 
 ### Added

@@ -2447,8 +2447,12 @@
 	cursor: pointer;
 }
 
-.hearth-agenda-row:hover {
-	background: var(--background-modifier-hover);
+/* Hover is guarded to pointers that can actually hover: on touch the state
+   sticks after a tap, leaving a row looking permanently selected. */
+@media (hover: hover) {
+	.hearth-agenda-row:hover {
+		background: var(--background-modifier-hover);
+	}
 }
 
 .hearth-agenda-date {
@@ -2473,9 +2477,12 @@
 	color: var(--text-normal);
 }
 
+/* Today is marked on the date badge, not by flooding the row: an accent ring
+   around the day number reads at a glance without fighting the row's text. */
 .hearth-agenda-row.is-today .hearth-agenda-daynum {
 	color: var(--interactive-accent);
-	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
+	background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 55%, transparent);
 	border-radius: 999px;
 	width: 24px;
 	height: 24px;
@@ -2483,6 +2490,10 @@
 	align-items: center;
 	justify-content: center;
 	font-weight: 700;
+}
+
+.hearth-agenda-row.is-today .hearth-agenda-dow {
+	color: color-mix(in srgb, var(--interactive-accent) 70%, var(--text-muted));
 }
 
 .hearth-agenda-main {
@@ -2515,11 +2526,11 @@
 	margin-left: auto;
 }
 
-.hearth-agenda-row.is-today {
-	outline: 1px solid color-mix(in srgb, var(--interactive-accent) 45%, transparent);
-	outline-offset: -1px;
-}
-
+/* At rest today's row is only faintly tinted — the accent badge above carries
+   the marking. The stronger accent wash is kept for hover, so pointing at the
+   row is what lights it up rather than it shouting all the time. The row owns
+   both states explicitly so a theme's own (sometimes very saturated) hover
+   colour can't turn it into an unreadable slab. */
 /* Heatmap tint for agenda rows, mirroring the grid's per-day tint. Built from
  * the stable --accent-h/s/l vars for the same reason (see the grid rule). */
 .hearth-agenda-row.has-heat {
@@ -2531,8 +2542,10 @@
 	);
 }
 
-.hearth-agenda-row.has-heat:hover {
-	background-color: var(--background-modifier-hover);
+@media (hover: hover) {
+	.hearth-agenda-row.has-heat:hover {
+		background-color: var(--background-modifier-hover);
+	}
 }
 
 .hearth-agenda-row.is-static {
@@ -2541,6 +2554,20 @@
 
 .hearth-agenda-row.is-static:hover {
 	background: transparent;
+}
+
+/* Today's row, last so it wins over the heat tint and the static reset. */
+.hearth-agenda-row.is-today,
+.hearth-agenda-row.is-today.has-heat,
+.hearth-agenda-row.is-today.is-static:hover {
+	background-color: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+}
+
+@media (hover: hover) {
+	.hearth-agenda-row.is-today:hover,
+	.hearth-agenda-row.is-today.has-heat:hover {
+		background-color: color-mix(in srgb, var(--interactive-accent) 20%, transparent);
+	}
 }
 
 /* External calendar events listed under an agenda day. The left inset lines
