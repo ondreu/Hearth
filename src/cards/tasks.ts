@@ -376,28 +376,23 @@ function renderPriorityChip(
 
 /** A pill showing a TaskNotes task's raw status value. The list layout's
  * completion checkbox only says done/not-done, so the actual status (open,
- * in-progress, waiting, …) needs a chip of its own. With `alignToTitle` it is
- * left-aligned against the task title (see the `has-statuschip` rules in
- * styles.css) so it reads as part of the task rather than floating among the
- * right-hand chips — which is how the fixed layout has always drawn it.
+ * in-progress, waiting, …) needs a chip of its own. Where it lands is the
+ * caller's choice of host: the fixed layout puts it beside the title, so it
+ * reads as part of the task rather than floating among the right-hand chips.
  *
  * Callers only reach here with a value in hand, so there is no empty case. */
 function renderStatusChip(
-	row: HTMLElement,
+	parent: HTMLElement,
 	status: string,
 	style: TaskFieldStyle,
 	color: string | null,
-	alignToTitle: boolean,
 	label = status.trim(),
 ): HTMLElement {
-	const chip = row.createDiv(`hearth-task-status hearth-task-statuschip is-${style}`);
+	const chip = parent.createDiv(`hearth-task-status hearth-task-statuschip is-${style}`);
 	if (style === "dot") chip.createDiv("hearth-task-chip-dot");
 	else chip.setText(label);
 	applyChipColor(chip, color);
 	chip.setAttribute("title", `Status: ${label}`);
-	// Set here rather than matched with :has(), which is avoided in this
-	// stylesheet for its broad selector-invalidation cost.
-	if (alignToTitle) row.addClass("has-statuschip");
 	return chip;
 }
 
@@ -897,7 +892,7 @@ function renderLegacyTaskFields(
 	if (layout === "list") {
 		// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
 		// …) and the checkbox can't express it, so show it right after the title.
-		if (hit.status) renderStatusChip(hosts.inline, hit.status, "pill", null, true);
+		if (hit.status) renderStatusChip(hosts.inline, hit.status, "pill", null);
 		// Kanban cards show the board column they belong to as a small badge.
 		if (hit.boardColumn) {
 			hosts.inline.createDiv({
@@ -1060,7 +1055,7 @@ function renderCustomTaskFields(
 				if (builtin === "priority") {
 					el = renderPriorityChip(host, raw, style, shown.color, shown.label);
 				} else if (builtin === "status") {
-					el = renderStatusChip(host, raw, style, shown.color, false, shown.label);
+					el = renderStatusChip(host, raw, style, shown.color, shown.label);
 				} else {
 					el = renderValueChip(host, {
 						text: shown.label,
@@ -1877,12 +1872,19 @@ function renderTaskRow(
 		renderTaskNotesCheckbox(view, cfg, hit, row, refresh, openStatus);
 	}
 
-	const label = row.createDiv({ cls: "hearth-list-label hearth-task-text" });
+	// Two groups on the one row: the title (with whatever sits beside it) holds
+	// the left and is the only part allowed to shrink, and every other chip
+	// gathers at the right edge. Grouping them is what keeps a task to a single
+	// line — a long title ellipsizes instead of pushing the chips onto a line of
+	// their own (#156). The card's configured field order still reads
+	// left-to-right, since a list draws all its chips into the one meta group.
+	const main = row.createDiv("hearth-task-main");
+	const meta = row.createDiv("hearth-task-metas");
+	const label = main.createDiv({ cls: "hearth-list-label hearth-task-text" });
 	fillTaskText(view, label, hit.text || hit.file.basename, hit.file.path);
-	// One row, so every field lands in it and the card's configured field order
-	// is exactly the left-to-right order: status/column beside the title, then
-	// priority, dates and any frontmatter chips.
-	renderTaskFields(view, cfg, hit, { inline: row, meta: row, block: row, root: row }, today, "list", refresh);
+	// The description is the one field that gets its own line, so it goes to the
+	// row itself rather than into either group.
+	renderTaskFields(view, cfg, hit, { inline: main, meta, block: row, root: row }, today, "list", refresh);
 
 	const open = () => void openTask(view, cfg, hit, refresh);
 	row.addEventListener("click", open);
