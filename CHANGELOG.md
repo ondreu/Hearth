@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [1.18.0]
+## [2.0.0]
 
 ### Added
 
@@ -39,7 +39,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   TaskNotes records it), and the event popup shows the task's status, priority,
   contexts, projects and estimate with an **Open task** button that hands off to
   TaskNotes' own editor.
-
 - **Choose where Hearth opens notes.** Settings → Hearth → Behaviour → **Opening
   notes** has a single **Open notes in** choice that governs every note Hearth
   opens: **a new tab** (what it has always done), **the current tab**, which
@@ -63,7 +62,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   **Open button** toggle in their card settings; turned on, a button on the card
   opens the embedded file properly — following the open-behaviour setting above.
   Off by default, so no existing board changes (#144).
-
 - **Build your own task fields.** Turn on **Customize task fields** under
   Settings → Hearth → Integrations and the fixed metadata Tasks cards show is
   replaced by fields you define yourself. You start from a blank slate — a task
@@ -105,18 +103,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   exactly as it always has. The fields you define in Settings apply to every
   Tasks card; an individual card can define its own instead, from that card's
   settings (#157).
-
-- **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
-  custom icon set with either plugin keeps that icon everywhere Hearth draws
-  one — Recent files, Favorites, Bookmarks, saved-search cards and the search
-  bar — instead of the generic file-type icon. Bookmarks pointing at a note or
-  folder now also follow the file's *type* icon rather than always showing the
-  same page glyph, so a bookmarked PDF or canvas looks like one. Lucide icons and emoji are both shown; a file
-  using an icon from one of Iconize's downloaded icon packs keeps Hearth's own
-  icon, since those are SVG files rather than named icons. Neither plugin offers
-  an API, so Hearth reads their settings directly and quietly falls back to the
-  file-type icon if it can't. Turn it off, or point it at a renamed Iconize
-  frontmatter property, under Settings → Hearth → Integrations (#132).
 - **Editable notes can use Obsidian's Live Preview editor.** An editable Note
   embed or Daily note card has a new **Live preview** toggle beside
   **Editable**. Turned on, the card hosts Obsidian's own editor instead of
@@ -169,6 +155,47 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   clipped, and widens to match the checkbox instead of being a fixed number, so
   it holds at any font size. Checkboxes still scale with your font setting;
   ordinary cards look exactly as before (#137).
+- **No grey box under an editable note.** Double-clicking an editable Note
+  embed, Daily note or jot card to edit it dropped a grey form-field panel
+  behind the text — permanently so on mobile, where Obsidian's own textarea
+  rule outranked the transparent background Hearth asks for. The raw editor
+  now keeps the card's surface in every state, so switching between the
+  rendered note and its source no longer changes the card's background (#160).
+
+### Changed
+
+- **Links inside tasks now open where every other link does.** A `[[wikilink]]`
+  in a task's text took over the current tab, which in a Hearth tab meant
+  replacing the home view — while the same link on a card opened a new tab. Both
+  now follow **Open notes in** (a new tab by default). To keep tasks behaving as
+  they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
+  *The current tab* (#106).
+- **Today is marked more quietly in the calendar's agenda.** The current day's
+  row no longer takes a heavy accent fill that made its text hard to read.
+  Today is now carried by an accent ring around the date badge plus a faint tint
+  on the row, with the stronger accent wash kept for hover — so pointing at the
+  row is what lights it up. The row sets both states itself, so a theme's own
+  saturated hover colour can't turn today into an unreadable slab, and hover no
+  longer sticks after a tap on touch devices.
+
+## [1.18.0]
+
+### Added
+
+- **Your Iconic and Iconize icons now show up in Hearth.** A file that has a
+  custom icon set with either plugin keeps that icon everywhere Hearth draws
+  one — Recent files, Favorites, Bookmarks, saved-search cards and the search
+  bar — instead of the generic file-type icon. Bookmarks pointing at a note or
+  folder now also follow the file's *type* icon rather than always showing the
+  same page glyph, so a bookmarked PDF or canvas looks like one. Lucide icons and emoji are both shown; a file
+  using an icon from one of Iconize's downloaded icon packs keeps Hearth's own
+  icon, since those are SVG files rather than named icons. Neither plugin offers
+  an API, so Hearth reads their settings directly and quietly falls back to the
+  file-type icon if it can't. Turn it off, or point it at a renamed Iconize
+  frontmatter property, under Settings → Hearth → Integrations (#132).
+
+### Fixed
+
 - **Sorting tasks by priority puts Highest at the top.** The priority sort
   ranked tasks by the coarse colour bucket the priority dot uses, which lumps
   Highest in with High (and Lowest in with Low). Tasks one level apart therefore
@@ -185,12 +212,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for jots — so the state sticks, whether or not the card is set to editable.
   A tick is reverted if the write can't land, and a click on a checkbox no
   longer opens the raw editor when it lands as part of a double-click (#143).
-- **No grey box under an editable note.** Double-clicking an editable Note
-  embed, Daily note or jot card to edit it dropped a grey form-field panel
-  behind the text — permanently so on mobile, where Obsidian's own textarea
-  rule outranked the transparent background Hearth asks for. The raw editor
-  now keeps the card's surface in every state, so switching between the
-  rendered note and its source no longer changes the card's background (#160).
 - **Theme focus rings no longer break the search bar.** Under Catppuccin (and
   any theme that styles input focus with a body-class-prefixed selector), the
   home-screen search input picked up the theme's own focus ring, so a blue
@@ -202,23 +223,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Inputs with an ordinary border, such as the Kanban editors and the task-detail
   description field, keep the theme's ring, since for them it is the focus
   affordance (#138).
-
-### Changed
-
-- **Links inside tasks now open where every other link does.** A `[[wikilink]]`
-  in a task's text took over the current tab, which in a Hearth tab meant
-  replacing the home view — while the same link on a card opened a new tab. Both
-  now follow **Open notes in** (a new tab by default). To keep tasks behaving as
-  they did, set **Links** under Settings → Hearth → Behaviour → Opening notes to
-  *The current tab* (#106).
-
-- **Today is marked more quietly in the calendar's agenda.** The current day's
-  row no longer takes a heavy accent fill that made its text hard to read.
-  Today is now carried by an accent ring around the date badge plus a faint tint
-  on the row, with the stronger accent wash kept for hover — so pointing at the
-  row is what lights it up. The row sets both states itself, so a theme's own
-  saturated hover colour can't turn today into an unreadable slab, and hover no
-  longer sticks after a tap on touch devices.
 
 ## [1.17.0]
 
