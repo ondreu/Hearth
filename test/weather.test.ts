@@ -358,7 +358,14 @@ describe("formatHour", () => {
 	it("prints the location's own wall clock, forced to 24 hours", () => {
 		expect(formatHour("2026-08-08T14:00", false)).toBe("14:00");
 		expect(formatHour("2026-08-08T05:39", false)).toBe("05:39");
+	});
+
+	it("starts the forced 24-hour day at 00, not 24", () => {
+		// `hour12: false` picks the h24 cycle on some ICU builds, which prints
+		// midnight as "24:15" — the hour a night-shift reader is most likely to
+		// be looking at the card. Pinned because it varies by platform.
 		expect(formatHour("2026-08-08T00:15", false)).toBe("00:15");
+		expect(formatHour("2026-08-08T00:00", false)).toBe("00:00");
 	});
 
 	it("forces a 12-hour clock when asked", () => {

@@ -177,6 +177,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **One card can no longer take the board down with it.** A card kind is drawn
+  synchronously while the dashboard builds, and in Arrange mode the drag overlay
+  and resize grips are attached *after* that draw. So an exception inside one
+  card's render didn't just leave that card half-drawn — it left the card
+  unmovable and unresizable, and abandoned every card after it in the loop. A
+  failing render is now contained: that card shows a "couldn't be drawn" state
+  with the real error on the console, and the rest of the board (and its drag
+  handles) come up normally.
+
 - **Embedded bases follow the card opacity in table view.** A `.base` card in
   list or cards view faded with the board like any other card, but the table
   view stayed a solid slab: it fills its container and rows with Obsidian's base

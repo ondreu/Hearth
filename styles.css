@@ -2853,9 +2853,10 @@
 	}
 }
 
-/* The painted sky measures itself, not the body — it is its own container.
- * Scoped through `.hearth-weather-sky` for specificity: the artistic style's
- * own rules are further down the file and would otherwise win the tie. */
+/* Scoped through `.hearth-weather-sky` for specificity: the artistic style's
+ * own rules are further down the file and would otherwise win the tie. The
+ * container being measured is the card body, which for an edge-to-edge style
+ * is the sky's own box. */
 @container (max-height: 170px) {
 	.hearth-weather-sky .hearth-weather-art-content {
 		padding: 8px 10px;
@@ -3159,9 +3160,6 @@
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: hidden;
-	/* A size container, so the reading over it can scale to the card's height
-	 * as well as its width (see .hearth-weather-art-temp). */
-	container-type: size;
 	color: #fff;
 	/* Overcast day is the fallback palette; each sky-* class below replaces it. */
 	background: linear-gradient(170deg, #7b8ca3 0%, #58687d 55%, #3f4c5e 100%);
@@ -3437,14 +3435,16 @@
 
 /* ---- The reading laid over the sky ---- */
 .hearth-weather-art-content {
-	position: relative;
-	/* The padding has to come out of the 100% height, or the last line of the
-	 * reading falls outside the sky's clip box and is simply never seen. */
+	/* Pinned to the sky's box rather than sized as a percentage of it: the
+	 * overlay then fills the card however the sky's own height resolves, and
+	 * the padding can never push the last line of the reading outside the clip
+	 * box (which hides it completely, sky and all still showing). */
+	position: absolute;
+	inset: 0;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
-	height: 100%;
 	padding: 12px 14px;
 	gap: 8px;
 	/* A soft scrim under the text: the sun or a pale cloud can drift straight

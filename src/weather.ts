@@ -421,7 +421,7 @@ export function compassIndex(degrees: number | null): number | null {
  * Print an `"…THH:mm"` wall clock as a time of day.
  *
  * `hour12` chooses the format: undefined follows the reader's locale, true and
- * false force a 12- or 24-hour clock. The string is formatted through the
+ * false force a 12- or 24-hour clock (see the h23 note below). The string is formatted through the
  * locale rather than sliced so a 12-hour reader gets "3 PM", but the *value* is
  * always the location's own wall clock — the placeholder date below is fixed and
  * only exists to give Intl something to format.
@@ -431,8 +431,12 @@ export function formatHour(time: string, hour12: boolean | undefined): string {
 	if (!match) return "";
 	const hour = Number(match[1]);
 	const minute = Number(match[2]);
+	// `hour12: false` is NOT a 24-hour clock: it selects the h24 cycle on some
+	// ICU builds, which prints midnight as "24:15". Ask for the h23 cycle by
+	// name instead — that is the one that starts the day at 00.
 	const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-	if (hour12 !== undefined) opts.hour12 = hour12;
+	if (hour12 === true) opts.hour12 = true;
+	else if (hour12 === false) opts.hourCycle = "h23";
 	// Local midnight of a fixed day + the wall-clock offset: no zone conversion
 	// can move it, because both sides are the runtime's own local time.
 	const stamp = new Date(2000, 0, 1, hour, minute);

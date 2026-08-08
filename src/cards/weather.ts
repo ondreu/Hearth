@@ -420,8 +420,10 @@ function metricGrid(parent: HTMLElement, metrics: Metric[]): void {
 function updatedLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved): void {
 	if (!r.showUpdated) return;
 	const stamp = new Date(snapshot.fetched);
+	// h23 rather than `hour12: false` — see formatHour in ../weather.ts.
 	const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-	if (r.hour12 !== undefined) opts.hour12 = r.hour12;
+	if (r.hour12 === true) opts.hour12 = true;
+	else if (r.hour12 === false) opts.hourCycle = "h23";
 	parent.createDiv({
 		cls: "hearth-weather-updated",
 		text: t().cards.weather.updated(stamp.toLocaleTimeString(undefined, opts)),
@@ -547,11 +549,6 @@ function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 
 // ---- The painted sky (artistic style) -----------------------------------
 
-/** Unique-per-card ids for the SVG masks the moon needs. A document can hold
- * several weather cards, and two `<mask id="…">` with the same id would have
- * the second one silently ignored. */
-let skyIdSeed = 0;
-
 /** Positions for the night sky's stars, in viewBox units. Fixed rather than
  * random so a redraw doesn't reshuffle the constellation under the reader. */
 const STARS: readonly { x: number; y: number; r: number; delay: number }[] = [
@@ -631,19 +628,24 @@ function drawSun(svg: SVGElement): void {
 	group.createSvg("circle", { cls: "hearth-weather-sun-disc", attr: { cx: "158", cy: "28", r: "15" } });
 }
 
-/** The moon: a disc with a second disc masked out of it, which is the cheapest
- * crescent that still has a clean edge at any size. */
+/** The moon: one path holding two overlapping circles, filled `evenodd`, so the
+ * overlap punches the bite out of the disc. A `<mask>` would draw the same
+ * crescent, but it needs a `<defs>` and a document-unique id — state to keep
+ * correct across every card and every redraw, in exchange for nothing visible. */
 function drawMoon(svg: SVGElement): void {
-	const id = `hearth-moon-${++skyIdSeed}`;
-	const defs = svg.createSvg("defs");
-	const mask = defs.createSvg("mask", { attr: { id } });
-	mask.createSvg("circle", { attr: { cx: "158", cy: "28", r: "15", fill: "white" } });
-	mask.createSvg("circle", { attr: { cx: "150", cy: "21", r: "13", fill: "black" } });
 	const group = svg.createSvg("g", { cls: "hearth-weather-moon" });
 	group.createSvg("circle", { cls: "hearth-weather-moon-glow", attr: { cx: "158", cy: "28", r: "26" } });
-	group.createSvg("circle", {
+	group.createSvg("path", {
 		cls: "hearth-weather-moon-disc",
-		attr: { cx: "158", cy: "28", r: "15", mask: `url(#${id})` },
+		attr: {
+			// Two arcs meeting at the points where the disc (centre 158,28 r15)
+			// and the bite (centre 149,19 r17) cross: the major arc of the disc
+			// out and round the lit side, then the bite's minor arc back along
+			// the terminator. Two overlapping circles filled `evenodd` would be
+			// the obvious shortcut and is wrong — that fills their symmetric
+			// difference, so the bite's own outer lobe lights up too.
+			d: "M165.53,15.03 A15,15 0 1 1 145.03,35.53 A17,17 0 0 0 165.53,15.03 Z",
+		},
 	});
 }
 

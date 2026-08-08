@@ -1655,6 +1655,7 @@ export const en = {
 			datacoreFailed: "Datacore couldn't run this card",
 			rssNoSources: "Add a feed in card settings",
 			weatherNoLocation: "Pick a location in card settings",
+			renderFailed: "This card couldn't be drawn — see the console for details",
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",

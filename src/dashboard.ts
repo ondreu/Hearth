@@ -5,6 +5,7 @@ import {
 	setIcon,
 	type TAbstractFile,
 } from "obsidian";
+import { emptyState } from "./cardbodies";
 import { confirmAction } from "./ui";
 import { t } from "./i18n";
 import type { HomeView } from "./view";
@@ -237,7 +238,22 @@ function mountCardBody(
 		child = new Component();
 		parent.addChild(child);
 		body.empty();
-		def.render(view, card, body, child);
+		try {
+			def.render(view, card, body, child);
+		} catch (err) {
+			// A card kind must not be able to take the board down with it. This
+			// call is *synchronous* inside renderDashboard's per-card loop, and
+			// the arrange-mode drag overlay and resize grips are attached after
+			// it — so an exception here doesn't merely leave one card half-drawn,
+			// it leaves that card unmovable and unresizable and abandons every
+			// card after it in the loop. Same intent as cardDefinition()'s inert
+			// fallback for an unknown kind, one level down: contain the failure
+			// to the one card and say so on its face, with the real error on the
+			// console for a bug report.
+			console.error(`Hearth: the ${card.kind} card failed to render`, err);
+			body.empty();
+			emptyState(body, "alert-triangle", t().cards.empty.renderFailed);
+		}
 	};
 	draw();
 
