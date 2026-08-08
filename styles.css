@@ -19,6 +19,51 @@
 	background-position: center;
 }
 
+/* ---- Low power mode ---------------------------------------------------
+ *
+ * The paint-cost half of the setting. Everything with a value behind it — the
+ * background, the card blur, card opacity, the refresh timers — is handled by
+ * the effective* resolvers in types.ts, which report low power values without
+ * touching what the user configured. What is left here is the decoration that
+ * has no setting to override: transitions, animations, shadows and hover
+ * transforms. They are killed wholesale rather than case by case, so a card,
+ * tile or control added later is covered without anyone remembering to.
+ *
+ * Nothing in this block changes layout, so toggling the mode never moves
+ * anything on the board — it only stops it from being animated or filtered. */
+.hearth-view.hearth-low-power *,
+.hearth-view.hearth-low-power *::before,
+.hearth-view.hearth-low-power *::after {
+	transition: none !important;
+	animation: none !important;
+	/* Belt and braces: with every resolved blur at 0 the frost layers are never
+	 * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
+	 * header) are switched off here too — each one is a separate backdrop root
+	 * the compositor has to re-filter on scroll. */
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	box-shadow: none !important;
+}
+
+/* Loading spinners are the one animation worth keeping: frozen mid-spin they
+ * read as a broken card rather than a calm one. */
+.hearth-view.hearth-low-power .is-loading {
+	animation: hearth-rss-spin 0.9s linear infinite !important;
+}
+
+/* Hover lift on cards and tiles: a transform promotes the element to its own
+ * compositor layer on every pointer move across the board. */
+.hearth-view.hearth-low-power .hearth-card:hover,
+.hearth-view.hearth-low-power .hearth-link-tile:hover {
+	transform: none;
+}
+
+/* The card's drop shadow is applied through a variable so merged edges can drop
+ * it; clear the variable as well as the resolved shadow above. */
+.hearth-view.hearth-low-power .hearth-card {
+	--hearth-card-lift: none;
+}
+
 .hearth-scroll {
 	position: relative;
 	z-index: 1;
@@ -854,6 +899,67 @@
 .hearth-setting-note-icon .svg-icon {
 	width: var(--icon-s);
 	height: var(--icon-s);
+}
+
+/* A bulleted "what this does" list inside a note (low power mode's effects). */
+.hearth-setting-note-list {
+	margin: 4px 0 0;
+	padding-left: 1.1em;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+/* The loud variant of the note above, for the one hint a user really should
+ * not skim past: the plugin-view card's performance warning. Same layout, but
+ * it reads as a callout — tinted panel, warning-coloured rule down the side,
+ * and a titled first line instead of muted grey body text. */
+.hearth-setting-warning {
+	margin-top: 8px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	border-left: 3px solid var(--color-orange, #e8a33d);
+	background: color-mix(
+		in srgb,
+		var(--color-orange, #e8a33d) 12%,
+		var(--background-secondary)
+	);
+}
+
+.hearth-setting-warning .setting-item-name {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--color-orange, #e8a33d);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-setting-warning .setting-item-name .hearth-setting-note-icon {
+	margin-top: 0;
+	color: var(--color-orange, #e8a33d);
+}
+
+/* Override the muted grey the plain note variant sets: a warning that looks
+ * like every other hint isn't a warning. */
+.hearth-setting-warning .setting-item-description {
+	display: block;
+	color: var(--text-normal);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-setting-warning-extra {
+	margin-top: 6px;
+	color: var(--text-muted);
+}
+
+/* Settings whose value low power mode is currently overriding. Still live and
+ * editable — they simply aren't what's on screen right now — so this dims them
+ * rather than disabling them. */
+.hearth-settings-overridden .setting-item:not(.hearth-setting-note) {
+	opacity: 0.55;
 }
 
 /* Obsidian renders a canvas/Excalidraw embed as:

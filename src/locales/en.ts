@@ -255,6 +255,9 @@ export const en = {
 		},
 		/** Sub-section headings used to group settings within a tab. */
 		sections: {
+			lowPower: "Low power mode",
+			lowPowerDesc:
+				"Trade the visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
 			homeDesc: "Title, logo and overall content width.",
 			searchBar: "Search bar",
@@ -339,6 +342,31 @@ export const en = {
 			newNoteButtonModeSearchOnline: "Search online",
 			contentWidth: "Content width",
 			contentWidthDesc: "Maximum width of the home content, in pixels.",
+		},
+		lowPower: {
+			enable: "Low power mode",
+			enableDesc:
+				"Replace the background with a flat colour and switch off the " +
+				"frosted glass, card transparency, animations and every timed " +
+				"background refresh. Nothing below is overwritten — your settings " +
+				"come back exactly as they were when you turn this off.",
+			color: "Low power background",
+			colorDesc:
+				"The flat colour shown behind the home view while low power mode is " +
+				"on. Any CSS colour, e.g. #4a4459.",
+			/** Bullet list of what the mode currently changes, shown under the toggle. */
+			effects: "While it is on:",
+			effectBackground: "the background is a flat colour — no image, GIF, opacity layer or blur",
+			effectFrost: "cards are opaque, with no frosted-glass blur behind them",
+			effectMotion: "transitions, hover lifts, shadows and animations are off",
+			effectRefresh:
+				"web, RSS, calendar-subscription and Jira cards stop refreshing on a timer (manual refresh still works)",
+			effectLiveRefresh: "the dashboard stops rebuilding itself on vault changes",
+			effectClock: "clock cards drop seconds and the sweeping second hand",
+			/** Shown in the sections whose settings the mode currently overrides. */
+			overridden:
+				"Low power mode is on, so these are overridden right now. They are " +
+				"kept as they are and take effect again when you turn it off.",
 		},
 		background: {
 			heading: "Background",
@@ -1248,9 +1276,17 @@ export const en = {
 			hideHeaderDesc:
 				"Hide the hosted view's own header — its breadcrumbs, back/forward " +
 				"arrows and menu. Handy when the card shows a single file.",
+			perfLabel: "Performance",
 			perfNote:
-				"Hosting a live plugin view is heavier than a normal card and may " +
-				"affect performance — use a few at most.",
+				"This is by far the heaviest card Hearth has. It runs another " +
+				"plugin's full view live inside the dashboard, so it keeps that " +
+				"plugin's own timers, listeners and rendering going for as long as " +
+				"the board is open — every one of these cards costs again. Use one " +
+				"or two at most, and expect a slower dashboard on modest hardware.",
+			perfNoteLowPower:
+				"Low power mode is on. It cannot slow this card down — a hosted view " +
+				"manages itself — so this is the one card worth removing if the " +
+				"dashboard still feels heavy.",
 			note: "Beta",
 			noteDesc:
 				"Hosts another plugin's view inside the card. Some views expect a " +

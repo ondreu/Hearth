@@ -32,6 +32,7 @@ import {
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveRowHeight,
+	lowPowerActive,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
@@ -242,7 +243,10 @@ function mountCardBody(
 
 	const live = def.liveness;
 	if (live.mode === "poll") {
-		const every = card.refreshSec && card.refreshSec > 0 ? card.refreshSec : 0;
+		// Low power mode suppresses the timer (not the first draw): a web card
+		// keeps showing what it loaded, it just stops reloading on a clock.
+		const configured = card.refreshSec && card.refreshSec > 0 ? card.refreshSec : 0;
+		const every = lowPowerActive(view.plugin.settings) ? 0 : configured;
 		// registerInterval ties the timer to the view's render lifecycle, so it
 		// is cleared on the next full rebuild (and on view close).
 		if (every) parent.registerInterval(window.setInterval(draw, every * 1000));

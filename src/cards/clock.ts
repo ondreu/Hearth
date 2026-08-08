@@ -1,7 +1,7 @@
 import { Component, Setting } from "obsidian";
 import { moment } from "../cardbodies";
 import { t } from "../i18n";
-import { type ClockConfig, type DashboardCard } from "../types";
+import { type ClockConfig, type DashboardCard, lowPowerActive } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -72,8 +72,14 @@ function svgEl(
 }
 
 
-/** Draw an analogue clock face and return a tick() to rotate its hands. */
-function renderAnalogClock(wrap: HTMLElement, cfg: ClockConfig): (now: Date) => void {
+/** Draw an analogue clock face and return a tick() to rotate its hands.
+ * `lowPower` drops the second hand and snaps the minute hand to whole minutes,
+ * so the face only touches the DOM once a minute instead of once a second. */
+function renderAnalogClock(
+	wrap: HTMLElement,
+	cfg: ClockConfig,
+	lowPower: boolean,
+): (now: Date) => void {
 	const svg = svgEl(wrap, "svg", { viewBox: "0 0 100 100" }, "hearth-analog");
 	svgEl(svg, "circle", { cx: "50", cy: "50", r: "48" }, "hearth-analog-face");
 	for (let i = 0; i < 12; i++) {
@@ -96,19 +102,30 @@ function renderAnalogClock(wrap: HTMLElement, cfg: ClockConfig): (now: Date) => 
 		svgEl(svg, "line", { x1: "50", y1: "50", x2: "50", y2: String(50 - length) }, cls);
 	const hourHand = hand("hearth-analog-hour", 26);
 	const minHand = hand("hearth-analog-min", 38);
-	const secHand = cfg.showSeconds ? hand("hearth-analog-sec", 42) : null;
+	const secHand = cfg.showSeconds && !lowPower ? hand("hearth-analog-sec", 42) : null;
 	svgEl(svg, "circle", { cx: "50", cy: "50", r: "2.5" }, "hearth-analog-pin");
 
 	const rotate = (el: SVGElement, deg: number) =>
 		el.setAttribute("transform", `rotate(${deg} 50 50)`);
 
+	// Only write attributes that actually changed: an SVG transform write costs
+	// a repaint of the face even when the angle is identical, and outside low
+	// power the hour hand's angle only moves once a minute anyway.
+	let lastHour = NaN;
+	let lastMin = NaN;
+	let lastSec = NaN;
+
 	return (now: Date) => {
 		const s = now.getSeconds();
 		const m = now.getMinutes();
 		const h = now.getHours() % 12;
-		rotate(hourHand, (h + m / 60) * 30);
-		rotate(minHand, (m + s / 60) * 6);
-		if (secHand) rotate(secHand, s * 6);
+		const hourDeg = (h + m / 60) * 30;
+		// Low power: the minute hand steps rather than sweeping, so it is one
+		// write per minute instead of sixty.
+		const minDeg = lowPower ? m * 6 : (m + s / 60) * 6;
+		if (hourDeg !== lastHour) rotate(hourHand, (lastHour = hourDeg));
+		if (minDeg !== lastMin) rotate(minHand, (lastMin = minDeg));
+		if (secHand && s !== lastSec) rotate(secHand, (lastSec = s) * 6);
 	};
 }
 
@@ -141,21 +158,35 @@ export function renderClock(
 		greetingEl.setText(pickGreeting(hour, cfg.playfulGreetings ?? false));
 	};
 
-	const tickAnalog = analog ? renderAnalogClock(wrap, cfg) : null;
+	// Low power: no seconds anywhere on the face. The interval below still fires
+	// every second — it has to, or the minute would land up to a second late —
+	// but with seconds gone every tick becomes a pure comparison that writes
+	// nothing to the DOM 59 times out of 60.
+	const lowPower = lowPowerActive(view.plugin.settings);
+
+	const tickAnalog = analog ? renderAnalogClock(wrap, cfg, lowPower) : null;
 	const timeEl = analog ? null : wrap.createDiv("hearth-clock-time");
 	const dateEl = dateMode === "none" ? null : wrap.createDiv("hearth-clock-date");
 
 	const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 	const hour12 = resolveHour12(cfg);
 	if (hour12 !== undefined) timeOpts.hour12 = hour12;
-	if (cfg.showSeconds) timeOpts.second = "2-digit";
+	if (cfg.showSeconds && !lowPower) timeOpts.second = "2-digit";
 
+	let lastTime = "";
+	let lastDate = "";
 	const update = () => {
 		const now = new Date();
 		refreshGreeting(now.getHours());
 		if (tickAnalog) tickAnalog(now);
-		if (timeEl) timeEl.setText(now.toLocaleTimeString(undefined, timeOpts));
-		if (dateEl) dateEl.setText(formatClockDate(now, dateMode, cfg.dateFormat));
+		if (timeEl) {
+			const text = now.toLocaleTimeString(undefined, timeOpts);
+			if (text !== lastTime) timeEl.setText((lastTime = text));
+		}
+		if (dateEl) {
+			const text = formatClockDate(now, dateMode, cfg.dateFormat);
+			if (text !== lastDate) dateEl.setText((lastDate = text));
+		}
 	};
 
 	update();

@@ -3,7 +3,7 @@ import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";
 import { FilePickerModal } from "../pickers";
-import { type DashboardCard } from "../types";
+import { type DashboardCard, type HomeSettings, lowPowerActive } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -48,13 +48,31 @@ export function renderLeaf(
 }
 
 
-/** The performance note shown under the type dropdown for the leaf card. */
-export function leafTypeNote(containerEl: HTMLElement): void {
-	const note = new Setting(containerEl).setDesc(t().editors.leaf.perfNote);
+/** The performance warning shown under the type dropdown for the leaf card.
+ *
+ * Deliberately louder than the other editor notes (`hearth-setting-note`): this
+ * is the one card that can make a dashboard genuinely slow, and the quiet
+ * muted-grey hint it used to be was easy to scroll straight past. It renders as
+ * a titled callout with a warning tint and an alert icon, and gains a second
+ * paragraph while low power mode is on — that mode turns Hearth's own effects
+ * off but cannot touch a view another plugin is running. */
+export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): void {
+	const strings = t().editors.leaf;
+	const note = new Setting(containerEl).setName(strings.perfLabel).setDesc(strings.perfNote);
 	note.settingEl.addClass("hearth-setting-note");
+	note.settingEl.addClass("hearth-setting-warning");
 	const icon = createSpan("hearth-setting-note-icon");
-	setIcon(icon, "gauge");
-	note.descEl.prepend(icon);
+	// "alert-triangle" rather than lucide's newer "triangle-alert" alias: it is
+	// the name already proven to resolve on the Obsidian versions this plugin
+	// supports (see the settings-pane error box).
+	setIcon(icon, "alert-triangle");
+	note.nameEl.prepend(icon);
+	if (lowPowerActive(settings)) {
+		note.descEl.createDiv({
+			cls: "hearth-setting-warning-extra",
+			text: strings.perfNoteLowPower,
+		});
+	}
 }
 
 
@@ -166,6 +184,6 @@ export const leafCard: CardDefinition<"leaf"> = {
 	],
 	render: (view, card, body, component) => renderLeaf(view, card, body, component),
 	renderEditor: (container, ctx) => leafEditor(ctx, container),
-	editorTypeNote: (container) => leafTypeNote(container),
+	editorTypeNote: (container, settings) => leafTypeNote(container, settings),
 	liveness: { mode: "static" },
 };

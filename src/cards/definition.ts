@@ -1,6 +1,6 @@
 import type { App, Component } from "obsidian";
 import type { HomeView } from "../view";
-import type { CardKind, DashboardCard } from "../types";
+import type { CardKind, DashboardCard, HomeSettings } from "../types";
 import type { VaultEvent } from "../cardevents";
 import type { CardSettingsOptions } from "../editors";
 
@@ -99,6 +99,8 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 		head: HTMLElement,
 		redraw: () => void,
 	): void;
-	/** A note shown under the type dropdown in the editor (leaf's perf warning). */
-	editorTypeNote?(container: HTMLElement): void;
+	/** A note shown under the type dropdown in the editor (leaf's perf warning).
+	 * Gets the global settings so a note can react to them — the leaf card's
+	 * warning says something extra while low power mode is on. */
+	editorTypeNote?(container: HTMLElement, settings: HomeSettings): void;
 }

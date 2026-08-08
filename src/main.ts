@@ -1,6 +1,6 @@
 import { addIcon, apiVersion, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
-import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings } from "./types";
+import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, lowPowerActive, migrateSettings } from "./types";
 import { HomeSettingTab } from "./settings";
 import {
 	HEARTH_ICON_ID,
@@ -394,6 +394,11 @@ export default class HearthPlugin extends Plugin {
 	 * setting is on; never rebuilds a board mid-arrange. */
 	private runLiveRefresh() {
 		if (!this.settings.liveRefresh) return;
+		// Low power mode suppresses it without clearing the setting: a full board
+		// rebuild on every burst of vault writes is the most expensive thing
+		// Hearth does off its own render path. Views still refresh when their tab
+		// is focused again, so nothing goes permanently stale.
+		if (lowPowerActive(this.settings)) return;
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
 			if (view instanceof HomeView && !view.arrangeMode) view.render();

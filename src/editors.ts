@@ -130,7 +130,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 		// A note under the type dropdown, when the kind wants one (e.g. the leaf
 		// card's "this runs a live view, it costs more" performance hint).
-		cardDefinition(card).editorTypeNote?.(containerEl);
+		cardDefinition(card).editorTypeNote?.(containerEl, this.opts.settings);
 
 		new Setting(containerEl)
 			.setName(t().editors.cardTitle)
