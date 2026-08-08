@@ -4136,6 +4136,32 @@
 	resize: vertical;
 }
 
+/* Datacore query/script editor: same monospaced code box as Dataview's. */
+.hearth-datacore-input {
+	width: 100%;
+	font-family: var(--font-monospace);
+	font-size: 0.82rem;
+	line-height: 1.5;
+	resize: vertical;
+}
+
+/* Datacore card body: Datacore's own rendered views (tables, lists, cards).
+   Datacore sizes its tables to the container, so this only needs to scroll a
+   wider-than-the-card result instead of forcing the whole board wider. */
+.hearth-datacore {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+/* Keep a long-text column (note bodies, paths) from ballooning: wrap past a
+   sensible width instead of pushing every other column off-screen. */
+.hearth-datacore th,
+.hearth-datacore td {
+	max-width: 32ch;
+	overflow-wrap: anywhere;
+}
+
 /* Dataview card body: Dataview's own rendered output (tables, lists, task
    lists). A table wider than the card scrolls horizontally here instead of
    forcing the whole board wider. */

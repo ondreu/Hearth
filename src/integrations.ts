@@ -20,6 +20,7 @@
  * carries no rendering concerns — {@link HomeSettingTab} renders it.
  */
 import type { App } from "obsidian";
+import { DATACORE_PLUGIN_ID } from "./datacore";
 import { DATAVIEW_PLUGIN_ID } from "./dataview";
 import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "./fileicons";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
@@ -70,6 +71,7 @@ export type IntegrationId =
 	| "omnisearch"
 	| "tasknotes"
 	| "dataview"
+	| "datacore"
 	| "iconic"
 	| "iconize"
 	| "excalidraw"
@@ -123,6 +125,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "dataview",
 		group: "plugin",
 		pluginId: DATAVIEW_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "datacore",
+		group: "plugin",
+		pluginId: DATACORE_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 	{

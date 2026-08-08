@@ -143,47 +143,71 @@ function stripFrontmatter(text: string): string {
  * (like a dashboard embed) do nothing on their own. A delegated click listener
  * on the stable host handles internal (wiki) links, external URLs and tags —
  * and keeps working as the content node is re-rendered underneath it.
+ *
+ * `capture` moves the listener to the capture phase and stops the event once a
+ * link is handled. Needed when the content's own renderer puts a click handler
+ * on the anchor itself: Datacore's `dc.Link` opens the note in the active tab,
+ * which would otherwise run *before* this one and open the note twice, once
+ * ignoring the user's "open notes in" setting. Left off by default so
+ * Obsidian-rendered content (which has no such handler) behaves exactly as it
+ * always has.
  */
-export function wireMarkdownLinks(view: HomeView, host: HTMLElement, sourcePath: string): void {
-	host.addEventListener("click", (evt) => {
-		const anchor = (evt.target as HTMLElement | null)?.closest("a");
-		if (!(anchor instanceof HTMLAnchorElement) || !host.contains(anchor)) return;
+export function wireMarkdownLinks(
+	view: HomeView,
+	host: HTMLElement,
+	sourcePath: string,
+	opts: { capture?: boolean } = {},
+): void {
+	host.addEventListener(
+		"click",
+		(evt) => {
+			const anchor = (evt.target as HTMLElement | null)?.closest("a");
+			if (!(anchor instanceof HTMLAnchorElement) || !host.contains(anchor)) return;
 
-		if (anchor.classList.contains("external-link")) {
-			const href = anchor.getAttribute("href");
-			if (href) {
+			/** Take the click for Hearth: never the browser's default, and — in
+			 * capture mode — never the anchor's own handler either. */
+			const claim = () => {
 				evt.preventDefault();
-				window.open(href, "_blank");
-			}
-			return;
-		}
+				if (opts.capture) evt.stopPropagation();
+			};
 
-		if (anchor.classList.contains("tag")) {
-			const tag = anchor.getAttribute("href");
-			if (tag) {
-				evt.preventDefault();
-				const search = view.app.internalPlugins.getPluginById("global-search");
-				const instance = search?.instance as
-					| { openGlobalSearch?: (query: string) => void }
-					| undefined;
-				instance?.openGlobalSearch?.(`tag:${tag}`);
+			if (anchor.classList.contains("external-link")) {
+				const href = anchor.getAttribute("href");
+				if (href) {
+					claim();
+					window.open(href, "_blank");
+				}
+				return;
 			}
-			return;
-		}
 
-		// Not gated on the `internal-link` class: an embedded Bases view (and
-		// other plugin-rendered content) draws note links without it, and those
-		// clicks would otherwise fall through to Obsidian's own handler, which
-		// always takes over the tab the click came from — the Hearth tab (#106).
-		const linktext = internalLinkText(
-			anchor.getAttribute("data-href"),
-			anchor.getAttribute("href"),
-		);
-		if (linktext) {
-			evt.preventDefault();
-			void openLink(view, linktext, sourcePath, "link", evt);
-		}
-	});
+			if (anchor.classList.contains("tag")) {
+				const tag = anchor.getAttribute("href");
+				if (tag) {
+					claim();
+					const search = view.app.internalPlugins.getPluginById("global-search");
+					const instance = search?.instance as
+						| { openGlobalSearch?: (query: string) => void }
+						| undefined;
+					instance?.openGlobalSearch?.(`tag:${tag}`);
+				}
+				return;
+			}
+
+			// Not gated on the `internal-link` class: an embedded Bases view (and
+			// other plugin-rendered content) draws note links without it, and those
+			// clicks would otherwise fall through to Obsidian's own handler, which
+			// always takes over the tab the click came from — the Hearth tab (#106).
+			const linktext = internalLinkText(
+				anchor.getAttribute("data-href"),
+				anchor.getAttribute("href"),
+			);
+			if (linktext) {
+				claim();
+				void openLink(view, linktext, sourcePath, "link", evt);
+			}
+		},
+		{ capture: opts.capture === true },
+	);
 }
 
 

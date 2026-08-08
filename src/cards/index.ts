@@ -19,6 +19,7 @@ import { searchCard } from "./search";
 import { heatmapCard } from "./heatmap";
 import { calculatorCard } from "./calculator";
 import { dataviewCard } from "./dataview";
+import { datacoreCard } from "./datacore";
 import { rssCard } from "./rss";
 import { jiraCard } from "./jira";
 import { leafCard } from "./leaf";
@@ -55,6 +56,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	heatmap: heatmapCard,
 	calculator: calculatorCard,
 	dataview: dataviewCard,
+	datacore: datacoreCard,
 	rss: rssCard,
 	jira: jiraCard,
 	leaf: leafCard,
@@ -113,6 +115,7 @@ export const TEMPLATE_MENU_ORDER: string[] = [
 	"text",
 	"calculator",
 	"dataview",
+	"datacore",
 	"rss",
 	"jira",
 	"leaf",

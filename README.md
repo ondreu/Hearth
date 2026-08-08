@@ -79,6 +79,10 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
 - **Dataview** *(requires [Dataview](https://github.com/blacksmithgu/obsidian-dataview))*
   — run a DQL or DataviewJS query and render it through Dataview's own,
   live-updating renderers, with resizable table columns.
+- **Datacore** *(requires [Datacore](https://github.com/blacksmithgu/datacore))*
+  — the same for Dataview's successor: write a Datacore query and get a live
+  list of what it matches, or a full JS/JSX/TS/TSX script rendered by
+  Datacore's own views.
 
 **Tasks**
 
