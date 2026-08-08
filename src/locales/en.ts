@@ -878,6 +878,7 @@ export const en = {
 			weather: "Weather",
 			git: "Git",
 			leaf: "Plugin view (beta)",
+			pet: "Pet",
 		},
 		linkTypes: {
 			note: "Note",
@@ -1680,6 +1681,61 @@ export const en = {
 				"Hosts another plugin's view inside the card. Some views expect a " +
 				"sidebar and may render or size oddly here.",
 		},
+		pet: {
+			species: "Animal",
+			name: "Name",
+			nameDesc: "What to call it. Leave empty to use the animal's name.",
+			colors: "Colors",
+			colorsDesc:
+				"Body and accent. The outline, shading and belly are derived from " +
+				"the body color.",
+			colorsReset: "Back to this animal's colors",
+			size: "Size",
+			sizeSmall: "Small",
+			sizeMedium: "Medium",
+			sizeLarge: "Large",
+			metric: "Feed it with",
+			metricDesc: "Which vault activity the pet's mood follows.",
+			metricModified: "Notes edited",
+			metricCreated: "Notes created",
+			moods: "Moods",
+			moodsDesc:
+				"Where each mood starts. Nothing here can make the pet unwell or " +
+				"lose it — a quiet vault only sends it to sleep, and any writing " +
+				"wakes it straight back up.",
+			moodsReset: "Back to the default moods",
+			excitedAt: "Bouncing with joy at",
+			excitedAtDesc: "Notes touched today, or more.",
+			happyAt: "Happy at",
+			happyAtDesc: "Notes touched today — your good day.",
+			contentAt: "Content at",
+			contentAtDesc: "Notes touched today. Below this the pet gets bored.",
+			sleepyAfter: "Falls asleep after",
+			sleepyAfterDesc:
+				"Minutes with nothing touched anywhere in the vault. The pet sleeps " +
+				"whatever its mood, however good the day was, and any activity wakes " +
+				"it again where the day left it.",
+			pettedFor: "A petting lasts",
+			pettedForDesc: "Minutes of guaranteed happiness after you click the pet.",
+			nightSleep: "At night",
+			nightSleepDesc:
+				"What the clock is allowed to do. A thin small hour is the hour, not " +
+				"neglect — a good day still shows as a good day, and petting wakes " +
+				"the pet whatever you set here.",
+			nightOff: "Nothing — only the vault matters",
+			nightQuiet: "A bored or content pet sleeps instead",
+			nightAlways: "Always asleep at night",
+			nightWindow: "Night runs from",
+			nightWindowDesc: "Your local time. The window may cross midnight.",
+			eyesFollow: "Eyes follow the pointer",
+			eyesFollowDesc: "A sleeping pet keeps its eyes shut whatever you set here.",
+			eyesOff: "Never",
+			eyesCard: "On its own card",
+			eyesBoard: "Anywhere on the dashboard",
+			showName: "Show name",
+			showMood: "Show mood",
+			showActivity: "Show today's activity",
+		},
 		colors: {
 			heading: "Colors",
 			headingDesc: "Accent and background tint for this card.",
@@ -1753,6 +1809,28 @@ export const en = {
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
+		},
+		pet: {
+			species: {
+				cat: "Cat",
+				dog: "Dog",
+				bird: "Bird",
+				fox: "Fox",
+				frog: "Frog",
+				blob: "Blob",
+			},
+			moodExcited: "Bouncing with joy",
+			moodHappy: "Happy",
+			moodContent: "Content",
+			moodBored: "A little bored",
+			moodSleepy: "Fast asleep",
+			moodNight: "Asleep for the night",
+			petHint: "Click to pet",
+			todayCount: (count: number, metric: "modified" | "created") =>
+				metric === "created"
+					? `${count} new note${count === 1 ? "" : "s"} today`
+					: `${count} note${count === 1 ? "" : "s"} today`,
+			streak: (days: number) => `${days}-day streak`,
 		},
 		embed: {
 			openFile: "Open this file",
@@ -2162,6 +2240,7 @@ export const en = {
 		weather: "Weather",
 		git: "Git",
 		leaf: "Plugin view (beta)",
+		pet: "Pet",
 	},
 
 	// ---- File-type filter labels ---------------------------------------

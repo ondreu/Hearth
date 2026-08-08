@@ -86,6 +86,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: { kind: "git", title: "Git", git: {}, w: 4, h: 4 },
 			},
 			{ id: "leaf", icon: "layout-panel-left", gated: true, build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 } },
+			{ id: "pet", icon: "cat", gated: false, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
 		]);
 	});
 
@@ -144,6 +145,7 @@ function maximalCard(): DashboardCard {
 		} as never,
 		weather: { place: { name: "Prague", lat: 50.08, lon: 14.44 } },
 		git: { sections: ["status", "actions"], actions: ["commit", "push"] },
+		pet: { species: "fox", name: "Vulpes" },
 	};
 }
 
@@ -180,6 +182,7 @@ describe("cloneCard deep-clone independence", () => {
 		copy.weather!.place!.name = "Brno";
 		copy.git!.sections!.push("log");
 		copy.git!.actions!.push("pull");
+		copy.pet!.name = "Renard";
 
 		// ...and confirm none of it reached the original.
 		const pristine = maximalCard();
@@ -199,6 +202,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.jira).toEqual(pristine.jira);
 		expect(orig.weather).toEqual(pristine.weather);
 		expect(orig.git).toEqual(pristine.git);
+		expect(orig.pet).toEqual(pristine.pet);
 	});
 });
 
@@ -235,6 +239,7 @@ describe("liveness classification", () => {
 			weather: "static",
 			git: "static",
 			leaf: "static",
+			pet: "vault",
 		});
 	});
 });

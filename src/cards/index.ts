@@ -25,6 +25,7 @@ import { jiraCard } from "./jira";
 import { weatherCard } from "./weather";
 import { gitCard } from "./git";
 import { leafCard } from "./leaf";
+import { petCard } from "./pet";
 
 export type {
 	CardDefinition,
@@ -64,6 +65,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	weather: weatherCard,
 	git: gitCard,
 	leaf: leafCard,
+	pet: petCard,
 };
 
 /** Every registered kind, in registry order. Used for layout-import validation
@@ -125,6 +127,7 @@ export const TEMPLATE_MENU_ORDER: string[] = [
 	"weather",
 	"git",
 	"leaf",
+	"pet",
 ];
 
 const TEMPLATES_BY_ID = new Map<string, CardTemplateDef>();

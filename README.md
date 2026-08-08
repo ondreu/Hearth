@@ -152,6 +152,13 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
 - **Calculator** — evaluates as you type: math, unit conversions, live currency
   ([Frankfurter](https://www.frankfurter.app/), ECB rates) and plain-language
   queries (`20% of 150`). Optional on-screen keypad.
+- **Pet** — a pixel-art companion (cat, dog, bird, fox, frog or blob) whose
+  mood follows your vault: content, happy or bouncing with joy as you write,
+  slouched and bored and then curled up asleep on a quiet day. Each mood is
+  drawn animation — blinking, head-wagging, hopping, breathing — and its eyes
+  follow your pointer. Set a night window and a quiet small hour reads as the
+  hour, not as neglect. No hunger, no age, nothing to lose — and clicking it
+  earns hearts. Name it, color it, and set where every mood begins.
 
 Everything is **live**: embeds and editable notes follow vault events without
 losing your cursor, data cards redraw on vault and metadata changes, and web

@@ -7268,3 +7268,402 @@ body.hearth-dv-resizing {
 	font-size: 0.78rem;
 	cursor: pointer;
 }
+
+/* ========================================================================
+ * Pet card
+ *
+ * A 16×16 pixel sprite drawn as an SVG of run-length rects, recolored from
+ * two CSS variables the card sets from its config. Everything that moves is
+ * a CSS animation on the stage — the card itself repaints only on vault
+ * events and a five-minute tick — and every one of them is dropped for a
+ * reader who asked for less motion, or by low power mode (`is-still`).
+ * ===================================================================== */
+
+.hearth-pet {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	height: 100%;
+	min-height: 0;
+	padding: 4px 8px 8px;
+	box-sizing: border-box;
+	text-align: center;
+	--hearth-pet-eye: #23242b;
+	--hearth-pet-shine: #ffffff;
+	--hearth-pet-stage: 92px;
+}
+
+.hearth-pet.is-sm {
+	--hearth-pet-stage: 64px;
+}
+
+.hearth-pet.is-lg {
+	--hearth-pet-stage: 128px;
+}
+
+.hearth-pet-stage {
+	position: relative;
+	flex: 0 1 auto;
+	min-height: 0;
+	width: var(--hearth-pet-stage);
+	max-width: 100%;
+	aspect-ratio: 1;
+	cursor: pointer;
+	/* The sprite is pixel art: keep the pixels square and crisp at any scale. */
+	image-rendering: pixelated;
+	border-radius: 6px;
+}
+
+.hearth-pet-stage:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 3px;
+}
+
+.hearth-pet-sprite {
+	width: 100%;
+	height: 100%;
+	display: block;
+	overflow: visible;
+	/* One transform origin for every mood animation: the pet's feet, so it
+	 * squashes and hops off the ground rather than about its middle. */
+	transform-origin: 50% 100%;
+}
+
+.hearth-pet-name {
+	margin-top: 4px;
+	font-weight: 600;
+	font-size: 0.9rem;
+	color: var(--text-normal);
+	line-height: 1.2;
+}
+
+.hearth-pet-mood {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+	line-height: 1.2;
+}
+
+.hearth-pet-activity {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+	line-height: 1.2;
+}
+
+/* ---- Moods ----
+ *
+ * Two layers of motion, and they compose:
+ *
+ *  1. FRAMES. The sprite carries every frame of its mood as a stacked <g>,
+ *     and each mood's schedule below fades all but one out. That is drawn
+ *     animation — a blink, a head wagging, a body squashing on the landing,
+ *     a chest rising in its sleep — which is what actually tells the moods
+ *     apart at a glance. Nothing is redrawn to animate: the card paints once
+ *     per vault event and the compositor does the rest.
+ *  2. MOTION. A transform on the whole sprite, anchored at the feet, for what
+ *     a frame swap can't carry: the arc of a hop, a slow sway, a slump.
+ *
+ * The quiet moods are also drained of color and pushed down the card, so a
+ * bored or sleeping pet reads as one across the room, not only by its face.
+ */
+
+.hearth-pet-frame {
+	opacity: 0;
+}
+
+.hearth-pet-frame[data-f="0"] {
+	opacity: 1;
+}
+
+/* An even three-way cycle, shared by the moods that want one. Each frame runs
+ * the same square wave, offset by a third of the cycle with a negative delay. */
+@keyframes hearth-pet-cycle3 {
+	0%, 33.32% { opacity: 1; }
+	33.33%, 100% { opacity: 0; }
+}
+
+.hearth-pet-stage.is-excited .hearth-pet-frame,
+.hearth-pet-stage.is-happy .hearth-pet-frame,
+.hearth-pet-stage.is-sleepy .hearth-pet-frame {
+	animation: hearth-pet-cycle3 var(--hearth-pet-cycle) steps(1, end) infinite;
+}
+
+.hearth-pet-stage.is-excited .hearth-pet-frame[data-f="1"],
+.hearth-pet-stage.is-happy .hearth-pet-frame[data-f="1"],
+.hearth-pet-stage.is-sleepy .hearth-pet-frame[data-f="1"] {
+	animation-delay: calc(var(--hearth-pet-cycle) / -3);
+}
+
+.hearth-pet-stage.is-excited .hearth-pet-frame[data-f="2"],
+.hearth-pet-stage.is-happy .hearth-pet-frame[data-f="2"],
+.hearth-pet-stage.is-sleepy .hearth-pet-frame[data-f="2"] {
+	animation-delay: calc(var(--hearth-pet-cycle) / -1.5);
+}
+
+/* ---- Excited: a fast three-frame hop ---- */
+
+.hearth-pet-stage.is-excited {
+	--hearth-pet-cycle: 0.66s;
+}
+
+.hearth-pet-stage.is-excited .hearth-pet-sprite {
+	animation: hearth-pet-hop 0.66s cubic-bezier(0.3, 0, 0.4, 1) infinite;
+}
+
+@keyframes hearth-pet-hop {
+	0% { transform: translateY(0) rotate(0deg); }
+	18% { transform: translateY(2%) rotate(-3deg); }
+	42% { transform: translateY(-16%) rotate(3deg); }
+	62% { transform: translateY(-19%) rotate(-2deg); }
+	85% { transform: translateY(1%) rotate(1deg); }
+	100% { transform: translateY(0) rotate(0deg); }
+}
+
+/* ---- Happy: a head wag over a bob ---- */
+
+.hearth-pet-stage.is-happy {
+	--hearth-pet-cycle: 1.1s;
+}
+
+.hearth-pet-stage.is-happy .hearth-pet-sprite {
+	animation: hearth-pet-bob 1.1s ease-in-out infinite;
+}
+
+@keyframes hearth-pet-bob {
+	0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+	25% { transform: translateY(-6%) rotate(0deg); }
+	50% { transform: translateY(0) rotate(1.5deg); }
+	75% { transform: translateY(-6%) rotate(0deg); }
+}
+
+/* ---- Content: mostly still, with a blink and a glance ---- */
+
+.hearth-pet-stage.is-content .hearth-pet-sprite {
+	animation: hearth-pet-breathe 3.4s ease-in-out infinite;
+}
+
+/* Hand-scheduled rather than an even cycle: a blink that lasted a third of
+ * the time would be a pet falling asleep on and off. */
+.hearth-pet-stage.is-content .hearth-pet-frame[data-f="0"] {
+	animation: hearth-pet-content-0 5.4s steps(1, end) infinite;
+}
+
+.hearth-pet-stage.is-content .hearth-pet-frame[data-f="1"] {
+	animation: hearth-pet-content-1 5.4s steps(1, end) infinite;
+}
+
+.hearth-pet-stage.is-content .hearth-pet-frame[data-f="2"] {
+	animation: hearth-pet-content-2 5.4s steps(1, end) infinite;
+}
+
+@keyframes hearth-pet-content-0 {
+	0%, 57% { opacity: 1; }
+	58%, 100% { opacity: 0; }
+}
+
+@keyframes hearth-pet-content-1 {
+	0%, 57% { opacity: 0; }
+	58%, 62% { opacity: 1; }
+	63%, 100% { opacity: 0; }
+}
+
+@keyframes hearth-pet-content-2 {
+	0%, 62% { opacity: 0; }
+	63%, 100% { opacity: 1; }
+}
+
+@keyframes hearth-pet-breathe {
+	0%, 100% { transform: scaleY(1); }
+	50% { transform: scaleY(1.04); }
+}
+
+/* ---- Bored: slouched, draining color, with a long slow blink ---- */
+
+.hearth-pet-stage.is-bored .hearth-pet-sprite {
+	animation: hearth-pet-slouch 4.6s ease-in-out infinite;
+	filter: saturate(0.72);
+}
+
+.hearth-pet-stage.is-bored .hearth-pet-frame[data-f="0"] {
+	animation: hearth-pet-bored-0 7.2s steps(1, end) infinite;
+}
+
+.hearth-pet-stage.is-bored .hearth-pet-frame[data-f="1"] {
+	animation: hearth-pet-bored-1 7.2s steps(1, end) infinite;
+}
+
+.hearth-pet-stage.is-bored .hearth-pet-frame[data-f="2"] {
+	animation: hearth-pet-bored-2 7.2s steps(1, end) infinite;
+}
+
+@keyframes hearth-pet-bored-0 {
+	0%, 44% { opacity: 1; }
+	45%, 100% { opacity: 0; }
+}
+
+/* The heavy blink: a full second of shut eyes, the kind boredom actually
+ * looks like. */
+@keyframes hearth-pet-bored-1 {
+	0%, 44% { opacity: 0; }
+	45%, 58% { opacity: 1; }
+	59%, 100% { opacity: 0; }
+}
+
+@keyframes hearth-pet-bored-2 {
+	0%, 58% { opacity: 0; }
+	59%, 100% { opacity: 1; }
+}
+
+@keyframes hearth-pet-slouch {
+	0%, 100% { transform: rotate(-2.5deg) translateY(2%); }
+	50% { transform: rotate(2.5deg) translateY(3%); }
+}
+
+/* ---- Sleepy: curled down, colorless, breathing slowly ---- */
+
+.hearth-pet-stage.is-sleepy {
+	--hearth-pet-cycle: 5.4s;
+}
+
+.hearth-pet-stage.is-sleepy .hearth-pet-sprite {
+	animation: hearth-pet-sleep 5.4s ease-in-out infinite;
+	filter: saturate(0.4) brightness(0.88);
+	opacity: 0.9;
+}
+
+@keyframes hearth-pet-sleep {
+	0%, 100% { transform: translateY(4%) scaleY(1); }
+	50% { transform: translateY(4%) scaleY(0.98); }
+}
+
+/* ---- Eyes that follow the pointer ----
+ *
+ * The card sets two custom properties from a pointermove; the eyes are their
+ * own group inside every frame, with the face drawn whole underneath, so this
+ * transform is the entire effect — no redraw, and the mood's frame animation
+ * keeps running under it. Inside an SVG a CSS px is one user unit, so the
+ * shift stays under one pixel of the 16×16 grid and crispEdges snaps it,
+ * which is how pixel-art eyes should move. A sleeping pet has none of this:
+ * its eyes are shut, and shut eyes do not wander.
+ */
+.hearth-pet-eyes {
+	transform: translate(var(--hearth-pet-look-x, 0px), var(--hearth-pet-look-y, 0px));
+	transition: transform 0.12s ease-out;
+}
+
+.hearth-pet-stage.is-sleepy .hearth-pet-eyes,
+.hearth-pet-stage.is-still .hearth-pet-eyes {
+	transform: none;
+}
+
+/* ---- Sleeping z's, and the moon of a pet asleep for the night ---- */
+
+.hearth-pet-zzz {
+	position: absolute;
+	top: -2%;
+	right: -4%;
+	pointer-events: none;
+}
+
+.hearth-pet-z::after {
+	content: "z";
+}
+
+.hearth-pet-z {
+	position: absolute;
+	right: 0;
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--text-faint);
+	opacity: 0;
+	animation: hearth-pet-float 3.6s ease-out infinite;
+	animation-delay: calc(var(--i) * 1.2s);
+}
+
+@keyframes hearth-pet-float {
+	0% { transform: translate(0, 0) scale(0.7); opacity: 0; }
+	20% { opacity: 0.9; }
+	100% { transform: translate(10px, -22px) scale(1.15); opacity: 0; }
+}
+
+/* Asleep because of the hour rather than the vault: one moon, hanging still
+ * and breathing with the pet, instead of a stream of z's. */
+.hearth-pet-zzz.is-moon .hearth-pet-z::after {
+	content: "\263D";
+}
+
+.hearth-pet-zzz.is-moon .hearth-pet-z {
+	animation: hearth-pet-moon 6s ease-in-out infinite;
+	animation-delay: 0s;
+	font-size: 0.95rem;
+	font-weight: 400;
+	color: var(--text-muted);
+}
+
+@keyframes hearth-pet-moon {
+	0%, 100% { transform: translateY(0); opacity: 0.5; }
+	50% { transform: translateY(-3px); opacity: 0.9; }
+}
+
+/* ---- Hearts, on petting ---- */
+
+.hearth-pet-heart {
+	position: absolute;
+	left: 50%;
+	bottom: 28%;
+	font-size: 0.85rem;
+	color: var(--color-red, #e05a6a);
+	pointer-events: none;
+	animation: hearth-pet-heart 0.9s ease-out forwards;
+	animation-delay: calc(var(--i) * 0.09s);
+}
+
+@keyframes hearth-pet-heart {
+	0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+	25% { opacity: 1; }
+	100% { transform: translate(calc(-50% + (var(--i) - 1) * 16px), -34px) scale(1.1); opacity: 0; }
+}
+
+/* Low power mode and a reduced-motion preference both leave a perfectly
+ * readable pet — the mood is in its face, not in the movement. */
+.hearth-pet-stage.is-still .hearth-pet-sprite,
+.hearth-pet-stage.is-still .hearth-pet-frame {
+	animation: none;
+	opacity: 1;
+}
+
+/* A reader who asked for less motion keeps the pet, its posture and its
+ * colors — only the movement and the frame cycling stop, on the frame the
+ * mood leads with. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-pet-sprite,
+	.hearth-pet-frame,
+	.hearth-pet-z,
+	.hearth-pet-heart {
+		animation: none !important;
+	}
+
+	.hearth-pet-frame[data-f="0"] {
+		opacity: 1;
+	}
+
+	.hearth-pet-frame:not([data-f="0"]) {
+		opacity: 0;
+	}
+
+	/* The pointer tracking is motion too — the eyes hold still. */
+	.hearth-pet-eyes {
+		transform: none !important;
+		transition: none;
+	}
+
+	/* The z's and the moon stop moving but stay legible. */
+	.hearth-pet-z {
+		opacity: 0.7;
+	}
+
+	.hearth-pet-z {
+		opacity: 0.7;
+	}
+}

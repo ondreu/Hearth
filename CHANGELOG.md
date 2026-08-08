@@ -65,6 +65,46 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   than blanking the card, the sky stops animating in low power mode, and the
   whole thing goes quiet under **Settings → Behaviour → Disable external
   calls**. Open-Meteo joins the Integrations catalogue.
+- **Pet card.** A pixel-art companion that follows how much you write. Pick an
+  animal — cat, dog, bird, fox, frog or blob — name it, and set its two colors;
+  the outline, shading and belly are derived from the body color, and the whole
+  sprite is drawn from a 16×16 character grid, so the card ships no images at
+  all. Its mood comes from the vault, not from a timer: notes edited (or
+  created) today against thresholds you set make it content, happy or bouncing
+  with joy, and a quiet day leaves it slouched and bored, then curled up
+  asleep once the vault has been still for a while, draining of color, with
+  drifting z's. That is the entire ladder —
+  there is no hunger, no age, no illness and no way to lose it, so a fortnight
+  away from the vault costs nothing but a nap. Click the pet to pet it: hearts,
+  and a stretch of guaranteed happiness.
+
+  **Every rung is yours to set.** Where excited, happy and content begin, how
+  long the vault must stay quiet before the pet sleeps, and how long a petting
+  lasts. Set them however you like — they are always read back in climbing
+  order, so no combination leaves a mood the pet can't reach.
+
+  **It looks at you, and it knows what time it is.** The pet's eyes follow
+  your pointer — over its own card, or anywhere on the dashboard, or not at
+  all, as you like — by shifting under a pixel, snapped to the grid, with the
+  face drawn whole underneath so nothing tears. A sleeping pet keeps its eyes
+  shut. And a quiet small hour now reads as the hour rather than as neglect:
+  in the night window you set, a bored or merely content pet goes to sleep
+  under a moon instead of its z's, or the pet sleeps through the window
+  whatever the day held, or the clock is ignored entirely. A good day still
+  shows as a good day at midnight, and petting always wakes the pet.
+
+  **And it sleeps when the vault does.** After a stretch with nothing touched
+  anywhere in the vault — yours to set — the pet falls asleep whatever its
+  mood and however good the day was, and any activity at all wakes it back to
+  the rung the day earned.
+
+  Each mood is drawn animation, not one picture being wobbled: the pet blinks,
+  glances aside, wags its head, squashes as it lands from a hop and breathes in
+  its sleep, from frames generated out of that single drawing. Everything is
+  recomputed from file timestamps on each draw, so a synced `data.json`, a
+  closed laptop or a device you have not opened in a month can never leave the
+  pet out of step. Low power mode and a reduced-motion preference keep the pet
+  perfectly still — the mood is in its posture and its face.
 - **Git card.** If your vault is a repository kept by the
   [Git](https://github.com/Vinzent03/obsidian-git) plugin, the dashboard can now
   show and drive it. The card puts the branch, the staged and changed files, the

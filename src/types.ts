@@ -31,7 +31,8 @@ export type CardKind =
 	| "jira"
 	| "weather"
 	| "git"
-	| "leaf";
+	| "leaf"
+	| "pet";
 
 /** A refinement control available on a Jira saved-filter card. */
 export type JiraControl =
@@ -824,6 +825,76 @@ export interface ClockConfig {
 	dateFormat?: string;
 }
 
+/** The animals a "pet" card can keep. Each is one 16×16 pixel sprite recolored
+ * from the card's two colors — no image assets are shipped. */
+export type PetSpecies = "cat" | "dog" | "bird" | "fox" | "frog" | "blob";
+
+/** Per-card configuration for a "pet" card.
+ *
+ * The pet has no hunger, no age and no way to lose it: its mood is derived,
+ * on every render, from how much of the vault you have touched *today* against
+ * `dailyGoal`. A quiet vault makes it bored and then sleepy; a busy one makes
+ * it happy and then excited. Nothing here is a simulation that ticks in the
+ * background — `lastPlayedAt` is the only mutable state, and everything else is
+ * recomputed from vault timestamps, so a week with Obsidian closed, or a
+ * `data.json` synced between devices, cannot put the pet in a wrong state. */
+export interface PetConfig {
+	/** Which animal to draw. Default "cat". */
+	species?: PetSpecies;
+	/** The pet's name, shown under the sprite. Empty means the species name. */
+	name?: string;
+	/** Main body color (hex). The outline, belly and shading are derived from
+	 * it, so two colors define the whole palette. Omitted means the species'
+	 * own default. */
+	bodyColor?: string;
+	/** Accent color (hex) — ears, nose, paws, beak. */
+	accentColor?: string;
+	/** Which vault activity feeds the pet: notes edited (default) or created. */
+	metric?: "modified" | "created";
+	/** Notes a day that make the pet happy — the card's "good day". Default 3. */
+	dailyGoal?: number;
+	/** Notes a day that make the pet excited. Default: twice `dailyGoal`. */
+	excitedAt?: number;
+	/** Notes a day that make the pet content. Default 1 — any activity at all. */
+	contentAt?: number;
+	/** Minutes with nothing touched anywhere in the vault before the pet falls
+	 * asleep — whatever its mood, however good the day was. Any activity wakes
+	 * it again at the rung the day earned. Default 360 (six hours). */
+	sleepyAfterMin?: number;
+	/** How many minutes a petting keeps the pet happy. Default 30. */
+	pettedForMin?: number;
+
+	/** Whose pointer the pet's eyes follow: nobody, only while the pointer is
+	 * over its own card (default), or anywhere on the dashboard. A sleeping pet
+	 * never looks — its eyes are shut. */
+	eyesFollow?: "off" | "card" | "board";
+
+	/** What the clock does to the pet at night:
+	 * - "off" — nothing, the vault is the only thing that matters;
+	 * - "quiet" (default) — a bored or content pet sleeps instead, so a thin
+	 *   small hour reads as night rather than as neglect (a good day still
+	 *   shows as one);
+	 * - "always" — the pet sleeps through the window whatever the vault says.
+	 * Petting still wakes it in every mode. */
+	nightSleep?: "off" | "quiet" | "always";
+	/** Hour (0–23, local) the night window opens. Default 23. */
+	nightFrom?: number;
+	/** Hour (0–23, local) the night window closes. Default 7. */
+	nightTo?: number;
+	/** Sprite size. Default "md". */
+	size?: "sm" | "md" | "lg";
+	/** Show the name line (default true). */
+	showName?: boolean;
+	/** Show the mood line (default true). */
+	showMood?: boolean;
+	/** Show the "N notes today · M-day streak" line (default true). */
+	showActivity?: boolean;
+	/** Epoch ms of the last time the pet was petted (clicked). For half an hour
+	 * afterwards the pet is at least happy, whatever the vault is doing. This is
+	 * the card's only mutable state. */
+	lastPlayedAt?: number;
+}
+
 /** A single button in the mobile action bar (shown under the search bar and
  * filters in Mobile mode). Like a launchpad tile, a button can run an Obsidian
  * command, open a vault note/file, or open a URL — chosen by `type`. Hearth's
@@ -949,6 +1020,8 @@ export interface DashboardCard {
 	git?: GitConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
+	/** kind === "pet": species, colors, name and what feeds its mood. */
+	pet?: PetConfig;
 
 	// ---- Live content ----
 	/** Auto-refresh interval in seconds for live content (embed / web). 0 or
