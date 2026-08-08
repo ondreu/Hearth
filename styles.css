@@ -1158,8 +1158,25 @@
    not scoped under .hearth-view. Each section is a .hearth-section with a
    clickable heading (.hearth-section-head) that toggles the body below it. */
 
+/* Sections are cards, spaced by the flex gap on .hearth-settings-tabbody rather
+   than their own margins. Before this they were flat blocks separated by a
+   single hairline under each heading, which read as one continuous list — the
+   boundary between two sections was indistinguishable from the boundary between
+   two settings rows. An open section is filled; a folded one stays flat, so
+   what's open reads at a glance. */
 .hearth-section {
-	margin-bottom: 8px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	transition: background 120ms ease;
+}
+
+.hearth-section.is-collapsed {
+	background: transparent;
+}
+
+.hearth-section.is-collapsed:hover {
+	background: var(--background-modifier-hover);
 }
 
 /* The heading row mirrors Obsidian's own .setting-item-heading look but is
@@ -1168,9 +1185,14 @@
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	padding: 14px 0 10px;
+	padding: 14px 16px;
 	cursor: pointer;
 	user-select: none;
+}
+
+/* Only an open section rules off its heading — on a folded one that hairline
+   would sit under nothing. */
+.hearth-section:not(.is-collapsed) > .hearth-section-head {
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -1212,10 +1234,17 @@
 	/* Smooth collapse/expand. Only height animates; display:none is the real
 	   toggle (so inputs don't remain focusable when hidden). */
 	transition: opacity 150ms ease;
+	padding: 0 16px;
 }
 
-.hearth-section.is-collapsed .hearth-section-head {
-	border-bottom-color: transparent;
+/* Obsidian rules off every .setting-item with a top border; inside a card the
+   first one would double up with the heading's own rule. */
+.hearth-section-body > .setting-item:first-child {
+	border-top: none;
+}
+
+.hearth-section-body > .setting-item:last-child {
+	padding-bottom: 6px;
 }
 
 /* On Obsidian 1.13+ the whole pane is hosted inside a single declarative
@@ -1233,23 +1262,39 @@
    only that category's sections in the body below. */
 
 .hearth-settings-ribbon {
+	/* One row, always. With flex-wrap seven tabs overflowed a stock-width
+	   settings pane and broke onto a second, ragged line; a pane too narrow for
+	   all seven now scrolls horizontally instead (scrollbar hidden — the active
+	   tab is scrolled into view on render). */
 	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scrollbar-width: none;
+	gap: 3px;
 	position: sticky;
 	top: 0;
 	z-index: 5;
-	padding: 4px 0 10px;
-	margin-bottom: 8px;
+	padding: 8px 0 10px;
+	margin-bottom: 4px;
 	background: var(--background-primary);
 	border-bottom: 1px solid var(--background-modifier-border);
+	/* The pinned bar's background only paints its own box, so content scrolling
+	   through the band between the pane's top edge and the bar stayed visible
+	   above it: a section heading sliced in half sitting above the tabs. Extend
+	   the same fill upwards, which covers that band without having to hardcode
+	   the host pane's padding. */
+	box-shadow: 0 -16px 0 var(--background-primary);
+}
+
+.hearth-settings-ribbon::-webkit-scrollbar {
+	display: none;
 }
 
 .hearth-ribbon-tab {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	padding: 6px 12px;
+	padding: 6px 10px;
 	border-radius: 8px;
 	border: 1px solid transparent;
 	background: transparent;
@@ -1258,6 +1303,7 @@
 	font-weight: 500;
 	cursor: pointer;
 	white-space: nowrap;
+	flex-shrink: 0;
 	box-shadow: none;
 	transition:
 		background 120ms ease,
@@ -1291,7 +1337,58 @@
 	}
 }
 
+/* ---- Settings tab: tab header ---------------------------------------
+   Names the open tab above its sections and, since every section starts
+   folded, carries the control that opens them all at once. */
+
+.hearth-settings-tabhead {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 14px 2px 10px;
+}
+
+.hearth-settings-tabhead-titles {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.hearth-settings-tabhead-title {
+	font-size: var(--font-ui-large);
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-settings-tabhead-count {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+.hearth-settings-expand-all {
+	flex-shrink: 0;
+	padding: 4px 10px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+}
+
+.hearth-settings-expand-all:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
 .hearth-settings-tabbody {
+	/* Sections space themselves with this gap; see .hearth-section. */
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
 	animation: hearth-tab-fade 140ms ease;
 }
 

@@ -238,6 +238,13 @@ export const en = {
 		resetField: "Reset to default",
 		collapseSection: "Collapse section",
 		expandSection: "Expand section",
+		/** Bulk fold control in a tab's header. Sections start folded, so this is
+		 * how a whole tab is surveyed at once. */
+		expandAll: "Expand all",
+		collapseAll: "Collapse all",
+		/** How many collapsible sections the open tab holds, shown beside its name.
+		 * Only ever rendered for two or more. */
+		sectionCount: (n: number) => `${n} sections`,
 		/** Shown in place of a settings section (or tab) whose render threw, so a
 		 * single failing section can no longer blank the whole settings pane. */
 		sectionError: (name: string) => `The "${name}" section couldn't be shown.`,

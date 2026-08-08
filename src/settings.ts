@@ -46,6 +46,13 @@ type StringSettingKey =
 	| "taskNotesDoneValue"
 	| "iconizeIconProperty";
 
+/** A handle on one collapsible section's fold state, collected per render so the
+ * tab header can open or close every section of the active tab at once. */
+type SectionToggle = {
+	isCollapsed: () => boolean;
+	setCollapsed: (collapsed: boolean) => void;
+};
+
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
 const GITHUB_ISSUES_URL = "https://github.com/ondreu/hearth/issues/new";
@@ -152,6 +159,16 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * render, set by a catalogue row's "Show" button. */
 	private revealSectionTitle: string | null = null;
 
+	/** Fold handles for the collapsible sections of the tab currently on screen,
+	 * in render order — rebuilt on every render and used by the tab header's
+	 * expand-all control to drive them together. */
+	private sectionToggles: SectionToggle[] = [];
+
+	/** Set by the tab header so a section folded on its own can refresh the
+	 * header's expand-all label, which otherwise goes stale until the next
+	 * render. Cleared on every render. */
+	private onSectionFoldChanged: (() => void) | null = null;
+
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
 	 * definitions; when a tab's definitions are non-empty, the legacy
@@ -242,6 +259,9 @@ export class HomeSettingTab extends PluginSettingTab {
 			const active = this.activeTab();
 			this.renderRibbon(containerEl, active);
 
+			// Named here but filled in after the sections below have rendered, so
+			// it can report how many the tab holds and drive them all at once.
+			const head = containerEl.createDiv("hearth-settings-tabhead");
 			const body = containerEl.createDiv("hearth-settings-tabbody");
 			// A tab-level backstop nested inside: individual sections already
 			// isolate their own failures (see `section`), but the About tab and a
@@ -249,12 +269,15 @@ export class HomeSettingTab extends PluginSettingTab {
 			// a throw in a tab shows an inline error rather than a blank pane —
 			// and, because the ribbon above is already drawn, the user can still
 			// switch to a working tab.
+			this.sectionToggles = [];
+			this.onSectionFoldChanged = null;
 			try {
 				this.renderTabSections(body, active);
 			} catch (err) {
 				body.empty();
 				this.renderError(body, t().settings.tabs[active], err);
 			}
+			this.renderTabHead(head, active);
 		} catch (err) {
 			// The ribbon/datalist itself failed to build. Append the error rather
 			// than empty()-ing, so any partially-drawn ribbon that survived still
@@ -290,11 +313,13 @@ export class HomeSettingTab extends PluginSettingTab {
 	private renderRibbon(containerEl: HTMLElement, active: SettingsTabId): void {
 		const ribbon = containerEl.createDiv("hearth-settings-ribbon");
 		ribbon.setAttribute("role", "tablist");
+		let activeEl: HTMLElement | null = null;
 		for (const tab of SETTINGS_TABS) {
 			const label = t().settings.tabs[tab.id];
 			const btn = ribbon.createEl("button", { cls: "hearth-ribbon-tab" });
 			btn.setAttribute("role", "tab");
 			btn.toggleClass("is-active", tab.id === active);
+			if (tab.id === active) activeEl = btn;
 			btn.setAttribute("aria-selected", String(tab.id === active));
 			btn.setAttribute("aria-label", label);
 			const icon = btn.createSpan("hearth-ribbon-tab-icon");
@@ -305,6 +330,54 @@ export class HomeSettingTab extends PluginSettingTab {
 				this.rerender();
 			});
 		}
+		// The row scrolls rather than wrapping, so on a pane too narrow for all
+		// seven tabs the active one can start out of sight. `block: "nearest"`
+		// keeps this from scrolling the pane itself.
+		const target = activeEl;
+		if (target) {
+			window.requestAnimationFrame(() =>
+				target.scrollIntoView({ block: "nearest", inline: "nearest" }),
+			);
+		}
+	}
+
+	/** The header above a tab's sections: names the active tab and, when it holds
+	 * more than one collapsible section, offers one control to open or close them
+	 * all. Sections start folded (see `section`), so without this every tab would
+	 * cost one click per section to survey.
+	 *
+	 * Called *after* the sections have rendered, since it reads
+	 * `this.sectionToggles` to know how many there are. */
+	private renderTabHead(headEl: HTMLElement, tab: SettingsTabId): void {
+		const s = t().settings;
+		const titles = headEl.createDiv("hearth-settings-tabhead-titles");
+		titles.createDiv({ cls: "hearth-settings-tabhead-title", text: s.tabs[tab] });
+
+		// One section (or none, as on the About tab) needs no bulk control, and
+		// naming a count of one adds nothing.
+		const toggles = this.sectionToggles;
+		if (toggles.length < 2) return;
+		titles.createDiv({
+			cls: "hearth-settings-tabhead-count",
+			text: s.sectionCount(toggles.length),
+		});
+
+		const btn = headEl.createEl("button", { cls: "hearth-settings-expand-all" });
+		// "Expand all" while anything is still folded, so the button always offers
+		// the action that changes the most; it flips to "Collapse all" once every
+		// section is open.
+		const relabel = () => {
+			btn.setText(toggles.some((sec) => sec.isCollapsed()) ? s.expandAll : s.collapseAll);
+		};
+		relabel();
+		btn.addEventListener("click", () => {
+			const expand = toggles.some((sec) => sec.isCollapsed());
+			for (const sec of toggles) sec.setCollapsed(!expand);
+			relabel();
+		});
+		// Folding a section by its own heading changes what this button should
+		// offer, so let `section` call back into it.
+		this.onSectionFoldChanged = relabel;
 	}
 
 	/** Render the sections that belong to a given ribbon tab. (Named
@@ -362,7 +435,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				// in the catalogue link down to them.
 				// Folded to start with: it's a reference list, not a setting, and
 				// unfolded it would push the two sections that *are* settings off
-				// the screen.
+				// the screen. Every section now starts folded anyway, but this one
+				// is asked for explicitly so the intent survives a change of
+				// default.
 				this.section(
 					body,
 					s.integrations.heading,
@@ -400,10 +475,14 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * the body; the collapsed state is persisted per-section in localStorage so
 	 * long settings panels can be tamed and stay tamed.
 	 *
-	 * `collapsedByDefault` only decides where a section starts before anyone has
-	 * ever folded it — for a long reference list that isn't a setting, starting
-	 * closed keeps the tab's actual settings in reach. Once the user folds or
-	 * unfolds it themselves, their choice is what persists. */
+	 * Sections start folded: a tab then opens as a short list of headings that
+	 * fits without scrolling, and the expand-all control in the tab header (see
+	 * `renderTabHead`) opens them in one go. `collapsedByDefault: false` opts a
+	 * section out and starts it open instead.
+	 *
+	 * Either way this only decides where a section starts before anyone has ever
+	 * folded it. Once the user folds or unfolds it themselves, their choice is
+	 * what persists. */
 	private section(
 		containerEl: HTMLElement,
 		title: string,
@@ -454,7 +533,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		// open instead of folding itself again on the next visit.
 		const key = `hearth-section-${title}`;
 		const saved = this.app.loadLocalStorage(key) as string | null;
-		let collapsed = saved === null ? !!opts?.collapsedByDefault : saved === "1";
+		let collapsed = saved === null ? (opts?.collapsedByDefault ?? true) : saved === "1";
 
 		// A catalogue row asked for this section: unfold it (persisting that, so
 		// it doesn't snap shut on the next visit) and scroll it into view once the
@@ -479,12 +558,24 @@ export class HomeSettingTab extends PluginSettingTab {
 			collapsed = !collapsed;
 			this.app.saveLocalStorage(key, collapsed ? "1" : "0");
 			apply();
+			this.onSectionFoldChanged?.();
 		});
 		head.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
 				head.click();
 			}
+		});
+
+		// Hand the tab header a way to fold this section along with its siblings.
+		this.sectionToggles.push({
+			isCollapsed: () => collapsed,
+			setCollapsed: (next) => {
+				if (collapsed === next) return;
+				collapsed = next;
+				this.app.saveLocalStorage(key, collapsed ? "1" : "0");
+				apply();
+			},
 		});
 	}
 
