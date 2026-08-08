@@ -20,7 +20,12 @@
  * without a network or a DOM — see test/weather.test.ts.
  */
 import { requestUrl } from "obsidian";
-import type { PrecipitationUnit, TemperatureUnit, WindUnit } from "./types";
+import type {
+	PrecipitationUnit,
+	TemperatureUnit,
+	WeatherPlace,
+	WindUnit,
+} from "./types";
 
 const FORECAST_ENDPOINT = "https://api.open-meteo.com/v1/forecast";
 const GEOCODING_ENDPOINT = "https://geocoding-api.open-meteo.com/v1/search";
@@ -618,6 +623,40 @@ export function parsePlaces(json: unknown): GeoResult[] {
 		out.push({ name, region, lat, lon, timezone: str(row.timezone) });
 	}
 	return out;
+}
+
+// ---- Packing a place into one string ------------------------------------
+
+/**
+ * A place, packed for somewhere that only has a string to store it in — the
+ * background config, whose `value` field is already a colour, a vault path or a
+ * URL depending on the kind, and which is copied around (per dashboard, through
+ * layout export/import) as a flat record.
+ *
+ * The format is `lat,lon[,name]`. The name goes last and may itself contain
+ * commas ("Praha, Czechia"), so the parser takes the first two fields as
+ * numbers and the whole remainder as the name.
+ */
+export function formatPlaceValue(place: WeatherPlace): string {
+	// Four decimals is ~10 m: past the point a forecast distinguishes, and it
+	// keeps the stored value short and readable.
+	const head = `${place.lat.toFixed(4)},${place.lon.toFixed(4)}`;
+	const name = place.name.trim();
+	return name ? `${head},${name}` : head;
+}
+
+/** Unpack a place written by {@link formatPlaceValue}. Returns null for
+ * anything that isn't one — an empty value, a leftover colour from a previous
+ * background kind, coordinates off the globe. */
+export function parsePlaceValue(value: string): WeatherPlace | null {
+	const parts = value.split(",");
+	if (parts.length < 2) return null;
+	const lat = Number(parts[0]);
+	const lon = Number(parts[1]);
+	if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+	if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+	const name = parts.slice(2).join(",").trim();
+	return { name, lat, lon };
 }
 
 /**

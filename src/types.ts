@@ -984,9 +984,16 @@ export interface DashboardCard {
 }
 
 /** Background mode for the home view. "default" uses Hearth's bundled
- * background (a curated image shipped with a release); the other kinds use the
- * user's own value. */
-export type BackgroundKind = "none" | "default" | "color" | "image" | "url";
+ * background (a curated image shipped with a release); "weather" paints the
+ * live sky for a place (see sky.ts); the other kinds use the user's own
+ * value. */
+export type BackgroundKind =
+	| "none"
+	| "default"
+	| "color"
+	| "image"
+	| "url"
+	| "weather";
 
 /** The flat backdrop low power mode paints instead of the wallpaper: a muted
  * grey-purple that sits close to Hearth's brand colour without any image
@@ -997,6 +1004,8 @@ export const LOW_POWER_BACKGROUND = "#4a4459";
  * as well as the global default). */
 export interface BackgroundConfig {
 	kind: BackgroundKind;
+	/** A CSS colour, a vault image path, a URL, or — for "weather" — a packed
+	 * place (see formatPlaceValue in weather.ts), depending on `kind`. */
 	value: string;
 	opacity: number;
 	blur: number;
@@ -1145,10 +1154,15 @@ export interface HomeSettings {
 
 	// ---- Background ----
 	backgroundKind: BackgroundKind;
-	/** A CSS color, a vault image path, or a URL depending on backgroundKind. */
+	/** A CSS colour, a vault image path, a URL, or a packed weather place
+	 * depending on backgroundKind. */
 	backgroundValue: string;
 	backgroundOpacity: number;
 	backgroundBlur: number;
+	/** Let the "weather" background drift, fall and twinkle. Default true; low
+	 * power mode replaces the whole background anyway, and a reader who has
+	 * asked their OS for reduced motion gets a still sky regardless. */
+	backgroundSkyAnimate?: boolean;
 
 	// ---- Behaviour ----
 	openOnStartup: boolean;

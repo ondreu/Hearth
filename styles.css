@@ -19,6 +19,17 @@
 	background-position: center;
 }
 
+/* The live weather sky as the board's backdrop. It is the same element the
+ * weather card's artistic style draws (see sky.ts), so it arrives styled —
+ * all it needs here is to fill the layer instead of sitting in a card's flex
+ * column, and to stay behind everything. The layer's own opacity and blur
+ * still apply, so a sky can be dialled back to a wash like any wallpaper. */
+.hearth-bg > .hearth-weather-sky {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
 /* ---- Low power mode ---------------------------------------------------
  *
  * The paint-cost half of the setting. Everything with a value behind it — the
@@ -3237,7 +3248,10 @@
 .is-animated .hearth-weather-sun-glow,
 .is-animated .hearth-weather-moon-glow {
 	animation: hearth-weather-breathe 6s ease-in-out infinite;
-	transform-origin: 158px 28px;
+	/* The centre travels with the spread (a board sky is drawn in a wider
+	 * viewBox), so sky.ts publishes it rather than the stylesheet assuming the
+	 * card's. */
+	transform-origin: var(--sky-celestial-x, 158px) var(--sky-celestial-y, 28px);
 }
 
 @keyframes hearth-weather-breathe {
@@ -3289,28 +3303,24 @@
 }
 
 /* Each lane drifts at its own speed, so the bank never moves as one slab. The
- * translation is in viewBox units: -60 to 260 crosses the full 200-wide box
- * with enough overshoot that a cloud is never seen popping in. */
-.is-animated .hearth-weather-cloud.is-lane-1 {
-	animation: hearth-weather-drift 46s linear infinite;
+ * duration and the phase are set per cloud in sky.ts (they depend on where in
+ * the box the cloud starts); the stylesheet only says what the motion is. */
+.is-animated .hearth-weather-cloud {
+	animation-name: hearth-weather-drift;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
 }
 
-.is-animated .hearth-weather-cloud.is-lane-2 {
-	animation: hearth-weather-drift 66s linear infinite;
-	animation-delay: -20s;
-}
-
-.is-animated .hearth-weather-cloud.is-lane-3 {
-	animation: hearth-weather-drift 86s linear infinite;
-	animation-delay: -50s;
-}
-
+/* The distances are variables because they are the one part of the animation
+ * that has to know how wide the box is: a board-sized sky is drawn in a wider
+ * viewBox, and a cloud that stops at the card's 260 would strand mid-screen.
+ * sky.ts sets them; the fallbacks are the card's. */
 @keyframes hearth-weather-drift {
 	from {
-		transform: translateX(-60px);
+		transform: translateX(var(--sky-drift-from, -60px));
 	}
 	to {
-		transform: translateX(260px);
+		transform: translateX(var(--sky-drift-to, 260px));
 	}
 }
 
@@ -3389,7 +3399,7 @@
 		opacity: 0.6;
 	}
 	to {
-		transform: translate(-24px, 140px);
+		transform: translate(-24px, var(--sky-fall, 140px));
 		opacity: 0;
 	}
 }
@@ -3403,7 +3413,7 @@
 		opacity: 0.85;
 	}
 	to {
-		transform: translate(14px, 136px);
+		transform: translate(14px, var(--sky-fall, 140px));
 		opacity: 0;
 	}
 }
@@ -3430,6 +3440,15 @@
 	}
 	2% {
 		opacity: 0.3;
+	}
+}
+
+/* A reader who has asked the OS for less motion gets a still sky: the shapes
+ * stay where sky.ts placed them (drops are spread down the field for exactly
+ * this case), so nothing disappears — it simply stops moving. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-weather-sky.is-animated * {
+		animation: none !important;
 	}
 }
 

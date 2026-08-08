@@ -27,15 +27,15 @@ import {
 	today,
 	upcomingDays,
 	upcomingHours,
-	weatherGroup,
 	type WeatherDay,
-	type WeatherGroup,
 	type WeatherHour,
 	weatherIcon,
 	weatherLabelKey,
 	type WeatherRequest,
 	type WeatherSnapshot,
 } from "../weather";
+import { configuredPlaces, renderPlacePicker } from "../placepicker";
+import { drawSky } from "../sky";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
@@ -547,197 +547,10 @@ function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 }
 
 
-// ---- The painted sky (artistic style) -----------------------------------
-
-/** Positions for the night sky's stars, in viewBox units. Fixed rather than
- * random so a redraw doesn't reshuffle the constellation under the reader. */
-const STARS: readonly { x: number; y: number; r: number; delay: number }[] = [
-	{ x: 18, y: 22, r: 1.1, delay: 0 },
-	{ x: 40, y: 12, r: 0.8, delay: 1.4 },
-	{ x: 62, y: 30, r: 1.0, delay: 0.7 },
-	{ x: 88, y: 16, r: 0.7, delay: 2.1 },
-	{ x: 112, y: 26, r: 1.2, delay: 0.3 },
-	{ x: 134, y: 10, r: 0.8, delay: 1.8 },
-	{ x: 152, y: 34, r: 0.9, delay: 1.1 },
-	{ x: 176, y: 20, r: 1.1, delay: 2.6 },
-	{ x: 28, y: 44, r: 0.7, delay: 2.3 },
-	{ x: 104, y: 48, r: 0.8, delay: 0.9 },
-];
-
-/** The cloud bank, back to front: each entry is a centre, a scale and the
- * animation lane it drifts in. */
-const CLOUDS: readonly { x: number; y: number; scale: number; lane: number }[] = [
-	{ x: 40, y: 44, scale: 1.5, lane: 1 },
-	{ x: 130, y: 32, scale: 1.1, lane: 2 },
-	{ x: 90, y: 58, scale: 0.85, lane: 3 },
-];
-
-/** Draw one cloud as three overlapping discs on a slab — the shape reads as a
- * cloud at any size, and it costs four nodes instead of a path. */
-function drawCloud(svg: SVGElement, x: number, y: number, scale: number, lane: number): void {
-	const group = svg.createSvg("g", {
-		// An array, not "a b": createSvg hands `cls` to classList.add(), which
-		// rejects a token containing a space. (createDiv sets the class
-		// attribute instead, which is why a two-class string is fine there.)
-		cls: ["hearth-weather-cloud", `is-lane-${lane}`],
-		attr: { transform: `translate(${x} ${y}) scale(${scale})` },
-	});
-	group.createSvg("ellipse", { attr: { cx: "-14", cy: "4", rx: "16", ry: "10" } });
-	group.createSvg("ellipse", { attr: { cx: "2", cy: "-2", rx: "18", ry: "13" } });
-	group.createSvg("ellipse", { attr: { cx: "18", cy: "5", rx: "15", ry: "9" } });
-	group.createSvg("rect", { attr: { x: "-28", y: "4", width: "58", height: "11", rx: "5.5" } });
-}
-
-/** Falling precipitation: slanted streaks for rain and drizzle, drifting discs
- * for snow. Positions are evenly spread with a per-drop delay so the fall never
- * looks like a marching row. */
-function drawPrecipitation(svg: SVGElement, group: WeatherGroup): void {
-	const snow = group === "snow";
-	const count = group === "drizzle" ? 14 : snow ? 16 : 20;
-	// Two classes, so an array — see drawCloud.
-	const layer = svg.createSvg("g", { cls: ["hearth-weather-fall", `is-${group}`] });
-	for (let i = 0; i < count; i++) {
-		// A prime-ish stride spreads the drops across the width without clumping
-		// into visible columns the way `i * width / count` would.
-		const x = ((i * 37) % 190) + 5;
-		const duration = (snow ? 3.4 : 1.1) + (i % 5) * 0.18;
-		const drop = snow
-			? layer.createSvg("circle", { attr: { cx: String(x), cy: "0", r: "1.6" } })
-			: layer.createSvg("line", {
-					attr: {
-						x1: String(x),
-						y1: "0",
-						x2: String(x - 3),
-						y2: group === "drizzle" ? "7" : "11",
-					},
-			  });
-		// Spread the field down the sky. Two mechanisms, because the card can be
-		// drawn either way: a static offset for a still sky (low power, motion
-		// off), and a *negative* delay for a moving one — every drop starts
-		// partway through its own fall, so the first frame is already a shower
-		// rather than a row of drops queued at the top. A running animation
-		// overrides the inline transform, so the two never fight.
-		const progress = i / count;
-		drop.style.transform = `translate(${-progress * 24}px, ${progress * 130 - 10}px)`;
-		drop.style.animationDelay = `${(-progress * duration).toFixed(2)}s`;
-		// Staggering the duration too keeps the field from pulsing in unison.
-		drop.style.animationDuration = `${duration}s`;
-	}
-}
-
-/** The sun, with a soft corona. */
-function drawSun(svg: SVGElement): void {
-	const group = svg.createSvg("g", { cls: "hearth-weather-sun" });
-	group.createSvg("circle", { cls: "hearth-weather-sun-glow", attr: { cx: "158", cy: "28", r: "30" } });
-	group.createSvg("circle", { cls: "hearth-weather-sun-disc", attr: { cx: "158", cy: "28", r: "15" } });
-}
-
-/** The moon: one path holding two overlapping circles, filled `evenodd`, so the
- * overlap punches the bite out of the disc. A `<mask>` would draw the same
- * crescent, but it needs a `<defs>` and a document-unique id — state to keep
- * correct across every card and every redraw, in exchange for nothing visible. */
-function drawMoon(svg: SVGElement): void {
-	const group = svg.createSvg("g", { cls: "hearth-weather-moon" });
-	group.createSvg("circle", { cls: "hearth-weather-moon-glow", attr: { cx: "158", cy: "28", r: "26" } });
-	group.createSvg("path", {
-		cls: "hearth-weather-moon-disc",
-		attr: {
-			// Two arcs meeting at the points where the disc (centre 158,28 r15)
-			// and the bite (centre 149,19 r17) cross: the major arc of the disc
-			// out and round the lit side, then the bite's minor arc back along
-			// the terminator. Two overlapping circles filled `evenodd` would be
-			// the obvious shortcut and is wrong — that fills their symmetric
-			// difference, so the bite's own outer lobe lights up too.
-			d: "M165.53,15.03 A15,15 0 1 1 145.03,35.53 A17,17 0 0 0 165.53,15.03 Z",
-		},
-	});
-}
-
-/** Horizontal fog banks. */
-function drawFog(svg: SVGElement): void {
-	const layer = svg.createSvg("g", { cls: "hearth-weather-fogbank" });
-	const bands = [
-		{ y: 46, h: 9, lane: 1 },
-		{ y: 62, h: 7, lane: 2 },
-		{ y: 78, h: 8, lane: 3 },
-	];
-	for (const band of bands) {
-		layer.createSvg("rect", {
-			cls: `is-lane-${band.lane}`,
-			attr: { x: "-40", y: String(band.y), width: "280", height: String(band.h), rx: String(band.h / 2) },
-		});
-	}
-}
-
-/** The lightning bolt, flashed by CSS. */
-function drawBolt(svg: SVGElement): void {
-	svg.createSvg("polygon", {
-		cls: "hearth-weather-bolt",
-		attr: { points: "96,50 84,76 94,76 86,102 108,70 97,70 106,50" },
-	});
-}
-
-/**
- * Paint the sky behind the artistic style.
- *
- * The gradient itself is CSS (`.sky-<group>`, plus `.is-night`); this draws
- * what moves in front of it. Nothing here reacts to a pointer or holds state —
- * it is a backdrop, and it is rebuilt wholesale on every redraw.
- */
-function drawSky(parent: HTMLElement, code: number, isDay: boolean, animate: boolean): HTMLElement {
-	const group = weatherGroup(code);
-	const sky = parent.createDiv(`hearth-weather-sky sky-${group}`);
-	sky.toggleClass("is-night", !isDay);
-	sky.toggleClass("is-animated", animate);
-
-	const svg = sky.createSvg("svg", {
-		cls: "hearth-weather-art",
-		// `slice` fills the card at any aspect ratio, cropping rather than
-		// letterboxing — a sky with bars around it isn't a sky.
-		attr: { viewBox: "0 0 200 120", preserveAspectRatio: "xMidYMid slice", "aria-hidden": "true" },
-	});
-
-	const celestial = group === "clear" || group === "partly";
-	if (celestial) {
-		if (isDay) drawSun(svg);
-		else drawMoon(svg);
-	}
-	if (!isDay && (group === "clear" || group === "partly")) {
-		const stars = svg.createSvg("g", { cls: "hearth-weather-stars" });
-		for (const star of STARS) {
-			const dot = stars.createSvg("circle", {
-				attr: { cx: String(star.x), cy: String(star.y), r: String(star.r) },
-			});
-			dot.style.animationDelay = `${star.delay}s`;
-		}
-	}
-
-	if (group === "fog") drawFog(svg);
-
-	// Every group but a clear sky has cloud cover; how much of the bank is drawn
-	// is what separates "partly cloudy" from "overcast".
-	const cloudCount =
-		group === "clear" ? 0 : group === "partly" ? 1 : group === "fog" ? 2 : CLOUDS.length;
-	for (let i = 0; i < cloudCount; i++) {
-		const cloud = CLOUDS[i];
-		drawCloud(svg, cloud.x, cloud.y, cloud.scale, cloud.lane);
-	}
-
-	if (group === "rain" || group === "drizzle" || group === "snow") {
-		drawPrecipitation(svg, group);
-	}
-	if (group === "thunder") {
-		drawPrecipitation(svg, "rain");
-		drawBolt(svg);
-	}
-
-	return sky;
-}
-
 /** Artistic: an edge-to-edge painted sky with the reading laid over it. */
 function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const now = snapshot.now;
-	const sky = drawSky(wrap, now.code, now.isDay, r.animate);
+	const sky = drawSky(wrap, { code: now.code, isDay: now.isDay, animate: r.animate });
 	const content = sky.createDiv("hearth-weather-art-content");
 
 	const top = content.createDiv("hearth-weather-art-top");
@@ -876,151 +689,6 @@ export function renderWeather(
 
 // ---- Editor -------------------------------------------------------------
 
-/** Session keys the place picker keeps between the modal's in-place rerenders. */
-const SESSION_QUERY = "weatherQuery";
-const SESSION_RESULTS = "weatherResults";
-const SESSION_SEARCHED = "weatherSearched";
-const SESSION_VERSION = "weatherSearchVersion";
-
-/** The place-name search: type a name, hit Search, pick one of the matches.
- * This is the only lookup the card ever does, and only when asked. */
-function placePicker(ctx: CardEditorContext, containerEl: HTMLElement, cfg: WeatherConfig): void {
-	const strings = t().editors.weather;
-
-	const search = new Setting(containerEl)
-		.setName(strings.search)
-		.setDesc(
-			ctx.opts.externalCallsDisabled ? strings.searchDisabled : strings.searchDesc,
-		)
-		.setClass("hearth-weather-search");
-
-	search.addText((txt) => {
-		txt
-			.setPlaceholder(strings.searchPlaceholder)
-			.setValue((ctx.session[SESSION_QUERY] as string) ?? "")
-			.onChange((v) => {
-				ctx.session[SESSION_QUERY] = v;
-			});
-		txt.inputEl.addClass("hearth-weather-search-input");
-	});
-
-	const run = async (button: { setDisabled(v: boolean): unknown }): Promise<void> => {
-		const query = ((ctx.session[SESSION_QUERY] as string) ?? "").trim();
-		if (!query) {
-			new Notice(strings.searchEmpty);
-			return;
-		}
-		// Ignore a slow search whose results land after a newer one (or after the
-		// modal has moved on), the way the Jira filter loader does.
-		const version = ((ctx.session[SESSION_VERSION] as number) ?? 0) + 1;
-		ctx.session[SESSION_VERSION] = version;
-		button.setDisabled(true);
-		const results = await searchPlaces(query, {
-			disabled: ctx.opts.externalCallsDisabled,
-		});
-		if (version !== ctx.session[SESSION_VERSION] || !search.settingEl.isConnected) {
-			button.setDisabled(false);
-			return;
-		}
-		ctx.session[SESSION_RESULTS] = results;
-		ctx.session[SESSION_SEARCHED] = true;
-		ctx.requestRender();
-	};
-
-	search.addButton((b) =>
-		b
-			.setButtonText(strings.searchButton)
-			.setCta()
-			.setDisabled(ctx.opts.externalCallsDisabled)
-			.onClick(() => {
-				void run(b);
-			}),
-	);
-
-	const results = (ctx.session[SESSION_RESULTS] as GeoResult[] | undefined) ?? [];
-	if (ctx.session[SESSION_SEARCHED] && !results.length) {
-		containerEl.createDiv({
-			cls: "hearth-weather-search-empty setting-item-description",
-			text: strings.searchNoResults,
-		});
-	}
-	for (const result of results) {
-		new Setting(containerEl)
-			.setName(result.name)
-			.setDesc(result.region || `${result.lat.toFixed(2)}, ${result.lon.toFixed(2)}`)
-			.setClass("hearth-weather-result")
-			.addButton((b) =>
-				b.setButtonText(strings.usePlace).onClick(() => {
-					cfg.place = {
-						name: result.name,
-						region: result.region || undefined,
-						lat: result.lat,
-						lon: result.lon,
-						timezone: result.timezone || undefined,
-					};
-					ctx.session[SESSION_RESULTS] = [];
-					ctx.session[SESSION_SEARCHED] = false;
-					ctx.opts.save();
-					ctx.opts.rerender();
-					ctx.requestRender();
-				}),
-			);
-	}
-}
-
-/** Latitude/longitude entry, for a place the geocoder doesn't know — or for
- * anyone who would rather not send a place name anywhere at all. */
-function coordinateFields(ctx: CardEditorContext, containerEl: HTMLElement, cfg: WeatherConfig): void {
-	const strings = t().editors.weather;
-
-	/** Write one coordinate, creating the place if this is the first one typed. */
-	const setCoord = (which: "lat" | "lon", raw: string): void => {
-		const value = Number(raw.trim());
-		if (raw.trim() === "" || Number.isNaN(value)) return;
-		const limit = which === "lat" ? 90 : 180;
-		if (Math.abs(value) > limit) return;
-		const place = (cfg.place ??= { name: "", lat: 0, lon: 0 });
-		place[which] = value;
-		if (!place.name.trim()) {
-			place.name = `${place.lat.toFixed(2)}, ${place.lon.toFixed(2)}`;
-		}
-		ctx.opts.save();
-		ctx.opts.rerender();
-	};
-
-	const coords = new Setting(containerEl)
-		.setName(strings.coordinates)
-		.setDesc(strings.coordinatesDesc);
-	coords.addText((txt) =>
-		txt
-			.setPlaceholder(strings.latPlaceholder)
-			.setValue(cfg.place ? String(cfg.place.lat) : "")
-			.onChange((v) => setCoord("lat", v)),
-	);
-	coords.addText((txt) =>
-		txt
-			.setPlaceholder(strings.lonPlaceholder)
-			.setValue(cfg.place ? String(cfg.place.lon) : "")
-			.onChange((v) => setCoord("lon", v)),
-	);
-
-	new Setting(containerEl)
-		.setName(strings.placeName)
-		.setDesc(strings.placeNameDesc)
-		.addText((txt) =>
-			txt
-				.setPlaceholder(strings.placeNamePlaceholder)
-				.setValue(cfg.place?.name ?? "")
-				.setDisabled(!cfg.place)
-				.onChange((v) => {
-					if (!cfg.place) return;
-					cfg.place.name = v;
-					ctx.opts.save();
-					ctx.opts.rerender();
-				}),
-		);
-}
-
 /** A 0-means-off count slider with a reset button, shared by the hourly and
  * daily strip lengths. */
 function countSlider(
@@ -1066,29 +734,18 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 
 	// ---- Location ----
 	new Setting(containerEl).setName(strings.location).setHeading();
-	if (cfg.place) {
-		new Setting(containerEl)
-			.setName(cfg.place.name || strings.unnamedPlace)
-			.setDesc(
-				[cfg.place.region, `${cfg.place.lat.toFixed(3)}, ${cfg.place.lon.toFixed(3)}`]
-					.filter(Boolean)
-					.join(" · "),
-			)
-			.setClass("hearth-weather-current-place")
-			.addExtraButton((b) =>
-				b
-					.setIcon("trash-2")
-					.setTooltip(strings.clearPlace)
-					.onClick(() => {
-						cfg.place = undefined;
-						ctx.opts.save();
-						ctx.opts.rerender();
-						ctx.requestRender();
-					}),
-			);
-	}
-	placePicker(ctx, containerEl, cfg);
-	coordinateFields(ctx, containerEl, cfg);
+	renderPlacePicker(containerEl, {
+		current: cfg.place,
+		onPick: (place) => {
+			cfg.place = place;
+			ctx.opts.save();
+			ctx.opts.rerender();
+		},
+		rerender: () => ctx.requestRender(),
+		disabled: ctx.opts.externalCallsDisabled,
+		session: ctx.session,
+		suggestions: configuredPlaces(ctx.opts.settings),
+	});
 
 	// ---- Style ----
 	new Setting(containerEl).setName(strings.appearance).setHeading();
