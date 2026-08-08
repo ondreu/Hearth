@@ -1254,19 +1254,21 @@
 	overflow: hidden;
 }
 
+/* A div with role="button" (see HomeSettingTab.indexRow), so none of Obsidian's
+   base button styling applies — in particular its fixed height, which a
+   two-line row overflows. */
 .hearth-settings-index-row {
 	display: flex;
 	align-items: center;
 	gap: 14px;
-	width: 100%;
 	padding: 14px 16px;
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-	text-align: left;
 	cursor: pointer;
 	transition: background 110ms ease;
+}
+
+.hearth-settings-index-row:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
 }
 
 .hearth-settings-index-row + .hearth-settings-index-row {
@@ -1320,16 +1322,14 @@
 /* ---- Settings tab: a category page ----------------------------------
    The second level: one category's groups, with the way back at the top. */
 
+/* Also a div rather than a button — see .hearth-settings-index-row. */
 .hearth-settings-back {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
 	margin: 14px 0 0;
 	padding: 5px 10px 5px 6px;
-	border: none;
 	border-radius: 7px;
-	background: transparent;
-	box-shadow: none;
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 	cursor: pointer;
@@ -1338,6 +1338,11 @@
 .hearth-settings-back:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
+}
+
+.hearth-settings-back:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
 }
 
 .hearth-settings-back-icon {

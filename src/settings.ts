@@ -6,7 +6,7 @@ import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
 import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
-import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
+import { confirmAction, downloadTextFile, makeClickable, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import {
 	type IntegrationEntry,
@@ -340,18 +340,24 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 	}
 
-	/** One index row: icon, category name, a line on what's inside, chevron. */
+	/** One index row: icon, category name, a line on what's inside, chevron.
+	 *
+	 * A div rather than a `<button>`, via the same `makeClickable` treatment the
+	 * rest of the plugin uses. Obsidian's base `button` style fixes the element's
+	 * height, which a two-line row overflows — its name and description spilled
+	 * straight out of the row's own box. */
 	private indexRow(rowsEl: HTMLElement, entry: { id: SettingsTabId; icon: string }): void {
 		const s = t().settings;
 		const label = s.tabs[entry.id];
-		const row = rowsEl.createEl("button", { cls: "hearth-settings-index-row" });
-		row.setAttribute("aria-label", label);
+		const row = rowsEl.createDiv("hearth-settings-index-row");
+		const open = () => this.navigate(entry.id);
+		makeClickable(row, open, label);
 		setIcon(row.createSpan("hearth-settings-index-glyph"), entry.icon);
 		const text = row.createDiv("hearth-settings-index-rowtext");
 		text.createDiv({ cls: "hearth-settings-index-rowname", text: label });
 		text.createDiv({ cls: "hearth-settings-index-rowdesc", text: s.tabDescs[entry.id] });
 		setIcon(row.createSpan("hearth-settings-index-go"), "chevron-right");
-		row.addEventListener("click", () => this.navigate(entry.id));
+		row.addEventListener("click", open);
 	}
 
 	/** A category page's header: the way back to the index, then the category's
@@ -359,11 +365,13 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * away with the content, which is the whole point of dropping the ribbon. */
 	private renderCategoryHead(containerEl: HTMLElement, tab: SettingsTabId): void {
 		const s = t().settings;
-		const back = containerEl.createEl("button", { cls: "hearth-settings-back" });
+		// A div, for the same reason as an index row — see `indexRow`.
+		const back = containerEl.createDiv("hearth-settings-back");
+		const leave = () => this.navigate("index");
+		makeClickable(back, leave, s.backToIndex);
 		setIcon(back.createSpan("hearth-settings-back-icon"), "chevron-left");
 		back.createSpan({ text: this.plugin.manifest.name });
-		back.setAttribute("aria-label", s.backToIndex);
-		back.addEventListener("click", () => this.navigate("index"));
+		back.addEventListener("click", leave);
 
 		containerEl.createDiv({ cls: "hearth-settings-page-title", text: s.tabs[tab] });
 		containerEl.createDiv({ cls: "hearth-settings-page-desc", text: s.tabDescs[tab] });
