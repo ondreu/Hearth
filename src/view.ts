@@ -167,7 +167,7 @@ export class HomeView extends ItemView {
 			renderCards(this.plugin.settings).length === 0;
 		root.toggleClass("hearth-empty-board", emptyBoard);
 
-		applyBackground(this, root);
+		applyBackground(this, root, child);
 
 		const scroll = root.createDiv("hearth-scroll");
 		scroll.toggleClass("hearth-fit", effectiveFitToPage(this.plugin.settings));

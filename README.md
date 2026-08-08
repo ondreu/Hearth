@@ -167,7 +167,12 @@ calls**.
 
 ## Appearance
 
-- **Background** — solid color, vault image or URL, with opacity and blur.
+- **Background** — solid color, vault image, URL, or a **live weather sky**:
+  the board's backdrop becomes the painted sky the weather card's artistic style
+  draws, spread across the whole window and following the real conditions and
+  time of day over a place you pick. Or pin one sky — clear night, snow,
+  thunder — and keep it whatever the weather is doing, which needs no location
+  and never goes online. All with opacity and blur.
   Ships with a soft ambient default.
 - **Frosted glass** — card opacity and backdrop blur at three levels (global →
   per-dashboard → per-card). Merged cards blur as one seamless sheet.

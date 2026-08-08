@@ -4,10 +4,12 @@ import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
+import { configuredPlaces, renderSkySource } from "./placepicker";
 import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, makeClickable, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
+import { formatSkyValue, parseSkyValue } from "./sky";
 import {
 	type IntegrationEntry,
 	type IntegrationGroup,
@@ -102,6 +104,11 @@ const ACTIVE_TAB_KEY = "hearth-settings-tab";
  */
 export class HomeSettingTab extends PluginSettingTab {
 	plugin: HearthPlugin;
+
+	/** Scratch space for the background place picker (its query and the last
+	 * search's results). Kept on the tab so it survives the in-place rerenders
+	 * the picker's own buttons trigger, and is dropped when the tab closes. */
+	private placeSession: Record<string, unknown> = {};
 
 	/** Members we deliberately override — the documented extension points of
 	 * `SettingTab`. Anything else that exists on the base prototype chain is an
@@ -788,13 +795,34 @@ export class HomeSettingTab extends PluginSettingTab {
 				});
 				d.setValue(s.backgroundKind).onChange((v) => {
 					s.backgroundKind = v as BackgroundKind;
+					// Opacity means different things to the two kinds of backdrop.
+					// For a photo it is "dim this so the text on top reads", and
+					// the default (0.35) is set for that. The weather sky is a
+					// gradient, not a photo — dimmed that far it is a grey slab
+					// with the weather invisible in it, and the contrast the
+					// reader needs comes from the card surfaces instead. So lift
+					// it once on the switch, only from a photo-ish value, with
+					// the slider right below to put it back.
+					if (v === "weather" && s.backgroundOpacity <= 0.5) {
+						s.backgroundOpacity = 1;
+					}
 					void this.save();
 					this.rerender();
 				});
 			});
 
-		// "default" and "none" have no value field; the others do.
-		if (s.backgroundKind !== "none" && s.backgroundKind !== "default") {
+		// The weather sky stores a place rather than a typed-in value, so it gets
+		// the shared place picker instead of the text field below.
+		if (s.backgroundKind === "weather") {
+			this.weatherBackgroundSection(containerEl);
+		}
+
+		// "default", "none" and "weather" have no free-text value field; the rest do.
+		if (
+			s.backgroundKind !== "none" &&
+			s.backgroundKind !== "default" &&
+			s.backgroundKind !== "weather"
+		) {
 			const desc =
 				s.backgroundKind === "color"
 					? t().settings.background.valueColorDesc
@@ -848,6 +876,43 @@ export class HomeSettingTab extends PluginSettingTab {
 				this.addSliderReset(blur, sl, "backgroundBlur");
 			});
 		}
+	}
+
+	/** The weather sky's own controls: where it is, and whether it moves. The
+	 * place is stored packed into `backgroundValue` — the same field the other
+	 * kinds use for a colour, a path or a URL. */
+	private weatherBackgroundSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.background;
+		const sky = parseSkyValue(s.backgroundValue);
+
+		new Setting(containerEl).setName(strings.weatherHeading).setHeading();
+		containerEl.createDiv({
+			cls: "setting-item-description hearth-setting-note",
+			text: sky ? strings.weatherDesc : `${strings.weatherNoPlace} ${strings.weatherDesc}`,
+		});
+
+		renderSkySource(containerEl, {
+			current: sky,
+			onChange: (next) => {
+				s.backgroundValue = next ? formatSkyValue(next) : "";
+				void this.save();
+			},
+			rerender: () => this.rerender(),
+			disabled: s.disableExternalCalls,
+			session: this.placeSession,
+			suggestions: configuredPlaces(s),
+		});
+
+		new Setting(containerEl)
+			.setName(strings.skyAnimate)
+			.setDesc(strings.skyAnimateDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.backgroundSkyAnimate !== false).onChange(async (v) => {
+					s.backgroundSkyAnimate = v ? undefined : false;
+					await this.save();
+				}),
+			);
 	}
 
 	// ---- Startup & tabs -------------------------------------------------

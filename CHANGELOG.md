@@ -15,6 +15,35 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The weather sky, as your background.** **Settings → Appearance →
+  Background** has a new type: **Live weather sky**. The board's backdrop
+  becomes the painted sky the weather card's artistic style draws — sun,
+  crescent moon and a full field of stars, clouds drifting in three lanes,
+  rain, drizzle, snow, layered fog and lightning — spread across the whole
+  window and following the real conditions and the real time of day over a
+  place you pick. The storm and the fog were rebuilt for the size: lightning
+  is now several generated discharges, each a crooked forked stroke on its own
+  timer over a sheet flash, rather than one drawn bolt blinking in one spot;
+  fog is a bank of overlapping wisps drifting past each other at different
+  speeds and densities, rather than three flat bands. It is the same painting, redrawn for the space: a window is
+  several times a card, so it gets a wider box, more stars, more clouds and
+  more rain rather than three enormous clouds. Pick the place by searching for
+  it or by typing coordinates, or reuse one already set on a weather card in
+  one click; the forecast is shared with any card on the same place instead of
+  fetched twice, and refreshes itself every half hour.
+
+  **Or pin a sky and keep it.** Set the sky to *fixed* instead of live and
+  choose the condition yourself — always clear, always snow, always
+  thunderstorm — and whether it follows your clock or stays permanently day or
+  night. A fixed sky needs no location and never goes online at all.
+
+  Backgrounds can be set globally or per dashboard, so one board can sit under
+  a live sky and another under a permanent clear night. Opacity and blur work
+  as they do for a wallpaper (switching to a sky lifts the photo-oriented
+  default opacity once, since a gradient dimmed to 0.35 is just a grey slab).
+  Low power mode still replaces the whole background with its flat colour, and
+  a reader whose system asks for reduced motion gets the sky without the
+  motion.
 - **Weather card.** Current conditions and a forecast on the dashboard, from
   [Open-Meteo](https://open-meteo.com) — free, key-less, and with no account to
   create, so it works the moment you add the card. Point it at a place by
@@ -176,6 +205,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   keeps the double-click raw editor it has always had (#160).
 
 ### Fixed
+
+- **The weather card's clouds sat in the wrong place.** Every cloud carried its
+  position and size in an SVG `transform` attribute and its drift in a CSS
+  animation — and a CSS animation replaces the transform attribute outright.
+  So the moment a sky started moving, the whole bank lost its placement and
+  slid across the top edge in a row. Clouds now drift in an outer group and
+  carry their position in an inner one, so a cloudy sky is a sky with clouds in
+  it rather than a strip of them along the top.
 
 - **One card can no longer take the board down with it.** A card kind is drawn
   synchronously while the dashboard builds, and in Arrange mode the drag overlay

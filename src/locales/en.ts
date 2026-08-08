@@ -222,6 +222,7 @@ export const en = {
 			color: "Solid color",
 			image: "Vault image",
 			url: "Image URL",
+			weather: "Live weather sky",
 		},
 		backgroundValueDesc: {
 			color: "A CSS color, e.g. #1e1e2e.",
@@ -410,7 +411,32 @@ export const en = {
 				color: "Solid color",
 				image: "Vault image",
 				url: "Image URL",
+				weather: "Live weather sky",
 			},
+			weatherHeading: "Weather sky",
+			weatherDesc:
+				"The board's backdrop becomes a painted sky — the same one the weather " +
+				"card's artistic style uses, spread across the whole window. Follow the " +
+				"real conditions over a place (from Open-Meteo; only the coordinates are " +
+				"sent, and nothing is fetched while external calls are off), or pin one " +
+				"sky and keep it, which needs no location and never goes online.",
+			weatherNoPlace: "Pick a location below to paint the sky.",
+			skySource: "Sky",
+			skySourceDesc:
+				"Follow the real weather somewhere, or keep one sky whatever it's doing outside.",
+			skySourceLive: "Live weather",
+			skySourceFixed: "A fixed sky",
+			skyCondition: "Condition",
+			skyConditionDesc: "The weather this sky always shows.",
+			skyDaylight: "Time of day",
+			skyDaylightDesc: "Whether the sky follows your clock or stays day or night.",
+			skyDaylightAuto: "Follow the clock",
+			skyDaylightDay: "Always day",
+			skyDaylightNight: "Always night",
+			skyAnimate: "Animate the sky",
+			skyAnimateDesc:
+				"Drifting clouds, falling rain and twinkling stars behind the board. Always " +
+				"off in low power mode, and for readers whose system asks for reduced motion.",
 		},
 		behaviour: {
 			heading: "Behaviour",
@@ -658,8 +684,10 @@ export const en = {
 				weather: {
 					name: "Weather forecasts",
 					desc:
-						"Weather cards fetch conditions and forecasts from Open-Meteo — free, " +
-						"key-less, no account. Only the coordinates you pick are ever sent.",
+						"Weather cards — and the live weather sky background — fetch conditions " +
+						"from Open-Meteo: free, key-less, no account. Only the coordinates you " +
+						"pick are ever sent, and a sky pinned to one condition needs no " +
+						"location at all.",
 				},
 				webSearch: {
 					name: "Web search",
@@ -1467,6 +1495,9 @@ export const en = {
 			searchEmpty: "Type a place name to search for.",
 			searchNoResults: "No places matched that name.",
 			usePlace: "Use",
+			reuse: "Reuse a location",
+			reuseDesc: "A place already set on one of your weather cards.",
+			reusePick: "Choose a location…",
 			unnamedPlace: "(unnamed place)",
 			clearPlace: "Clear location",
 			coordinates: "Coordinates",

@@ -18,6 +18,8 @@ import {
 	newDashboardId,
 } from "./types";
 import { cloneCard } from "./cards";
+import { configuredPlaces, renderSkySource } from "./placepicker";
+import { formatSkyValue, parseSkyValue } from "./sky";
 import { confirmAction } from "./ui";
 import type { WorkspacesInstance } from "./obsidian-ext";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
@@ -202,6 +204,10 @@ function showDashboardMenu(
 class DashboardSettingsModal extends HearthTabbedModal {
 	private view: HomeView;
 	private dash: Dashboard;
+
+	/** Scratch space for the background place picker; survives this modal's
+	 * in-place rerenders, and goes when it closes. */
+	private placeSession: Record<string, unknown> = {};
 
 	constructor(view: HomeView, dash: Dashboard) {
 		super(view.app);
@@ -746,10 +752,13 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					if (v === "default") {
 						dash.background = undefined;
 					} else {
+						const opacity = bg?.opacity ?? DEFAULT_DASH_BG_OPACITY;
 						dash.background = {
 							kind: v as BackgroundKind,
 							value: bg?.value ?? "",
-							opacity: bg?.opacity ?? DEFAULT_DASH_BG_OPACITY,
+							// See the same lift in the global background settings:
+							// the photo default (0.35) mutes the sky to a slab.
+							opacity: v === "weather" && opacity <= 0.5 ? 1 : opacity,
 							blur: bg?.blur ?? DEFAULT_DASH_BG_BLUR,
 						};
 					}
@@ -760,7 +769,23 @@ class DashboardSettingsModal extends HearthTabbedModal {
 
 		if (!bg || bg.kind === "none") return;
 
-		if (bg.kind !== "default") {
+		// The weather sky stores a place, not a typed-in value, so it gets the
+		// shared picker in place of the text field below.
+		if (bg.kind === "weather") {
+			renderSkySource(containerEl, {
+				current: parseSkyValue(bg.value),
+				onChange: (next) => {
+					bg.value = next ? formatSkyValue(next) : "";
+					this.commit();
+				},
+				rerender: () => this.render(),
+				disabled: this.view.plugin.settings.disableExternalCalls,
+				session: this.placeSession,
+				suggestions: configuredPlaces(this.view.plugin.settings),
+			});
+		}
+
+		if (bg.kind !== "default" && bg.kind !== "weather") {
 			const desc =
 				bg.kind === "color"
 					? t().dashboards.backgroundValueDesc.color

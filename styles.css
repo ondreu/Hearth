@@ -19,6 +19,17 @@
 	background-position: center;
 }
 
+/* The live weather sky as the board's backdrop. It is the same element the
+ * weather card's artistic style draws (see sky.ts), so it arrives styled —
+ * all it needs here is to fill the layer instead of sitting in a card's flex
+ * column, and to stay behind everything. The layer's own opacity and blur
+ * still apply, so a sky can be dialled back to a wash like any wallpaper. */
+.hearth-bg > .hearth-weather-sky {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
 /* ---- Low power mode ---------------------------------------------------
  *
  * The paint-cost half of the setting. Everything with a value behind it — the
@@ -3237,7 +3248,14 @@
 .is-animated .hearth-weather-sun-glow,
 .is-animated .hearth-weather-moon-glow {
 	animation: hearth-weather-breathe 6s ease-in-out infinite;
-	transform-origin: 158px 28px;
+	/* Scale about the glow's own centre. Naming a point in user units instead
+	 * is what made the moon slide sideways as it breathed: the moon's crescent
+	 * is drawn in a group that is translated into place, so a coordinate that
+	 * is correct on screen is the wrong point inside that group — and scaling
+	 * about a point off to one side moves the disc rather than growing it.
+	 * `fill-box` sidesteps the whole question. */
+	transform-box: fill-box;
+	transform-origin: center;
 }
 
 @keyframes hearth-weather-breathe {
@@ -3289,61 +3307,45 @@
 }
 
 /* Each lane drifts at its own speed, so the bank never moves as one slab. The
- * translation is in viewBox units: -60 to 260 crosses the full 200-wide box
- * with enough overshoot that a cloud is never seen popping in. */
-.is-animated .hearth-weather-cloud.is-lane-1 {
-	animation: hearth-weather-drift 46s linear infinite;
+ * duration and the phase are set per cloud in sky.ts (they depend on where in
+ * the box the cloud starts); the stylesheet only says what the motion is. */
+.is-animated .hearth-weather-cloud {
+	animation-name: hearth-weather-drift;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
 }
 
-.is-animated .hearth-weather-cloud.is-lane-2 {
-	animation: hearth-weather-drift 66s linear infinite;
-	animation-delay: -20s;
-}
-
-.is-animated .hearth-weather-cloud.is-lane-3 {
-	animation: hearth-weather-drift 86s linear infinite;
-	animation-delay: -50s;
-}
-
+/* The distances are variables because they are the one part of the animation
+ * that has to know how wide the box is: a board-sized sky is drawn in a wider
+ * viewBox, and a cloud that stops at the card's 260 would strand mid-screen.
+ * sky.ts sets them; the fallbacks are the card's. */
 @keyframes hearth-weather-drift {
 	from {
-		transform: translateX(-60px);
+		transform: translateX(var(--sky-drift-from, -60px));
 	}
 	to {
-		transform: translateX(260px);
+		transform: translateX(var(--sky-drift-to, 260px));
 	}
 }
 
-/* ---- Fog banks ---- */
+/* ---- Fog ----
+ *
+ * A bank of overlapping wisps rather than a few bands. The group is faded as a
+ * whole so the overlaps merge into one body of haze; each wisp carries its own
+ * opacity (set in sky.ts, by depth) and its own speed, and they drift the same
+ * way the clouds do. */
 .hearth-weather-fogbank {
-	opacity: 0.16;
+	opacity: 0.5;
 }
 
-.hearth-weather-fogbank rect {
+.hearth-weather-fogbank ellipse {
 	fill: #fff;
 }
 
-.is-animated .hearth-weather-fogbank rect.is-lane-1 {
-	animation: hearth-weather-fog 34s ease-in-out infinite;
-}
-
-.is-animated .hearth-weather-fogbank rect.is-lane-2 {
-	animation: hearth-weather-fog 48s ease-in-out infinite reverse;
-}
-
-.is-animated .hearth-weather-fogbank rect.is-lane-3 {
-	animation: hearth-weather-fog 60s ease-in-out infinite;
-	animation-delay: -12s;
-}
-
-@keyframes hearth-weather-fog {
-	0%,
-	100% {
-		transform: translateX(-18px);
-	}
-	50% {
-		transform: translateX(18px);
-	}
+.is-animated .hearth-weather-fogbank ellipse {
+	animation-name: hearth-weather-drift;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
 }
 
 /* ---- Rain, drizzle and snow ---- */
@@ -3389,7 +3391,7 @@
 		opacity: 0.6;
 	}
 	to {
-		transform: translate(-24px, 140px);
+		transform: translate(-24px, var(--sky-fall, 140px));
 		opacity: 0;
 	}
 }
@@ -3403,33 +3405,98 @@
 		opacity: 0.85;
 	}
 	to {
-		transform: translate(14px, 136px);
+		transform: translate(14px, var(--sky-fall, 140px));
 		opacity: 0;
 	}
 }
 
-/* ---- Lightning ---- */
+/* ---- Lightning ----
+ *
+ * A stroke, not a filled shape: a discharge is a line that forked, and drawing
+ * it as one lets the same path carry a bright core and a soft halo. */
 .hearth-weather-bolt {
-	fill: #ffe57a;
+	fill: none;
+	stroke: #fff6cf;
+	stroke-width: 1.4;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	opacity: 0;
+	/* The halo. Cheaper than a blur filter over the whole backdrop, and it
+	 * survives on hardware where filters are the first thing to stutter. */
+	filter: drop-shadow(0 0 3px rgba(255, 240, 170, 0.9));
+}
+
+/* A still storm (low power, motion off, reduced motion) still needs to look
+ * like a storm rather than plain rain, so the discharges simply stay lit. */
+.hearth-weather-sky:not(.is-animated) .hearth-weather-bolt {
+	opacity: 0.85;
+}
+
+.hearth-weather-flash {
+	fill: #fff;
 	opacity: 0;
 }
 
+/* Each bolt gets its own duration and phase in sky.ts, so the strikes drift
+ * out of step instead of firing together on a loop. */
 .is-animated .hearth-weather-bolt {
-	animation: hearth-weather-flash 7s steps(1, end) infinite;
+	animation-name: hearth-weather-strike;
+	animation-timing-function: steps(1, end);
+	animation-iteration-count: infinite;
 }
 
-@keyframes hearth-weather-flash {
+.is-animated .hearth-weather-flash {
+	animation: hearth-weather-sheet 11.1s steps(1, end) infinite;
+}
+
+/* Most of the cycle is dark. The strike itself is a stutter — bright, gone,
+ * brighter — because that flicker is what the eye reads as lightning. */
+@keyframes hearth-weather-strike {
 	0%,
-	4%,
+	2.4%,
 	100% {
 		opacity: 0;
 	}
-	1%,
-	3% {
+	0.4% {
 		opacity: 0.95;
 	}
-	2% {
-		opacity: 0.3;
+	0.9% {
+		opacity: 0.15;
+	}
+	1.4% {
+		opacity: 1;
+	}
+	1.9% {
+		opacity: 0.4;
+	}
+}
+
+@keyframes hearth-weather-sheet {
+	0%,
+	3%,
+	100% {
+		opacity: 0;
+	}
+	0.5% {
+		opacity: 0.16;
+	}
+	1% {
+		opacity: 0.04;
+	}
+	1.6% {
+		opacity: 0.2;
+	}
+	2.2% {
+		opacity: 0.05;
+	}
+}
+
+/* A reader who has asked the OS for less motion gets a still sky: the shapes
+ * stay where sky.ts placed them (drops are spread down the field for exactly
+ * this case), so nothing disappears — it simply stops moving. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-weather-sky.is-animated * {
+		animation: none !important;
 	}
 }
 
