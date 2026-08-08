@@ -14,6 +14,7 @@ import { openFile } from "./opener";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
+import { clearContentSearchCache } from "./query";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
 const AUDIO_RECORDER_PLUGIN_ID = "audio-recorder";
@@ -149,6 +150,9 @@ export default class HearthPlugin extends Plugin {
 
 	onunload() {
 		// Views are detached automatically by Obsidian on plugin unload.
+		// The content-search cache holds lower-cased note bodies, though, so
+		// drop it rather than leave a copy of the vault behind after unload.
+		clearContentSearchCache();
 	}
 
 	private maybeReplaceNewTab(leaf: WorkspaceLeaf | null) {

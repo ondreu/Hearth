@@ -2,6 +2,31 @@ import { App, Modal, Setting } from "obsidian";
 import { t } from "./i18n";
 
 /**
+ * Write `text` into `el` with the character ranges in `matches` wrapped in
+ * `<mark>`. Ranges must be sorted and non-overlapping (see `highlightRanges`).
+ * Shared by every search surface so a result name and a body excerpt pick out
+ * the match the same way.
+ */
+export function renderHighlighted(
+	el: HTMLElement,
+	text: string,
+	matches?: readonly [number, number][],
+): void {
+	if (!matches || matches.length === 0) {
+		el.setText(text);
+		return;
+	}
+	let cursor = 0;
+	for (const [start, end] of matches) {
+		if (start >= text.length) break;
+		if (start > cursor) el.appendText(text.slice(cursor, start));
+		el.createEl("mark", { cls: "hearth-result-mark", text: text.slice(start, end) });
+		cursor = Math.min(end, text.length);
+	}
+	if (cursor < text.length) el.appendText(text.slice(cursor));
+}
+
+/**
  * Make a non-button element behave like a button for keyboard and screen-reader
  * users: it gets a role, becomes focusable, and activates on Enter/Space in
  * addition to the click handler the caller wires up separately.

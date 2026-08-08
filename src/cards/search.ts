@@ -4,9 +4,15 @@ import { addResetButton } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { openFile } from "../opener";
-import { runQuery, searchFileContents, type QueryHit } from "../query";
+import {
+	mergeRanked,
+	runQuery,
+	searchFileContents,
+	slotsAboveBody,
+	type QueryHit,
+} from "../query";
 import { type DashboardCard } from "../types";
-import { makeClickable } from "../ui";
+import { makeClickable, renderHighlighted } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -25,7 +31,12 @@ export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTM
 	const limit = cfg.count && cfg.count > 0 ? cfg.count : 12;
 	const useTiles = (cfg.view ?? "list") === "tiles";
 
-	const hits = runQuery(view.app, query, { limit });
+	// Files only: the card's rows open a note on click, so a folder hit would
+	// render as a row that looks clickable and then does nothing.
+	const hits = runQuery(view.app, query, {
+		limit,
+		filter: { includeFolders: false, includeFiles: true, groupId: null },
+	});
 
 	const render = (all: QueryHit[]) => {
 		const list = all.slice(0, limit);
@@ -45,8 +56,13 @@ export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTM
 	// Append full-text body matches when enabled (self-guards to name queries).
 	if (view.plugin.settings.searchContents) {
 		const exclude = new Set(hits.map((h) => h.file.path));
-		void searchFileContents(view.app, query, { exclude, limit }).then((extra) => {
-			if (extra.length) render([...hits, ...extra]);
+		// Budget against the hits that outrank a body match, so fuzzy name hits
+		// (which sort below body ones) don't reserve slots they won't keep.
+		void searchFileContents(view.app, query, {
+			exclude,
+			limit: Math.max(0, limit - slotsAboveBody(hits)),
+		}).then((extra) => {
+			if (extra.length) render(mergeRanked(hits, extra, limit));
 		});
 	}
 }
@@ -64,8 +80,21 @@ function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): v
 			hit.badge?.icon ?? resolveFileIcon(view.app, hit.file, icons),
 		);
 		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
-		row.createDiv({ cls: "hearth-list-label", text: name });
-		if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
+		if (hit.badge?.excerpt) {
+			// A body excerpt is a sentence, not a chip: it goes on its own line
+			// under the file name, muted, with the matched words picked out.
+			row.addClass("has-excerpt");
+			const text = row.createDiv("hearth-list-text");
+			text.createDiv({ cls: "hearth-list-label", text: name });
+			renderHighlighted(
+				text.createDiv("hearth-list-excerpt"),
+				hit.badge.label,
+				hit.badge.matches,
+			);
+		} else {
+			row.createDiv({ cls: "hearth-list-label", text: name });
+			if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
+		}
 		const open = () => {
 			if (hit.file instanceof TFile) void openFile(view, hit.file, "search");
 		};
