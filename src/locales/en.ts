@@ -564,6 +564,12 @@ export const en = {
 						"The Dataview card runs DQL queries and DataviewJS blocks and renders " +
 						"them with Dataview's own renderers, refreshing as its index changes.",
 				},
+				datacore: {
+					name: "Datacore",
+					desc:
+						"Dataview's successor. The Datacore card runs a Datacore query — or a " +
+						"JS/JSX/TS/TSX script — and renders it with Datacore's own live views.",
+				},
 				iconic: {
 					name: "Iconic",
 					desc:
@@ -824,6 +830,7 @@ export const en = {
 			heatmap: "Activity heatmap",
 			calculator: "Calculator",
 			dataview: "Dataview query",
+			datacore: "Datacore query",
 			rss: "RSS feed",
 			jira: "Jira filter",
 			leaf: "Plugin view (beta)",
@@ -1377,6 +1384,31 @@ export const en = {
 				'TABLE file.mtime AS "Modified" FROM #project SORT file.mtime DESC',
 			queryJsPlaceholder: "dv.list(dv.pages('#project').file.link)",
 		},
+		datacore: {
+			language: "Query type",
+			languageDesc:
+				"A Datacore query rendered as a live list, or a Datacore script that draws its own view.",
+			languageQuery: "Datacore query",
+			languageJsx: "Script (JSX)",
+			languageJs: "Script (JS)",
+			languageTsx: "Script (TSX)",
+			languageTs: "Script (TS)",
+			query: "Query",
+			queryDesc:
+				"A Datacore query, e.g. @page and #project. Hearth renders the matches as a " +
+				"live list of links. Runs with no “current note”, so global queries work " +
+				"fully but file-relative ones have no file to resolve to.",
+			queryPlaceholder: "@page and #project",
+			script: "Script",
+			scriptDesc:
+				"A Datacore script, as inside a ```datacorejsx block (without the fences). " +
+				"The dc API is in scope and the script returns the view to render. Runs " +
+				"arbitrary code — only use code you trust.",
+			scriptPlaceholder:
+				"return function View() {\n\tconst pages = dc.useQuery(\"@page and #project\");\n\treturn <dc.List rows={pages} renderer={(p) => <dc.Link link={p.$link} />} />;\n}",
+			pageSize: "Rows per page",
+			pageSizeDesc: "Page the generated list at this many rows. 0 shows every match at once.",
+		},
 		rss: {
 			feeds: "Feeds",
 			namePlaceholder: "Name (optional)",
@@ -1535,6 +1567,12 @@ export const en = {
 				"No Kanban board found — pick a board note in card settings, or create one with the Kanban plugin",
 			dataviewEnable: "Enable the Dataview plugin to run queries",
 			dataviewNoQuery: "Set a Dataview query in card settings",
+			datacoreEnable: "Enable the Datacore plugin to run queries",
+			datacoreNoQuery: "Set a Datacore query in card settings",
+			datacoreBadQuery: "Datacore couldn't read this query",
+			datacoreOneQuery:
+				"A card runs one query — this looks like several. Keep just the one you want, with no comment after it.",
+			datacoreFailed: "Datacore couldn't run this card",
 			rssNoSources: "Add a feed in card settings",
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
@@ -1853,6 +1891,7 @@ export const en = {
 		text: "Text / jot-down",
 		calculator: "Calculator",
 		dataview: "Dataview query",
+		datacore: "Datacore query",
 		rss: "RSS feed",
 		jira: "Jira filter",
 		leaf: "Plugin view (beta)",

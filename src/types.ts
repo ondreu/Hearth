@@ -1,3 +1,4 @@
+import type { DatacoreLanguage } from "./datacore";
 import type { EventNoteConfig } from "./eventnote";
 
 /** The kind of content a dashboard card renders. */
@@ -19,6 +20,7 @@ export type CardKind =
 	| "heatmap"
 	| "calculator"
 	| "dataview"
+	| "datacore"
 	| "rss"
 	| "jira"
 	| "leaf";
@@ -563,6 +565,26 @@ export interface DataviewConfig {
 	columnWidths?: number[];
 }
 
+/** Per-card configuration for a "datacore" card. Datacore is Dataview's
+ * successor, and this card is the Dataview card's: it renders a Datacore query
+ * or script through Datacore's own Preact renderer, live-updating as the index
+ * changes. Only offered by the "Add card" picker when the Datacore community
+ * plugin is installed and enabled. */
+export interface DatacoreConfig {
+	/** The query text. For "query" (default) this is a Datacore query, e.g.
+	 * `@page and #project`; for the script languages it is the script source,
+	 * exactly as inside the matching `datacore…` codeblock. */
+	query?: string;
+	/** How `query` is interpreted. "query" (default) renders the query as a live
+	 * link list; "js" / "jsx" / "ts" / "tsx" run it as a Datacore script, which
+	 * is arbitrary code. */
+	language?: DatacoreLanguage;
+	/** "query" mode only: rows per page in the generated list. Absent or 0
+	 * renders every result unpaged. Ignored by the script languages, which draw
+	 * their own views. */
+	pageSize?: number;
+}
+
 /** Per-card configuration for a "leaf" card, which hosts another plugin's (or a
  * core) registered side-panel view inside the dashboard. Beta. */
 export interface LeafViewConfig {
@@ -758,6 +780,8 @@ export interface DashboardCard {
 	calculator?: CalculatorConfig;
 	/** kind === "dataview": the query text and language. */
 	dataview?: DataviewConfig;
+	/** kind === "datacore": the query/script text, language and paging. */
+	datacore?: DatacoreConfig;
 	/** kind === "rss": feed sources, layout and refresh options. */
 	rss?: RssConfig;
 	/** kind === "jira": connection, saved filter, and refinement options. */

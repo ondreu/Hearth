@@ -8,6 +8,7 @@ import {
 	type CommandItem,
 	type Dashboard,
 	type DashboardCard,
+	type DatacoreConfig,
 	type DataviewConfig,
 	type HeatmapConfig,
 	type HomeSettings,
@@ -37,6 +38,7 @@ import {
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
+import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
 import { t } from "./i18n";
 
 /** Current dashboard-layout export schema version. v2 carries every dashboard
@@ -348,6 +350,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	}
 	if (r.dataview && typeof r.dataview === "object") {
 		card.dataview = sanitizeDataview(r.dataview as Record<string, unknown>);
+	}
+	if (r.datacore && typeof r.datacore === "object") {
+		card.datacore = sanitizeDatacore(r.datacore as Record<string, unknown>);
 	}
 	if (r.leafView && typeof r.leafView === "object") {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
@@ -778,6 +783,19 @@ function sanitizeDataview(r: Record<string, unknown>): DataviewConfig {
 		cfg.columnWidths = r.columnWidths.filter(
 			(w): w is number => typeof w === "number" && Number.isFinite(w),
 		);
+	}
+	return cfg;
+}
+
+function sanitizeDatacore(r: Record<string, unknown>): DatacoreConfig {
+	const cfg: DatacoreConfig = {};
+	const query = str(r.query);
+	if (query !== undefined) cfg.query = query;
+	if (DATACORE_LANGUAGES.includes(r.language as DatacoreLanguage)) {
+		cfg.language = r.language as DatacoreLanguage;
+	}
+	if (typeof r.pageSize === "number" && Number.isFinite(r.pageSize)) {
+		cfg.pageSize = Math.max(0, Math.min(100, Math.round(r.pageSize)));
 	}
 	return cfg;
 }

@@ -53,6 +53,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "text", icon: "pencil", gated: false, build: { kind: "text", title: "Notes", text: "", w: 4, h: 2 } },
 			{ id: "calculator", icon: "calculator", gated: false, build: { kind: "calculator", title: "Calculator", calculator: {}, w: 4, h: 3 } },
 			{ id: "dataview", icon: "database", gated: true, build: { kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 } },
+			{ id: "datacore", icon: "database-zap", gated: true, build: { kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 } },
 			{ id: "rss", icon: "rss", gated: false, build: { kind: "rss", title: "RSS", rss: { sources: [] }, w: 4, h: 5 } },
 			{
 				id: "jira",
@@ -123,6 +124,7 @@ function maximalCard(): DashboardCard {
 		clock: { format: "24" } as never,
 		calculator: { keypad: "basic" } as never,
 		dataview: { columnWidths: [1, 2, 3] },
+		datacore: { query: "@page and #project", language: "query", pageSize: 25 },
 		rss: { sources: [{ id: "s1", name: "Feed", url: "https://example.com/feed" }] },
 		jira: {
 			controls: ["status"],
@@ -157,6 +159,7 @@ describe("cloneCard deep-clone independence", () => {
 		(copy.clock as { format: string }).format = "12";
 		(copy.calculator as { keypad: string }).keypad = "sci";
 		copy.dataview!.columnWidths!.push(4);
+		copy.datacore!.query = "@page and #other";
 		copy.rss!.sources!.push({ id: "s2", name: "Feed 2", url: "https://example.com/feed2" });
 		copy.jira!.controls!.push("assignee");
 		copy.jira!.selections!.status!.push("Closed");
@@ -174,6 +177,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.clock).toEqual(pristine.clock);
 		expect(orig.calculator).toEqual(pristine.calculator);
 		expect(orig.dataview).toEqual(pristine.dataview);
+		expect(orig.datacore).toEqual(pristine.datacore);
 		expect(orig.rss).toEqual(pristine.rss);
 		expect(orig.jira).toEqual(pristine.jira);
 	});
@@ -206,6 +210,7 @@ describe("liveness classification", () => {
 			heatmap: "vault",
 			calculator: "static",
 			dataview: "static",
+			datacore: "static",
 			rss: "static",
 			jira: "static",
 			leaf: "static",

@@ -15,6 +15,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Datacore card.** Dataview is winding down in favour of
+  [Datacore](https://github.com/blacksmithgu/datacore), so Hearth now has a card
+  for it, in the same shape as the Dataview card: pick a query type, write a
+  query, get a live result. **Query** is the no-code mode — type a Datacore
+  query like `@page and #project` and the card renders the matches as a list of
+  links that re-runs itself whenever the index changes, with optional paging.
+  The other four modes run the text as a Datacore script (JSX, JS, TSX or TS),
+  exactly as inside a `datacorejsx` block, so anything you can draw in a note —
+  tables, cards, interactive views — you can put on the dashboard. A query with
+  a syntax error says so on the card instead of failing silently, and the card
+  only appears in the "Add card" picker while Datacore is enabled. Datacore also
+  joins the Integrations catalogue.
 - **Every integration in one place.** **Settings → Integrations** now opens with
   a complete catalogue of everything Hearth works with — community plugins
   (Omnisearch, TaskNotes, Dataview, Iconic, Iconize, Excalidraw), Obsidian's own
