@@ -1153,98 +1153,49 @@
 	resize: vertical;
 }
 
-/* ---- Settings tab: foldable sections --------------------------------
+/* ---- Settings tab: section groups -----------------------------------
    These styles apply in Obsidian's settings UI (not the home view), so they're
-   not scoped under .hearth-view. Each section is a .hearth-section with a
-   clickable heading (.hearth-section-head) that toggles the body below it. */
+   not scoped under .hearth-view. Each section is a .hearth-section: a heading
+   (.hearth-section-head) above a bordered box of rows (.hearth-section-body).
 
-/* Sections are cards, spaced by the flex gap on .hearth-settings-tabbody rather
-   than their own margins. Before this they were flat blocks separated by a
-   single hairline under each heading, which read as one continuous list — the
-   boundary between two sections was indistinguishable from the boundary between
-   two settings rows. An open section is filled; a folded one stays flat, so
-   what's open reads at a glance. */
+   Sections were collapsible cards when a tab held a whole category in one
+   scroll. Each category now has its own page holding a handful of groups, so
+   there's nothing to fold — the heading sits outside the box, labelling it. */
+
 .hearth-section {
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 10px;
-	transition: background 120ms ease;
-}
-
-.hearth-section.is-collapsed {
-	background: transparent;
-}
-
-.hearth-section.is-collapsed:hover {
-	background: var(--background-modifier-hover);
-}
-
-/* The heading row mirrors Obsidian's own .setting-item-heading look but is
-   interactive (click to fold). */
-.hearth-section-head {
 	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 14px 16px;
-	cursor: pointer;
-	user-select: none;
+	flex-direction: column;
 }
 
-/* Only an open section rules off its heading — on a folded one that hairline
-   would sit under nothing. */
-.hearth-section:not(.is-collapsed) > .hearth-section-head {
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.hearth-section-head:hover .hearth-section-title {
-	color: var(--interactive-accent);
-}
-
-.hearth-section-titles {
-	flex: 1;
-	min-width: 0;
+.hearth-section-head {
+	padding: 0 4px 8px;
 }
 
 .hearth-section-title {
-	font-size: var(--font-ui-medium);
+	font-size: var(--font-ui-small);
 	font-weight: 600;
 	color: var(--text-normal);
-	transition: color 120ms ease;
 }
 
 .hearth-section-desc {
-	margin-top: 4px;
+	margin-top: 3px;
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	line-height: 1.4;
-}
-
-/* The chevron rotates to indicate collapsed state. */
-.hearth-section-chevron {
-	display: flex;
-	color: var(--text-muted);
-	transition: transform 180ms ease;
-}
-
-.hearth-section-chevron.is-rotated {
-	transform: rotate(-90deg);
+	line-height: 1.45;
+	max-width: 60ch;
 }
 
 .hearth-section-body {
-	/* Smooth collapse/expand. Only height animates; display:none is the real
-	   toggle (so inputs don't remain focusable when hidden). */
-	transition: opacity 150ms ease;
-	padding: 0 16px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	padding: 2px 16px;
 }
 
-/* Obsidian rules off every .setting-item with a top border; inside a card the
-   first one would double up with the heading's own rule. */
+/* Obsidian rules off every .setting-item with a top border; the first row in a
+   box has the box's own edge above it already. */
 .hearth-section-body > .setting-item:first-child {
 	border-top: none;
-}
-
-.hearth-section-body > .setting-item:last-child {
-	padding-bottom: 6px;
 }
 
 /* On Obsidian 1.13+ the whole pane is hosted inside a single declarative
@@ -1257,37 +1208,161 @@
 	padding: 0;
 }
 
-/* ---- Settings tab: category ribbon ----------------------------------
-   A row of tabs pinned to the top of the settings pane; clicking one shows
-   only that category's sections in the body below. */
+/* ---- Settings tab: the category index -------------------------------
+   The pane's first level: every category as a full-width row that opens its
+   own page. This replaced a ribbon of seven tabs pinned to the top of the
+   pane. Seven pills never fit a stock-width pane — they wrapped onto a ragged
+   second line, and clipped the last two once made to scroll — and pinning the
+   row left content sliced behind it. Rows are vertical and nothing here is
+   pinned, so neither failure mode exists.
 
-.hearth-settings-ribbon {
-	/* One row, always. With flex-wrap seven tabs overflowed a stock-width
-	   settings pane and broke onto a second, ragged line; a pane too narrow for
-	   all seven now scrolls horizontally instead (scrollbar hidden — the active
-	   tab is scrolled into view on render). */
-	display: flex;
-	flex-wrap: nowrap;
-	overflow-x: auto;
-	scrollbar-width: none;
-	gap: 3px;
-	position: sticky;
-	top: 0;
-	z-index: 5;
-	padding: 8px 0 10px;
-	margin-bottom: 4px;
-	background: var(--background-primary);
-	border-bottom: 1px solid var(--background-modifier-border);
-	/* The pinned bar's background only paints its own box, so content scrolling
-	   through the band between the pane's top edge and the bar stayed visible
-	   above it: a section heading sliced in half sitting above the tabs. Extend
-	   the same fill upwards, which covers that band without having to hardcode
-	   the host pane's padding. */
-	box-shadow: 0 -16px 0 var(--background-primary);
+   Note the ribbon *tab* styles below survive: the card- and dashboard-settings
+   modals reuse .hearth-ribbon-tab for their own tab strips. */
+
+.hearth-settings-index-head {
+	padding: 18px 4px 4px;
 }
 
-.hearth-settings-ribbon::-webkit-scrollbar {
-	display: none;
+.hearth-settings-index-title {
+	font-size: var(--font-ui-larger);
+	font-weight: 600;
+	color: var(--text-normal);
+	letter-spacing: -0.01em;
+}
+
+.hearth-settings-index-sub {
+	margin-top: 4px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	line-height: 1.5;
+	max-width: 56ch;
+}
+
+.hearth-settings-index-grouplabel {
+	padding: 22px 4px 8px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-faint);
+}
+
+.hearth-settings-index-rows {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.hearth-settings-index-row {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding: 14px 16px;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	text-align: left;
+	cursor: pointer;
+	transition: background 110ms ease;
+}
+
+.hearth-settings-index-row + .hearth-settings-index-row {
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-settings-index-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-settings-index-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 30px;
+	height: 30px;
+	border-radius: 8px;
+	background: var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+.hearth-settings-index-glyph .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-settings-index-rowtext {
+	flex: 1;
+	min-width: 0;
+}
+
+.hearth-settings-index-rowname {
+	font-size: var(--font-ui-medium);
+	color: var(--text-normal);
+}
+
+.hearth-settings-index-rowdesc {
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.45;
+}
+
+.hearth-settings-index-go {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+/* ---- Settings tab: a category page ----------------------------------
+   The second level: one category's groups, with the way back at the top. */
+
+.hearth-settings-back {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin: 14px 0 0;
+	padding: 5px 10px 5px 6px;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+}
+
+.hearth-settings-back:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-settings-back-icon {
+	display: inline-flex;
+}
+
+.hearth-settings-back-icon .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.hearth-settings-page-title {
+	padding: 10px 4px 0;
+	font-size: var(--font-ui-larger);
+	font-weight: 600;
+	color: var(--text-normal);
+	letter-spacing: -0.01em;
+}
+
+.hearth-settings-page-desc {
+	padding: 4px 4px 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	line-height: 1.5;
+	max-width: 58ch;
 }
 
 .hearth-ribbon-tab {
@@ -1337,59 +1412,26 @@
 	}
 }
 
-/* ---- Settings tab: tab header ---------------------------------------
-   Names the open tab above its sections and, since every section starts
-   folded, carries the control that opens them all at once. */
-
-.hearth-settings-tabhead {
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
-	padding: 14px 2px 10px;
-}
-
-.hearth-settings-tabhead-titles {
-	flex: 1;
-	min-width: 0;
-	display: flex;
-	align-items: baseline;
-	gap: 8px;
-}
-
-.hearth-settings-tabhead-title {
-	font-size: var(--font-ui-large);
-	font-weight: 600;
-	color: var(--text-normal);
-}
-
-.hearth-settings-tabhead-count {
-	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
-}
-
-.hearth-settings-expand-all {
-	flex-shrink: 0;
-	padding: 4px 10px;
-	border: none;
-	border-radius: 6px;
-	background: transparent;
-	box-shadow: none;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-	cursor: pointer;
-}
-
-.hearth-settings-expand-all:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
-}
-
 .hearth-settings-tabbody {
-	/* Sections space themselves with this gap; see .hearth-section. */
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+	padding-top: 20px;
 	animation: hearth-tab-fade 140ms ease;
+}
+
+/* Margin rather than a flex gap on the parent: a page is mostly .hearth-section
+   groups, but a couple of pages drop a bare .setting-item straight into the
+   body, and those must not be spaced as if they were groups. */
+.hearth-section,
+.hearth-settings-tabbody > .setting-item {
+	margin-bottom: 22px;
+}
+
+/* A stray row that belongs to no group still gets the group's box, so it reads
+   as deliberate rather than unfinished. */
+.hearth-settings-tabbody > .setting-item {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	padding: 14px 16px;
 }
 
 /* Inline error shown when a section (or tab) fails to render, so one broken

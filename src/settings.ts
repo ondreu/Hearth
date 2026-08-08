@@ -46,13 +46,6 @@ type StringSettingKey =
 	| "taskNotesDoneValue"
 	| "iconizeIconProperty";
 
-/** A handle on one collapsible section's fold state, collected per render so the
- * tab header can open or close every section of the active tab at once. */
-type SectionToggle = {
-	isCollapsed: () => boolean;
-	setCollapsed: (collapsed: boolean) => void;
-};
-
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
 const GITHUB_ISSUES_URL = "https://github.com/ondreu/hearth/issues/new";
@@ -75,7 +68,24 @@ const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 	{ id: "about", icon: "info" },
 ];
 
-/** localStorage key for the last-opened settings tab. */
+/** Where the settings pane currently is: the category index, or one category's
+ * own page. The pane is two levels deep — see `renderInto`. */
+type SettingsRoute = "index" | SettingsTabId;
+
+/** How the index groups the categories. Ids key `t().settings.indexGroups`, so a
+ * missing translation is a build error rather than an empty heading.
+ *
+ * The grouping is editorial, not structural: seven rows in one undivided list
+ * reads as a wall, and these four headings are how the categories actually
+ * cluster when you say out loud what each is for. */
+const SETTINGS_INDEX: { id: "lookFeel" | "howItWorks" | "data" | "etc"; tabs: SettingsTabId[] }[] = [
+	{ id: "lookFeel", tabs: ["appearance", "dashboard"] },
+	{ id: "howItWorks", tabs: ["search", "behaviour"] },
+	{ id: "data", tabs: ["integrations", "backup"] },
+	{ id: "etc", tabs: ["about"] },
+];
+
+/** localStorage key for where the pane was last left — a tab id, or "index". */
 const ACTIVE_TAB_KEY = "hearth-settings-tab";
 
 /**
@@ -155,19 +165,9 @@ export class HomeSettingTab extends PluginSettingTab {
 	/** Temporary #52 diagnostic state — see getSettingDefinitions. */
 	private loggedDefinitionsQuery = false;
 
-	/** Title of a collapsible section to unfold and scroll to on the next
-	 * render, set by a catalogue row's "Show" button. */
+	/** Title of a section to scroll to on the next render, set by a catalogue
+	 * row's "Show" button. */
 	private revealSectionTitle: string | null = null;
-
-	/** Fold handles for the collapsible sections of the tab currently on screen,
-	 * in render order — rebuilt on every render and used by the tab header's
-	 * expand-all control to drive them together. */
-	private sectionToggles: SectionToggle[] = [];
-
-	/** Set by the tab header so a section folded on its own can refresh the
-	 * header's expand-all label, which otherwise goes stale until the next
-	 * render. Cleared on every render. */
-	private onSectionFoldChanged: (() => void) | null = null;
 
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
@@ -243,45 +243,44 @@ export class HomeSettingTab extends PluginSettingTab {
 		containerEl.addClass("hearth-settings");
 
 		// Whole-pane backstop. #52 reports a completely blank settings pane — no
-		// ribbon, no error in the (main-window) console — for some users on
+		// content, no error in the (main-window) console — for some users on
 		// Obsidian 1.13, which renders settings in a *separate window*. A throw
-		// anywhere in the build (even before the ribbon, e.g. in `fileDatalist` or
-		// `activeTab`) would blank everything, and its error lands in that other
-		// window's console where it's easy to miss. Guard the entire build so the
-		// pane can never be silently blank: on failure, show an inline error and
-		// log the real stack (to whichever console this window uses).
+		// anywhere in the build (even before the first row, e.g. in `fileDatalist`
+		// or `activeRoute`) would blank everything, and its error lands in that
+		// other window's console where it's easy to miss. Guard the entire build so
+		// the pane can never be silently blank: on failure, show an inline error
+		// and log the real stack (to whichever console this window uses).
 		try {
+			// Two levels: an index of categories, and one category's page. Which
+			// one is showing persists per-vault in localStorage, so closing and
+			// reopening settings comes back to the same place.
+			const route = this.activeRoute();
+			if (route === "index") {
+				this.renderIndex(containerEl);
+				return;
+			}
+
+			// Only a category page has file-path inputs to complete, and building
+			// this walks the whole vault — so it stays out of the index.
 			this.fileDatalist(containerEl);
+			this.renderCategoryHead(containerEl, route);
 
-			// A ribbon of category tabs sits pinned at the top; only the active
-			// tab's sections render below it, keeping a long settings panel
-			// navigable. The active tab persists per-vault in localStorage.
-			const active = this.activeTab();
-			this.renderRibbon(containerEl, active);
-
-			// Named here but filled in after the sections below have rendered, so
-			// it can report how many the tab holds and drive them all at once.
-			const head = containerEl.createDiv("hearth-settings-tabhead");
 			const body = containerEl.createDiv("hearth-settings-tabbody");
-			// A tab-level backstop nested inside: individual sections already
-			// isolate their own failures (see `section`), but the About tab and a
+			// A page-level backstop nested inside: individual sections already
+			// isolate their own failures (see `section`), but the About page and a
 			// couple of bare rows render straight into the body. Guard here too so
-			// a throw in a tab shows an inline error rather than a blank pane —
-			// and, because the ribbon above is already drawn, the user can still
-			// switch to a working tab.
-			this.sectionToggles = [];
-			this.onSectionFoldChanged = null;
+			// a throw shows an inline error rather than a blank pane — and, because
+			// the back link above is already drawn, the user can still leave.
 			try {
-				this.renderTabSections(body, active);
+				this.renderTabSections(body, route);
 			} catch (err) {
 				body.empty();
-				this.renderError(body, t().settings.tabs[active], err);
+				this.renderError(body, t().settings.tabs[route], err);
 			}
-			this.renderTabHead(head, active);
 		} catch (err) {
-			// The ribbon/datalist itself failed to build. Append the error rather
-			// than empty()-ing, so any partially-drawn ribbon that survived still
-			// lets the user navigate.
+			// The datalist or the navigation itself failed to build. Append the
+			// error rather than empty()-ing, so anything that survived still lets
+			// the user navigate.
 			this.renderError(containerEl, "Hearth", err);
 		}
 	}
@@ -301,83 +300,73 @@ export class HomeSettingTab extends PluginSettingTab {
 		text.createDiv({ cls: "hearth-settings-error-hint", text: t().settings.sectionErrorHint });
 	}
 
-	/** The currently-selected ribbon tab, defaulting to the first. */
-	private activeTab(): SettingsTabId {
+	/** Where the pane was last left. Anything unrecognised — including the absent
+	 * key of a first visit — lands on the index. */
+	private activeRoute(): SettingsRoute {
 		const saved = this.app.loadLocalStorage(ACTIVE_TAB_KEY) as string | null;
-		return SETTINGS_TABS.some((tab) => tab.id === saved)
-			? (saved as SettingsTabId)
-			: SETTINGS_TABS[0].id;
+		return SETTINGS_TABS.some((tab) => tab.id === saved) ? (saved as SettingsTabId) : "index";
 	}
 
-	/** Draw the category ribbon. Clicking a tab persists the choice and redraws. */
-	private renderRibbon(containerEl: HTMLElement, active: SettingsTabId): void {
-		const ribbon = containerEl.createDiv("hearth-settings-ribbon");
-		ribbon.setAttribute("role", "tablist");
-		let activeEl: HTMLElement | null = null;
-		for (const tab of SETTINGS_TABS) {
-			const label = t().settings.tabs[tab.id];
-			const btn = ribbon.createEl("button", { cls: "hearth-ribbon-tab" });
-			btn.setAttribute("role", "tab");
-			btn.toggleClass("is-active", tab.id === active);
-			if (tab.id === active) activeEl = btn;
-			btn.setAttribute("aria-selected", String(tab.id === active));
-			btn.setAttribute("aria-label", label);
-			const icon = btn.createSpan("hearth-ribbon-tab-icon");
-			setIcon(icon, tab.icon);
-			btn.createSpan({ cls: "hearth-ribbon-tab-label", text: label });
-			btn.addEventListener("click", () => {
-				this.app.saveLocalStorage(ACTIVE_TAB_KEY, tab.id);
-				this.rerender();
-			});
-		}
-		// The row scrolls rather than wrapping, so on a pane too narrow for all
-		// seven tabs the active one can start out of sight. `block: "nearest"`
-		// keeps this from scrolling the pane itself.
-		const target = activeEl;
-		if (target) {
-			window.requestAnimationFrame(() =>
-				target.scrollIntoView({ block: "nearest", inline: "nearest" }),
-			);
-		}
+	/** Move to another level of the pane, remembering it for next time. */
+	private navigate(route: SettingsRoute): void {
+		this.app.saveLocalStorage(ACTIVE_TAB_KEY, route);
+		this.rerender();
 	}
 
-	/** The header above a tab's sections: names the active tab and, when it holds
-	 * more than one collapsible section, offers one control to open or close them
-	 * all. Sections start folded (see `section`), so without this every tab would
-	 * cost one click per section to survey.
+	/** The index: every category as a full-width row, grouped under headings.
 	 *
-	 * Called *after* the sections have rendered, since it reads
-	 * `this.sectionToggles` to know how many there are. */
-	private renderTabHead(headEl: HTMLElement, tab: SettingsTabId): void {
+	 * This replaced a ribbon of seven pinned tabs. Seven pills never fit a
+	 * stock-width settings pane, so they either wrapped onto a ragged second line
+	 * or — once made to scroll — clipped the last two out of sight; and pinning
+	 * the row left content sliced behind it. Rows have neither failure mode: they
+	 * are vertical, they are not pinned, and an eighth category costs nothing. */
+	private renderIndex(containerEl: HTMLElement): void {
 		const s = t().settings;
-		const titles = headEl.createDiv("hearth-settings-tabhead-titles");
-		titles.createDiv({ cls: "hearth-settings-tabhead-title", text: s.tabs[tab] });
+		const head = containerEl.createDiv("hearth-settings-index-head");
+		head.createDiv({ cls: "hearth-settings-index-title", text: this.plugin.manifest.name });
+		head.createDiv({ cls: "hearth-settings-index-sub", text: s.indexSub });
 
-		// One section (or none, as on the About tab) needs no bulk control, and
-		// naming a count of one adds nothing.
-		const toggles = this.sectionToggles;
-		if (toggles.length < 2) return;
-		titles.createDiv({
-			cls: "hearth-settings-tabhead-count",
-			text: s.sectionCount(toggles.length),
-		});
+		for (const group of SETTINGS_INDEX) {
+			containerEl.createDiv({
+				cls: "hearth-settings-index-grouplabel",
+				text: s.indexGroups[group.id],
+			});
+			const rows = containerEl.createDiv("hearth-settings-index-rows");
+			for (const id of group.tabs) {
+				const entry = SETTINGS_TABS.find((tab) => tab.id === id);
+				if (!entry) continue;
+				this.indexRow(rows, entry);
+			}
+		}
+	}
 
-		const btn = headEl.createEl("button", { cls: "hearth-settings-expand-all" });
-		// "Expand all" while anything is still folded, so the button always offers
-		// the action that changes the most; it flips to "Collapse all" once every
-		// section is open.
-		const relabel = () => {
-			btn.setText(toggles.some((sec) => sec.isCollapsed()) ? s.expandAll : s.collapseAll);
-		};
-		relabel();
-		btn.addEventListener("click", () => {
-			const expand = toggles.some((sec) => sec.isCollapsed());
-			for (const sec of toggles) sec.setCollapsed(!expand);
-			relabel();
-		});
-		// Folding a section by its own heading changes what this button should
-		// offer, so let `section` call back into it.
-		this.onSectionFoldChanged = relabel;
+	/** One index row: icon, category name, a line on what's inside, chevron. */
+	private indexRow(rowsEl: HTMLElement, entry: { id: SettingsTabId; icon: string }): void {
+		const s = t().settings;
+		const label = s.tabs[entry.id];
+		const row = rowsEl.createEl("button", { cls: "hearth-settings-index-row" });
+		row.setAttribute("aria-label", label);
+		setIcon(row.createSpan("hearth-settings-index-glyph"), entry.icon);
+		const text = row.createDiv("hearth-settings-index-rowtext");
+		text.createDiv({ cls: "hearth-settings-index-rowname", text: label });
+		text.createDiv({ cls: "hearth-settings-index-rowdesc", text: s.tabDescs[entry.id] });
+		setIcon(row.createSpan("hearth-settings-index-go"), "chevron-right");
+		row.addEventListener("click", () => this.navigate(entry.id));
+	}
+
+	/** A category page's header: the way back to the index, then the category's
+	 * name and a line on what it covers. Deliberately not pinned — it scrolls
+	 * away with the content, which is the whole point of dropping the ribbon. */
+	private renderCategoryHead(containerEl: HTMLElement, tab: SettingsTabId): void {
+		const s = t().settings;
+		const back = containerEl.createEl("button", { cls: "hearth-settings-back" });
+		setIcon(back.createSpan("hearth-settings-back-icon"), "chevron-left");
+		back.createSpan({ text: this.plugin.manifest.name });
+		back.setAttribute("aria-label", s.backToIndex);
+		back.addEventListener("click", () => this.navigate("index"));
+
+		containerEl.createDiv({ cls: "hearth-settings-page-title", text: s.tabs[tab] });
+		containerEl.createDiv({ cls: "hearth-settings-page-desc", text: s.tabDescs[tab] });
 	}
 
 	/** Render the sections that belong to a given ribbon tab. (Named
@@ -433,17 +422,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				// or not it is installed and whether or not it has a setting. The two
 				// sections below are the only ones that *do* have settings, and rows
 				// in the catalogue link down to them.
-				// Folded to start with: it's a reference list, not a setting, and
-				// unfolded it would push the two sections that *are* settings off
-				// the screen. Every section now starts folded anyway, but this one
-				// is asked for explicitly so the intent survives a change of
-				// default.
-				this.section(
-					body,
-					s.integrations.heading,
-					s.integrations.headingDesc,
-					(b) => this.integrationsCatalogue(b),
-					{ collapsedByDefault: true },
+				this.section(body, s.integrations.heading, s.integrations.headingDesc, (b) =>
+					this.integrationsCatalogue(b),
 				);
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
 				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
@@ -469,26 +449,21 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 	}
 
-	// ---- Foldable section wrapper --------------------------------------
+	// ---- Section wrapper -----------------------------------------------
 
-	/** Wrap a section in a collapsible block. The heading toggles visibility of
-	 * the body; the collapsed state is persisted per-section in localStorage so
-	 * long settings panels can be tamed and stay tamed.
+	/** Wrap a section in a labelled group: a heading, and a bordered box holding
+	 * its rows.
 	 *
-	 * Sections start folded: a tab then opens as a short list of headings that
-	 * fits without scrolling, and the expand-all control in the tab header (see
-	 * `renderTabHead`) opens them in one go. `collapsedByDefault: false` opts a
-	 * section out and starts it open instead.
-	 *
-	 * Either way this only decides where a section starts before anyone has ever
-	 * folded it. Once the user folds or unfolds it themselves, their choice is
-	 * what persists. */
+	 * Sections used to be collapsible, with the fold state persisted per section,
+	 * because a tab held every section of its category in one long scroll. Now
+	 * that each category is its own page holding two to five groups, there is
+	 * nothing left to tame — so nothing folds, and every setting on a page is
+	 * visible the moment it opens. */
 	private section(
 		containerEl: HTMLElement,
 		title: string,
 		desc: string | undefined,
 		render: (body: HTMLElement) => void,
-		opts?: { collapsedByDefault?: boolean },
 	): void;
 	private section(
 		containerEl: HTMLElement,
@@ -500,25 +475,19 @@ export class HomeSettingTab extends PluginSettingTab {
 		title: string,
 		descOrRender: string | undefined | ((body: HTMLElement) => void),
 		maybeRender?: (body: HTMLElement) => void,
-		opts?: { collapsedByDefault?: boolean },
 	): void {
 		const desc = typeof descOrRender === "string" ? descOrRender : undefined;
 		const render = typeof descOrRender === "function" ? descOrRender : maybeRender!;
 
 		const wrap = containerEl.createDiv("hearth-section");
 		const head = wrap.createDiv("hearth-section-head");
-		head.setAttribute("role", "button");
-		head.setAttribute("tabindex", "0");
-		const titles = head.createDiv("hearth-section-titles");
-		titles.createDiv({ cls: "hearth-section-title", text: title });
-		if (desc) titles.createDiv({ cls: "hearth-section-desc", text: desc });
-		const chevron = head.createDiv("hearth-section-chevron");
-		setIcon(chevron, "chevron-down");
+		head.createDiv({ cls: "hearth-section-title", text: title });
+		if (desc) head.createDiv({ cls: "hearth-section-desc", text: desc });
 
 		const body = wrap.createDiv("hearth-section-body");
 		// Isolate each section: a throw while rendering one section shows an inline
-		// error there instead of blanking the whole tab, so its siblings still
-		// render. The heading/fold behaviour below stays intact regardless.
+		// error there instead of blanking the whole page, so its siblings still
+		// render.
 		try {
 			render(body);
 		} catch (err) {
@@ -526,57 +495,14 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.renderError(body, title, err);
 		}
 
-		// Persist the collapsed state per-section and per-vault via Obsidian's
-		// vault-scoped local storage. Both states are stored explicitly ("1"/"0")
-		// rather than clearing the key when open: absent has to keep meaning
-		// "never touched", so a default-collapsed section the user opened stays
-		// open instead of folding itself again on the next visit.
-		const key = `hearth-section-${title}`;
-		const saved = this.app.loadLocalStorage(key) as string | null;
-		let collapsed = saved === null ? (opts?.collapsedByDefault ?? true) : saved === "1";
-
-		// A catalogue row asked for this section: unfold it (persisting that, so
-		// it doesn't snap shut on the next visit) and scroll it into view once the
-		// pane has been laid out.
+		// A catalogue row asked for this section — it lives further down the same
+		// page, so scroll it into view once the pane has been laid out.
 		if (this.revealSectionTitle === title) {
 			this.revealSectionTitle = null;
-			collapsed = false;
-			this.app.saveLocalStorage(key, "0");
 			window.requestAnimationFrame(() =>
 				wrap.scrollIntoView({ block: "start", behavior: "smooth" }),
 			);
 		}
-		const apply = () => {
-			wrap.toggleClass("is-collapsed", collapsed);
-			body.style.display = collapsed ? "none" : "";
-			chevron.toggleClass("is-rotated", collapsed);
-			head.setAttribute("aria-expanded", String(!collapsed));
-			head.setAttribute("aria-label", collapsed ? t().settings.expandSection : t().settings.collapseSection);
-		};
-		apply();
-		head.addEventListener("click", () => {
-			collapsed = !collapsed;
-			this.app.saveLocalStorage(key, collapsed ? "1" : "0");
-			apply();
-			this.onSectionFoldChanged?.();
-		});
-		head.addEventListener("keydown", (e) => {
-			if (e.key === "Enter" || e.key === " ") {
-				e.preventDefault();
-				head.click();
-			}
-		});
-
-		// Hand the tab header a way to fold this section along with its siblings.
-		this.sectionToggles.push({
-			isCollapsed: () => collapsed,
-			setCollapsed: (next) => {
-				if (collapsed === next) return;
-				collapsed = next;
-				this.app.saveLocalStorage(key, collapsed ? "1" : "0");
-				apply();
-			},
-		});
 	}
 
 	// ---- Slider reset helper -------------------------------------------
@@ -1283,12 +1209,7 @@ export class HomeSettingTab extends PluginSettingTab {
 
 		if (entry.where.kind === "tab") {
 			const tab = entry.where.tab;
-			row.addButton((b) =>
-				b.setButtonText(strings.goToTab).onClick(() => {
-					this.app.saveLocalStorage(ACTIVE_TAB_KEY, tab);
-					this.rerender();
-				}),
-			);
+			row.addButton((b) => b.setButtonText(strings.goToTab).onClick(() => this.navigate(tab)));
 		}
 	}
 
@@ -1710,41 +1631,42 @@ export class HomeSettingTab extends PluginSettingTab {
 	private aboutSection(containerEl: HTMLElement): void {
 		const about = t().settings.about;
 
-		new Setting(containerEl)
-			.setName(about.heading)
-			.setDesc(about.headingDesc)
-			.setHeading();
+		// Grouped like every other page, rather than as bare rows: the section
+		// heading replaces what used to be a `setHeading()` row of its own.
+		this.section(containerEl, about.heading, about.headingDesc, (body) => {
+			new Setting(body)
+				.setName(about.whatsNew)
+				.setDesc(about.whatsNewDesc)
+				.addButton((b) =>
+					this.aboutButton(b, "sparkles", about.whatsNewButton, () =>
+						new WhatsNewModal(this.app, CHANGELOG).open(),
+					),
+				);
 
-		new Setting(containerEl)
-			.setName(about.whatsNew)
-			.setDesc(about.whatsNewDesc)
-			.addButton((b) =>
-				this.aboutButton(b, "sparkles", about.whatsNewButton, () =>
-					new WhatsNewModal(this.app, CHANGELOG).open(),
-				),
-			);
+			new Setting(body)
+				.setName(about.github)
+				.setDesc(about.githubDesc)
+				.addButton((b) => this.linkButton(b, "github", about.githubButton, GITHUB_URL));
 
-		new Setting(containerEl)
-			.setName(about.github)
-			.setDesc(about.githubDesc)
-			.addButton((b) => this.linkButton(b, "github", about.githubButton, GITHUB_URL));
+			new Setting(body)
+				.setName(about.reportIssue)
+				.setDesc(about.reportIssueDesc)
+				.addButton((b) =>
+					this.linkButton(b, "bug", about.reportIssueButton, GITHUB_ISSUES_URL),
+				);
 
-		new Setting(containerEl)
-			.setName(about.reportIssue)
-			.setDesc(about.reportIssueDesc)
-			.addButton((b) => this.linkButton(b, "bug", about.reportIssueButton, GITHUB_ISSUES_URL));
+			new Setting(body)
+				.setName(about.kofi)
+				.setDesc(about.kofiDesc)
+				.addButton((b) => {
+					this.linkButton(b, "coffee", about.kofiButton, KOFI_URL);
+					b.buttonEl.addClass("hearth-kofi-btn");
+				});
 
-		new Setting(containerEl)
-			.setName(about.kofi)
-			.setDesc(about.kofiDesc)
-			.addButton((b) => {
-				this.linkButton(b, "coffee", about.kofiButton, KOFI_URL);
-				b.buttonEl.addClass("hearth-kofi-btn");
-			});
-
-		new Setting(containerEl)
-			.setName(about.version(this.plugin.manifest.version))
-			.setDesc(about.versionDesc);
+			new Setting(body)
+				.setName(about.version(this.plugin.manifest.version))
+				.setDesc(about.versionDesc);
+		});
 	}
 
 	/** A button that shows an icon *and* a label (Obsidian's setButtonText wipes a
