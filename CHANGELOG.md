@@ -70,15 +70,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the outline, shading and belly are derived from the body color, and the whole
   sprite is drawn from a 16×16 character grid, so the card ships no images at
   all. Its mood comes from the vault, not from a timer: notes edited (or
-  created) today against a goal you set make it content, happy or bouncing with
-  joy, and a quiet day leaves it a little bored and eventually asleep, with
-  drifting z's. That is the entire ladder — there is no hunger, no age, no
-  illness and no way to lose it, so a fortnight away from the vault costs
-  nothing but a nap. Click the pet to pet it: hearts, and half an hour of
-  guaranteed happiness. Everything is recomputed from file timestamps on each
-  draw, so a synced `data.json`, a closed laptop or a device you have not opened
-  in a month can never leave it out of step. Low power mode and a reduced-motion
-  preference keep the pet perfectly still — the mood is in its face.
+  created) today against thresholds you set make it content, happy or bouncing
+  with joy, and a quiet day leaves it slouched and bored and eventually curled
+  up asleep, draining of color, with drifting z's. That is the entire ladder —
+  there is no hunger, no age, no illness and no way to lose it, so a fortnight
+  away from the vault costs nothing but a nap. Click the pet to pet it: hearts,
+  and a stretch of guaranteed happiness.
+
+  **Every rung is yours to set.** Where excited, happy and content begin, how
+  long the vault must stay quiet before the pet sleeps, and how long a petting
+  lasts. Set them however you like — they are always read back in climbing
+  order, so no combination leaves a mood the pet can't reach.
+
+  Each mood is drawn animation, not one picture being wobbled: the pet blinks,
+  glances aside, wags its head, squashes as it lands from a hop and breathes in
+  its sleep, from frames generated out of that single drawing. Everything is
+  recomputed from file timestamps on each draw, so a synced `data.json`, a
+  closed laptop or a device you have not opened in a month can never leave the
+  pet out of step. Low power mode and a reduced-motion preference keep the pet
+  perfectly still — the mood is in its posture and its face.
 - **Git card.** If your vault is a repository kept by the
   [Git](https://github.com/Vinzent03/obsidian-git) plugin, the dashboard can now
   show and drive it. The card puts the branch, the staged and changed files, the

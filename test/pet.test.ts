@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	PET_DEFAULT_GOAL,
+	PET_FRAME_COUNT,
 	PET_PETTED_MS,
 	PET_SLEEPY_AFTER_MS,
 	PET_SPECIES,
@@ -12,16 +13,18 @@ import {
 	parseHex,
 	shadeHex,
 	spriteFor,
+	spriteFrames,
 	spriteRuns,
+	thresholdsFor,
 	type PetMood,
 } from "../src/cards/pet";
 
 const HOUR = 60 * 60 * 1000;
 
 /** The mood inputs for a vault with `today` notes touched and a freshest note
- * `sinceLastMs` old, never petted. */
+ * `sinceLastMs` old, on a card left at its default thresholds. */
 function pulse(today: number, sinceLastMs: number | null = 0, pettedMsAgo: number | null = null) {
-	return { today, goal: PET_DEFAULT_GOAL, sinceLastMs, pettedMsAgo };
+	return { today, thresholds: thresholdsFor({}), sinceLastMs, pettedMsAgo };
 }
 
 describe("moodFor", () => {
@@ -64,9 +67,55 @@ describe("moodFor", () => {
 		expect(moodFor(pulse(1, 0, -5000))).toBe("content");
 	});
 
-	it("falls back to the default goal when the card's is nonsense", () => {
-		expect(moodFor({ today: 3, goal: 0, sinceLastMs: 0, pettedMsAgo: null })).toBe("happy");
-		expect(moodFor({ today: 3, goal: -4, sinceLastMs: 0, pettedMsAgo: null })).toBe("happy");
+	it("honours thresholds the card sets", () => {
+		const strict = thresholdsFor({ contentAt: 5, dailyGoal: 10, excitedAt: 20, sleepyAfterMin: 60 });
+		const at = (today: number, sinceLastMs: number | null = 0) =>
+			moodFor({ today, thresholds: strict, sinceLastMs, pettedMsAgo: null });
+		expect(at(4, 30 * 60 * 1000)).toBe("bored");
+		expect(at(5)).toBe("content");
+		expect(at(10)).toBe("happy");
+		expect(at(20)).toBe("excited");
+		// The card's own quiet time, not the default six hours.
+		expect(at(0, 59 * 60 * 1000)).toBe("bored");
+		expect(at(0, 61 * 60 * 1000)).toBe("sleepy");
+	});
+
+	it("keeps a petting for as long as the card says", () => {
+		const clingy = thresholdsFor({ pettedForMin: 120 });
+		const after = (ms: number) =>
+			moodFor({ today: 0, thresholds: clingy, sinceLastMs: 0, pettedMsAgo: ms });
+		expect(after(119 * 60 * 1000)).toBe("happy");
+		expect(after(121 * 60 * 1000)).toBe("bored");
+	});
+});
+
+describe("thresholdsFor", () => {
+	it("fills in the defaults, including excited at twice the good day", () => {
+		expect(thresholdsFor({})).toEqual({
+			content: 1,
+			happy: PET_DEFAULT_GOAL,
+			excited: PET_DEFAULT_GOAL * 2,
+			sleepyAfterMs: PET_SLEEPY_AFTER_MS,
+			pettedMs: PET_PETTED_MS,
+		});
+		expect(thresholdsFor({ dailyGoal: 10 }).excited).toBe(20);
+	});
+
+	it("forces the rungs into a climbing order, however they were set", () => {
+		// Sliders dragged into nonsense (or a hand-edited data.json) must not
+		// leave a mood the pet can never reach.
+		const upside = thresholdsFor({ contentAt: 12, dailyGoal: 5, excitedAt: 2 });
+		expect(upside.content).toBeLessThanOrEqual(upside.happy);
+		expect(upside.excited).toBeGreaterThanOrEqual(upside.happy);
+	});
+
+	it("ignores zero, negative and fractional values", () => {
+		const odd = thresholdsFor({ dailyGoal: 0, contentAt: -3, sleepyAfterMin: 0, pettedForMin: -1 });
+		expect(odd.happy).toBe(PET_DEFAULT_GOAL);
+		expect(odd.content).toBe(1);
+		expect(odd.sleepyAfterMs).toBe(PET_SLEEPY_AFTER_MS);
+		expect(odd.pettedMs).toBe(PET_PETTED_MS);
+		expect(thresholdsFor({ dailyGoal: 4.7 }).happy).toBe(4);
 	});
 });
 
@@ -131,16 +180,55 @@ describe("colors", () => {
 describe("sprites", () => {
 	const MOODS: PetMood[] = ["sleepy", "bored", "content", "happy", "excited"];
 
-	it("is a square grid of known palette characters for every species and mood", () => {
+	it("is a square grid of known palette characters in every frame, species and mood", () => {
 		for (const species of PET_SPECIES) {
 			for (const mood of MOODS) {
-				const rows = spriteFor(species, mood);
-				expect(rows).toHaveLength(PET_SPRITE_SIZE);
-				for (const row of rows) {
-					expect(row).toHaveLength(PET_SPRITE_SIZE);
-					expect(row).toMatch(/^[.oblaew]+$/);
+				const frames = spriteFrames(species, mood);
+				expect(frames).toHaveLength(PET_FRAME_COUNT);
+				expect(frames[0]).toEqual(spriteFor(species, mood));
+				for (const rows of frames) {
+					expect(rows).toHaveLength(PET_SPRITE_SIZE);
+					for (const row of rows) {
+						expect(row).toHaveLength(PET_SPRITE_SIZE);
+						expect(row).toMatch(/^[.oblaew]+$/);
+					}
 				}
 			}
+		}
+	});
+
+	it("animates: every mood's frames actually differ from one another", () => {
+		for (const species of PET_SPECIES) {
+			for (const mood of MOODS) {
+				const frames = spriteFrames(species, mood).map((rows) => rows.join("\n"));
+				expect(new Set(frames).size).toBe(PET_FRAME_COUNT);
+			}
+		}
+	});
+
+	it("keeps the pet standing on the floor in every frame", () => {
+		// The moods move the head, squash the body and slump the whole pet; the
+		// feet must stay put, or the pet slides around its box as it animates.
+		for (const species of PET_SPECIES) {
+			const floor = spriteFor(species, "content")[PET_SPRITE_SIZE - 1];
+			for (const mood of MOODS) {
+				for (const frame of spriteFrames(species, mood)) {
+					expect(frame[PET_SPRITE_SIZE - 1]).toBe(floor);
+				}
+			}
+		}
+	});
+
+	it("draws the low moods slumped, not merely with a different face", () => {
+		// The complaint the posture answers: a bored or sleeping pet has to be
+		// tellable from a content one across the room, so its head sits lower.
+		const headTop = (rows: string[]) => rows.findIndex((row) => /[^.]/.test(row));
+		for (const species of PET_SPECIES) {
+			const upright = headTop(spriteFor(species, "content"));
+			expect(headTop(spriteFor(species, "bored"))).toBeGreaterThan(upright);
+			expect(headTop(spriteFor(species, "sleepy"))).toBeGreaterThan(
+				headTop(spriteFor(species, "bored")),
+			);
 		}
 	});
 

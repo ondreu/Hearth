@@ -851,9 +851,17 @@ export interface PetConfig {
 	accentColor?: string;
 	/** Which vault activity feeds the pet: notes edited (default) or created. */
 	metric?: "modified" | "created";
-	/** How many notes a day count as a good day — the pet is happy at this
-	 * number and excited at twice it. Default 3. */
+	/** Notes a day that make the pet happy — the card's "good day". Default 3. */
 	dailyGoal?: number;
+	/** Notes a day that make the pet excited. Default: twice `dailyGoal`. */
+	excitedAt?: number;
+	/** Notes a day that make the pet content. Default 1 — any activity at all. */
+	contentAt?: number;
+	/** Minutes of a completely quiet vault, on a day with no activity, before
+	 * the pet falls asleep. Until then it is bored. Default 360 (six hours). */
+	sleepyAfterMin?: number;
+	/** How many minutes a petting keeps the pet happy. Default 30. */
+	pettedForMin?: number;
 	/** Sprite size. Default "md". */
 	size?: "sm" | "md" | "lg";
 	/** Show the name line (default true). */

@@ -1698,11 +1698,24 @@ export const en = {
 			metricDesc: "Which vault activity the pet's mood follows.",
 			metricModified: "Notes edited",
 			metricCreated: "Notes created",
-			goal: "A good day is",
-			goalDesc:
-				"Notes a day. At this many the pet is happy, at twice it excited. " +
-				"Below it the pet is content, bored or asleep — it is never unwell " +
-				"and never lost.",
+			moods: "Moods",
+			moodsDesc:
+				"Where each mood starts. Nothing here can make the pet unwell or " +
+				"lose it — a quiet vault only sends it to sleep, and any writing " +
+				"wakes it straight back up.",
+			moodsReset: "Back to the default moods",
+			excitedAt: "Bouncing with joy at",
+			excitedAtDesc: "Notes touched today, or more.",
+			happyAt: "Happy at",
+			happyAtDesc: "Notes touched today — your good day.",
+			contentAt: "Content at",
+			contentAtDesc: "Notes touched today. Below this the pet gets bored.",
+			sleepyAfter: "Falls asleep after",
+			sleepyAfterDesc:
+				"Minutes of a quiet vault, on a day with nothing written yet. " +
+				"Until then the pet is only bored.",
+			pettedFor: "A petting lasts",
+			pettedForDesc: "Minutes of guaranteed happiness after you click the pet.",
 			showName: "Show name",
 			showMood: "Show mood",
 			showActivity: "Show today's activity",

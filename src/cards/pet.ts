@@ -30,7 +30,10 @@ export const PET_SPECIES: PetSpecies[] = ["cat", "dog", "bird", "fox", "frog", "
 /** Notes touched today that count as a good day, when the card doesn't say. */
 export const PET_DEFAULT_GOAL = 3;
 
-/** How long a petting keeps the pet at least happy. */
+/** Notes touched today for "content", when the card doesn't say: any at all. */
+export const PET_DEFAULT_CONTENT = 1;
+
+/** How long a petting keeps the pet at least happy, when the card doesn't say. */
 export const PET_PETTED_MS = 30 * 60 * 1000;
 
 /** With nothing written today, the pet dozes off once the freshest note in the
@@ -44,13 +47,49 @@ const PET_TICK_MS = 5 * 60 * 1000;
 
 // ---- Mood ---------------------------------------------------------------
 
+/** Where each rung of the ladder starts. Every one is settable per card. */
+export interface PetThresholds {
+	/** Notes today for "content". */
+	content: number;
+	/** Notes today for "happy". */
+	happy: number;
+	/** Notes today for "excited". */
+	excited: number;
+	/** Quiet vault, on a day with no activity, before the pet falls asleep. */
+	sleepyAfterMs: number;
+	/** How long a petting holds the pet at happy. */
+	pettedMs: number;
+}
+
+/**
+ * Resolve a card's thresholds, filling in defaults and forcing the rungs into
+ * order. Sliders can be dragged into nonsense (excited below happy, content
+ * above both) and a card can arrive from an older version or a hand-edited
+ * `data.json`; rather than produce an unreachable mood, each rung is raised to
+ * at least the one below it, so the ladder always climbs.
+ */
+export function thresholdsFor(cfg: PetConfig): PetThresholds {
+	const positive = (value: number | undefined, fallback: number) =>
+		typeof value === "number" && value > 0 ? Math.floor(value) : fallback;
+	const happy = positive(cfg.dailyGoal, PET_DEFAULT_GOAL);
+	const content = Math.min(positive(cfg.contentAt, PET_DEFAULT_CONTENT), happy);
+	const excited = Math.max(positive(cfg.excitedAt, happy * 2), happy);
+	return {
+		content,
+		happy,
+		excited,
+		sleepyAfterMs: positive(cfg.sleepyAfterMin, PET_SLEEPY_AFTER_MS / 60000) * 60000,
+		pettedMs: positive(cfg.pettedForMin, PET_PETTED_MS / 60000) * 60000,
+	};
+}
+
 /** Everything the mood is derived from. Pure input, so the ladder below can be
  * unit-tested without a vault. */
 export interface PetPulse {
 	/** Notes touched (edited or created) today. */
 	today: number;
-	/** Notes a day that count as a good day. */
-	goal: number;
+	/** Where the rungs of the ladder sit for this card. */
+	thresholds: PetThresholds;
 	/** Age of the freshest note in the vault, or null for an empty vault. */
 	sinceLastMs: number | null;
 	/** Time since the pet was last petted, or null if it never was. */
@@ -58,20 +97,21 @@ export interface PetPulse {
 }
 
 /**
- * The mood ladder. Activity today is the whole story: at the goal the pet is
- * happy, at twice it excited, at anything above zero content. With nothing
- * today it is bored while the vault is still warm and asleep once the freshest
- * note is `PET_SLEEPY_AFTER_MS` old. A recent petting floors the mood at happy
+ * The mood ladder. Activity today is the whole story: the pet is excited,
+ * happy or content at the thresholds the card sets. With nothing today it is
+ * bored while the vault is still warm and asleep once the freshest note is
+ * older than the card's quiet time. A recent petting floors the mood at happy
  * — it can only ever lift the pet, never lower it.
  */
 export function moodFor(pulse: PetPulse): PetMood {
-	const goal = pulse.goal > 0 ? pulse.goal : PET_DEFAULT_GOAL;
-	const petted = pulse.pettedMsAgo != null && pulse.pettedMsAgo >= 0 && pulse.pettedMsAgo < PET_PETTED_MS;
+	const limits = pulse.thresholds;
+	const petted =
+		pulse.pettedMsAgo != null && pulse.pettedMsAgo >= 0 && pulse.pettedMsAgo < limits.pettedMs;
 	let mood: PetMood;
-	if (pulse.today >= goal * 2) mood = "excited";
-	else if (pulse.today >= goal) mood = "happy";
-	else if (pulse.today > 0) mood = "content";
-	else if (pulse.sinceLastMs != null && pulse.sinceLastMs < PET_SLEEPY_AFTER_MS) mood = "bored";
+	if (pulse.today >= limits.excited) mood = "excited";
+	else if (pulse.today >= limits.happy) mood = "happy";
+	else if (pulse.today >= limits.content) mood = "content";
+	else if (pulse.sinceLastMs != null && pulse.sinceLastMs < limits.sleepyAfterMs) mood = "bored";
 	else mood = "sleepy";
 	if (petted && mood !== "excited") mood = "happy";
 	return mood;
@@ -404,20 +444,119 @@ function paintMouth(grid: string[][], art: SpeciesArt, mood: PetMood): void {
 	if (mood === "excited") for (let i = 0; i < width; i++) put(grid, row + 1, col + i, "o");
 }
 
+/** The rows the head occupies before any posture is applied. */
+const HEAD_ROWS = 9;
+
 /**
- * The finished 16×16 grid for a species in a mood: the shared body under the
- * species head, with the face painted on top.
+ * Move a block of rows, dropping whatever falls off the grid and leaving the
+ * rows it came from empty. Transparent pixels don't overwrite what they land
+ * on, so a head moved down sinks *into* the body instead of punching a hole in
+ * it — which is exactly the slouch the low moods want.
  */
-export function spriteFor(species: PetSpecies, mood: PetMood): string[] {
+function moveBlock(grid: string[][], from: number, to: number, dy: number, dx: number): void {
+	const block = grid.slice(from, to + 1).map((row) => [...row]);
+	for (let r = from; r <= to; r++) grid[r] = new Array<string>(PET_SPRITE_SIZE).fill(".");
+	block.forEach((row, i) => {
+		const target = grid[from + i + dy];
+		if (!target) return;
+		row.forEach((ch, c) => {
+			const col = c + dx;
+			if (ch !== "." && col >= 0 && col < PET_SPRITE_SIZE) target[col] = ch;
+		});
+	});
+}
+
+/** Compress the pet towards its feet by one pixel — the breath, and the squash
+ * of a hop. Everything above the paws slides down over the belly. */
+function squash(grid: string[][]): void {
+	moveBlock(grid, 0, PET_SPRITE_SIZE - 4, 1, 0);
+}
+
+/** One drawn pose: the sprite with a face, a posture and an offset. */
+function buildSprite(
+	species: PetSpecies,
+	face: PetMood,
+	opts: { slouch?: number; lean?: number; squash?: boolean } = {},
+): string[] {
 	const art = SPECIES_ART[species] ?? SPECIES_ART.cat;
 	const grid = [...art.head, ...PET_BODY].map((row) => row.split(""));
-	for (const col of art.eyeCols) paintEye(grid, art.eyeRow, col, mood);
-	if (art.nose && mood !== "sleepy") {
+	for (const col of art.eyeCols) paintEye(grid, art.eyeRow, col, face);
+	if (art.nose && face !== "sleepy") {
 		put(grid, art.mouthRow - 1, art.mouthCol, "a");
 		put(grid, art.mouthRow - 1, art.mouthCol + 1, "a");
 	}
-	paintMouth(grid, art, mood);
+	paintMouth(grid, art, face);
+	// The head is moved as a block, so a slouching pet keeps its proportions
+	// instead of needing a second set of drawings per species.
+	const slouch = opts.slouch ?? 0;
+	const lean = opts.lean ?? 0;
+	if (slouch || lean) moveBlock(grid, 0, HEAD_ROWS - 1, slouch, lean);
+	if (opts.squash) squash(grid);
 	return grid.map((row) => row.join(""));
+}
+
+/**
+ * The finished 16×16 grid for a species in a mood — the first frame of its
+ * animation, and the only one drawn when motion is suppressed.
+ */
+export function spriteFor(species: PetSpecies, mood: PetMood): string[] {
+	return spriteFrames(species, mood)[0];
+}
+
+/** How many frames every mood is drawn in. Fixed, so the stylesheet can
+ * schedule each mood's cycle without the two definitions drifting apart. */
+export const PET_FRAME_COUNT = 3;
+
+/**
+ * The frames a mood animates through. Real drawn animation rather than a
+ * transform on one picture: the pet blinks, wags its head, squashes as it
+ * lands and breathes in its sleep, because those are things a CSS transform on
+ * a single sprite cannot say. The stylesheet gives each mood the schedule that
+ * suits it — a blink is a sixteenth of the cycle, a hop is a third.
+ *
+ * Every frame is generated from the one drawing per species by moving the head
+ * block and repainting the face, so a new species is still a single 9-row head.
+ */
+export function spriteFrames(species: PetSpecies, mood: PetMood): string[][] {
+	switch (mood) {
+		case "excited":
+			// Mid-air, stretched, and squashed on the landing.
+			return [
+				buildSprite(species, "excited"),
+				buildSprite(species, "excited", { slouch: -1 }),
+				buildSprite(species, "excited", { squash: true }),
+			];
+		case "happy":
+			// A head wagging side to side.
+			return [
+				buildSprite(species, "happy"),
+				buildSprite(species, "happy", { lean: -1 }),
+				buildSprite(species, "happy", { lean: 1 }),
+			];
+		case "content":
+			// Mostly still, with a blink and a glance to one side.
+			return [
+				buildSprite(species, "content"),
+				buildSprite(species, "sleepy"),
+				buildSprite(species, "content", { lean: 1 }),
+			];
+		case "bored":
+			// Slouched, with a long slow blink and a head that lolls sideways.
+			return [
+				buildSprite(species, "bored", { slouch: 1 }),
+				buildSprite(species, "sleepy", { slouch: 1 }),
+				buildSprite(species, "bored", { slouch: 1, lean: -1 }),
+			];
+		default:
+			// Curled down into the body, breathing, with a slow roll of the head.
+			// The slouch stops at two: a third row would push the shorter-headed
+			// species (the frog's eye bumps) clean off the top of the grid.
+			return [
+				buildSprite(species, "sleepy", { slouch: 2 }),
+				buildSprite(species, "sleepy", { slouch: 2, squash: true }),
+				buildSprite(species, "sleepy", { slouch: 2, lean: 1 }),
+			];
+	}
 }
 
 /** One horizontal run of same-colored pixels. */
@@ -466,7 +605,13 @@ const RUN_FILL: Record<string, string> = {
 	w: "var(--hearth-pet-shine)",
 };
 
-function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood): void {
+/**
+ * Draw the sprite: every frame of the mood, stacked as sibling groups in one
+ * SVG. Which one shows is entirely the stylesheet's business — it fades all
+ * but one out on the mood's own schedule — so the card draws once per vault
+ * event and never again to animate. `still` collapses that to frame 0.
+ */
+function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood, still: boolean): void {
 	const svg = parent.createSvg("svg", {
 		cls: "hearth-pet-sprite",
 		attr: {
@@ -476,17 +621,21 @@ function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood): vo
 			"aria-hidden": "true",
 		},
 	});
-	for (const run of spriteRuns(spriteFor(species, mood))) {
-		svg.createSvg("rect", {
-			attr: {
-				x: String(run.col),
-				y: String(run.row),
-				width: String(run.len),
-				height: "1",
-				fill: RUN_FILL[run.ch] ?? RUN_FILL.b,
-			},
-		});
-	}
+	const frames = still ? spriteFrames(species, mood).slice(0, 1) : spriteFrames(species, mood);
+	frames.forEach((frame, index) => {
+		const group = svg.createSvg("g", { cls: "hearth-pet-frame", attr: { "data-f": String(index) } });
+		for (const run of spriteRuns(frame)) {
+			group.createSvg("rect", {
+				attr: {
+					x: String(run.col),
+					y: String(run.row),
+					width: String(run.len),
+					height: "1",
+					fill: RUN_FILL[run.ch] ?? RUN_FILL.b,
+				},
+			});
+		}
+	});
 }
 
 
@@ -553,10 +702,9 @@ export function renderPet(
 	 * every vault event: one pass over the file list plus a few dozen rects. */
 	const paint = () => {
 		const pulse = readVaultPulse(view, cfg.metric ?? "modified");
-		const goal = cfg.dailyGoal && cfg.dailyGoal > 0 ? cfg.dailyGoal : PET_DEFAULT_GOAL;
 		const mood = moodFor({
 			today: pulse.today,
-			goal,
+			thresholds: thresholdsFor(cfg),
 			sinceLastMs: pulse.sinceLastMs,
 			pettedMsAgo: cfg.lastPlayedAt ? Date.now() - cfg.lastPlayedAt : null,
 		});
@@ -565,7 +713,7 @@ export function renderPet(
 		for (const m of ["sleepy", "bored", "content", "happy", "excited"]) stage.removeClass(`is-${m}`);
 		stage.addClass(`is-${mood}`);
 		stage.toggleClass("is-still", still);
-		drawSprite(stage, species, mood);
+		drawSprite(stage, species, mood, still);
 		// Sleeping pets get their z's — but not while animation is suppressed,
 		// since they are nothing but a float animation.
 		if (mood === "sleepy" && !still) {
@@ -683,18 +831,81 @@ export function petEditor(container: HTMLElement, ctx: CardEditorContext): void 
 		});
 	});
 
+	// ---- Where each mood starts ----
+	//
+	// Every rung is settable. They are read back through thresholdsFor(), which
+	// forces them into order, so no combination of sliders can produce a mood
+	// the pet is unable to reach.
+	const limits = thresholdsFor(cfg);
+	new Setting(container).setName(strings.moods).setDesc(strings.moodsDesc).setHeading();
+
+	const rung = (
+		name: string,
+		desc: string,
+		value: number,
+		max: number,
+		apply: (v: number) => void,
+	) =>
+		new Setting(container)
+			.setName(name)
+			.setDesc(desc)
+			.addSlider((slider) =>
+				slider
+					.setLimits(1, max, 1)
+					.setValue(Math.min(value, max))
+					.onChange((v) => {
+						apply(v);
+						ctx.opts.save();
+						// Redraw the card, not the panel: a threshold change can move
+						// the pet to another mood, and seeing that happen is the whole
+						// point of setting it.
+						ctx.opts.rerender();
+					}),
+			);
+
+	rung(strings.excitedAt, strings.excitedAtDesc, limits.excited, 60, (v) => (cfg.excitedAt = v));
+	rung(strings.happyAt, strings.happyAtDesc, limits.happy, 40, (v) => (cfg.dailyGoal = v));
+	rung(strings.contentAt, strings.contentAtDesc, limits.content, 20, (v) => (cfg.contentAt = v));
 	new Setting(container)
-		.setName(strings.goal)
-		.setDesc(strings.goalDesc)
+		.setName(strings.sleepyAfter)
+		.setDesc(strings.sleepyAfterDesc)
 		.addSlider((slider) =>
 			slider
-				.setLimits(1, 20, 1)
-				.setValue(cfg.dailyGoal && cfg.dailyGoal > 0 ? cfg.dailyGoal : PET_DEFAULT_GOAL)
+				.setLimits(15, 1440, 15)
+				.setValue(Math.min(1440, Math.round(limits.sleepyAfterMs / 60000)))
 				.onChange((v) => {
-					cfg.dailyGoal = v;
+					cfg.sleepyAfterMin = v;
 					ctx.opts.save();
+					ctx.opts.rerender();
 				}),
 		);
+	new Setting(container)
+		.setName(strings.pettedFor)
+		.setDesc(strings.pettedForDesc)
+		.addSlider((slider) =>
+			slider
+				.setLimits(5, 240, 5)
+				.setValue(Math.min(240, Math.round(limits.pettedMs / 60000)))
+				.onChange((v) => {
+					cfg.pettedForMin = v;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+		);
+	new Setting(container).addExtraButton((btn) =>
+		btn
+			.setIcon("rotate-ccw")
+			.setTooltip(strings.moodsReset)
+			.onClick(() => {
+				cfg.dailyGoal = undefined;
+				cfg.excitedAt = undefined;
+				cfg.contentAt = undefined;
+				cfg.sleepyAfterMin = undefined;
+				cfg.pettedForMin = undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+	);
 
 	new Setting(container).setName(strings.showName).addToggle((toggle) =>
 		toggle.setValue(cfg.showName !== false).onChange((v) => {
