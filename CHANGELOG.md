@@ -15,6 +15,27 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Weather card.** Current conditions and a forecast on the dashboard, from
+  [Open-Meteo](https://open-meteo.com) — free, key-less, and with no account to
+  create, so it works the moment you add the card. Point it at a place by
+  searching for it (the name lookup happens once, in the card's settings; only
+  the resolved coordinates are ever sent afterwards) or by typing coordinates
+  yourself. **Five styles** take it from plain to painted: *Minimal* is one
+  glyph and one temperature; *Compact* is a single row with the condition and
+  the place; *Detailed* adds a grid of metrics; *Forecast* draws the hourly
+  temperature as a curve with a daily strip beneath it; and *Artistic* fills the
+  card edge to edge with a sky that follows the real weather and the real time
+  of day — sun, crescent moon and stars, clouds drifting in three lanes, falling
+  rain, drizzle and snow, fog banks and a lightning flash. **What it shows is
+  yours to choose**: place name, condition, feels-like, today's high and low,
+  humidity, wind (with a compass point), precipitation, UV, pressure, sunrise
+  and sunset, the last-updated time, and how many hours and days the strips
+  cover. Units are separate — Celsius or Fahrenheit, four wind units,
+  millimetres or inches, and a 12- or 24-hour clock. Forecasts are cached and
+  shared between cards, a stale reading is kept when the network is gone rather
+  than blanking the card, the sky stops animating in low power mode, and the
+  whole thing goes quiet under **Settings → Behaviour → Disable external
+  calls**. Open-Meteo joins the Integrations catalogue.
 - **Datacore card.** Dataview is winding down in favour of
   [Datacore](https://github.com/blacksmithgu/datacore), so Hearth now has a card
   for it, in the same shape as the Dataview card: pick a query type, write a
@@ -155,6 +176,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   keeps the double-click raw editor it has always had (#160).
 
 ### Fixed
+
+- **One card can no longer take the board down with it.** A card kind is drawn
+  synchronously while the dashboard builds, and in Arrange mode the drag overlay
+  and resize grips are attached *after* that draw. So an exception inside one
+  card's render didn't just leave that card half-drawn — it left the card
+  unmovable and unresizable, and abandoned every card after it in the loop. A
+  failing render is now contained: that card shows a "couldn't be drawn" state
+  with the real error on the console, and the rest of the board (and its drag
+  handles) come up normally.
 
 - **Embedded bases follow the card opacity in table view.** A `.base` card in
   list or cards view faded with the board like any other card, but the table

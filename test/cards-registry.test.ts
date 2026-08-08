@@ -73,6 +73,12 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 					h: 5,
 				},
 			},
+			{
+				id: "weather",
+				icon: "cloud-sun",
+				gated: false,
+				build: { kind: "weather", title: "Weather", weather: {}, w: 4, h: 3 },
+			},
 			{ id: "leaf", icon: "layout-panel-left", gated: true, build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 } },
 		]);
 	});
@@ -130,6 +136,7 @@ function maximalCard(): DashboardCard {
 			controls: ["status"],
 			selections: { status: ["Open"] },
 		} as never,
+		weather: { place: { name: "Prague", lat: 50.08, lon: 14.44 } },
 	};
 }
 
@@ -163,6 +170,7 @@ describe("cloneCard deep-clone independence", () => {
 		copy.rss!.sources!.push({ id: "s2", name: "Feed 2", url: "https://example.com/feed2" });
 		copy.jira!.controls!.push("assignee");
 		copy.jira!.selections!.status!.push("Closed");
+		copy.weather!.place!.name = "Brno";
 
 		// ...and confirm none of it reached the original.
 		const pristine = maximalCard();
@@ -180,6 +188,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.datacore).toEqual(pristine.datacore);
 		expect(orig.rss).toEqual(pristine.rss);
 		expect(orig.jira).toEqual(pristine.jira);
+		expect(orig.weather).toEqual(pristine.weather);
 	});
 });
 
@@ -213,6 +222,7 @@ describe("liveness classification", () => {
 			datacore: "static",
 			rss: "static",
 			jira: "static",
+			weather: "static",
 			leaf: "static",
 		});
 	});
