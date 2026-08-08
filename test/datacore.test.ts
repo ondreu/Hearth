@@ -16,6 +16,15 @@ describe("datacoreQueryScript", () => {
 		expect(script).toContain("<dc.List");
 	});
 
+	it("renders linkable results as links and text-bearing ones as Markdown", () => {
+		// Datacore's types are not uniform: pages/sections have $link, tasks and
+		// list items have only $text. Both branches must be in the generated view
+		// or a @task query renders a column of ids.
+		const script = datacoreQueryScript("@task and !$completed");
+		expect(script).toContain("<dc.Link link={row.$link} />");
+		expect(script).toContain("<dc.Markdown content={row.$text} />");
+	});
+
 	it("escapes quotes, backslashes and newlines in the query", () => {
 		const script = datacoreQueryScript('@page and path("a\\b") and\n#x');
 		// The literal round-trips: what Datacore evaluates is exactly what was

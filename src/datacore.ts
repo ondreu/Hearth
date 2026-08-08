@@ -152,9 +152,13 @@ export function datacoreQueryError(api: DatacoreApi, query: string): string | nu
  * query is embedded as a JSON string literal, which quotes and escapes it
  * safely no matter what the user typed.
  *
- * `dc.useQuery` re-runs on every index change, so the list stays live. Results
- * that carry a `$link` (pages, sections, blocks, tasks) render as real Obsidian
- * links; anything else falls back to its path or id so the row is never blank.
+ * `dc.useQuery` re-runs on every index change, so the list stays live. What a
+ * row renders as depends on what Datacore returns, because its object types are
+ * not uniform: pages and sections carry a `$link` (as do blocks with a block
+ * id) and render as real Obsidian links; tasks and list items carry no link at
+ * all, so their Markdown text is rendered instead — which is what makes
+ * `@task and !$completed` useful here rather than a column of ids. Anything
+ * else falls back to its path or id, so a row is never blank.
  *
  * @param query    the Datacore query, e.g. `@page and #project`
  * @param pageSize rows per page; 0 or omitted renders every result unpaged
@@ -168,7 +172,9 @@ export function datacoreQueryScript(query: string, pageSize?: number): string {
 		"return function HearthDatacoreQuery() {",
 		`\tconst rows = dc.useQuery(${JSON.stringify(query)});`,
 		`\treturn <dc.List rows={rows} paging={${paging}} renderer={(row) =>`,
-		"\t\trow && row.$link ? <dc.Link link={row.$link} /> : String((row && (row.$path || row.$id)) ?? row)",
+		"\t\trow && row.$link ? <dc.Link link={row.$link} /> :",
+		"\t\trow && row.$text ? <dc.Markdown content={row.$text} /> :",
+		"\t\tString((row && (row.$path || row.$id)) ?? row)",
 		"\t} />;",
 		"}",
 	].join("\n");
