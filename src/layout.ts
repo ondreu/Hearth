@@ -10,6 +10,7 @@ import {
 	type DashboardCard,
 	type DatacoreConfig,
 	type DataviewConfig,
+	type GitConfig,
 	type HeatmapConfig,
 	type HomeSettings,
 	type LeafViewConfig,
@@ -39,6 +40,14 @@ import {
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
+import {
+	GIT_ACTION_STYLES,
+	GIT_COMMIT_SCOPES,
+	gitActions,
+	gitSections,
+	type GitActionStyle,
+	type GitCommitScope,
+} from "./git";
 import { t } from "./i18n";
 
 /** Current dashboard-layout export schema version. v2 carries every dashboard
@@ -353,6 +362,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	}
 	if (r.datacore && typeof r.datacore === "object") {
 		card.datacore = sanitizeDatacore(r.datacore as Record<string, unknown>);
+	}
+	if (r.git && typeof r.git === "object") {
+		card.git = sanitizeGit(r.git as Record<string, unknown>);
 	}
 	if (r.leafView && typeof r.leafView === "object") {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
@@ -797,6 +809,40 @@ function sanitizeDatacore(r: Record<string, unknown>): DatacoreConfig {
 	if (typeof r.pageSize === "number" && Number.isFinite(r.pageSize)) {
 		cfg.pageSize = Math.max(0, Math.min(100, Math.round(r.pageSize)));
 	}
+	return cfg;
+}
+
+/** An imported Git card. The section and action lists are run through the same
+ * normalizers the card uses, so an unknown id from a newer Hearth (or a hand
+ * edit) is dropped rather than rendered as a dead button. */
+function sanitizeGit(r: Record<string, unknown>): GitConfig {
+	const cfg: GitConfig = {};
+	if (Array.isArray(r.sections)) {
+		cfg.sections = gitSections(r.sections.filter((v): v is string => typeof v === "string"));
+	}
+	if (Array.isArray(r.actions)) {
+		cfg.actions = gitActions(r.actions.filter((v): v is string => typeof v === "string"));
+	}
+	if (GIT_ACTION_STYLES.includes(r.actionStyle as GitActionStyle)) {
+		cfg.actionStyle = r.actionStyle as GitActionStyle;
+	}
+	if (GIT_COMMIT_SCOPES.includes(r.commitScope as GitCommitScope)) {
+		cfg.commitScope = r.commitScope as GitCommitScope;
+	}
+	if (typeof r.changeLimit === "number" && Number.isFinite(r.changeLimit)) {
+		cfg.changeLimit = Math.max(0, Math.min(50, Math.round(r.changeLimit)));
+	}
+	if (typeof r.logLimit === "number" && Number.isFinite(r.logLimit)) {
+		cfg.logLimit = Math.max(1, Math.min(25, Math.round(r.logLimit)));
+	}
+	if (typeof r.refreshMin === "number" && Number.isFinite(r.refreshMin)) {
+		cfg.refreshMin = Math.max(0, Math.min(180, Math.round(r.refreshMin)));
+	}
+	const message = str(r.commitMessage);
+	if (message !== undefined) cfg.commitMessage = message;
+	if (typeof r.showPaths === "boolean") cfg.showPaths = r.showPaths;
+	if (typeof r.askForMessage === "boolean") cfg.askForMessage = r.askForMessage;
+	if (typeof r.skipConfirm === "boolean") cfg.skipConfirm = r.skipConfirm;
 	return cfg;
 }
 

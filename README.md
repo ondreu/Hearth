@@ -15,7 +15,7 @@ launchers — on desktop and mobile.
 Think of it as a new-tab dashboard, start page and command launcher in one.
 
 - 🔍 **Search everything** — fuzzy, full-text, tags, frontmatter and commands
-- 🧩 **25+ card types** — embeds, tasks, calendars, Dataview, Jira, and more
+- 🧩 **25+ card types** — embeds, tasks, calendars, Dataview, Git, Jira, and more
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
@@ -130,6 +130,14 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
   strip and a daily forecast.
 - **Clock & greeting** — digital or analogue face, custom date formats, and an
   optional playful greeting.
+- **Git** *(requires [Git](https://github.com/Vinzent03/obsidian-git))* — your
+  vault's repository at a glance: branch, staged and changed files, unpushed
+  commits and the recent log, with buttons that commit, sync, push, pull,
+  stage and discard. Every one of those is the Git plugin doing the work
+  through its own task queue, so your remote, credentials and commit-message
+  template apply unchanged — and right-clicking a changed file offers its diff,
+  staging and discard. Choose which sections and which buttons the card shows,
+  and what a commit from it covers.
 
 **Launchers & utilities**
 

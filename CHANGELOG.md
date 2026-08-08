@@ -65,6 +65,34 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   than blanking the card, the sky stops animating in low power mode, and the
   whole thing goes quiet under **Settings → Behaviour → Disable external
   calls**. Open-Meteo joins the Integrations catalogue.
+- **Git card.** If your vault is a repository kept by the
+  [Git](https://github.com/Vinzent03/obsidian-git) plugin, the dashboard can now
+  show and drive it. The card puts the branch, the staged and changed files, the
+  unpushed commit count, the time of the last commit and the recent log on the
+  board, and gives you buttons for **commit-and-sync, commit, push, pull, fetch,
+  stage all, unstage all, discard all** and **switch branch**, plus one-click
+  ways into the Git plugin's own source-control and history panels.
+  Right-clicking a changed file offers its diff, staging, unstaging and discard;
+  clicking one opens the note.
+
+  **None of it is a second git client.** Every action is the Git plugin doing
+  the work, queued on that plugin's own task queue — so your remote,
+  credentials, commit-message template, submodule and backup settings all apply
+  exactly as they do from the command palette, a card button can't interleave
+  with an automatic backup, and errors surface where you already expect them.
+  The card follows the Git plugin's own events instead of polling, so it moves
+  in step with its source-control view, including after an automatic backup.
+
+  **Built to be arranged.** Choose which of the four sections the card stacks
+  (status, buttons, changed files, recent commits) and which buttons it offers,
+  in which order, as icons or icons with labels. Decide what a commit from the
+  card covers — staged-if-anything-is-staged (what the Git plugin itself does),
+  everything, or only staged — give it a fixed commit message or let the plugin
+  prompt for one each time, cap the file and commit lists, and turn on folder
+  paths or an extra timed re-read for a repo that also changes outside Obsidian.
+  Discarding asks first unless you say otherwise. The card only appears in the
+  "Add card" picker while the Git plugin is enabled, and Git joins the
+  Integrations catalogue.
 - **Datacore card.** Dataview is winding down in favour of
   [Datacore](https://github.com/blacksmithgu/datacore), so Hearth now has a card
   for it, in the same shape as the Dataview card: pick a query type, write a
@@ -79,7 +107,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   joins the Integrations catalogue.
 - **Every integration in one place.** **Settings → Integrations** now opens with
   a complete catalogue of everything Hearth works with — community plugins
-  (Omnisearch, TaskNotes, Dataview, Iconic, Iconize, Excalidraw), Obsidian's own
+  (Omnisearch, TaskNotes, Dataview, Git, Iconic, Iconize, Excalidraw), Obsidian's own
   core plugins (Bases, Canvas, Daily notes, Bookmarks, Search, File explorer,
   Workspaces, Audio recorder, plus any plugin whose side panel a Plugin view
   card can host) and the external services some cards fetch from (Jira, RSS and Atom

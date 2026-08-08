@@ -1,5 +1,11 @@
 import type { DatacoreLanguage } from "./datacore";
 import type { EventNoteConfig } from "./eventnote";
+import type {
+	GitAction,
+	GitActionStyle,
+	GitCommitScope,
+	GitSection,
+} from "./git";
 
 /** The kind of content a dashboard card renders. */
 export type CardKind =
@@ -24,6 +30,7 @@ export type CardKind =
 	| "rss"
 	| "jira"
 	| "weather"
+	| "git"
 	| "leaf";
 
 /** A refinement control available on a Jira saved-filter card. */
@@ -586,6 +593,47 @@ export interface DatacoreConfig {
 	pageSize?: number;
 }
 
+/**
+ * Per-card configuration for a "git" card, which shows the state of the vault's
+ * repository and runs git operations through the obsidian-git community plugin.
+ *
+ * Hearth performs no git work of its own — every button is a call into that
+ * plugin, so its remote, credentials and commit-message template all apply. See
+ * `src/git.ts`. Only offered by the "Add card" picker when obsidian-git is
+ * installed and enabled.
+ */
+export interface GitConfig {
+	/** Which sections the card stacks, top to bottom. Absent means the defaults
+	 * (status, actions, changes); an explicitly empty list means none. */
+	sections?: GitSection[];
+	/** Which action buttons the "actions" section offers, in order. Absent means
+	 * the defaults (commit-and-sync, commit, push, pull). */
+	actions?: GitAction[];
+	/** Whether buttons show their label next to the icon. Default: icon only. */
+	actionStyle?: GitActionStyle;
+	/** Max rows in the changed-files list; 0 shows every changed file. Default 8. */
+	changeLimit?: number;
+	/** Max commits in the log section. Default 5. */
+	logLimit?: number;
+	/** Show each changed file's folder under its name. Default: name only. */
+	showPaths?: boolean;
+	/** Which files a commit from this card includes. Default: "smart". */
+	commitScope?: GitCommitScope;
+	/** The message the card's commit buttons use. Empty hands the decision to
+	 * obsidian-git's own commit-message template. */
+	commitMessage?: string;
+	/** Have obsidian-git prompt for a message on every commit, as its
+	 * "…with specific message" commands do. Wins over `commitMessage`. */
+	askForMessage?: boolean;
+	/** Re-read the repo every N minutes on top of following obsidian-git's own
+	 * events. 0 (the default) means events only — the plugin already refreshes
+	 * after every change, so polling mostly costs `git status` calls. */
+	refreshMin?: number;
+	/** Skip the confirmation dialog before a destructive action (discard all).
+	 * Off by default: the confirmation is there for a reason. */
+	skipConfirm?: boolean;
+}
+
 /** Per-card configuration for a "leaf" card, which hosts another plugin's (or a
  * core) registered side-panel view inside the dashboard. Beta. */
 export interface LeafViewConfig {
@@ -897,6 +945,8 @@ export interface DashboardCard {
 	jira?: JiraConfig;
 	/** kind === "weather": place, style, units and what to display. */
 	weather?: WeatherConfig;
+	/** kind === "git": sections, action buttons and commit behaviour. */
+	git?: GitConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 

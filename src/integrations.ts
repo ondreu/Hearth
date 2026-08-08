@@ -24,6 +24,7 @@ import { DATACORE_PLUGIN_ID } from "./datacore";
 import { DATAVIEW_PLUGIN_ID } from "./dataview";
 import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "./fileicons";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
+import { GIT_PLUGIN_ID } from "./git";
 import { OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
 
@@ -72,6 +73,7 @@ export type IntegrationId =
 	| "tasknotes"
 	| "dataview"
 	| "datacore"
+	| "git"
 	| "iconic"
 	| "iconize"
 	| "excalidraw"
@@ -132,6 +134,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "datacore",
 		group: "plugin",
 		pluginId: DATACORE_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "git",
+		group: "plugin",
+		pluginId: GIT_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 	{
