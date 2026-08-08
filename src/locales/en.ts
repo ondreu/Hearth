@@ -602,9 +602,9 @@ export const en = {
 				leafViews: {
 					name: "Any plugin with a side panel",
 					desc:
-						"The Leaf card hosts another plugin's registered view — calendars, " +
-						"kanban boards, outlines, tag panes — right inside a card. Whatever " +
-						"is installed shows up in the card's view picker.",
+						"The Plugin view card hosts another plugin's registered view — " +
+						"calendars, kanban boards, outlines, tag panes — right inside a card. " +
+						"Whatever is installed shows up in the card's view picker.",
 				},
 				jira: {
 					name: "Jira",

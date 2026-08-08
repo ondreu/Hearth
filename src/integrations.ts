@@ -173,8 +173,8 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		corePluginId: "audio-recorder",
 		where: { kind: "tab", tab: "behaviour" },
 	},
-	// Not tied to any one plugin: the Leaf card hosts whichever side-panel
-	// views happen to be registered, core or community.
+	// Not tied to any one plugin: the Plugin view card (`leaf` internally) hosts
+	// whichever side-panel views happen to be registered, core or community.
 	{ id: "leafViews", group: "core", where: { kind: "card" } },
 
 	// ---- External services -------------------------------------------------

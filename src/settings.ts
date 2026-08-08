@@ -360,8 +360,15 @@ export class HomeSettingTab extends PluginSettingTab {
 				// or not it is installed and whether or not it has a setting. The two
 				// sections below are the only ones that *do* have settings, and rows
 				// in the catalogue link down to them.
-				this.section(body, s.integrations.heading, s.integrations.headingDesc, (b) =>
-					this.integrationsCatalogue(b),
+				// Folded to start with: it's a reference list, not a setting, and
+				// unfolded it would push the two sections that *are* settings off
+				// the screen.
+				this.section(
+					body,
+					s.integrations.heading,
+					s.integrations.headingDesc,
+					(b) => this.integrationsCatalogue(b),
+					{ collapsedByDefault: true },
 				);
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
 				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
@@ -391,12 +398,18 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	/** Wrap a section in a collapsible block. The heading toggles visibility of
 	 * the body; the collapsed state is persisted per-section in localStorage so
-	 * long settings panels can be tamed and stay tamed. */
+	 * long settings panels can be tamed and stay tamed.
+	 *
+	 * `collapsedByDefault` only decides where a section starts before anyone has
+	 * ever folded it — for a long reference list that isn't a setting, starting
+	 * closed keeps the tab's actual settings in reach. Once the user folds or
+	 * unfolds it themselves, their choice is what persists. */
 	private section(
 		containerEl: HTMLElement,
 		title: string,
 		desc: string | undefined,
 		render: (body: HTMLElement) => void,
+		opts?: { collapsedByDefault?: boolean },
 	): void;
 	private section(
 		containerEl: HTMLElement,
@@ -408,6 +421,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		title: string,
 		descOrRender: string | undefined | ((body: HTMLElement) => void),
 		maybeRender?: (body: HTMLElement) => void,
+		opts?: { collapsedByDefault?: boolean },
 	): void {
 		const desc = typeof descOrRender === "string" ? descOrRender : undefined;
 		const render = typeof descOrRender === "function" ? descOrRender : maybeRender!;
@@ -434,9 +448,13 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 
 		// Persist the collapsed state per-section and per-vault via Obsidian's
-		// vault-scoped local storage.
+		// vault-scoped local storage. Both states are stored explicitly ("1"/"0")
+		// rather than clearing the key when open: absent has to keep meaning
+		// "never touched", so a default-collapsed section the user opened stays
+		// open instead of folding itself again on the next visit.
 		const key = `hearth-section-${title}`;
-		let collapsed = this.app.loadLocalStorage(key) === "1";
+		const saved = this.app.loadLocalStorage(key) as string | null;
+		let collapsed = saved === null ? !!opts?.collapsedByDefault : saved === "1";
 
 		// A catalogue row asked for this section: unfold it (persisting that, so
 		// it doesn't snap shut on the next visit) and scroll it into view once the
@@ -444,7 +462,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		if (this.revealSectionTitle === title) {
 			this.revealSectionTitle = null;
 			collapsed = false;
-			this.app.saveLocalStorage(key, null);
+			this.app.saveLocalStorage(key, "0");
 			window.requestAnimationFrame(() =>
 				wrap.scrollIntoView({ block: "start", behavior: "smooth" }),
 			);
@@ -459,7 +477,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		apply();
 		head.addEventListener("click", () => {
 			collapsed = !collapsed;
-			this.app.saveLocalStorage(key, collapsed ? "1" : null);
+			this.app.saveLocalStorage(key, collapsed ? "1" : "0");
 			apply();
 		});
 		head.addEventListener("keydown", (e) => {

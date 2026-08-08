@@ -19,8 +19,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   a complete catalogue of everything Hearth works with — community plugins
   (Omnisearch, TaskNotes, Dataview, Iconic, Iconize, Excalidraw), Obsidian's own
   core plugins (Bases, Canvas, Daily notes, Bookmarks, Search, File explorer,
-  Workspaces, Audio recorder, plus any plugin whose side panel a Leaf card can
-  host) and the external services some cards fetch from (Jira, RSS and Atom
+  Workspaces, Audio recorder, plus any plugin whose side panel a Plugin view
+  card can host) and the external services some cards fetch from (Jira, RSS and Atom
   feeds, iCalendar subscriptions, exchange rates, web search). Every one is
   listed whether or not it's installed, so the tab answers "what does Hearth
   work with?" and not just "what did I already set up". Each row says what the
