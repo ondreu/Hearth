@@ -106,11 +106,17 @@ function datacoreError(body: HTMLElement, title: string, detail: string): void {
 }
 
 
-/** The headline for a query that didn't parse. A multi-line query gets a more
- * specific one: a card runs exactly one query, and pasting a block of several
- * (or a query with a trailing note about what it does) is the overwhelmingly
- * common way to land here — the parse error underneath explains the *symptom*
- * ("expected 'and', 'or', EOF") without ever naming that cause. */
+/** The headline for a query that didn't parse. One that spans lines gets a more
+ * specific one: pasting a block of several queries (or a query with a trailing
+ * note about what it does) is the overwhelmingly common way to land here, and
+ * the parse error underneath only ever explains the *symptom* ("expected 'and',
+ * 'or', EOF") without naming that cause.
+ *
+ * Spanning lines is not itself the fault — Datacore's parser treats a newline
+ * as ordinary whitespace, so one query may be wrapped across as many lines as
+ * you like. That's why this only refines the headline of a failure rather than
+ * rejecting multi-line input, and why it says "looks like several" instead of
+ * claiming the line count is the problem. */
 function queryErrorTitle(query: string): string {
 	return query.includes("\n")
 		? t().cards.empty.datacoreOneQuery

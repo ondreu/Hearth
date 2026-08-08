@@ -1571,7 +1571,7 @@ export const en = {
 			datacoreNoQuery: "Set a Datacore query in card settings",
 			datacoreBadQuery: "Datacore couldn't read this query",
 			datacoreOneQuery:
-				"A card runs one query — this is several lines. Keep a single query, with no comment after it.",
+				"A card runs one query — this looks like several. Keep just the one you want, with no comment after it.",
 			datacoreFailed: "Datacore couldn't run this card",
 			rssNoSources: "Add a feed in card settings",
 			leafPickView: "Pick a plugin view in card settings",
