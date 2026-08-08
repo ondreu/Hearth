@@ -846,7 +846,7 @@ export const en = {
 			secondViewClear: "Remove second view",
 			openButton: "Open button",
 			openButtonDesc:
-				"Show a button that opens the embedded file in its own tab (#144). Off by default.",
+				"Show a button that opens the embedded file in its own tab. Off by default.",
 		},
 		daily: {
 			editable: "Editable",
