@@ -473,6 +473,169 @@ export const en = {
 			addButton: "Add button",
 			resetDefaults: "Reset to defaults",
 		},
+		/** The full catalogue shown at the top of the Integrations tab. Every
+		 * integration is listed here whether or not it has a setting and whether
+		 * or not the plugin is installed — see `src/integrations.ts`. */
+		integrations: {
+			heading: "All integrations",
+			headingDesc:
+				"Everything Hearth can work with, listed whether or not it's installed. " +
+				"Most integrations need no setup — the ones that do say where their " +
+				"settings live.",
+			groups: {
+				plugin: "Community plugins",
+				pluginDesc: "Hearth picks these up automatically once they're enabled.",
+				core: "Obsidian core plugins",
+				coreDesc:
+					"Built into Obsidian. Enable them in Settings → Core plugins if a " +
+					"card says one is missing.",
+				service: "External services",
+				serviceDesc:
+					"Cards that fetch over the network. All of them are silenced at once " +
+					"by “Disable external calls” under Behaviour → Privacy & network.",
+			},
+			status: {
+				enabled: "Enabled",
+				disabled: "Disabled",
+				missing: "Not installed",
+				external: "Network",
+				always: "Always available",
+			},
+			/** Tooltip on the status pill, spelling out what it means for Hearth. */
+			statusTooltip: {
+				enabled: "Installed and enabled — Hearth is using it.",
+				disabled: "Installed but turned off, so Hearth can't use it right now.",
+				missing: "Not installed. Everything else in Hearth works without it.",
+				external: "An outbound request, not a plugin.",
+				always: "Nothing to install.",
+			},
+			/** Where this integration's settings live, shown under the description. */
+			where: {
+				section: "Settings below on this tab.",
+				tab: (tab: string) => `Settings under ${tab}.`,
+				card: "Configured on the card itself, on your dashboard.",
+				pluginSettings: "Uses that plugin's own settings — nothing to set in Hearth.",
+				none: "Nothing to configure.",
+			},
+			/** Row buttons. */
+			install: "Install",
+			installTooltip: "Open this plugin in Obsidian's community plugin browser.",
+			goToSection: "Show",
+			goToTab: "Open",
+			/** One entry per id in `INTEGRATIONS`. */
+			items: {
+				omnisearch: {
+					name: "Omnisearch",
+					desc:
+						"Swaps the search bar over to Omnisearch's fuzzy, full-text index " +
+						"instead of Hearth's built-in engine. Pick the engine under " +
+						"Search → Search bar; the choice only sticks while Omnisearch is enabled.",
+				},
+				tasknotes: {
+					name: "TaskNotes",
+					desc:
+						"Lets Tasks cards read TaskNotes' one-note-per-task vaults — status, " +
+						"due date and priority straight from frontmatter.",
+				},
+				dataview: {
+					name: "Dataview",
+					desc:
+						"The Dataview card runs DQL queries and DataviewJS blocks and renders " +
+						"them with Dataview's own renderers, refreshing as its index changes.",
+				},
+				iconic: {
+					name: "Iconic",
+					desc:
+						"Per-file icons set with Iconic show up wherever Hearth lists a file — " +
+						"Recent, Favorites, saved searches and search results.",
+				},
+				iconize: {
+					name: "Iconize",
+					desc:
+						"The same for Iconize (formerly Obsidian Icon Folder), including icons " +
+						"set through a frontmatter property.",
+				},
+				excalidraw: {
+					name: "Excalidraw",
+					desc:
+						"Embed cards render Excalidraw drawings live, and the “New drawing” " +
+						"action creates one through Excalidraw's own command.",
+				},
+				bases: {
+					name: "Bases",
+					desc: "Embed cards can show a Bases (.base) view on the dashboard.",
+				},
+				canvas: {
+					name: "Canvas",
+					desc: "Embed cards can show a canvas, interactive and edge to edge.",
+				},
+				dailyNotes: {
+					name: "Daily notes",
+					desc:
+						"The Daily note, Mini calendar and Vault statistics cards resolve today's " +
+						"note from Daily notes' own folder, date format and template.",
+				},
+				bookmarks: {
+					name: "Bookmarks",
+					desc: "The Bookmarks card lists your Obsidian bookmarks, groups and all.",
+				},
+				globalSearch: {
+					name: "Search",
+					desc:
+						"Hands a query over to Obsidian's own search pane when you ask for the " +
+						"full results.",
+				},
+				fileExplorer: {
+					name: "File explorer",
+					desc: "Powers “Reveal in file explorer” on Hearth's search results.",
+				},
+				workspaces: {
+					name: "Workspaces",
+					desc: "A dashboard can switch to a saved workspace when you open it.",
+				},
+				audioRecorder: {
+					name: "Audio recorder",
+					desc:
+						"The “Record voice” mobile action button starts and stops Obsidian's " +
+						"own recorder.",
+				},
+				leafViews: {
+					name: "Any plugin with a side panel",
+					desc:
+						"The Leaf card hosts another plugin's registered view — calendars, " +
+						"kanban boards, outlines, tag panes — right inside a card. Whatever " +
+						"is installed shows up in the card's view picker.",
+				},
+				jira: {
+					name: "Jira",
+					desc:
+						"Jira cards fetch issues from your Jira Cloud or Server instance over " +
+						"its REST API, using credentials you enter on the card.",
+				},
+				rss: {
+					name: "RSS & Atom feeds",
+					desc: "RSS cards fetch and parse any RSS 2.0 or Atom feed you point them at.",
+				},
+				ics: {
+					name: "iCalendar feeds",
+					desc:
+						"Mini calendar cards can subscribe to external ICS/webcal calendars — " +
+						"Google, iCloud, Fastmail, Nextcloud and friends.",
+				},
+				currency: {
+					name: "Exchange rates",
+					desc:
+						"The Calculator card converts currencies using ECB rates from the free, " +
+						"key-less Frankfurter API.",
+				},
+				webSearch: {
+					name: "Web search",
+					desc:
+						"The search bar's button can send your query to DuckDuckGo instead of " +
+						"creating a note. Switch it under Search → Search bar.",
+				},
+			},
+		},
 		tasks: {
 			heading: "Tasks / TaskNotes",
 			headingDesc:

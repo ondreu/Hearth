@@ -955,6 +955,56 @@
 	color: var(--text-muted);
 }
 
+/* The integrations catalogue: every plugin and service Hearth works with,
+ * listed whether or not it's installed. Rows are informational first — a status
+ * pill beside the name, and a line under the description saying where the
+ * settings are — so they read tighter than a normal settings row. */
+.hearth-integration-group:not(:first-child) {
+	margin-top: 18px;
+}
+
+.hearth-integration-row .setting-item-name {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* The status pill. Sized down to a badge and colour-coded by state: green when
+ * Hearth is actually using it, muted for everything that just isn't on. */
+.hearth-integration-status {
+	flex: 0 0 auto;
+	padding: 1px 7px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-normal);
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.hearth-integration-status.is-enabled {
+	border-color: var(--color-green, var(--interactive-accent));
+	color: var(--color-green, var(--interactive-accent));
+	background: transparent;
+}
+
+.hearth-integration-status.is-disabled {
+	border-color: var(--color-orange, var(--background-modifier-border));
+	color: var(--color-orange, var(--text-muted));
+	background: transparent;
+}
+
+/* Where this integration's settings live (or that it has none). Quieter than
+ * the description above it — it's a signpost, not the point of the row. */
+.hearth-integration-where {
+	margin-top: 3px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
 /* Settings whose value low power mode is currently overriding. Still live and
  * editable — they simply aren't what's on screen right now — so this dims them
  * rather than disabling them. */

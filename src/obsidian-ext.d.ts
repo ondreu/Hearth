@@ -20,6 +20,11 @@ declare module "obsidian" {
 			enabledPlugins: Set<string>;
 			/** The loaded community plugin instances, keyed by id. */
 			plugins: Record<string, unknown>;
+			/** Manifests of every *installed* community plugin, keyed by id —
+			 * present whether or not the plugin is enabled, which is how the
+			 * integrations catalogue tells "installed but off" from "not
+			 * installed". Optional: it's an internal, so treat it as absent. */
+			manifests?: Record<string, unknown>;
 		};
 		/** Registry of every view type registered via `registerView` (core and
 		 * community). `viewByType` is keyed by the view-type id. Used by the
