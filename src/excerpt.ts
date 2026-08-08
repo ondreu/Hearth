@@ -100,17 +100,69 @@ export function cleanExcerptText(raw: string): string {
 	);
 }
 
-/** Char ranges in `haystack` covering any of `needles` (case-insensitive),
- * sorted and with overlaps merged so highlight spans never cross. Returns
- * undefined when nothing matched. */
+/**
+ * Fold one character for matching: lower-cased and stripped of its accent, so
+ * "Á" and "á" both compare equal to "a".
+ *
+ * Every step is reverted unless it leaves the character the same length in
+ * UTF-16 units. That's the whole trick: the folded string stays index-aligned
+ * with the original, so a range found in the folded text can be applied to the
+ * original text unchanged. The handful of characters that don't fold cleanly
+ * (ß → ss, a combining mark on its own) are simply left as they are.
+ */
+function foldChar(ch: string): string {
+	const lower = ch.toLowerCase();
+	const base = lower.length === ch.length ? lower : ch;
+	const stripped = base.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+	return stripped.length === base.length ? stripped : base;
+}
+
+// Everything above ASCII, written as a positive range so the linter does not
+// see control characters in a character class.
+const HAS_NON_ASCII = /[\u0080-\uffff]/;
+const NON_ASCII_G = /[\u0080-\uffff]/g;
+const HAS_UPPER = /[A-Z]/;
+
+/** Fold every character. Only used when the bulk path can't preserve length. */
+function perCharFold(s: string): string {
+	let out = "";
+	for (const ch of s) out += foldChar(ch);
+	return out;
+}
+
+/**
+ * A lower-cased, accent-stripped copy of `s` that is index-aligned with it, for
+ * matching a query against text that may not carry the same diacritics — "banan"
+ * has to find "Banánové", and Omnisearch reports its matched words folded even
+ * when the note spells them with accents.
+ *
+ * This runs over whole note bodies, so it leans on the native bulk operations
+ * and only touches individual characters where it has to: an already-folded
+ * string is returned as-is, and accents are fixed with one regex pass that skips
+ * every ASCII character.
+ */
+export function foldForMatch(s: string): string {
+	const nonAscii = HAS_NON_ASCII.test(s);
+	if (!nonAscii && !HAS_UPPER.test(s)) return s;
+	const lower = s.toLowerCase();
+	// Lower-casing can change a string's length (ß, İ), which would break the
+	// index alignment the ranges depend on. Fall back to the per-character fold,
+	// which reverts any step that doesn't preserve it.
+	const base = lower.length === s.length ? lower : perCharFold(s);
+	return nonAscii ? base.replace(NON_ASCII_G, foldChar) : base;
+}
+
+/** Char ranges in `haystack` covering any of `needles`, ignoring case and
+ * accents, sorted and with overlaps merged so highlight spans never cross.
+ * Returns undefined when nothing matched. */
 export function highlightRanges(
 	haystack: string,
 	needles: readonly string[],
 ): [number, number][] | undefined {
-	const lower = haystack.toLowerCase();
+	const lower = foldForMatch(haystack);
 	const ranges: [number, number][] = [];
 	for (const needle of needles) {
-		const n = needle.toLowerCase();
+		const n = foldForMatch(needle);
 		if (!n) continue;
 		let from = 0;
 		for (;;) {
@@ -170,7 +222,7 @@ export function windowExcerpt(
 	cutBefore = false,
 	cutAfter = false,
 ): Excerpt {
-	const at = needle ? cleaned.toLowerCase().indexOf(needle.toLowerCase()) : -1;
+	const at = needle ? foldForMatch(cleaned).indexOf(foldForMatch(needle)) : -1;
 	// Markup stripping can swallow the match (it straddled a tag, say). Fall
 	// back to the head of the line: still readable, just not centred.
 	const anchor = at < 0 ? 0 : at;

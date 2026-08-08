@@ -199,6 +199,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   match, and rendered as muted context with only the matched words highlighted.
   Omnisearch results go through the same treatment and highlight the words it
   reports matching, so both engines read the same way.
+- **Search results are ranked by how well they actually match.** A query's
+  letters were fuzzy-matched against each file's whole path, and a long path
+  gives them plenty of room to scatter — searching `banán` returned
+  *Library/Recipes/Polévka z pečených **b**atátů s cizr**n**ou **a** kukuřicí*
+  ranked among the notes genuinely called *Banánové…*. Matches are now banded:
+  a name starting with what you typed comes first, then a match at a word
+  boundary in the name, then anywhere in the name, then a fuzzy name match, and
+  last a match in the folder path. Paths are matched literally and never
+  fuzzily, so a folder search still works but can no longer conjure hits out of
+  scattered letters.
+- **Accents no longer have to be typed exactly.** `banan` now finds *Banánové
+  Snickersky* and highlights `Banán` in it, in file names, note bodies and
+  Omnisearch results alike — matching ignores case and diacritics throughout.
+- **Omnisearch results highlight the matched words again.** Omnisearch reports
+  the words it matched stemmed and stripped of their accents (`banan` for a note
+  that says *Banánové*), so looking for them literally found nothing and both
+  the title and the excerpt came back unhighlighted. Hearth now also reads the
+  spans Omnisearch itself marked in the excerpt — which carry the words exactly
+  as the note spells them — and matches without accents on top of that.
 - **Searching with the folders filter no longer comes up empty on Omnisearch.**
   Omnisearch indexes notes only, so with it selected as the search engine the
   folders chip could never match anything and every query answered "no matches".
@@ -217,7 +236,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   walk kept going after you'd typed the next character — so a few keystrokes
   left several full-vault reads racing each other, each allocating a second copy
   of the vault. A stale scan is now abandoned as soon as the query moves on, and
-  lower-cased bodies are cached (bounded, and re-read when a note changes), so
+  folded bodies are cached (bounded, and re-read when a note changes), so
   refining a query re-uses the work the last one did.
 - **The Plugin view card now says plainly how expensive it is.** Its performance
   hint was a line of muted grey text under the type dropdown, easy to skim past

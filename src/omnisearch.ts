@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { cleanExcerptText, highlightRanges, windowExcerpt } from "./excerpt";
+import { cleanExcerptText, foldForMatch, highlightRanges, windowExcerpt } from "./excerpt";
 import { groupForFile } from "./filetypes";
 import { QueryFilter, QueryHit } from "./query";
 
@@ -59,13 +59,31 @@ export function cleanExcerpt(
 	excerpt: string,
 	foundWords: readonly string[] = [],
 ): { label: string; matches?: [number, number][] } {
+	// Omnisearch already marked the hits, and those spans hold the words as the
+	// note actually spells them — `foundWords` comes back stemmed and stripped of
+	// diacritics ("banan" for a note that says "Banánové"), so on its own it
+	// often finds nothing to highlight. Take both.
+	const words = [...markedWords(excerpt), ...foundWords].filter((w) => w.length > 1);
 	const cleaned = cleanExcerptText(excerpt.replace(/<\/?mark>/g, ""));
 	if (!cleaned) return { label: "" };
 	// Narrow around the first word that's actually present, so the visible part
 	// of a long excerpt is the part that explains the hit.
-	const anchor = foundWords.find((w) => w && cleaned.toLowerCase().includes(w.toLowerCase()));
+	const folded = foldForMatch(cleaned);
+	const anchor = words.find((w) => folded.includes(foldForMatch(w)));
 	const { label } = windowExcerpt(cleaned, anchor ?? "");
-	return { label, matches: highlightRanges(label, foundWords) };
+	return { label, matches: highlightRanges(label, words) };
+}
+
+/** The literal text Omnisearch wrapped in `<mark>` — the matched words exactly
+ * as the note spells them, accents and inflection included. */
+function markedWords(excerpt: string): string[] {
+	const words = new Set<string>();
+	const re = /<mark>([\s\S]*?)<\/mark>/g;
+	for (let m = re.exec(excerpt); m; m = re.exec(excerpt)) {
+		const word = m[1].trim();
+		if (word) words.add(word);
+	}
+	return [...words];
 }
 
 /**
@@ -111,8 +129,9 @@ export async function searchWithOmnisearch(
 		const excerpt = cleanExcerpt(result.excerpt, words);
 		hits.push({
 			file,
-			score: result.score,
+			// Folded, so a stemmed "banan" still lights up "Banánové" in the title.
 			matches: highlightRanges(file.basename, words),
+			score: result.score,
 			badge: excerpt.label
 				? { icon: "file-search", label: excerpt.label, matches: excerpt.matches, excerpt: true }
 				: undefined,

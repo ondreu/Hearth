@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	buildExcerpt,
 	cleanExcerptText,
+	foldForMatch,
 	highlightRanges,
 	windowExcerpt,
 } from "../src/excerpt";
@@ -90,6 +91,43 @@ describe("cleanExcerptText", () => {
 	});
 });
 
+describe("foldForMatch", () => {
+	it("lower-cases and strips accents", () => {
+		expect(foldForMatch("Banánové")).toBe("bananove");
+		expect(foldForMatch("Příliš Žluťoučký KŮŇ")).toBe("prilis zlutoucky kun");
+		expect(foldForMatch("Crème Brûlée")).toBe("creme brulee");
+	});
+
+	it("leaves already-folded ASCII untouched", () => {
+		expect(foldForMatch("plain lower ascii 123")).toBe("plain lower ascii 123");
+	});
+
+	/**
+	 * The invariant the whole highlight path rests on: a range found in the
+	 * folded string is applied to the *original* string, so the two must line up
+	 * character for character. Any fold that would change the length is reverted.
+	 */
+	it("always returns a string the same length as its input", () => {
+		for (const s of [
+			"Banánové Snickersky",
+			"Straße", // ß upper-cases to SS
+			"İstanbul", // dotted capital I lower-cases to two code points
+			"Ω Ϋ ǅ",
+			"emoji 🍌 and a pair",
+			"é already decomposed",
+			"",
+		]) {
+			expect(foldForMatch(s)).toHaveLength(s.length);
+		}
+	});
+
+	it("keeps a character it cannot fold without changing length", () => {
+		// "ß" has no single-character lower/upper fold, so it survives as-is
+		// rather than becoming "ss" and shifting every index after it.
+		expect(foldForMatch("Straße")).toBe("straße");
+	});
+});
+
 describe("highlightRanges", () => {
 	it("finds every occurrence, case-insensitively", () => {
 		expect(marked("Jan and jan", highlightRanges("Jan and jan", ["jan"]))).toBe(
@@ -114,6 +152,25 @@ describe("highlightRanges", () => {
 
 	it("keeps separate matches separate", () => {
 		expect(marked("a b a", highlightRanges("a b a", ["a"]))).toBe("[a] b [a]");
+	});
+
+	it("ignores accents in both directions", () => {
+		// Omnisearch reports its matched words stemmed and unaccented, so an
+		// unaccented needle has to light up the accented spelling in the note...
+		expect(marked("Banánové Snickersky", highlightRanges("Banánové Snickersky", ["banan"]))).toBe(
+			"[Banán]ové Snickersky",
+		);
+		// ...and a needle typed *with* accents has to find text without them.
+		expect(marked("bananove", highlightRanges("bananove", ["Banán"]))).toBe("[banan]ove");
+	});
+
+	it("highlights the accented spelling at the right offset", () => {
+		// The range must land on the original characters, not on folded ones:
+		// "banánů" is 6 characters either way, so the slice stays aligned.
+		const text = "400 g banánů 40 g arašídového másla";
+		expect(marked(text, highlightRanges(text, ["bananu"]))).toBe(
+			"400 g [banánů] 40 g arašídového másla",
+		);
 	});
 });
 

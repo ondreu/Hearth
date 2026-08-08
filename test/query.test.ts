@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	clearContentSearchCache,
 	formatPropertyValue,
-	lowerBody,
+	foldedBody,
 	queryMode,
 } from "../src/query";
 
 /**
  * Covers the pure parts of the query engine: mode dispatch, frontmatter value
- * stringification and the lower-cased body cache. The result-gathering entry
+ * stringification and the folded body cache. The result-gathering entry
  * points (runQuery, searchByName, searchByTag, searchByProperty,
  * searchFileContents) all need a live Obsidian `App`/vault and the fuzzy
  * matcher, so they are intentionally NOT tested here (no Obsidian API mocks).
@@ -71,54 +71,56 @@ describe("formatPropertyValue", () => {
 	});
 });
 
-describe("lowerBody", () => {
+describe("foldedBody", () => {
 	beforeEach(() => clearContentSearchCache());
 
-	it("lower-cases the text it is given", () => {
-		expect(lowerBody("a.md", 1, "Hello World")).toBe("hello world");
+	it("folds the text it is given", () => {
+		expect(foldedBody("a.md", 1, "Hello World")).toBe("hello world");
+		// Accents come off too, so a query typed without them still matches.
+		expect(foldedBody("b.md", 1, "Banánové Snickersky")).toBe("bananove snickersky");
 	});
 
 	it("re-uses the cached value while the mtime is unchanged", () => {
-		expect(lowerBody("a.md", 1, "Original")).toBe("original");
-		// A stale read of the same unchanged file must not be re-lowered — the
+		expect(foldedBody("a.md", 1, "Original")).toBe("original");
+		// A stale read of the same unchanged file must not be re-folded — the
 		// cache hit is the whole point, so the second argument is ignored.
-		expect(lowerBody("a.md", 1, "IGNORED")).toBe("original");
+		expect(foldedBody("a.md", 1, "IGNORED")).toBe("original");
 	});
 
-	it("re-lowers once the file's mtime moves", () => {
-		expect(lowerBody("a.md", 1, "Original")).toBe("original");
-		expect(lowerBody("a.md", 2, "Edited")).toBe("edited");
+	it("re-folds once the file's mtime moves", () => {
+		expect(foldedBody("a.md", 1, "Original")).toBe("original");
+		expect(foldedBody("a.md", 2, "Edited")).toBe("edited");
 		// ...and the new value is what sticks.
-		expect(lowerBody("a.md", 2, "IGNORED")).toBe("edited");
+		expect(foldedBody("a.md", 2, "IGNORED")).toBe("edited");
 	});
 
 	it("keeps separate entries per path", () => {
-		lowerBody("a.md", 1, "Apple");
-		lowerBody("b.md", 1, "Banana");
-		expect(lowerBody("a.md", 1, "x")).toBe("apple");
-		expect(lowerBody("b.md", 1, "x")).toBe("banana");
+		foldedBody("a.md", 1, "Apple");
+		foldedBody("b.md", 1, "Banana");
+		expect(foldedBody("a.md", 1, "x")).toBe("apple");
+		expect(foldedBody("b.md", 1, "x")).toBe("banana");
 	});
 
 	it("clearContentSearchCache forgets everything", () => {
-		lowerBody("a.md", 1, "Original");
+		foldedBody("a.md", 1, "Original");
 		clearContentSearchCache();
-		expect(lowerBody("a.md", 1, "Replaced")).toBe("replaced");
+		expect(foldedBody("a.md", 1, "Replaced")).toBe("replaced");
 	});
 
 	it("evicts cold entries once the budget is exceeded", () => {
 		// Two notes just over the 4M-char budget between them: caching the second
 		// must push the first out rather than grow without bound.
 		const big = "X".repeat(2_500_000);
-		lowerBody("first.md", 1, big);
-		lowerBody("second.md", 1, big);
+		foldedBody("first.md", 1, big);
+		foldedBody("second.md", 1, big);
 		// "first.md" was evicted, so it re-lowers whatever it's handed now.
-		expect(lowerBody("first.md", 1, "Fresh")).toBe("fresh");
+		expect(foldedBody("first.md", 1, "Fresh")).toBe("fresh");
 		// "second.md" is still cached.
-		expect(lowerBody("second.md", 1, "IGNORED").length).toBe(big.length);
+		expect(foldedBody("second.md", 1, "IGNORED").length).toBe(big.length);
 	});
 
 	it("keeps a single over-budget note rather than looping to evict itself", () => {
 		const huge = "Y".repeat(5_000_000);
-		expect(lowerBody("huge.md", 1, huge).length).toBe(huge.length);
+		expect(foldedBody("huge.md", 1, huge).length).toBe(huge.length);
 	});
 });

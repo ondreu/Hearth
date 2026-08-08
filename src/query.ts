@@ -1,5 +1,5 @@
 import { App, getAllTags, prepareFuzzySearch, TAbstractFile, TFile, TFolder } from "obsidian";
-import { buildExcerpt } from "./excerpt";
+import { buildExcerpt, foldForMatch, highlightRanges } from "./excerpt";
 import { groupForFile } from "./filetypes";
 
 /** Shown instead of the folder path to say *why* a file matched. */
@@ -57,6 +57,19 @@ export function formatPropertyValue(v: unknown): string {
 const NO_FILTER: QueryFilter = { includeFolders: true, includeFiles: true, groupId: null };
 
 /**
+ * Ranking bands for a name query, applied before any score. The point is that a
+ * literal hit in the file's own name always beats a fuzzy one, and a fuzzy hit
+ * always beats one that only landed somewhere in the folder path — the fuzzy
+ * matcher happily scatters a query's letters across a long string, so without
+ * bands its scores put near-random matches among the obvious ones.
+ */
+const TIER_PREFIX = 4;
+const TIER_WORD = 3;
+const TIER_SUBSTRING = 2;
+const TIER_FUZZY = 1;
+const TIER_PATH = 0;
+
+/**
  * Run a synchronous vault query (tag / property / name+path). Content search is
  * separate (see searchFileContents) because it needs async file reads.
  */
@@ -90,11 +103,20 @@ export function countQuery(app: App, query: string): number {
 
 function countByName(app: App, query: string): number {
 	const fuzzy = prepareFuzzySearch(query);
+	const q = foldForMatch(query);
 	let n = 0;
 	for (const f of app.vault.getAllLoadedFiles()) {
 		if (f instanceof TFolder && f.path === "/") continue;
 		const displayName = f instanceof TFile ? f.basename : f.name;
-		if (fuzzy(displayName) ?? fuzzy(f.path)) n++;
+		// Same predicate as searchByName, so a stat tile counts exactly what the
+		// search bar would list: name literal or fuzzy, path literal only.
+		if (
+			foldForMatch(displayName).includes(q) ||
+			fuzzy(displayName) ||
+			foldForMatch(f.path).includes(q)
+		) {
+			n++;
+		}
 	}
 	return n;
 }
@@ -150,22 +172,57 @@ function searchByName(app: App, query: string, filter: QueryFilter, limit: numbe
 	}
 
 	const fuzzy = prepareFuzzySearch(query);
-	const hits: QueryHit[] = [];
+	const q = foldForMatch(query);
+	const ranked: { hit: QueryHit; tier: number }[] = [];
+
 	for (const file of candidates) {
 		const displayName = file instanceof TFile ? file.basename : file.name;
-		const onName = fuzzy(displayName);
-		const match = onName ?? fuzzy(file.path);
-		if (match) {
-			hits.push({
-				file,
-				score: match.score,
-				// Highlight ranges only apply when the name itself matched.
-				matches: onName ? match.matches : undefined,
+		const folded = foldForMatch(displayName);
+		const at = folded.indexOf(q);
+
+		if (at >= 0) {
+			// The query appears in the name as typed. That's what the user meant
+			// almost every time, so it outranks anything fuzzy regardless of what
+			// score the fuzzy matcher would have given it.
+			const tier = at === 0 ? TIER_PREFIX : isWordStart(folded, at) ? TIER_WORD : TIER_SUBSTRING;
+			// Within a tier: an earlier match, then a shorter name, wins.
+			ranked.push({
+				tier,
+				hit: { file, score: -at - displayName.length / 1000, matches: highlightRanges(displayName, [query]) },
 			});
+			continue;
+		}
+
+		const onName = fuzzy(displayName);
+		if (onName) {
+			ranked.push({ tier: TIER_FUZZY, hit: { file, score: onName.score, matches: onName.matches } });
+			continue;
+		}
+
+		// Path matching is literal, never fuzzy. Fuzzy-matching a whole path lets
+		// the query's letters scatter across folder names and match nearly
+		// everything: searching "banán" turned up "Library/Recipes/Polévka z
+		// pečených batátů s cizrnou a kukuřicí" on b-a-n-a-n, ranked alongside
+		// the notes actually called "Banánové…". Inside a folder name the query
+		// still has to appear as typed.
+		if (foldForMatch(file.path).includes(q)) {
+			ranked.push({ tier: TIER_PATH, hit: { file, score: 0 } });
 		}
 	}
-	hits.sort((a, b) => b.score - a.score);
-	return hits.slice(0, limit);
+
+	ranked.sort(
+		(a, b) =>
+			b.tier - a.tier ||
+			b.hit.score - a.hit.score ||
+			a.hit.file.name.localeCompare(b.hit.file.name),
+	);
+	return ranked.slice(0, limit).map((r) => r.hit);
+}
+
+/** Whether the match at `at` starts a word, so "nut" ranks higher in
+ * "Coco nut" than in "Doughnut". */
+function isWordStart(folded: string, at: number): boolean {
+	return !/[a-z0-9]/.test(folded[at - 1] ?? "");
 }
 
 function searchByTag(app: App, raw: string, limit: number): QueryHit[] {
@@ -208,48 +265,49 @@ function searchByProperty(app: App, key: string, rawValue: string, limit: number
 }
 
 /**
- * Lower-cased note bodies, keyed by path. Re-lower-casing every note on every
- * keystroke was by far the biggest cost of a content search — it allocates a
- * second copy of the whole vault per query — so the result is kept around and
- * a refined query ("meet" → "meeting") re-uses it. Bounded by total characters
- * so a large vault can't grow it without limit, and keyed by mtime so an edited
- * note is re-lowered instead of matched against stale text.
+ * Folded note bodies (lower-cased, accents stripped, index-aligned with the
+ * original), keyed by path. Folding every note on every keystroke was by far the
+ * biggest cost of a content search — it allocates a second copy of the whole
+ * vault per query — so the result is kept around and a refined query ("meet" →
+ * "meeting") re-uses it. Bounded by total characters so a large vault can't grow
+ * it without limit, and keyed by mtime so an edited note is re-folded instead of
+ * matched against stale text.
  */
-const LOWER_CACHE_MAX_CHARS = 4_000_000;
-const lowerCache = new Map<string, { mtime: number; lower: string }>();
-let lowerCacheChars = 0;
+const BODY_CACHE_MAX_CHARS = 4_000_000;
+const bodyCache = new Map<string, { mtime: number; folded: string }>();
+let bodyCacheChars = 0;
 
-/** The lower-cased body of `path`, from the cache when it's still current for
- * `mtime`, otherwise lowered now and cached (evicting the coldest entries when
+/** The folded body of `path`, from the cache when it's still current for
+ * `mtime`, otherwise folded now and cached (evicting the coldest entries when
  * that pushes the cache over budget). Exported for tests. */
-export function lowerBody(path: string, mtime: number, text: string): string {
-	const cached = lowerCache.get(path);
+export function foldedBody(path: string, mtime: number, text: string): string {
+	const cached = bodyCache.get(path);
 	if (cached && cached.mtime === mtime) {
 		// Re-insert so Map's insertion order stays least-recently-used first.
-		lowerCache.delete(path);
-		lowerCache.set(path, cached);
-		return cached.lower;
+		bodyCache.delete(path);
+		bodyCache.set(path, cached);
+		return cached.folded;
 	}
-	const lower = text.toLowerCase();
-	if (cached) lowerCacheChars -= cached.lower.length;
-	lowerCache.set(path, { mtime, lower });
-	lowerCacheChars += lower.length;
-	while (lowerCacheChars > LOWER_CACHE_MAX_CHARS) {
-		const oldest = lowerCache.keys().next();
+	const folded = foldForMatch(text);
+	if (cached) bodyCacheChars -= cached.folded.length;
+	bodyCache.set(path, { mtime, folded });
+	bodyCacheChars += folded.length;
+	while (bodyCacheChars > BODY_CACHE_MAX_CHARS) {
+		const oldest = bodyCache.keys().next();
 		// Never evict the entry we're about to return, even if it alone is over
 		// budget — otherwise a single huge note would loop forever.
 		if (oldest.done || oldest.value === path) break;
-		lowerCacheChars -= lowerCache.get(oldest.value)?.lower.length ?? 0;
-		lowerCache.delete(oldest.value);
+		bodyCacheChars -= bodyCache.get(oldest.value)?.folded.length ?? 0;
+		bodyCache.delete(oldest.value);
 	}
-	return lower;
+	return folded;
 }
 
 /** Drop every cached body. Called on plugin unload so the plugin doesn't leave
  * a copy of the vault behind; also used to isolate tests. */
 export function clearContentSearchCache(): void {
-	lowerCache.clear();
-	lowerCacheChars = 0;
+	bodyCache.clear();
+	bodyCacheChars = 0;
 }
 
 /**
@@ -268,7 +326,9 @@ export async function searchFileContents(
 	query: string,
 	opts: { exclude: Set<string>; limit: number; shouldStop?: () => boolean },
 ): Promise<QueryHit[]> {
-	const needle = query.trim().toLowerCase();
+	// Folded, so a query typed without diacritics still finds the accented
+	// spelling — the same way name matching and Omnisearch behave.
+	const needle = foldForMatch(query.trim());
 	if (!needle || opts.limit <= 0 || queryMode(query) !== "name") return [];
 
 	const hits: QueryHit[] = [];
@@ -281,7 +341,7 @@ export async function searchFileContents(
 		} catch {
 			continue;
 		}
-		const idx = lowerBody(file.path, file.stat.mtime, text).indexOf(needle);
+		const idx = foldedBody(file.path, file.stat.mtime, text).indexOf(needle);
 		if (idx < 0) continue;
 		const { label, matches } = buildExcerpt(text, idx, needle.length);
 		hits.push({
