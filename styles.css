@@ -4154,6 +4154,56 @@
 	overflow-x: auto;
 }
 
+/* A failed Datacore query or script. Left-aligned, not centred like the generic
+   empty state: the detail below is the engine's own message, and Datacore's
+   parse errors are ASCII drawings (a numbered echo of the query with a caret
+   under the offending column) that only line up in a monospaced block. */
+.hearth-datacore-error {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+	padding: 0.75em 0.9em;
+	min-width: 0;
+}
+
+.hearth-datacore-error-head {
+	display: flex;
+	align-items: center;
+	gap: 0.45em;
+	color: var(--text-muted);
+}
+
+.hearth-datacore-error-icon {
+	display: flex;
+	color: var(--text-warning);
+}
+
+.hearth-datacore-error-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.hearth-datacore-error-title {
+	font-size: 0.9rem;
+}
+
+/* The engine's message, verbatim. Scrolls in its own box rather than stretching
+   the card, and keeps its line breaks so the caret stays under its column. */
+.hearth-datacore-error-detail {
+	margin: 0;
+	max-height: 14em;
+	overflow: auto;
+	padding: 0.6em 0.7em;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.75rem;
+	line-height: 1.45;
+	white-space: pre;
+	tab-size: 4;
+}
+
 /* Keep a long-text column (note bodies, paths) from ballooning: wrap past a
    sensible width instead of pushing every other column off-screen. */
 .hearth-datacore th,

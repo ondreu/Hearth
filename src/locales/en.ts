@@ -1569,6 +1569,10 @@ export const en = {
 			dataviewNoQuery: "Set a Dataview query in card settings",
 			datacoreEnable: "Enable the Datacore plugin to run queries",
 			datacoreNoQuery: "Set a Datacore query in card settings",
+			datacoreBadQuery: "Datacore couldn't read this query",
+			datacoreOneQuery:
+				"A card runs one query — this is several lines. Keep a single query, with no comment after it.",
+			datacoreFailed: "Datacore couldn't run this card",
 			rssNoSources: "Add a feed in card settings",
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:

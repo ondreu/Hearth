@@ -1,4 +1,4 @@
-import { Component, Setting } from "obsidian";
+import { Component, setIcon, Setting } from "obsidian";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import {
 	datacoreQueryError,
@@ -54,7 +54,7 @@ export function renderDatacore(
 	if (language === "query") {
 		const parseError = datacoreQueryError(api, query);
 		if (parseError) {
-			emptyState(body, "alert-triangle", parseError);
+			datacoreError(body, queryErrorTitle(query), parseError);
 			return;
 		}
 		source = datacoreQueryScript(query, cfg.pageSize);
@@ -76,7 +76,7 @@ export function renderDatacore(
 		// readable message instead of taking down the dashboard render.
 		host.empty();
 		const message = err instanceof Error ? err.message : String(err);
-		emptyState(host, "alert-triangle", message);
+		datacoreError(host, t().cards.empty.datacoreFailed, message);
 		return;
 	}
 	// Datacore renders internal links as anchors; wire them up so they open like
@@ -84,6 +84,37 @@ export function renderDatacore(
 	// carries a click handler that opens the note in the active tab — the Hearth
 	// tab — so it has to be intercepted before it runs rather than after (#106).
 	wireMarkdownLinks(view, host, origin, { capture: true });
+}
+
+
+/**
+ * Show a failed query/script: a one-line headline plus the engine's own message
+ * verbatim, in a monospaced block.
+ *
+ * Not `emptyState`, which centres a single line of proportional text: Datacore's
+ * parse errors are parsimmon's, and those are *drawings* — a numbered echo of
+ * the query with a caret under the offending column. Reflowed into centred prose
+ * (as the first cut did) the caret points at nothing and the message reads as
+ * noise, which is exactly the moment a user most needs to read it.
+ */
+function datacoreError(body: HTMLElement, title: string, detail: string): void {
+	const wrap = body.createDiv("hearth-datacore-error");
+	const head = wrap.createDiv("hearth-datacore-error-head");
+	setIcon(head.createSpan("hearth-datacore-error-icon"), "alert-triangle");
+	head.createSpan({ cls: "hearth-datacore-error-title", text: title });
+	wrap.createEl("pre", { cls: "hearth-datacore-error-detail", text: detail });
+}
+
+
+/** The headline for a query that didn't parse. A multi-line query gets a more
+ * specific one: a card runs exactly one query, and pasting a block of several
+ * (or a query with a trailing note about what it does) is the overwhelmingly
+ * common way to land here — the parse error underneath explains the *symptom*
+ * ("expected 'and', 'or', EOF") without ever naming that cause. */
+function queryErrorTitle(query: string): string {
+	return query.includes("\n")
+		? t().cards.empty.datacoreOneQuery
+		: t().cards.empty.datacoreBadQuery;
 }
 
 
