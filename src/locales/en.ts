@@ -236,8 +236,29 @@ export const en = {
 		resetSlider: "Reset to default",
 		/** Reset button next to text fields whose factory default is meaningful. */
 		resetField: "Reset to default",
-		collapseSection: "Collapse section",
-		expandSection: "Expand section",
+		/** Strapline under the plugin name on the settings index. */
+		indexSub: "A home screen for your vault — search, dashboard, and launcher in one.",
+		/** Accessible name of the back link on a category page; the visible label is
+		 * the plugin's own name. */
+		backToIndex: "Back to all settings",
+		/** Headings that group the categories on the index. */
+		indexGroups: {
+			lookFeel: "Look & feel",
+			howItWorks: "How it works",
+			data: "Data & plugins",
+			etc: "Etc",
+		},
+		/** One line per category, shown on its index row and again at the top of
+		 * its page: what a reader will find if they open it. */
+		tabDescs: {
+			appearance: "Title, logo, background, and low power mode.",
+			search: "The search bar and which results it offers.",
+			dashboard: "Grid, card surface, and the controls around the board.",
+			behaviour: "Startup, how notes open, mobile, and privacy.",
+			integrations: "TaskNotes, file icons, and every plugin Hearth reads.",
+			backup: "Export and import your layout and settings.",
+			about: "Version, what's new, and where to report things.",
+		},
 		/** Shown in place of a settings section (or tab) whose render threw, so a
 		 * single failing section can no longer blank the whole settings pane. */
 		sectionError: (name: string) => `The "${name}" section couldn't be shown.`,
