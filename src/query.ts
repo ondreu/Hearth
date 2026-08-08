@@ -1,5 +1,19 @@
 import { App, getAllTags, prepareFuzzySearch, TAbstractFile, TFile, TFolder } from "obsidian";
+import { buildExcerpt } from "./excerpt";
 import { groupForFile } from "./filetypes";
+
+/** Shown instead of the folder path to say *why* a file matched. */
+export interface QueryBadge {
+	icon: string;
+	label: string;
+	/** Char ranges into `label` to highlight — the part that actually matched. */
+	matches?: [number, number][];
+	/** True for a note-body excerpt. Excerpts are prose, so they're rendered as
+	 * muted context with the match picked out, not as a short accent-coloured
+	 * chip the way a tag or property badge is — a whole sentence in accent
+	 * colour competes with the file name it sits under. */
+	excerpt?: boolean;
+}
 
 /** A single query result. `matches` holds char ranges into the display name for
  * highlighting (name/path matches only). `badge` is shown instead of the folder
@@ -7,7 +21,7 @@ import { groupForFile } from "./filetypes";
 export interface QueryHit {
 	file: TAbstractFile;
 	score: number;
-	badge?: { icon: string; label: string };
+	badge?: QueryBadge;
 	matches?: [number, number][];
 }
 
@@ -32,8 +46,8 @@ export function queryMode(query: string): QueryMode {
 	return "name";
 }
 
-/** Stringify a frontmatter value for display/matching. */
-function formatPropertyValue(v: unknown): string {
+/** Stringify a frontmatter value for display/matching. Exported for tests. */
+export function formatPropertyValue(v: unknown): string {
 	if (v == null) return "";
 	if (typeof v === "string") return v;
 	if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
@@ -194,21 +208,72 @@ function searchByProperty(app: App, key: string, rawValue: string, limit: number
 }
 
 /**
+ * Lower-cased note bodies, keyed by path. Re-lower-casing every note on every
+ * keystroke was by far the biggest cost of a content search — it allocates a
+ * second copy of the whole vault per query — so the result is kept around and
+ * a refined query ("meet" → "meeting") re-uses it. Bounded by total characters
+ * so a large vault can't grow it without limit, and keyed by mtime so an edited
+ * note is re-lowered instead of matched against stale text.
+ */
+const LOWER_CACHE_MAX_CHARS = 4_000_000;
+const lowerCache = new Map<string, { mtime: number; lower: string }>();
+let lowerCacheChars = 0;
+
+/** The lower-cased body of `path`, from the cache when it's still current for
+ * `mtime`, otherwise lowered now and cached (evicting the coldest entries when
+ * that pushes the cache over budget). Exported for tests. */
+export function lowerBody(path: string, mtime: number, text: string): string {
+	const cached = lowerCache.get(path);
+	if (cached && cached.mtime === mtime) {
+		// Re-insert so Map's insertion order stays least-recently-used first.
+		lowerCache.delete(path);
+		lowerCache.set(path, cached);
+		return cached.lower;
+	}
+	const lower = text.toLowerCase();
+	if (cached) lowerCacheChars -= cached.lower.length;
+	lowerCache.set(path, { mtime, lower });
+	lowerCacheChars += lower.length;
+	while (lowerCacheChars > LOWER_CACHE_MAX_CHARS) {
+		const oldest = lowerCache.keys().next();
+		// Never evict the entry we're about to return, even if it alone is over
+		// budget — otherwise a single huge note would loop forever.
+		if (oldest.done || oldest.value === path) break;
+		lowerCacheChars -= lowerCache.get(oldest.value)?.lower.length ?? 0;
+		lowerCache.delete(oldest.value);
+	}
+	return lower;
+}
+
+/** Drop every cached body. Called on plugin unload so the plugin doesn't leave
+ * a copy of the vault behind; also used to isolate tests. */
+export function clearContentSearchCache(): void {
+	lowerCache.clear();
+	lowerCacheChars = 0;
+}
+
+/**
  * Full-text search over note bodies. Only runs for plain (name) queries, reads
  * lazily via cachedRead, skips files already matched by name (`exclude`), and
  * stops once `limit` hits are found so a big vault isn't fully read. Each hit's
  * badge is a short snippet around the first match.
+ *
+ * `shouldStop` is polled once per file: a scan of a large vault outlives the
+ * keystroke that started it, so the caller uses this to abandon the walk as
+ * soon as the query it belongs to is stale — without it, every keystroke piles
+ * another full-vault read onto the ones already running.
  */
 export async function searchFileContents(
 	app: App,
 	query: string,
-	opts: { exclude: Set<string>; limit: number },
+	opts: { exclude: Set<string>; limit: number; shouldStop?: () => boolean },
 ): Promise<QueryHit[]> {
 	const needle = query.trim().toLowerCase();
-	if (!needle || queryMode(query) !== "name") return [];
+	if (!needle || opts.limit <= 0 || queryMode(query) !== "name") return [];
 
 	const hits: QueryHit[] = [];
 	for (const file of app.vault.getMarkdownFiles()) {
+		if (opts.shouldStop?.()) break;
 		if (opts.exclude.has(file.path)) continue;
 		let text: string;
 		try {
@@ -216,20 +281,15 @@ export async function searchFileContents(
 		} catch {
 			continue;
 		}
-		const idx = text.toLowerCase().indexOf(needle);
+		const idx = lowerBody(file.path, file.stat.mtime, text).indexOf(needle);
 		if (idx < 0) continue;
-		hits.push({ file, score: 0, badge: { icon: "file-search", label: snippet(text, idx, needle.length) } });
+		const { label, matches } = buildExcerpt(text, idx, needle.length);
+		hits.push({
+			file,
+			score: 0,
+			badge: { icon: "file-search", label, matches, excerpt: true },
+		});
 		if (hits.length >= opts.limit) break;
 	}
 	return hits;
-}
-
-/** A one-line snippet of `text` around [idx, idx+len], collapsed to single spaces. */
-function snippet(text: string, idx: number, len: number): string {
-	const start = Math.max(0, idx - 30);
-	const end = Math.min(text.length, idx + len + 40);
-	let s = text.slice(start, end).replace(/\s+/g, " ").trim();
-	if (start > 0) s = `…${s}`;
-	if (end < text.length) s = `${s}…`;
-	return s;
 }

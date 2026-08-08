@@ -5,6 +5,7 @@ import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GRO
 import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { openFile as openInLeaf } from "./opener";
+import { renderHighlighted } from "./ui";
 import { t } from "./i18n";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
@@ -250,10 +251,13 @@ export class SearchSection {
 		// Omnisearch mode: hand plain queries to the Omnisearch plugin instead of
 		// the built-in engine. It only runs when the plugin is actually available;
 		// otherwise (and for tag/property syntax, which Omnisearch doesn't use) we
-		// fall through to the built-in search below.
+		// fall through to the built-in search below. The folders chip also stays
+		// with the built-in engine: Omnisearch indexes notes only, so routing a
+		// folder query to it would turn every search into "no matches".
 		if (
 			this.view.plugin.settings.searchEngine === "omnisearch" &&
 			query &&
+			filter.includeFiles &&
 			isOmnisearchAvailable(this.view.app)
 		) {
 			this.runOmnisearch(query, filter);
@@ -272,6 +276,10 @@ export class SearchSection {
 			void searchFileContents(this.view.app, query, {
 				exclude,
 				limit: Math.max(0, MAX_RESULTS - hits.length),
+				// A vault-wide body scan easily outlives the keystroke that started
+				// it. Stop walking as soon as the query moves on, so typing doesn't
+				// leave several full-vault reads racing each other in the background.
+				shouldStop: () => gen !== this.generation,
 			}).then((extra) => {
 				if (gen !== this.generation || extra.length === 0) return;
 				this.renderFileRows([...hits, ...extra]);
@@ -280,13 +288,18 @@ export class SearchSection {
 	}
 
 	/** Query Omnisearch and render its results. Guarded by generation so a slow
-	 * response can't overwrite a newer query the user has already moved on to. */
+	 * response can't overwrite a newer query the user has already moved on to.
+	 * A null result means Omnisearch couldn't answer (it was disabled mid-query,
+	 * or its API threw); rather than show an empty dropdown that reads as "no
+	 * such note", quietly answer with the built-in engine instead. */
 	private runOmnisearch(query: string, filter: QueryFilter): void {
 		const gen = this.generation;
 		void searchWithOmnisearch(this.view.app, query, { filter, limit: MAX_RESULTS }).then(
 			(hits) => {
 				if (gen !== this.generation) return;
-				this.renderFileRows(hits);
+				this.renderFileRows(
+					hits ?? runQuery(this.view.app, query, { filter, limit: MAX_RESULTS }),
+				);
 			},
 		);
 	}
@@ -345,11 +358,18 @@ export class SearchSection {
 			const row = this.newRow(i, hit.badge?.icon ?? resolveFileIcon(this.view.app, hit.file, icons));
 			const text = row.createDiv("hearth-result-text");
 			const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
-			this.renderName(text.createDiv("hearth-result-name"), name || "/", hit.matches);
+			renderHighlighted(text.createDiv("hearth-result-name"), name || "/", hit.matches);
 			// Tag/property/body hits show what actually matched instead of the
 			// folder path — the badge makes the match reason visible.
 			if (hit.badge) {
-				text.createDiv({ cls: "hearth-result-badge", text: hit.badge.label });
+				const badge = text.createDiv("hearth-result-badge");
+				// A body excerpt is a sentence of context, not a short chip: it
+				// renders muted, wrapped over two lines, with only the matched
+				// words picked out. The row is flagged too so it can top-align —
+				// cheaper than a :has() rule on a list rebuilt every keystroke.
+				badge.toggleClass("is-excerpt", Boolean(hit.badge.excerpt));
+				row.toggleClass("has-excerpt", Boolean(hit.badge.excerpt));
+				renderHighlighted(badge, hit.badge.label, hit.badge.matches);
 			} else {
 				const parentPath = hit.file.parent?.path;
 				if (parentPath && parentPath !== "/") {
@@ -390,21 +410,6 @@ export class SearchSection {
 	private commitRow(row: HTMLElement, open: () => void): void {
 		row.addEventListener("click", open);
 		this.rows.push({ el: row, open });
-	}
-
-	/** Render `name` with matched character ranges wrapped in <mark>. */
-	private renderName(el: HTMLElement, name: string, matches?: [number, number][]): void {
-		if (!matches || matches.length === 0) {
-			el.setText(name);
-			return;
-		}
-		let cursor = 0;
-		for (const [start, end] of matches) {
-			if (start > cursor) el.appendText(name.slice(cursor, start));
-			el.createEl("mark", { cls: "hearth-result-mark", text: name.slice(start, end) });
-			cursor = end;
-		}
-		if (cursor < name.length) el.appendText(name.slice(cursor));
 	}
 
 	private showEmpty(text: string = t().search.noMatches): void {

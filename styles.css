@@ -376,6 +376,44 @@
 	text-overflow: ellipsis;
 }
 
+/* A note-body excerpt is a sentence of context, not a short tag chip. In accent
+ * colour a whole line of it shouts as loudly as the file name above it and the
+ * list turns into a wall of highlight, so the context recedes to muted and only
+ * the matched words keep the accent (via .hearth-result-mark). */
+.hearth-result-badge.is-excerpt {
+	color: var(--text-muted);
+	line-height: 1.35;
+	/* Two lines of context read far better than one clipped one, and the row
+	 * height stays predictable because the clamp caps it. */
+	white-space: normal;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	/* Excerpts come out of arbitrary note text — a long URL or path must not
+	 * push the row wider than the dropdown. */
+	overflow-wrap: anywhere;
+}
+
+/* Wrapping excerpts make rows different heights; align the icon to the first
+ * line rather than to the middle of a two-line block. */
+.hearth-result.has-excerpt {
+	align-items: flex-start;
+}
+
+.hearth-result.has-excerpt .hearth-result-icon {
+	margin-top: 2px;
+}
+
+/* Give the wrapped excerpt a definite width to clamp against, instead of
+ * letting it size to its (very long) content. */
+.hearth-result.has-excerpt .hearth-result-text {
+	flex: 1;
+	min-width: 0;
+}
+
 .hearth-search-empty {
 	padding: 12px;
 	text-align: center;
@@ -1620,6 +1658,37 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+/* A list row that carries a note-body excerpt stacks name over excerpt instead
+ * of putting them side by side — a sentence squeezed into the row's spare
+ * horizontal space is unreadable at any list width. */
+.hearth-list-text {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+	flex: 1;
+}
+
+.hearth-list-excerpt {
+	font-size: 0.76rem;
+	line-height: 1.35;
+	color: var(--text-muted);
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+
+.hearth-list-item.has-excerpt {
+	align-items: flex-start;
+}
+
+.hearth-list-item.has-excerpt .hearth-list-icon {
+	margin-top: 2px;
 }
 
 /* Bookmark groups (folders): collapsible, nesting to any depth like Obsidian's

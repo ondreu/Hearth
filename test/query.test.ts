@@ -1,13 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { queryMode } from "../src/query";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+	clearContentSearchCache,
+	formatPropertyValue,
+	lowerBody,
+	queryMode,
+} from "../src/query";
 
 /**
- * Only `queryMode` is pure — it classifies a raw search string into a mode
- * from its syntax alone. The actual result-gathering (runQuery, searchByName,
- * searchByTag, searchByProperty, searchFileContents) all need a live Obsidian
- * `App`/vault and the fuzzy matcher, so they are intentionally NOT tested here
- * (no Obsidian API mocks). This covers the syntax-dispatch logic that a
- * typecheck can't catch.
+ * Covers the pure parts of the query engine: mode dispatch, frontmatter value
+ * stringification and the lower-cased body cache. The result-gathering entry
+ * points (runQuery, searchByName, searchByTag, searchByProperty,
+ * searchFileContents) all need a live Obsidian `App`/vault and the fuzzy
+ * matcher, so they are intentionally NOT tested here (no Obsidian API mocks).
+ * Excerpt building lives in excerpt.test.ts.
  */
 
 describe("queryMode", () => {
@@ -44,5 +49,76 @@ describe("queryMode", () => {
 	// a name query. Documented here so the behaviour is explicit, not a surprise.
 	it('">command" is treated as a name query by queryMode', () => {
 		expect(queryMode(">open settings")).toBe("name");
+	});
+});
+
+describe("formatPropertyValue", () => {
+	it("passes strings through and stringifies scalars", () => {
+		expect(formatPropertyValue("active")).toBe("active");
+		expect(formatPropertyValue(3)).toBe("3");
+		expect(formatPropertyValue(true)).toBe("true");
+		expect(formatPropertyValue(10n)).toBe("10");
+	});
+
+	it("renders null and undefined as empty, not as the words", () => {
+		expect(formatPropertyValue(null)).toBe("");
+		expect(formatPropertyValue(undefined)).toBe("");
+	});
+
+	it("falls back to JSON for anything structured", () => {
+		expect(formatPropertyValue(["a", "b"])).toBe('["a","b"]');
+		expect(formatPropertyValue({ a: 1 })).toBe('{"a":1}');
+	});
+});
+
+describe("lowerBody", () => {
+	beforeEach(() => clearContentSearchCache());
+
+	it("lower-cases the text it is given", () => {
+		expect(lowerBody("a.md", 1, "Hello World")).toBe("hello world");
+	});
+
+	it("re-uses the cached value while the mtime is unchanged", () => {
+		expect(lowerBody("a.md", 1, "Original")).toBe("original");
+		// A stale read of the same unchanged file must not be re-lowered — the
+		// cache hit is the whole point, so the second argument is ignored.
+		expect(lowerBody("a.md", 1, "IGNORED")).toBe("original");
+	});
+
+	it("re-lowers once the file's mtime moves", () => {
+		expect(lowerBody("a.md", 1, "Original")).toBe("original");
+		expect(lowerBody("a.md", 2, "Edited")).toBe("edited");
+		// ...and the new value is what sticks.
+		expect(lowerBody("a.md", 2, "IGNORED")).toBe("edited");
+	});
+
+	it("keeps separate entries per path", () => {
+		lowerBody("a.md", 1, "Apple");
+		lowerBody("b.md", 1, "Banana");
+		expect(lowerBody("a.md", 1, "x")).toBe("apple");
+		expect(lowerBody("b.md", 1, "x")).toBe("banana");
+	});
+
+	it("clearContentSearchCache forgets everything", () => {
+		lowerBody("a.md", 1, "Original");
+		clearContentSearchCache();
+		expect(lowerBody("a.md", 1, "Replaced")).toBe("replaced");
+	});
+
+	it("evicts cold entries once the budget is exceeded", () => {
+		// Two notes just over the 4M-char budget between them: caching the second
+		// must push the first out rather than grow without bound.
+		const big = "X".repeat(2_500_000);
+		lowerBody("first.md", 1, big);
+		lowerBody("second.md", 1, big);
+		// "first.md" was evicted, so it re-lowers whatever it's handed now.
+		expect(lowerBody("first.md", 1, "Fresh")).toBe("fresh");
+		// "second.md" is still cached.
+		expect(lowerBody("second.md", 1, "IGNORED").length).toBe(big.length);
+	});
+
+	it("keeps a single over-budget note rather than looping to evict itself", () => {
+		const huge = "Y".repeat(5_000_000);
+		expect(lowerBody("huge.md", 1, huge).length).toBe(huge.length);
 	});
 });

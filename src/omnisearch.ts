@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+import { cleanExcerptText, highlightRanges, windowExcerpt } from "./excerpt";
 import { groupForFile } from "./filetypes";
 import { QueryFilter, QueryHit } from "./query";
 
@@ -42,16 +43,40 @@ export function isOmnisearchAvailable(app: App): boolean {
 	return getOmnisearchApi(app) !== null;
 }
 
-/** Strip Omnisearch's `<mark>` markup out of an excerpt so it renders as plain
- * text (Hearth does its own highlighting) and collapse whitespace to one line. */
-function cleanExcerpt(excerpt: string): string {
-	return excerpt.replace(/<\/?mark>/g, "").replace(/\s+/g, " ").trim();
+/**
+ * Turn an Omnisearch excerpt into the same readable one-liner a built-in body
+ * hit produces: its own `<mark>` markup comes out (Hearth highlights the result
+ * row itself), then the shared cleaner deals with everything else the raw note
+ * text dragged along — HTML, entities, frontmatter, markdown markers.
+ *
+ * `foundWords` is what Omnisearch actually matched, so the excerpt is narrowed
+ * around the first of those words and they're highlighted in place. Without
+ * that the row shows a wall of context with no visible reason it matched.
+ *
+ * Exported for tests.
+ */
+export function cleanExcerpt(
+	excerpt: string,
+	foundWords: readonly string[] = [],
+): { label: string; matches?: [number, number][] } {
+	const cleaned = cleanExcerptText(excerpt.replace(/<\/?mark>/g, ""));
+	if (!cleaned) return { label: "" };
+	// Narrow around the first word that's actually present, so the visible part
+	// of a long excerpt is the part that explains the hit.
+	const anchor = foundWords.find((w) => w && cleaned.toLowerCase().includes(w.toLowerCase()));
+	const { label } = windowExcerpt(cleaned, anchor ?? "");
+	return { label, matches: highlightRanges(label, foundWords) };
 }
 
 /**
  * Run a vault search through Omnisearch and adapt its results to Hearth's
- * {@link QueryHit} shape. Resolves to an empty list when Omnisearch is
- * unavailable so the caller can fall back to the built-in engine.
+ * {@link QueryHit} shape.
+ *
+ * Resolves to `null` — not an empty list — when Omnisearch can't answer at all
+ * (plugin gone, or its API threw). The two cases need to look different to the
+ * caller: "Omnisearch found nothing" is a real answer worth showing, while
+ * "Omnisearch is broken" should fall back to the built-in engine instead of
+ * rendering a misleading empty state.
  *
  * The active file-type filter (and folder/file toggles) is applied to the
  * returned notes so the filter chips keep working; Omnisearch only indexes
@@ -61,61 +86,38 @@ export async function searchWithOmnisearch(
 	app: App,
 	query: string,
 	opts: { filter: QueryFilter; limit: number },
-): Promise<QueryHit[]> {
+): Promise<QueryHit[] | null> {
 	const api = getOmnisearchApi(app);
-	if (!api) return [];
+	if (!api) return null;
 
 	let results: OmnisearchResult[];
 	try {
 		results = await api.search(query);
 	} catch {
-		return [];
+		return null;
 	}
 
 	const { filter } = opts;
+	// Omnisearch indexes notes only, so a folders-only filter can never match.
+	if (!filter.includeFiles) return [];
 	const hits: QueryHit[] = [];
 	for (const result of results) {
-		if (!filter.includeFiles) break;
 		const file = app.vault.getAbstractFileByPath(result.path);
 		if (!(file instanceof TFile)) continue;
 		if (filter.groupId && groupForFile(file)?.id !== filter.groupId) continue;
-		const excerpt = cleanExcerpt(result.excerpt);
+		// Single characters match almost everywhere; highlighting them speckles
+		// the row without saying anything about why it matched.
+		const words = result.foundWords.filter((w) => w.length > 1);
+		const excerpt = cleanExcerpt(result.excerpt, words);
 		hits.push({
 			file,
 			score: result.score,
-			matches: matchRanges(file.basename, result.foundWords),
-			badge: excerpt ? { icon: "file-search", label: excerpt } : undefined,
+			matches: highlightRanges(file.basename, words),
+			badge: excerpt.label
+				? { icon: "file-search", label: excerpt.label, matches: excerpt.matches, excerpt: true }
+				: undefined,
 		});
 		if (hits.length >= opts.limit) break;
 	}
 	return hits;
-}
-
-/** Character ranges in `name` covering any of Omnisearch's matched words, so the
- * built-in result row can highlight the note title the same way name search
- * does. Returns undefined when nothing in the name matched. */
-function matchRanges(name: string, foundWords: string[]): [number, number][] | undefined {
-	const lower = name.toLowerCase();
-	const ranges: [number, number][] = [];
-	for (const word of foundWords) {
-		const w = word.toLowerCase();
-		if (!w) continue;
-		let from = 0;
-		for (;;) {
-			const idx = lower.indexOf(w, from);
-			if (idx < 0) break;
-			ranges.push([idx, idx + w.length]);
-			from = idx + w.length;
-		}
-	}
-	if (ranges.length === 0) return undefined;
-	// Sort and merge overlaps so <mark> spans never cross.
-	ranges.sort((a, b) => a[0] - b[0]);
-	const merged: [number, number][] = [ranges[0]];
-	for (const [start, end] of ranges.slice(1)) {
-		const last = merged[merged.length - 1];
-		if (start <= last[1]) last[1] = Math.max(last[1], end);
-		else merged.push([start, end]);
-	}
-	return merged;
 }

@@ -188,9 +188,37 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   rule outranked the transparent background Hearth asks for. The raw editor
   now keeps the card's surface in every state, so switching between the
   rendered note and its source no longer changes the card's background (#160).
+- **Note-content search results are readable.** A hit inside a note's body
+  showed the raw slice of file it was cut from, so results imported from HTML
+  or carrying frontmatter came out as a wall of `&quot;`, `&#039;` and `<br>`
+  with `["Novák Jan", "Šikl Tomáš"]` quoting in the middle of it — and the whole
+  line was accent-coloured, so it shouted as loudly as the file name above it.
+  Excerpts are now cleaned before they're shown (HTML and entities decoded,
+  frontmatter fences, heading, quote and bullet markers dropped, links reduced
+  to their text, inline YAML lists unquoted), narrowed to the text around the
+  match, and rendered as muted context with only the matched words highlighted.
+  Omnisearch results go through the same treatment and highlight the words it
+  reports matching, so both engines read the same way.
+- **Searching with the folders filter no longer comes up empty on Omnisearch.**
+  Omnisearch indexes notes only, so with it selected as the search engine the
+  folders chip could never match anything and every query answered "no matches".
+  Folder searches now go to the built-in engine whichever engine is selected.
+- **A saved-search card no longer lists folders you can't open.** The Query
+  card's rows open a note when clicked, but folder hits were listed too and did
+  nothing. It now searches files only.
+- **Omnisearch failing is no longer shown as "no matches".** If Omnisearch was
+  disabled mid-query or its API threw, the dropdown emptied as though the note
+  didn't exist. Hearth now quietly answers with its own engine instead.
 
 ### Changed
 
+- **Searching note contents costs a lot less on a large vault.** A body search
+  walked every note and built a lower-cased copy of it to match against, and the
+  walk kept going after you'd typed the next character — so a few keystrokes
+  left several full-vault reads racing each other, each allocating a second copy
+  of the vault. A stale scan is now abandoned as soon as the query moves on, and
+  lower-cased bodies are cached (bounded, and re-read when a note changes), so
+  refining a query re-uses the work the last one did.
 - **The Plugin view card now says plainly how expensive it is.** Its performance
   hint was a line of muted grey text under the type dropdown, easy to skim past
   when it is the one card that can genuinely slow a dashboard down. It is now a
