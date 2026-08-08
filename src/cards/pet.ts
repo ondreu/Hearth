@@ -36,8 +36,8 @@ export const PET_DEFAULT_CONTENT = 1;
 /** How long a petting keeps the pet at least happy, when the card doesn't say. */
 export const PET_PETTED_MS = 30 * 60 * 1000;
 
-/** With nothing written today, the pet dozes off once the freshest note in the
- * vault is this old; until then it is merely bored. */
+/** The pet dozes off once nothing in the vault has been touched for this long
+ * — whatever its mood — and any activity wakes it again. */
 export const PET_SLEEPY_AFTER_MS = 6 * 60 * 60 * 1000;
 
 /** How often the card re-derives its mood without a vault event, so a pet left
@@ -55,7 +55,7 @@ export interface PetThresholds {
 	happy: number;
 	/** Notes today for "excited". */
 	excited: number;
-	/** Quiet vault, on a day with no activity, before the pet falls asleep. */
+	/** Quiet vault, in any mood, before the pet falls asleep. */
 	sleepyAfterMs: number;
 	/** How long a petting holds the pet at happy. */
 	pettedMs: number;
@@ -124,11 +124,19 @@ export interface PetPulse {
 }
 
 /**
- * The mood ladder. Activity today is the whole story: the pet is excited,
- * happy or content at the thresholds the card sets. With nothing today it is
- * bored while the vault is still warm and asleep once the freshest note is
- * older than the card's quiet time. A recent petting floors the mood at happy
- * — it can only ever lift the pet, never lower it.
+ * The mood ladder.
+ *
+ * How the day went sets the rung: excited, happy or content at the thresholds
+ * the card holds, bored on a day with nothing on it yet.
+ *
+ * On top of that sits one rule that outranks the day entirely — the pet sleeps
+ * once the vault has been quiet for the card's idle time, however brilliant
+ * the day was, and any activity at all wakes it straight back up. A pet that
+ * wrote twenty notes this morning and nothing since is asleep by evening, and
+ * one keystroke in a note brings it back to the rung its day earned.
+ *
+ * Then the clock, if the card lets it speak, and finally a petting — which can
+ * only ever lift the pet, so it is never unwakeable.
  */
 export function moodFor(pulse: PetPulse): PetMood {
 	const limits = pulse.thresholds;
@@ -138,14 +146,19 @@ export function moodFor(pulse: PetPulse): PetMood {
 	if (pulse.today >= limits.excited) mood = "excited";
 	else if (pulse.today >= limits.happy) mood = "happy";
 	else if (pulse.today >= limits.content) mood = "content";
-	else if (pulse.sinceLastMs != null && pulse.sinceLastMs < limits.sleepyAfterMs) mood = "bored";
-	else mood = "sleepy";
-	// The clock, if the card lets it speak. "quiet" only reaches a bored pet:
-	// at two in the morning an empty day is the hour, not neglect. "always"
-	// puts the pet to bed however the day went.
+	else mood = "bored";
+	// Idleness beats the day: a quiet vault puts any pet to sleep, and only a
+	// vault that has been touched recently keeps one awake. An empty vault has
+	// no timestamp to be recent, so its pet sleeps.
+	if (pulse.sinceLastMs == null || pulse.sinceLastMs >= limits.sleepyAfterMs) mood = "sleepy";
+	// The clock, if the card lets it speak. "quiet" reaches a bored or content
+	// pet: at two in the morning a thin day is the hour, not neglect. A good
+	// day still shows as a good day. "always" puts the pet to bed regardless.
 	if (pulse.night?.now) {
 		if (pulse.night.mode === "always") mood = "sleepy";
-		else if (pulse.night.mode === "quiet" && mood === "bored") mood = "sleepy";
+		else if (pulse.night.mode === "quiet" && (mood === "bored" || mood === "content")) {
+			mood = "sleepy";
+		}
 	}
 	// Petting is the last word in every mode, so a pet is never unwakeable.
 	if (petted && mood !== "excited") mood = "happy";
@@ -187,7 +200,10 @@ function readVaultPulse(view: HomeView, metric: "modified" | "created"): VaultPu
 		const ts = metric === "created" ? file.stat.ctime : file.stat.mtime;
 		const key = localDayKey(ts);
 		counts.set(key, (counts.get(key) ?? 0) + 1);
-		if (ts > newest) newest = ts;
+		// What wakes the pet is always the last *touch*, whatever the card
+		// counts: a card scoring created notes should still wake when you spend
+		// the afternoon editing the ones you already have.
+		if (file.stat.mtime > newest) newest = file.stat.mtime;
 	}
 	const now = new Date();
 	return {

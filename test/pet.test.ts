@@ -51,11 +51,32 @@ describe("moodFor", () => {
 		expect([...moods].sort()).toEqual(["bored", "content", "excited", "happy", "sleepy"]);
 	});
 
-	it("dozes off once the freshest note is old, and never before", () => {
+	it("dozes off once the vault goes quiet, and never before", () => {
 		expect(moodFor(pulse(0, PET_SLEEPY_AFTER_MS - 1))).toBe("bored");
 		expect(moodFor(pulse(0, PET_SLEEPY_AFTER_MS))).toBe("sleepy");
 		// An empty vault has no timestamp to go on.
 		expect(moodFor(pulse(0, null))).toBe("sleepy");
+	});
+
+	it("sleeps on an idle vault whatever the day was, and wakes on activity", () => {
+		// Idleness outranks the day: twenty notes this morning and nothing since
+		// is a sleeping pet by evening...
+		expect(moodFor(pulse(PET_DEFAULT_GOAL * 10, PET_SLEEPY_AFTER_MS))).toBe("sleepy");
+		expect(moodFor(pulse(PET_DEFAULT_GOAL, PET_SLEEPY_AFTER_MS + HOUR))).toBe("sleepy");
+		expect(moodFor(pulse(1, PET_SLEEPY_AFTER_MS))).toBe("sleepy");
+		// ...and one touch of the vault brings it back to the rung its day earned.
+		expect(moodFor(pulse(PET_DEFAULT_GOAL * 10, 0))).toBe("excited");
+		expect(moodFor(pulse(PET_DEFAULT_GOAL, 0))).toBe("happy");
+		expect(moodFor(pulse(1, 0))).toBe("content");
+		expect(moodFor(pulse(0, 0))).toBe("bored");
+	});
+
+	it("uses the card's own idle time for every mood", () => {
+		const brief = thresholdsFor({ sleepyAfterMin: 30 });
+		const at = (today: number, sinceLastMs: number) =>
+			moodFor({ today, thresholds: brief, sinceLastMs, pettedMsAgo: null });
+		expect(at(99, 29 * 60 * 1000)).toBe("excited");
+		expect(at(99, 31 * 60 * 1000)).toBe("sleepy");
 	});
 
 	it("lets a petting lift the mood but never lower it", () => {
@@ -121,7 +142,7 @@ describe("night", () => {
 		expect(inNightWindow(at(15), { nightFrom: 99, nightTo: -4 })).toBe(false);
 	});
 
-	it("only reaches a bored pet in quiet mode", () => {
+	it("reaches a bored or content pet in quiet mode, and leaves a good day alone", () => {
 		const night = (mode: "off" | "quiet" | "always", today: number, sinceLastMs = 0) =>
 			moodFor({
 				today,
@@ -130,8 +151,9 @@ describe("night", () => {
 				pettedMsAgo: null,
 				night: { mode, now: true },
 			});
-		// Bored by day, asleep at night — the hour, not neglect.
+		// Bored or merely content by day, asleep at night — the hour, not neglect.
 		expect(night("quiet", 0, HOUR)).toBe("sleepy");
+		expect(night("quiet", 1, HOUR)).toBe("sleepy");
 		// A day that went well is still a day that went well.
 		expect(night("quiet", PET_DEFAULT_GOAL)).toBe("happy");
 		expect(night("quiet", PET_DEFAULT_GOAL * 2)).toBe("excited");

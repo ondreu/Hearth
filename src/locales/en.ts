@@ -1712,16 +1712,18 @@ export const en = {
 			contentAtDesc: "Notes touched today. Below this the pet gets bored.",
 			sleepyAfter: "Falls asleep after",
 			sleepyAfterDesc:
-				"Minutes of a quiet vault, on a day with nothing written yet. " +
-				"Until then the pet is only bored.",
+				"Minutes with nothing touched anywhere in the vault. The pet sleeps " +
+				"whatever its mood, however good the day was, and any activity wakes " +
+				"it again where the day left it.",
 			pettedFor: "A petting lasts",
 			pettedForDesc: "Minutes of guaranteed happiness after you click the pet.",
 			nightSleep: "At night",
 			nightSleepDesc:
-				"What the clock is allowed to do. A quiet small hour is the hour, " +
-				"not neglect — and petting still wakes the pet either way.",
+				"What the clock is allowed to do. A thin small hour is the hour, not " +
+				"neglect — a good day still shows as a good day, and petting wakes " +
+				"the pet whatever you set here.",
 			nightOff: "Nothing — only the vault matters",
-			nightQuiet: "A bored pet sleeps instead",
+			nightQuiet: "A bored or content pet sleeps instead",
 			nightAlways: "Always asleep at night",
 			nightWindow: "Night runs from",
 			nightWindowDesc: "Your local time. The window may cross midnight.",

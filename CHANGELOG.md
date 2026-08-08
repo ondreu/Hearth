@@ -71,8 +71,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   sprite is drawn from a 16×16 character grid, so the card ships no images at
   all. Its mood comes from the vault, not from a timer: notes edited (or
   created) today against thresholds you set make it content, happy or bouncing
-  with joy, and a quiet day leaves it slouched and bored and eventually curled
-  up asleep, draining of color, with drifting z's. That is the entire ladder —
+  with joy, and a quiet day leaves it slouched and bored, then curled up
+  asleep once the vault has been still for a while, draining of color, with
+  drifting z's. That is the entire ladder —
   there is no hunger, no age, no illness and no way to lose it, so a fortnight
   away from the vault costs nothing but a nap. Click the pet to pet it: hearts,
   and a stretch of guaranteed happiness.
@@ -87,9 +88,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   all, as you like — by shifting under a pixel, snapped to the grid, with the
   face drawn whole underneath so nothing tears. A sleeping pet keeps its eyes
   shut. And a quiet small hour now reads as the hour rather than as neglect:
-  in the night window you set, a *bored* pet goes to sleep under a moon
-  instead of its z's, or sleeps through the window whatever the day held, or
-  ignores the clock entirely. Petting always wakes it, in every mode.
+  in the night window you set, a bored or merely content pet goes to sleep
+  under a moon instead of its z's, or the pet sleeps through the window
+  whatever the day held, or the clock is ignored entirely. A good day still
+  shows as a good day at midnight, and petting always wakes the pet.
+
+  **And it sleeps when the vault does.** After a stretch with nothing touched
+  anywhere in the vault — yours to set — the pet falls asleep whatever its
+  mood and however good the day was, and any activity at all wakes it back to
+  the rung the day earned.
 
   Each mood is drawn animation, not one picture being wobbled: the pet blinks,
   glances aside, wags its head, squashes as it lands from a hop and breathes in

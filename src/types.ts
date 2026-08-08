@@ -857,8 +857,9 @@ export interface PetConfig {
 	excitedAt?: number;
 	/** Notes a day that make the pet content. Default 1 — any activity at all. */
 	contentAt?: number;
-	/** Minutes of a completely quiet vault, on a day with no activity, before
-	 * the pet falls asleep. Until then it is bored. Default 360 (six hours). */
+	/** Minutes with nothing touched anywhere in the vault before the pet falls
+	 * asleep — whatever its mood, however good the day was. Any activity wakes
+	 * it again at the rung the day earned. Default 360 (six hours). */
 	sleepyAfterMin?: number;
 	/** How many minutes a petting keeps the pet happy. Default 30. */
 	pettedForMin?: number;
@@ -870,8 +871,9 @@ export interface PetConfig {
 
 	/** What the clock does to the pet at night:
 	 * - "off" — nothing, the vault is the only thing that matters;
-	 * - "quiet" (default) — a *bored* pet sleeps instead, so a quiet small hour
-	 *   reads as night rather than as neglect;
+	 * - "quiet" (default) — a bored or content pet sleeps instead, so a thin
+	 *   small hour reads as night rather than as neglect (a good day still
+	 *   shows as one);
 	 * - "always" — the pet sleeps through the window whatever the vault says.
 	 * Petting still wakes it in every mode. */
 	nightSleep?: "off" | "quiet" | "always";
