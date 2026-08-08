@@ -160,6 +160,15 @@ export function datacoreQueryError(api: DatacoreApi, query: string): string | nu
  * `@task and !$completed` useful here rather than a column of ids. Anything
  * else falls back to its path or id, so a row is never blank.
  *
+ * The one place Hearth composes Datacore's UI rather than just handing it a
+ * script, so it is also the one place a Datacore release can break this card
+ * without changing anything Hearth calls directly. It touches exactly four of
+ * Datacore's surfaces — `dc.useQuery`, `dc.List` (its `rows`, `paging` and
+ * `renderer` props), `dc.Link` and `dc.Markdown` — and nothing else in Hearth
+ * depends on them. If a card shows Datacore's error boundary after a Datacore
+ * update while script cards still render, this function is the place to look.
+ * Script modes pass through untouched and cannot be affected.
+ *
  * @param query    the Datacore query, e.g. `@page and #project`
  * @param pageSize rows per page; 0 or omitted renders every result unpaged
  */
