@@ -2,7 +2,14 @@ import { Command, Component, debounce, Platform, setIcon, TAbstractFile, TFile, 
 import type { HomeView } from "./view";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
 import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";
-import { QueryFilter, QueryHit, runQuery, searchFileContents } from "./query";
+import {
+	mergeRanked,
+	QueryFilter,
+	QueryHit,
+	runQuery,
+	searchFileContents,
+	slotsAboveBody,
+} from "./query";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { openFile as openInLeaf } from "./opener";
 import { renderHighlighted } from "./ui";
@@ -275,14 +282,18 @@ export class SearchSection {
 			const exclude = new Set(hits.map((h) => h.file.path));
 			void searchFileContents(this.view.app, query, {
 				exclude,
-				limit: Math.max(0, MAX_RESULTS - hits.length),
+				// Budget against the hits that actually outrank a body match, not
+				// against every hit: fuzzy name matches sort below body hits, so
+				// letting them reserve slots is what left a page of scattered-letter
+				// titles with no room for the notes that contain the word.
+				limit: Math.max(0, MAX_RESULTS - slotsAboveBody(hits)),
 				// A vault-wide body scan easily outlives the keystroke that started
 				// it. Stop walking as soon as the query moves on, so typing doesn't
 				// leave several full-vault reads racing each other in the background.
 				shouldStop: () => gen !== this.generation,
 			}).then((extra) => {
 				if (gen !== this.generation || extra.length === 0) return;
-				this.renderFileRows([...hits, ...extra]);
+				this.renderFileRows(mergeRanked(hits, extra, MAX_RESULTS));
 			});
 		}
 	}

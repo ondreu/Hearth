@@ -199,16 +199,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   match, and rendered as muted context with only the matched words highlighted.
   Omnisearch results go through the same treatment and highlight the words it
   reports matching, so both engines read the same way.
-- **Search results are ranked by how well they actually match.** A query's
-  letters were fuzzy-matched against each file's whole path, and a long path
-  gives them plenty of room to scatter — searching `banán` returned
-  *Library/Recipes/Polévka z pečených **b**atátů s cizr**n**ou **a** kukuřicí*
-  ranked among the notes genuinely called *Banánové…*. Matches are now banded:
-  a name starting with what you typed comes first, then a match at a word
-  boundary in the name, then anywhere in the name, then a fuzzy name match, and
-  last a match in the folder path. Paths are matched literally and never
-  fuzzily, so a folder search still works but can no longer conjure hits out of
-  scattered letters.
+- **Search results are ranked by how well they actually match.** Obsidian's
+  fuzzy matcher will scatter a query's letters across a long string and score
+  the result respectably, so searching `banán` returned
+  *Pohan**á**kový chlé**b** s **a**vokádovo-vaječ**n**ou pom**a**zá**n**kou* and
+  *Library/Recipes/Polévka z pečených **b**atátů s cizr**n**ou **a** kukuřicí* —
+  ranked above notes that plainly contain the word *banánu*. Results are now
+  banded, and **every literal match outranks every fuzzy one**: a name starting
+  with what you typed, then the query at a word start in the name, then anywhere
+  in the name, then in the folder path, then in the note's body, and only then a
+  fuzzy name match. Paths are matched literally and never fuzzily, so a folder
+  search still works but can no longer conjure hits out of scattered letters.
+- **Note-content matches take their place in the list.** They were appended
+  after every name match, so a note whose body plainly contained the word ranked
+  below every note whose title merely fuzzy-matched it — and when scattered
+  titles filled the page, content search was given no room to run at all and the
+  real matches never appeared. Body hits are now merged into the ranking, and
+  only results that genuinely outrank them reserve a slot.
 - **Accents no longer have to be typed exactly.** `banan` now finds *Banánové
   Snickersky* and highlights `Banán` in it, in file names, note bodies and
   Omnisearch results alike — matching ignores case and diacritics throughout.

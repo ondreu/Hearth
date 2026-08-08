@@ -21,6 +21,10 @@ export interface QueryBadge {
 export interface QueryHit {
 	file: TAbstractFile;
 	score: number;
+	/** Ranking band (see {@link RANK}). Compared before `score`, so a literal
+	 * match can never be displaced by a well-scored fuzzy one. Absent on tag and
+	 * property hits, which are their own mode and never mixed with these. */
+	rank?: number;
 	badge?: QueryBadge;
 	matches?: [number, number][];
 }
@@ -57,17 +61,29 @@ export function formatPropertyValue(v: unknown): string {
 const NO_FILTER: QueryFilter = { includeFolders: true, includeFiles: true, groupId: null };
 
 /**
- * Ranking bands for a name query, applied before any score. The point is that a
- * literal hit in the file's own name always beats a fuzzy one, and a fuzzy hit
- * always beats one that only landed somewhere in the folder path — the fuzzy
- * matcher happily scatters a query's letters across a long string, so without
- * bands its scores put near-random matches among the obvious ones.
+ * Ranking bands for a name query, applied before any score.
+ *
+ * The ordering principle is that **every literal match beats every fuzzy one**.
+ * Obsidian's fuzzy matcher will scatter a query's letters across a long string
+ * and score the result respectably, so a query for "banán" pulls in
+ * "Pohanákový chlé*b* s *a*vokádovo-vaječ*n*ou pom*a*zá*n*kou" — a hit no reader
+ * would call a hit. Left to compete on score alone, those crowd out the notes
+ * that plainly contain the word. Bands stop that: fuzzy is the last resort, not
+ * a peer.
+ *
+ * Among literal matches, specificity decides: the file's own name first, then
+ * its folder path, then its body. `BODY` is used by {@link searchFileContents},
+ * whose hits the search bar merges into this same order rather than tacking
+ * them on the end.
  */
-const TIER_PREFIX = 4;
-const TIER_WORD = 3;
-const TIER_SUBSTRING = 2;
-const TIER_FUZZY = 1;
-const TIER_PATH = 0;
+export const RANK = {
+	NAME_PREFIX: 5,
+	NAME_WORD: 4,
+	NAME_SUBSTRING: 3,
+	PATH: 2,
+	BODY: 1,
+	FUZZY_NAME: 0,
+} as const;
 
 /**
  * Run a synchronous vault query (tag / property / name+path). Content search is
@@ -173,7 +189,7 @@ function searchByName(app: App, query: string, filter: QueryFilter, limit: numbe
 
 	const fuzzy = prepareFuzzySearch(query);
 	const q = foldForMatch(query);
-	const ranked: { hit: QueryHit; tier: number }[] = [];
+	const hits: QueryHit[] = [];
 
 	for (const file of candidates) {
 		const displayName = file instanceof TFile ? file.basename : file.name;
@@ -181,48 +197,79 @@ function searchByName(app: App, query: string, filter: QueryFilter, limit: numbe
 		const at = folded.indexOf(q);
 
 		if (at >= 0) {
-			// The query appears in the name as typed. That's what the user meant
-			// almost every time, so it outranks anything fuzzy regardless of what
-			// score the fuzzy matcher would have given it.
-			const tier = at === 0 ? TIER_PREFIX : isWordStart(folded, at) ? TIER_WORD : TIER_SUBSTRING;
-			// Within a tier: an earlier match, then a shorter name, wins.
-			ranked.push({
-				tier,
-				hit: { file, score: -at - displayName.length / 1000, matches: highlightRanges(displayName, [query]) },
+			// The query appears in the name as typed — what the user meant almost
+			// every time, whatever score the fuzzy matcher would have given it.
+			const rank =
+				at === 0
+					? RANK.NAME_PREFIX
+					: isWordStart(folded, at)
+						? RANK.NAME_WORD
+						: RANK.NAME_SUBSTRING;
+			hits.push({
+				file,
+				rank,
+				// Within a band: an earlier match, then a shorter name, wins.
+				score: -at - displayName.length / 1000,
+				matches: highlightRanges(displayName, [query]),
 			});
-			continue;
-		}
-
-		const onName = fuzzy(displayName);
-		if (onName) {
-			ranked.push({ tier: TIER_FUZZY, hit: { file, score: onName.score, matches: onName.matches } });
 			continue;
 		}
 
 		// Path matching is literal, never fuzzy. Fuzzy-matching a whole path lets
 		// the query's letters scatter across folder names and match nearly
 		// everything: searching "banán" turned up "Library/Recipes/Polévka z
-		// pečených batátů s cizrnou a kukuřicí" on b-a-n-a-n, ranked alongside
-		// the notes actually called "Banánové…". Inside a folder name the query
-		// still has to appear as typed.
+		// pečených batátů s cizrnou a kukuřicí" on b-a-n-a-n. Inside a folder name
+		// the query still has to appear as typed.
 		if (foldForMatch(file.path).includes(q)) {
-			ranked.push({ tier: TIER_PATH, hit: { file, score: 0 } });
+			hits.push({ file, rank: RANK.PATH, score: 0 });
+			continue;
+		}
+
+		const onName = fuzzy(displayName);
+		if (onName) {
+			hits.push({ file, rank: RANK.FUZZY_NAME, score: onName.score, matches: onName.matches });
 		}
 	}
 
-	ranked.sort(
-		(a, b) =>
-			b.tier - a.tier ||
-			b.hit.score - a.hit.score ||
-			a.hit.file.name.localeCompare(b.hit.file.name),
-	);
-	return ranked.slice(0, limit).map((r) => r.hit);
+	return sortByRank(hits).slice(0, limit);
 }
 
 /** Whether the match at `at` starts a word, so "nut" ranks higher in
  * "Coco nut" than in "Doughnut". */
 function isWordStart(folded: string, at: number): boolean {
 	return !/[a-z0-9]/.test(folded[at - 1] ?? "");
+}
+
+/** Order hits by rank band, then by score within the band, then by name so the
+ * list is stable between renders. Sorts in place and returns the same array. */
+export function sortByRank(hits: QueryHit[]): QueryHit[] {
+	return hits.sort(
+		(a, b) =>
+			(b.rank ?? 0) - (a.rank ?? 0) ||
+			b.score - a.score ||
+			a.file.name.localeCompare(b.file.name),
+	);
+}
+
+/**
+ * Fold body-content hits into the same order as the name/path hits they arrive
+ * after, instead of appending them below everything.
+ *
+ * Body search is async, so its results land after the instant name results are
+ * already on screen. Tacking them on the end put a note that plainly contains
+ * the word you typed below every note whose title the fuzzy matcher had merely
+ * scattered it across — the exact complaint that motivated the rank bands.
+ */
+export function mergeRanked(hits: QueryHit[], extra: QueryHit[], limit: number): QueryHit[] {
+	return sortByRank([...hits, ...extra]).slice(0, limit);
+}
+
+/** How many hits outrank a body match, and so genuinely occupy a result slot
+ * ahead of one. Fuzzy name hits sort *below* body hits, so they must not be
+ * counted — reserving slots for them is what starved body search of its budget
+ * and kept the good matches off the list entirely. */
+export function slotsAboveBody(hits: readonly QueryHit[]): number {
+	return hits.filter((h) => (h.rank ?? 0) > RANK.BODY).length;
 }
 
 function searchByTag(app: App, raw: string, limit: number): QueryHit[] {
@@ -346,6 +393,7 @@ export async function searchFileContents(
 		const { label, matches } = buildExcerpt(text, idx, needle.length);
 		hits.push({
 			file,
+			rank: RANK.BODY,
 			score: 0,
 			badge: { icon: "file-search", label, matches, excerpt: true },
 		});

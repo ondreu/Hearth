@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { TAbstractFile } from "obsidian";
 import {
 	clearContentSearchCache,
 	formatPropertyValue,
 	foldedBody,
+	mergeRanked,
 	queryMode,
+	RANK,
+	slotsAboveBody,
+	sortByRank,
+	type QueryHit,
 } from "../src/query";
 
 /**
@@ -68,6 +74,97 @@ describe("formatPropertyValue", () => {
 	it("falls back to JSON for anything structured", () => {
 		expect(formatPropertyValue(["a", "b"])).toBe('["a","b"]');
 		expect(formatPropertyValue({ a: 1 })).toBe('{"a":1}');
+	});
+});
+
+/** A stand-in hit; only `file.name`, `rank` and `score` affect ordering. */
+function hit(name: string, rank: number, score = 0): QueryHit {
+	return { file: { name, path: name } as TAbstractFile, rank, score };
+}
+const names = (hits: QueryHit[]) => hits.map((h) => h.file.name);
+
+describe("result ranking", () => {
+	it("puts every literal match above any fuzzy one", () => {
+		// The bug this exists for: searching "banán" scattered b-a-n-a-n across
+		// "Pohanákový chléb s avokádovo-vaječnou pomazánkou" and ranked that title
+		// above notes whose body plainly says "banánu".
+		const ranked = sortByRank([
+			hit("Pohanákový chléb", RANK.FUZZY_NAME, 10),
+			hit("Snídaně do skleničky", RANK.BODY),
+			hit("Banánové Snickersky", RANK.NAME_PREFIX),
+		]);
+		expect(names(ranked)).toEqual([
+			"Banánové Snickersky",
+			"Snídaně do skleničky",
+			"Pohanákový chléb",
+		]);
+	});
+
+	it("orders the literal bands name, path, body", () => {
+		const ranked = sortByRank([
+			hit("body", RANK.BODY),
+			hit("path", RANK.PATH),
+			hit("substring", RANK.NAME_SUBSTRING),
+			hit("word", RANK.NAME_WORD),
+			hit("prefix", RANK.NAME_PREFIX),
+		]);
+		expect(names(ranked)).toEqual(["prefix", "word", "substring", "path", "body"]);
+	});
+
+	it("a high fuzzy score still cannot beat a low-scoring literal match", () => {
+		const ranked = sortByRank([hit("fuzzy", RANK.FUZZY_NAME, 999), hit("literal", RANK.BODY, -999)]);
+		expect(names(ranked)).toEqual(["literal", "fuzzy"]);
+	});
+
+	it("falls back to score, then name, within a band", () => {
+		const ranked = sortByRank([
+			hit("b", RANK.NAME_WORD, 1),
+			hit("a", RANK.NAME_WORD, 1),
+			hit("c", RANK.NAME_WORD, 5),
+		]);
+		expect(names(ranked)).toEqual(["c", "a", "b"]);
+	});
+
+	it("treats a hit with no rank as the lowest band", () => {
+		const unranked: QueryHit = { file: { name: "x", path: "x" } as TAbstractFile, score: 0 };
+		expect(names(sortByRank([unranked, hit("body", RANK.BODY)]))).toEqual(["body", "x"]);
+	});
+});
+
+describe("mergeRanked", () => {
+	it("interleaves late body hits instead of appending them", () => {
+		const nameHits = [hit("Banánové", RANK.NAME_PREFIX), hit("Pohanákový", RANK.FUZZY_NAME, 10)];
+		const bodyHits = [hit("Snídaně", RANK.BODY)];
+		expect(names(mergeRanked(nameHits, bodyHits, 10))).toEqual([
+			"Banánové",
+			"Snídaně",
+			"Pohanákový",
+		]);
+	});
+
+	it("caps the merged list at the limit", () => {
+		const merged = mergeRanked([hit("a", RANK.NAME_PREFIX)], [hit("b", RANK.BODY)], 1);
+		expect(names(merged)).toEqual(["a"]);
+	});
+});
+
+describe("slotsAboveBody", () => {
+	it("counts only the hits that outrank a body match", () => {
+		expect(
+			slotsAboveBody([
+				hit("name", RANK.NAME_PREFIX),
+				hit("path", RANK.PATH),
+				hit("body", RANK.BODY),
+				hit("fuzzy", RANK.FUZZY_NAME),
+			]),
+		).toBe(2);
+	});
+
+	it("reserves nothing for a page of pure fuzzy hits", () => {
+		// This is the point: 40 scattered-letter titles must not starve body
+		// search of its budget, or the good matches never get looked for.
+		const fuzzy = Array.from({ length: 40 }, (_, i) => hit(`f${i}`, RANK.FUZZY_NAME));
+		expect(slotsAboveBody(fuzzy)).toBe(0);
 	});
 });
 

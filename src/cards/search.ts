@@ -4,7 +4,13 @@ import { addResetButton } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { openFile } from "../opener";
-import { runQuery, searchFileContents, type QueryHit } from "../query";
+import {
+	mergeRanked,
+	runQuery,
+	searchFileContents,
+	slotsAboveBody,
+	type QueryHit,
+} from "../query";
 import { type DashboardCard } from "../types";
 import { makeClickable, renderHighlighted } from "../ui";
 import { type HomeView } from "../view";
@@ -50,13 +56,13 @@ export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTM
 	// Append full-text body matches when enabled (self-guards to name queries).
 	if (view.plugin.settings.searchContents) {
 		const exclude = new Set(hits.map((h) => h.file.path));
-		// Only top up to the card's limit — asking for `limit` more would keep
-		// reading notes whose hits `render` is just going to slice off anyway.
+		// Budget against the hits that outrank a body match, so fuzzy name hits
+		// (which sort below body ones) don't reserve slots they won't keep.
 		void searchFileContents(view.app, query, {
 			exclude,
-			limit: Math.max(0, limit - hits.length),
+			limit: Math.max(0, limit - slotsAboveBody(hits)),
 		}).then((extra) => {
-			if (extra.length) render([...hits, ...extra]);
+			if (extra.length) render(mergeRanked(hits, extra, limit));
 		});
 	}
 }
