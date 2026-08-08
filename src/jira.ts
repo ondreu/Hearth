@@ -5,11 +5,12 @@ import {
 	setIcon,
 } from "obsidian";
 import type { HomeView } from "./view";
-import type {
-	DashboardCard,
-	JiraConfig,
-	JiraControl,
-	JiraSelections,
+import {
+	type DashboardCard,
+	effectiveAutoRefreshMinutes,
+	type JiraConfig,
+	type JiraControl,
+	type JiraSelections,
 } from "./types";
 import { t } from "./i18n";
 
@@ -729,7 +730,12 @@ export function renderJiraCard(
 	paintToolbar();
 	paintIssues();
 	coordinator.request({ force: false, refinedOnly: false });
-	const refreshMin = Math.max(0, config.refreshMin ?? 0);
+	// Low power mode reports 0 here, so Jira is fetched on render and on the
+	// manual refresh only — never on a timer.
+	const refreshMin = effectiveAutoRefreshMinutes(
+		view.plugin.settings,
+		Math.max(0, config.refreshMin ?? 0),
+	);
 	if (refreshMin > 0) {
 		component.registerInterval(
 			window.setInterval(

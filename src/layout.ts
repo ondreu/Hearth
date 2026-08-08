@@ -133,6 +133,11 @@ export function exportSettings(s: HomeSettings): string {
 		backgroundValue: s.backgroundValue,
 		backgroundOpacity: s.backgroundOpacity,
 		backgroundBlur: s.backgroundBlur,
+		// Low power mode overrides the four above rather than replacing them, so
+		// it has to travel with them — otherwise an export taken while it is on
+		// would describe a look the importing vault doesn't show.
+		lowPower: s.lowPower,
+		lowPowerBackgroundColor: s.lowPowerBackgroundColor,
 
 		// Behaviour
 		openOnStartup: s.openOnStartup,
@@ -1147,6 +1152,9 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (typeof data.backgroundBlur === "number") {
 		s.backgroundBlur = Math.max(0, Math.min(40, data.backgroundBlur));
 	}
+	if (typeof data.lowPower === "boolean") s.lowPower = data.lowPower;
+	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();
+	if (lowPowerColor) s.lowPowerBackgroundColor = lowPowerColor;
 
 	// Behaviour
 	if (typeof data.openOnStartup === "boolean")

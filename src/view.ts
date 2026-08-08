@@ -10,6 +10,7 @@ import {
 	effectiveMaxWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	lowPowerActive,
 	renderCards,
 } from "./types";
 import { hearthIconIdFor } from "./icon";
@@ -141,6 +142,11 @@ export class HomeView extends ItemView {
 		root.empty();
 		root.addClass("hearth-view");
 		root.toggleClass("hearth-compact", this.plugin.settings.compact);
+		// Low power mode: the flag CSS keys off to drop transitions, animations,
+		// shadows and hover transforms across the whole view. The background and
+		// card-surface side of the mode is handled by the effective* resolvers, so
+		// this class only covers what has no setting behind it.
+		root.toggleClass("hearth-low-power", lowPowerActive(this.plugin.settings));
 		// In arrange mode the user can hide the per-card headers to see each
 		// card's full body. The class is only applied while arranging so the
 		// headers come back automatically when arranging ends.

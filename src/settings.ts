@@ -4,7 +4,7 @@ import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
-import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
+import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -31,6 +31,7 @@ type StringSettingKey =
 	| "logo"
 	| "searchPlaceholder"
 	| "backgroundValue"
+	| "lowPowerBackgroundColor"
 	| "taskNotesStatusField"
 	| "taskNotesDueField"
 	| "taskNotesPriorityField"
@@ -309,6 +310,9 @@ export class HomeSettingTab extends PluginSettingTab {
 		const s = t().settings;
 		switch (tab) {
 			case "appearance":
+				this.section(body, s.sections.lowPower, s.sections.lowPowerDesc, (b) =>
+					this.lowPowerSection(b),
+				);
 				this.section(body, s.sections.home, s.sections.homeDesc, (b) => this.homeSection(b));
 				this.section(body, s.background.heading, s.background.headingDesc, (b) =>
 					this.backgroundSection(b),
@@ -630,10 +634,84 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 	}
 
+	// ---- Low power mode --------------------------------------------------
+
+	/**
+	 * The low power toggle and its backdrop colour.
+	 *
+	 * The mode is an override layer, not a bulk edit: turning it on writes only
+	 * `lowPower`, and every resolver (`effectiveBackground`, `effectiveCardBlur`,
+	 * `effectiveCardOpacity`, `effectiveAutoRefreshMinutes`) reports the low
+	 * power value while it is set. So there is nothing to snapshot and nothing to
+	 * restore — the sections it overrides keep their values, greyed out, and come
+	 * back untouched the moment it is switched off.
+	 */
+	private lowPowerSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.lowPower;
+
+		new Setting(containerEl)
+			.setName(strings.enable)
+			.setDesc(strings.enableDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.lowPower).onChange(async (v) => {
+					s.lowPower = v;
+					await this.save();
+					// The colour field and the "overridden" notes below appear and
+					// disappear with the toggle.
+					this.rerender();
+				}),
+			);
+
+		if (!s.lowPower) return;
+
+		const color = new Setting(containerEl)
+			.setName(strings.color)
+			.setDesc(strings.colorDesc);
+		color.addText((txt) => {
+			txt.setPlaceholder(LOW_POWER_BACKGROUND)
+				.setValue(s.lowPowerBackgroundColor)
+				.onChange(async (v) => {
+					s.lowPowerBackgroundColor = v;
+					await this.save();
+				});
+			this.addTextReset(color, txt, "lowPowerBackgroundColor");
+		});
+
+		const effects = new Setting(containerEl).setName(strings.effects);
+		effects.settingEl.addClass("hearth-setting-note");
+		const list = effects.descEl.createEl("ul", { cls: "hearth-setting-note-list" });
+		for (const line of [
+			strings.effectBackground,
+			strings.effectFrost,
+			strings.effectMotion,
+			strings.effectRefresh,
+			strings.effectLiveRefresh,
+			strings.effectClock,
+		]) {
+			list.createEl("li", { text: line });
+		}
+	}
+
+	/** Mark a section whose settings low power mode is currently overriding: a
+	 * note explaining that the controls still hold the user's values, and a class
+	 * that dims them so it's obvious they aren't what's on screen right now. */
+	private lowPowerOverrideNote(containerEl: HTMLElement): void {
+		if (!this.plugin.settings.lowPower) return;
+		containerEl.addClass("hearth-settings-overridden");
+		const note = new Setting(containerEl).setDesc(t().settings.lowPower.overridden);
+		note.settingEl.addClass("hearth-setting-note");
+		const icon = createSpan("hearth-setting-note-icon");
+		setIcon(icon, "gauge");
+		note.descEl.prepend(icon);
+	}
+
 	// ---- Background -----------------------------------------------------
 
 	private backgroundSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
+
+		this.lowPowerOverrideNote(containerEl);
 
 		new Setting(containerEl)
 			.setName(t().settings.background.type)
@@ -1195,6 +1273,10 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	private cardSurfaceSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
+
+		// Radius and border width below are untouched by low power mode; opacity
+		// and blur are, hence the note covering the section.
+		this.lowPowerOverrideNote(containerEl);
 
 		const cardOpacity = new Setting(containerEl)
 			.setName(t().settings.dashboard.cardOpacity)

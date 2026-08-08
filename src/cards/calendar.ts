@@ -62,6 +62,7 @@ import {
 	type CalendarChipConfig,
 	type CalendarConfig,
 	type DashboardCard,
+	effectiveAutoRefreshMinutes,
 	type ResolvedChips,
 	type TaskNotesSourceConfig,
 } from "../types";
@@ -381,8 +382,14 @@ function buildIcsContext(
 		},
 		start: () => {
 			load(false);
-			if (refreshMin > 0) {
-				component.registerInterval(window.setInterval(() => load(true), refreshMin * 60_000));
+			// ttlMs above keeps using the configured interval; low power mode only
+			// drops the timer, so subscriptions still load on render and on an
+			// explicit refresh.
+			const autoRefreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, refreshMin);
+			if (autoRefreshMin > 0) {
+				component.registerInterval(
+					window.setInterval(() => load(true), autoRefreshMin * 60_000),
+				);
 			}
 		},
 	};

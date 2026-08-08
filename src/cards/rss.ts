@@ -3,7 +3,12 @@ import { emptyState, feedHost } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { cachedFeed, loadFeed, type RssItem } from "../rss";
-import { type DashboardCard, type RssLayout, type RssSource } from "../types";
+import {
+	type DashboardCard,
+	effectiveAutoRefreshMinutes,
+	type RssLayout,
+	type RssSource,
+} from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -210,9 +215,13 @@ export function renderRss(
 	};
 
 	load(false);
-	if (refreshMin > 0) {
+	// The cache TTL above still uses the configured interval; only the timer is
+	// suppressed in low power mode, so the card loads on render and on the manual
+	// refresh button but never on its own.
+	const autoRefreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, refreshMin);
+	if (autoRefreshMin > 0) {
 		component.registerInterval(
-			window.setInterval(() => load(true), refreshMin * 60_000),
+			window.setInterval(() => load(true), autoRefreshMin * 60_000),
 		);
 	}
 }

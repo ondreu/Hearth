@@ -15,6 +15,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Low power mode.** One switch at the top of **Settings → Appearance** trades
+  Hearth's visual effects for battery life and smoothness on slower hardware.
+  While it is on the background becomes a flat colour (a muted grey-purple by
+  default, and you can change it) instead of an image, GIF, opacity layer and
+  blur; cards go opaque with no frosted glass behind them; transitions, hover
+  lifts, shadows and animations stop; clock cards drop seconds and the sweeping
+  second hand; and every timed background refresh pauses — web, RSS, calendar
+  subscriptions, Jira and the live dashboard refresh all still load on open and
+  on a manual refresh, they just stop waking the app up on a clock. Nothing is
+  overwritten: the mode is an override, so your background, opacity and blur
+  settings sit exactly where you left them (dimmed, with a note) and come back
+  unchanged the moment you switch it off — per-dashboard and per-card overrides
+  included.
 - **Choose what a calendar entry shows.** A new **Entry details** section in the
   calendar card's settings (agenda layout) switches each chip on an entry on or
   off: the time, the calendar name, and — with TaskNotes as a source — the
@@ -164,6 +177,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **The Plugin view card now says plainly how expensive it is.** Its performance
+  hint was a line of muted grey text under the type dropdown, easy to skim past
+  when it is the one card that can genuinely slow a dashboard down. It is now a
+  warning callout that spells out why: the card runs another plugin's full view
+  live, keeping that plugin's timers, listeners and rendering going for as long
+  as the board is open, and every extra card costs again. With low power mode on
+  it adds that this is the card that mode can't help with.
 - **Links inside tasks now open where every other link does.** A `[[wikilink]]`
   in a task's text took over the current tab, which in a Hearth tab meant
   replacing the home view — while the same link on a card opened a new tab. Both

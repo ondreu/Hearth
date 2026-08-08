@@ -853,6 +853,11 @@ export interface DashboardCard {
  * user's own value. */
 export type BackgroundKind = "none" | "default" | "color" | "image" | "url";
 
+/** The flat backdrop low power mode paints instead of the wallpaper: a muted
+ * grey-purple that sits close to Hearth's brand colour without any image
+ * decode, opacity layer or blur behind it. */
+export const LOW_POWER_BACKGROUND = "#4a4459";
+
 /** A self-contained background configuration (used for per-dashboard overrides
  * as well as the global default). */
 export interface BackgroundConfig {
@@ -1052,6 +1057,25 @@ export interface HomeSettings {
 	 * choice would flip this for everyone on upgrade. */
 	openFromOutside: OpenOutsideRule;
 
+	// ---- Low power mode ----
+	/**
+	 * Strip the expensive parts of the home view: the wallpaper (replaced by a
+	 * flat colour), the frosted-glass card blur, card translucency, CSS
+	 * transitions/animations and every timer-driven background refresh.
+	 *
+	 * Deliberately an *override*, not a bulk edit of the settings below: nothing
+	 * else in this object is touched while it is on, and every resolver
+	 * (`effectiveBackground`, `effectiveCardBlur`, …) simply reports the low
+	 * power value instead. Turning it back off therefore restores the previous
+	 * look exactly — including per-dashboard and per-card overrides — with no
+	 * snapshot to keep in sync and nothing to lose if the vault is synced or the
+	 * settings file is edited by hand while the mode is on.
+	 */
+	lowPower: boolean;
+	/** The flat background colour used while {@link lowPower} is on. Any CSS
+	 * colour; defaults to {@link LOW_POWER_BACKGROUND}. */
+	lowPowerBackgroundColor: string;
+
 	// ---- Appearance (layout density) ----
 	/** Tighten card and top-of-page spacing to enlarge the usable area. */
 	compact: boolean;
@@ -1171,6 +1195,9 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openIn: "tab",
 	openInOverrides: { link: "default", search: "default", card: "default", newNote: "default" },
 	openFromOutside: "same",
+
+	lowPower: false,
+	lowPowerBackgroundColor: LOW_POWER_BACKGROUND,
 
 	compact: false,
 	arrangeButtonVisibility: "always",
@@ -1400,9 +1427,40 @@ export function effectiveMaxWidth(s: HomeSettings): number {
 	return activeDashboard(s).maxWidth ?? s.maxWidth;
 }
 
+/** Whether low power mode is currently on. Every override below funnels
+ * through this so the mode has exactly one switch. */
+export function lowPowerActive(s: HomeSettings): boolean {
+	return s.lowPower === true;
+}
+
+/** The background low power mode substitutes for whatever is configured: a flat
+ * colour at full opacity with no blur, so there is no image to fetch/decode and
+ * no filtered layer to composite. */
+export function lowPowerBackground(s: HomeSettings): BackgroundConfig {
+	const value = s.lowPowerBackgroundColor?.trim() || LOW_POWER_BACKGROUND;
+	return { kind: "color", value, opacity: 1, blur: 0 };
+}
+
+/**
+ * Timer-driven auto-refresh interval a live card should actually use, in
+ * minutes. Low power mode reports 0 (manual refresh only) so no card wakes the
+ * app up on a timer; the configured value is left untouched and comes back the
+ * moment the mode is turned off.
+ *
+ * Only the *timer* is suppressed — callers that also derive a cache TTL from
+ * the configured interval must keep using the raw value for that.
+ */
+export function effectiveAutoRefreshMinutes(s: HomeSettings, minutes: number): number {
+	return lowPowerActive(s) ? 0 : minutes;
+}
+
 /** Effective card surface opacity for the active board (per-dashboard override
  * or global). 0 = fully transparent, 1 = fully opaque. */
 export function effectiveCardOpacity(s: HomeSettings): number {
+	// Low power: opaque cards. Translucency has to composite the card over the
+	// backdrop on every paint, and without the frost blur below it reads as a
+	// wash rather than glass.
+	if (lowPowerActive(s)) return 1;
 	const v = activeDashboard(s).cardOpacity ?? s.cardOpacity;
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(1, v)) : 1;
 }
@@ -1410,6 +1468,7 @@ export function effectiveCardOpacity(s: HomeSettings): number {
 /** Resolve the per-card opacity override, falling back to the board/global
  * value from effectiveCardOpacity. */
 export function resolveCardOpacity(s: HomeSettings, card: DashboardCard): number {
+	if (lowPowerActive(s)) return 1;
 	const v = card.cardOpacity ?? effectiveCardOpacity(s);
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(1, v)) : 1;
 }
@@ -1417,6 +1476,10 @@ export function resolveCardOpacity(s: HomeSettings, card: DashboardCard): number
 /** Effective card backdrop blur (px) for the active board (per-dashboard
  * override or global). 0 = no frosted-glass blur. Clamped to a sane range. */
 export function effectiveCardBlur(s: HomeSettings): number {
+	// Low power: no frosted glass. Reporting 0 here (and in resolveCardBlur) is
+	// enough to switch it off wholesale — no card is marked .has-blur, so
+	// updateFrostLayers never builds a backdrop-filter layer or its SVG mask.
+	if (lowPowerActive(s)) return 0;
 	const v = activeDashboard(s).cardBlur ?? s.cardBlur;
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(40, v)) : 0;
 }
@@ -1424,6 +1487,7 @@ export function effectiveCardBlur(s: HomeSettings): number {
 /** Resolve the per-card blur override (px), falling back to the board/global
  * value from effectiveCardBlur. */
 export function resolveCardBlur(s: HomeSettings, card: DashboardCard): number {
+	if (lowPowerActive(s)) return 0;
 	const v = card.cardBlur ?? effectiveCardBlur(s);
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(40, v)) : 0;
 }
@@ -1492,8 +1556,12 @@ export function setCardPinned(s: HomeSettings, card: DashboardCard, pinned: bool
 	}
 }
 
-/** Effective background for the active board (per-dashboard override or global). */
+/** Effective background for the active board (per-dashboard override or global,
+ * or the flat low power colour when that mode is on). */
 export function effectiveBackground(s: HomeSettings): BackgroundConfig {
+	// Overrides the per-dashboard background too: the point is that no board can
+	// pull in a wallpaper while low power mode is on.
+	if (lowPowerActive(s)) return lowPowerBackground(s);
 	return (
 		activeDashboard(s).background ?? {
 			kind: s.backgroundKind,
@@ -1558,6 +1626,15 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	if (typeof s.cardBlur !== "number") s.cardBlur = 7;
 	if (typeof s.cardRadius !== "number") s.cardRadius = CARD_RADIUS_MAX;
 	if (typeof s.cardBorderWidth !== "number") s.cardBorderWidth = 1;
+	// Low power mode is purely additive: settings saved before it existed have
+	// neither key, so both are simply defaulted (fillMissingDefaults already does
+	// this on load; these guards also repair a wrong-typed value from a
+	// hand-edited or partially-synced data.json). Nothing else is touched — the
+	// mode never rewrites the settings it overrides.
+	if (typeof s.lowPower !== "boolean") s.lowPower = false;
+	if (typeof s.lowPowerBackgroundColor !== "string" || !s.lowPowerBackgroundColor.trim()) {
+		s.lowPowerBackgroundColor = LOW_POWER_BACKGROUND;
+	}
 	if (typeof s.backgroundOpacity !== "number") s.backgroundOpacity = 0.35;
 	if (typeof s.backgroundBlur !== "number") s.backgroundBlur = 2;
 	// Fit-to-page is the default for fresh installs; existing users keep their
