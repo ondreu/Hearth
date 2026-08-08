@@ -878,6 +878,7 @@ export const en = {
 			weather: "Weather",
 			git: "Git",
 			leaf: "Plugin view (beta)",
+			pet: "Pet",
 		},
 		linkTypes: {
 			note: "Note",
@@ -1680,6 +1681,32 @@ export const en = {
 				"Hosts another plugin's view inside the card. Some views expect a " +
 				"sidebar and may render or size oddly here.",
 		},
+		pet: {
+			species: "Animal",
+			name: "Name",
+			nameDesc: "What to call it. Leave empty to use the animal's name.",
+			colors: "Colors",
+			colorsDesc:
+				"Body and accent. The outline, shading and belly are derived from " +
+				"the body color.",
+			colorsReset: "Back to this animal's colors",
+			size: "Size",
+			sizeSmall: "Small",
+			sizeMedium: "Medium",
+			sizeLarge: "Large",
+			metric: "Feed it with",
+			metricDesc: "Which vault activity the pet's mood follows.",
+			metricModified: "Notes edited",
+			metricCreated: "Notes created",
+			goal: "A good day is",
+			goalDesc:
+				"Notes a day. At this many the pet is happy, at twice it excited. " +
+				"Below it the pet is content, bored or asleep — it is never unwell " +
+				"and never lost.",
+			showName: "Show name",
+			showMood: "Show mood",
+			showActivity: "Show today's activity",
+		},
 		colors: {
 			heading: "Colors",
 			headingDesc: "Accent and background tint for this card.",
@@ -1753,6 +1780,27 @@ export const en = {
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
+		},
+		pet: {
+			species: {
+				cat: "Cat",
+				dog: "Dog",
+				bird: "Bird",
+				fox: "Fox",
+				frog: "Frog",
+				blob: "Blob",
+			},
+			moodExcited: "Bouncing with joy",
+			moodHappy: "Happy",
+			moodContent: "Content",
+			moodBored: "A little bored",
+			moodSleepy: "Fast asleep",
+			petHint: "Click to pet",
+			todayCount: (count: number, metric: "modified" | "created") =>
+				metric === "created"
+					? `${count} new note${count === 1 ? "" : "s"} today`
+					: `${count} note${count === 1 ? "" : "s"} today`,
+			streak: (days: number) => `${days}-day streak`,
 		},
 		embed: {
 			openFile: "Open this file",
@@ -2162,6 +2210,7 @@ export const en = {
 		weather: "Weather",
 		git: "Git",
 		leaf: "Plugin view (beta)",
+		pet: "Pet",
 	},
 
 	// ---- File-type filter labels ---------------------------------------

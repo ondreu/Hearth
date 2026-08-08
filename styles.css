@@ -7268,3 +7268,197 @@ body.hearth-dv-resizing {
 	font-size: 0.78rem;
 	cursor: pointer;
 }
+
+/* ========================================================================
+ * Pet card
+ *
+ * A 16×16 pixel sprite drawn as an SVG of run-length rects, recolored from
+ * two CSS variables the card sets from its config. Everything that moves is
+ * a CSS animation on the stage — the card itself repaints only on vault
+ * events and a five-minute tick — and every one of them is dropped for a
+ * reader who asked for less motion, or by low power mode (`is-still`).
+ * ===================================================================== */
+
+.hearth-pet {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	height: 100%;
+	min-height: 0;
+	padding: 4px 8px 8px;
+	box-sizing: border-box;
+	text-align: center;
+	--hearth-pet-eye: #23242b;
+	--hearth-pet-shine: #ffffff;
+	--hearth-pet-stage: 92px;
+}
+
+.hearth-pet.is-sm {
+	--hearth-pet-stage: 64px;
+}
+
+.hearth-pet.is-lg {
+	--hearth-pet-stage: 128px;
+}
+
+.hearth-pet-stage {
+	position: relative;
+	flex: 0 1 auto;
+	min-height: 0;
+	width: var(--hearth-pet-stage);
+	max-width: 100%;
+	aspect-ratio: 1;
+	cursor: pointer;
+	/* The sprite is pixel art: keep the pixels square and crisp at any scale. */
+	image-rendering: pixelated;
+	border-radius: 6px;
+}
+
+.hearth-pet-stage:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 3px;
+}
+
+.hearth-pet-sprite {
+	width: 100%;
+	height: 100%;
+	display: block;
+	overflow: visible;
+	/* One transform origin for every mood animation: the pet's feet, so it
+	 * squashes and hops off the ground rather than about its middle. */
+	transform-origin: 50% 100%;
+}
+
+.hearth-pet-name {
+	margin-top: 4px;
+	font-weight: 600;
+	font-size: 0.9rem;
+	color: var(--text-normal);
+	line-height: 1.2;
+}
+
+.hearth-pet-mood {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+	line-height: 1.2;
+}
+
+.hearth-pet-activity {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+	line-height: 1.2;
+}
+
+/* ---- Moods ---- */
+
+.hearth-pet-stage.is-excited .hearth-pet-sprite {
+	animation: hearth-pet-hop 0.62s ease-in-out infinite;
+}
+
+.hearth-pet-stage.is-happy .hearth-pet-sprite {
+	animation: hearth-pet-bob 1.5s ease-in-out infinite;
+}
+
+.hearth-pet-stage.is-content .hearth-pet-sprite {
+	animation: hearth-pet-breathe 3.4s ease-in-out infinite;
+}
+
+.hearth-pet-stage.is-bored .hearth-pet-sprite {
+	animation: hearth-pet-sway 5s ease-in-out infinite;
+}
+
+.hearth-pet-stage.is-sleepy .hearth-pet-sprite {
+	animation: hearth-pet-breathe 6s ease-in-out infinite;
+	opacity: 0.85;
+}
+
+@keyframes hearth-pet-hop {
+	0%, 100% { transform: translateY(0) scaleY(1); }
+	25% { transform: translateY(0) scaleY(0.9); }
+	55% { transform: translateY(-12%) scaleY(1.06); }
+	80% { transform: translateY(0) scaleY(0.96); }
+}
+
+@keyframes hearth-pet-bob {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-5%); }
+}
+
+@keyframes hearth-pet-breathe {
+	0%, 100% { transform: scaleY(1); }
+	50% { transform: scaleY(1.035); }
+}
+
+@keyframes hearth-pet-sway {
+	0%, 100% { transform: rotate(-1.4deg); }
+	50% { transform: rotate(1.4deg); }
+}
+
+/* ---- Sleeping z's ---- */
+
+.hearth-pet-zzz {
+	position: absolute;
+	top: -2%;
+	right: -4%;
+	pointer-events: none;
+}
+
+.hearth-pet-z::after {
+	content: "z";
+}
+
+.hearth-pet-z {
+	position: absolute;
+	right: 0;
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--text-faint);
+	opacity: 0;
+	animation: hearth-pet-float 3.6s ease-out infinite;
+	animation-delay: calc(var(--i) * 1.2s);
+}
+
+@keyframes hearth-pet-float {
+	0% { transform: translate(0, 0) scale(0.7); opacity: 0; }
+	20% { opacity: 0.9; }
+	100% { transform: translate(10px, -22px) scale(1.15); opacity: 0; }
+}
+
+/* ---- Hearts, on petting ---- */
+
+.hearth-pet-heart {
+	position: absolute;
+	left: 50%;
+	bottom: 28%;
+	font-size: 0.85rem;
+	color: var(--color-red, #e05a6a);
+	pointer-events: none;
+	animation: hearth-pet-heart 0.9s ease-out forwards;
+	animation-delay: calc(var(--i) * 0.09s);
+}
+
+@keyframes hearth-pet-heart {
+	0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+	25% { opacity: 1; }
+	100% { transform: translate(calc(-50% + (var(--i) - 1) * 16px), -34px) scale(1.1); opacity: 0; }
+}
+
+/* Low power mode and a reduced-motion preference both leave a perfectly
+ * readable pet — the mood is in its face, not in the movement. */
+.hearth-pet-stage.is-still .hearth-pet-sprite {
+	animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-pet-sprite,
+	.hearth-pet-z,
+	.hearth-pet-heart {
+		animation: none !important;
+	}
+
+	.hearth-pet-z {
+		opacity: 0.7;
+	}
+}
