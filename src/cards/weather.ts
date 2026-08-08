@@ -576,7 +576,10 @@ const CLOUDS: readonly { x: number; y: number; scale: number; lane: number }[] =
  * cloud at any size, and it costs four nodes instead of a path. */
 function drawCloud(svg: SVGElement, x: number, y: number, scale: number, lane: number): void {
 	const group = svg.createSvg("g", {
-		cls: `hearth-weather-cloud is-lane-${lane}`,
+		// An array, not "a b": createSvg hands `cls` to classList.add(), which
+		// rejects a token containing a space. (createDiv sets the class
+		// attribute instead, which is why a two-class string is fine there.)
+		cls: ["hearth-weather-cloud", `is-lane-${lane}`],
 		attr: { transform: `translate(${x} ${y}) scale(${scale})` },
 	});
 	group.createSvg("ellipse", { attr: { cx: "-14", cy: "4", rx: "16", ry: "10" } });
@@ -591,7 +594,8 @@ function drawCloud(svg: SVGElement, x: number, y: number, scale: number, lane: n
 function drawPrecipitation(svg: SVGElement, group: WeatherGroup): void {
 	const snow = group === "snow";
 	const count = group === "drizzle" ? 14 : snow ? 16 : 20;
-	const layer = svg.createSvg("g", { cls: `hearth-weather-fall is-${group}` });
+	// Two classes, so an array — see drawCloud.
+	const layer = svg.createSvg("g", { cls: ["hearth-weather-fall", `is-${group}`] });
 	for (let i = 0; i < count; i++) {
 		// A prime-ish stride spreads the drops across the width without clumping
 		// into visible columns the way `i * width / count` would.
