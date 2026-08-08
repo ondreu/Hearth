@@ -19,9 +19,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Background** has a new type: **Live weather sky**. The board's backdrop
   becomes the painted sky the weather card's artistic style draws — sun,
   crescent moon and a full field of stars, clouds drifting in three lanes,
-  rain, drizzle, snow, fog banks and lightning — spread across the whole
+  rain, drizzle, snow, layered fog and lightning — spread across the whole
   window and following the real conditions and the real time of day over a
-  place you pick. It is the same painting, redrawn for the space: a window is
+  place you pick. The storm and the fog were rebuilt for the size: lightning
+  is now several generated discharges, each a crooked forked stroke on its own
+  timer over a sheet flash, rather than one drawn bolt blinking in one spot;
+  fog is a bank of overlapping wisps drifting past each other at different
+  speeds and densities, rather than three flat bands. It is the same painting, redrawn for the space: a window is
   several times a card, so it gets a wider box, more stars, more clouds and
   more rain rather than three enormous clouds. Pick the place by searching for
   it or by typing coordinates, or reuse one already set on a weather card in

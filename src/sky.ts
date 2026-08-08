@@ -372,9 +372,6 @@ function drawSun(svg: SVGElement, field: SkyField): void {
 		cls: "hearth-weather-sun-disc",
 		attr: { cx: String(cx), cy: String(cy), r: "15" },
 	});
-	// The glow pulses around its own centre, which moves with the spread.
-	group.style.setProperty("--sky-celestial-x", `${cx}px`);
-	group.style.setProperty("--sky-celestial-y", `${cy}px`);
 }
 
 /** The moon: two arcs meeting where the lit disc and the shadow circle cross.
@@ -404,45 +401,109 @@ function drawMoon(svg: SVGElement, field: SkyField): void {
 			d: "M165.53,15.03 A15,15 0 1 1 145.03,35.53 A17,17 0 0 0 165.53,15.03 Z",
 		},
 	});
-	group.style.setProperty("--sky-celestial-x", `${cx}px`);
-	group.style.setProperty("--sky-celestial-y", `${cy}px`);
 }
 
-/** Horizontal fog banks, drifting against each other. */
-function drawFog(svg: SVGElement, field: SkyField): void {
+/**
+ * Fog: overlapping wisps of different sizes, drifting past each other at
+ * different speeds and depths.
+ *
+ * Three flat bands — which is what this was — read as three lines drawn across
+ * the sky, because that is what they are. Fog has no edges: what sells it is
+ * many soft shapes at low opacity, sliding over one another so the density
+ * keeps changing. The whole bank is faded as a group, so the overlaps merge
+ * into one body of haze instead of stacking into visible seams.
+ */
+function drawFog(svg: SVGElement, field: SkyField, seed = 0xf066): void {
 	const layer = svg.createSvg("g", { cls: "hearth-weather-fogbank" });
-	const bands = [
-		{ y: 0.383, h: 9, lane: 1 },
-		{ y: 0.517, h: 7, lane: 2 },
-		{ y: 0.65, h: 8, lane: 3 },
-	];
-	for (const band of bands) {
-		const h = band.h * (field.height / 120);
-		layer.createSvg("rect", {
-			cls: `is-lane-${band.lane}`,
-			attr: {
-				x: "-40",
-				y: String(Math.round(band.y * field.height)),
-				width: String(field.width + 80),
-				height: String(h),
-				rx: String(h / 2),
-			},
+	const rand = seeded(seed);
+	const count = Math.round(field.width / 26);
+	for (let i = 0; i < count; i++) {
+		// Spread down the whole sky, thickening towards the bottom the way fog
+		// actually sits: the lower half gets the bigger, denser wisps.
+		const depth = rand();
+		const y = Math.round(field.height * (0.18 + depth * 0.72));
+		const rx = Math.round(field.width * (0.12 + rand() * 0.22));
+		const ry = Math.round(field.height * (0.03 + depth * 0.055));
+		const wisp = layer.createSvg("ellipse", {
+			attr: { cx: "0", cy: String(y), rx: String(rx), ry: String(ry) },
 		});
+		// Nearer wisps (lower down) are denser and slide past faster, which is
+		// the whole parallax cue that makes a flat gradient read as depth.
+		wisp.style.opacity = (0.25 + depth * 0.45).toFixed(2);
+		const seconds = 34 + (1 - depth) * 46;
+		const x = Math.round(rand() * (field.width + rx * 2) - rx);
+		wisp.style.transform = `translateX(${x}px)`;
+		wisp.style.animationDuration = `${seconds.toFixed(1)}s`;
+		wisp.style.animationDelay = `${(-(x / field.width) * seconds).toFixed(1)}s`;
 	}
 }
 
-/** The lightning bolt, flashed by CSS. */
-function drawBolt(svg: SVGElement, field: SkyField): void {
-	// Written for the card box, then moved into place on a wider one.
-	const dx = Math.round(field.width * 0.48) - 96;
-	const dy = Math.round(field.height * 0.42) - 50;
-	svg.createSvg("polygon", {
-		cls: "hearth-weather-bolt",
-		attr: {
-			points: "96,50 84,76 94,76 86,102 108,70 97,70 106,50",
-			transform: `translate(${dx} ${dy})`,
-		},
+/**
+ * One jagged discharge, as a path: a stroke that walks down the sky, wandering
+ * sideways as it goes, with a chance of throwing off a short fork.
+ *
+ * Generated rather than drawn, because a hand-drawn bolt is a *shape* — the eye
+ * learns it in one flash and every strike after that is the same cartoon in the
+ * same place. A walk gives each strike its own crooked line, and three of them
+ * on coprime timers means the storm rarely repeats itself.
+ */
+function boltPath(rand: () => number, x: number, top: number, bottom: number): string {
+	const steps = 5 + Math.floor(rand() * 3);
+	const dy = (bottom - top) / steps;
+	let cx = x;
+	let cy = top;
+	const points = [`M${cx.toFixed(1)},${cy.toFixed(1)}`];
+	let fork = "";
+	for (let i = 0; i < steps; i++) {
+		// Each segment leans one way or the other, and the lean grows as the
+		// discharge travels — a bolt frays as it descends.
+		cx += (rand() - 0.5) * 14 * (1 + i / steps);
+		cy += dy;
+		points.push(`L${cx.toFixed(1)},${cy.toFixed(1)}`);
+		// One branch, from somewhere in the middle of the run.
+		if (!fork && i > 1 && rand() < 0.45) {
+			const fx = cx + (rand() - 0.5) * 26;
+			const fy = cy + dy * (0.7 + rand());
+			fork = ` M${cx.toFixed(1)},${cy.toFixed(1)} L${fx.toFixed(1)},${fy.toFixed(1)}`;
+		}
+	}
+	return points.join(" ") + fork;
+}
+
+/**
+ * The storm: a few discharges over a sheet flash.
+ *
+ * Each bolt runs on its own timer, and the durations are coprime-ish so they
+ * drift out of phase rather than striking together on a loop. The sheet flash
+ * behind them is what actually reads as lightning at a glance — a whole sky
+ * momentarily going pale — with the bolts as the detail inside it.
+ */
+function drawStorm(svg: SVGElement, field: SkyField, seed = 0xb017): void {
+	const rand = seeded(seed);
+	// Behind everything: the sky itself going pale for an instant.
+	svg.createSvg("rect", {
+		cls: "hearth-weather-flash",
+		attr: { x: "0", y: "0", width: String(field.width), height: String(field.height) },
 	});
+
+	const layer = svg.createSvg("g", { cls: "hearth-weather-bolts" });
+	const durations = [7.3, 11.1, 13.7];
+	const count = field.width > 300 ? 3 : 2;
+	for (let i = 0; i < count; i++) {
+		// One discharge per band of the sky, jittered inside it. Drawing all of
+		// them from one unconstrained roll let the seed put three strikes on top
+		// of each other, which reads as a scribble rather than a storm.
+		const band = (i + 0.5) / count;
+		const x = field.width * (0.12 + band * 0.76 + (rand() - 0.5) * 0.14);
+		const top = field.height * (0.1 + rand() * 0.12);
+		const bottom = field.height * (0.55 + rand() * 0.3);
+		const bolt = layer.createSvg("path", {
+			cls: "hearth-weather-bolt",
+			attr: { d: boltPath(rand, x, top, bottom) },
+		});
+		bolt.style.animationDuration = `${durations[i % durations.length]}s`;
+		bolt.style.animationDelay = `${(-rand() * 9).toFixed(1)}s`;
+	}
 }
 
 /** How many of the cloud bank a condition puts on screen — what separates
@@ -519,7 +580,7 @@ export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 	}
 	if (group === "thunder") {
 		drawPrecipitation(svg, "rain", field);
-		drawBolt(svg, field);
+		drawStorm(svg, field);
 	}
 
 	return sky;
