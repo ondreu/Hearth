@@ -8,6 +8,14 @@ import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMo
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
+import {
+	type IntegrationEntry,
+	type IntegrationGroup,
+	type IntegrationSectionId,
+	integrationsInGroup,
+	integrationStatus,
+	type SettingsTabId,
+} from "./integrations";
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { t } from "./i18n";
 
@@ -47,17 +55,9 @@ const KOFI_URL = "https://ko-fi.com/ondru";
 const LAYOUT_FILE = "hearth-layout.json";
 const SETTINGS_FILE = "hearth-settings.json";
 
-/** A tab in the settings ribbon: an id (keys `t().settings.tabs`) and a Lucide
- * icon shown beside the label. */
-type SettingsTabId =
-	| "appearance"
-	| "search"
-	| "dashboard"
-	| "behaviour"
-	| "integrations"
-	| "backup"
-	| "about";
-
+/** A tab in the settings ribbon: an id (keys `t().settings.tabs`, declared in
+ * `integrations.ts` so the catalogue can point at one) and a Lucide icon shown
+ * beside the label. */
 const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 	{ id: "appearance", icon: "palette" },
 	{ id: "search", icon: "search" },
@@ -147,6 +147,10 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	/** Temporary #52 diagnostic state — see getSettingDefinitions. */
 	private loggedDefinitionsQuery = false;
+
+	/** Title of a collapsible section to unfold and scroll to on the next
+	 * render, set by a catalogue row's "Show" button. */
+	private revealSectionTitle: string | null = null;
 
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
@@ -352,6 +356,20 @@ export class HomeSettingTab extends PluginSettingTab {
 				);
 				break;
 			case "integrations":
+				// The catalogue first: every integration Hearth has, listed whether
+				// or not it is installed and whether or not it has a setting. The two
+				// sections below are the only ones that *do* have settings, and rows
+				// in the catalogue link down to them.
+				// Folded to start with: it's a reference list, not a setting, and
+				// unfolded it would push the two sections that *are* settings off
+				// the screen.
+				this.section(
+					body,
+					s.integrations.heading,
+					s.integrations.headingDesc,
+					(b) => this.integrationsCatalogue(b),
+					{ collapsedByDefault: true },
+				);
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
 				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
 					this.fileIconsSection(b),
@@ -380,12 +398,18 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	/** Wrap a section in a collapsible block. The heading toggles visibility of
 	 * the body; the collapsed state is persisted per-section in localStorage so
-	 * long settings panels can be tamed and stay tamed. */
+	 * long settings panels can be tamed and stay tamed.
+	 *
+	 * `collapsedByDefault` only decides where a section starts before anyone has
+	 * ever folded it — for a long reference list that isn't a setting, starting
+	 * closed keeps the tab's actual settings in reach. Once the user folds or
+	 * unfolds it themselves, their choice is what persists. */
 	private section(
 		containerEl: HTMLElement,
 		title: string,
 		desc: string | undefined,
 		render: (body: HTMLElement) => void,
+		opts?: { collapsedByDefault?: boolean },
 	): void;
 	private section(
 		containerEl: HTMLElement,
@@ -397,6 +421,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		title: string,
 		descOrRender: string | undefined | ((body: HTMLElement) => void),
 		maybeRender?: (body: HTMLElement) => void,
+		opts?: { collapsedByDefault?: boolean },
 	): void {
 		const desc = typeof descOrRender === "string" ? descOrRender : undefined;
 		const render = typeof descOrRender === "function" ? descOrRender : maybeRender!;
@@ -423,9 +448,25 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 
 		// Persist the collapsed state per-section and per-vault via Obsidian's
-		// vault-scoped local storage.
+		// vault-scoped local storage. Both states are stored explicitly ("1"/"0")
+		// rather than clearing the key when open: absent has to keep meaning
+		// "never touched", so a default-collapsed section the user opened stays
+		// open instead of folding itself again on the next visit.
 		const key = `hearth-section-${title}`;
-		let collapsed = this.app.loadLocalStorage(key) === "1";
+		const saved = this.app.loadLocalStorage(key) as string | null;
+		let collapsed = saved === null ? !!opts?.collapsedByDefault : saved === "1";
+
+		// A catalogue row asked for this section: unfold it (persisting that, so
+		// it doesn't snap shut on the next visit) and scroll it into view once the
+		// pane has been laid out.
+		if (this.revealSectionTitle === title) {
+			this.revealSectionTitle = null;
+			collapsed = false;
+			this.app.saveLocalStorage(key, "0");
+			window.requestAnimationFrame(() =>
+				wrap.scrollIntoView({ block: "start", behavior: "smooth" }),
+			);
+		}
 		const apply = () => {
 			wrap.toggleClass("is-collapsed", collapsed);
 			body.style.display = collapsed ? "none" : "";
@@ -436,7 +477,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		apply();
 		head.addEventListener("click", () => {
 			collapsed = !collapsed;
-			this.app.saveLocalStorage(key, collapsed ? "1" : null);
+			this.app.saveLocalStorage(key, collapsed ? "1" : "0");
 			apply();
 		});
 		head.addEventListener("keydown", (e) => {
@@ -1069,6 +1110,119 @@ export class HomeSettingTab extends PluginSettingTab {
 		arr.splice(to, 0, item);
 		void this.save();
 		this.rerender();
+	}
+
+	// ---- Integrations catalogue -------------------------------------------
+
+	/**
+	 * The full list of everything Hearth works with.
+	 *
+	 * Deliberately not filtered by what's installed: the point of the list is to
+	 * answer "what does Hearth work with?" as much as "is it working?", so every
+	 * entry in {@link INTEGRATIONS} renders, with a live status pill and a line
+	 * saying where its settings are — including when the honest answer is "there
+	 * aren't any" or "on the card". Integrations whose settings sit elsewhere
+	 * (Omnisearch on the Search tab) get a button that jumps straight there.
+	 */
+	private integrationsCatalogue(containerEl: HTMLElement): void {
+		const strings = t().settings.integrations;
+		const groups: IntegrationGroup[] = ["plugin", "core", "service"];
+		const groupDescKey = { plugin: "pluginDesc", core: "coreDesc", service: "serviceDesc" } as const;
+
+		for (const group of groups) {
+			const head = new Setting(containerEl)
+				.setName(strings.groups[group])
+				.setDesc(strings.groups[groupDescKey[group]])
+				.setHeading();
+			head.settingEl.addClass("hearth-integration-group");
+			for (const entry of integrationsInGroup(group)) {
+				this.integrationRow(containerEl, entry);
+			}
+		}
+	}
+
+	/** One catalogue row: name, status pill, what it does, where its settings
+	 * are, and (where there is somewhere to go) a button that goes there. */
+	private integrationRow(containerEl: HTMLElement, entry: IntegrationEntry): void {
+		const strings = t().settings.integrations;
+		const item = strings.items[entry.id];
+		const status = integrationStatus(this.plugin.app, entry);
+
+		const row = new Setting(containerEl).setName(item.name).setDesc(item.desc);
+		row.settingEl.addClass("hearth-integration-row");
+
+		// The pill sits with the name rather than in the control column, so the
+		// row still reads as a sentence at narrow widths (and on mobile, where
+		// Obsidian stacks name and control).
+		const pill = row.nameEl.createSpan({
+			cls: `hearth-integration-status is-${status}`,
+			text: strings.status[status],
+		});
+		pill.setAttribute("aria-label", strings.statusTooltip[status]);
+		pill.setAttribute("title", strings.statusTooltip[status]);
+
+		row.descEl.createDiv({
+			cls: "hearth-integration-where",
+			text: this.integrationWhereText(entry),
+		});
+
+		// Not installed and installable — offer the community plugin browser.
+		// Core plugins have no such URI, and their "where" line already says to
+		// enable them in Obsidian's settings.
+		if (entry.pluginId && status === "missing") {
+			row.addButton((b) =>
+				b
+					.setButtonText(strings.install)
+					.setTooltip(strings.installTooltip)
+					.onClick(() => window.open(`obsidian://show-plugin?id=${entry.pluginId}`)),
+			);
+			return;
+		}
+
+		if (entry.where.kind === "section") {
+			const section = entry.where.section;
+			row.addButton((b) =>
+				b.setButtonText(strings.goToSection).onClick(() => {
+					this.revealSectionTitle = this.integrationSectionTitle(section);
+					this.rerender();
+				}),
+			);
+			return;
+		}
+
+		if (entry.where.kind === "tab") {
+			const tab = entry.where.tab;
+			row.addButton((b) =>
+				b.setButtonText(strings.goToTab).onClick(() => {
+					this.app.saveLocalStorage(ACTIVE_TAB_KEY, tab);
+					this.rerender();
+				}),
+			);
+		}
+	}
+
+	/** The "where are its settings" line for a catalogue row. */
+	private integrationWhereText(entry: IntegrationEntry): string {
+		const where = t().settings.integrations.where;
+		switch (entry.where.kind) {
+			case "section":
+				return where.section;
+			case "tab":
+				return where.tab(t().settings.tabs[entry.where.tab]);
+			case "card":
+				return where.card;
+			case "pluginSettings":
+				return where.pluginSettings;
+			case "none":
+				return where.none;
+		}
+	}
+
+	/** The heading of the collapsible section a catalogue row links down to —
+	 * the same string `renderTabSections` passes to `section()`, which is what
+	 * keys its collapsed state. */
+	private integrationSectionTitle(section: IntegrationSectionId): string {
+		return section === "tasks" ? t().settings.tasks.heading : t().settings.fileIcons.heading;
 	}
 
 	// ---- Tasks / TaskNotes ------------------------------------------------

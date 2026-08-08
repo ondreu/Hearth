@@ -15,6 +15,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Every integration in one place.** **Settings → Integrations** now opens with
+  a complete catalogue of everything Hearth works with — community plugins
+  (Omnisearch, TaskNotes, Dataview, Iconic, Iconize, Excalidraw), Obsidian's own
+  core plugins (Bases, Canvas, Daily notes, Bookmarks, Search, File explorer,
+  Workspaces, Audio recorder, plus any plugin whose side panel a Plugin view
+  card can host) and the external services some cards fetch from (Jira, RSS and Atom
+  feeds, iCalendar subscriptions, exchange rates, web search). Every one is
+  listed whether or not it's installed, so the tab answers "what does Hearth
+  work with?" and not just "what did I already set up". Each row says what the
+  integration does, carries a live status (enabled, disabled, not installed),
+  and points at where its settings actually live — the section below on that
+  tab, another tab (Omnisearch is a choice in the search-engine dropdown), the
+  card itself, the other plugin's own settings, or nowhere at all. Rows link
+  straight there, and anything not installed gets a one-click Install button.
 - **Low power mode.** One switch at the top of **Settings → Appearance** trades
   Hearth's visual effects for battery life and smoothness on slower hardware.
   While it is on the background becomes a flat colour (a muted grey-purple by
