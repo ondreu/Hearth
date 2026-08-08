@@ -1,5 +1,6 @@
 import "obsidian";
-import { Command, TFile, TFolder } from "obsidian";
+import { Command, EventRef, TFile, TFolder } from "obsidian";
+import type { GitStatus } from "./git";
 
 // Minimal typings for Obsidian internals that aren't part of the public API
 // but are stable and widely used by community plugins.
@@ -32,6 +33,28 @@ declare module "obsidian" {
 		viewRegistry?: {
 			viewByType?: Record<string, unknown>;
 		};
+	}
+
+	/**
+	 * The events the obsidian-git community plugin fires on the workspace.
+	 *
+	 * `Workspace` redeclares `on` with one overload per built-in event, which
+	 * hides the `on(name: string, …)` signature it inherits from `Events` — so
+	 * a plugin-defined event needs its own overload to be listenable at all.
+	 * (`trigger` is untyped by name and needs nothing.) Declared here rather
+	 * than cast at the call site so the callback payloads stay typed.
+	 *
+	 * See `src/git.ts` for what each one means.
+	 */
+	interface Workspace {
+		on(name: "obsidian-git:refreshed", callback: () => unknown, ctx?: unknown): EventRef;
+		on(
+			name: "obsidian-git:status-changed",
+			callback: (status: GitStatus) => unknown,
+			ctx?: unknown,
+		): EventRef;
+		on(name: "obsidian-git:head-change", callback: () => unknown, ctx?: unknown): EventRef;
+		on(name: "obsidian-git:loading-status", callback: () => unknown, ctx?: unknown): EventRef;
 	}
 
 	/** WorkspaceLeaf's constructor isn't part of the public typings, but a

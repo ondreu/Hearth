@@ -6885,3 +6885,386 @@ body.hearth-dv-resizing {
 	outline: none !important;
 	box-shadow: none !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Git card
+
+   A window onto the obsidian-git plugin: a status line, a button row, the
+   changed files, and optionally the recent commits. The sections are stacked
+   in the order the card's settings list them, and any of them can be off, so
+   nothing here assumes a neighbour exists — each section owns its own spacing
+   and the flex column does the rest.
+   --------------------------------------------------------------------------- */
+.hearth-git {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	gap: 8px;
+}
+
+/* A queued operation is running (or the repo is being re-read). The card stays
+   readable and interactive-looking rather than greying out — the buttons
+   disable themselves, which is the part that matters. */
+.hearth-git.is-busy .hearth-git-status {
+	opacity: 0.7;
+}
+
+/* ---- Status line ---- */
+
+.hearth-git-status {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	flex: 0 0 auto;
+}
+
+.hearth-git-branch {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	max-width: 100%;
+	padding: 3px 9px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	background: var(--background-primary-alt);
+	color: var(--text-normal);
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.hearth-git-branch:hover {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-git-branch:focus-visible,
+.hearth-git-action:focus-visible,
+.hearth-git-commit:focus-visible,
+.hearth-git-more:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.hearth-git-branch-icon {
+	display: flex;
+	color: var(--text-muted);
+	flex-shrink: 0;
+}
+
+.hearth-git-branch-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-monospace);
+	font-size: 0.75rem;
+}
+
+.hearth-git-chips {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.hearth-git-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-git-chip-icon {
+	display: flex;
+}
+
+.hearth-git-chip-icon .svg-icon {
+	width: 13px;
+	height: 13px;
+}
+
+/* The three states worth colouring: a conflict is a stop sign, staged work is
+   about to be committed, unpushed commits are the "you are not backed up yet"
+   signal. Unstaged changes stay muted — they are the normal state of a vault
+   you are working in. */
+.hearth-git-chip.is-conflicted {
+	color: var(--text-error);
+}
+
+.hearth-git-chip.is-staged {
+	color: var(--text-success, var(--interactive-accent));
+}
+
+.hearth-git-chip.is-unpushed {
+	color: var(--text-accent);
+}
+
+.hearth-git-clean {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+}
+
+.hearth-git-lastcommit {
+	margin-left: auto;
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
+/* The manual re-read, which doubles as the busy indicator — it spins while a
+   read is in flight. Last in the row, and pushed to the end unless the
+   last-commit line already took the margin. */
+.hearth-git-refresh {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	padding: 3px;
+	border: none;
+	border-radius: 5px;
+	background: transparent;
+	color: var(--text-faint);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.hearth-git-lastcommit + .hearth-git-refresh {
+	margin-left: 0;
+}
+
+.hearth-git-refresh:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.hearth-git-refresh:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.hearth-git-refresh .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-git-refresh.is-loading {
+	animation: hearth-rss-spin 0.9s linear infinite;
+}
+
+/* ---- Buttons ---- */
+
+.hearth-git-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	flex: 0 0 auto;
+}
+
+.hearth-git-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	height: 30px;
+	min-width: 30px;
+	padding: 0 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 7px;
+	background: var(--background-primary-alt);
+	color: var(--text-normal);
+	font-size: 0.78rem;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.hearth-git-action:hover:not(:disabled) {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.hearth-git-action:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+/* Labelled buttons need room for the text and read better a touch wider; icon
+   buttons stay square. */
+.hearth-git-actions.is-labelled .hearth-git-action {
+	padding: 0 11px;
+}
+
+.hearth-git-action-icon {
+	display: flex;
+}
+
+.hearth-git-action-icon .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+/* Commit-and-sync is the one-click "save my vault" action, so it reads as the
+   primary one of the row. */
+.hearth-git-action.is-commitAndSync {
+	color: var(--text-accent);
+	border-color: var(--background-modifier-border-hover);
+}
+
+.hearth-git-action.is-destructive:hover:not(:disabled) {
+	color: var(--text-error);
+	border-color: var(--text-error);
+}
+
+/* ---- Changed files ---- */
+
+.hearth-git-changes {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.hearth-git-list {
+	gap: 0;
+}
+
+.hearth-git-file {
+	gap: 8px;
+	padding: 4px 6px;
+}
+
+/* The single-letter status badge. Monospaced and boxed so a column of them
+   lines up and reads as a gutter rather than as part of the file name. */
+.hearth-git-letter {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 17px;
+	height: 17px;
+	border-radius: 4px;
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.66rem;
+	line-height: 1;
+}
+
+.hearth-git-file.is-conflicted .hearth-git-letter {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+}
+
+.hearth-git-file.is-untracked .hearth-git-letter,
+.hearth-git-file.is-added .hearth-git-letter {
+	color: var(--text-success, var(--interactive-accent));
+}
+
+.hearth-git-file.is-deleted .hearth-git-letter {
+	color: var(--text-error);
+}
+
+/* Staged files carry a rail on the left: the same "this is going into the next
+   commit" cue the status chip uses, without a second badge per row. */
+.hearth-git-file.is-staged {
+	box-shadow: inset 2px 0 0 0 var(--text-success, var(--interactive-accent));
+}
+
+.hearth-git-file-main {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-git-file .hearth-list-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.85rem;
+}
+
+.hearth-git-file-path {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-faint);
+	font-size: 0.7rem;
+}
+
+.hearth-git-none {
+	padding: 6px 2px;
+	color: var(--text-muted);
+	font-size: 0.8rem;
+}
+
+.hearth-git-more {
+	padding: 4px 6px;
+	color: var(--text-accent);
+	font-size: 0.76rem;
+	cursor: pointer;
+}
+
+/* ---- Recent commits ---- */
+
+.hearth-git-log {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.hearth-git-commit {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 4px 6px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.hearth-git-commit:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-git-commit-hash {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+	font-size: 0.68rem;
+}
+
+.hearth-git-commit-main {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-git-commit-message {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-normal);
+	font-size: 0.82rem;
+}
+
+.hearth-git-commit-meta {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+}
+
+/* ---- No repository yet ---- */
+
+.hearth-git-notready {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 100%;
+}
+
+.hearth-git-notready-button {
+	font-size: 0.78rem;
+	cursor: pointer;
+}

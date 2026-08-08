@@ -596,6 +596,14 @@ export const en = {
 						"Dataview's successor. The Datacore card runs a Datacore query — or a " +
 						"JS/JSX/TS/TSX script — and renders it with Datacore's own live views.",
 				},
+				git: {
+					name: "Git",
+					desc:
+						"The Git card shows your repository's branch, changes and recent " +
+						"commits, and commits, syncs, pushes and pulls through the Git " +
+						"plugin itself — its remote, credentials and commit-message " +
+						"template all apply unchanged.",
+				},
 				iconic: {
 					name: "Iconic",
 					desc:
@@ -868,6 +876,7 @@ export const en = {
 			rss: "RSS feed",
 			jira: "Jira filter",
 			weather: "Weather",
+			git: "Git",
 			leaf: "Plugin view (beta)",
 		},
 		linkTypes: {
@@ -1444,6 +1453,58 @@ export const en = {
 			pageSize: "Rows per page",
 			pageSizeDesc: "Page the generated list at this many rows. 0 shows every match at once.",
 		},
+		git: {
+			missing: "The Git plugin isn't enabled",
+			missingDesc:
+				"This card is a window onto the Git community plugin — install and enable " +
+				"it, and point it at a repository, for the card to show anything.",
+			sections: "Sections",
+			actions: "Buttons",
+			destructive: "Cannot be undone.",
+			removeAction: "Remove this button",
+			addAction: "Add a button",
+			addActionPlaceholder: "Choose…",
+			actionStyle: "Button style",
+			actionStyleDesc: "Icons alone are compact; labels make a wide card readable.",
+			actionStyles: {
+				icon: "Icon only",
+				labelled: "Icon and label",
+			},
+			committing: "Committing",
+			commitScope: "What to commit",
+			commitScopeDesc:
+				"Which files the Commit and Commit-and-sync buttons include.",
+			commitScopes: {
+				smart: "Staged if anything is staged, otherwise everything",
+				all: "Everything",
+				staged: "Only staged files",
+			},
+			askForMessage: "Ask for a message",
+			askForMessageDesc:
+				"Have the Git plugin prompt for a commit message each time, exactly as its " +
+				"“…with specific message” commands do.",
+			commitMessage: "Commit message",
+			commitMessageDesc:
+				"Used by this card's commit buttons. Leave empty to use the Git plugin's " +
+				"own commit-message template.",
+			commitMessagePlaceholder: "vault backup: {{date}}",
+			skipConfirm: "Skip confirmations",
+			skipConfirmDesc:
+				"Run discarding actions immediately instead of asking first. Discarded " +
+				"changes cannot be recovered.",
+			display: "Display",
+			changeLimit: "Changed files shown",
+			changeLimitDesc: "0 lists every changed file.",
+			showPaths: "Show folders",
+			showPathsDesc: "Print each changed file's folder under its name.",
+			logLimit: "Commits shown",
+			logLimitDesc: "How many recent commits the log section lists.",
+			refresh: "Re-read every",
+			refreshDesc:
+				"Minutes between extra reads of the repository, on top of following the " +
+				"Git plugin's own updates. 0 — the default — follows those updates only, " +
+				"which already covers everything done inside Obsidian.",
+		},
 		rss: {
 			feeds: "Feeds",
 			namePlaceholder: "Name (optional)",
@@ -1684,6 +1745,8 @@ export const en = {
 			datacoreOneQuery:
 				"A card runs one query — this looks like several. Keep just the one you want, with no comment after it.",
 			datacoreFailed: "Datacore couldn't run this card",
+			gitEnable: "Enable the Git plugin to manage your vault's repository",
+			gitNotReady: "No repository open yet — set one up in the Git plugin",
 			rssNoSources: "Add a feed in card settings",
 			weatherNoLocation: "Pick a location in card settings",
 			renderFailed: "This card couldn't be drawn — see the console for details",
@@ -1777,6 +1840,53 @@ export const en = {
 			empty: "No issues match these filters",
 			disabled: "Jira is off (external calls disabled)",
 			notConfigured: "Configure a Jira host, token, and saved filter in card settings",
+		},
+		git: {
+			sections: {
+				status: "Repository status",
+				actions: "Buttons",
+				changes: "Changed files",
+				log: "Recent commits",
+			},
+			actions: {
+				commitAndSync: "Commit and sync",
+				commit: "Commit",
+				push: "Push",
+				pull: "Pull",
+				fetch: "Fetch",
+				stageAll: "Stage all",
+				unstageAll: "Unstage all",
+				discardAll: "Discard all changes",
+				switchBranch: "Switch branch",
+				sourceControl: "Open source control",
+				history: "Open history",
+			},
+			refresh: "Re-read the repository",
+			noBranch: "No branch",
+			noUpstream: "No upstream branch",
+			staged: "staged",
+			unstaged: "changed",
+			conflicted: "conflicted",
+			unpushed: "unpushed commits",
+			clean: "Everything is committed",
+			noChanges: "Nothing has changed",
+			noCommits: "No commits yet",
+			noMessage: "(no message)",
+			lastCommit: (when: string) => `Last commit ${when}`,
+			more: (count: number) => `${count} more…`,
+			openSourceControl: "Open source control",
+			openHistory: "Open history",
+			openDiff: "Open diff",
+			stageFile: "Stage",
+			unstageFile: "Unstage",
+			discardFile: "Discard changes",
+			confirmTitle: "Discard changes?",
+			confirmDiscard:
+				"Every uncommitted change in the vault will be thrown away. This cannot be undone.",
+			confirmDiscardFile: (name: string) =>
+				`Uncommitted changes to "${name}" will be thrown away. This cannot be undone.`,
+			confirmDiscardButton: "Discard",
+			unsupported: "This version of the Git plugin doesn't support that",
 		},
 		daily: {
 			createToday: "Create today's note",
@@ -2050,6 +2160,7 @@ export const en = {
 		rss: "RSS feed",
 		jira: "Jira filter",
 		weather: "Weather",
+		git: "Git",
 		leaf: "Plugin view (beta)",
 	},
 

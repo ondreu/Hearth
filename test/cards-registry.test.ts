@@ -79,6 +79,12 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				gated: false,
 				build: { kind: "weather", title: "Weather", weather: {}, w: 4, h: 3 },
 			},
+			{
+				id: "git",
+				icon: "git-branch",
+				gated: true,
+				build: { kind: "git", title: "Git", git: {}, w: 4, h: 4 },
+			},
 			{ id: "leaf", icon: "layout-panel-left", gated: true, build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 } },
 		]);
 	});
@@ -137,6 +143,7 @@ function maximalCard(): DashboardCard {
 			selections: { status: ["Open"] },
 		} as never,
 		weather: { place: { name: "Prague", lat: 50.08, lon: 14.44 } },
+		git: { sections: ["status", "actions"], actions: ["commit", "push"] },
 	};
 }
 
@@ -171,6 +178,8 @@ describe("cloneCard deep-clone independence", () => {
 		copy.jira!.controls!.push("assignee");
 		copy.jira!.selections!.status!.push("Closed");
 		copy.weather!.place!.name = "Brno";
+		copy.git!.sections!.push("log");
+		copy.git!.actions!.push("pull");
 
 		// ...and confirm none of it reached the original.
 		const pristine = maximalCard();
@@ -189,6 +198,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.rss).toEqual(pristine.rss);
 		expect(orig.jira).toEqual(pristine.jira);
 		expect(orig.weather).toEqual(pristine.weather);
+		expect(orig.git).toEqual(pristine.git);
 	});
 });
 
@@ -223,6 +233,7 @@ describe("liveness classification", () => {
 			rss: "static",
 			jira: "static",
 			weather: "static",
+			git: "static",
 			leaf: "static",
 		});
 	});
