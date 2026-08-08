@@ -862,6 +862,23 @@ export interface PetConfig {
 	sleepyAfterMin?: number;
 	/** How many minutes a petting keeps the pet happy. Default 30. */
 	pettedForMin?: number;
+
+	/** Whose pointer the pet's eyes follow: nobody, only while the pointer is
+	 * over its own card (default), or anywhere on the dashboard. A sleeping pet
+	 * never looks — its eyes are shut. */
+	eyesFollow?: "off" | "card" | "board";
+
+	/** What the clock does to the pet at night:
+	 * - "off" — nothing, the vault is the only thing that matters;
+	 * - "quiet" (default) — a *bored* pet sleeps instead, so a quiet small hour
+	 *   reads as night rather than as neglect;
+	 * - "always" — the pet sleeps through the window whatever the vault says.
+	 * Petting still wakes it in every mode. */
+	nightSleep?: "off" | "quiet" | "always";
+	/** Hour (0–23, local) the night window opens. Default 23. */
+	nightFrom?: number;
+	/** Hour (0–23, local) the night window closes. Default 7. */
+	nightTo?: number;
 	/** Sprite size. Default "md". */
 	size?: "sm" | "md" | "lg";
 	/** Show the name line (default true). */

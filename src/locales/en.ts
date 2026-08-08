@@ -1716,6 +1716,20 @@ export const en = {
 				"Until then the pet is only bored.",
 			pettedFor: "A petting lasts",
 			pettedForDesc: "Minutes of guaranteed happiness after you click the pet.",
+			nightSleep: "At night",
+			nightSleepDesc:
+				"What the clock is allowed to do. A quiet small hour is the hour, " +
+				"not neglect — and petting still wakes the pet either way.",
+			nightOff: "Nothing — only the vault matters",
+			nightQuiet: "A bored pet sleeps instead",
+			nightAlways: "Always asleep at night",
+			nightWindow: "Night runs from",
+			nightWindowDesc: "Your local time. The window may cross midnight.",
+			eyesFollow: "Eyes follow the pointer",
+			eyesFollowDesc: "A sleeping pet keeps its eyes shut whatever you set here.",
+			eyesOff: "Never",
+			eyesCard: "On its own card",
+			eyesBoard: "Anywhere on the dashboard",
 			showName: "Show name",
 			showMood: "Show mood",
 			showActivity: "Show today's activity",
@@ -1808,6 +1822,7 @@ export const en = {
 			moodContent: "Content",
 			moodBored: "A little bored",
 			moodSleepy: "Fast asleep",
+			moodNight: "Asleep for the night",
 			petHint: "Click to pet",
 			todayCount: (count: number, metric: "modified" | "created") =>
 				metric === "created"

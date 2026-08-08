@@ -82,6 +82,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   lasts. Set them however you like — they are always read back in climbing
   order, so no combination leaves a mood the pet can't reach.
 
+  **It looks at you, and it knows what time it is.** The pet's eyes follow
+  your pointer — over its own card, or anywhere on the dashboard, or not at
+  all, as you like — by shifting under a pixel, snapped to the grid, with the
+  face drawn whole underneath so nothing tears. A sleeping pet keeps its eyes
+  shut. And a quiet small hour now reads as the hour rather than as neglect:
+  in the night window you set, a *bored* pet goes to sleep under a moon
+  instead of its z's, or sleeps through the window whatever the day held, or
+  ignores the clock entirely. Petting always wakes it, in every mode.
+
   Each mood is drawn animation, not one picture being wobbled: the pet blinks,
   glances aside, wags its head, squashes as it lands from a hop and breathes in
   its sleep, from frames generated out of that single drawing. Everything is

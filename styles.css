@@ -7537,6 +7537,75 @@ body.hearth-dv-resizing {
 	50% { transform: translateY(4%) scaleY(0.98); }
 }
 
+/* ---- Eyes that follow the pointer ----
+ *
+ * The card sets two custom properties from a pointermove; the eyes are their
+ * own group inside every frame, with the face drawn whole underneath, so this
+ * transform is the entire effect — no redraw, and the mood's frame animation
+ * keeps running under it. Inside an SVG a CSS px is one user unit, so the
+ * shift stays under one pixel of the 16×16 grid and crispEdges snaps it,
+ * which is how pixel-art eyes should move. A sleeping pet has none of this:
+ * its eyes are shut, and shut eyes do not wander.
+ */
+.hearth-pet-eyes {
+	transform: translate(var(--hearth-pet-look-x, 0px), var(--hearth-pet-look-y, 0px));
+	transition: transform 0.12s ease-out;
+}
+
+.hearth-pet-stage.is-sleepy .hearth-pet-eyes,
+.hearth-pet-stage.is-still .hearth-pet-eyes {
+	transform: none;
+}
+
+/* ---- Sleeping z's, and the moon of a pet asleep for the night ---- */
+
+.hearth-pet-zzz {
+	position: absolute;
+	top: -2%;
+	right: -4%;
+	pointer-events: none;
+}
+
+.hearth-pet-z::after {
+	content: "z";
+}
+
+.hearth-pet-z {
+	position: absolute;
+	right: 0;
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--text-faint);
+	opacity: 0;
+	animation: hearth-pet-float 3.6s ease-out infinite;
+	animation-delay: calc(var(--i) * 1.2s);
+}
+
+@keyframes hearth-pet-float {
+	0% { transform: translate(0, 0) scale(0.7); opacity: 0; }
+	20% { opacity: 0.9; }
+	100% { transform: translate(10px, -22px) scale(1.15); opacity: 0; }
+}
+
+/* Asleep because of the hour rather than the vault: one moon, hanging still
+ * and breathing with the pet, instead of a stream of z's. */
+.hearth-pet-zzz.is-moon .hearth-pet-z::after {
+	content: "\263D";
+}
+
+.hearth-pet-zzz.is-moon .hearth-pet-z {
+	animation: hearth-pet-moon 6s ease-in-out infinite;
+	animation-delay: 0s;
+	font-size: 0.95rem;
+	font-weight: 400;
+	color: var(--text-muted);
+}
+
+@keyframes hearth-pet-moon {
+	0%, 100% { transform: translateY(0); opacity: 0.5; }
+	50% { transform: translateY(-3px); opacity: 0.9; }
+}
+
 /* ---- Hearts, on petting ---- */
 
 .hearth-pet-heart {
@@ -7581,6 +7650,17 @@ body.hearth-dv-resizing {
 
 	.hearth-pet-frame:not([data-f="0"]) {
 		opacity: 0;
+	}
+
+	/* The pointer tracking is motion too — the eyes hold still. */
+	.hearth-pet-eyes {
+		transform: none !important;
+		transition: none;
+	}
+
+	/* The z's and the moon stop moving but stay legible. */
+	.hearth-pet-z {
+		opacity: 0.7;
 	}
 
 	.hearth-pet-z {

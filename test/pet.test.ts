@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	PET_DEFAULT_GOAL,
+	PET_DEFAULT_NIGHT,
 	PET_FRAME_COUNT,
 	PET_PETTED_MS,
 	PET_SLEEPY_AFTER_MS,
@@ -8,6 +9,7 @@ import {
 	PET_SPRITE_SIZE,
 	activityStreak,
 	defaultColors,
+	inNightWindow,
 	moodFor,
 	paletteFor,
 	parseHex,
@@ -86,6 +88,72 @@ describe("moodFor", () => {
 			moodFor({ today: 0, thresholds: clingy, sinceLastMs: 0, pettedMsAgo: ms });
 		expect(after(119 * 60 * 1000)).toBe("happy");
 		expect(after(121 * 60 * 1000)).toBe("bored");
+	});
+});
+
+describe("night", () => {
+	const at = (hour: number) => new Date(2026, 5, 10, hour, 30);
+
+	it("wraps midnight on the default window", () => {
+		const [from, to] = PET_DEFAULT_NIGHT;
+		expect(from).toBe(23);
+		expect(to).toBe(7);
+		expect(inNightWindow(at(23), {})).toBe(true);
+		expect(inNightWindow(at(2), {})).toBe(true);
+		expect(inNightWindow(at(6), {})).toBe(true);
+		expect(inNightWindow(at(7), {})).toBe(false);
+		expect(inNightWindow(at(15), {})).toBe(false);
+		expect(inNightWindow(at(22), {})).toBe(false);
+	});
+
+	it("handles a window that does not wrap", () => {
+		const siesta = { nightFrom: 13, nightTo: 15 };
+		expect(inNightWindow(at(13), siesta)).toBe(true);
+		expect(inNightWindow(at(14), siesta)).toBe(true);
+		expect(inNightWindow(at(15), siesta)).toBe(false);
+		expect(inNightWindow(at(3), siesta)).toBe(false);
+	});
+
+	it("treats an empty or nonsense window as no window", () => {
+		expect(inNightWindow(at(9), { nightFrom: 9, nightTo: 9 })).toBe(false);
+		// Out-of-range hours fall back to the defaults rather than never matching.
+		expect(inNightWindow(at(2), { nightFrom: 99, nightTo: -4 })).toBe(true);
+		expect(inNightWindow(at(15), { nightFrom: 99, nightTo: -4 })).toBe(false);
+	});
+
+	it("only reaches a bored pet in quiet mode", () => {
+		const night = (mode: "off" | "quiet" | "always", today: number, sinceLastMs = 0) =>
+			moodFor({
+				today,
+				thresholds: thresholdsFor({}),
+				sinceLastMs,
+				pettedMsAgo: null,
+				night: { mode, now: true },
+			});
+		// Bored by day, asleep at night — the hour, not neglect.
+		expect(night("quiet", 0, HOUR)).toBe("sleepy");
+		// A day that went well is still a day that went well.
+		expect(night("quiet", PET_DEFAULT_GOAL)).toBe("happy");
+		expect(night("quiet", PET_DEFAULT_GOAL * 2)).toBe("excited");
+		// "always" puts it to bed regardless.
+		expect(night("always", PET_DEFAULT_GOAL * 2)).toBe("sleepy");
+		// "off" leaves the clock out of it entirely.
+		expect(night("off", 0, HOUR)).toBe("bored");
+	});
+
+	it("still wakes for a petting, in every night mode", () => {
+		// The pet must never be unwakeable — including at 3am on "always".
+		for (const mode of ["off", "quiet", "always"] as const) {
+			expect(
+				moodFor({
+					today: 0,
+					thresholds: thresholdsFor({}),
+					sinceLastMs: 100 * HOUR,
+					pettedMsAgo: 0,
+					night: { mode, now: true },
+				}),
+			).toBe("happy");
+		}
 	});
 });
 

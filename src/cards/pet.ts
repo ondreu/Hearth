@@ -1,4 +1,4 @@
-import { Component, Setting } from "obsidian";
+import { Component, type DropdownComponent, Setting } from "obsidian";
 import { localDayKey } from "../dates";
 import { t } from "../i18n";
 import { type DashboardCard, type PetConfig, type PetSpecies, lowPowerActive } from "../types";
@@ -83,6 +83,31 @@ export function thresholdsFor(cfg: PetConfig): PetThresholds {
 	};
 }
 
+/** Default night window: 23:00 to 07:00. */
+export const PET_DEFAULT_NIGHT: [number, number] = [23, 7];
+
+/** Clamp an hour to a whole 0–23, falling back when it is missing or absurd. */
+function hourOr(value: number | undefined, fallback: number): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+	const hour = Math.floor(value);
+	return hour >= 0 && hour <= 23 ? hour : fallback;
+}
+
+/**
+ * Is `date`'s local hour inside the card's night window? The window wraps
+ * midnight (23 → 7 is the default and the normal case), and a window whose
+ * ends are equal is treated as no window at all rather than as all day —
+ * "from 9 to 9" is much more likely a half-set slider than a request for a pet
+ * that sleeps around the clock.
+ */
+export function inNightWindow(date: Date, cfg: PetConfig): boolean {
+	const from = hourOr(cfg.nightFrom, PET_DEFAULT_NIGHT[0]);
+	const to = hourOr(cfg.nightTo, PET_DEFAULT_NIGHT[1]);
+	if (from === to) return false;
+	const hour = date.getHours();
+	return from < to ? hour >= from && hour < to : hour >= from || hour < to;
+}
+
 /** Everything the mood is derived from. Pure input, so the ladder below can be
  * unit-tested without a vault. */
 export interface PetPulse {
@@ -94,6 +119,8 @@ export interface PetPulse {
 	sinceLastMs: number | null;
 	/** Time since the pet was last petted, or null if it never was. */
 	pettedMsAgo: number | null;
+	/** What the clock is allowed to do, and whether it is night right now. */
+	night?: { mode: NonNullable<PetConfig["nightSleep"]>; now: boolean };
 }
 
 /**
@@ -113,6 +140,14 @@ export function moodFor(pulse: PetPulse): PetMood {
 	else if (pulse.today >= limits.content) mood = "content";
 	else if (pulse.sinceLastMs != null && pulse.sinceLastMs < limits.sleepyAfterMs) mood = "bored";
 	else mood = "sleepy";
+	// The clock, if the card lets it speak. "quiet" only reaches a bored pet:
+	// at two in the morning an empty day is the hour, not neglect. "always"
+	// puts the pet to bed however the day went.
+	if (pulse.night?.now) {
+		if (pulse.night.mode === "always") mood = "sleepy";
+		else if (pulse.night.mode === "quiet" && mood === "bored") mood = "sleepy";
+	}
+	// Petting is the last word in every mode, so a pet is never unwakeable.
 	if (petted && mood !== "excited") mood = "happy";
 	return mood;
 }
@@ -621,11 +656,9 @@ function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood, sti
 			"aria-hidden": "true",
 		},
 	});
-	const frames = still ? spriteFrames(species, mood).slice(0, 1) : spriteFrames(species, mood);
-	frames.forEach((frame, index) => {
-		const group = svg.createSvg("g", { cls: "hearth-pet-frame", attr: { "data-f": String(index) } });
-		for (const run of spriteRuns(frame)) {
-			group.createSvg("rect", {
+	const paintRuns = (parent: SVGElement, runs: SpriteRun[]) => {
+		for (const run of runs) {
+			parent.createSvg("rect", {
 				attr: {
 					x: String(run.col),
 					y: String(run.row),
@@ -635,6 +668,21 @@ function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood, sti
 				},
 			});
 		}
+	};
+
+	const frames = still ? spriteFrames(species, mood).slice(0, 1) : spriteFrames(species, mood);
+	frames.forEach((frame, index) => {
+		const group = svg.createSvg("g", { cls: "hearth-pet-frame", attr: { "data-f": String(index) } });
+		// Two layers per frame. The face is drawn *whole* underneath, with the
+		// eye pixels filled in as skin, and the eyes go on top in their own
+		// group — so the stylesheet can shift them a pixel towards the pointer
+		// without leaving holes in the head where they used to be, and without
+		// the card being redrawn on every mouse move.
+		paintRuns(group, spriteRuns(frame.map((row) => row.replace(/[ew]/g, "b"))));
+		paintRuns(
+			group.createSvg("g", { cls: "hearth-pet-eyes" }),
+			spriteRuns(frame).filter((run) => run.ch === "e" || run.ch === "w"),
+		);
 	});
 }
 
@@ -700,25 +748,90 @@ export function renderPet(
 
 	/** Re-derive everything from the vault and repaint. Cheap enough to run on
 	 * every vault event: one pass over the file list plus a few dozen rects. */
+	/** The mood on screen right now, so the pointer tracking can tell whether
+	 * the eyes it would move are open. */
+	let shown: PetMood = "content";
+
+	/** Put the eyes back to centre. Called whenever the pointer leaves, and on
+	 * every repaint — the fresh sprite starts centred and the variables that
+	 * moved the old one must not outlive it. */
+	const lookAway = () => {
+		stage.style.removeProperty("--hearth-pet-look-x");
+		stage.style.removeProperty("--hearth-pet-look-y");
+	};
+
+	/**
+	 * Follow the pointer with the eyes. The whole effect is two custom
+	 * properties read by a transform on the eye group, so a mouse move costs a
+	 * compositor transform and nothing else — no redraw, no layout, and the
+	 * sprite's own animations keep running underneath. Coalesced into an
+	 * animation frame, since pointermove fires far faster than the screen.
+	 *
+	 * A sleeping pet has its eyes shut, so it never looks; low power mode and
+	 * a reduced-motion preference skip the listener entirely.
+	 */
+	const wireEyes = () => {
+		const follow = cfg.eyesFollow ?? "card";
+		if (follow === "off" || still) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		// "board" watches the whole dashboard, so the pet notices a pointer that
+		// never comes near it; "card" only looks up when you are on its card.
+		// "card" watches the card body rather than the sprite alone, so the pet
+		// looks up as soon as the pointer is anywhere on its card.
+		const surface: HTMLElement = follow === "board" ? (body.closest(".hearth-grid") ?? body) : body;
+
+		let queued = false;
+		let pending: { x: number; y: number } | null = null;
+		const apply = () => {
+			queued = false;
+			if (!pending) return;
+			const box = stage.getBoundingClientRect();
+			if (!box.width || !box.height) return;
+			// Normalised offset from the pet's centre, clamped to ±1, then scaled
+			// to a pixel of the 16×16 grid. crispEdges rounds the result, so the
+			// pupils snap between pixels the way pixel art should.
+			const dx = Math.max(-1, Math.min(1, (pending.x - (box.left + box.width / 2)) / (box.width / 2)));
+			const dy = Math.max(-1, Math.min(1, (pending.y - (box.top + box.height / 2)) / (box.height / 2)));
+			stage.style.setProperty("--hearth-pet-look-x", `${(dx * 0.9).toFixed(2)}px`);
+			stage.style.setProperty("--hearth-pet-look-y", `${(dy * 0.6).toFixed(2)}px`);
+		};
+		component.registerDomEvent(surface, "pointermove", (ev: PointerEvent) => {
+			if (shown === "sleepy") return;
+			pending = { x: ev.clientX, y: ev.clientY };
+			if (queued) return;
+			queued = true;
+			window.requestAnimationFrame(apply);
+		});
+		component.registerDomEvent(surface, "pointerleave", lookAway);
+	};
+
 	const paint = () => {
 		const pulse = readVaultPulse(view, cfg.metric ?? "modified");
+		const nightMode = cfg.nightSleep ?? "quiet";
+		const night = nightMode !== "off" && inNightWindow(new Date(), cfg);
 		const mood = moodFor({
 			today: pulse.today,
 			thresholds: thresholdsFor(cfg),
 			sinceLastMs: pulse.sinceLastMs,
 			pettedMsAgo: cfg.lastPlayedAt ? Date.now() - cfg.lastPlayedAt : null,
+			night: { mode: nightMode, now: night },
 		});
+		shown = mood;
 
 		stage.empty();
 		for (const m of ["sleepy", "bored", "content", "happy", "excited"]) stage.removeClass(`is-${m}`);
 		stage.addClass(`is-${mood}`);
 		stage.toggleClass("is-still", still);
+		// Asleep because of the hour rather than the vault: a moon instead of
+		// the z's, so the card says "it is night" and not "you did nothing".
+		stage.toggleClass("is-night", night && mood === "sleepy");
+		lookAway();
 		drawSprite(stage, species, mood, still);
 		// Sleeping pets get their z's — but not while animation is suppressed,
 		// since they are nothing but a float animation.
 		if (mood === "sleepy" && !still) {
-			const zzz = stage.createDiv("hearth-pet-zzz");
-			for (let i = 0; i < 3; i++) {
+			const zzz = stage.createDiv(night ? "hearth-pet-zzz is-moon" : "hearth-pet-zzz");
+			for (let i = 0; i < (night ? 1 : 3); i++) {
 				// The glyph itself is drawn in CSS (::after) — it is decoration,
 				// not text, and must not be picked up as a translatable string.
 				const z = zzz.createDiv("hearth-pet-z");
@@ -728,16 +841,18 @@ export function renderPet(
 
 		name.setText(petName(cfg));
 		name.toggle(cfg.showName !== false);
-		moodEl.setText(moodLabel(mood));
+		moodEl.setText(night && mood === "sleepy" ? t().cards.pet.moodNight : moodLabel(mood));
 		moodEl.toggle(cfg.showMood !== false);
 		const parts = [t().cards.pet.todayCount(pulse.today, cfg.metric ?? "modified")];
 		if (pulse.streak > 1) parts.push(t().cards.pet.streak(pulse.streak));
 		activity.setText(parts.join(" · "));
 		activity.toggle(cfg.showActivity !== false);
 
-		stage.setAttribute("aria-label", `${petName(cfg)} — ${moodLabel(mood)}. ${t().cards.pet.petHint}`);
+		stage.setAttribute("aria-label", `${petName(cfg)} — ${moodEl.getText()}. ${t().cards.pet.petHint}`);
 		stage.setAttribute("title", t().cards.pet.petHint);
 	};
+
+	wireEyes();
 
 	const pet = () => {
 		cfg.lastPlayedAt = Date.now();
@@ -906,6 +1021,44 @@ export function petEditor(container: HTMLElement, ctx: CardEditorContext): void 
 				ctx.requestRender();
 			}),
 	);
+
+	// ---- Night, and where the eyes look ----
+	new Setting(container).setName(strings.nightSleep).setDesc(strings.nightSleepDesc).addDropdown((d) => {
+		d.addOption("off", strings.nightOff);
+		d.addOption("quiet", strings.nightQuiet);
+		d.addOption("always", strings.nightAlways);
+		d.setValue(cfg.nightSleep ?? "quiet").onChange((v) => {
+			cfg.nightSleep = v as NonNullable<PetConfig["nightSleep"]>;
+			ctx.opts.save();
+			ctx.requestRender();
+			ctx.opts.rerender();
+		});
+	});
+
+	if ((cfg.nightSleep ?? "quiet") !== "off") {
+		const hours = new Setting(container).setName(strings.nightWindow).setDesc(strings.nightWindowDesc);
+		const hourPicker = (value: number, apply: (hour: number) => void) => (d: DropdownComponent) => {
+			for (let hour = 0; hour < 24; hour++) d.addOption(String(hour), `${String(hour).padStart(2, "0")}:00`);
+			d.setValue(String(value)).onChange((v) => {
+				apply(Number(v));
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		};
+		hours.addDropdown(hourPicker(cfg.nightFrom ?? PET_DEFAULT_NIGHT[0], (h) => (cfg.nightFrom = h)));
+		hours.addDropdown(hourPicker(cfg.nightTo ?? PET_DEFAULT_NIGHT[1], (h) => (cfg.nightTo = h)));
+	}
+
+	new Setting(container).setName(strings.eyesFollow).setDesc(strings.eyesFollowDesc).addDropdown((d) => {
+		d.addOption("off", strings.eyesOff);
+		d.addOption("card", strings.eyesCard);
+		d.addOption("board", strings.eyesBoard);
+		d.setValue(cfg.eyesFollow ?? "card").onChange((v) => {
+			cfg.eyesFollow = v as NonNullable<PetConfig["eyesFollow"]>;
+			ctx.opts.save();
+			ctx.opts.rerender();
+		});
+	});
 
 	new Setting(container).setName(strings.showName).addToggle((toggle) =>
 		toggle.setValue(cfg.showName !== false).onChange((v) => {
