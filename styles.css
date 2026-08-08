@@ -2619,6 +2619,937 @@
 	text-overflow: ellipsis;
 }
 
+/* ======================================================================
+ * Weather card
+ *
+ * One card with five styles, sharing the pieces below (glyph, temperature,
+ * hourly strip, daily rows, metric tiles) and diverging only where the style
+ * demands it. `.hearth-weather` carries `is-<style>`; the artistic style also
+ * asks its card body for `.hearth-weather-flush`, because a painted sky has to
+ * reach the card's edges.
+ * ====================================================================== */
+.hearth-weather {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	/* Fill the body, but grow past it rather than clipping when a lot of detail
+	 * is switched on — the card body is the scroll container. */
+	min-height: 100%;
+	color: var(--text-normal);
+}
+
+/* The card body is the size container the styles measure against, so a
+ * temperature can be bounded by the card's height as well as its width and the
+ * dense styles can tighten up on a short card instead of spilling out of it.
+ * The body is flex-sized by the card, so containment changes nothing about how
+ * big it is — it only makes that size queryable. */
+.hearth-card-body.hearth-weather-host {
+	container-type: size;
+}
+
+/* The artistic style paints the whole card; drop the body's own padding and
+ * clip the sky to the card's rounded corners. */
+.hearth-card-body.hearth-weather-flush {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* The loading / offline placeholder still needs the padding the sky gave up. */
+.hearth-card-body.hearth-weather-flush .hearth-card-empty {
+	padding: 12px 14px;
+}
+
+/* ---- Shared pieces ---- */
+
+/* The condition glyph. Sized in em so each style can scale it by setting its
+ * own font size on the container. */
+.hearth-weather-glyph {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-normal);
+}
+
+.hearth-weather-glyph .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.hearth-weather-temp {
+	font-weight: 300;
+	/* Slightly over 1: at these sizes a line-height of exactly 1 clips the
+	 * bottom of the digits against any ancestor that hides its overflow. */
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-weather-condition {
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+.hearth-weather-place {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	line-height: 1.25;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-weather-meta {
+	color: var(--text-muted);
+	font-size: 0.76rem;
+	line-height: 1.3;
+}
+
+/* Metric lines can run long; let them wrap instead of clipping. */
+.hearth-weather-meta-wrap {
+	overflow-wrap: anywhere;
+}
+
+.hearth-weather-updated {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+	margin-top: auto;
+}
+
+/* ---- Minimal: one glyph, one number, centred ---- */
+.hearth-weather.is-minimal {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 4px;
+}
+
+.hearth-weather-hero {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.hearth-weather-hero .hearth-weather-glyph {
+	font-size: clamp(1.2rem, min(14cqw, 26cqh), 3rem);
+}
+
+.hearth-weather-hero .hearth-weather-temp {
+	font-size: clamp(1.5rem, min(22cqw, 38cqh), 4.5rem);
+}
+
+/* ---- Compact / forecast: a single reading row ---- */
+.hearth-weather-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.hearth-weather-row .hearth-weather-glyph {
+	font-size: 2rem;
+}
+
+.hearth-weather-row .hearth-weather-temp {
+	font-size: 2.4rem;
+}
+
+.hearth-weather-row-tight .hearth-weather-glyph {
+	font-size: 1.5rem;
+}
+
+.hearth-weather-row-tight .hearth-weather-temp {
+	font-size: 1.7rem;
+}
+
+.hearth-weather-rowtext {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+/* ---- Detailed: a taller header above the metric grid ---- */
+.hearth-weather-head {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 0;
+}
+
+.hearth-weather-head .hearth-weather-glyph {
+	font-size: 2.8rem;
+	color: var(--text-accent);
+}
+
+.hearth-weather-headtext {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.hearth-weather-headtext .hearth-weather-temp {
+	font-size: 2.6rem;
+}
+
+/* ---- Short cards ----
+ *
+ * A card the reader has made short still has to say everything it was asked to
+ * say. Rather than letting the last line fall off the bottom, the type and the
+ * gaps step down twice — first at the height where the row style stops fitting
+ * its meta line, then again where only the essentials fit at all. */
+@container (max-height: 150px) {
+	.hearth-weather {
+		gap: 4px;
+	}
+
+	.hearth-weather-row .hearth-weather-glyph,
+	.hearth-weather-row-tight .hearth-weather-glyph {
+		font-size: 1.6rem;
+	}
+
+	.hearth-weather-row .hearth-weather-temp,
+	.hearth-weather-row-tight .hearth-weather-temp {
+		font-size: 1.9rem;
+	}
+
+	.hearth-weather-condition {
+		font-size: 0.82rem;
+	}
+
+	.hearth-weather-meta {
+		font-size: 0.7rem;
+	}
+}
+
+@container (max-height: 110px) {
+	.hearth-weather-row {
+		gap: 8px;
+	}
+
+	.hearth-weather-row .hearth-weather-glyph,
+	.hearth-weather-row-tight .hearth-weather-glyph {
+		font-size: 1.3rem;
+	}
+
+	.hearth-weather-row .hearth-weather-temp,
+	.hearth-weather-row-tight .hearth-weather-temp {
+		font-size: 1.5rem;
+	}
+
+	.hearth-weather-condition {
+		font-size: 0.76rem;
+	}
+
+	.hearth-weather-place,
+	.hearth-weather-meta {
+		font-size: 0.66rem;
+		line-height: 1.2;
+	}
+}
+
+/* The painted sky measures itself, not the body — it is its own container.
+ * Scoped through `.hearth-weather-sky` for specificity: the artistic style's
+ * own rules are further down the file and would otherwise win the tie. */
+@container (max-height: 170px) {
+	.hearth-weather-sky .hearth-weather-art-content {
+		padding: 8px 10px;
+		gap: 2px;
+	}
+
+	.hearth-weather-sky .hearth-weather-art-place {
+		font-size: 0.78rem;
+	}
+
+	.hearth-weather-sky .hearth-weather-art-condition,
+	.hearth-weather-sky .hearth-weather-art-meta {
+		font-size: 0.68rem;
+		line-height: 1.25;
+	}
+}
+
+/* ---- Metric tiles ---- */
+.hearth-weather-metrics {
+	display: grid;
+	/* Tiles fill the row and wrap; a narrow card ends up with one column
+	 * rather than a squeezed two. */
+	grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+	gap: 6px;
+}
+
+.hearth-weather-metric {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	background: var(--background-modifier-hover);
+	min-width: 0;
+}
+
+.hearth-weather-metric-icon {
+	flex: 0 0 auto;
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-weather-metric-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-weather-metric-text {
+	min-width: 0;
+}
+
+.hearth-weather-metric-label {
+	color: var(--text-faint);
+	font-size: 0.68rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.hearth-weather-metric-value {
+	color: var(--text-normal);
+	font-size: 0.84rem;
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ---- Hourly strip ---- */
+.hearth-weather-hours {
+	display: flex;
+	gap: 2px;
+	overflow-x: auto;
+	scrollbar-width: none;
+	flex: 0 0 auto;
+}
+
+.hearth-weather-hours::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-weather-hour {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	flex: 1 0 auto;
+	min-width: 42px;
+	padding: 4px 2px;
+	border-radius: 8px;
+}
+
+.hearth-weather-hour:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-weather-hour-label {
+	color: var(--text-faint);
+	font-size: 0.68rem;
+	white-space: nowrap;
+}
+
+.hearth-weather-hour-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-weather-hour-icon .svg-icon {
+	width: 17px;
+	height: 17px;
+}
+
+.hearth-weather-hour-temp {
+	font-size: 0.8rem;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-weather-hour-precip {
+	color: var(--color-blue);
+	font-size: 0.65rem;
+}
+
+/* ---- Daily rows ---- */
+.hearth-weather-days {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.hearth-weather-day {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 4px;
+	border-radius: 8px;
+	font-size: 0.78rem;
+}
+
+.hearth-weather-day:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-weather-day-label {
+	flex: 0 0 3.4em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-weather-day-icon {
+	flex: 0 0 auto;
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-weather-day-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-weather-day-precip {
+	flex: 0 0 2.6em;
+	color: var(--color-blue);
+	font-size: 0.68rem;
+	text-align: end;
+}
+
+.hearth-weather-day-low,
+.hearth-weather-day-high {
+	flex: 0 0 2.4em;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.hearth-weather-day-low {
+	color: var(--text-faint);
+}
+
+.hearth-weather-day-high {
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+/* The range bar: each day's low-to-high span placed against the whole strip's
+ * span, so a warm day's bar sits visibly further right than a cold one's. */
+.hearth-weather-day-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 4px;
+	min-width: 24px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-weather-day-bar {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	border-radius: 999px;
+	background: linear-gradient(90deg, var(--color-blue), var(--color-orange));
+}
+
+/* ---- Forecast curve ---- */
+.hearth-weather.is-forecast {
+	/* Bounded to the card so the curve has a height to flex against; every
+	 * other block in this style is fixed, and the daily list scrolls itself. */
+	height: 100%;
+}
+
+.hearth-weather.is-forecast .hearth-weather-row,
+.hearth-weather.is-forecast .hearth-weather-metrics {
+	flex: 0 0 auto;
+}
+
+.hearth-weather-chart {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* Stretched to the card's width, so each point lands over its label column.
+ * The stroke is drawn with `vector-effect: non-scaling-stroke` in the markup,
+ * which is what keeps that stretch from wedging the line. */
+.hearth-weather-curve {
+	width: 100%;
+	/* The curve is what gives up height on a short card: a shorter curve still
+	 * reads, a clipped hour label does not. */
+	flex: 1 1 auto;
+	min-height: 28px;
+	overflow: visible;
+}
+
+.hearth-weather-curve-line {
+	fill: none;
+	stroke: var(--interactive-accent);
+	stroke-width: 2px;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.hearth-weather-curve-fill {
+	fill: var(--interactive-accent);
+	opacity: 0.12;
+}
+
+.hearth-weather-curve-dot {
+	fill: var(--interactive-accent);
+	/* Squashed back against the viewBox stretch so the dots stay round-ish. */
+	transform: scaleX(0.35);
+	transform-origin: center;
+	transform-box: fill-box;
+}
+
+.hearth-weather-chart-labels {
+	display: flex;
+	flex: 0 0 auto;
+}
+
+.hearth-weather-chart-label {
+	flex: 1 1 0;
+	min-width: 0;
+	text-align: center;
+}
+
+.hearth-weather-chart-temp {
+	font-size: 0.74rem;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-weather-chart-hour {
+	color: var(--text-faint);
+	font-size: 0.64rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ======================================================================
+ * Artistic style: the painted sky
+ *
+ * The gradient is the sky; the SVG in front of it holds whatever moves (sun,
+ * moon, stars, clouds, rain, snow, a bolt). Every palette is deep enough for
+ * white text, so the overlay never has to switch colour with the theme — and
+ * every animation is gated behind `.is-animated`, which the card drops in low
+ * power mode and when the reader turns motion off.
+ * ====================================================================== */
+.hearth-weather.is-artistic {
+	gap: 0;
+	/* The sky is painted, not scrolled: it fills the card exactly and the
+	 * overlay inside it scrolls if the reading outgrows it. */
+	height: 100%;
+}
+
+.hearth-weather-sky {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	/* A size container, so the reading over it can scale to the card's height
+	 * as well as its width (see .hearth-weather-art-temp). */
+	container-type: size;
+	color: #fff;
+	/* Overcast day is the fallback palette; each sky-* class below replaces it. */
+	background: linear-gradient(170deg, #7b8ca3 0%, #58687d 55%, #3f4c5e 100%);
+}
+
+.hearth-weather-sky.sky-clear {
+	background: linear-gradient(170deg, #4fa8e0 0%, #2d7fc4 50%, #1b5c96 100%);
+}
+
+.hearth-weather-sky.sky-partly {
+	background: linear-gradient(170deg, #6bb3e3 0%, #4a8bc0 55%, #35668f 100%);
+}
+
+.hearth-weather-sky.sky-fog {
+	background: linear-gradient(170deg, #9aa6b0 0%, #7d8892 55%, #5f6971 100%);
+}
+
+.hearth-weather-sky.sky-drizzle {
+	background: linear-gradient(170deg, #7286a0 0%, #556680 55%, #3b485c 100%);
+}
+
+.hearth-weather-sky.sky-rain {
+	background: linear-gradient(170deg, #5d7086 0%, #46566e 55%, #2f3b4c 100%);
+}
+
+.hearth-weather-sky.sky-snow {
+	background: linear-gradient(170deg, #a8bccd 0%, #8098b0 55%, #5d7288 100%);
+}
+
+.hearth-weather-sky.sky-thunder {
+	background: linear-gradient(170deg, #4a4a63 0%, #363549 55%, #23222f 100%);
+}
+
+/* Night: one deeper palette for every condition, because after dark the
+ * difference between overcast and drizzle is not a colour — it's what falls. */
+.hearth-weather-sky.is-night {
+	background: linear-gradient(170deg, #1d2a44 0%, #162034 55%, #0d1422 100%);
+}
+
+.hearth-weather-sky.is-night.sky-clear,
+.hearth-weather-sky.is-night.sky-partly {
+	background: linear-gradient(170deg, #24365c 0%, #182543 55%, #0c1322 100%);
+}
+
+.hearth-weather-sky.is-night.sky-thunder {
+	background: linear-gradient(170deg, #2a2740 0%, #1c1a2c 55%, #101019 100%);
+}
+
+.hearth-weather-art {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+/* ---- Sun and moon ---- */
+.hearth-weather-sun-disc {
+	fill: #fff3c4;
+}
+
+.hearth-weather-sun-glow {
+	fill: #ffe9a3;
+	opacity: 0.28;
+}
+
+.hearth-weather-moon-disc {
+	fill: #eef2ff;
+}
+
+.hearth-weather-moon-glow {
+	fill: #cdd8ff;
+	opacity: 0.16;
+}
+
+.is-animated .hearth-weather-sun-glow,
+.is-animated .hearth-weather-moon-glow {
+	animation: hearth-weather-breathe 6s ease-in-out infinite;
+	transform-origin: 158px 28px;
+}
+
+@keyframes hearth-weather-breathe {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 0.22;
+	}
+	50% {
+		transform: scale(1.12);
+		opacity: 0.34;
+	}
+}
+
+/* ---- Stars ---- */
+.hearth-weather-stars circle {
+	fill: #fff;
+	opacity: 0.75;
+}
+
+.is-animated .hearth-weather-stars circle {
+	animation: hearth-weather-twinkle 4s ease-in-out infinite;
+}
+
+@keyframes hearth-weather-twinkle {
+	0%,
+	100% {
+		opacity: 0.25;
+	}
+	50% {
+		opacity: 0.9;
+	}
+}
+
+/* ---- Clouds ---- */
+.hearth-weather-cloud ellipse,
+.hearth-weather-cloud rect {
+	fill: #fff;
+}
+
+/* The opacity belongs on the group, not the shapes: a cloud is four
+ * overlapping discs, and fading them individually shows every seam. */
+.hearth-weather-cloud {
+	opacity: 0.32;
+}
+
+.hearth-weather-sky.is-night .hearth-weather-cloud {
+	opacity: 0.18;
+}
+
+/* Each lane drifts at its own speed, so the bank never moves as one slab. The
+ * translation is in viewBox units: -60 to 260 crosses the full 200-wide box
+ * with enough overshoot that a cloud is never seen popping in. */
+.is-animated .hearth-weather-cloud.is-lane-1 {
+	animation: hearth-weather-drift 46s linear infinite;
+}
+
+.is-animated .hearth-weather-cloud.is-lane-2 {
+	animation: hearth-weather-drift 66s linear infinite;
+	animation-delay: -20s;
+}
+
+.is-animated .hearth-weather-cloud.is-lane-3 {
+	animation: hearth-weather-drift 86s linear infinite;
+	animation-delay: -50s;
+}
+
+@keyframes hearth-weather-drift {
+	from {
+		transform: translateX(-60px);
+	}
+	to {
+		transform: translateX(260px);
+	}
+}
+
+/* ---- Fog banks ---- */
+.hearth-weather-fogbank {
+	opacity: 0.16;
+}
+
+.hearth-weather-fogbank rect {
+	fill: #fff;
+}
+
+.is-animated .hearth-weather-fogbank rect.is-lane-1 {
+	animation: hearth-weather-fog 34s ease-in-out infinite;
+}
+
+.is-animated .hearth-weather-fogbank rect.is-lane-2 {
+	animation: hearth-weather-fog 48s ease-in-out infinite reverse;
+}
+
+.is-animated .hearth-weather-fogbank rect.is-lane-3 {
+	animation: hearth-weather-fog 60s ease-in-out infinite;
+	animation-delay: -12s;
+}
+
+@keyframes hearth-weather-fog {
+	0%,
+	100% {
+		transform: translateX(-18px);
+	}
+	50% {
+		transform: translateX(18px);
+	}
+}
+
+/* ---- Rain, drizzle and snow ---- */
+.hearth-weather-fall line {
+	stroke: #cfe4ff;
+	stroke-width: 1.4;
+	stroke-linecap: round;
+	opacity: 0.55;
+}
+
+.hearth-weather-fall.is-drizzle line {
+	stroke-width: 1;
+	opacity: 0.4;
+}
+
+.hearth-weather-fall circle {
+	fill: #fff;
+	opacity: 0.8;
+}
+
+/* Falling is one long drop down the whole box; the per-drop delay and duration
+ * are set in the markup so the field never marches in step. Without animation
+ * the drops still sit in the sky at their start offsets, which reads as light
+ * precipitation rather than as an empty sky. */
+.is-animated .hearth-weather-fall line,
+.is-animated .hearth-weather-fall circle {
+	animation-name: hearth-weather-rainfall;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+}
+
+.is-animated .hearth-weather-fall.is-snow circle {
+	animation-name: hearth-weather-snowfall;
+	animation-timing-function: ease-in-out;
+}
+
+@keyframes hearth-weather-rainfall {
+	from {
+		transform: translate(0, -20px);
+		opacity: 0;
+	}
+	15% {
+		opacity: 0.6;
+	}
+	to {
+		transform: translate(-24px, 140px);
+		opacity: 0;
+	}
+}
+
+@keyframes hearth-weather-snowfall {
+	from {
+		transform: translate(0, -12px);
+		opacity: 0;
+	}
+	20% {
+		opacity: 0.85;
+	}
+	to {
+		transform: translate(14px, 136px);
+		opacity: 0;
+	}
+}
+
+/* ---- Lightning ---- */
+.hearth-weather-bolt {
+	fill: #ffe57a;
+	opacity: 0;
+}
+
+.is-animated .hearth-weather-bolt {
+	animation: hearth-weather-flash 7s steps(1, end) infinite;
+}
+
+@keyframes hearth-weather-flash {
+	0%,
+	4%,
+	100% {
+		opacity: 0;
+	}
+	1%,
+	3% {
+		opacity: 0.95;
+	}
+	2% {
+		opacity: 0.3;
+	}
+}
+
+/* ---- The reading laid over the sky ---- */
+.hearth-weather-art-content {
+	position: relative;
+	/* The padding has to come out of the 100% height, or the last line of the
+	 * reading falls outside the sky's clip box and is simply never seen. */
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	height: 100%;
+	padding: 12px 14px;
+	gap: 8px;
+	/* A soft scrim under the text: the sun or a pale cloud can drift straight
+	 * behind a line and a plain white glyph would vanish into it. */
+	background: linear-gradient(
+		180deg,
+		rgba(0, 0, 0, 0.28) 0%,
+		rgba(0, 0, 0, 0) 38%,
+		rgba(0, 0, 0, 0.34) 100%
+	);
+	overflow-y: auto;
+	scrollbar-width: none;
+}
+
+.hearth-weather-art-content::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-weather-art-top,
+.hearth-weather-art-bottom {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.hearth-weather-art-place {
+	font-size: 0.86rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.hearth-weather-art-condition {
+	font-size: 0.76rem;
+	opacity: 0.85;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.hearth-weather-art-temp {
+	/* Bounded by the card's height as well as its width: a short, wide card
+	 * would otherwise ask for a temperature taller than the sky it sits in,
+	 * and the digits would be cropped. */
+	font-size: clamp(1.4rem, min(22cqw, 30cqh), 4.5rem);
+	font-weight: 200;
+	line-height: 1.08;
+	letter-spacing: -0.03em;
+	font-variant-numeric: tabular-nums;
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.hearth-weather-art-meta {
+	font-size: 0.74rem;
+	opacity: 0.85;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Over a sky, the strips and rows drop their theme colours for the overlay's
+ * white — the card's own palette has no contrast against a painted backdrop. */
+.hearth-weather-art-content .hearth-weather-hour-label,
+.hearth-weather-art-content .hearth-weather-hour-temp,
+.hearth-weather-art-content .hearth-weather-hour-icon,
+.hearth-weather-art-content .hearth-weather-hour-precip,
+.hearth-weather-art-content .hearth-weather-day,
+.hearth-weather-art-content .hearth-weather-day-label,
+.hearth-weather-art-content .hearth-weather-day-icon,
+.hearth-weather-art-content .hearth-weather-day-precip,
+.hearth-weather-art-content .hearth-weather-day-low,
+.hearth-weather-art-content .hearth-weather-day-high,
+.hearth-weather-art-content .hearth-weather-updated {
+	color: #fff;
+}
+
+.hearth-weather-art-content .hearth-weather-hour-label,
+.hearth-weather-art-content .hearth-weather-day-label,
+.hearth-weather-art-content .hearth-weather-day-low,
+.hearth-weather-art-content .hearth-weather-updated {
+	opacity: 0.75;
+}
+
+.hearth-weather-art-content .hearth-weather-hour:hover,
+.hearth-weather-art-content .hearth-weather-day:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.hearth-weather-art-content .hearth-weather-day-track {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- Editor: the place picker ---- */
+.hearth-weather-search-input {
+	min-width: 12em;
+}
+
+.hearth-weather-search-empty {
+	padding: 4px 0 8px;
+}
+
+.hearth-weather-result .setting-item-name {
+	font-size: 0.9rem;
+}
+
 /* Mini calendar card */
 .hearth-calendar {
 	display: flex;

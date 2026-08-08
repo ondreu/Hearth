@@ -22,6 +22,7 @@ import { dataviewCard } from "./dataview";
 import { datacoreCard } from "./datacore";
 import { rssCard } from "./rss";
 import { jiraCard } from "./jira";
+import { weatherCard } from "./weather";
 import { leafCard } from "./leaf";
 
 export type {
@@ -59,6 +60,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	datacore: datacoreCard,
 	rss: rssCard,
 	jira: jiraCard,
+	weather: weatherCard,
 	leaf: leafCard,
 };
 
@@ -118,6 +120,7 @@ export const TEMPLATE_MENU_ORDER: string[] = [
 	"datacore",
 	"rss",
 	"jira",
+	"weather",
 	"leaf",
 ];
 

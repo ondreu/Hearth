@@ -23,6 +23,7 @@ export type CardKind =
 	| "datacore"
 	| "rss"
 	| "jira"
+	| "weather"
 	| "leaf";
 
 /** A refinement control available on a Jira saved-filter card. */
@@ -642,6 +643,114 @@ export interface RssConfig {
 	mergeAll?: boolean;
 }
 
+/** A place a "weather" card shows the forecast for.
+ *
+ * Resolved once — either picked from the key-less Open-Meteo geocoder in the
+ * card editor, or typed in as raw coordinates — and then stored on the card, so
+ * drawing the card never needs a name lookup and an offline vault still knows
+ * where it is pointing. */
+export interface WeatherPlace {
+	/** Display name, e.g. "Prague". */
+	name: string;
+	/** Admin area and/or country shown under the name, e.g. "Praha, Czechia". */
+	region?: string;
+	/** Decimal degrees, north positive. */
+	lat: number;
+	/** Decimal degrees, east positive. */
+	lon: number;
+	/** IANA zone the geocoder reported. Only used as a label — forecast times
+	 * always come back in the location's own zone (`timezone=auto`). */
+	timezone?: string;
+}
+
+/**
+ * How a "weather" card draws itself, from the plainest to the most decorated:
+ *
+ * - `minimal`  — one glyph and one temperature, nothing else.
+ * - `compact`  — a single row: glyph, temperature, condition, place.
+ * - `detailed` — the current conditions plus a grid of the metrics you enabled.
+ * - `forecast` — an hourly temperature curve with a daily strip under it.
+ * - `artistic` — an edge-to-edge painted sky that follows the real conditions
+ *   and the time of day, with drifting clouds, rain, snow and stars.
+ */
+export type WeatherStyle =
+	| "minimal"
+	| "compact"
+	| "detailed"
+	| "forecast"
+	| "artistic";
+
+/** Temperature unit for a weather card. Default "c". */
+export type TemperatureUnit = "c" | "f";
+
+/** Wind speed unit for a weather card. Default "kmh". */
+export type WindUnit = "kmh" | "ms" | "mph" | "kn";
+
+/** Precipitation unit for a weather card. Default "mm". */
+export type PrecipitationUnit = "mm" | "inch";
+
+/**
+ * Per-card configuration for a "weather" card.
+ *
+ * All fields are optional and every default is the value that renders the card
+ * the way it looks straight out of the "Add card" menu. The `show*` flags are
+ * deliberately fine-grained: which of them a given style honours is documented
+ * on each one, so the same forecast can be a bare number on one board and a
+ * full weather station on another.
+ */
+export interface WeatherConfig {
+	/** Where the forecast is for. Without it the card asks to be configured. */
+	place?: WeatherPlace;
+	/** Visual style. Default "compact". */
+	style?: WeatherStyle;
+
+	// ---- Units ----
+	/** Temperature unit. Default "c". */
+	tempUnit?: TemperatureUnit;
+	/** Wind speed unit. Default "kmh". */
+	windUnit?: WindUnit;
+	/** Precipitation unit. Default "mm". */
+	precipUnit?: PrecipitationUnit;
+	/** Clock format for hourly and sunrise/sunset times: "auto" follows the
+	 * locale, "12"/"24" force it. Default "auto". */
+	hourFormat?: "auto" | "12" | "24";
+
+	// ---- What to display ----
+	/** Show the place name. Default true. */
+	showLocation?: boolean;
+	/** Show the condition text ("Partly cloudy"). Default true. */
+	showCondition?: boolean;
+	/** Show the "feels like" temperature. Default true (ignored by "minimal"). */
+	showFeelsLike?: boolean;
+	/** Show today's high / low. Default true (ignored by "minimal"). */
+	showHighLow?: boolean;
+	/** Metric tiles, all shown in "detailed" and as a meta line elsewhere. */
+	showHumidity?: boolean;
+	showWind?: boolean;
+	showPrecip?: boolean;
+	showUv?: boolean;
+	showPressure?: boolean;
+	/** Show sunrise and sunset. Default false. */
+	showSun?: boolean;
+	/** Show when the data was last fetched. Default false. */
+	showUpdated?: boolean;
+	/** How many hours the hourly strip covers. 0 hides it. Default 6 (12 in the
+	 * "forecast" style, which is built around it). */
+	hourlyCount?: number;
+	/** How many days the daily strip covers. 0 hides it. Default 4. */
+	dailyCount?: number;
+
+	// ---- Artistic style ----
+	/** Animate the painted sky (drifting clouds, falling rain, twinkling stars).
+	 * Default true; forced off by low power mode. */
+	animate?: boolean;
+
+	// ---- Refresh ----
+	/** Auto-refresh interval in minutes. 0 means "only when opened or refreshed
+	 * by hand". Default 30. */
+	refreshMin?: number;
+}
+
 /** Per-card configuration for a "clock" card. All fields are optional; omitted
  * fields fall back to the defaults that match the original clock behaviour. */
 export interface ClockConfig {
@@ -786,6 +895,8 @@ export interface DashboardCard {
 	rss?: RssConfig;
 	/** kind === "jira": connection, saved filter, and refinement options. */
 	jira?: JiraConfig;
+	/** kind === "weather": place, style, units and what to display. */
+	weather?: WeatherConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 

@@ -120,6 +120,14 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
 - **Jira filter** — a saved Jira filter over HTTPS with bearer PAT auth, plus
   status / assignee / priority / type / sprint / version filtering. Exports
   never include the PAT.
+- **Weather** — current conditions and a forecast from
+  [Open-Meteo](https://open-meteo.com), free and with no API key or account.
+  Five styles, from a bare glyph and temperature to an edge-to-edge painted sky
+  that follows the real conditions and the time of day (drifting clouds, rain,
+  snow, stars, lightning). Search for a place or type coordinates, pick your
+  units, and switch on exactly what you want to see — feels-like, high/low,
+  humidity, wind, precipitation, UV, pressure, sunrise and sunset, an hourly
+  strip and a daily forecast.
 - **Clock & greeting** — digital or analogue face, custom date formats, and an
   optional playful greeting.
 
@@ -140,7 +148,8 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
 Everything is **live**: embeds and editable notes follow vault events without
 losing your cursor, data cards redraw on vault and metadata changes, and web
 cards can refresh on a timer. Cards that reach the network (Jira, calendars,
-currency) all respect **Settings → Behaviour → Disable external calls**.
+weather, currency) all respect **Settings → Behaviour → Disable external
+calls**.
 
 ## Layout
 
