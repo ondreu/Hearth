@@ -1,60 +1,10 @@
 import { App, Component, MarkdownRenderer, Modal, Setting } from "obsidian";
 import changelogMarkdown from "../CHANGELOG.md";
+import { isNewer, parseChangelog, type ChangelogEntry } from "./changelog";
 import { t } from "./i18n";
 import type HearthPlugin from "./main";
 
-/** One release section parsed out of `CHANGELOG.md`: its version and the raw
- * Markdown of that section (its `##` heading plus body). */
-export interface ChangelogEntry {
-	version: string;
-	markdown: string;
-}
-
-/** A release heading like `## [1.8.0] - 2026-07-11`. The bracketed version is
- * captured, tolerating a stray quote (e.g. a malformed `## ["1.9.0]`). */
-const HEADING_RE = /^##\s+\[["']?([^\]"']+?)["']?\]/;
-/** A Markdown link-reference definition, e.g. `[1.8.0]: https://…`. These sit
- * in a block at the foot of the file and turn the version headings into links. */
-const LINK_DEF_RE = /^\[[^\]]+\]:\s+\S/;
-
-/**
- * Split the changelog Markdown into per-release entries (newest first, matching
- * the file's order) plus the trailing block of link-reference definitions. The
- * preamble above the first `##` heading is dropped; the link definitions are
- * pulled out so they can be re-appended after whichever entries are shown, so
- * each version heading still renders as a link.
- */
-function parseChangelog(md: string): { entries: ChangelogEntry[]; linkDefs: string } {
-	const entries: ChangelogEntry[] = [];
-	const linkDefs: string[] = [];
-	let current: { version: string; body: string[] } | null = null;
-
-	const flush = () => {
-		if (current) {
-			entries.push({ version: current.version, markdown: current.body.join("\n").trim() });
-		}
-	};
-
-	for (const line of md.split("\n")) {
-		if (LINK_DEF_RE.test(line)) {
-			linkDefs.push(line);
-			continue;
-		}
-		const heading = HEADING_RE.exec(line);
-		if (heading) {
-			flush();
-			current = { version: heading[1], body: [line] };
-		} else if (current) {
-			current.body.push(line);
-		}
-		// Lines before the first heading are the file preamble — ignored.
-	}
-	flush();
-
-	return { entries, linkDefs: linkDefs.join("\n") };
-}
-
-const parsed = parseChangelog(changelogMarkdown);
+export type { ChangelogEntry };
 
 /**
  * The changelog, **newest entry first**, parsed straight from `CHANGELOG.md` at
@@ -62,34 +12,7 @@ const parsed = parseChangelog(changelogMarkdown);
  * new" dialog is thus a live mirror of that file: cut a release by editing
  * `CHANGELOG.md` and nothing here needs touching.
  */
-export const CHANGELOG: ChangelogEntry[] = parsed.entries;
-
-/** The link-reference definitions that back the version headings, re-appended
- * to whatever slice of entries the dialog renders. */
-const LINK_DEFS = parsed.linkDefs;
-
-/** The numeric release components of a version, ignoring any pre-release suffix
- * (`1.9.0-beta.1` → `[1, 9, 0]`), so beta and stable builds compare by release. */
-function versionParts(v: string): number[] {
-	return v
-		.split("-")[0]
-		.split(".")
-		.map((n) => parseInt(n, 10) || 0);
-}
-
-/** Whether release `a` is strictly newer than release `b` (semver-style, by
- * numeric components; pre-release suffixes are ignored). */
-function isNewer(a: string, b: string): boolean {
-	const pa = versionParts(a);
-	const pb = versionParts(b);
-	const len = Math.max(pa.length, pb.length);
-	for (let i = 0; i < len; i++) {
-		const x = pa[i] ?? 0;
-		const y = pb[i] ?? 0;
-		if (x !== y) return x > y;
-	}
-	return false;
-}
+export const CHANGELOG: ChangelogEntry[] = parseChangelog(changelogMarkdown);
 
 /**
  * The entries strictly newer than {@link seen}, newest first. An empty or
@@ -101,8 +24,11 @@ export function entriesSince(seen: string): ChangelogEntry[] {
 }
 
 /**
- * The "What's new" dialog: the relevant slice of `CHANGELOG.md` rendered as
- * Markdown (one section per release, newest first). Purely informational.
+ * The "What's new" dialog: the relevant slice of `CHANGELOG.md`, one release
+ * per section, newest first. The version heading is drawn as a header row
+ * rather than left to Markdown, so the version, its date and its compare link
+ * line up the same way for every release; only the section body is rendered as
+ * Markdown. Purely informational.
  */
 export class WhatsNewModal extends Modal {
 	private readonly entries: ChangelogEntry[];
@@ -123,11 +49,11 @@ export class WhatsNewModal extends Modal {
 			text: t().whatsNew.intro,
 		});
 
+		// Only this scrolls, so the intro stays put and the close button below
+		// stays reachable no matter how long the log is.
 		const body = contentEl.createDiv({ cls: "hearth-whatsnew-body" });
-		const sections = this.entries.map((e) => e.markdown).join("\n\n");
-		const md = LINK_DEFS ? `${sections}\n\n${LINK_DEFS}` : sections;
 		this.renderComponent.load();
-		void MarkdownRenderer.render(this.app, md, body, "", this.renderComponent);
+		for (const entry of this.entries) this.renderEntry(body, entry);
 
 		contentEl.createEl("p", {
 			cls: "hearth-whatsnew-footer",
@@ -140,6 +66,31 @@ export class WhatsNewModal extends Modal {
 				.setCta()
 				.onClick(() => this.close()),
 		);
+	}
+
+	/** One release: a version header, then the section body as Markdown. */
+	private renderEntry(parent: HTMLElement, entry: ChangelogEntry): void {
+		const section = parent.createDiv({ cls: "hearth-whatsnew-release" });
+		const header = section.createDiv({ cls: "hearth-whatsnew-release-header" });
+
+		const version = header.createEl("h2", { cls: "hearth-whatsnew-version" });
+		if (entry.url) {
+			version.createEl("a", {
+				text: entry.version,
+				href: entry.url,
+				cls: "hearth-whatsnew-version-link",
+				attr: { rel: "noopener" },
+			});
+		} else {
+			version.setText(entry.version);
+		}
+
+		if (entry.date) {
+			header.createSpan({ cls: "hearth-whatsnew-date", text: entry.date });
+		}
+
+		const bodyEl = section.createDiv({ cls: "hearth-whatsnew-release-body" });
+		void MarkdownRenderer.render(this.app, entry.markdown, bodyEl, "", this.renderComponent);
 	}
 
 	onClose(): void {
