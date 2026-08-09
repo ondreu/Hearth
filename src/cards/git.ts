@@ -3,6 +3,7 @@ import { emptyState, moment } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";
 import {
 	GIT_ACTION_DEFS,
+	GIT_PLUGIN_ID,
 	GIT_ACTION_STYLES,
 	GIT_ACTIONS,
 	GIT_COMMIT_SCOPES,
@@ -732,7 +733,11 @@ export const gitCard: CardDefinition<"git"> = {
 			name: "Git",
 			icon: "git-branch",
 			build: () => ({ kind: "git", title: "Git", git: {}, w: 4, h: 4 }),
-			available: (app) => isGitAvailable(app),
+			requires: {
+				name: "Git",
+				pluginId: GIT_PLUGIN_ID,
+				satisfied: (app) => isGitAvailable(app),
+			},
 		},
 	],
 	render: (view, card, body, component) => renderGit(view, card, body, component),

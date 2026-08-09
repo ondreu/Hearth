@@ -44,6 +44,10 @@ export default tseslint.config(
 		files: ["test/**"],
 		rules: {
 			"@typescript-eslint/no-restricted-imports": "off",
+			// Same reason: tests run in Node, never on a phone, and a couple of
+			// them read repository files (test/cardrequest.test.ts checks the
+			// picker's prefilled issue URL against the real issue-form template).
+			"obsidianmd/no-nodejs-modules": "off",
 		},
 	},
 );

@@ -130,9 +130,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   everything, or only staged — give it a fixed commit message or let the plugin
   prompt for one each time, cap the file and commit lists, and turn on folder
   paths or an extra timed re-read for a repo that also changes outside Obsidian.
-  Discarding asks first unless you say otherwise. The card only appears in the
-  "Add card" picker while the Git plugin is enabled, and Git joins the
-  Integrations catalogue.
+  Discarding asks first unless you say otherwise. The card is offered whether or
+  not the Git plugin is installed — without it, the card says so and points at
+  it — and Git joins the Integrations catalogue.
 - **Datacore card.** Dataview is winding down in favour of
   [Datacore](https://github.com/blacksmithgu/datacore), so Hearth now has a card
   for it, in the same shape as the Dataview card: pick a query type, write a
@@ -143,8 +143,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   exactly as inside a `datacorejsx` block, so anything you can draw in a note —
   tables, cards, interactive views — you can put on the dashboard. A query with
   a syntax error says so on the card instead of failing silently, and the card
-  only appears in the "Add card" picker while Datacore is enabled. Datacore also
-  joins the Integrations catalogue.
+  is offered whether or not Datacore is installed — without it, the card says so
+  and points at it. Datacore also joins the Integrations catalogue.
 - **Every integration in one place.** **Settings → Integrations** now opens with
   a complete catalogue of everything Hearth works with — community plugins
   (Omnisearch, TaskNotes, Dataview, Git, Iconic, Iconize, Excalidraw), Obsidian's own
@@ -271,6 +271,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   hosted editor is only alive while the card is on screen, and pending
   keystrokes are flushed to the vault before it's torn down. Left off, the card
   keeps the double-click raw editor it has always had (#160).
+- **A real picker for adding cards.** **Arrange → Add card** no longer drops a
+  single column of thirty bare names down the side of the screen. It opens a
+  browser instead: a **search field** that matches names *and* descriptions (so
+  "todo" finds Tasks and "iframe" finds the web card), a rail of **categories** —
+  Notes & files, Planning, Vault insight, Tools, Integrations, Fun — and a grid
+  of tiles where every card says in one line what it actually shows. The
+  category you were last in is where it reopens, arrow keys walk the grid, and
+  on a phone the rail folds into a row of chips above the tiles.
+- **Request a card, from inside the picker.** The last entry in the rail is
+  **Request a card**, for the moment you have looked through the whole catalogue
+  and the card you wanted isn't in it. It offers two routes — a **GitHub issue**,
+  opened on Hearth's feature-request form, or an **email** to the maintainer —
+  and both open pre-filled: a few prompts about what the card should show and
+  where its data would come from, plus your Hearth and Obsidian versions. Edit
+  anything before you send it.
 
 ### Fixed
 
@@ -408,6 +423,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **Every card is in the picker, always.** Cards backed by a community plugin —
+  Dataview, Datacore, Git — used to be *hidden* from the "Add card" menu until
+  their plugin happened to be installed, so a third of the catalogue was
+  invisible to the people most likely to want to know it existed: you could not
+  find out Hearth had a Git card without already having the Git plugin. They are
+  all listed now, marked **Needs Dataview** (or Datacore, or Git) while the
+  plugin is missing, with a one-click jump to it in Obsidian's plugin browser
+  when you add one. Nothing about the cards themselves changed — each one has
+  always explained what it needs, in place on the board.
 - **Searching note contents costs a lot less on a large vault.** A body search
   walked every note and built a lower-cased copy of it to match against, and the
   walk kept going after you'd typed the next character — so a few keystrokes

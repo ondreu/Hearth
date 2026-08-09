@@ -1,5 +1,11 @@
+import type { App } from "obsidian";
 import type { CardKind, DashboardCard } from "../types";
-import type { CardDefinition, CardTemplateDef } from "./definition";
+import type {
+	CardCategory,
+	CardDefinition,
+	CardRequirement,
+	CardTemplateDef,
+} from "./definition";
 import { t } from "../i18n";
 
 import { embedCard } from "./embed";
@@ -28,10 +34,12 @@ import { leafCard } from "./leaf";
 import { petCard } from "./pet";
 
 export type {
+	CardCategory,
 	CardDefinition,
-	CardTemplateDef,
 	CardEditorContext,
 	CardLiveness,
+	CardRequirement,
+	CardTemplateDef,
 } from "./definition";
 
 /**
@@ -93,42 +101,38 @@ export function cardDefinition(card: DashboardCard): CardDefinition {
 }
 
 /**
- * The order the "Add card" picker offers templates in. Kept explicit because it
- * does not match `CardKind` order (e.g. `text` sits late in the menu) and
- * several templates can map to one kind (embed offers five). The unit test in
- * test/cards-registry.test.ts asserts this covers every registered template id
- * exactly once.
+ * How the "Add card" picker groups and orders its templates.
+ *
+ * Kept explicit — and here rather than on each template — because the grouping
+ * is editorial: it is the one place you can see the whole catalogue at once and
+ * judge whether the sections still balance. It does not match `CardKind` order,
+ * and several templates can map to one kind (embed offers five). The unit test
+ * in test/cards-registry.test.ts asserts the groups cover every registered
+ * template id exactly once.
  */
-export const TEMPLATE_MENU_ORDER: string[] = [
-	"note",
-	"image",
-	"base",
-	"excalidraw",
-	"canvas",
-	"daily",
-	"web",
-	"bookmarks",
-	"favorites",
-	"recent",
-	"links",
-	"commands",
-	"clock",
-	"tasks",
-	"calendar",
-	"stats",
-	"search",
-	"heatmap",
-	"text",
-	"calculator",
-	"dataview",
-	"datacore",
-	"rss",
-	"jira",
-	"weather",
-	"git",
-	"leaf",
-	"pet",
+export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[] }[] = [
+	{
+		category: "notes",
+		templates: ["note", "daily", "image", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
+	},
+	{ category: "planning", templates: ["tasks", "calendar", "clock"] },
+	{ category: "vault", templates: ["search", "stats", "heatmap"] },
+	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
+	{ category: "integrations", templates: ["dataview", "datacore", "git", "jira", "rss", "weather", "leaf"] },
+	{ category: "fun", templates: ["pet"] },
 ];
+
+/** The categories, in picker order. */
+export const CARD_CATEGORIES: CardCategory[] = TEMPLATE_MENU_GROUPS.map((g) => g.category);
+
+/** Every template id, flattened in picker order. */
+export const TEMPLATE_MENU_ORDER: string[] = TEMPLATE_MENU_GROUPS.flatMap((g) => g.templates);
+
+/** The category a template belongs to, or null for an id in no group (which
+ * the registry test makes impossible). */
+export function templateCategory(id: string): CardCategory | null {
+	return TEMPLATE_MENU_GROUPS.find((g) => g.templates.includes(id))?.category ?? null;
+}
 
 const TEMPLATES_BY_ID = new Map<string, CardTemplateDef>();
 for (const def of Object.values(CARD_DEFINITIONS)) {
@@ -147,6 +151,29 @@ export const CARD_TEMPLATES: CardTemplateDef[] = TEMPLATE_MENU_ORDER.map((id) =>
 export function templateName(template: CardTemplateDef): string {
 	const names = t().templates as Record<string, string>;
 	return names[template.id] ?? template.name;
+}
+
+/** The template's one-line description for the picker, or "" if a locale has
+ * none (the picker then simply shows the name on its own). */
+export function templateDescription(template: CardTemplateDef): string {
+	const descriptions = t().templateDescriptions as Record<string, string>;
+	return descriptions[template.id] ?? "";
+}
+
+/** The template's unmet dependency, or null when it has none or it is
+ * satisfied. Never throws: every `satisfied` probe reads Obsidian internals,
+ * and this runs while the picker is being built. */
+export function unmetRequirement(
+	app: App,
+	template: CardTemplateDef,
+): CardRequirement | null {
+	const requirement = template.requires;
+	if (!requirement) return null;
+	try {
+		return requirement.satisfied(app) ? null : requirement;
+	} catch {
+		return requirement;
+	}
 }
 
 /** Build a fresh card from a template (id and placeholder coordinates assigned;

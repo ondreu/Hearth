@@ -16,6 +16,44 @@ import type { CardSettingsOptions } from "../editors";
  * registering it, and adding locale strings; nothing else.
  */
 
+/**
+ * Something a card needs before it can show anything — a community plugin, or
+ * an Obsidian internal the card is built on.
+ *
+ * This used to be a plain `available()` predicate that *hid* the template until
+ * the dependency was there, which made a third of the catalogue invisible: a
+ * user with no Dataview never learned the Dataview card exists, and "why does
+ * my friend have a Git card?" was unanswerable from inside Hearth. Every card
+ * with a requirement already renders its own "install X" prompt when the
+ * dependency is missing, so the picker now offers all of them and marks the
+ * unmet ones instead.
+ */
+export interface CardRequirement {
+	/** Display name of the dependency, e.g. "Dataview". */
+	name: string;
+	/** Community plugin id, when the dependency is one — the picker offers a
+	 * one-click jump to it in Obsidian's plugin browser. */
+	pluginId?: string;
+	/** Whether the dependency is usable right now. */
+	satisfied: (app: App) => boolean;
+}
+
+/**
+ * How the "Add card" picker groups templates. The catalogue passed ~30 entries
+ * some time ago, which is more than a flat list can carry; the picker shows one
+ * section per category, in `CARD_CATEGORIES` order.
+ *
+ * Ids key `t().cardPicker.categories`, so a missing translation is a build
+ * error rather than an empty heading.
+ */
+export type CardCategory =
+	| "notes"
+	| "planning"
+	| "vault"
+	| "tools"
+	| "integrations"
+	| "fun";
+
 /** One entry in the "Add card" picker. A kind may offer several (embed has
  * five: note / image / base / excalidraw / canvas). */
 export interface CardTemplateDef {
@@ -27,9 +65,9 @@ export interface CardTemplateDef {
 	icon: string;
 	/** Builds the card content/size (id and coordinates are assigned later). */
 	build: () => Omit<DashboardCard, "id" | "x" | "y">;
-	/** When set, the template is only offered if this returns true — used to
-	 * hide cards that depend on a community plugin until it is available. */
-	available?: (app: App) => boolean;
+	/** What the card depends on, when it depends on anything. The template is
+	 * offered either way; the picker badges it while unmet. */
+	requires?: CardRequirement;
 }
 
 /**

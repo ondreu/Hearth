@@ -17,13 +17,28 @@ dispatch, the "Add card" menu, layout-import validation, the live-redraw set,
 2. **Write the module.** Create `./<kind>.ts` exporting a
    `CardDefinition<"<kind>">`: its `render`, optional `renderEditor`, one or more
    `templates`, `liveness`, and `cloneConfig` if it has nested config.
-3. **Register it.** Add the kind to `CARD_DEFINITIONS` in `index.ts` and append
-   its template id(s) to `TEMPLATE_MENU_ORDER`. (A unit test asserts the menu
-   order covers every template exactly once.)
+3. **Register it.** Add the kind to `CARD_DEFINITIONS` in `index.ts` and put its
+   template id(s) into a category in `TEMPLATE_MENU_GROUPS`. (A unit test
+   asserts the groups cover every template exactly once.)
 4. **Add locale strings.** In `../locales/en.ts`: `editors.kinds.<kind>` (type
-   dropdown label), `templates.<templateId>` (add-menu label), and any
-   `cards.<kind>` render-time strings. Every other locale is compile-checked
-   against `en`, so tsc lists what each is missing.
+   dropdown label), `templates.<templateId>` (picker name),
+   `templateDescriptions.<templateId>` (the one-liner under it, also searched),
+   and any `cards.<kind>` render-time strings. Every other locale is
+   compile-checked against `en`, so tsc lists what each is missing. (A unit test
+   asserts every template has both a name and a description.)
+
+## Cards that depend on another plugin
+
+Declare a `requires` on the template — a display name, the community plugin id
+when there is one, and a `satisfied(app)` probe. The card is offered in the
+picker **either way**; `requires` only decides whether it is badged *Needs X*
+and whether adding it shows the "install X" notice. This replaced an
+`available()` predicate that hid the template entirely, which meant a card
+nobody could discover until they already had its dependency.
+
+The corollary is that a card with a `requires` must render something useful
+without it — every one of them shows an `emptyState` naming the plugin — and its
+editor should say the same, as `gitEditor` does.
 
 Steps 1, 3 (the record), and 4 are compiler-enforced.
 

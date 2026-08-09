@@ -67,6 +67,14 @@ The search field is keyboard-first, with four transparent modes:
 Add cards from the **Arrange** toolbar; configure each one from the card itself
 (title, content, colors, size, opacity, blur).
 
+**Add card** opens a searchable picker: type to match a card's name or its
+description, or browse by category (Notes & files, Planning, Vault insight,
+Tools, Integrations, Fun). Cards backed by a community plugin are always listed
+— they're marked *Needs Dataview* (or Datacore, or Git) when the plugin isn't
+there, with a one-click jump to install it. And if the card you want doesn't
+exist, **Request a card** at the bottom of the rail opens a pre-filled GitHub
+issue or email.
+
 **Notes & files**
 
 - **Embed** — any note, image, canvas or `.base` file, rendered by Obsidian
