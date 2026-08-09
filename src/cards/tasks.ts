@@ -29,12 +29,16 @@ import {
 } from "../priority";
 import {
 	activeTaskFields,
+	allowsPriorityStyle,
+	ambientOwner,
 	builtinSource,
+	isPriorityStyle,
 	DATE_RELATIONS,
 	dateDisplay,
 	dateRelation,
 	displayValue,
 	keyIsDate,
+	keyStyle,
 	fieldOpacity,
 	fieldStyle,
 	frontmatterSource,
@@ -350,9 +354,17 @@ function renderValueChip(
 }
 
 
-/** A task's priority: the five-level coloured dot, a labelled chip, or plain
- * text. The dot-only form (a Kanban board card) keeps the value in the tooltip.
- * An explicit colour overrides the level colours from the stylesheet. */
+/**
+ * A task's priority, in whichever form was asked for: the dot and its label
+ * (`dotlabel`, what the fixed layout has always drawn), a filled chip, plain
+ * text, or the bare dot a board card carries with the value in its tooltip.
+ *
+ * The element stays its own — the five level colours and any theme rule written
+ * against them apply to every form — but the chip and text forms are shaped like
+ * every other field's, so picking "Chip" gives a priority a chip rather than
+ * something only a priority does. An explicit colour on a value overrides the
+ * level colour, whichever form it is in.
+ */
 function renderPriorityChip(
 	parent: HTMLElement,
 	priority: string,
@@ -364,7 +376,8 @@ function renderPriorityChip(
 	// The historical class for the compact board form, kept so the existing
 	// stylesheet rule (and any theme overriding it) still matches.
 	if (style === "dot") chip.addClass("is-dot-only");
-	if (style !== "text") chip.createDiv("hearth-task-priority-dot");
+	// The dot belongs to the two forms built around it and to nothing else.
+	if (style === "dot" || style === "dotlabel") chip.createDiv("hearth-task-priority-dot");
 	if (style !== "dot") chip.createSpan({ cls: "hearth-task-priority-label", text: label });
 	applyChipColor(chip, color);
 	chip.setAttribute("title", `Priority: ${label}`);
@@ -433,14 +446,25 @@ function renderTaskDateChip(
 		// A relation label ("Overdue") replaces the date's own wording; the ↻ that
 		// marks a recurring task's next occurrence stays either way.
 		const text = shown.label ? `${shown.label}${hit.recurrence ? " ↻" : ""}` : dueLabel;
-		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text });
+		const due = parent.createDiv({ cls: `hearth-task-due is-${style}` });
+		// The dot form drops the wording and keeps only the colour — the relation
+		// colour, or the overdue red when none was set — with the label moved into
+		// the tooltip so nothing is lost.
+		if (style === "dot") due.createDiv("hearth-task-chip-dot");
+		else due.setText(text);
 		// An explicit colour for the relation supersedes the built-in overdue red,
 		// which is the point of being able to set one.
 		if (shown.color) applyChipColor(due, shown.color);
 		else due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
-		if (hit.recurrence) {
-			due.addClass("is-recurring");
-			due.setAttribute("title", recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring);
+		const recurrence = hit.recurrence
+			? recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring
+			: null;
+		if (recurrence) due.addClass("is-recurring");
+		if (style === "dot") {
+			const label = `${t().cards.tasks.dueDate}: ${text}`;
+			due.setAttribute("title", recurrence ? `${label} · ${recurrence}` : label);
+		} else if (recurrence) {
+			due.setAttribute("title", recurrence);
 		}
 		return due;
 	}
@@ -460,8 +484,14 @@ function renderTaskDateChip(
 	// "done" rather than "doneDate" keeps the long-standing class name.
 	const kind = id === "doneDate" ? "done" : id;
 	const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind} is-${style}` });
-	el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
-	el.appendText(shown.label || formatRelativeDate(date));
+	// A dot stands for the whole thing: no emoji marker, no words. Which date it
+	// is, and what it says, are in the tooltip every form carries anyway.
+	if (style === "dot") {
+		el.createDiv("hearth-task-chip-dot");
+	} else {
+		el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
+		el.appendText(shown.label || formatRelativeDate(date));
+	}
 	el.setAttribute("title", `${title}: ${date}`);
 	if (shown.color) applyChipColor(el, shown.color);
 	// A done date is history — it is never overdue.
@@ -482,12 +512,16 @@ function renderCustomDateChip(
 	prefix: string | undefined,
 	done: boolean,
 ): HTMLElement {
+	const label = shown.label || formatRelativeDate(date);
+	// A dot shows no words at all, so its tooltip carries what the chip would
+	// have read — the field's name, the label, and the date behind it.
+	const dotTitle = prefix ? `${prefix} ${label} (${date})` : `${label} (${date})`;
 	const el = renderValueChip(parent, {
-		text: shown.label || formatRelativeDate(date),
+		text: label,
 		style,
 		color: shown.color,
 		prefix,
-		title: date,
+		title: style === "dot" ? dotTitle : date,
 		extraCls: "hearth-task-datechip",
 	});
 	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
@@ -898,9 +932,9 @@ function renderLegacyTaskFields(
 				text: hit.boardColumn,
 			});
 		}
-		// The list has room for a labelled priority chip (a bare dot is easy to
+		// The list has room for the dot and its label (a bare dot is easy to
 		// miss); board cards stay dot-only for compactness.
-		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "pill");
+		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
 	} else {
 		// Kanban priority shows as a single coloured dot inline with the title;
 		// the other sources keep their labelled chip in the meta row below.
@@ -909,7 +943,7 @@ function renderLegacyTaskFields(
 		}
 		if (hit.description) renderTaskDescription(hosts.block, hit.description);
 		if (source !== "kanban" && hit.priority) {
-			renderPriorityChip(hosts.meta, hit.priority, "pill");
+			renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
 		}
 	}
 
@@ -973,16 +1007,16 @@ function renderCustomTaskFields(
 	refresh: () => void,
 ): void {
 	for (const field of fields) {
-		const style = fieldStyle(field);
+		const display = fieldStyle(field);
 		// An ambient field paints the whole task instead of adding to it, so it
 		// needs the colour and nothing else.
-		const ambient = isAmbientStyle(style);
+		const ambient = isAmbientStyle(display);
 		const paint = (color: string | null) => {
-			if (color) applyAmbientColor(hosts.root, style, color, fieldOpacity(field));
+			if (color) applyAmbientColor(hosts.root, display, color, fieldOpacity(field));
 		};
 		// A bare dot is compact enough to sit beside a board card's title; on a
 		// list everything shares one row anyway.
-		const host = style === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
+		const host = display === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
 		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : undefined;
 
 		for (const key of field.keys) {
@@ -991,11 +1025,15 @@ function renderCustomTaskFields(
 				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
 				continue;
 			}
+			// The dot-and-label form belongs to a priority; any other key in the
+			// same field draws a chip rather than the styleless text it would
+			// otherwise fall through to.
+			const style = keyStyle(display, key.source);
 			// A date carries no discrete values to map, so it is labelled and
 			// coloured by where it falls relative to today, and edited with a
-			// calendar. A dot would hide the one thing a date is for.
+			// calendar. The dot form keeps that colour and moves the wording into
+			// the tooltip, the same as every other value drawn as a dot.
 			if (keyIsDate(key)) {
-				const dateStyle = style === "dot" ? "text" : style;
 				const id = sourceBuiltin(key.source);
 				if (id && isDateSource(key.source)) {
 					const date = id === "due" ? effectiveDate(hit) : taskSourceDate(hit, id);
@@ -1008,7 +1046,7 @@ function renderCustomTaskFields(
 						paint(shown.color);
 						continue;
 					}
-					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
+					const el = renderTaskDateChip(host, hit, id, today, style, shown, false);
 					if (el && date && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
 					}
@@ -1021,10 +1059,10 @@ function renderCustomTaskFields(
 						continue;
 					}
 					const el = renderCustomDateChip(
-						hosts.meta,
+						host,
 						date,
 						today,
-						dateStyle,
+						style,
 						shown,
 						prefix,
 						hit.done,
@@ -2791,7 +2829,7 @@ class TaskDetailModal extends Modal {
 			// The quick view is the task's detail sheet, so it shows every piece of
 			// metadata in its default style — independent of which fields the card
 			// it was opened from happens to display.
-			if (hit.priority) renderPriorityChip(chips, hit.priority, "pill");
+			if (hit.priority) renderPriorityChip(chips, hit.priority, "dotlabel");
 			for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
 				renderTaskDateChip(chips, hit, id, today, "text");
 			}
@@ -4873,19 +4911,47 @@ export class TaskFieldsModal extends Modal {
 					}),
 			);
 
+		// The tint and the ring belong to the task itself, so exactly one field can
+		// have them. Another field holding them takes both off this one's menu,
+		// rather than letting a second one be chosen and quietly do nothing.
+		const owner = ambientOwner(this.fields);
+		const ambientTaken = !!owner && owner.id !== field.id;
+		const ownerName = owner ? owner.name.trim() || labels.fieldUnnamed : "";
+
 		new Setting(detail)
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
-				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
+				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow"] as const) {
+					// The dot-and-label form is the priority's own, so it is offered
+					// only to a field that reads one (or is already set to it).
+					if (isPriorityStyle(style) && !allowsPriorityStyle(field)) continue;
 					d.addOption(style, labels.fieldStyles[style]);
+				}
+				if (ambientTaken) {
+					for (const option of Array.from(d.selectEl.options)) {
+						if (isAmbientStyle(option.value as TaskFieldStyle)) option.disabled = true;
+					}
 				}
 				d.setValue(fieldStyle(field)).onChange((v) => {
 					field.display = v as TaskFieldStyle;
-					// The strength slider only exists for the ambient styles.
+					// The strength slider only exists for the ambient styles, and this
+					// field taking them removes them from every other field's menu.
 					this.renderBody();
 				});
 			});
+
+		// Why the two ambient styles are greyed out — and, for a list saved before
+		// they were mutually exclusive, that this field's own tint never lands.
+		if (ambientTaken) {
+			const ignored = isAmbientStyle(fieldStyle(field));
+			detail.createDiv({
+				cls: `hearth-taskfields-hint${ignored ? " is-warning" : ""}`,
+				text: ignored
+					? labels.fieldAmbientIgnored(ownerName)
+					: labels.fieldAmbientTaken(ownerName),
+			});
+		}
 
 		// How hard the tint or ring is laid on. Only the ambient styles have one.
 		if (isAmbientStyle(fieldStyle(field))) {

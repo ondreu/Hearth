@@ -505,7 +505,7 @@ function sanitizeKanbanColumnSort(
 	return out;
 }
 
-const TASK_FIELD_STYLES = ["pill", "dot", "text", "hue", "glow"] as const;
+const TASK_FIELD_STYLES = ["pill", "dot", "dotlabel", "text", "hue", "glow"] as const;
 
 /** One key's value mappings. A mapping with no `match` matches nothing, so it
  * is dropped rather than kept as a row that can never fire. */

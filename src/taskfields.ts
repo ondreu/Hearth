@@ -186,11 +186,50 @@ export function activeTaskFields(
 }
 
 
-/** How a field's values are drawn. Dates and the description ignore this: a
- * date is a relative label that a dot could not convey, and the description is
- * always its own block of sub-bullets. */
+/** How a field's values are drawn. The description ignores this — it is always
+ * its own block of sub-bullets. A date honours every style: as a dot it keeps
+ * the colour its relation to today gives it and moves the wording into the
+ * tooltip. */
 export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
 	return field.display ?? "pill";
+}
+
+
+/**
+ * Whether a style is the priority's own dot-and-label form. It is the shape a
+ * priority has been drawn in since before any of this was configurable, kept as
+ * a style of its own so choosing "Chip" gives a priority the same chip every
+ * other field gets rather than something particular to it.
+ */
+export function isPriorityStyle(style: TaskFieldStyle): boolean {
+	return style === "dotlabel";
+}
+
+
+/** Whether a key reads a priority, and so may be drawn in that form. */
+export function isPrioritySource(source: string): boolean {
+	return sourceBuiltin(source) === "priority";
+}
+
+
+/** Whether a field may offer the dot-and-label form: it reads a priority, or it
+ * is already set to it (a list saved before its keys changed, whose stored
+ * choice the editor still has to be able to show). */
+export function allowsPriorityStyle(field: TaskFieldDef): boolean {
+	return (
+		isPriorityStyle(fieldStyle(field)) || (field.keys ?? []).some((k) => isPrioritySource(k.source))
+	);
+}
+
+
+/**
+ * The style one key actually renders in. Everything but a priority falls back
+ * to a chip when the field asks for the dot-and-label form, so a field that
+ * gathers a priority and a couple of properties under one name stays coherent
+ * instead of drawing the others as bare, styleless text.
+ */
+export function keyStyle(style: TaskFieldStyle, source: string): TaskFieldStyle {
+	return isPriorityStyle(style) && !isPrioritySource(source) ? "pill" : style;
 }
 
 
@@ -201,6 +240,18 @@ export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
  */
 export function isAmbientStyle(style: TaskFieldStyle): boolean {
 	return style === "hue" || style === "glow";
+}
+
+
+/**
+ * The field that owns the task's ambient colouring, or null when none asks for
+ * it. A task has one background and one ring, so the two ambient styles share
+ * them: the first field asking for either takes them, and any later one paints
+ * nothing at all. The editor uses this to keep a second one from being chosen —
+ * a field that silently does nothing is worse than an option that isn't there.
+ */
+export function ambientOwner(fields: TaskFieldDef[]): TaskFieldDef | null {
+	return fields.find((f) => isAmbientStyle(fieldStyle(f))) ?? null;
 }
 
 

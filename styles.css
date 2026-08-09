@@ -5849,40 +5849,78 @@ body.hearth-dv-resizing {
 	font-size: 0.72rem;
 	color: var(--text-muted);
 	flex-shrink: 0;
+	/* The level's colour, in one place: the dot fills with it, and the chip and
+	   text forms tint with it exactly as another field's value colour does. */
+	--level-color: var(--text-faint);
 }
 
 .hearth-task-priority-dot {
 	width: 7px;
 	height: 7px;
 	border-radius: 50%;
-	background: var(--text-faint);
+	background: var(--level-color);
 }
 
 /* Five distinct priority colours (highest → lowest). Highest is a filled
    deep red; high a lighter red; medium orange; low blue; lowest a muted blue.
    Highest/lowest also get a thin ring so they read apart from high/low even
    for colour-blind users or at a glance. */
+.hearth-task-priority.is-highest {
+	--level-color: var(--color-pink, #d01e5b);
+}
+
 .hearth-task-priority.is-highest .hearth-task-priority-dot {
-	background: var(--color-pink, #d01e5b);
 	box-shadow: 0 0 0 2px
 		color-mix(in srgb, var(--color-pink, #d01e5b) 35%, transparent);
 }
 
-.hearth-task-priority.is-high .hearth-task-priority-dot {
-	background: var(--color-red, #e05252);
+.hearth-task-priority.is-high {
+	--level-color: var(--color-red, #e05252);
 }
 
-.hearth-task-priority.is-medium .hearth-task-priority-dot {
-	background: var(--color-orange, #e0913b);
+.hearth-task-priority.is-medium {
+	--level-color: var(--color-orange, #e0913b);
 }
 
-.hearth-task-priority.is-low .hearth-task-priority-dot {
-	background: var(--color-blue, #4a8fe0);
+.hearth-task-priority.is-low {
+	--level-color: var(--color-blue, #4a8fe0);
+}
+
+.hearth-task-priority.is-lowest {
+	--level-color: var(--color-blue, #4a8fe0);
 }
 
 .hearth-task-priority.is-lowest .hearth-task-priority-dot {
 	background: transparent;
-	border: 1.5px solid var(--color-blue, #4a8fe0);
+	border: 1.5px solid var(--level-color);
+}
+
+/* Chip and text forms: the same shapes every other field's value takes, tinted
+   by the level instead of by a colour the user had to set. Only the
+   dot-and-label form (`is-dotlabel`) stays particular to a priority. */
+.hearth-task-priority.is-pill {
+	padding: 1px 8px;
+	border-radius: 999px;
+	white-space: nowrap;
+	background: color-mix(in srgb, var(--level-color) 18%, transparent);
+	color: color-mix(in srgb, var(--level-color) 70%, var(--text-normal));
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--level-color) 32%, transparent);
+}
+
+.hearth-task-priority.is-text {
+	color: color-mix(in srgb, var(--level-color) 70%, var(--text-normal));
+}
+
+/* A level with no colour of its own ("other") would tint towards the faint
+   grey the dot uses, which on a chip reads as a mistake rather than a choice. */
+.hearth-task-priority.is-other.is-pill:not(.is-colored) {
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	box-shadow: none;
+}
+
+.hearth-task-priority.is-other.is-text:not(.is-colored) {
+	color: var(--text-muted);
 }
 
 .hearth-task-priority-label {
@@ -5971,7 +6009,13 @@ body.hearth-dv-resizing {
 }
 
 /* An explicit colour on a priority value overrides its level colour, including
-   the rings the highest/lowest levels carry. */
+   the rings the highest/lowest levels carry. Taking over the level variable
+   covers the chip and text forms; the dot needs its ring and border cleared
+   too. */
+.hearth-task-priority.is-colored {
+	--level-color: var(--chip-color);
+}
+
 .hearth-task-priority.is-colored .hearth-task-priority-dot {
 	background: var(--chip-color);
 	border: none;
@@ -6009,6 +6053,39 @@ body.hearth-dv-resizing {
 
 .hearth-task-meta.is-colored .hearth-task-meta-emoji {
 	opacity: 1;
+}
+
+/* Dot form for the date fields: the chip's words are gone (they live in the
+   tooltip), so the dot has to carry the colour the text used to — the relation
+   colour the user set, the built-in overdue red, or the recurring accent. */
+.hearth-task-due.is-dot,
+.hearth-task-meta.is-dot {
+	display: inline-flex;
+	align-items: center;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+
+.hearth-task-meta-done .hearth-task-chip-dot {
+	background: var(--text-faint);
+}
+
+.hearth-task-due.is-overdue .hearth-task-chip-dot,
+.hearth-task-meta.is-overdue .hearth-task-chip-dot,
+.hearth-task-datechip.is-overdue .hearth-task-chip-dot {
+	background: var(--text-error);
+}
+
+.hearth-task-due.is-recurring .hearth-task-chip-dot {
+	background: var(--interactive-accent);
+}
+
+/* Last, so a colour the user set for the relation wins over all of them — the
+   same order the text forms above resolve in. */
+.hearth-task-due.is-colored .hearth-task-chip-dot,
+.hearth-task-meta.is-colored .hearth-task-chip-dot {
+	background: var(--chip-color);
 }
 
 /* ---- Task fields editor --------------------------------------------- */
@@ -6176,6 +6253,12 @@ body.hearth-dv-resizing {
 
 .hearth-taskfields-panelbody .hearth-taskfields-hint {
 	margin: 12px 0 0;
+}
+
+/* A hint about something already saved that will not render — louder than the
+   explanatory hints, quieter than an error. */
+.hearth-taskfields-hint.is-warning {
+	color: var(--text-warning, var(--text-accent));
 }
 
 /* ---- The keys section inside a field ------------------------------- */
@@ -6425,8 +6508,17 @@ body.hearth-dv-resizing {
 	box-shadow: 0 0 0 1px var(--background-modifier-border-hover);
 }
 
+.hearth-task-due.is-editable,
+.hearth-task-meta.is-editable {
+	cursor: pointer;
+}
+
+/* A date drawn as a bare dot has nothing else to hover, so the dot itself takes
+   the ring the chip forms get. */
 .hearth-task-priority.is-editable.is-dot:hover .hearth-task-priority-dot,
-.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot {
+.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot,
+.hearth-task-due.is-editable.is-dot:hover .hearth-task-chip-dot,
+.hearth-task-meta.is-editable.is-dot:hover .hearth-task-chip-dot {
 	box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
 }
 
