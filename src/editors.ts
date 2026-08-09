@@ -3,7 +3,13 @@ import { CARD_KINDS, cardDefinition } from "./cards";
 import { type CardEditorContext } from "./cards/definition";
 import { t } from "./i18n";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
-import { type CardKind, type DashboardCard, type HomeSettings } from "./types";
+import {
+	CARD_BORDER_WIDTH_MAX,
+	effectiveCardBorderWidth,
+	type CardKind,
+	type DashboardCard,
+	type HomeSettings,
+} from "./types";
 import { confirmAction } from "./ui";
 
 
@@ -263,6 +269,32 @@ export class CardSettingsModal extends HearthTabbedModal {
 				.setTooltip(t().editors.colors.useDashboardDefault)
 				.onClick(() => {
 					card.cardBlur = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
+
+		const borderRow = new Setting(containerEl)
+			.setName(t().editors.colors.cardBorderWidth)
+			.setDesc(t().editors.colors.cardBorderWidthDesc);
+		borderRow.addSlider((sl) =>
+			sl
+				.setLimits(0, CARD_BORDER_WIDTH_MAX, 1)
+				.setValue(card.cardBorderWidth ?? effectiveCardBorderWidth(this.opts.settings))
+				.setDynamicTooltip()
+				.onChange((v) => {
+					card.cardBorderWidth = v;
+					this.opts.save();
+					this.opts.rerender();
+				}),
+		);
+		borderRow.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().editors.colors.useDashboardDefault)
+				.onClick(() => {
+					card.cardBorderWidth = undefined;
 					this.opts.save();
 					this.opts.rerender();
 					this.render();

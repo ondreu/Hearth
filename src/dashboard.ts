@@ -31,6 +31,7 @@ import {
 	removeCard,
 	renderCards,
 	resolveCardBlur,
+	resolveCardBorderWidth,
 	setCardPinned,
 } from "./types";
 import {
@@ -121,6 +122,13 @@ export function renderDashboard(
 		if (card.background) el.style.setProperty("--card-bg", card.background);
 		if (card.cardOpacity != null) {
 			el.style.setProperty("--card-opacity", String(card.cardOpacity));
+		}
+		// Per-card border width overrides the board-level variable set on the grid.
+		if (card.cardBorderWidth != null) {
+			el.style.setProperty(
+				"--card-border-width",
+				`${resolveCardBorderWidth(s, card)}px`,
+			);
 		}
 		// Cards whose resolved blur is > 0 feed the shared frost layer (see
 		// updateFrostLayers / the .hearth-frost note in styles.css). The value is

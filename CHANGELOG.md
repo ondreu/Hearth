@@ -320,6 +320,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   while the rest of the vault does without it, or drop it while everywhere else
   keeps it. Boards that never set the option follow the global toggle, and the
   search-bar card is unaffected: it is a card, and it stays wherever you put it.
+- **Card border width, per card.** The border width already settable globally
+  and per dashboard is now also on a single card: the **Style** tab of a card's
+  settings has a **Card border** slider beside **Card opacity** and **Card
+  blur**, with the same reset button to hand the card back to the dashboard
+  default. Set it to 0 to drop one card's frame — border and the line under its
+  title — while the rest of the board keeps its own.
 
 ### Fixed
 
