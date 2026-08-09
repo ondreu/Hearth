@@ -277,7 +277,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		);
 	}
 
-	/** Name, switcher icons and whether the search section shows. */
+	/** Name, switcher icons, mobile default and workspace link. */
 	private generalSection(containerEl: HTMLElement): void {
 		const dash = this.dash;
 
@@ -310,29 +310,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 						this.commit();
 					}),
 			);
-
-		new Setting(containerEl)
-			.setName(t().dashboards.modal.searchVisibility)
-			.setDesc(t().dashboards.modal.searchVisibilityDesc)
-			.addDropdown((d) => {
-				d.addOption(
-					"default",
-					t().dashboards.modal.searchVisibilityDefault(
-						this.view.plugin.settings.showSearch
-							? t().dashboards.modal.visibilityShown
-							: t().dashboards.modal.visibilityHidden,
-					),
-				);
-				d.addOption("show", t().dashboards.modal.searchVisibilityShow);
-				d.addOption("hide", t().dashboards.modal.searchVisibilityHide);
-				d.setValue(
-					dash.showSearch === undefined ? "default" : dash.showSearch ? "show" : "hide",
-				);
-				d.onChange((v) => {
-					dash.showSearch = v === "default" ? undefined : v === "show";
-					this.commit();
-				});
-			});
 
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.mobileDefault)
@@ -397,7 +374,8 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		this.ensureHeader()[key] = value;
 	}
 
-	/** Per-dashboard title/logo block overrides. Search visibility stays separate. */
+	/** Per-dashboard overrides for the header: the title/logo block, and whether
+	 * the search section below it is drawn. */
 	private headerSection(containerEl: HTMLElement): void {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;
@@ -431,6 +409,32 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					);
 					this.commit();
 					this.render();
+				});
+			});
+
+		// Search visibility lives beside the title's, since both decide whether a
+		// block of the header is drawn. It is stored on the dashboard itself
+		// rather than in `header`, where it has always been.
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.searchVisibility)
+			.setDesc(t().dashboards.modal.searchVisibilityDesc)
+			.addDropdown((d) => {
+				d.addOption(
+					"default",
+					t().dashboards.modal.searchVisibilityDefault(
+						s.showSearch
+							? t().dashboards.modal.visibilityShown
+							: t().dashboards.modal.visibilityHidden,
+					),
+				);
+				d.addOption("show", t().dashboards.modal.searchVisibilityShow);
+				d.addOption("hide", t().dashboards.modal.searchVisibilityHide);
+				d.setValue(
+					dash.showSearch === undefined ? "default" : dash.showSearch ? "show" : "hide",
+				);
+				d.onChange((v) => {
+					dash.showSearch = v === "default" ? undefined : v === "show";
+					this.commit();
 				});
 			});
 

@@ -1171,7 +1171,8 @@ export interface DashboardHeaderConfig {
 	title?: string;
 	/** Override the global logo text/icon for this dashboard. Empty = Hearth icon. */
 	logo?: string;
-	/** Align only the title/logo block; search remains controlled separately. */
+	/** Align only the title/logo block; the search section below has its own
+	 * layout. */
 	align?: HeaderAlign;
 	/** Title size multiplier, clamped to a conservative range. */
 	titleScale?: number;
