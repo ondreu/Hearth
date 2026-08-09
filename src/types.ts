@@ -23,6 +23,7 @@ export type CardKind =
 	| "calendar"
 	| "stats"
 	| "search"
+	| "searchbar"
 	| "heatmap"
 	| "calculator"
 	| "dataview"
@@ -461,6 +462,27 @@ export interface SavedSearchConfig {
 	/** Display layout: "list" (default) renders a vertical list; "tiles"
 	 * renders results as a grid of icon tiles (like the links card). */
 	view?: "list" | "tiles";
+}
+
+/** Per-card configuration for a "searchbar" (live search field) card. */
+export interface SearchBarConfig {
+	/** Show the auto-detected file-type filter chips under the field, exactly as
+	 * the header search bar does. Default false — the chips are the opt-in
+	 * extra here, and they need a taller card to sit in. */
+	filters?: boolean;
+	/** File-type group ids (see FILE_TYPE_GROUPS) this card leaves out of its
+	 * chip row, on top of the ones hidden vault-wide in Settings → Filters. */
+	hiddenFilters?: string[];
+	/** Placeholder shown in the empty field. Blank or omitted falls back to the
+	 * global one (Settings → Appearance → Search placeholder). */
+	placeholder?: string;
+	/** The action button beside the field, or "none" (the default). Same two
+	 * modes as the header's button. */
+	button?: "none" | "newNote" | "searchOnline";
+	/** Drop the card's frame — no border, background, shadow or title row — so
+	 * the field reads as a standalone search bar placed on the board rather than
+	 * as a card. Default false. */
+	seamless?: boolean;
 }
 
 /** Per-card configuration for a "heatmap" (activity) card. */
@@ -1001,6 +1023,8 @@ export interface DashboardCard {
 	calendar?: CalendarConfig;
 	/** kind === "search": the saved query and result count. */
 	savedSearch?: SavedSearchConfig;
+	/** kind === "searchbar": filter row and seamless (frameless) display. */
+	searchBar?: SearchBarConfig;
 	/** kind === "heatmap": metric and range. */
 	heatmap?: HeatmapConfig;
 	/** kind === "stats": which stats to show, attachment breakdown and custom

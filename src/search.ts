@@ -58,8 +58,11 @@ export class SearchSection {
 	private updateDebounced = debounce(() => this.update(), 140, true);
 
 	/** Renders the search bar (icon + input). The caller places the New-note
-	 * button beside the returned bar element. */
-	renderBar(parent: HTMLElement): HTMLElement {
+	 * button beside the returned bar element. `placeholder` overrides the global
+	 * one (the search-bar card sets its own); an empty or blank override falls
+	 * back to it, so clearing the field in the card editor restores the default
+	 * rather than leaving the bar unlabelled. */
+	renderBar(parent: HTMLElement, opts: { placeholder?: string } = {}): HTMLElement {
 		const bar = parent.createDiv("hearth-search-bar");
 		const icon = bar.createDiv("hearth-search-icon");
 		setIcon(icon, "search");
@@ -68,7 +71,10 @@ export class SearchSection {
 			cls: "hearth-search-input",
 			attr: {
 				type: "text",
-				placeholder: this.view.plugin.settings.searchPlaceholder || t().search.placeholder,
+				placeholder:
+					opts.placeholder?.trim() ||
+					this.view.plugin.settings.searchPlaceholder ||
+					t().search.placeholder,
 				spellcheck: "false",
 				role: "combobox",
 				"aria-expanded": "false",
@@ -122,18 +128,23 @@ export class SearchSection {
 
 	/** Renders the results dropdown (as an overlay inside `overlayParent`, which
 	 * must be positioned) and the filter chip row (under `boundary`). `boundary`
-	 * wraps the whole search section and is the click-outside dismissal area. */
+	 * wraps the whole search section and is the click-outside dismissal area.
+	 * `filters: false` leaves the chip row out entirely, and `hiddenFilters`
+	 * drops individual chips from it (the search-bar card offers both; the
+	 * header always shows the full row). */
 	renderResultsAndFilters(
 		overlayParent: HTMLElement,
 		boundary: HTMLElement,
 		component: Component,
+		opts: { filters?: boolean; hiddenFilters?: string[] } = {},
 	): void {
+		this.hiddenFilters = opts.hiddenFilters ?? [];
 		this.rootEl = boundary;
 		this.resultsEl = overlayParent.createDiv("hearth-search-results");
 		this.resultsEl.id = this.resultsId;
 		this.resultsEl.setAttribute("role", "listbox");
 		this.resultsEl.hide();
-		this.renderFilters(boundary);
+		if (opts.filters !== false) this.renderFilters(boundary);
 
 		// Close the dropdown when clicking outside the whole search section.
 		// Registered on the per-render component (not the long-lived view) so it's
@@ -160,6 +171,10 @@ export class SearchSection {
 
 	// ---- Filters --------------------------------------------------------
 
+	/** Chips this instance leaves out on top of the vault-wide ones, set by the
+	 * search-bar card (which can hide them per card). */
+	private hiddenFilters: string[] = [];
+
 	private detectGroups(): FileTypeGroup[] {
 		const present = new Set<string>();
 		let hasFolders = false;
@@ -180,7 +195,9 @@ export class SearchSection {
 			if (!g || g.id === OTHER_GROUP_ID) hasOther = true;
 			if (hasFolders && present.size >= allNonFolderGroups) break;
 		}
-		const hidden = new Set(this.view.plugin.settings.hiddenFilters);
+		// Vault-wide hides come first and always win: a chip switched off in
+		// Settings → Filters stays off everywhere, a card can only hide more.
+		const hidden = new Set([...this.view.plugin.settings.hiddenFilters, ...this.hiddenFilters]);
 		return FILE_TYPE_GROUPS.filter((g) => {
 			if (hidden.has(g.id)) return false;
 			if (g.id === "folders") return hasFolders;
@@ -426,14 +443,32 @@ export class SearchSection {
 	private showEmpty(text: string = t().search.noMatches): void {
 		this.resultsEl.createDiv("hearth-search-empty").setText(text);
 		this.resultsEl.show();
+		this.placeResults();
 		this.capResultsToViewport();
 		this.inputEl.setAttribute("aria-expanded", "true");
 	}
 
 	private finishResults(): void {
 		this.resultsEl.show();
+		this.placeResults();
 		this.capResultsToViewport();
 		this.inputEl.setAttribute("aria-expanded", "true");
+	}
+
+	/**
+	 * Open the dropdown upwards when there isn't room for it below the field.
+	 * The header bar always has the whole page under it, so this never fires
+	 * there; a search-bar card placed low on the board does hit it — and in
+	 * fit-to-page mode the board clips its overflow, so a downward list would
+	 * simply be cut off. Measured against the window, which is close enough to
+	 * the board's own bottom edge in both modes. Skipped on mobile, where the
+	 * keyboard owns the space below and capResultsToViewport already handles it.
+	 */
+	private placeResults(): void {
+		if (Platform.isMobile) return;
+		const rect = (this.inputEl.closest(".hearth-search-bar") ?? this.inputEl).getBoundingClientRect();
+		const below = window.innerHeight - rect.bottom;
+		this.resultsEl.toggleClass("is-above", below < 200 && rect.top > below);
 	}
 
 	/**

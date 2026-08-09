@@ -869,6 +869,7 @@ export const en = {
 			calendar: "Mini calendar",
 			stats: "Vault statistics",
 			search: "Query",
+			searchbar: "Search bar",
 			heatmap: "Activity heatmap",
 			calculator: "Calculator",
 			dataview: "Dataview query",
@@ -1122,6 +1123,35 @@ export const en = {
 			displayTiles: "Tiles",
 			maxResults: "Max results",
 			maxResultsDesc: "The most matches to show at once.",
+		},
+		searchBar: {
+			placeholder: "Placeholder",
+			placeholderDesc:
+				"Text shown in the empty field. Leave blank to use the one from " +
+				"Settings → Appearance.",
+			filters: "Filter row",
+			filtersDesc:
+				"Show the file-type chips under the field, the same ones the header " +
+				"search bar offers. They need a taller card to sit in.",
+			filterTypes: "Filter chips",
+			filterTypesDesc:
+				"Which chips this card offers. A chip only appears when the vault " +
+				"actually holds that kind of file.",
+			filterTypeGlobalOff: "Hidden for every search bar in Settings → Filters.",
+			button: "Button",
+			buttonDesc:
+				"An action button beside the field: create a new note, or search the " +
+				"web for whatever is typed in the field.",
+			buttonNone: "None",
+			buttonNewNote: "New note",
+			buttonSearchOnline: "Search online",
+			seamless: "Seamless",
+			seamlessDesc:
+				"Drop the card frame — no border, background or title row — so this " +
+				"reads as a standalone search bar on the board.",
+			sizeNote:
+				"The field is as thick as the card is tall — drag the card's edge in " +
+				"Arrange to make the bar chunkier or slimmer.",
 		},
 		links: {
 			heading: "Links",
@@ -2239,6 +2269,7 @@ export const en = {
 		calendar: "Mini calendar",
 		stats: "Vault statistics",
 		search: "Query",
+		searchbar: "Search bar",
 		heatmap: "Activity heatmap",
 		text: "Text / jot-down",
 		calculator: "Calculator",
@@ -2273,6 +2304,7 @@ export const en = {
 		calendar: "A month at a glance, with your notes on it",
 		stats: "Note, word and file counts for the vault",
 		search: "A saved query, kept live",
+		searchbar: "A search field on the board, framed or bare",
 		heatmap: "A year of vault activity, day by day",
 		text: "A scratchpad that lives on the dashboard",
 		calculator: "Sums, unit conversion and exchange rates",

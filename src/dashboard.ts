@@ -14,7 +14,7 @@ import {
 	type VaultEventHub,
 	watchedCardReactsToKind,
 } from "./cardevents";
-import { cardDefinition, cardFromTemplate, cloneCard } from "./cards";
+import { cardClasses, cardDefinition, cardFromTemplate, cloneCard } from "./cards";
 import { openCardPicker } from "./cardpicker";
 import { CardSettingsModal } from "./editors";
 import {
@@ -112,8 +112,8 @@ export function renderDashboard(
 		applyCardPosition(el, card);
 
 		if (card.pinned) el.addClass("is-pinned");
-		const cardClass = cardDefinition(card).cardClass;
-		if (cardClass) el.addClass(cardClass);
+		const kindClasses = cardClasses(card);
+		if (kindClasses.length) el.addClass(...kindClasses);
 		if (card.accent) {
 			el.style.setProperty("--card-accent", card.accent);
 			el.addClass("has-accent");
@@ -126,7 +126,10 @@ export function renderDashboard(
 		// updateFrostLayers / the .hearth-frost note in styles.css). The value is
 		// stashed on the element so the frost rebuild can group cards by blur
 		// without re-reading settings, and blur-off cards never enter a layer.
-		const cardBlur = resolveCardBlur(s, card);
+		// A seamless card paints no surface of its own, so frosting the wallpaper
+		// behind it would leave a blurred rectangle floating on the board with no
+		// card on it. Such a card never joins a frost layer.
+		const cardBlur = kindClasses.includes("is-seamless") ? 0 : resolveCardBlur(s, card);
 		if (cardBlur > 0) {
 			el.addClass("has-blur");
 			el.dataset.blur = String(cardBlur);

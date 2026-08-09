@@ -431,6 +431,14 @@
 	color: var(--text-muted);
 }
 
+/* Open upwards when there is no room below the field (search.ts measures and
+   sets .is-above). Only the search-bar card hits this — placed low on the
+   board, or in fit-to-page mode where the grid clips its overflow. */
+.hearth-search-results.is-above {
+	top: auto;
+	bottom: calc(100% + 6px);
+}
+
 /* ---- Filters -------------------------------------------------------- */
 
 /* The chips share out the row's leftover space as gap, growing to at most 48px,
@@ -492,6 +500,109 @@
 
 .hearth-filter-icon {
 	display: flex;
+}
+
+/* ---- Search-bar card ------------------------------------------------- */
+
+/* The search-bar card hosts the very same SearchSection the header renders, so
+   the bar, chips and dropdown need no styling of their own — only a positioned
+   column for the overlay to hang off, matching .hearth-search-col.
+
+   The column fills the card so the bar can be sized BY the card: there is no
+   thickness setting, you drag the card taller and the field gets chunkier. It
+   centres its contents, so past the bar's maximum the extra height reads as
+   space around a thick bar rather than an ever-taller pill. */
+.hearth-searchbar-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	/* "safe" keeps a card too short for its contents overflowing downwards only,
+	 * instead of centring the overflow and pushing the bar up out of the card.
+	 * Ignored by engines that don't know it, which leaves plain centring. */
+	justify-content: safe center;
+	gap: 8px;
+	width: 100%;
+	height: 100%;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-card.is-searchbar-card .hearth-card-body {
+	display: flex;
+}
+
+/* The bar's row takes whatever height is left after the (optional) chip row,
+   between a floor that keeps it tappable at the board's smallest card (56px
+   tall, less the body's padding) and a ceiling that stops an accidentally huge
+   card from becoming an absurd pill. The header's bar is a flat 52px; this
+   starts at 68 at the card's default one-row height. */
+.hearth-searchbar-row {
+	display: flex;
+	align-items: stretch;
+	gap: 12px;
+	flex: 1 1 auto;
+	min-height: 36px;
+	max-height: 120px;
+}
+
+/* Both children stretch to the row's height instead of the fixed 52px they
+   carry in the header. */
+.hearth-searchbar-row .hearth-search-bar,
+.hearth-searchbar-row .hearth-newnote {
+	height: auto;
+}
+
+/* Let the field be narrowed as far as the user likes. An <input> carries an
+   intrinsic width — roughly 20 characters — and a flex item's automatic minimum
+   size honours it, so without this the bar refuses to shrink past ~200px: the
+   card narrows, the field doesn't, and the button beside it is pushed out
+   through the card's side. Both elements need it — the bar for its own flex
+   line, the input for the bar's. */
+.hearth-searchbar-row .hearth-search-bar,
+.hearth-searchbar-row .hearth-search-input {
+	min-width: 0;
+}
+
+/* The chip row is a fixed-size band under the bar — it must not absorb the
+   card's extra height, that is the bar's to take. */
+.hearth-searchbar-card .hearth-filters {
+	flex: 0 0 auto;
+}
+
+/* The results dropdown is an overlay that has to leave the card box; both the
+   card and its body clip by default (see .hearth-card / .hearth-card-body), so
+   a list of matches would be cut off at the card's edge. Nothing else in this
+   card scrolls, so letting it overflow costs nothing. */
+.hearth-card.is-searchbar-card,
+.hearth-card.is-searchbar-card .hearth-card-body {
+	overflow: visible;
+}
+
+/* Seamless: the card stops being a card. No frame, no surface, no shadow and no
+   padding, so the bar sits directly on the board (or the wallpaper) exactly as
+   the header's does. The card is still a card underneath — it drags, resizes
+   and configures like any other. */
+.hearth-card.is-seamless {
+	border-color: transparent;
+	background: none;
+	box-shadow: none;
+}
+
+.hearth-card.is-seamless:hover {
+	--hearth-card-lift: none;
+}
+
+.hearth-card.is-seamless .hearth-card-body {
+	padding: 0;
+}
+
+/* The title row goes with the frame — but only outside arrange mode, where that
+   same row carries the title input and the card's actions. The card still has
+   an edge to aim at while arranging: the dashed ::after outline every card gets
+   there is drawn on this one too. */
+.hearth-grid:not(.is-arranging) .hearth-card.is-seamless .hearth-card-head {
+	display: none;
 }
 
 /* ---- Recent-card type filter (card editor) -------------------------- */

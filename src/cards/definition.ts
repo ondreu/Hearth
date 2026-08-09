@@ -126,8 +126,11 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * is only primitives. */
 	cloneConfig?(source: DashboardCard, copy: DashboardCard): void;
 	liveness: CardLiveness;
-	/** Extra class on the card root element (links/commands: "is-tile-card"). */
-	cardClass?: string;
+	/** Extra class(es) on the card root element (links/commands: "is-tile-card").
+	 * A function form lets the classes depend on the card's own config — the
+	 * search-bar card drops its frame with "is-seamless" — and may return several
+	 * space-separated classes. Read through `cardClasses()`. */
+	cardClass?: string | ((card: DashboardCard) => string | undefined);
 	/** Post-render header/floating extras, drawn outside arrange mode (embed's
 	 * second-view switcher). */
 	mountExtras?(
