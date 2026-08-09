@@ -1,4 +1,4 @@
-import { Component, setIcon, Setting, TFile } from "obsidian";
+import { Component, setIcon, setTooltip, Setting, TFile } from "obsidian";
 import {
 	dailyNotePath,
 	dailyNotesOptions,
@@ -24,8 +24,10 @@ import { t } from "../i18n";
 import { type IcsOccurrence } from "../ics";
 import { taskNotesEnabled, taskNotesMeta } from "../tasknotes";
 import {
+	blockLines,
 	dayWindow,
 	daySpan,
+	MIN_BLOCK_PX,
 	overlapColumns,
 	scrollHour,
 	weekdayColumns,
@@ -617,9 +619,9 @@ function renderDayColumn(
 	const placed: { ev: IcsOccurrence; span: DaySpan }[] = [];
 	for (const ev of ctx.ics.on(day.format("YYYY-MM-DD"))) {
 		if (ev.allDay) continue;
-		// Floor every block at ~14px of the configured zoom, so a ten-minute
-		// stand-up is still readable and clickable.
-		const span = daySpan(ev.start, ev.end, dayStart, win, Math.max(10, 840 / hourHeight));
+		// Floor every block at one line of text, so a ten-minute stand-up is
+		// still readable and clickable.
+		const span = daySpan(ev.start, ev.end, dayStart, win, (MIN_BLOCK_PX / hourHeight) * 60);
 		if (span) placed.push({ ev, span });
 	}
 
@@ -639,12 +641,27 @@ function renderDayColumn(
 		block.style.setProperty("--ev-left", `${(column / count) * 100}%`);
 		block.style.setProperty("--ev-width", `${(1 / count) * 100}%`);
 
-		block.createDiv({
-			cls: "hearth-sched-blocktitle",
-			text: p.ev.summary || t().cards.calendar.untitledEvent,
-		});
-		block.createDiv({ cls: "hearth-sched-blocktime", text: chipTime(p.ev, ctx.cfg) });
-		if (p.ev.location) block.createDiv({ cls: "hearth-sched-blockplace", text: p.ev.location });
+		const title = p.ev.summary || t().cards.calendar.untitledEvent;
+		const time = chipTime(p.ev, ctx.cfg);
+		// How much the block can actually say is decided by how tall it is, not
+		// by what the event carries: a half-hour meeting at the default zoom has
+		// room for three lines, a ten-minute one for a single line — and text
+		// that doesn't fit used to spill out through the block's bottom edge.
+		const lines = blockLines((p.span.endMin - p.span.startMin) * (hourHeight / 60));
+		block.toggleClass("is-inline", lines === 1);
+		block.createDiv({ cls: "hearth-sched-blocktitle", text: title });
+		if (lines === 1) {
+			// One line: the time trails the title on the same row, and drops out
+			// entirely when the block is too narrow for both.
+			if (time) block.createSpan({ cls: "hearth-sched-blocktime", text: time });
+		} else {
+			if (time) block.createDiv({ cls: "hearth-sched-blocktime", text: time });
+			if (lines >= 3 && p.ev.location) {
+				block.createDiv({ cls: "hearth-sched-blockplace", text: p.ev.location });
+			}
+		}
+		// Whatever didn't fit is one hover away, without opening the event.
+		setTooltip(block, [title, time, p.ev.location].filter(Boolean).join(" · "));
 
 		const open = () => showEventDetail(ctx.view, p.ev, ctx.ics);
 		block.addEventListener("click", (e) => {

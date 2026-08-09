@@ -8,9 +8,6 @@
  * pixels.
  */
 
-/** Minutes in a day. */
-export const DAY_MINUTES = 1440;
-
 /** An event's vertical extent in one day column, in minutes from midnight. */
 export interface DaySpan {
 	/** Minutes from midnight where the block starts (clamped to the window). */
@@ -71,6 +68,30 @@ export function daySpan(
 		clippedStart: rawStart < windowStart,
 		clippedEnd: rawEnd > windowEnd,
 	};
+}
+
+
+/**
+ * One line of a block's text, in pixels: the 0.7rem title at its 1.3
+ * line-height, rounded up. Also the floor `daySpan` gives every block, so even
+ * a ten-minute event is one readable, clickable line rather than a sliver.
+ */
+export const MIN_BLOCK_PX = 16;
+
+
+/**
+ * How many lines of text a block that tall can hold: 1 (title and time share
+ * one row), 2 (title, then time) or 3 (plus the location).
+ *
+ * A block is positioned by the clock, not by its contents, so what it can say
+ * has to be decided from its height — text drawn into a block shorter than
+ * itself spills out through the bottom edge and lands on the event below.
+ * The +4 allows for the block's own vertical padding.
+ */
+export function blockLines(pixels: number): 1 | 2 | 3 {
+	if (pixels < 2 * MIN_BLOCK_PX + 4) return 1;
+	if (pixels < 3 * MIN_BLOCK_PX + 4) return 2;
+	return 3;
 }
 
 

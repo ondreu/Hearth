@@ -4785,6 +4785,27 @@
 	cursor: pointer;
 }
 
+/* A block with room for one line only puts the title and the time on that
+   line, side by side, rather than stacking text it cannot show. */
+.hearth-sched-block.is-inline {
+	flex-direction: row;
+	align-items: baseline;
+	gap: 5px;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+.hearth-sched-block.is-inline .hearth-sched-blocktitle {
+	min-width: 0;
+}
+
+/* On a narrow (or column-split) block the title has the whole line; the time
+   gives way rather than squeezing the title out. */
+.hearth-sched-block.is-inline .hearth-sched-blocktime {
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
 .hearth-sched-block:hover {
 	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 36%, var(--background-primary));
 	z-index: 2;

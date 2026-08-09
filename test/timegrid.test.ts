@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { dayWindow, daySpan, overlapColumns, scrollHour, weekdayColumns } from "../src/timegrid";
+import {
+	blockLines,
+	dayWindow,
+	daySpan,
+	MIN_BLOCK_PX,
+	overlapColumns,
+	scrollHour,
+	weekdayColumns,
+} from "../src/timegrid";
 
 /**
  * The Calendar card's time-grid geometry. Vitest forces TZ=UTC (see
@@ -178,5 +186,24 @@ describe("dayWindow", () => {
 
 	it("clamps hours to a real time of day", () => {
 		expect(dayWindow(-4, 48)).toEqual({ startHour: 0, endHour: 24 });
+	});
+});
+
+describe("blockLines", () => {
+	it("gives a one-line block to anything that can't hold two", () => {
+		// A half-hour event at the default 44px zoom is 22px tall.
+		expect(blockLines(22)).toBe(1);
+		expect(blockLines(MIN_BLOCK_PX)).toBe(1);
+	});
+
+	it("adds the time line once there is room for it", () => {
+		// An hour at the default zoom.
+		expect(blockLines(44)).toBe(2);
+	});
+
+	it("adds the location line only on a block tall enough for three", () => {
+		expect(blockLines(51)).toBe(2);
+		expect(blockLines(52)).toBe(3);
+		expect(blockLines(200)).toBe(3);
 	});
 });
