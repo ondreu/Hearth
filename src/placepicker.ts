@@ -213,10 +213,24 @@ function searchRows(containerEl: HTMLElement, opts: PlacePickerOptions): void {
 	}
 }
 
+/** The name a place gets when nobody has typed one: its own coordinates. */
+function coordName(place: WeatherPlace): string {
+	return `${place.lat.toFixed(2)}, ${place.lon.toFixed(2)}`;
+}
+
 /** Latitude/longitude entry, for a place the geocoder doesn't know — or for
  * anyone who would rather not send a place name anywhere at all. */
 function coordinateRows(containerEl: HTMLElement, opts: PlacePickerOptions): void {
 	const strings = t().editors.weather;
+
+	// Typing does not re-render the picker, so `opts.current` is only accurate
+	// until the first keystroke. Keep the place being edited here instead:
+	// otherwise typing a latitude and then a longitude would build the second
+	// one on the pre-edit place and throw the first away.
+	let draft: WeatherPlace | undefined = opts.current ? { ...opts.current } : undefined;
+	// Whether the name is one we derived from the coordinates. Such a name
+	// follows them as they change; one that was searched for or typed stands.
+	let namedByCoords = !draft?.name.trim() || draft.name === coordName(draft);
 
 	/** Write one coordinate, creating the place if this is the first one typed. */
 	const setCoord = (which: "lat" | "lon", raw: string): void => {
@@ -224,29 +238,36 @@ function coordinateRows(containerEl: HTMLElement, opts: PlacePickerOptions): voi
 		if (raw.trim() === "" || Number.isNaN(value)) return;
 		const limit = which === "lat" ? 90 : 180;
 		if (Math.abs(value) > limit) return;
-		const place: WeatherPlace = opts.current
-			? { ...opts.current }
-			: { name: "", lat: 0, lon: 0 };
+		const place: WeatherPlace = draft ? { ...draft } : { name: "", lat: 0, lon: 0 };
 		place[which] = value;
-		if (!place.name.trim()) place.name = `${place.lat.toFixed(2)}, ${place.lon.toFixed(2)}`;
-		opts.onPick(place);
+		if (namedByCoords) place.name = coordName(place);
+		draft = place;
+		opts.onPick({ ...place });
 	};
 
+	// Two inputs plus a label do not fit on one settings row — Obsidian gives
+	// the control strip the room it asks for and squeezes the name and
+	// description into a sliver. Stack the inputs under the label instead.
 	const coords = new Setting(containerEl)
 		.setName(strings.coordinates)
-		.setDesc(strings.coordinatesDesc);
-	coords.addText((txt) =>
+		.setDesc(strings.coordinatesDesc)
+		.setClass("hearth-weather-coords");
+	coords.addText((txt) => {
 		txt
 			.setPlaceholder(strings.latPlaceholder)
 			.setValue(opts.current ? String(opts.current.lat) : "")
-			.onChange((v) => setCoord("lat", v)),
-	);
-	coords.addText((txt) =>
+			.onChange((v) => setCoord("lat", v));
+		txt.inputEl.addClass("hearth-weather-coord-input");
+		txt.inputEl.inputMode = "decimal";
+	});
+	coords.addText((txt) => {
 		txt
 			.setPlaceholder(strings.lonPlaceholder)
 			.setValue(opts.current ? String(opts.current.lon) : "")
-			.onChange((v) => setCoord("lon", v)),
-	);
+			.onChange((v) => setCoord("lon", v));
+		txt.inputEl.addClass("hearth-weather-coord-input");
+		txt.inputEl.inputMode = "decimal";
+	});
 
 	new Setting(containerEl)
 		.setName(strings.placeName)
@@ -257,8 +278,10 @@ function coordinateRows(containerEl: HTMLElement, opts: PlacePickerOptions): voi
 				.setValue(opts.current?.name ?? "")
 				.setDisabled(!opts.current)
 				.onChange((v) => {
-					if (!opts.current) return;
-					opts.onPick({ ...opts.current, name: v });
+					if (!draft) return;
+					namedByCoords = !v.trim();
+					draft = { ...draft, name: namedByCoords ? coordName(draft) : v };
+					opts.onPick({ ...draft });
 				}),
 		);
 }
