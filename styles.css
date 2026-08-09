@@ -6553,55 +6553,130 @@ body.hearth-dv-resizing {
 
 /* ── "What's new" release-notes dialog ─────────────────────────────────── */
 .hearth-whatsnew-modal {
-	max-width: 620px;
+	max-width: 680px;
+	width: min(680px, 92vw);
+}
+
+/* Intro and footer stay put; only the release list scrolls, so the close
+ * button is reachable however long the log is. */
+.hearth-whatsnew-modal .modal-content {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	max-height: min(70vh, 720px);
 }
 
 .hearth-whatsnew-modal .hearth-whatsnew-intro {
-	margin: 0 0 12px;
+	flex: none;
+	margin: 0 0 14px;
 	color: var(--text-muted);
 }
 
-/* CHANGELOG.md rendered as Markdown. Each release is an h2 heading; a hairline
- * rule above every heading after the first stacks the log as dated entries
- * rather than one run-on list. */
-.hearth-whatsnew-body h2 {
-	margin: 0 0 8px;
-	font-size: 1.05rem;
+.hearth-whatsnew-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	/* Room for the scrollbar so text doesn't run under it. */
+	padding-right: 8px;
 }
 
-.hearth-whatsnew-body h2:not(:first-child) {
-	margin-top: 20px;
-	padding-top: 16px;
+/* One release. A hairline rule above every section after the first stacks the
+ * log as dated entries rather than one run-on list. */
+.hearth-whatsnew-release + .hearth-whatsnew-release {
+	margin-top: 24px;
+	padding-top: 20px;
 	border-top: 1px solid var(--background-modifier-border);
 }
 
+.hearth-whatsnew-release-header {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.hearth-whatsnew-version {
+	margin: 0;
+	font-size: 1.15rem;
+	font-weight: 650;
+	line-height: 1.2;
+}
+
+.hearth-whatsnew-version-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.hearth-whatsnew-version-link:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
+.hearth-whatsnew-date {
+	font-size: 0.78rem;
+	color: var(--text-faint);
+	white-space: nowrap;
+}
+
 /* The Added / Changed / Fixed section labels within a release. */
-.hearth-whatsnew-body h3 {
-	margin: 14px 0 6px;
-	font-size: 0.8rem;
+.hearth-whatsnew-release-body h3 {
+	margin: 18px 0 8px;
+	font-size: 0.72rem;
+	font-weight: 600;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: 0.08em;
 	color: var(--text-muted);
 }
 
-.hearth-whatsnew-body p {
-	line-height: 1.45;
+.hearth-whatsnew-release-body h3:first-child {
+	margin-top: 0;
 }
 
-.hearth-whatsnew-body ul {
+.hearth-whatsnew-release-body p {
+	margin: 0 0 8px;
+	line-height: 1.55;
+}
+
+.hearth-whatsnew-release-body ul,
+.hearth-whatsnew-release-body ol {
 	margin: 0;
-	padding-left: 1.2em;
+	padding-left: 1.25em;
 }
 
-.hearth-whatsnew-body li {
-	margin: 5px 0;
-	line-height: 1.45;
+.hearth-whatsnew-release-body li {
+	margin: 0 0 10px;
+	line-height: 1.55;
+}
+
+.hearth-whatsnew-release-body li:last-child {
+	margin-bottom: 0;
+}
+
+/* A bullet's follow-on paragraphs sit tight under its first line. */
+.hearth-whatsnew-release-body li > p {
+	margin: 0 0 6px;
+}
+
+.hearth-whatsnew-release-body li > p:last-child {
+	margin-bottom: 0;
+}
+
+.hearth-whatsnew-release-body code {
+	font-size: 0.85em;
 }
 
 .hearth-whatsnew-footer {
-	margin: 18px 0 0;
+	flex: none;
+	margin: 16px 0 0;
 	font-size: 0.82rem;
 	color: var(--text-muted);
+}
+
+/* The close button row — never squeezed out by a long log. */
+.hearth-whatsnew-modal .modal-content > .setting-item {
+	flex: none;
+	border-top: none;
+	padding-bottom: 0;
 }
 
 /* Jira saved-filter card */
