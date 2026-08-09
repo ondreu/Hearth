@@ -638,6 +638,16 @@ export class HomeSettingTab extends PluginSettingTab {
 	private searchBarSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
 
+		new Setting(containerEl)
+			.setName(t().settings.appearance.showSearch)
+			.setDesc(t().settings.appearance.showSearchDesc)
+			.addToggle((t) =>
+				t.setValue(s.showSearch).onChange(async (v) => {
+					s.showSearch = v;
+					await this.save();
+				}),
+			);
+
 		const searchPlaceholder = new Setting(containerEl)
 			.setName(t().settings.appearance.searchPlaceholder);
 		searchPlaceholder.addText((txt) => {

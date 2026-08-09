@@ -312,14 +312,27 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			);
 
 		new Setting(containerEl)
-			.setName(t().dashboards.modal.showSearch)
-			.setDesc(t().dashboards.modal.showSearchDesc)
-			.addToggle((tg) =>
-				tg.setValue(dash.showSearch ?? true).onChange((v) => {
-					dash.showSearch = v ? undefined : false;
+			.setName(t().dashboards.modal.searchVisibility)
+			.setDesc(t().dashboards.modal.searchVisibilityDesc)
+			.addDropdown((d) => {
+				d.addOption(
+					"default",
+					t().dashboards.modal.searchVisibilityDefault(
+						this.view.plugin.settings.showSearch
+							? t().dashboards.modal.visibilityShown
+							: t().dashboards.modal.visibilityHidden,
+					),
+				);
+				d.addOption("show", t().dashboards.modal.searchVisibilityShow);
+				d.addOption("hide", t().dashboards.modal.searchVisibilityHide);
+				d.setValue(
+					dash.showSearch === undefined ? "default" : dash.showSearch ? "show" : "hide",
+				);
+				d.onChange((v) => {
+					dash.showSearch = v === "default" ? undefined : v === "show";
 					this.commit();
-				}),
-			);
+				});
+			});
 
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.mobileDefault)

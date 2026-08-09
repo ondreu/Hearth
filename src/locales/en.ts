@@ -156,8 +156,12 @@ export const en = {
 			switcherLucideDesc:
 				"A Lucide icon id (e.g. “home”, “star”, “layout-dashboard”). Takes precedence over the emoji above.",
 			lucidePlaceholder: "home",
-			showSearch: "Show search section",
-			showSearchDesc: "Show the search and command bar with its results and filter buttons on this dashboard.",
+			searchVisibility: "Search visibility",
+			searchVisibilityDesc:
+				"Show or hide the search and command bar with its results and filter buttons on this dashboard. Overrides the global setting.",
+			searchVisibilityDefault: (state: string) => `Use global default (${state})`,
+			searchVisibilityShow: "Show search",
+			searchVisibilityHide: "Hide search",
 			linkedWorkspace: "Linked workspace",
 			linkedWorkspaceDesc:
 				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
@@ -339,6 +343,10 @@ export const en = {
 			themeColorIcon: "Icon",
 			themeColorTitle: "Title",
 			themeColorBoth: "Icon and title",
+			showSearch: "Show search section",
+			showSearchDesc:
+				"Show the search and command bar with its results and filter buttons. " +
+				"Individual dashboards can override this in their settings.",
 			searchPlaceholder: "Search placeholder",
 			searchContents: "Search note contents",
 			searchContentsDesc:
