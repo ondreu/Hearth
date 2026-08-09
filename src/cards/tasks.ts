@@ -29,6 +29,7 @@ import {
 } from "../priority";
 import {
 	activeTaskFields,
+	ambientOwner,
 	builtinSource,
 	DATE_RELATIONS,
 	dateDisplay,
@@ -433,14 +434,25 @@ function renderTaskDateChip(
 		// A relation label ("Overdue") replaces the date's own wording; the ↻ that
 		// marks a recurring task's next occurrence stays either way.
 		const text = shown.label ? `${shown.label}${hit.recurrence ? " ↻" : ""}` : dueLabel;
-		const due = parent.createDiv({ cls: `hearth-task-due is-${style}`, text });
+		const due = parent.createDiv({ cls: `hearth-task-due is-${style}` });
+		// The dot form drops the wording and keeps only the colour — the relation
+		// colour, or the overdue red when none was set — with the label moved into
+		// the tooltip so nothing is lost.
+		if (style === "dot") due.createDiv("hearth-task-chip-dot");
+		else due.setText(text);
 		// An explicit colour for the relation supersedes the built-in overdue red,
 		// which is the point of being able to set one.
 		if (shown.color) applyChipColor(due, shown.color);
 		else due.toggleClass("is-overdue", overdue(effectiveDate(hit)));
-		if (hit.recurrence) {
-			due.addClass("is-recurring");
-			due.setAttribute("title", recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring);
+		const recurrence = hit.recurrence
+			? recurrenceLabel(hit.recurrence) ?? t().cards.tasks.recurring
+			: null;
+		if (recurrence) due.addClass("is-recurring");
+		if (style === "dot") {
+			const label = `${t().cards.tasks.dueDate}: ${text}`;
+			due.setAttribute("title", recurrence ? `${label} · ${recurrence}` : label);
+		} else if (recurrence) {
+			due.setAttribute("title", recurrence);
 		}
 		return due;
 	}
@@ -460,8 +472,14 @@ function renderTaskDateChip(
 	// "done" rather than "doneDate" keeps the long-standing class name.
 	const kind = id === "doneDate" ? "done" : id;
 	const el = parent.createDiv({ cls: `hearth-task-meta hearth-task-meta-${kind} is-${style}` });
-	el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
-	el.appendText(shown.label || formatRelativeDate(date));
+	// A dot stands for the whole thing: no emoji marker, no words. Which date it
+	// is, and what it says, are in the tooltip every form carries anyway.
+	if (style === "dot") {
+		el.createDiv("hearth-task-chip-dot");
+	} else {
+		el.createSpan({ cls: "hearth-task-meta-emoji", text: emoji });
+		el.appendText(shown.label || formatRelativeDate(date));
+	}
 	el.setAttribute("title", `${title}: ${date}`);
 	if (shown.color) applyChipColor(el, shown.color);
 	// A done date is history — it is never overdue.
@@ -482,12 +500,16 @@ function renderCustomDateChip(
 	prefix: string | undefined,
 	done: boolean,
 ): HTMLElement {
+	const label = shown.label || formatRelativeDate(date);
+	// A dot shows no words at all, so its tooltip carries what the chip would
+	// have read — the field's name, the label, and the date behind it.
+	const dotTitle = prefix ? `${prefix} ${label} (${date})` : `${label} (${date})`;
 	const el = renderValueChip(parent, {
-		text: shown.label || formatRelativeDate(date),
+		text: label,
 		style,
 		color: shown.color,
 		prefix,
-		title: date,
+		title: style === "dot" ? dotTitle : date,
 		extraCls: "hearth-task-datechip",
 	});
 	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
@@ -993,9 +1015,9 @@ function renderCustomTaskFields(
 			}
 			// A date carries no discrete values to map, so it is labelled and
 			// coloured by where it falls relative to today, and edited with a
-			// calendar. A dot would hide the one thing a date is for.
+			// calendar. The dot form keeps that colour and moves the wording into
+			// the tooltip, the same as every other value drawn as a dot.
 			if (keyIsDate(key)) {
-				const dateStyle = style === "dot" ? "text" : style;
 				const id = sourceBuiltin(key.source);
 				if (id && isDateSource(key.source)) {
 					const date = id === "due" ? effectiveDate(hit) : taskSourceDate(hit, id);
@@ -1008,7 +1030,7 @@ function renderCustomTaskFields(
 						paint(shown.color);
 						continue;
 					}
-					const el = renderTaskDateChip(hosts.meta, hit, id, today, dateStyle, shown, false);
+					const el = renderTaskDateChip(host, hit, id, today, style, shown, false);
 					if (el && date && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
 					}
@@ -1021,10 +1043,10 @@ function renderCustomTaskFields(
 						continue;
 					}
 					const el = renderCustomDateChip(
-						hosts.meta,
+						host,
 						date,
 						today,
-						dateStyle,
+						style,
 						shown,
 						prefix,
 						hit.done,
@@ -4873,6 +4895,13 @@ export class TaskFieldsModal extends Modal {
 					}),
 			);
 
+		// The tint and the ring belong to the task itself, so exactly one field can
+		// have them. Another field holding them takes both off this one's menu,
+		// rather than letting a second one be chosen and quietly do nothing.
+		const owner = ambientOwner(this.fields);
+		const ambientTaken = !!owner && owner.id !== field.id;
+		const ownerName = owner ? owner.name.trim() || labels.fieldUnnamed : "";
+
 		new Setting(detail)
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
@@ -4880,12 +4909,30 @@ export class TaskFieldsModal extends Modal {
 				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
 					d.addOption(style, labels.fieldStyles[style]);
 				}
+				if (ambientTaken) {
+					for (const option of Array.from(d.selectEl.options)) {
+						if (isAmbientStyle(option.value as TaskFieldStyle)) option.disabled = true;
+					}
+				}
 				d.setValue(fieldStyle(field)).onChange((v) => {
 					field.display = v as TaskFieldStyle;
-					// The strength slider only exists for the ambient styles.
+					// The strength slider only exists for the ambient styles, and this
+					// field taking them removes them from every other field's menu.
 					this.renderBody();
 				});
 			});
+
+		// Why the two ambient styles are greyed out — and, for a list saved before
+		// they were mutually exclusive, that this field's own tint never lands.
+		if (ambientTaken) {
+			const ignored = isAmbientStyle(fieldStyle(field));
+			detail.createDiv({
+				cls: `hearth-taskfields-hint${ignored ? " is-warning" : ""}`,
+				text: ignored
+					? labels.fieldAmbientIgnored(ownerName)
+					: labels.fieldAmbientTaken(ownerName),
+			});
+		}
 
 		// How hard the tint or ring is laid on. Only the ambient styles have one.
 		if (isAmbientStyle(fieldStyle(field))) {

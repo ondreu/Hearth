@@ -1266,8 +1266,14 @@ export const en = {
 			fieldDisplay: "Display",
 			fieldDisplayDesc:
 				"How this field's values are drawn. The last two show nothing on the " +
-				"task and color the whole row or card instead. Dates keep their own " +
-				"format, and a description is always its own block of sub-bullets.",
+				"task and color the whole row or card instead, and only one field can " +
+				"use them. A description is always its own block of sub-bullets.",
+			fieldAmbientTaken: (name: string) =>
+				`Tint and glow are already used by “${name}”. A task has one background ` +
+				`and one ring, so only one field can take them.`,
+			fieldAmbientIgnored: (name: string) =>
+				`This field colors nothing: “${name}” already tints or rings the task, ` +
+				`and only one field can. Give one of them another display.`,
 			fieldStyles: {
 				pill: "Chip",
 				dot: "Colored dot",

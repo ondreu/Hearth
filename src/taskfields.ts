@@ -186,9 +186,10 @@ export function activeTaskFields(
 }
 
 
-/** How a field's values are drawn. Dates and the description ignore this: a
- * date is a relative label that a dot could not convey, and the description is
- * always its own block of sub-bullets. */
+/** How a field's values are drawn. The description ignores this — it is always
+ * its own block of sub-bullets. A date honours every style: as a dot it keeps
+ * the colour its relation to today gives it and moves the wording into the
+ * tooltip. */
 export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
 	return field.display ?? "pill";
 }
@@ -201,6 +202,18 @@ export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
  */
 export function isAmbientStyle(style: TaskFieldStyle): boolean {
 	return style === "hue" || style === "glow";
+}
+
+
+/**
+ * The field that owns the task's ambient colouring, or null when none asks for
+ * it. A task has one background and one ring, so the two ambient styles share
+ * them: the first field asking for either takes them, and any later one paints
+ * nothing at all. The editor uses this to keep a second one from being chosen —
+ * a field that silently does nothing is worse than an option that isn't there.
+ */
+export function ambientOwner(fields: TaskFieldDef[]): TaskFieldDef | null {
+	return fields.find((f) => isAmbientStyle(fieldStyle(f))) ?? null;
 }
 
 

@@ -274,6 +274,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A task field set to "Colored dot" now draws one on dates too.** A date key
+  quietly fell back to plain text whichever of the two you picked, so the dot
+  and the text styles rendered identically. A date now honours the dot like
+  every other value: the colour its relation to today gives it — or the overdue
+  red, or the recurring accent — with the date itself and its label moved into
+  the tooltip.
+
+- **Only one field can tint or ring a task, and the editor now says so.** A
+  task has one background and one ring, so the second field asking for "Tint
+  the whole task" or "Glow around the task" silently painted nothing. Both
+  options are now unavailable on every other field once one has them, naming
+  the field that does; a list saved before this gets a warning on the field
+  that never showed.
+
 - **The weather card's clouds sat in the wrong place.** Every cloud carried its
   position and size in an SVG `transform` attribute and its drift in a CSS
   animation — and a CSS animation replaces the transform attribute outright.

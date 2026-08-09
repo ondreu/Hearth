@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	activeTaskFields,
+	ambientOwner,
 	builtinSource,
 	displayValue,
 	fieldOpacity,
@@ -185,6 +186,24 @@ describe("ambient styles", () => {
 		const glow = fieldOpacity(field({ display: "glow" }));
 		expect(hue).toBeGreaterThan(0);
 		expect(glow).toBeGreaterThan(hue);
+	});
+
+	// A task has one background and one ring, so the first field asking for
+	// either takes them and a second would paint nothing — which is why the
+	// editor stops one from being configured at all.
+	it("names the field that owns the task's colouring", () => {
+		expect(ambientOwner([])).toBeNull();
+		expect(ambientOwner([field({ id: "a" }), field({ id: "b", display: "dot" })])).toBeNull();
+		expect(ambientOwner([field({ id: "a" }), field({ id: "b", display: "glow" })])?.id).toBe("b");
+	});
+
+	it("gives it to the first ambient field, whichever style it asks for", () => {
+		const fields = [
+			field({ id: "a" }),
+			field({ id: "b", display: "hue" }),
+			field({ id: "c", display: "glow" }),
+		];
+		expect(ambientOwner(fields)?.id).toBe("b");
 	});
 
 	it("uses the configured strength when there is one", () => {

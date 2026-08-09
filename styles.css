@@ -6011,6 +6011,39 @@ body.hearth-dv-resizing {
 	opacity: 1;
 }
 
+/* Dot form for the date fields: the chip's words are gone (they live in the
+   tooltip), so the dot has to carry the colour the text used to — the relation
+   colour the user set, the built-in overdue red, or the recurring accent. */
+.hearth-task-due.is-dot,
+.hearth-task-meta.is-dot {
+	display: inline-flex;
+	align-items: center;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+
+.hearth-task-meta-done .hearth-task-chip-dot {
+	background: var(--text-faint);
+}
+
+.hearth-task-due.is-overdue .hearth-task-chip-dot,
+.hearth-task-meta.is-overdue .hearth-task-chip-dot,
+.hearth-task-datechip.is-overdue .hearth-task-chip-dot {
+	background: var(--text-error);
+}
+
+.hearth-task-due.is-recurring .hearth-task-chip-dot {
+	background: var(--interactive-accent);
+}
+
+/* Last, so a colour the user set for the relation wins over all of them — the
+   same order the text forms above resolve in. */
+.hearth-task-due.is-colored .hearth-task-chip-dot,
+.hearth-task-meta.is-colored .hearth-task-chip-dot {
+	background: var(--chip-color);
+}
+
 /* ---- Task fields editor --------------------------------------------- */
 
 /* A field, its keys and their value tables are three levels deep, which the
@@ -6176,6 +6209,12 @@ body.hearth-dv-resizing {
 
 .hearth-taskfields-panelbody .hearth-taskfields-hint {
 	margin: 12px 0 0;
+}
+
+/* A hint about something already saved that will not render — louder than the
+   explanatory hints, quieter than an error. */
+.hearth-taskfields-hint.is-warning {
+	color: var(--text-warning, var(--text-accent));
 }
 
 /* ---- The keys section inside a field ------------------------------- */
@@ -6425,8 +6464,17 @@ body.hearth-dv-resizing {
 	box-shadow: 0 0 0 1px var(--background-modifier-border-hover);
 }
 
+.hearth-task-due.is-editable,
+.hearth-task-meta.is-editable {
+	cursor: pointer;
+}
+
+/* A date drawn as a bare dot has nothing else to hover, so the dot itself takes
+   the ring the chip forms get. */
 .hearth-task-priority.is-editable.is-dot:hover .hearth-task-priority-dot,
-.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot {
+.hearth-task-chip.is-editable.is-dot:hover .hearth-task-chip-dot,
+.hearth-task-due.is-editable.is-dot:hover .hearth-task-chip-dot,
+.hearth-task-meta.is-editable.is-dot:hover .hearth-task-chip-dot {
 	box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
 }
 
