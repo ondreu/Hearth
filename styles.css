@@ -7852,3 +7852,399 @@ body.hearth-dv-resizing {
 		opacity: 0.7;
 	}
 }
+
+/* ── Add-card picker ───────────────────────────────────────────────────
+   The card catalogue outgrew a dropdown: ~30 templates in one column, with
+   nothing but a name each. This is a browsable modal instead — a category
+   rail down the side, a searchable grid of described tiles, and a last rail
+   entry for requesting a card that doesn't exist yet.
+
+   Height is a flex chain (frame → content → results), not a `vh` cap: the
+   modal frame already knows how tall it may be — the whole screen on a phone
+   — so the results column takes what's left and scrolls inside it. */
+.hearth-card-picker-modal {
+	display: flex;
+	flex-direction: column;
+	width: min(860px, 94vw);
+	max-width: min(860px, 94vw);
+}
+
+.hearth-card-picker.hearth-card-picker {
+	display: flex;
+	flex-direction: column;
+	/* min-height: 0 at every step, or a flex item refuses to shrink below its
+	   content and the scroll never engages. */
+	min-height: 0;
+	flex: 1 1 auto;
+	max-height: min(66vh, 640px);
+}
+
+/* ---- Search field ---- */
+.hearth-picker-search {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px;
+	margin-bottom: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background: var(--background-modifier-form-field);
+}
+
+.hearth-picker-search:focus-within {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-picker-search-icon {
+	display: inline-flex;
+	color: var(--text-muted);
+	flex: none;
+}
+
+/* The field is the box's whole interior — its own border and background would
+   draw a second frame inside the first. */
+.hearth-picker-search-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 8px 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	font-size: var(--font-ui-medium);
+	color: var(--text-normal);
+}
+
+.hearth-picker-search-input:focus {
+	box-shadow: none;
+}
+
+/* ---- Rail + results ---- */
+.hearth-picker-body {
+	display: flex;
+	gap: 16px;
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-picker-rail {
+	flex: none;
+	width: 168px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow-y: auto;
+	padding-right: 4px;
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+.hearth-picker-rail-btn {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 6px 10px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-align: left;
+	cursor: pointer;
+}
+
+.hearth-picker-rail-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-picker-rail-btn.is-active {
+	background: var(--background-modifier-active-hover, var(--background-modifier-hover));
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.hearth-picker-rail-icon {
+	display: inline-flex;
+	flex: none;
+}
+
+.hearth-picker-rail-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-picker-rail-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-picker-rail-sep {
+	height: 1px;
+	margin: 8px 10px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-picker-rail-btn.is-request {
+	color: var(--text-accent);
+}
+
+.hearth-picker-results {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+	/* Room for the scrollbar so tiles don't run under it. */
+	padding-right: 6px;
+}
+
+.hearth-picker-section {
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	margin: 4px 0 8px;
+}
+
+.hearth-picker-section:not(:first-child) {
+	margin-top: 20px;
+}
+
+/* auto-fill, not auto-fit: a category with one card (Fun) keeps a card-sized
+   tile instead of stretching it across the whole row. */
+.hearth-picker-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+	gap: 8px;
+}
+
+/* ---- One card tile ---- */
+.hearth-card-tile {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	width: 100%;
+	height: auto;
+	padding: 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background: var(--background-primary);
+	box-shadow: none;
+	text-align: left;
+	cursor: pointer;
+}
+
+.hearth-card-tile:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--background-modifier-border-hover);
+}
+
+.hearth-card-tile:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+.hearth-card-tile-icon {
+	display: inline-flex;
+	flex: none;
+	margin-top: 1px;
+	color: var(--text-accent);
+}
+
+.hearth-card-tile-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.hearth-card-tile-name {
+	font-weight: 600;
+	color: var(--text-normal);
+	line-height: 1.3;
+}
+
+.hearth-card-tile-desc {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.35;
+	white-space: normal;
+}
+
+/* A missing dependency is a footnote, not a barrier: the card can still be
+   added and explains itself in place once it's on the board. */
+.hearth-card-tile-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 4px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+.hearth-card-tile-badge-icon {
+	display: inline-flex;
+}
+
+.hearth-card-tile-badge-icon .svg-icon {
+	width: 12px;
+	height: 12px;
+}
+
+.hearth-card-tile.is-unmet .hearth-card-tile-icon {
+	color: var(--text-muted);
+}
+
+/* ---- Empty result & the footer prompt ---- */
+.hearth-picker-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 48px 16px;
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.hearth-picker-empty-icon {
+	display: inline-flex;
+	color: var(--text-faint);
+}
+
+.hearth-picker-empty-icon .svg-icon {
+	width: 28px;
+	height: 28px;
+}
+
+.hearth-picker-foot {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-top: 24px;
+	padding-top: 14px;
+	border-top: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.hearth-picker-foot-link {
+	padding: 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-accent);
+	font-size: inherit;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+/* ---- Request a card ---- */
+.hearth-picker-request-intro {
+	margin-bottom: 14px;
+	color: var(--text-muted);
+	line-height: 1.45;
+}
+
+.hearth-picker-request-option {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	margin-bottom: 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+}
+
+.hearth-picker-request-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--text-accent);
+}
+
+.hearth-picker-request-icon .svg-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.hearth-picker-request-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-picker-request-title {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-picker-request-desc {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.hearth-picker-request-option .mod-cta {
+	flex: none;
+}
+
+.hearth-picker-request-note {
+	margin-top: 12px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	line-height: 1.4;
+}
+
+/* On a phone the rail becomes a scrolling chip row above the grid: 168px of
+   sidebar would leave the tiles nowhere to live. */
+@media (max-width: 620px) {
+	.hearth-picker-body {
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.hearth-picker-rail {
+		width: 100%;
+		flex-direction: row;
+		gap: 6px;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding: 0 0 8px;
+		border-right: none;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.hearth-picker-rail-btn {
+		width: auto;
+		flex: none;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 999px;
+		white-space: nowrap;
+	}
+
+	.hearth-picker-rail-sep {
+		display: none;
+	}
+
+	.hearth-picker-grid {
+		grid-template-columns: 1fr;
+	}
+
+	/* Grid, not flex-wrap: a wrapping flex line breaks before it shrinks, which
+	   put the icon, the text and the button on three lines of their own. Here
+	   the icon keeps the text beside it and only the button drops. */
+	.hearth-picker-request-option {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: start;
+		row-gap: 10px;
+	}
+
+	.hearth-picker-request-option .mod-cta {
+		grid-column: 1 / -1;
+	}
+}

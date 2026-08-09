@@ -2252,6 +2252,79 @@ export const en = {
 		pet: "Pet",
 	},
 
+	/** One line per template, shown under its name in the add-card picker and
+	 * searched alongside it. Say what the card *shows* — the name already says
+	 * what it is called. */
+	templateDescriptions: {
+		note: "Any note, rendered live on the board",
+		image: "A picture from the vault, edge to edge",
+		base: "A .base file, rendered by Obsidian's Bases",
+		excalidraw: "An Excalidraw drawing with native pan and zoom",
+		canvas: "A canvas you can pan around in place",
+		daily: "Always today's note, created on first click",
+		web: "A web page in an iframe, refreshed on a timer",
+		bookmarks: "Your Obsidian bookmarks, one click away",
+		favorites: "The notes you starred in Hearth",
+		recent: "The files you opened most recently",
+		links: "A launchpad of links, notes and folders",
+		commands: "Buttons that run Obsidian commands",
+		clock: "The time, the date and a greeting",
+		tasks: "Checkboxes from your vault, as a list or a board",
+		calendar: "A month at a glance, with your notes on it",
+		stats: "Note, word and file counts for the vault",
+		search: "A saved query, kept live",
+		heatmap: "A year of vault activity, day by day",
+		text: "A scratchpad that lives on the dashboard",
+		calculator: "Sums, unit conversion and exchange rates",
+		dataview: "A DQL or DataviewJS query, rendered by Dataview",
+		datacore: "A Datacore query or script",
+		rss: "Headlines from the feeds you follow",
+		jira: "Issues from a Jira filter or JQL search",
+		weather: "The forecast for a place you pick",
+		git: "Repository status, with commit, pull and push",
+		leaf: "Another plugin's side panel, hosted in a card",
+		pet: "A small companion that lives on your board",
+	},
+
+	// ---- Add-card picker -----------------------------------------------
+	cardPicker: {
+		title: "Add a card",
+		searchPlaceholder: "Search cards…",
+		allCards: "All cards",
+		noMatches: "No card matches that.",
+		/** Badge on a card whose plugin (or other dependency) is missing. */
+		requires: (name: string) => `Needs ${name}`,
+		missingNotice: (name: string) =>
+			`${name} isn't available — the card will show a prompt until it is.`,
+		installLink: (name: string) => `Install ${name}`,
+		categories: {
+			notes: "Notes & files",
+			planning: "Planning",
+			vault: "Vault insight",
+			tools: "Tools",
+			integrations: "Integrations",
+			fun: "Fun",
+		},
+		request: {
+			railLabel: "Request a card",
+			heading: "Request a card",
+			intro:
+				"Missing something? Describe the card you wish Hearth had — what it " +
+				"should show and where its data would come from.",
+			footPrompt: "Not what you were looking for?",
+			footLink: "Request a card",
+			githubTitle: "Open a GitHub issue",
+			githubDesc:
+				"Public, searchable, and the best place to discuss the idea. Needs a GitHub account.",
+			githubAction: "Open GitHub",
+			emailTitle: "Send an email",
+			emailDesc: "Straight to the maintainer, if you'd rather not use GitHub. Opens your mail app.",
+			emailAction: "Open email",
+			prefilledNote:
+				"Both open pre-filled with a few prompts and your Hearth and Obsidian versions — edit anything before sending.",
+		},
+	},
+
 	// ---- File-type filter labels ---------------------------------------
 	fileTypes: {
 		folders: "Folders",

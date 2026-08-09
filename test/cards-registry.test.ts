@@ -2,21 +2,26 @@ import { describe, expect, it } from "vitest";
 // The assertions below are the frozen "before" behavior and must not change
 // across the refactor; only these import paths moved to the registry barrel.
 import {
+	CARD_CATEGORIES,
 	CARD_DEFINITIONS,
 	CARD_TEMPLATES,
 	TEMPLATE_MENU_ORDER,
 	cardDefinition,
 	cloneCard,
+	templateCategory,
+	templateDescription,
+	templateName,
+	unmetRequirement,
 } from "../src/cards";
+import type { App } from "obsidian";
 import type { DashboardCard } from "../src/types";
 
 /**
  * Characterization tests for the card registry refactor (issue #103).
  *
- * They pin two behaviors that the refactor dismantles and must reproduce byte
- * for byte:
- *   1. the "Add card" menu — every template's id, icon and build() output, in
- *      the exact order they are offered today;
+ * They pin two behaviors:
+ *   1. the "Add card" picker — every template's id, icon, category, dependency
+ *      and build() output, in the exact order they are offered;
  *   2. cloneCard() deep-clones every nested config array/object, so mutating a
  *      copy never reaches the original. (The RSS config is the one addition
  *      over the old cloner, which missed it — a clone shared `rss.sources`
@@ -24,41 +29,58 @@ import type { DashboardCard } from "../src/types";
  */
 
 describe("CARD_TEMPLATES (add-card menu)", () => {
-	it("offers the same templates, in the same order, with the same build output", () => {
+	it("offers every template, grouped in picker order, with the same build output", () => {
 		const snapshot = CARD_TEMPLATES.map((tpl) => ({
 			id: tpl.id,
 			icon: tpl.icon,
-			gated: typeof tpl.available === "function",
+			category: templateCategory(tpl.id),
+			requires: tpl.requires?.name ?? null,
 			build: tpl.build(),
 		}));
 		expect(snapshot).toEqual([
-			{ id: "note", icon: "file-text", gated: false, build: { kind: "embed", title: "Note", target: "", w: 6, h: 3 } },
-			{ id: "image", icon: "image", gated: false, build: { kind: "embed", title: "Image", target: "", w: 4, h: 3 } },
-			{ id: "base", icon: "database", gated: false, build: { kind: "embed", title: "Base", target: "", w: 6, h: 4 } },
-			{ id: "excalidraw", icon: "pen-tool", gated: false, build: { kind: "embed", title: "Drawing", target: "", w: 6, h: 4 } },
-			{ id: "canvas", icon: "layout-dashboard", gated: false, build: { kind: "embed", title: "Canvas", target: "", w: 6, h: 4 } },
-			{ id: "daily", icon: "calendar", gated: false, build: { kind: "daily", w: 6, h: 4 } },
-			{ id: "web", icon: "globe", gated: false, build: { kind: "web", title: "Web", url: "", w: 6, h: 4 } },
-			{ id: "bookmarks", icon: "bookmark", gated: false, build: { kind: "bookmarks", title: "Bookmarks", w: 4, h: 3 } },
-			{ id: "favorites", icon: "star", gated: false, build: { kind: "favorites", title: "Favorites", w: 4, h: 3 } },
-			{ id: "recent", icon: "history", gated: false, build: { kind: "recent", title: "Recent", count: 8, w: 4, h: 3 } },
-			{ id: "links", icon: "layout-grid", gated: false, build: { kind: "links", title: "Links", links: [], w: 6, h: 2 } },
-			{ id: "commands", icon: "terminal-square", gated: false, build: { kind: "commands", title: "Commands", commands: [], w: 6, h: 2 } },
-			{ id: "clock", icon: "clock", gated: false, build: { kind: "clock", title: "", w: 4, h: 2 } },
-			{ id: "tasks", icon: "list-todo", gated: false, build: { kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 } },
-			{ id: "calendar", icon: "calendar-days", gated: false, build: { kind: "calendar", title: "Calendar", w: 4, h: 4 } },
-			{ id: "stats", icon: "bar-chart-3", gated: false, build: { kind: "stats", title: "Stats", w: 4, h: 2 } },
-			{ id: "search", icon: "search", gated: false, build: { kind: "search", title: "Query", savedSearch: { query: "" }, w: 4, h: 4 } },
-			{ id: "heatmap", icon: "activity", gated: false, build: { kind: "heatmap", title: "Activity", heatmap: {}, w: 6, h: 3 } },
-			{ id: "text", icon: "pencil", gated: false, build: { kind: "text", title: "Notes", text: "", w: 4, h: 2 } },
-			{ id: "calculator", icon: "calculator", gated: false, build: { kind: "calculator", title: "Calculator", calculator: {}, w: 4, h: 3 } },
-			{ id: "dataview", icon: "database", gated: true, build: { kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 } },
-			{ id: "datacore", icon: "database-zap", gated: true, build: { kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 } },
-			{ id: "rss", icon: "rss", gated: false, build: { kind: "rss", title: "RSS", rss: { sources: [] }, w: 4, h: 5 } },
+			// ---- Notes & files ----
+			{ id: "note", icon: "file-text", category: "notes", requires: null, build: { kind: "embed", title: "Note", target: "", w: 6, h: 3 } },
+			{ id: "daily", icon: "calendar", category: "notes", requires: null, build: { kind: "daily", w: 6, h: 4 } },
+			{ id: "image", icon: "image", category: "notes", requires: null, build: { kind: "embed", title: "Image", target: "", w: 4, h: 3 } },
+			{ id: "canvas", icon: "layout-dashboard", category: "notes", requires: null, build: { kind: "embed", title: "Canvas", target: "", w: 6, h: 4 } },
+			{ id: "excalidraw", icon: "pen-tool", category: "notes", requires: null, build: { kind: "embed", title: "Drawing", target: "", w: 6, h: 4 } },
+			{ id: "base", icon: "database", category: "notes", requires: null, build: { kind: "embed", title: "Base", target: "", w: 6, h: 4 } },
+			{ id: "recent", icon: "history", category: "notes", requires: null, build: { kind: "recent", title: "Recent", count: 8, w: 4, h: 3 } },
+			{ id: "favorites", icon: "star", category: "notes", requires: null, build: { kind: "favorites", title: "Favorites", w: 4, h: 3 } },
+			{ id: "bookmarks", icon: "bookmark", category: "notes", requires: null, build: { kind: "bookmarks", title: "Bookmarks", w: 4, h: 3 } },
+
+			// ---- Planning ----
+			{ id: "tasks", icon: "list-todo", category: "planning", requires: null, build: { kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 } },
+			{ id: "calendar", icon: "calendar-days", category: "planning", requires: null, build: { kind: "calendar", title: "Calendar", w: 4, h: 4 } },
+			{ id: "clock", icon: "clock", category: "planning", requires: null, build: { kind: "clock", title: "", w: 4, h: 2 } },
+
+			// ---- Vault insight ----
+			{ id: "search", icon: "search", category: "vault", requires: null, build: { kind: "search", title: "Query", savedSearch: { query: "" }, w: 4, h: 4 } },
+			{ id: "stats", icon: "bar-chart-3", category: "vault", requires: null, build: { kind: "stats", title: "Stats", w: 4, h: 2 } },
+			{ id: "heatmap", icon: "activity", category: "vault", requires: null, build: { kind: "heatmap", title: "Activity", heatmap: {}, w: 6, h: 3 } },
+
+			// ---- Tools ----
+			{ id: "links", icon: "layout-grid", category: "tools", requires: null, build: { kind: "links", title: "Links", links: [], w: 6, h: 2 } },
+			{ id: "commands", icon: "terminal-square", category: "tools", requires: null, build: { kind: "commands", title: "Commands", commands: [], w: 6, h: 2 } },
+			{ id: "text", icon: "pencil", category: "tools", requires: null, build: { kind: "text", title: "Notes", text: "", w: 4, h: 2 } },
+			{ id: "calculator", icon: "calculator", category: "tools", requires: null, build: { kind: "calculator", title: "Calculator", calculator: {}, w: 4, h: 3 } },
+			{ id: "web", icon: "globe", category: "tools", requires: null, build: { kind: "web", title: "Web", url: "", w: 6, h: 4 } },
+
+			// ---- Integrations ----
+			{ id: "dataview", icon: "database", category: "integrations", requires: "Dataview", build: { kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 } },
+			{ id: "datacore", icon: "database-zap", category: "integrations", requires: "Datacore", build: { kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 } },
+			{
+				id: "git",
+				icon: "git-branch",
+				category: "integrations",
+				requires: "Git",
+				build: { kind: "git", title: "Git", git: {}, w: 4, h: 4 },
+			},
 			{
 				id: "jira",
 				icon: "ticket",
-				gated: false,
+				category: "integrations",
+				requires: null,
 				build: {
 					kind: "jira",
 					title: "Jira",
@@ -73,32 +95,70 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 					h: 5,
 				},
 			},
+			{ id: "rss", icon: "rss", category: "integrations", requires: null, build: { kind: "rss", title: "RSS", rss: { sources: [] }, w: 4, h: 5 } },
 			{
 				id: "weather",
 				icon: "cloud-sun",
-				gated: false,
+				category: "integrations",
+				requires: null,
 				build: { kind: "weather", title: "Weather", weather: {}, w: 4, h: 3 },
 			},
 			{
-				id: "git",
-				icon: "git-branch",
-				gated: true,
-				build: { kind: "git", title: "Git", git: {}, w: 4, h: 4 },
+				id: "leaf",
+				icon: "layout-panel-left",
+				category: "integrations",
+				requires: "Hostable side-panel views",
+				build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 },
 			},
-			{ id: "leaf", icon: "layout-panel-left", gated: true, build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 } },
-			{ id: "pet", icon: "cat", gated: false, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
+
+			// ---- Fun ----
+			{ id: "pet", icon: "cat", category: "fun", requires: null, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
 		]);
 	});
 
-	// TEMPLATE_MENU_ORDER is the one enumeration the registry does not
+	// TEMPLATE_MENU_GROUPS is the one enumeration the registry does not
 	// compile-enforce: CARD_TEMPLATES is derived from it, so a preset declared in
-	// a module but missing from the order silently vanishes from the add-card
-	// menu. Pin the round-trip so that omission — or a duplicate id — fails here.
-	it("TEMPLATE_MENU_ORDER covers every registered template id exactly once", () => {
+	// a module but missing from the groups silently vanishes from the picker.
+	// Pin the round-trip so that omission — or a duplicate id — fails here.
+	it("TEMPLATE_MENU_GROUPS covers every registered template id exactly once", () => {
 		const declared = Object.values(CARD_DEFINITIONS)
 			.flatMap((def) => def.templates.map((tpl) => tpl.id))
 			.sort();
 		expect([...TEMPLATE_MENU_ORDER].sort()).toEqual(declared);
+		expect(new Set(TEMPLATE_MENU_ORDER).size).toBe(TEMPLATE_MENU_ORDER.length);
+	});
+
+	// Every card is offered whether or not its dependency is installed (that is
+	// the point of `requires` replacing the old `available` gate), so the picker
+	// must never consult a requirement to decide *whether* to list a template —
+	// only how to badge it.
+	it("offers plugin-backed cards even when the plugin is missing", () => {
+		const app = { plugins: { enabledPlugins: new Set<string>(), plugins: {} } } as unknown as App;
+		for (const id of ["dataview", "datacore", "git"]) {
+			const template = CARD_TEMPLATES.find((tpl) => tpl.id === id);
+			expect(template, id).toBeDefined();
+			expect(unmetRequirement(app, template!)?.name, id).toBeTruthy();
+		}
+	});
+
+	// The picker shows a description under every name and searches on it, so a
+	// template with no matching locale key would read as a blank half-tile.
+	it("has a localized name and description for every template", () => {
+		for (const template of CARD_TEMPLATES) {
+			expect(templateName(template), template.id).toBeTruthy();
+			expect(templateDescription(template), template.id).toBeTruthy();
+		}
+	});
+
+	// Not every category needs to be crowded, but an empty one is a rail entry
+	// that leads to a blank page.
+	it("gives every category at least one template", () => {
+		for (const category of CARD_CATEGORIES) {
+			expect(
+				CARD_TEMPLATES.some((tpl) => templateCategory(tpl.id) === category),
+				category,
+			).toBe(true);
+		}
 	});
 });
 

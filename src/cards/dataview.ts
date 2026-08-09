@@ -1,6 +1,6 @@
 import { Component, Setting } from "obsidian";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
-import { getDataviewApi, isDataviewAvailable } from "../dataview";
+import { DATAVIEW_PLUGIN_ID, getDataviewApi, isDataviewAvailable } from "../dataview";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
@@ -242,7 +242,8 @@ export function dataviewEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	query.settingEl.addClass("hearth-setting-stacked");
 }
 
-/** A Dataview query, rendered through the Dataview plugin. Gated on that plugin. */
+/** A Dataview query, rendered through the Dataview plugin. Offered whether or
+ * not Dataview is installed — the card prompts for it when it isn't. */
 export const dataviewCard: CardDefinition<"dataview"> = {
 	kind: "dataview",
 	templates: [
@@ -251,7 +252,11 @@ export const dataviewCard: CardDefinition<"dataview"> = {
 			name: "Dataview query",
 			icon: "database",
 			build: () => ({ kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 }),
-			available: (app) => isDataviewAvailable(app),
+			requires: {
+				name: "Dataview",
+				pluginId: DATAVIEW_PLUGIN_ID,
+				satisfied: (app) => isDataviewAvailable(app),
+			},
 		},
 	],
 	render: (view, card, body, component) => renderDataview(view, card, body, component),

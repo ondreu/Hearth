@@ -179,7 +179,13 @@ export const leafCard: CardDefinition<"leaf"> = {
 			name: "Plugin view (beta)",
 			icon: "layout-panel-left",
 			build: () => ({ kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 }),
-			available: (app) => isLeafViewAvailable(app),
+			// Not a plugin dependency: the card needs Obsidian's view registry,
+			// which a future version could move out of reach. No pluginId, so the
+			// picker badges it without offering an install link.
+			requires: {
+				name: "Hostable side-panel views",
+				satisfied: (app) => isLeafViewAvailable(app),
+			},
 		},
 	],
 	render: (view, card, body, component) => renderLeaf(view, card, body, component),

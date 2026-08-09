@@ -1,7 +1,6 @@
 import {
 	Component,
 	debounce,
-	Menu,
 	setIcon,
 	type TAbstractFile,
 } from "obsidian";
@@ -15,13 +14,8 @@ import {
 	type VaultEventHub,
 	watchedCardReactsToKind,
 } from "./cardevents";
-import {
-	CARD_TEMPLATES,
-	cardDefinition,
-	cardFromTemplate,
-	cloneCard,
-	templateName,
-} from "./cards";
+import { cardDefinition, cardFromTemplate, cloneCard } from "./cards";
+import { openCardPicker } from "./cardpicker";
 import { CardSettingsModal } from "./editors";
 import {
 	activeCards,
@@ -420,34 +414,26 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 		setIcon(add.createSpan("hearth-tool-icon"), "plus");
 		add.createSpan({ cls: "hearth-tool-label", text: t().dashboard.addCard });
 		add.setAttribute("aria-label", t().dashboard.addCardAria);
-		add.addEventListener("click", (evt) => {
-			const menu = new Menu();
-			for (const template of CARD_TEMPLATES) {
-				// Skip plugin-gated templates (e.g. Dataview) unless available.
-				if (template.available && !template.available(view.app)) continue;
-				menu.addItem((item) =>
-					item
-						.setTitle(templateName(template))
-						.setIcon(template.icon)
-						.onClick(() => {
-							const s = view.plugin.settings;
-							const card = cardFromTemplate(template);
-							// Place the new card into a free slot in the current layout so
-							// it never shifts the cards already on the board (placeFreeform).
-							placeFreeform(
-								card,
-								renderCards(s),
-								effectiveMaxWidth(s),
-								effectiveColumns(s),
-								GRID_GAP,
-								effectiveRowHeight(s) || ROW_HEIGHT,
-							);
-							activeCards(s).push(card);
-							persistAndRender(view);
-						}),
-				);
-			}
-			menu.showAtMouseEvent(evt);
+		add.addEventListener("click", () => {
+			openCardPicker(view.app, {
+				hearthVersion: view.plugin.manifest.version,
+				onChoose: (template) => {
+					const s = view.plugin.settings;
+					const card = cardFromTemplate(template);
+					// Place the new card into a free slot in the current layout so
+					// it never shifts the cards already on the board (placeFreeform).
+					placeFreeform(
+						card,
+						renderCards(s),
+						effectiveMaxWidth(s),
+						effectiveColumns(s),
+						GRID_GAP,
+						effectiveRowHeight(s) || ROW_HEIGHT,
+					);
+					activeCards(s).push(card);
+					persistAndRender(view);
+				},
+			});
 		});
 
 		// Toggle the per-card headers (title input + actions) off so each

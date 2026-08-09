@@ -1,6 +1,7 @@
 import { Component, setIcon, Setting } from "obsidian";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import {
+	DATACORE_PLUGIN_ID,
 	datacoreQueryError,
 	datacoreQueryScript,
 	getDatacoreApi,
@@ -187,8 +188,9 @@ export function datacoreEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	});
 }
 
-/** A Datacore query or script, rendered through the Datacore plugin. Gated on
- * that plugin. */
+/** A Datacore query or script, rendered through the Datacore plugin. Offered
+ * whether or not Datacore is installed — the card prompts for it when it
+ * isn't. */
 export const datacoreCard: CardDefinition<"datacore"> = {
 	kind: "datacore",
 	templates: [
@@ -197,7 +199,11 @@ export const datacoreCard: CardDefinition<"datacore"> = {
 			name: "Datacore query",
 			icon: "database-zap",
 			build: () => ({ kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 }),
-			available: (app) => isDatacoreAvailable(app),
+			requires: {
+				name: "Datacore",
+				pluginId: DATACORE_PLUGIN_ID,
+				satisfied: (app) => isDatacoreAvailable(app),
+			},
 		},
 	],
 	render: (view, card, body, component) => renderDatacore(view, card, body, component),
