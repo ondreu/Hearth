@@ -133,6 +133,7 @@ export function exportSettings(s: HomeSettings): string {
 		title: s.title,
 		showTitle: s.showTitle,
 		logo: s.logo,
+		showSearch: s.showSearch,
 		searchPlaceholder: s.searchPlaceholder,
 		showNewNoteButton: s.showNewNoteButton,
 		newNoteButtonMode: s.newNoteButtonMode,
@@ -1181,6 +1182,7 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (typeof data.showTitle === "boolean") s.showTitle = data.showTitle;
 	const logo = str(data.logo);
 	if (logo !== undefined) s.logo = logo;
+	if (typeof data.showSearch === "boolean") s.showSearch = data.showSearch;
 	const searchPlaceholder = str(data.searchPlaceholder);
 	if (searchPlaceholder !== undefined) s.searchPlaceholder = searchPlaceholder;
 	if (typeof data.showNewNoteButton === "boolean")

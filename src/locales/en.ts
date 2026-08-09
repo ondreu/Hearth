@@ -156,8 +156,6 @@ export const en = {
 			switcherLucideDesc:
 				"A Lucide icon id (e.g. “home”, “star”, “layout-dashboard”). Takes precedence over the emoji above.",
 			lucidePlaceholder: "home",
-			showSearch: "Show search section",
-			showSearchDesc: "Show the search and command bar with its results and filter buttons on this dashboard.",
 			linkedWorkspace: "Linked workspace",
 			linkedWorkspaceDesc:
 				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
@@ -167,8 +165,14 @@ export const en = {
 				"Open this dashboard when Hearth loads on a phone or tablet. Only one board can be the mobile default; enabling this clears it on the others.",
 			titleVisibility: "Title visibility",
 			titleVisibilityDesc:
-				"Show or hide only the title/logo block for this dashboard. Search visibility is separate.",
+				"Show or hide only the title/logo block for this dashboard. Overrides the global setting.",
 			titleVisibilityDefault: (state: string) => `Use global default (${state})`,
+			searchVisibility: "Search visibility",
+			searchVisibilityDesc:
+				"Show or hide the search and command bar with its results and filter buttons on this dashboard. Overrides the global setting.",
+			searchVisibilityDefault: (state: string) => `Use global default (${state})`,
+			searchVisibilityShow: "Show search",
+			searchVisibilityHide: "Hide search",
 			visibilityShown: "shown",
 			visibilityHidden: "hidden",
 			visibilityShow: "Show title",
@@ -281,7 +285,7 @@ export const en = {
 			lowPowerDesc:
 				"Trade the visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
-			homeDesc: "Title, logo and overall content width.",
+			homeDesc: "Title, logo, search visibility and overall content width.",
 			searchBar: "Search bar",
 			searchBarDesc: "How the search field looks and what it does.",
 			grid: "Grid & spacing",
@@ -326,6 +330,10 @@ export const en = {
 			headingDesc: "Title, logo, search bar and overall content width.",
 			showTitle: "Show title",
 			showTitleDesc: "Display the big title/logo at the top.",
+			showSearch: "Show search section",
+			showSearchDesc:
+				"Display the search and command bar with its results and filter buttons. " +
+				"Individual dashboards can override this in their settings.",
 			title: "Title",
 			titleDesc: "The heading text shown at the top of the home view.",
 			logo: "Logo",

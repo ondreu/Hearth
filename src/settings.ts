@@ -579,6 +579,16 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
+		new Setting(containerEl)
+			.setName(t().settings.appearance.showSearch)
+			.setDesc(t().settings.appearance.showSearchDesc)
+			.addToggle((t) =>
+				t.setValue(s.showSearch).onChange(async (v) => {
+					s.showSearch = v;
+					await this.save();
+				}),
+			);
+
 		const title = new Setting(containerEl)
 			.setName(t().settings.appearance.title)
 			.setDesc(t().settings.appearance.titleDesc);

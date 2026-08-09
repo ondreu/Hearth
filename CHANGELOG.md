@@ -309,6 +309,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   own. It still drags, resizes and configures like any other card, and while you
   are arranging, the dashed outline every card gets marks where it is.
 
+- **Turn the header search bar off — everywhere, or on one board.**
+  **Settings → Appearance → Home** has a new **Show search section** toggle,
+  right below **Show title**, that hides the search and command bar, its
+  results and its filter buttons across the whole vault. Each dashboard still
+  gets the last word: the board's search setting has moved to its **Header**
+  tab, beside **Title visibility**, and grown from an on/off switch into the
+  same three-way choice the title block already offers — **Use global
+  default**, **Show search** or **Hide search** — so a board can keep the bar
+  while the rest of the vault does without it, or drop it while everywhere else
+  keeps it. Boards that never set the option follow the global toggle, and the
+  search-bar card is unaffected: it is a card, and it stays wherever you put it.
+
 ### Fixed
 
 - **A task field set to "Colored dot" now draws one on dates too.** A date key

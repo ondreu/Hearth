@@ -61,6 +61,10 @@ The search field is keyboard-first, with four transparent modes:
 - **Omnisearch engine** *(optional)* — swap the built-in engine for
   [Omnisearch](https://github.com/scambier/obsidian-omnisearch) under
   **Settings → Appearance → Search engine**.
+- **Hide it** — **Settings → Appearance → Home → Show search section** turns
+  the whole section off vault-wide, and each dashboard's **Search visibility**
+  can follow that default or override it to show or hide the section on that
+  board alone.
 
 ## Cards
 

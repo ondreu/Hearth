@@ -1171,7 +1171,8 @@ export interface DashboardHeaderConfig {
 	title?: string;
 	/** Override the global logo text/icon for this dashboard. Empty = Hearth icon. */
 	logo?: string;
-	/** Align only the title/logo block; search remains controlled separately. */
+	/** Align only the title/logo block; the search section below has its own
+	 * layout. */
 	align?: HeaderAlign;
 	/** Title size multiplier, clamped to a conservative range. */
 	titleScale?: number;
@@ -1213,7 +1214,8 @@ export interface Dashboard {
 	cardBorderWidth?: number;
 	/** Per-dashboard overrides for the title/logo block. */
 	header?: DashboardHeaderConfig;
-	/** Show the dashboard search/command section (undefined = visible). */
+	/** Override the global search/command section visibility for this board
+	 * (undefined = follow {@link HomeSettings.showSearch}). */
 	showSearch?: boolean;
 	/** Name of a core-Workspace; loading that workspace auto-switches to this
 	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
@@ -1289,6 +1291,9 @@ export interface HomeSettings {
 	 * normal title text, the historical look), the crystal icon, the title
 	 * text, or both. */
 	themeColorTarget: "none" | "icon" | "title" | "both";
+	/** Show the search/command section on every board that doesn't override it
+	 * (see {@link Dashboard.showSearch}). */
+	showSearch: boolean;
 	searchPlaceholder: string;
 	showNewNoteButton: boolean;
 	/** What the single button beside the search bar does: create a new note, or
@@ -1462,6 +1467,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// Empty => the Hearth crystal icon is shown as the brand mark.
 	logo: "",
 	themeColorTarget: "none",
+	showSearch: true,
 	searchPlaceholder: "Search or command",
 	showNewNoteButton: true,
 	newNoteButtonMode: "newNote",
@@ -1646,9 +1652,10 @@ export function effectiveFitToPage(s: HomeSettings): boolean {
 	return activeDashboard(s).fitToPage ?? s.fitToPage;
 }
 
-/** Whether the active board should show the search/command section. */
+/** Whether the active board should show the search/command section
+ * (per-dashboard override or global). */
 export function effectiveShowSearch(s: HomeSettings): boolean {
-	return activeDashboard(s).showSearch ?? true;
+	return activeDashboard(s).showSearch ?? s.showSearch;
 }
 
 export const HEADER_SCALE_MIN = 0.6;
