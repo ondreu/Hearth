@@ -298,9 +298,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   has, so you make the bar chunkier or slimmer by dragging the card's edge in
   Arrange — no slider, and it starts thicker than the header's. Four things are
   yours to set: its own **placeholder** (blank keeps the global one), the
-  **filter row** of file-type chips underneath, an optional **button** beside
-  the field — **New note** or **Search online**, the same two the header
-  offers — and **Seamless**.
+  **filter row** of file-type chips underneath — and, chip by chip, *which* of
+  them this card offers, so a narrow bar can carry the two or three that earn
+  their place rather than every type the vault happens to hold — an optional
+  **button** beside the field (**New note** or **Search online**, the same two
+  the header offers), and **Seamless**.
 
   **Seamless** is the one to try: the card stops looking like one. No border, no
   background, no title row — just the search bar, standing on the board on its

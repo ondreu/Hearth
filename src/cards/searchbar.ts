@@ -1,8 +1,9 @@
 import { Component, Setting } from "obsidian";
+import { FILE_TYPE_GROUPS, fileTypeLabel } from "../filetypes";
 import { createSearchBarButton } from "../header";
 import { t } from "../i18n";
 import { SearchSection } from "../search";
-import { type DashboardCard } from "../types";
+import { type DashboardCard, type SearchBarConfig } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -41,7 +42,45 @@ export function renderSearchBar(
 	if (cfg.button && cfg.button !== "none") {
 		row.append(createSearchBarButton(view, bar, cfg.button));
 	}
-	search.renderResultsAndFilters(wrap, wrap, component, { filters: cfg.filters === true });
+	search.renderResultsAndFilters(wrap, wrap, component, {
+		filters: cfg.filters === true,
+		hiddenFilters: cfg.hiddenFilters,
+	});
+}
+
+
+/** One toggle per file-type chip, mirroring Settings → Filters but scoped to
+ * this card — so a narrow bar can carry the three chips that earn their place
+ * instead of every type the vault happens to contain. Chips switched off
+ * vault-wide are shown here as off and can't be switched back on: this list
+ * only ever hides more (see SearchSection.detectGroups). */
+function renderFilterTypes(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: SearchBarConfig,
+): void {
+	const globallyHidden = new Set(ctx.opts.settings.hiddenFilters);
+	const hidden = new Set(cfg.hiddenFilters ?? []);
+	new Setting(containerEl)
+		.setName(t().editors.searchBar.filterTypes)
+		.setDesc(t().editors.searchBar.filterTypesDesc)
+		.setHeading();
+	for (const group of FILE_TYPE_GROUPS) {
+		const off = globallyHidden.has(group.id);
+		const setting = new Setting(containerEl).setName(fileTypeLabel(group));
+		if (off) setting.setDesc(t().editors.searchBar.filterTypeGlobalOff);
+		setting.addToggle((tg) => {
+			tg.setValue(!off && !hidden.has(group.id));
+			tg.setDisabled(off);
+			tg.onChange((v) => {
+				if (v) hidden.delete(group.id);
+				else hidden.add(group.id);
+				cfg.hiddenFilters = hidden.size ? Array.from(hidden) : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	}
 }
 
 
@@ -68,8 +107,11 @@ export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement
 				cfg.filters = v || undefined;
 				ctx.opts.save();
 				ctx.opts.rerender();
+				// The per-chip toggles below only exist while the row does.
+				ctx.requestRender();
 			}),
 		);
+	if (cfg.filters === true) renderFilterTypes(ctx, containerEl, cfg);
 	new Setting(containerEl)
 		.setName(t().editors.searchBar.button)
 		.setDesc(t().editors.searchBar.buttonDesc)
@@ -119,7 +161,14 @@ export const searchbarCard: CardDefinition<"searchbar"> = {
 	render: (view, card, body, component) => renderSearchBar(view, card, body, component),
 	renderEditor: (container, ctx) => searchBarEditor(ctx, container),
 	cloneConfig: (source, copy) => {
-		if (source.searchBar) copy.searchBar = { ...source.searchBar };
+		if (source.searchBar) {
+			copy.searchBar = { ...source.searchBar };
+			// The hidden-chip list is an array: copy it, or the clone edits the
+			// original's row too.
+			if (source.searchBar.hiddenFilters) {
+				copy.searchBar.hiddenFilters = [...source.searchBar.hiddenFilters];
+			}
+		}
 	},
 	// The results overlay has to escape the card box, and a seamless card paints
 	// no surface at all — both are styled off these classes (see styles.css).

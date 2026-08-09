@@ -1133,6 +1133,11 @@ export const en = {
 			filtersDesc:
 				"Show the file-type chips under the field, the same ones the header " +
 				"search bar offers. They need a taller card to sit in.",
+			filterTypes: "Filter chips",
+			filterTypesDesc:
+				"Which chips this card offers. A chip only appears when the vault " +
+				"actually holds that kind of file.",
+			filterTypeGlobalOff: "Hidden for every search bar in Settings → Filters.",
 			button: "Button",
 			buttonDesc:
 				"An action button beside the field: create a new note, or search the " +

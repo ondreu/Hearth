@@ -553,6 +553,17 @@
 	height: auto;
 }
 
+/* Let the field be narrowed as far as the user likes. An <input> carries an
+   intrinsic width — roughly 20 characters — and a flex item's automatic minimum
+   size honours it, so without this the bar refuses to shrink past ~200px: the
+   card narrows, the field doesn't, and the button beside it is pushed out
+   through the card's side. Both elements need it — the bar for its own flex
+   line, the input for the bar's. */
+.hearth-searchbar-row .hearth-search-bar,
+.hearth-searchbar-row .hearth-search-input {
+	min-width: 0;
+}
+
 /* The chip row is a fixed-size band under the bar — it must not absorb the
    card's extra height, that is the bar's to take. */
 .hearth-searchbar-card .hearth-filters {

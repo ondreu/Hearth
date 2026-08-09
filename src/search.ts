@@ -129,14 +129,16 @@ export class SearchSection {
 	/** Renders the results dropdown (as an overlay inside `overlayParent`, which
 	 * must be positioned) and the filter chip row (under `boundary`). `boundary`
 	 * wraps the whole search section and is the click-outside dismissal area.
-	 * `filters: false` leaves the chip row out entirely (the search-bar card can
-	 * turn it off; the header always shows it). */
+	 * `filters: false` leaves the chip row out entirely, and `hiddenFilters`
+	 * drops individual chips from it (the search-bar card offers both; the
+	 * header always shows the full row). */
 	renderResultsAndFilters(
 		overlayParent: HTMLElement,
 		boundary: HTMLElement,
 		component: Component,
-		opts: { filters?: boolean } = {},
+		opts: { filters?: boolean; hiddenFilters?: string[] } = {},
 	): void {
+		this.hiddenFilters = opts.hiddenFilters ?? [];
 		this.rootEl = boundary;
 		this.resultsEl = overlayParent.createDiv("hearth-search-results");
 		this.resultsEl.id = this.resultsId;
@@ -169,6 +171,10 @@ export class SearchSection {
 
 	// ---- Filters --------------------------------------------------------
 
+	/** Chips this instance leaves out on top of the vault-wide ones, set by the
+	 * search-bar card (which can hide them per card). */
+	private hiddenFilters: string[] = [];
+
 	private detectGroups(): FileTypeGroup[] {
 		const present = new Set<string>();
 		let hasFolders = false;
@@ -189,7 +195,9 @@ export class SearchSection {
 			if (!g || g.id === OTHER_GROUP_ID) hasOther = true;
 			if (hasFolders && present.size >= allNonFolderGroups) break;
 		}
-		const hidden = new Set(this.view.plugin.settings.hiddenFilters);
+		// Vault-wide hides come first and always win: a chip switched off in
+		// Settings → Filters stays off everywhere, a card can only hide more.
+		const hidden = new Set([...this.view.plugin.settings.hiddenFilters, ...this.hiddenFilters]);
 		return FILE_TYPE_GROUPS.filter((g) => {
 			if (hidden.has(g.id)) return false;
 			if (g.id === "folders") return hasFolders;

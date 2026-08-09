@@ -470,6 +470,9 @@ export interface SearchBarConfig {
 	 * the header search bar does. Default false — the chips are the opt-in
 	 * extra here, and they need a taller card to sit in. */
 	filters?: boolean;
+	/** File-type group ids (see FILE_TYPE_GROUPS) this card leaves out of its
+	 * chip row, on top of the ones hidden vault-wide in Settings → Filters. */
+	hiddenFilters?: string[];
 	/** Placeholder shown in the empty field. Blank or omitted falls back to the
 	 * global one (Settings → Appearance → Search placeholder). */
 	placeholder?: string;
