@@ -21,6 +21,7 @@ export type CardKind =
 	| "clock"
 	| "tasks"
 	| "calendar"
+	| "schedule"
 	| "stats"
 	| "search"
 	| "searchbar"
@@ -329,20 +330,15 @@ export interface IcsSource {
 	enabled?: boolean;
 }
 
-/** Per-card configuration for a "calendar" card. */
-export interface CalendarConfig {
-	/** Layout: "month" (default) renders the month grid; "agenda" renders a
-	 * chronological list of upcoming days. */
-	view?: "month" | "agenda";
-	/** Agenda view only: how many days ahead to list (including today).
-	 * Default 14. */
-	agendaDays?: number;
-	/** Show an ISO week-number column down the left edge. */
-	showWeekNumbers?: boolean;
-	/** Tint each day by note activity that day (a heatmap). */
-	heatmap?: boolean;
-	/** Which timestamp the heatmap counts. Default "modified". */
-	heatmapMetric?: "modified" | "created";
+/**
+ * Where a calendar-style card gets its events, and what it does with one.
+ *
+ * Shared by the mini calendar and the full Calendar card so both subscribe to
+ * feeds, mirror TaskNotes and create event notes through exactly the same
+ * config and the same editor sections — a user who has set one up knows the
+ * other.
+ */
+export interface CalendarSourcesConfig {
 	/** External ICS calendars overlaid on the card. */
 	sources?: IcsSource[];
 	/** Auto-refresh interval for external calendars, in minutes. 0 (or omitted →
@@ -355,9 +351,78 @@ export interface CalendarConfig {
 	 * instances, timeblocks and TaskNotes' own calendar subscriptions, drawn on
 	 * this card alongside any ICS feeds. Off unless `enabled`. */
 	taskNotes?: TaskNotesSourceConfig;
-	/** Which chips each agenda entry shows. Omitted (or an omitted field) keeps
+	/** Which chips each listed entry shows. Omitted (or an omitted field) keeps
 	 * the default set. */
 	chips?: CalendarChipConfig;
+}
+
+
+/** Per-card configuration for a "calendar" card. */
+export interface CalendarConfig extends CalendarSourcesConfig {
+	/** Layout: "month" (default) renders the month grid; "agenda" renders a
+	 * chronological list of upcoming days. */
+	view?: "month" | "agenda";
+	/** Agenda view only: how many days ahead to list (including today).
+	 * Default 14. */
+	agendaDays?: number;
+	/** Show an ISO week-number column down the left edge. */
+	showWeekNumbers?: boolean;
+	/** Tint each day by note activity that day (a heatmap). */
+	heatmap?: boolean;
+	/** Which timestamp the heatmap counts. Default "modified". */
+	heatmapMetric?: "modified" | "created";
+}
+
+
+/** The layouts a "schedule" (Calendar) card can draw. */
+export type ScheduleView = "month" | "week" | "day" | "list";
+
+
+/**
+ * Per-card configuration for a "schedule" card — the full Calendar.
+ *
+ * Everything here is optional and every default is the one a calendar should
+ * have without being configured: a month grid with named events, the locale's
+ * own week start and clock, the whole day drawn in the time grid (so nothing
+ * can hide outside the visible hours), and the four views reachable from the
+ * toolbar.
+ */
+export interface ScheduleConfig extends CalendarSourcesConfig {
+	/** The view the card opens in. Default "month". */
+	view?: ScheduleView;
+	/** Which views the toolbar's switcher offers. Omitted means all of them; a
+	 * single view hides the switcher. */
+	views?: ScheduleView[];
+	/** Hide the toolbar (period label, navigation and view switcher). The card
+	 * then always shows `view` around today. */
+	hideToolbar?: boolean;
+	/** First day of the week, 0 = Sunday. Omitted follows the locale. */
+	firstDay?: number;
+	/** Leave Saturday and Sunday out of the month and week grids. */
+	hideWeekends?: boolean;
+	/** Show a week-number column down the left edge (month and week). */
+	weekNumbers?: boolean;
+	/** First hour drawn in the week/day time grid. Default 0. */
+	dayStart?: number;
+	/** Hour the week/day time grid ends at, exclusive. Default 24. */
+	dayEnd?: number;
+	/** Height of one hour in the time grid, in pixels. Default 44. */
+	hourHeight?: number;
+	/** Clock used for event times. Omitted follows the locale. */
+	clock?: "12" | "24";
+	/** Month view: how many events a day cell lists before "+N more".
+	 * Default 3; 0 draws every event the cell has room for. */
+	maxPerDay?: number;
+	/** Month view: draw events as named chips (default) or as bare dots, the
+	 * way the mini calendar does. */
+	monthStyle?: "chips" | "dots";
+	/** List view: how many days ahead to list, including today. Default 14. */
+	listDays?: number;
+	/** Draw the current-time line across the week/day grid. Default true. */
+	nowLine?: boolean;
+	/** Mark days that have a daily note, and open (or create) it on click.
+	 * Default true; off makes the card purely an event calendar. */
+	dailyNotes?: boolean;
 }
 
 
@@ -1021,6 +1086,9 @@ export interface DashboardCard {
 	tasks?: TasksConfig;
 	/** kind === "calendar": week-number and heatmap display options. */
 	calendar?: CalendarConfig;
+	/** kind === "schedule": view, grid and event-source options for the full
+	 * Calendar card. */
+	schedule?: ScheduleConfig;
 	/** kind === "search": the saved query and result count. */
 	savedSearch?: SavedSearchConfig;
 	/** kind === "searchbar": filter row and seamless (frameless) display. */

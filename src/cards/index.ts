@@ -20,6 +20,7 @@ import { commandsCard } from "./commands";
 import { clockCard } from "./clock";
 import { tasksCard } from "./tasks";
 import { calendarCard } from "./calendar";
+import { scheduleCard } from "./schedule";
 import { statsCard } from "./stats";
 import { searchCard } from "./search";
 import { searchbarCard } from "./searchbar";
@@ -63,6 +64,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	clock: clockCard,
 	tasks: tasksCard,
 	calendar: calendarCard,
+	schedule: scheduleCard,
 	stats: statsCard,
 	search: searchCard,
 	searchbar: searchbarCard,
@@ -117,7 +119,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 		category: "notes",
 		templates: ["note", "daily", "image", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
 	},
-	{ category: "planning", templates: ["tasks", "calendar", "clock"] },
+	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
 	{ category: "integrations", templates: ["dataview", "datacore", "git", "jira", "rss", "weather", "leaf"] },

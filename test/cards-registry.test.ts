@@ -51,6 +51,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 
 			// ---- Planning ----
 			{ id: "tasks", icon: "list-todo", category: "planning", requires: null, build: { kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 } },
+			{ id: "schedule", icon: "calendar-range", category: "planning", requires: null, build: { kind: "schedule", title: "Calendar", schedule: {}, w: 8, h: 6 } },
 			{ id: "calendar", icon: "calendar-days", category: "planning", requires: null, build: { kind: "calendar", title: "Calendar", w: 4, h: 4 } },
 			{ id: "clock", icon: "clock", category: "planning", requires: null, build: { kind: "clock", title: "", w: 4, h: 2 } },
 
@@ -188,6 +189,13 @@ function maximalCard(): DashboardCard {
 			sources: [{ url: "u" } as never],
 			eventNote: { fields: [{ name: "n" } as never] },
 		},
+		schedule: {
+			views: ["month", "week"],
+			sources: [{ url: "u" } as never],
+			chips: { time: false },
+			taskNotes: { enabled: true },
+			eventNote: { fields: [{ name: "n" } as never] },
+		},
 		savedSearch: { query: "q" },
 		heatmap: { field: "h" } as never,
 		stats: {
@@ -228,6 +236,11 @@ describe("cloneCard deep-clone independence", () => {
 		copy.tasks!.sortRules![0].reverse = true;
 		copy.calendar!.sources!.push({ url: "u2" } as never);
 		copy.calendar!.eventNote!.fields!.push({ name: "n2" } as never);
+		copy.schedule!.views!.push("day");
+		copy.schedule!.sources!.push({ url: "u2" } as never);
+		copy.schedule!.chips!.source = false;
+		copy.schedule!.taskNotes!.enabled = false;
+		copy.schedule!.eventNote!.fields!.push({ name: "n2" } as never);
 		(copy.savedSearch as { query: string }).query = "q2";
 		(copy.heatmap as { field: string }).field = "h2";
 		copy.stats!.builtins!.push("words" as never);
@@ -252,6 +265,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.secondView).toEqual(pristine.secondView);
 		expect(orig.tasks).toEqual(pristine.tasks);
 		expect(orig.calendar).toEqual(pristine.calendar);
+		expect(orig.schedule).toEqual(pristine.schedule);
 		expect(orig.savedSearch).toEqual(pristine.savedSearch);
 		expect(orig.heatmap).toEqual(pristine.heatmap);
 		expect(orig.stats).toEqual(pristine.stats);
@@ -289,6 +303,7 @@ describe("liveness classification", () => {
 			clock: "static",
 			tasks: "vault",
 			calendar: "vault",
+			schedule: "vault",
 			stats: "vault",
 			search: "vault",
 		searchbar: "static",

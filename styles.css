@@ -4273,6 +4273,636 @@
 	max-width: 9em;
 }
 
+/* ===================================================================== */
+/*  Calendar card (kind "schedule")                                      */
+/* ===================================================================== */
+
+.hearth-sched {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	gap: 8px;
+}
+
+.hearth-sched-body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+/* ---- Toolbar ---- */
+
+.hearth-sched-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.hearth-sched-nav {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.hearth-sched-navbtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 26px;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.hearth-sched-navbtn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-sched-navbtn .svg-icon,
+.hearth-sched-navbtn svg {
+	width: 17px;
+	height: 17px;
+}
+
+.hearth-sched-today {
+	padding: 3px 9px;
+	height: 26px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 0.74rem;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.hearth-sched-today:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-sched-title {
+	flex: 1;
+	min-width: 0;
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The view switcher reads as one segmented control rather than four buttons. */
+.hearth-sched-views {
+	display: flex;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 7px;
+	overflow: hidden;
+}
+
+.hearth-sched-view {
+	padding: 3px 9px;
+	height: 26px;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 0.74rem;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.hearth-sched-view + .hearth-sched-view {
+	border-left: 1px solid var(--background-modifier-border);
+}
+
+.hearth-sched-view:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-sched-view.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+/* The per-view toggles read as one list under their shared description. */
+.hearth-sched-viewtoggle {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+/* ---- Shared event chip (month cells and the all-day band) ---- */
+
+.hearth-sched-chip {
+	display: flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 1px 5px;
+	border-radius: 5px;
+	border-left: 3px solid var(--ev-color, var(--interactive-accent));
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 16%, transparent);
+	font-size: 0.72rem;
+	line-height: 1.45;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.hearth-sched-chip:hover {
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 30%, transparent);
+}
+
+/* An all-day chip is the block itself, so it takes the source's colour solid. */
+.hearth-sched-chip.is-allday {
+	border-left: none;
+	background: var(--ev-color, var(--interactive-accent));
+	color: var(--text-on-accent);
+}
+
+.hearth-sched-chip.is-done {
+	opacity: 0.55;
+}
+
+.hearth-sched-chip.is-done .hearth-sched-chiptitle {
+	text-decoration: line-through;
+}
+
+.hearth-sched-chiptime {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.68rem;
+}
+
+.hearth-sched-chip.is-allday .hearth-sched-chiptime {
+	color: inherit;
+}
+
+.hearth-sched-chiptitle {
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-sched-chip.is-allday .hearth-sched-chiptitle {
+	color: inherit;
+}
+
+/* A day that already has a daily note carries the same accent dot everywhere
+   it appears — month cell, week header, list row. */
+.hearth-sched-notedot {
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	flex: 0 0 4px;
+}
+
+/* ---- Month view ---- */
+
+.hearth-sched-month {
+	display: grid;
+	grid-template-columns: repeat(var(--sched-cols, 7), minmax(0, 1fr));
+	/* Header row sized to its text, the weeks sharing what's left equally. */
+	grid-template-rows: auto repeat(var(--sched-rows, 6), minmax(0, 1fr));
+	gap: 1px;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.hearth-sched-month.has-week-numbers {
+	grid-template-columns: minmax(0, 0.4fr) repeat(var(--sched-cols, 7), minmax(0, 1fr));
+}
+
+.hearth-sched-dow,
+.hearth-sched-wk {
+	font-size: 0.68rem;
+	color: var(--text-faint);
+	text-align: center;
+	padding-bottom: 2px;
+}
+
+.hearth-sched-wk {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-sched-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+	padding: 2px 3px;
+	border-radius: 6px;
+	background: var(--background-modifier-hover);
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.hearth-sched-cell:hover {
+	background: var(--background-modifier-border);
+}
+
+.hearth-sched-cell.is-outside {
+	background: transparent;
+}
+
+.hearth-sched-cell.is-outside .hearth-sched-daynum {
+	color: var(--text-faint);
+}
+
+.hearth-sched-cell.is-today {
+	outline: 1px solid var(--interactive-accent);
+	outline-offset: -1px;
+}
+
+.hearth-sched-cellhead {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.hearth-sched-daynum {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	border-radius: 999px;
+	font-size: 0.74rem;
+	color: var(--text-normal);
+	cursor: pointer;
+}
+
+.hearth-sched-daynum:hover {
+	background: var(--background-modifier-border);
+}
+
+.hearth-sched-cell.is-today .hearth-sched-daynum {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 700;
+}
+
+.hearth-sched-cellevents {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+/* The dots layout: the mini calendar's density, inside the bigger grid. */
+.hearth-sched-month.is-dots .hearth-sched-cellevents {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 3px;
+	padding: 2px 1px;
+}
+
+.hearth-sched-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--ev-color, var(--interactive-accent));
+	cursor: pointer;
+}
+
+.hearth-sched-dot.is-done {
+	opacity: 0.4;
+}
+
+.hearth-sched-more {
+	font-size: 0.68rem;
+	color: var(--text-muted);
+	padding-left: 3px;
+	cursor: pointer;
+}
+
+.hearth-sched-more:hover {
+	color: var(--text-normal);
+	text-decoration: underline;
+}
+
+/* ---- Week and day views ---- */
+
+.hearth-sched-timegrid {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	--sched-gutter: 46px;
+}
+
+.hearth-sched-gridhead {
+	display: flex;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-sched-gutterhead {
+	flex: 0 0 var(--sched-gutter);
+}
+
+.hearth-sched-headcols {
+	display: grid;
+	grid-template-columns: repeat(var(--sched-cols, 7), minmax(0, 1fr));
+	flex: 1;
+	min-width: 0;
+}
+
+.hearth-sched-headday {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 4px;
+	padding: 2px 0 5px;
+	border-radius: 6px 6px 0 0;
+	cursor: pointer;
+}
+
+.hearth-sched-headday:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-sched-headdow {
+	font-size: 0.68rem;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.hearth-sched-headnum {
+	font-size: 0.86rem;
+	color: var(--text-normal);
+}
+
+.hearth-sched-headday.is-today .hearth-sched-headnum {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 19px;
+	height: 19px;
+	border-radius: 999px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 700;
+}
+
+/* The band for everything without an hour of its own. */
+.hearth-sched-allday {
+	display: flex;
+	align-items: stretch;
+	gap: 0;
+	padding: 3px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	max-height: 22%;
+	overflow-y: auto;
+}
+
+.hearth-sched-alldaylabel {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 var(--sched-gutter);
+	color: var(--text-faint);
+}
+
+.hearth-sched-alldaylabel .svg-icon,
+.hearth-sched-alldaylabel svg {
+	width: 13px;
+	height: 13px;
+}
+
+.hearth-sched-alldaycols {
+	display: grid;
+	grid-template-columns: repeat(var(--sched-cols, 7), minmax(0, 1fr));
+	flex: 1;
+	min-width: 0;
+	gap: 2px;
+}
+
+.hearth-sched-alldaycol {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.hearth-sched-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.hearth-sched-canvas {
+	display: flex;
+	height: var(--sched-height, 1056px);
+}
+
+.hearth-sched-gutter {
+	flex: 0 0 var(--sched-gutter);
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-sched-hour {
+	height: var(--sched-hour, 44px);
+	position: relative;
+}
+
+/* The label straddles its hour line, except the first one, which would be cut
+   off by the top edge of the scroller. */
+.hearth-sched-hourlabel {
+	position: absolute;
+	top: 0;
+	right: 7px;
+	transform: translateY(-50%);
+	font-size: 0.66rem;
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.hearth-sched-hour:first-child .hearth-sched-hourlabel {
+	transform: none;
+}
+
+.hearth-sched-cols {
+	display: grid;
+	grid-template-columns: repeat(var(--sched-cols, 7), minmax(0, 1fr));
+	flex: 1;
+	min-width: 0;
+}
+
+/* One hour line per row, drawn by the background rather than by an element per
+   hour — the grid stays one element deep however tall the day is. */
+.hearth-sched-col {
+	position: relative;
+	border-left: 1px solid var(--background-modifier-border);
+	background-image: linear-gradient(
+		to bottom,
+		var(--background-modifier-border) 0,
+		var(--background-modifier-border) 1px,
+		transparent 1px
+	);
+	background-size: 100% var(--sched-hour, 44px);
+}
+
+.hearth-sched-col.is-today {
+	background-color: color-mix(in srgb, var(--interactive-accent) 6%, transparent);
+}
+
+.hearth-sched-block {
+	position: absolute;
+	top: var(--ev-top, 0);
+	height: var(--ev-height, 5%);
+	left: calc(var(--ev-left, 0%) + 2px);
+	width: calc(var(--ev-width, 100%) - 4px);
+	display: flex;
+	flex-direction: column;
+	padding: 1px 4px;
+	border-radius: 5px;
+	border-left: 3px solid var(--ev-color, var(--interactive-accent));
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 22%, var(--background-primary));
+	color: var(--text-normal);
+	font-size: 0.7rem;
+	line-height: 1.3;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.hearth-sched-block:hover {
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 36%, var(--background-primary));
+	z-index: 2;
+}
+
+/* A block continuing beyond the drawn window loses the rounding on that side,
+   so it reads as cut off rather than as ending there. */
+.hearth-sched-block.is-clipped-start {
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.hearth-sched-block.is-clipped-end {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.hearth-sched-block.is-done {
+	opacity: 0.55;
+}
+
+.hearth-sched-block.is-done .hearth-sched-blocktitle {
+	text-decoration: line-through;
+}
+
+.hearth-sched-blocktitle {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-sched-blocktime,
+.hearth-sched-blockplace {
+	color: var(--text-muted);
+	font-size: 0.66rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-sched-now {
+	position: absolute;
+	top: var(--now-top, 0);
+	left: 0;
+	right: 0;
+	height: 0;
+	border-top: 2px solid var(--color-red);
+	pointer-events: none;
+	z-index: 3;
+}
+
+/* The knob on the left end, so the line reads as "now" and not as a border. */
+.hearth-sched-now::before {
+	content: "";
+	position: absolute;
+	top: -4px;
+	left: -3px;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--color-red);
+}
+
+.hearth-sched-now.is-hidden {
+	display: none;
+}
+
+/* ---- List view ---- */
+
+.hearth-sched-list {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.hearth-sched-listday {
+	display: flex;
+	align-items: baseline;
+	gap: 7px;
+	padding: 7px 4px 3px;
+	cursor: pointer;
+}
+
+.hearth-sched-listday.is-static {
+	cursor: default;
+}
+
+.hearth-sched-listday:not(.is-static):hover .hearth-sched-listdate {
+	text-decoration: underline;
+}
+
+.hearth-sched-listdate {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.hearth-sched-listday.is-today .hearth-sched-listdate {
+	color: var(--interactive-accent);
+}
+
+.hearth-sched-listrel {
+	font-size: 0.68rem;
+	color: var(--text-faint);
+}
+
+/* The rows themselves are the shared agenda rows (renderEventRow), indented
+   under their day the way the mini calendar's agenda indents them. */
+.hearth-sched-listevents {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 0 8px 4px 14px;
+}
+
 /* Vault statistics card */
 .hearth-stats {
 	display: grid;

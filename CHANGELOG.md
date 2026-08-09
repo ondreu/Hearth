@@ -15,6 +15,36 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A real calendar card.** **Planning → Calendar** is the calendar you look at
+  to plan a day, next to the mini calendar's month-at-a-glance. It draws four
+  views and the toolbar switches between them without leaving the board:
+  **Month**, where every day cell lists its events by name (with “+N more” when
+  a day is busy); **Week** and **Day**, a scrolling time grid where each event
+  sits at its own hour, overlapping ones split into side-by-side columns, all-day
+  items ride in a band across the top, and a red line marks the current time;
+  and **List**, the days ahead with their events under them.
+
+  **It reads your calendars, not a second copy of them.** Sources are exactly
+  the mini calendar's: ICS/iCal subscriptions, TaskNotes (scheduled tasks, due
+  dates, recurring occurrences, timeblocks and the calendars subscribed inside
+  it), and your daily notes — days that already have one are marked, and a day's
+  number opens or creates it. Clicking an event opens the same details popup,
+  with the same **Create note** action behind it.
+
+  **The defaults are the point.** Out of the box it opens on the month, follows
+  Obsidian's language for the week start and the clock, draws the *whole* day in
+  the time grid — nothing can hide outside the visible hours — and scrolls
+  itself to the first event of the day rather than to midnight. When you do want
+  to change something, it is all there: which views the switcher offers (down to
+  one, which hides the switcher), the week start, hidden weekends, week numbers,
+  a 12- or 24-hour clock, named chips or bare dots in the month and how many
+  before the rest collapse, the hours the time grid draws and how tall an hour
+  is, the current-time line, and how far the list reaches. Anything you push
+  outside the drawn hours moves into the all-day band instead of disappearing.
+
+  Where you have navigated to is remembered while Obsidian is open, so saving a
+  note no longer snaps the calendar back to this month.
+
 - **The weather sky, as your background.** **Settings → Appearance →
   Background** has a new type: **Live weather sky**. The board's backdrop
   becomes the painted sky the weather card's artistic style draws — sun,

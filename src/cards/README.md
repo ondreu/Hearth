@@ -56,6 +56,12 @@ keep only the helpers used by more than one kind:
 - `../editors.ts` — the settings-modal framework (`CardSettingsModal`,
   `CardSettingsOptions`) and the generic editor helpers `addResetButton` and
   `moveItem`.
+- `../calendarsource.ts` — everything the two calendar-style kinds share: the
+  per-render `IcsContext` (ICS feeds + the TaskNotes source), the event-details
+  modal and event-note creation, the day picker, the agenda event row, and the
+  editor sections for sources, TaskNotes, chips and event notes. `calendar.ts`
+  (mini) and `schedule.ts` (full Calendar) keep only their own drawing, so the
+  two can't drift on where events come from or what clicking one does.
 
 The rule of thumb: logic used by a single kind belongs in that kind's module;
 logic shared across kinds stays in the relevant shared file, and the module

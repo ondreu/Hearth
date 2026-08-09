@@ -40,6 +40,8 @@ export interface Moment {
 	day(): number;
 	day(value: number): Moment;
 	date(): number;
+	hours(): number;
+	minutes(): number;
 	month(): number;
 	year(): number;
 	diff(other: Moment, unit?: string): number;
@@ -49,11 +51,16 @@ export interface Moment {
 }
 
 interface MomentFn {
-	(input?: Date | string): Moment;
+	(input?: Date | string | number): Moment;
 	/** Strict parse against an explicit format — how a daily note's date is
 	 * recovered from its filename. */
 	(input: string, format: string, strict?: boolean): Moment;
-	localeData(): { firstDayOfWeek(): number };
+	localeData(): {
+		firstDayOfWeek(): number;
+		/** A locale's own format string for a named format, e.g. "LT" → "h:mm A"
+		 * on a 12-hour locale and "HH:mm" on a 24-hour one. */
+		longDateFormat(key: string): string;
+	};
 }
 
 export const moment: MomentFn = createMoment as unknown as MomentFn;
