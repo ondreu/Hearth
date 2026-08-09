@@ -3617,6 +3617,24 @@
 	font-size: 0.9rem;
 }
 
+/* Manual coordinates: two inputs beside a label leave the name/description a
+   sliver of the dialog ("Coord…" over a one-word-per-line paragraph). Stack
+   the pair under the label and let them share the full width. */
+.hearth-weather-coords {
+	display: block;
+}
+
+.hearth-weather-coords .setting-item-control {
+	margin-top: 8px;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+}
+
+.hearth-weather-coord-input {
+	flex: 1 1 8em;
+	min-width: 0;
+}
+
 /* Mini calendar card */
 .hearth-calendar {
 	display: flex;
