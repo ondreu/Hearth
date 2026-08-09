@@ -320,6 +320,14 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.pinned === "boolean") card.pinned = r.pinned;
 	if (typeof r.cardOpacity === "number") card.cardOpacity = r.cardOpacity;
 	if (typeof r.cardBlur === "number") card.cardBlur = r.cardBlur;
+	if (typeof r.cardBorderWidth === "number") {
+		card.cardBorderWidth = clampNum(
+			r.cardBorderWidth,
+			RANGE.cardBorderWidth.min,
+			RANGE.cardBorderWidth.max,
+			RANGE.cardBorderWidth.min,
+		);
+	}
 	if (Array.isArray(r.links)) {
 		card.links = r.links
 			.map(sanitizeLink)

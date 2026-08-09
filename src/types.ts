@@ -1111,6 +1111,9 @@ export interface DashboardCard {
 	/** Override the card surface backdrop blur (frosted glass) for this card, in
 	 * pixels (undefined = dashboard / global). 0 = no blur. */
 	cardBlur?: number;
+	/** Override the card border width for this card, in pixels (undefined =
+	 * dashboard / global). 0 removes the visible border and the header rule. */
+	cardBorderWidth?: number;
 
 	// ---- Layout (legacy grid cell units) ----
 	// Kept as the seed for the free-form coordinates below: older layouts (and
@@ -1821,6 +1824,15 @@ export function effectiveCardBorderWidth(s: HomeSettings): number {
 	return typeof v === "number" && !Number.isNaN(v)
 		? Math.max(0, Math.min(CARD_BORDER_WIDTH_MAX, Math.round(v)))
 		: 1;
+}
+
+/** Resolve the per-card border width override (px), falling back to the
+ * board/global value from effectiveCardBorderWidth. */
+export function resolveCardBorderWidth(s: HomeSettings, card: DashboardCard): number {
+	const v = card.cardBorderWidth;
+	return typeof v === "number" && !Number.isNaN(v)
+		? Math.max(0, Math.min(CARD_BORDER_WIDTH_MAX, Math.round(v)))
+		: effectiveCardBorderWidth(s);
 }
 
 /** Remove a card from whichever list holds it (a board or the pinned set). */

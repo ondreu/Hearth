@@ -1794,6 +1794,9 @@ export const en = {
 			cardBlur: "Card blur",
 			cardBlurDesc:
 				"Frosted-glass blur behind this card (overrides the dashboard default). Needs opacity below 100%.",
+			cardBorderWidth: "Card border",
+			cardBorderWidthDesc:
+				"Border thickness for this card (overrides the dashboard default). 0 removes the border and the line under the title.",
 			useDashboardDefault: "Use dashboard default",
 		},
 		size: {
