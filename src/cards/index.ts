@@ -22,6 +22,7 @@ import { tasksCard } from "./tasks";
 import { calendarCard } from "./calendar";
 import { statsCard } from "./stats";
 import { searchCard } from "./search";
+import { searchbarCard } from "./searchbar";
 import { heatmapCard } from "./heatmap";
 import { calculatorCard } from "./calculator";
 import { dataviewCard } from "./dataview";
@@ -64,6 +65,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	calendar: calendarCard,
 	stats: statsCard,
 	search: searchCard,
+	searchbar: searchbarCard,
 	heatmap: heatmapCard,
 	calculator: calculatorCard,
 	dataview: dataviewCard,
@@ -116,7 +118,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 		templates: ["note", "daily", "image", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
 	},
 	{ category: "planning", templates: ["tasks", "calendar", "clock"] },
-	{ category: "vault", templates: ["search", "stats", "heatmap"] },
+	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
 	{ category: "integrations", templates: ["dataview", "datacore", "git", "jira", "rss", "weather", "leaf"] },
 	{ category: "fun", templates: ["pet"] },
@@ -185,6 +187,16 @@ export function cardFromTemplate(template: CardTemplateDef): DashboardCard {
 		y: -1,
 		...template.build(),
 	};
+}
+
+/** The extra root classes a card's kind puts on it, resolved against the card
+ * itself (a kind may vary them by config — see `CardDefinition.cardClass`).
+ * Split so a definition can name several; `addClass` rejects a single string
+ * holding spaces. */
+export function cardClasses(card: DashboardCard): string[] {
+	const cls = cardDefinition(card).cardClass;
+	const raw = typeof cls === "function" ? cls(card) : cls;
+	return raw ? raw.split(/\s+/).filter(Boolean) : [];
 }
 
 /** Deep-clone a card with a fresh id, so the copy can be added to a dashboard

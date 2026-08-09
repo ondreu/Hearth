@@ -286,6 +286,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   and both open pre-filled: a few prompts about what the card should show and
   where its data would come from, plus your Hearth and Obsidian versions. Edit
   anything before you send it.
+- **A search bar you can put anywhere on the board.** **Vault insight → Search
+  bar** is the header's search field as a card — the same field, not a lesser
+  copy of it, so `#tag`, `key:value` and `>` for commands all work, Omnisearch
+  is used when you have routed search to it, body matches and recent files
+  appear as they do above, and the arrow keys walk the results. The **filter
+  row** underneath is optional, and when the field sits low on the board the
+  results open upwards instead of running off the bottom. Turn on **Seamless**
+  and the card stops looking like one: no border, no background, no title row —
+  just the search bar, standing on the board on its own. It still drags,
+  resizes and configures like any other card — while you are arranging, the
+  dashed outline every card gets marks where it is.
 
 ### Fixed
 

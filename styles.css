@@ -431,6 +431,14 @@
 	color: var(--text-muted);
 }
 
+/* Open upwards when there is no room below the field (search.ts measures and
+   sets .is-above). Only the search-bar card hits this — placed low on the
+   board, or in fit-to-page mode where the grid clips its overflow. */
+.hearth-search-results.is-above {
+	top: auto;
+	bottom: calc(100% + 6px);
+}
+
 /* ---- Filters -------------------------------------------------------- */
 
 /* The chips share out the row's leftover space as gap, growing to at most 48px,
@@ -492,6 +500,54 @@
 
 .hearth-filter-icon {
 	display: flex;
+}
+
+/* ---- Search-bar card ------------------------------------------------- */
+
+/* The search-bar card hosts the very same SearchSection the header renders, so
+   the bar, chips and dropdown need no styling of their own — only a positioned
+   column for the overlay to hang off, matching .hearth-search-col. */
+.hearth-searchbar-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+}
+
+/* The results dropdown is an overlay that has to leave the card box; both the
+   card and its body clip by default (see .hearth-card / .hearth-card-body), so
+   a list of matches would be cut off at the card's edge. Nothing else in this
+   card scrolls, so letting it overflow costs nothing. */
+.hearth-card.is-searchbar-card,
+.hearth-card.is-searchbar-card .hearth-card-body {
+	overflow: visible;
+}
+
+/* Seamless: the card stops being a card. No frame, no surface, no shadow and no
+   padding, so the bar sits directly on the board (or the wallpaper) exactly as
+   the header's does. The card is still a card underneath — it drags, resizes
+   and configures like any other. */
+.hearth-card.is-seamless {
+	border-color: transparent;
+	background: none;
+	box-shadow: none;
+}
+
+.hearth-card.is-seamless:hover {
+	--hearth-card-lift: none;
+}
+
+.hearth-card.is-seamless .hearth-card-body {
+	padding: 0;
+}
+
+/* The title row goes with the frame — but only outside arrange mode, where that
+   same row carries the title input and the card's actions. The card still has
+   an edge to aim at while arranging: the dashed ::after outline every card gets
+   there is drawn on this one too. */
+.hearth-grid:not(.is-arranging) .hearth-card.is-seamless .hearth-card-head {
+	display: none;
 }
 
 /* ---- Recent-card type filter (card editor) -------------------------- */

@@ -122,18 +122,21 @@ export class SearchSection {
 
 	/** Renders the results dropdown (as an overlay inside `overlayParent`, which
 	 * must be positioned) and the filter chip row (under `boundary`). `boundary`
-	 * wraps the whole search section and is the click-outside dismissal area. */
+	 * wraps the whole search section and is the click-outside dismissal area.
+	 * `filters: false` leaves the chip row out entirely (the search-bar card can
+	 * turn it off; the header always shows it). */
 	renderResultsAndFilters(
 		overlayParent: HTMLElement,
 		boundary: HTMLElement,
 		component: Component,
+		opts: { filters?: boolean } = {},
 	): void {
 		this.rootEl = boundary;
 		this.resultsEl = overlayParent.createDiv("hearth-search-results");
 		this.resultsEl.id = this.resultsId;
 		this.resultsEl.setAttribute("role", "listbox");
 		this.resultsEl.hide();
-		this.renderFilters(boundary);
+		if (opts.filters !== false) this.renderFilters(boundary);
 
 		// Close the dropdown when clicking outside the whole search section.
 		// Registered on the per-render component (not the long-lived view) so it's
@@ -426,14 +429,32 @@ export class SearchSection {
 	private showEmpty(text: string = t().search.noMatches): void {
 		this.resultsEl.createDiv("hearth-search-empty").setText(text);
 		this.resultsEl.show();
+		this.placeResults();
 		this.capResultsToViewport();
 		this.inputEl.setAttribute("aria-expanded", "true");
 	}
 
 	private finishResults(): void {
 		this.resultsEl.show();
+		this.placeResults();
 		this.capResultsToViewport();
 		this.inputEl.setAttribute("aria-expanded", "true");
+	}
+
+	/**
+	 * Open the dropdown upwards when there isn't room for it below the field.
+	 * The header bar always has the whole page under it, so this never fires
+	 * there; a search-bar card placed low on the board does hit it — and in
+	 * fit-to-page mode the board clips its overflow, so a downward list would
+	 * simply be cut off. Measured against the window, which is close enough to
+	 * the board's own bottom edge in both modes. Skipped on mobile, where the
+	 * keyboard owns the space below and capResultsToViewport already handles it.
+	 */
+	private placeResults(): void {
+		if (Platform.isMobile) return;
+		const rect = (this.inputEl.closest(".hearth-search-bar") ?? this.inputEl).getBoundingClientRect();
+		const below = window.innerHeight - rect.bottom;
+		this.resultsEl.toggleClass("is-above", below < 200 && rect.top > below);
 	}
 
 	/**
