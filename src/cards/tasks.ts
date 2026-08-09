@@ -29,13 +29,16 @@ import {
 } from "../priority";
 import {
 	activeTaskFields,
+	allowsPriorityStyle,
 	ambientOwner,
 	builtinSource,
+	isPriorityStyle,
 	DATE_RELATIONS,
 	dateDisplay,
 	dateRelation,
 	displayValue,
 	keyIsDate,
+	keyStyle,
 	fieldOpacity,
 	fieldStyle,
 	frontmatterSource,
@@ -351,9 +354,17 @@ function renderValueChip(
 }
 
 
-/** A task's priority: the five-level coloured dot, a labelled chip, or plain
- * text. The dot-only form (a Kanban board card) keeps the value in the tooltip.
- * An explicit colour overrides the level colours from the stylesheet. */
+/**
+ * A task's priority, in whichever form was asked for: the dot and its label
+ * (`dotlabel`, what the fixed layout has always drawn), a filled chip, plain
+ * text, or the bare dot a board card carries with the value in its tooltip.
+ *
+ * The element stays its own — the five level colours and any theme rule written
+ * against them apply to every form — but the chip and text forms are shaped like
+ * every other field's, so picking "Chip" gives a priority a chip rather than
+ * something only a priority does. An explicit colour on a value overrides the
+ * level colour, whichever form it is in.
+ */
 function renderPriorityChip(
 	parent: HTMLElement,
 	priority: string,
@@ -365,7 +376,8 @@ function renderPriorityChip(
 	// The historical class for the compact board form, kept so the existing
 	// stylesheet rule (and any theme overriding it) still matches.
 	if (style === "dot") chip.addClass("is-dot-only");
-	if (style !== "text") chip.createDiv("hearth-task-priority-dot");
+	// The dot belongs to the two forms built around it and to nothing else.
+	if (style === "dot" || style === "dotlabel") chip.createDiv("hearth-task-priority-dot");
 	if (style !== "dot") chip.createSpan({ cls: "hearth-task-priority-label", text: label });
 	applyChipColor(chip, color);
 	chip.setAttribute("title", `Priority: ${label}`);
@@ -920,9 +932,9 @@ function renderLegacyTaskFields(
 				text: hit.boardColumn,
 			});
 		}
-		// The list has room for a labelled priority chip (a bare dot is easy to
+		// The list has room for the dot and its label (a bare dot is easy to
 		// miss); board cards stay dot-only for compactness.
-		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "pill");
+		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
 	} else {
 		// Kanban priority shows as a single coloured dot inline with the title;
 		// the other sources keep their labelled chip in the meta row below.
@@ -931,7 +943,7 @@ function renderLegacyTaskFields(
 		}
 		if (hit.description) renderTaskDescription(hosts.block, hit.description);
 		if (source !== "kanban" && hit.priority) {
-			renderPriorityChip(hosts.meta, hit.priority, "pill");
+			renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
 		}
 	}
 
@@ -995,16 +1007,16 @@ function renderCustomTaskFields(
 	refresh: () => void,
 ): void {
 	for (const field of fields) {
-		const style = fieldStyle(field);
+		const display = fieldStyle(field);
 		// An ambient field paints the whole task instead of adding to it, so it
 		// needs the colour and nothing else.
-		const ambient = isAmbientStyle(style);
+		const ambient = isAmbientStyle(display);
 		const paint = (color: string | null) => {
-			if (color) applyAmbientColor(hosts.root, style, color, fieldOpacity(field));
+			if (color) applyAmbientColor(hosts.root, display, color, fieldOpacity(field));
 		};
 		// A bare dot is compact enough to sit beside a board card's title; on a
 		// list everything shares one row anyway.
-		const host = style === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
+		const host = display === "dot" && layout === "kanban" ? hosts.inline : hosts.meta;
 		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : undefined;
 
 		for (const key of field.keys) {
@@ -1013,6 +1025,10 @@ function renderCustomTaskFields(
 				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
 				continue;
 			}
+			// The dot-and-label form belongs to a priority; any other key in the
+			// same field draws a chip rather than the styleless text it would
+			// otherwise fall through to.
+			const style = keyStyle(display, key.source);
 			// A date carries no discrete values to map, so it is labelled and
 			// coloured by where it falls relative to today, and edited with a
 			// calendar. The dot form keeps that colour and moves the wording into
@@ -2813,7 +2829,7 @@ class TaskDetailModal extends Modal {
 			// The quick view is the task's detail sheet, so it shows every piece of
 			// metadata in its default style — independent of which fields the card
 			// it was opened from happens to display.
-			if (hit.priority) renderPriorityChip(chips, hit.priority, "pill");
+			if (hit.priority) renderPriorityChip(chips, hit.priority, "dotlabel");
 			for (const id of ["start", "scheduled", "due", "doneDate"] as const) {
 				renderTaskDateChip(chips, hit, id, today, "text");
 			}
@@ -4906,7 +4922,10 @@ export class TaskFieldsModal extends Modal {
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
-				for (const style of ["pill", "dot", "text", "hue", "glow"] as const) {
+				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow"] as const) {
+					// The dot-and-label form is the priority's own, so it is offered
+					// only to a field that reads one (or is already set to it).
+					if (isPriorityStyle(style) && !allowsPriorityStyle(field)) continue;
 					d.addOption(style, labels.fieldStyles[style]);
 				}
 				if (ambientTaken) {

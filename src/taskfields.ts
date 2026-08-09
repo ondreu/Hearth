@@ -196,6 +196,44 @@ export function fieldStyle(field: TaskFieldDef): TaskFieldStyle {
 
 
 /**
+ * Whether a style is the priority's own dot-and-label form. It is the shape a
+ * priority has been drawn in since before any of this was configurable, kept as
+ * a style of its own so choosing "Chip" gives a priority the same chip every
+ * other field gets rather than something particular to it.
+ */
+export function isPriorityStyle(style: TaskFieldStyle): boolean {
+	return style === "dotlabel";
+}
+
+
+/** Whether a key reads a priority, and so may be drawn in that form. */
+export function isPrioritySource(source: string): boolean {
+	return sourceBuiltin(source) === "priority";
+}
+
+
+/** Whether a field may offer the dot-and-label form: it reads a priority, or it
+ * is already set to it (a list saved before its keys changed, whose stored
+ * choice the editor still has to be able to show). */
+export function allowsPriorityStyle(field: TaskFieldDef): boolean {
+	return (
+		isPriorityStyle(fieldStyle(field)) || (field.keys ?? []).some((k) => isPrioritySource(k.source))
+	);
+}
+
+
+/**
+ * The style one key actually renders in. Everything but a priority falls back
+ * to a chip when the field asks for the dot-and-label form, so a field that
+ * gathers a priority and a couple of properties under one name stays coherent
+ * instead of drawing the others as bare, styleless text.
+ */
+export function keyStyle(style: TaskFieldStyle, source: string): TaskFieldStyle {
+	return isPriorityStyle(style) && !isPrioritySource(source) ? "pill" : style;
+}
+
+
+/**
  * Whether a style colours the whole task rather than adding something to it.
  * An ambient field renders no chip at all: its value is carried by the row's
  * own tint or ring, which also means it can only say one thing per task.

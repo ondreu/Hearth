@@ -143,12 +143,14 @@ export interface TaskFilterConfig {
  * How a value is drawn on a task.
  *
  * The first three put something on the row: a filled chip, a bare coloured dot
- * (the value moves to the tooltip), or plain text. The last two put nothing
- * there at all and colour the whole task instead — `hue` tints its background,
- * `glow` rings it — so a board can be read at a glance without any single row
- * having to be read at all.
+ * (the value moves to the tooltip), or plain text. `dotlabel` is the dot and the
+ * label together — the form a priority has always been drawn in, and offered
+ * only to a field that reads one. The last two put nothing on the row at all and
+ * colour the whole task instead — `hue` tints its background, `glow` rings it —
+ * so a board can be read at a glance without any single row having to be read at
+ * all.
  */
-export type TaskFieldStyle = "pill" | "dot" | "text" | "hue" | "glow";
+export type TaskFieldStyle = "pill" | "dot" | "dotlabel" | "text" | "hue" | "glow";
 
 /** One value → what to show for it. Matching is case-insensitive on the
  * trimmed raw value. A value with no entry here still renders — as itself,

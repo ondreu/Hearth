@@ -1267,7 +1267,9 @@ export const en = {
 			fieldDisplayDesc:
 				"How this field's values are drawn. The last two show nothing on the " +
 				"task and color the whole row or card instead, and only one field can " +
-				"use them. A description is always its own block of sub-bullets.",
+				"use them. “Colored dot with label” is the priority's own form, offered " +
+				"to fields that read one. A description is always its own block of " +
+				"sub-bullets.",
 			fieldAmbientTaken: (name: string) =>
 				`Tint and glow are already used by “${name}”. A task has one background ` +
 				`and one ring, so only one field can take them.`,
@@ -1277,6 +1279,7 @@ export const en = {
 			fieldStyles: {
 				pill: "Chip",
 				dot: "Colored dot",
+				dotlabel: "Colored dot with label",
 				text: "Plain text",
 				hue: "Tint the whole task",
 				glow: "Glow around the task",

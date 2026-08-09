@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	activeTaskFields,
+	allowsPriorityStyle,
 	ambientOwner,
 	builtinSource,
+	keyStyle,
 	displayValue,
 	fieldOpacity,
 	fieldStyle,
@@ -167,6 +169,38 @@ describe("fieldStyle", () => {
 });
 
 /**
+ * The dot-and-label form a priority has always been drawn in. It is a style of
+ * its own so that "Chip" and "Plain text" give a priority what they give every
+ * other field, rather than something only a priority does.
+ */
+describe("the priority's own style", () => {
+	const priorityKey = { source: builtinSource("priority") };
+
+	it("is offered to a field that reads a priority", () => {
+		expect(allowsPriorityStyle(field({ keys: [priorityKey] }))).toBe(true);
+		expect(allowsPriorityStyle(field())).toBe(false);
+	});
+
+	// A field can be set to it and then have its priority key removed; the
+	// editor still has to show what it is set to.
+	it("is offered to a field already set to it", () => {
+		expect(allowsPriorityStyle(field({ display: "dotlabel", keys: [] }))).toBe(true);
+	});
+
+	it("draws only a priority, and a chip for anything else in the field", () => {
+		expect(keyStyle("dotlabel", builtinSource("priority"))).toBe("dotlabel");
+		expect(keyStyle("dotlabel", frontmatterSource("project"))).toBe("pill");
+		expect(keyStyle("dotlabel", builtinSource("due"))).toBe("pill");
+	});
+
+	it("leaves every other style alone", () => {
+		expect(keyStyle("dot", builtinSource("priority"))).toBe("dot");
+		expect(keyStyle("pill", frontmatterSource("project"))).toBe("pill");
+		expect(keyStyle("hue", builtinSource("status"))).toBe("hue");
+	});
+});
+
+/**
  * The ambient styles colour the task itself instead of adding a chip to it, so
  * they are the two that carry a strength.
  */
@@ -176,6 +210,7 @@ describe("ambient styles", () => {
 		expect(isAmbientStyle("glow")).toBe(true);
 		expect(isAmbientStyle("pill")).toBe(false);
 		expect(isAmbientStyle("dot")).toBe(false);
+		expect(isAmbientStyle("dotlabel")).toBe(false);
 		expect(isAmbientStyle("text")).toBe(false);
 	});
 
