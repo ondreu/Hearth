@@ -7938,9 +7938,12 @@ body.hearth-dv-resizing {
 	border-right: 1px solid var(--background-modifier-border);
 }
 
+/* Same reason as .hearth-card-tile: these are buttons, so left alignment has
+   to be asked for. */
 .hearth-picker-rail-btn {
 	display: flex;
 	align-items: center;
+	justify-content: flex-start;
 	gap: 8px;
 	width: 100%;
 	padding: 6px 10px;
@@ -8022,9 +8025,14 @@ body.hearth-dv-resizing {
 }
 
 /* ---- One card tile ---- */
+/* justify-content and text-align are spelled out because Obsidian's own
+   `button` rules centre both: without them a tile whose name and description
+   are narrower than its column had its whole icon-and-text block pushed to the
+   middle, so tiles in the same row started at different offsets. */
 .hearth-card-tile {
 	display: flex;
 	align-items: flex-start;
+	justify-content: flex-start;
 	gap: 10px;
 	width: 100%;
 	height: auto;
