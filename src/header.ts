@@ -83,14 +83,22 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	const bar = search.renderBar(searchRow);
 
 	if (s.showNewNoteButton && !mobileOnly) {
-		const btn =
-			s.newNoteButtonMode === "searchOnline"
-				? createSearchOnlineButton(bar)
-				: createNewNoteButton(view);
-		searchWrap.append(btn);
+		searchWrap.append(createSearchBarButton(view, bar, s.newNoteButtonMode));
 	}
 
 	search.renderResultsAndFilters(searchCol, searchCol, component);
+}
+
+/** The button that sits beside a search bar, in either of its two modes. Shared
+ * with the search-bar card, which offers the same choice per card — so the two
+ * places can't drift into two subtly different buttons. `bar` is the search bar
+ * the button belongs to; "searchOnline" reads its current query. */
+export function createSearchBarButton(
+	view: HomeView,
+	bar: HTMLElement,
+	mode: "newNote" | "searchOnline",
+): HTMLElement {
+	return mode === "searchOnline" ? createSearchOnlineButton(bar) : createNewNoteButton(view);
 }
 
 /** Read the current query out of the search bar's input element. */

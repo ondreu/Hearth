@@ -1125,14 +1125,28 @@ export const en = {
 			maxResultsDesc: "The most matches to show at once.",
 		},
 		searchBar: {
+			placeholder: "Placeholder",
+			placeholderDesc:
+				"Text shown in the empty field. Leave blank to use the one from " +
+				"Settings → Appearance.",
 			filters: "Filter row",
 			filtersDesc:
 				"Show the file-type chips under the field, the same ones the header " +
-				"search bar offers.",
+				"search bar offers. They need a taller card to sit in.",
+			button: "Button",
+			buttonDesc:
+				"An action button beside the field: create a new note, or search the " +
+				"web for whatever is typed in the field.",
+			buttonNone: "None",
+			buttonNewNote: "New note",
+			buttonSearchOnline: "Search online",
 			seamless: "Seamless",
 			seamlessDesc:
 				"Drop the card frame — no border, background or title row — so this " +
 				"reads as a standalone search bar on the board.",
+			sizeNote:
+				"The field is as thick as the card is tall — drag the card's edge in " +
+				"Arrange to make the bar chunkier or slimmer.",
 		},
 		links: {
 			heading: "Links",

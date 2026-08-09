@@ -506,13 +506,57 @@
 
 /* The search-bar card hosts the very same SearchSection the header renders, so
    the bar, chips and dropdown need no styling of their own — only a positioned
-   column for the overlay to hang off, matching .hearth-search-col. */
+   column for the overlay to hang off, matching .hearth-search-col.
+
+   The column fills the card so the bar can be sized BY the card: there is no
+   thickness setting, you drag the card taller and the field gets chunkier. It
+   centres its contents, so past the bar's maximum the extra height reads as
+   space around a thick bar rather than an ever-taller pill. */
 .hearth-searchbar-card {
 	position: relative;
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
+	/* "safe" keeps a card too short for its contents overflowing downwards only,
+	 * instead of centring the overflow and pushing the bar up out of the card.
+	 * Ignored by engines that don't know it, which leaves plain centring. */
+	justify-content: safe center;
 	gap: 8px;
 	width: 100%;
+	height: 100%;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-card.is-searchbar-card .hearth-card-body {
+	display: flex;
+}
+
+/* The bar's row takes whatever height is left after the (optional) chip row,
+   between a floor that keeps it tappable at the board's smallest card (56px
+   tall, less the body's padding) and a ceiling that stops an accidentally huge
+   card from becoming an absurd pill. The header's bar is a flat 52px; this
+   starts at 68 at the card's default one-row height. */
+.hearth-searchbar-row {
+	display: flex;
+	align-items: stretch;
+	gap: 12px;
+	flex: 1 1 auto;
+	min-height: 36px;
+	max-height: 120px;
+}
+
+/* Both children stretch to the row's height instead of the fixed 52px they
+   carry in the header. */
+.hearth-searchbar-row .hearth-search-bar,
+.hearth-searchbar-row .hearth-newnote {
+	height: auto;
+}
+
+/* The chip row is a fixed-size band under the bar — it must not absorb the
+   card's extra height, that is the bar's to take. */
+.hearth-searchbar-card .hearth-filters {
+	flex: 0 0 auto;
 }
 
 /* The results dropdown is an overlay that has to leave the card box; both the

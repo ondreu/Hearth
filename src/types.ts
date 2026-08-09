@@ -467,8 +467,15 @@ export interface SavedSearchConfig {
 /** Per-card configuration for a "searchbar" (live search field) card. */
 export interface SearchBarConfig {
 	/** Show the auto-detected file-type filter chips under the field, exactly as
-	 * the header search bar does. Default true. */
+	 * the header search bar does. Default false — the chips are the opt-in
+	 * extra here, and they need a taller card to sit in. */
 	filters?: boolean;
+	/** Placeholder shown in the empty field. Blank or omitted falls back to the
+	 * global one (Settings → Appearance → Search placeholder). */
+	placeholder?: string;
+	/** The action button beside the field, or "none" (the default). Same two
+	 * modes as the header's button. */
+	button?: "none" | "newNote" | "searchOnline";
 	/** Drop the card's frame — no border, background, shadow or title row — so
 	 * the field reads as a standalone search bar placed on the board rather than
 	 * as a card. Default false. */

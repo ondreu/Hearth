@@ -58,8 +58,11 @@ export class SearchSection {
 	private updateDebounced = debounce(() => this.update(), 140, true);
 
 	/** Renders the search bar (icon + input). The caller places the New-note
-	 * button beside the returned bar element. */
-	renderBar(parent: HTMLElement): HTMLElement {
+	 * button beside the returned bar element. `placeholder` overrides the global
+	 * one (the search-bar card sets its own); an empty or blank override falls
+	 * back to it, so clearing the field in the card editor restores the default
+	 * rather than leaving the bar unlabelled. */
+	renderBar(parent: HTMLElement, opts: { placeholder?: string } = {}): HTMLElement {
 		const bar = parent.createDiv("hearth-search-bar");
 		const icon = bar.createDiv("hearth-search-icon");
 		setIcon(icon, "search");
@@ -68,7 +71,10 @@ export class SearchSection {
 			cls: "hearth-search-input",
 			attr: {
 				type: "text",
-				placeholder: this.view.plugin.settings.searchPlaceholder || t().search.placeholder,
+				placeholder:
+					opts.placeholder?.trim() ||
+					this.view.plugin.settings.searchPlaceholder ||
+					t().search.placeholder,
 				spellcheck: "false",
 				role: "combobox",
 				"aria-expanded": "false",
