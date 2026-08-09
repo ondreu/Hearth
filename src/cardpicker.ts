@@ -118,6 +118,10 @@ class CardPickerModal extends Modal {
 		this.app.saveLocalStorage(SCOPE_KEY, scope);
 		this.renderRail();
 		this.renderResults();
+		// Start a new category at its top: the results column keeps its height
+		// now, so a scrolled-down position would otherwise carry over and land
+		// you in the middle of the next category.
+		if (this.resultsEl) this.resultsEl.scrollTop = 0;
 	}
 
 	// ---- Search ---------------------------------------------------------

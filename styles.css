@@ -7876,7 +7876,12 @@ body.hearth-dv-resizing {
 	   content and the scroll never engages. */
 	min-height: 0;
 	flex: 1 1 auto;
-	max-height: min(66vh, 640px);
+	/* A fixed height, not a max: with a max, every category sized the modal to
+	   its own content, so clicking from "Notes & files" (nine tiles) to "Fun"
+	   (one) collapsed the dialog and moved the rail out from under the pointer.
+	   Pinning the height keeps the frame still and lets the results column
+	   scroll inside it. */
+	height: min(66vh, 640px);
 }
 
 /* ---- Search field ---- */
