@@ -120,6 +120,12 @@ issue or email.
 
 **Time & data**
 
+- **Calendar** — month, week, day and list views over the same sources, with
+  named events in the month cells, a scrolling time grid that splits
+  overlapping events into columns and marks the current time, and an all-day
+  band. Follows your locale's week start and clock by default; the week start,
+  hidden weekends, week numbers, drawn hours, hour height and much else are
+  yours to set.
 - **Mini calendar** — month grid or agenda, resolved from the core Daily notes
   plugin, with dots for existing notes, ISO week numbers and an edit heatmap.
   Subscribe to external **ICS/iCal** calendars, or use **TaskNotes** as a
