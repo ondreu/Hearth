@@ -285,7 +285,7 @@ export const en = {
 			lowPowerDesc:
 				"Trade the visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
-			homeDesc: "Title, logo and overall content width.",
+			homeDesc: "Title, logo, search visibility and overall content width.",
 			searchBar: "Search bar",
 			searchBarDesc: "How the search field looks and what it does.",
 			grid: "Grid & spacing",
@@ -330,6 +330,10 @@ export const en = {
 			headingDesc: "Title, logo, search bar and overall content width.",
 			showTitle: "Show title",
 			showTitleDesc: "Display the big title/logo at the top.",
+			showSearch: "Show search section",
+			showSearchDesc:
+				"Display the search and command bar with its results and filter buttons. " +
+				"Individual dashboards can override this in their settings.",
 			title: "Title",
 			titleDesc: "The heading text shown at the top of the home view.",
 			logo: "Logo",
@@ -343,10 +347,6 @@ export const en = {
 			themeColorIcon: "Icon",
 			themeColorTitle: "Title",
 			themeColorBoth: "Icon and title",
-			showSearch: "Show search section",
-			showSearchDesc:
-				"Show the search and command bar with its results and filter buttons. " +
-				"Individual dashboards can override this in their settings.",
 			searchPlaceholder: "Search placeholder",
 			searchContents: "Search note contents",
 			searchContentsDesc:

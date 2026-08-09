@@ -7,7 +7,7 @@ import {
 
 /**
  * The search section is controlled in two places at once: a global toggle
- * (Settings → Appearance → Search bar) and a per-dashboard override. The board
+ * (Settings → Appearance → Home) and a per-dashboard override. The board
  * has the last word, and a board that never sets the option has to keep
  * following the global toggle — including when the global toggle is later
  * turned off, which is exactly what a stored `true` would silently break.
