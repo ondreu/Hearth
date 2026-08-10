@@ -192,7 +192,9 @@ calls**.
   so the pair reads as one continuous tile.
 - **Multiple dashboards** — a `[1] [2] [+]` switcher in the top-left. Name each
   board, give it an emoji, reorder by dragging, and override the global width,
-  columns, row height and background per board.
+  columns, row height and background per board. Open a board's settings either
+  from **Dashboard settings** in the **Arrange** toolbar or by right-clicking
+  its switcher button.
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
 - **Fit to page** — lock the board to one screen or let it scroll.

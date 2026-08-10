@@ -117,6 +117,13 @@ export function renderDashboardSwitcher(
 	});
 }
 
+/** Open the per-dashboard settings editor for `dash`. Shared by the switcher's
+ * right-click menu and the arrange-mode toolbar button, so both routes land in
+ * exactly the same modal. */
+export function openDashboardSettings(view: HomeView, dash: Dashboard): void {
+	new DashboardSettingsModal(view, dash).open();
+}
+
 /** Context menu for a single dashboard button: settings and delete. */
 function showDashboardMenu(
 	view: HomeView,
@@ -130,7 +137,7 @@ function showDashboardMenu(
 		item
 			.setTitle(t().dashboards.menu.settings)
 			.setIcon("settings-2")
-			.onClick(() => new DashboardSettingsModal(view, dash).open()),
+			.onClick(() => openDashboardSettings(view, dash)),
 	);
 
 	menu.addItem((item) =>

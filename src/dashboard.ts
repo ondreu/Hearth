@@ -16,9 +16,11 @@ import {
 } from "./cardevents";
 import { cardClasses, cardDefinition, cardFromTemplate, cloneCard } from "./cards";
 import { openCardPicker } from "./cardpicker";
+import { openDashboardSettings } from "./dashboards";
 import { CardSettingsModal } from "./editors";
 import {
 	activeCards,
+	activeDashboard,
 	type DashboardCard,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
@@ -445,6 +447,19 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 					persistAndRender(view);
 				},
 			});
+		});
+
+		// Same editor the dashboard switcher's right-click menu opens, surfaced
+		// here so arrange mode is a self-contained way to configure the board.
+		const dashSettings = bar.createEl("button", { cls: "hearth-tool-btn" });
+		setIcon(dashSettings.createSpan("hearth-tool-icon"), "settings-2");
+		dashSettings.createSpan({
+			cls: "hearth-tool-label",
+			text: t().dashboard.dashboardSettings,
+		});
+		dashSettings.setAttribute("aria-label", t().dashboard.dashboardSettingsAria);
+		dashSettings.addEventListener("click", () => {
+			openDashboardSettings(view, activeDashboard(view.plugin.settings));
 		});
 
 		// Toggle the per-card headers (title input + actions) off so each

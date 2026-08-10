@@ -4967,6 +4967,10 @@
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
+	/* Arrange mode shows four labelled buttons; in a narrow pane they wrap onto
+	 * a second row (still right-aligned) instead of overflowing the board. */
+	flex-wrap: wrap;
+	align-items: center;
 }
 
 .hearth-tool-btn {

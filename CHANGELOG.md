@@ -356,6 +356,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   blur**, with the same reset button to hand the card back to the dashboard
   default. Set it to 0 to drop one card's frame — border and the line under its
   title — while the rest of the board keeps its own.
+- **Dashboard settings, straight from the Arrange toolbar.** A **Dashboard
+  settings** button now sits next to **Add card** while you are arranging, and
+  opens the very same editor as right-clicking the board's switcher button and
+  choosing **Dashboard settings…** — name, header, layout, style and
+  background for the board you are on. The right-click route still works; it is
+  no longer the only one.
 
 ### Fixed
 
