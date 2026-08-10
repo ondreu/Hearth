@@ -108,6 +108,8 @@ export const en = {
 	dashboard: {
 		addCard: "Add card",
 		addCardAria: "Add a card to the dashboard",
+		dashboardSettings: "Dashboard settings",
+		dashboardSettingsAria: "Open settings for this dashboard",
 		showTitles: "Show titles",
 		hideTitles: "Hide titles",
 		showCardHeaders: "Show card headers",
@@ -802,7 +804,8 @@ export const en = {
 			cards: "Cards",
 			cardsDesc:
 				"Add and configure cards on the dashboard itself: open the home view, " +
-				"hit Arrange, then use Add card and each card's settings button.",
+				"hit Arrange, then use Add card, Dashboard settings and each card's " +
+				"settings button.",
 		},
 		layout: {
 			heading: "Import / export",
