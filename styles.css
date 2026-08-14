@@ -30,6 +30,58 @@
 	pointer-events: none;
 }
 
+/* ---- Banner ----------------------------------------------------------
+ *
+ * The other way to wear a background: instead of filling the view, the same
+ * backdrop is cropped into a strip at the top of the content — a cover image,
+ * the way a note's banner works — and the board sits below it on the theme's
+ * own surface.
+ *
+ * It is a real element in the scroll flow rather than a fixed layer, which is
+ * what makes it cost nothing anywhere else: it scrolls away with the content,
+ * and on a fit-to-page board the grid simply gets whatever height is left.
+ * Everything inside it is the wallpaper's own `.hearth-bg` layer, so opacity,
+ * blur and the live weather sky all behave identically in both modes. */
+.hearth-banner {
+	position: relative;
+	/* Never squeezed by the flex column that fit-to-page/empty-board mode turns
+	 * the scroll area into: the height the reader set is the height they get. */
+	flex: 0 0 auto;
+	width: 100%;
+	margin: 0 auto var(--hearth-inner-gap, 28px);
+	border-radius: 12px;
+	/* Crops the layer inside to the strip — including a blurred layer's soft
+	 * edges, which are deliberately grown past this box (see renderBanner). */
+	overflow: hidden;
+	/* Decoration, not a target: clicks belong to whatever is under it. */
+	pointer-events: none;
+}
+
+/* Full-bleed: cancel the scroll area's own padding so the strip runs to the
+ * pane's edges, and drop the corner radius that only makes sense inset. */
+.hearth-banner.is-full-width {
+	max-width: none;
+	width: auto;
+	margin-top: calc(-1 * var(--hearth-scroll-pad-top, 4vh));
+	margin-left: calc(-1 * var(--hearth-scroll-pad-x, 24px));
+	margin-right: calc(-1 * var(--hearth-scroll-pad-x, 24px));
+	border-radius: 0;
+}
+
+/* Fade the lower edge into the page instead of ending on a hard line. Masking
+ * the layer (not the banner) keeps the crop above intact. */
+.hearth-banner.is-faded > .hearth-bg {
+	-webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+	mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+
+/* On a fitted board the banner and the grid share one screen, so cap the strip
+ * before it can eat the whole board — a height meant for a scrolling board
+ * shouldn't leave nothing to fit. */
+.hearth-fit .hearth-banner {
+	max-height: 60%;
+}
+
 /* ---- Low power mode ---------------------------------------------------
  *
  * The paint-cost half of the setting. Everything with a value behind it — the
@@ -80,7 +132,11 @@
 	z-index: 1;
 	height: 100%;
 	overflow-y: auto;
-	padding: 4vh 24px 48px;
+	/* Kept in variables so a full-bleed banner can cancel exactly this padding,
+	 * whichever spacing mode is in force (see .hearth-banner.is-full-width). */
+	--hearth-scroll-pad-x: 24px;
+	--hearth-scroll-pad-top: 4vh;
+	padding: var(--hearth-scroll-pad-top) var(--hearth-scroll-pad-x) 48px;
 }
 
 .hearth-scroll.hearth-fit {
@@ -113,6 +169,15 @@
 .hearth-fit .hearth-inner {
 	height: 100%;
 	min-height: 0;
+}
+
+/* With a banner above it the inner is no longer alone in the fitted column, and
+ * `height: 100%` would resolve against the whole scroll area — overflowing (and
+ * clipping the bottom row of cards) by exactly the banner's height. Take the
+ * remainder instead. */
+.hearth-view.hearth-has-banner .hearth-fit .hearth-inner {
+	height: auto;
+	flex: 1 1 auto;
 }
 
 /* ---- Header --------------------------------------------------------- */
@@ -5580,10 +5645,12 @@
 /* ---- Compact spacing ----------------------------------------------- */
 
 .hearth-compact .hearth-scroll {
-	padding: 1.5vh 14px 24px;
-}
-
-.hearth-compact .hearth-inner {
+	--hearth-scroll-pad-x: 14px;
+	--hearth-scroll-pad-top: 1.5vh;
+	padding: var(--hearth-scroll-pad-top) var(--hearth-scroll-pad-x) 24px;
+	/* Declared on the scroll area rather than on .hearth-inner so the banner —
+	 * inner's sibling, not its child — inherits the compact gap too and keeps
+	 * the same distance from the content as everything else. */
 	--hearth-inner-gap: 16px;
 }
 

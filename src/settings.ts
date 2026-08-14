@@ -5,7 +5,7 @@ import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { CommandPickerModal } from "./pickers";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { type BackgroundKind, CARD_BORDER_WIDTH_MAX, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
+import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, makeClickable, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -27,6 +27,7 @@ type NumericSettingKey =
 	| "maxWidth"
 	| "backgroundOpacity"
 	| "backgroundBlur"
+	| "bannerHeight"
 	| "cardOpacity"
 	| "cardBlur"
 	| "cardRadius"
@@ -886,7 +887,80 @@ export class HomeSettingTab extends PluginSettingTab {
 					});
 				this.addSliderReset(blur, sl, "backgroundBlur");
 			});
+
+			this.bannerSection(containerEl);
 		}
+	}
+
+	/**
+	 * Where the background is painted: across the whole view, or as a banner
+	 * strip at the top of the board. The banner's own shape (height, fade,
+	 * width) only appears once it is the mode in force — there is nothing to
+	 * tune about a strip that isn't being drawn.
+	 */
+	private bannerSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.background;
+
+		new Setting(containerEl)
+			.setName(strings.layout)
+			.setDesc(strings.layoutDesc)
+			.addDropdown((d) => {
+				(Object.keys(strings.layoutLabels) as BackgroundLayout[]).forEach((k) => {
+					d.addOption(k, strings.layoutLabels[k]);
+				});
+				d.setValue(s.backgroundLayout).onChange((v) => {
+					s.backgroundLayout = v as BackgroundLayout;
+					// A wallpaper is dimmed and softened so the board on top of it
+					// stays readable — that is what the 0.35/2 defaults are for. A
+					// banner has nothing on top of it: it is the picture itself, and
+					// at those values it arrives as a grey smear. So lift it once on
+					// the way in, only from wallpaper-ish values, with both sliders
+					// right above to put it back.
+					if (v === "banner") {
+						if (s.backgroundOpacity <= 0.5) s.backgroundOpacity = 1;
+						if (s.backgroundBlur > 0) s.backgroundBlur = 0;
+					}
+					void this.save();
+					this.rerender();
+				});
+			});
+
+		if (s.backgroundLayout !== "banner") return;
+
+		const height = new Setting(containerEl)
+			.setName(strings.bannerHeight)
+			.setDesc(strings.bannerHeightDesc);
+		height.addSlider((sl) => {
+			sl.setLimits(BANNER_HEIGHT_MIN, BANNER_HEIGHT_MAX, 10)
+				.setValue(clampBannerHeight(s.bannerHeight))
+				.setDynamicTooltip()
+				.onChange(async (v) => {
+					s.bannerHeight = v;
+					await this.save();
+				});
+			this.addSliderReset(height, sl, "bannerHeight");
+		});
+
+		new Setting(containerEl)
+			.setName(strings.bannerFade)
+			.setDesc(strings.bannerFadeDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.bannerFade !== false).onChange(async (v) => {
+					s.bannerFade = v;
+					await this.save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(strings.bannerFullWidth)
+			.setDesc(strings.bannerFullWidthDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.bannerFullWidth === true).onChange(async (v) => {
+					s.bannerFullWidth = v;
+					await this.save();
+				}),
+			);
 	}
 
 	/** The weather sky's own controls: where it is, and whether it moves. The

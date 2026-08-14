@@ -222,6 +222,18 @@ export const en = {
 			backgroundValue: "Background value",
 			opacity: "Opacity",
 			blur: "Blur",
+			backgroundLayout: "Background layout",
+			bannerHeight: "Banner height",
+			bannerFade: "Fade the lower edge",
+			bannerFullWidth: "Full width",
+			clearOverride: "Follow the global setting",
+		},
+		useGlobal: "Use global default",
+		on: "on",
+		off: "off",
+		backgroundLayoutOptions: {
+			full: "Full background",
+			banner: "Banner",
 		},
 		backgroundOptions: {
 			default: "Use global default",
@@ -418,6 +430,24 @@ export const en = {
 				"How much the background shows through. Lower is more subtle.",
 			blur: "Blur",
 			blurDesc: "Background blur in pixels.",
+			layout: "Background layout",
+			layoutDesc:
+				"Fill the whole view with the background, or wear it as a banner — " +
+				"a strip across the top of the board, the way a cover image sits " +
+				"above a note — with the cards below it on the theme's own surface. " +
+				"Each board can override this in its own settings.",
+			layoutLabels: {
+				full: "Full background",
+				banner: "Banner",
+			},
+			bannerHeight: "Banner height",
+			bannerHeightDesc: "How tall the banner strip is, in pixels.",
+			bannerFade: "Fade the lower edge",
+			bannerFadeDesc:
+				"Let the banner dissolve into the page instead of ending on a hard line.",
+			bannerFullWidth: "Full width",
+			bannerFullWidthDesc:
+				"Run the banner edge to edge instead of lining it up with the content below.",
 			labels: {
 				default: "Hearth default",
 				none: "None",

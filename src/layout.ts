@@ -40,6 +40,7 @@ import {
 	type TasksConfig,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
+	clampBannerHeight,
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
@@ -155,6 +156,10 @@ export function exportSettings(s: HomeSettings): string {
 		backgroundValue: s.backgroundValue,
 		backgroundOpacity: s.backgroundOpacity,
 		backgroundBlur: s.backgroundBlur,
+		backgroundLayout: s.backgroundLayout,
+		bannerHeight: s.bannerHeight,
+		bannerFade: s.bannerFade,
+		bannerFullWidth: s.bannerFullWidth,
 		// Low power mode overrides the four above rather than replacing them, so
 		// it has to travel with them — otherwise an export taken while it is on
 		// would describe a look the importing vault doesn't show.
@@ -939,6 +944,22 @@ function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	};
 }
 
+/** Read a board's banner overrides off an imported dashboard. Each stays absent
+ * when the file has nothing for it, so an imported board falls back to the
+ * global setting exactly as an unset override should. */
+function applyBannerOverrides(dash: Dashboard, r: Record<string, unknown>): void {
+	if (r.backgroundLayout === "banner" || r.backgroundLayout === "full") {
+		dash.backgroundLayout = r.backgroundLayout;
+	}
+	if (typeof r.bannerHeight === "number") {
+		dash.bannerHeight = clampBannerHeight(r.bannerHeight);
+	}
+	if (typeof r.bannerFade === "boolean") dash.bannerFade = r.bannerFade;
+	if (typeof r.bannerFullWidth === "boolean") {
+		dash.bannerFullWidth = r.bannerFullWidth;
+	}
+}
+
 function sanitizeDashboard(
 	raw: unknown,
 	s: HomeSettings,
@@ -1065,6 +1086,7 @@ function sanitizeDashboard(
 	}
 	const bg = sanitizeBackground(r.background);
 	if (bg) dash.background = bg;
+	applyBannerOverrides(dash, r);
 	return dash;
 }
 
@@ -1286,6 +1308,16 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 	if (typeof data.backgroundBlur === "number") {
 		s.backgroundBlur = Math.max(0, Math.min(40, data.backgroundBlur));
+	}
+	if (data.backgroundLayout === "full" || data.backgroundLayout === "banner") {
+		s.backgroundLayout = data.backgroundLayout;
+	}
+	if (typeof data.bannerHeight === "number") {
+		s.bannerHeight = clampBannerHeight(data.bannerHeight);
+	}
+	if (typeof data.bannerFade === "boolean") s.bannerFade = data.bannerFade;
+	if (typeof data.bannerFullWidth === "boolean") {
+		s.bannerFullWidth = data.bannerFullWidth;
 	}
 	if (typeof data.lowPower === "boolean") s.lowPower = data.lowPower;
 	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();
