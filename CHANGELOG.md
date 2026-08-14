@@ -11,6 +11,28 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [2.1.0]
+
+### Fixed
+
+- **Arranging a fit-to-page board keeps the arrangement.** On a board whose
+  cards are taller than the pane — which is what happens as soon as you zoom
+  Obsidian in, so it depended on your screen and zoom level rather than on
+  anything you did — cards no longer jump when you finish arranging. The board
+  squeezes the layout vertically to fit one screen, but a drag or resize was
+  stored as the *squeezed* pixels, so the squeeze was applied a second time on
+  the next draw: the card landed above where you dropped it, shorter than you
+  made it, gaps between neighbours narrowed, and every further arrange session
+  walked the whole board a little further up. The stored geometry is now
+  converted back out of the fit, so a card stays exactly where you put it.
+- **Snapping works at every zoom level.** On the same fitted boards, the
+  magnetic alignment guides were computed from the cards' unsqueezed positions
+  while you were dragging against their visible edges, so edges tens of pixels
+  away never came close enough to snap — matching a neighbour's height or edge
+  was simply impossible until you zoomed back out. Guides now come from where
+  the cards actually are on screen. A dragged card also no longer jolts to a
+  different position the instant it starts moving.
+
 ## [2.0.0]
 
 ### Added

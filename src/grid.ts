@@ -252,6 +252,79 @@ export function fitVerticalScale(cards: DashboardCard[], boardHeight: number): n
 	return boardHeight / contentHeight;
 }
 
+/** The vertical scale currently applied to this board's cards on screen: the
+ * fit-to-page squeeze when the board is fitted, 1 otherwise. Anything that has
+ * to convert between a card's stored geometry and the pixels it actually
+ * occupies must go through this — see cardGeometryFromScreen. */
+export function boardFitScale(gridEl: HTMLElement, cards: DashboardCard[]): number {
+	if (!gridEl.closest(".hearth-fit")) return 1;
+	return fitVerticalScale(cards, gridEl.clientHeight);
+}
+
+/** Re-apply the fit-to-page layout: derive the one shared vertical scale from
+ * the cards' stored geometry and position every card with it. Render-only — see
+ * applyCardPositionFitted for why this never writes back. Returns the scale it
+ * used. Both the initial/observer-driven refit and the end of a drag go through
+ * here, so a committed arrangement is drawn in exactly the same coordinate space
+ * as the rest of the board. */
+export function applyFitLayout(gridEl: HTMLElement, layout: GridLayout): number {
+	const vScale = fitVerticalScale(layout.cards, gridEl.clientHeight);
+	const boardWidth = gridEl.clientWidth;
+	for (const card of layout.cards) {
+		const el = layout.elements.get(card);
+		if (el) applyCardPositionFitted(el, card, vScale, boardWidth);
+	}
+	return vScale;
+}
+
+/** A card's live on-screen footprint, in the grid's own pixel space. */
+export interface ScreenRect {
+	left: number;
+	top: number;
+	width: number;
+	height: number;
+}
+
+/** Read a card element's footprint as laid out right now. offset* is relative to
+ * the positioned grid, so this is the board-space geometry the pointer sees —
+ * including any fit-to-page vertical squeeze already applied to it. */
+export function screenRect(el: HTMLElement): ScreenRect {
+	return {
+		left: el.offsetLeft,
+		top: el.offsetTop,
+		width: el.offsetWidth,
+		height: el.offsetHeight,
+	};
+}
+
+/** Convert an on-screen footprint back into a card's stored geometry.
+ *
+ * The horizontal axis is a plain board-width fraction. The vertical axis is
+ * where this earns its keep: on a fit-to-page board the cards are painted at
+ * `fy * vScale` / `fh * vScale` (applyCardPositionFitted), so the pixels a drag
+ * ends on are NOT the pixels to store. Dividing the screen geometry back out by
+ * the same scale is what keeps a drop where the user dropped it — storing the
+ * scaled values instead made every committed move/resize re-squeeze on the next
+ * render, jumping the card upward (and shrinking it) by the fit factor, then
+ * compounding on the next arrange because the true geometry had been
+ * overwritten. */
+export function cardGeometryFromScreen(
+	rect: ScreenRect,
+	boardWidth: number,
+	vScale: number,
+): { fx: number; fw: number; fy: number; fh: number } {
+	const w = boardWidth > 0 ? boardWidth : 1;
+	// A zero/negative scale would blow the geometry up to infinity; fitVerticalScale
+	// never returns one, but the model must not depend on that.
+	const scale = vScale > 0 ? vScale : 1;
+	return {
+		fx: clamp(rect.left / w, 0, 1),
+		fw: clamp(rect.width / w, Math.min(MIN_W_PX / w, 1), 1),
+		fy: Math.max(0, rect.top / scale),
+		fh: Math.max(MIN_H_PX, rect.height / scale),
+	};
+}
+
 /** Total pixel height the board needs to show every card. */
 export function layoutHeight(cards: DashboardCard[]): number {
 	let bottom = 0;
@@ -286,6 +359,9 @@ interface DragContext {
 	boardWidth: number;
 	/** Board height (fit-to-page clips to this); Infinity when scrolling. */
 	boardHeight: number;
+	/** The fit-to-page vertical squeeze in force when the drag started, so the
+	 * committed geometry can be converted back out of screen space. */
+	vScale: number;
 	mode: "move" | "resize";
 	/** For resize: which edges follow the pointer. */
 	dir: ResizeDir | null;
@@ -296,7 +372,14 @@ interface DragContext {
 
 /** Collect the vertical (x) and horizontal (y) guide positions a dragged card
  * can snap to: the board's own edges/centre plus every other card's edges,
- * centres and a one-gap offset for tidy adjacency. */
+ * centres and a one-gap offset for tidy adjacency.
+ *
+ * The guides are read off the siblings as they are actually laid out, not from
+ * their stored geometry. On a fit-to-page board the two disagree by the fit
+ * scale, and a guide line that sits tens of pixels away from the edge the user
+ * can see is a guide that never comes within SNAP_THRESHOLD of it — which is
+ * why snapping simply stopped working once the layout overflowed the pane
+ * (typically after zooming Obsidian in, which shortens the board). */
 function collectTargets(
 	layout: GridLayout,
 	active: DashboardCard,
@@ -306,10 +389,9 @@ function collectTargets(
 	const ys = new Set<number>([0]);
 	for (const card of layout.cards) {
 		if (card === active) continue;
-		const left = (card.fx ?? 0) * boardWidth;
-		const width = (card.fw ?? 0) * boardWidth;
-		const top = card.fy ?? 0;
-		const height = card.fh ?? 0;
+		const el = layout.elements.get(card);
+		if (!el) continue;
+		const { left, top, width, height } = screenRect(el);
 		xs.add(left);
 		xs.add(left + width / 2);
 		xs.add(left + width);
@@ -370,6 +452,15 @@ export function enableDragResize(
 	let guideX: HTMLElement | null = null;
 	let guideY: HTMLElement | null = null;
 
+	/** Redraw the board from the stored geometry, in whichever coordinate space
+	 * the board is currently using: fitted boards re-derive the shared vertical
+	 * scale (which a commit may have changed) and reposition every card with it,
+	 * scrolling boards just place the dragged card. */
+	const reposition = () => {
+		if (gridEl.closest(".hearth-fit")) applyFitLayout(gridEl, layout);
+		else applyCardPosition(cardEl, card);
+	};
+
 	// The dragged card's own position is written synchronously on every
 	// pointermove so it tracks the pointer with no lag. The *derived* visual
 	// work — growing the board (a forced layout read over every card), the
@@ -420,21 +511,28 @@ export function enableDragResize(
 		e.preventDefault();
 		e.stopPropagation();
 		const boardWidth = gridEl.clientWidth;
+		const fit = !!gridEl.closest(".hearth-fit");
 		// Fit-to-page clamps cards to the visible board; scroll mode lets the board
 		// grow downward without limit, so a card can be dragged/resized as far down
 		// as the pointer goes (the board height follows via updateBoardHeight).
-		const boardHeight = gridEl.closest(".hearth-fit") ? gridEl.clientHeight : Infinity;
+		const boardHeight = fit ? gridEl.clientHeight : Infinity;
 		const { xTargets, yTargets } = collectTargets(layout, card, boardWidth);
+		// Seed the drag from where the card actually is on screen rather than from
+		// its stored geometry: the pointer deltas below are screen pixels, and on a
+		// fitted board the stored values are the pre-squeeze ones, so mixing the two
+		// snapped the card to its unscaled position the moment it started moving.
+		const rect = screenRect(cardEl);
 		ctx = {
 			pointerId: e.pointerId,
 			startClientX: e.clientX,
 			startClientY: e.clientY,
-			startLeft: (card.fx ?? 0) * boardWidth,
-			startTop: card.fy ?? 0,
-			startWidth: (card.fw ?? 0) * boardWidth,
-			startHeight: card.fh ?? MIN_H_PX,
+			startLeft: rect.left,
+			startTop: rect.top,
+			startWidth: rect.width,
+			startHeight: Math.max(MIN_H_PX, rect.height),
 			boardWidth,
 			boardHeight,
+			vScale: boardFitScale(gridEl, layout.cards),
 			mode,
 			dir,
 			xTargets,
@@ -541,19 +639,25 @@ export function enableDragResize(
 		// Drop any queued mid-drag reflow; this handler recomputes everything
 		// synchronously below from the final committed geometry.
 		cancelReflow();
-		const w = ctx.boardWidth || 1;
-		// Persist the live pixel geometry back into the fractional/pixel model.
-		card.fx = clamp(cardEl.offsetLeft / w, 0, 1);
-		card.fw = clamp(cardEl.offsetWidth / w, MIN_W_PX / w, 1);
-		card.fy = Math.max(0, cardEl.offsetTop);
-		card.fh = Math.max(MIN_H_PX, cardEl.offsetHeight);
+		// Persist the live pixel geometry back into the fractional/pixel model,
+		// undoing any fit-to-page squeeze the card was drawn with.
+		const geo = cardGeometryFromScreen(screenRect(cardEl), ctx.boardWidth, ctx.vScale);
+		card.fx = geo.fx;
+		card.fw = geo.fw;
+		card.fy = geo.fy;
+		card.fh = geo.fh;
 		cardEl.removeClass("is-moving");
 		cardEl.removeClass("is-resizing");
 		showGuide("x", null);
 		showGuide("y", null);
 		ctx = null;
-		// Normalise back to the responsive percentage form.
-		applyCardPosition(cardEl, card);
+		// Normalise back to the stored form. On a fitted board that means re-running
+		// the fit across every card, not just this one: growing or moving a card can
+		// change the layout's total height and so the scale the whole board is drawn
+		// at. Repositioning only the dragged card — with the unscaled helper, as this
+		// used to — left it in a different coordinate space from its neighbours until
+		// the next full render, which is when it appeared to teleport.
+		reposition();
 		updateBoardHeight(gridEl);
 		// After a committed move/resize, recompute merges from the final
 		// stored positions (responsive reflow may have shifted neighbours).
