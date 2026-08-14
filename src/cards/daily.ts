@@ -1,5 +1,6 @@
 import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
 import {
+	cardOverlayButton,
 	dailyNotesOptions,
 	emptyState,
 	livePreviewSetting,
@@ -58,14 +59,7 @@ export function renderDaily(
 	// as a floating overlay on the card element (not the body) so it doesn't
 	// affect the body's scroll/flow.
 	if (card.showOpenButton !== false) {
-		const cardEl = body.closest(".hearth-card");
-		const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
-		const open = overlay.createEl("button", {
-			cls: "hearth-open-btn",
-			attr: { "aria-label": t().cards.daily.openToday },
-		});
-		setIcon(open, "square-pen");
-		open.addEventListener("click", () => {
+		cardOverlayButton(body, "square-pen", t().cards.daily.openToday, () => {
 			void openFile(view, file, "card");
 		});
 	}

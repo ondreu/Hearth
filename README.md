@@ -84,6 +84,13 @@ issue or email.
 - **Embed** — any note, image, canvas or `.base` file, rendered by Obsidian
   itself. Per-card zoom, optional in-place editing (raw or Live Preview), and a
   second view you can flip to with a switcher.
+- **Slideshow** — pictures from your vault, rotated on a timer. Pick them one by
+  one (each with its own caption) or point the card at a folder, with or without
+  its subfolders. Order by name, creation or modification date, your own list
+  order, or shuffled; choose the seconds per picture, the transition (cut,
+  crossfade, slide or zoom) and its length, an optional slow zoom while a picture
+  is held, and whether pictures fill the card or fit inside it. Hover for
+  previous / pause / next.
 - **Daily note** — always today's note, with one-click creation when missing.
 - **Excalidraw & canvas** — edge-to-edge templates with native pan/zoom.
 - **Plugin view** *(beta)* — host another plugin's side-panel view (calendar,

@@ -1,9 +1,10 @@
-import { Component, MarkdownRenderer, setIcon, Setting, TFile } from "obsidian";
+import { Component, MarkdownRenderer, Setting, TFile } from "obsidian";
 import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
 	activeEmbedIndex,
 	activeEmbedView,
 	activeEmbedViewParams,
+	cardOverlayButton,
 	embedViews,
 	emptyState,
 	livePreviewSetting,
@@ -212,14 +213,7 @@ export function mountEmbedViewSwitcher(
  * part in the body's scroll or flow. Where the file lands follows the global
  * open-behaviour setting (#106). */
 function renderEmbedOpenButton(view: HomeView, file: TFile, body: HTMLElement): void {
-	const cardEl = body.closest(".hearth-card");
-	const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
-	const open = overlay.createEl("button", {
-		cls: "hearth-open-btn",
-		attr: { "aria-label": t().cards.embed.openFile },
-	});
-	setIcon(open, "square-arrow-out-up-right");
-	open.addEventListener("click", (evt) => {
+	cardOverlayButton(body, "square-arrow-out-up-right", t().cards.embed.openFile, (evt) => {
 		void openFile(view, file, "card", evt);
 	});
 }

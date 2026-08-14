@@ -28,6 +28,10 @@ import {
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
+	type SlideshowConfig,
+	type SlideshowOrder,
+	type SlideshowSlide,
+	type SlideshowTransition,
 	type TaskFieldDef,
 	type TaskFieldKey,
 	type TaskValueMap,
@@ -39,6 +43,12 @@ import {
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
+import {
+	SLIDESHOW_MAX_INTERVAL_SEC,
+	SLIDESHOW_MAX_TRANSITION_MS,
+	SLIDESHOW_ORDERS,
+	SLIDESHOW_TRANSITIONS,
+} from "./slideshow";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
 import {
 	GIT_ACTION_STYLES,
@@ -362,6 +372,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	}
 	if (r.rss && typeof r.rss === "object") {
 		card.rss = sanitizeRss(r.rss as Record<string, unknown>);
+	}
+	if (r.slideshow && typeof r.slideshow === "object") {
+		card.slideshow = sanitizeSlideshow(r.slideshow as Record<string, unknown>);
 	}
 	if (r.jira !== undefined) {
 		card.jira = sanitizeJira(r.jira);
@@ -738,6 +751,54 @@ function sanitizeRss(r: Record<string, unknown>): RssConfig {
 	if (typeof r.showExcerpt === "boolean") cfg.showExcerpt = r.showExcerpt;
 	if (typeof r.showDate === "boolean") cfg.showDate = r.showDate;
 	if (typeof r.mergeAll === "boolean") cfg.mergeAll = r.mergeAll;
+	return cfg;
+}
+
+function sanitizeSlide(raw: unknown): SlideshowSlide | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	const path = str(r.path);
+	if (path === undefined) return null;
+	const slide: SlideshowSlide = {
+		id: str(r.id) ?? `slide-${Math.random().toString(36).slice(2)}`,
+		path,
+	};
+	const caption = str(r.caption);
+	if (caption !== undefined) slide.caption = caption;
+	return slide;
+}
+
+/** Allowlist and clamp an imported slideshow card configuration. The numeric
+ * fields are clamped to the same bounds the card itself enforces, so an imported
+ * layout can't schedule a runaway timer or a minute-long transition. */
+function sanitizeSlideshow(r: Record<string, unknown>): SlideshowConfig {
+	const cfg: SlideshowConfig = {};
+	if (r.source === "folder") cfg.source = "folder";
+	if (Array.isArray(r.slides)) {
+		cfg.slides = r.slides
+			.map(sanitizeSlide)
+			.filter((s): s is SlideshowSlide => s !== null);
+	}
+	const folder = str(r.folder);
+	if (folder !== undefined) cfg.folder = folder;
+	if (typeof r.includeSubfolders === "boolean") cfg.includeSubfolders = r.includeSubfolders;
+	if (SLIDESHOW_ORDERS.includes(r.order as SlideshowOrder)) {
+		cfg.order = r.order as SlideshowOrder;
+	}
+	if (typeof r.intervalSec === "number" && Number.isFinite(r.intervalSec)) {
+		cfg.intervalSec = clampNum(r.intervalSec, 0, SLIDESHOW_MAX_INTERVAL_SEC, 0);
+	}
+	if (SLIDESHOW_TRANSITIONS.includes(r.transition as SlideshowTransition)) {
+		cfg.transition = r.transition as SlideshowTransition;
+	}
+	if (typeof r.transitionMs === "number" && Number.isFinite(r.transitionMs)) {
+		cfg.transitionMs = clampNum(r.transitionMs, 0, SLIDESHOW_MAX_TRANSITION_MS, 0);
+	}
+	if (typeof r.kenBurns === "boolean") cfg.kenBurns = r.kenBurns;
+	if (r.fit === "contain" || r.fit === "cover") cfg.fit = r.fit;
+	if (typeof r.controls === "boolean") cfg.controls = r.controls;
+	if (typeof r.showCaption === "boolean") cfg.showCaption = r.showCaption;
+	if (typeof r.pauseOnHover === "boolean") cfg.pauseOnHover = r.pauseOnHover;
 	return cfg;
 }
 

@@ -9,6 +9,7 @@ import type {
 import { t } from "../i18n";
 
 import { embedCard } from "./embed";
+import { slideshowCard } from "./slideshow";
 import { dailyCard } from "./daily";
 import { webCard } from "./web";
 import { bookmarksCard } from "./bookmarks";
@@ -53,6 +54,7 @@ export type {
  */
 export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	embed: embedCard,
+	slideshow: slideshowCard,
 	daily: dailyCard,
 	web: webCard,
 	bookmarks: bookmarksCard,
@@ -117,7 +119,7 @@ export function cardDefinition(card: DashboardCard): CardDefinition {
 export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[] }[] = [
 	{
 		category: "notes",
-		templates: ["note", "daily", "image", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
+		templates: ["note", "daily", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
 	},
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },

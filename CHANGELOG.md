@@ -13,6 +13,29 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ## [2.1.0]
 
+### Added
+
+- **A slideshow card.** **Notes & files → Slideshow** is the image embed with
+  more than one picture: it shows them in turn, on a timer you set. Choose the
+  pictures one by one — each can carry its own caption, and the list can be
+  reordered by hand — or point the card at a folder and let every image in it
+  (optionally including subfolders) play, so a card fills itself as you drop
+  photos in.
+
+  **The order is yours**: your own list order, by name, by date created or
+  modified (either direction), or shuffled — a shuffled card reshuffles between
+  passes, so it shows everything once per round without settling into the same
+  running order forever.
+
+  **And so is the way pictures change**: a plain cut, a crossfade, a slide or a
+  zoom, over as long as you like, with an optional slow zoom into each picture
+  while it is held. Pictures either fill the card or fit whole inside it, the
+  caption can be shown over them, and hovering brings up previous / pause / next
+  with the position. It rotates two `<img>` layers no matter how many pictures
+  there are, so a folder of hundreds costs the same as a pair — and it respects
+  low power mode and a reduced-motion preference, holding still rather than
+  animating.
+
 ### Fixed
 
 - **Arranging a fit-to-page board keeps the arrangement.** On a board whose
