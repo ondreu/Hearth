@@ -7,7 +7,12 @@ import {
 	skyGroupCode,
 } from "./sky";
 import type { HomeView } from "./view";
-import { type BackgroundConfig, effectiveBackground } from "./types";
+import {
+	type BackgroundConfig,
+	clampBannerHeight,
+	effectiveBackground,
+	effectiveMaxWidth,
+} from "./types";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
 
 /**
@@ -22,6 +27,13 @@ const DEFAULT_BG_URL =
  * Apply the optional, customizable background as a separate layer behind the
  * content so opacity/blur don't affect the foreground. Uses the active
  * dashboard's override when set, otherwise the global default.
+ *
+ * This is the full-view wallpaper; {@link renderBanner} is the strip at the top
+ * of the content. Which one a board gets is the view's call rather than this
+ * function's, because the configured layout isn't the only input: mobile-only
+ * mode has no content column to head and so asks for the wallpaper whatever the
+ * layout says. `render()` therefore calls exactly one of the two, and this one
+ * paints whenever it is called.
  */
 export function applyBackground(
 	view: HomeView,
@@ -29,11 +41,71 @@ export function applyBackground(
 	component: Component,
 ): void {
 	const bg = effectiveBackground(view.plugin.settings);
-	if (bg.kind === "none") return;
-	// "default" uses the bundled Hearth background; no value field needed.
-	if (bg.kind !== "default" && !bg.value) return;
+	if (!paintable(bg)) return;
 
-	const layer = root.createDiv("hearth-bg");
+	paintBackground(view, root.createDiv("hearth-bg"), bg, component);
+}
+
+/**
+ * Draw the board's backdrop as a banner: a strip across the top of the content,
+ * the way a cover image sits above a note.
+ *
+ * It is the same background the wallpaper mode paints — same kinds, same
+ * opacity and blur, live weather sky included — put in a box of its own instead
+ * of behind everything. That box is a normal element in the scroll flow, so the
+ * rest of the board sits below it on the theme's own surface, and on a
+ * fit-to-page board the grid simply gets the height the banner leaves it.
+ *
+ * Returns the banner element, or null when there is nothing to draw (no
+ * background configured, or the board isn't in banner mode).
+ */
+export function renderBanner(
+	view: HomeView,
+	parent: HTMLElement,
+	component: Component,
+): HTMLElement | null {
+	const bg = effectiveBackground(view.plugin.settings);
+	if (bg.layout !== "banner") return null;
+	if (!paintable(bg)) return null;
+
+	const banner = parent.createDiv("hearth-banner");
+	banner.style.height = `${clampBannerHeight(bg.bannerHeight)}px`;
+	banner.toggleClass("is-faded", bg.bannerFade !== false);
+	// Full width means "as wide as the pane"; otherwise the banner lines up with
+	// the content column, which is the same max-width `.hearth-inner` uses.
+	const full = bg.bannerFullWidth === true;
+	banner.toggleClass("is-full-width", full);
+	if (!full) banner.style.maxWidth = `${effectiveMaxWidth(view.plugin.settings)}px`;
+
+	const layer = banner.createDiv("hearth-bg");
+	// A blurred layer goes soft at its own edges. Behind a whole view that is
+	// barely visible; cropped into a strip it is a pale halo down all four
+	// sides, so grow the layer past the crop and let the softness fall outside.
+	if (bg.blur > 0) layer.style.inset = `-${Math.ceil(bg.blur * 2)}px`;
+
+	paintBackground(view, layer, bg, component);
+	return banner;
+}
+
+/** Whether a background config has anything to paint. "default" ships its own
+ * image so it needs no value; every other kind but "none" needs one. */
+function paintable(bg: BackgroundConfig): boolean {
+	if (bg.kind === "none") return false;
+	return bg.kind === "default" || !!bg.value;
+}
+
+/**
+ * Paint a resolved background into `layer`. Shared by the wallpaper and the
+ * banner: the two differ only in where that layer sits and how big it is, so
+ * everything about *what* is drawn — the opacity, the blur, the colour, the
+ * image URL, the live sky — lives here once.
+ */
+function paintBackground(
+	view: HomeView,
+	layer: HTMLElement,
+	bg: BackgroundConfig,
+	component: Component,
+): void {
 	layer.style.opacity = String(bg.opacity);
 	if (bg.blur > 0) layer.style.filter = `blur(${bg.blur}px)`;
 

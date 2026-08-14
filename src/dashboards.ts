@@ -3,9 +3,13 @@ import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
+	type BackgroundLayout,
 	type Dashboard,
 	type DashboardHeaderConfig,
 	type HeaderAlign,
+	BANNER_HEIGHT_DEFAULT,
+	BANNER_HEIGHT_MAX,
+	BANNER_HEIGHT_MIN,
 	CARD_RADIUS_MAX,
 	CARD_BORDER_WIDTH_MAX,
 	HEADER_MARGIN_TOP_MAX,
@@ -847,15 +851,80 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			1,
 			DEFAULT_DASH_BG_BLUR,
 		);
+
+		this.bannerControls(containerEl, bg);
 	}
 
-	/** A per-dashboard background slider (opacity/blur) with a reset button that
-	 * restores the factory default `def`. */
+	/**
+	 * Wallpaper or banner, for this board alone — and, once it is a banner, the
+	 * shape of the strip. A board that overrides the background overrides how it
+	 * is worn too, so one dashboard can carry a cover image while the next keeps
+	 * the vault's wallpaper.
+	 */
+	private bannerControls(containerEl: HTMLElement, bg: BackgroundConfig): void {
+		const strings = t().dashboards.modal;
+
+		new Setting(containerEl)
+			.setName(strings.backgroundLayout)
+			.setDesc(strings.backgroundLayoutDesc)
+			.addDropdown((d) => {
+				const labels = t().dashboards.backgroundLayoutOptions;
+				(Object.keys(labels) as BackgroundLayout[]).forEach((k) => {
+					d.addOption(k, labels[k]);
+				});
+				d.setValue(bg.layout ?? "full").onChange((v) => {
+					bg.layout = v as BackgroundLayout;
+					// Same lift as the global setting: a banner is the picture
+					// itself, not a backdrop for something else, so wallpaper-ish
+					// opacity and blur would hand the reader a grey smear.
+					if (v === "banner") {
+						if (bg.opacity <= 0.5) bg.opacity = 1;
+						if (bg.blur > 0) bg.blur = 0;
+					}
+					this.commit();
+					this.render();
+				});
+			});
+
+		if (bg.layout !== "banner") return;
+
+		this.bgNumber(
+			containerEl,
+			strings.bannerHeight,
+			bg,
+			"bannerHeight",
+			BANNER_HEIGHT_MIN,
+			BANNER_HEIGHT_MAX,
+			10,
+			BANNER_HEIGHT_DEFAULT,
+		);
+
+		new Setting(containerEl)
+			.setName(strings.bannerFade)
+			.addToggle((tg) =>
+				tg.setValue(bg.bannerFade !== false).onChange((v) => {
+					bg.bannerFade = v;
+					this.commit();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(strings.bannerFullWidth)
+			.addToggle((tg) =>
+				tg.setValue(bg.bannerFullWidth === true).onChange((v) => {
+					bg.bannerFullWidth = v;
+					this.commit();
+				}),
+			);
+	}
+
+	/** A per-dashboard background slider (opacity/blur/banner height) with a
+	 * reset button that restores the factory default `def`. */
 	private bgNumber(
 		containerEl: HTMLElement,
 		name: string,
 		bg: BackgroundConfig,
-		key: "opacity" | "blur",
+		key: "opacity" | "blur" | "bannerHeight",
 		min: number,
 		max: number,
 		step: number,
@@ -864,7 +933,10 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const setting = new Setting(containerEl).setName(name);
 		setting.addSlider((sl) => {
 			sl.setLimits(min, max, step)
-				.setValue(bg[key])
+				// `bannerHeight` is optional on a background saved before banners
+				// existed (and on one that has never been in banner mode), so the
+				// slider starts from the factory value rather than from nothing.
+				.setValue(bg[key] ?? def)
 				// Show the live value in a tooltip. On our declared minAppVersion
 				// (1.8.7) sliders don't yet render the value inline, so this is
 				// how the current opacity/blur stays visible while dragging.

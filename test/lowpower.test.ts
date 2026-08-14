@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	BANNER_HEIGHT_DEFAULT,
 	DEFAULT_SETTINGS,
 	effectiveAutoRefreshMinutes,
 	effectiveBackground,
@@ -65,6 +66,12 @@ describe("effectiveBackground under low power", () => {
 			value: "https://example.com/wallpaper.png",
 			opacity: 0.4,
 			blur: 6,
+			// Resolved rather than configured: effectiveBackground always reports
+			// the banner fields so callers never repeat the fallbacks.
+			layout: "full",
+			bannerHeight: BANNER_HEIGHT_DEFAULT,
+			bannerFade: true,
+			bannerFullWidth: false,
 		});
 
 		s.lowPower = true;
@@ -107,6 +114,10 @@ describe("effectiveBackground under low power", () => {
 			value: "Attachments/board.png",
 			opacity: 0.8,
 			blur: 12,
+			layout: "full",
+			bannerHeight: BANNER_HEIGHT_DEFAULT,
+			bannerFade: true,
+			bannerFullWidth: false,
 		});
 	});
 });

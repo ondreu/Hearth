@@ -40,6 +40,7 @@ import {
 	type TasksConfig,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
+	clampBannerHeight,
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
@@ -155,6 +156,10 @@ export function exportSettings(s: HomeSettings): string {
 		backgroundValue: s.backgroundValue,
 		backgroundOpacity: s.backgroundOpacity,
 		backgroundBlur: s.backgroundBlur,
+		backgroundLayout: s.backgroundLayout,
+		bannerHeight: s.bannerHeight,
+		bannerFade: s.bannerFade,
+		bannerFullWidth: s.bannerFullWidth,
 		// Low power mode overrides the four above rather than replacing them, so
 		// it has to travel with them — otherwise an export taken while it is on
 		// would describe a look the importing vault doesn't show.
@@ -931,12 +936,23 @@ function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	const r = raw as Record<string, unknown>;
 	const kinds: BackgroundKind[] = ["none", "color", "image", "url", "weather"];
 	if (!kinds.includes(r.kind as BackgroundKind)) return undefined;
-	return {
+	const bg: BackgroundConfig = {
 		kind: r.kind as BackgroundKind,
 		value: str(r.value) ?? "",
 		opacity: Math.max(0, Math.min(1, num(r.opacity, 0.15))),
 		blur: Math.max(0, Math.min(40, num(r.blur, 0))),
 	};
+	// Banner fields stay absent when the export has none, so a board imported
+	// from an older file resolves to the full-view wallpaper it was saved as.
+	if (r.layout === "banner" || r.layout === "full") bg.layout = r.layout;
+	if (typeof r.bannerHeight === "number") {
+		bg.bannerHeight = clampBannerHeight(r.bannerHeight);
+	}
+	if (typeof r.bannerFade === "boolean") bg.bannerFade = r.bannerFade;
+	if (typeof r.bannerFullWidth === "boolean") {
+		bg.bannerFullWidth = r.bannerFullWidth;
+	}
+	return bg;
 }
 
 function sanitizeDashboard(
@@ -1286,6 +1302,16 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 	if (typeof data.backgroundBlur === "number") {
 		s.backgroundBlur = Math.max(0, Math.min(40, data.backgroundBlur));
+	}
+	if (data.backgroundLayout === "full" || data.backgroundLayout === "banner") {
+		s.backgroundLayout = data.backgroundLayout;
+	}
+	if (typeof data.bannerHeight === "number") {
+		s.bannerHeight = clampBannerHeight(data.bannerHeight);
+	}
+	if (typeof data.bannerFade === "boolean") s.bannerFade = data.bannerFade;
+	if (typeof data.bannerFullWidth === "boolean") {
+		s.bannerFullWidth = data.bannerFullWidth;
 	}
 	if (typeof data.lowPower === "boolean") s.lowPower = data.lowPower;
 	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();

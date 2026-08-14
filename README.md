@@ -216,6 +216,12 @@ calls**.
   thunder — and keep it whatever the weather is doing, which needs no location
   and never goes online. All with opacity and blur.
   Ships with a soft ambient default.
+- **Banner or full background** — wear that same backdrop either way: filling
+  the whole view, or as a **banner** across the top of the board — a cover
+  image, the way one sits above a note — with the cards below it on your
+  theme's own surface. Set the height, fade the lower edge into the page, and
+  choose whether it lines up with the content or runs edge to edge. Per board,
+  too, so one dashboard can carry a cover while the next keeps the wallpaper.
 - **Frosted glass** — card opacity and backdrop blur at three levels (global →
   per-dashboard → per-card). Merged cards blur as one seamless sheet.
 - **Card corner radius** — from the default 14 px down to sharp 0 px.

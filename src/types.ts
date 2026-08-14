@@ -1297,6 +1297,36 @@ export type BackgroundKind =
  * decode, opacity layer or blur behind it. */
 export const LOW_POWER_BACKGROUND = "#4a4459";
 
+/**
+ * Where the background is painted.
+ *
+ * "full" is the classic Hearth board: the backdrop fills the whole view and the
+ * cards float on top of it. "banner" turns the same backdrop into a strip
+ * across the top of the content — a cover image, the way a note's banner works
+ * — and leaves the rest of the board on the theme's own surface, so the cards
+ * read against a plain background instead of a picture.
+ *
+ * Both modes share one background configuration: the kind, value, opacity and
+ * blur mean exactly the same thing in each, so switching between them is a
+ * single dropdown and never loses what was set up.
+ */
+export type BackgroundLayout = "full" | "banner";
+
+/** How tall a banner is by default, in pixels: big enough to read as a cover
+ * image, short enough that the first row of cards is still on screen. */
+export const BANNER_HEIGHT_DEFAULT = 220;
+/** Banner height bounds. The floor keeps a banner from collapsing into a line;
+ * the ceiling keeps it from pushing the whole board off the fold. */
+export const BANNER_HEIGHT_MIN = 60;
+export const BANNER_HEIGHT_MAX = 600;
+
+/** Clamp a banner height to {@link BANNER_HEIGHT_MIN}..{@link BANNER_HEIGHT_MAX},
+ * falling back to the default for a missing or non-numeric value. */
+export function clampBannerHeight(h: number | undefined): number {
+	if (typeof h !== "number" || Number.isNaN(h)) return BANNER_HEIGHT_DEFAULT;
+	return Math.max(BANNER_HEIGHT_MIN, Math.min(BANNER_HEIGHT_MAX, Math.round(h)));
+}
+
 /** A self-contained background configuration (used for per-dashboard overrides
  * as well as the global default). */
 export interface BackgroundConfig {
@@ -1306,6 +1336,17 @@ export interface BackgroundConfig {
 	value: string;
 	opacity: number;
 	blur: number;
+	/** Full-view wallpaper or a banner strip at the top. Undefined = "full", so
+	 * every background saved before banners existed keeps its look. */
+	layout?: BackgroundLayout;
+	/** Banner height in pixels; only read when `layout` is "banner". */
+	bannerHeight?: number;
+	/** Fade the banner's lower edge into the page instead of cutting it off with
+	 * a hard line. Undefined = faded (the default look). */
+	bannerFade?: boolean;
+	/** Let the banner run edge to edge instead of lining up with the content
+	 * column. Undefined = aligned with the content. */
+	bannerFullWidth?: boolean;
 }
 
 /** A named dashboard: one arrangeable board of cards. The vault can hold several
@@ -1461,6 +1502,16 @@ export interface HomeSettings {
 	backgroundValue: string;
 	backgroundOpacity: number;
 	backgroundBlur: number;
+	/** Paint the background across the whole view, or as a banner strip at the
+	 * top of the content. See {@link BackgroundLayout}. */
+	backgroundLayout: BackgroundLayout;
+	/** Banner height in pixels; only used when `backgroundLayout` is "banner". */
+	bannerHeight: number;
+	/** Fade the banner's lower edge into the page. Default true. */
+	bannerFade: boolean;
+	/** Run the banner edge to edge rather than aligning it with the content
+	 * column. Default false. */
+	bannerFullWidth: boolean;
 	/** Let the "weather" background drift, fall and twinkle. Default true; low
 	 * power mode replaces the whole background anyway, and a reader who has
 	 * asked their OS for reduced motion gets a still sky regardless. */
@@ -1629,6 +1680,12 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	 * the image is still recognizable, not a wash of colour. */
 	backgroundOpacity: 0.35,
 	backgroundBlur: 2,
+	/* The wallpaper board is what Hearth has always been, so it stays the
+	 * default; the banner is a choice, not an upgrade. */
+	backgroundLayout: "full",
+	bannerHeight: BANNER_HEIGHT_DEFAULT,
+	bannerFade: true,
+	bannerFullWidth: false,
 
 	openOnStartup: true,
 	replaceNewTabs: true,
@@ -2019,19 +2076,42 @@ export function setCardPinned(s: HomeSettings, card: DashboardCard, pinned: bool
 }
 
 /** Effective background for the active board (per-dashboard override or global,
- * or the flat low power colour when that mode is on). */
+ * or the flat low power colour when that mode is on).
+ *
+ * The banner fields come back resolved — never undefined — so callers can paint
+ * from the result without repeating the fallbacks. */
 export function effectiveBackground(s: HomeSettings): BackgroundConfig {
 	// Overrides the per-dashboard background too: the point is that no board can
 	// pull in a wallpaper while low power mode is on.
 	if (lowPowerActive(s)) return lowPowerBackground(s);
-	return (
-		activeDashboard(s).background ?? {
-			kind: s.backgroundKind,
-			value: s.backgroundValue,
-			opacity: s.backgroundOpacity,
-			blur: s.backgroundBlur,
-		}
-	);
+	const bg = activeDashboard(s).background;
+	if (bg) {
+		return {
+			...bg,
+			layout: bg.layout ?? "full",
+			bannerHeight: clampBannerHeight(bg.bannerHeight),
+			bannerFade: bg.bannerFade !== false,
+			bannerFullWidth: bg.bannerFullWidth === true,
+		};
+	}
+	return {
+		kind: s.backgroundKind,
+		value: s.backgroundValue,
+		opacity: s.backgroundOpacity,
+		blur: s.backgroundBlur,
+		layout: s.backgroundLayout ?? "full",
+		bannerHeight: clampBannerHeight(s.bannerHeight),
+		bannerFade: s.bannerFade !== false,
+		bannerFullWidth: s.bannerFullWidth === true,
+	};
+}
+
+/** Whether the active board paints its backdrop as a banner rather than as a
+ * full-view wallpaper. A "none" background has nothing to put in a banner, so
+ * it reports false and the board is drawn without one. */
+export function bannerActive(s: HomeSettings): boolean {
+	const bg = effectiveBackground(s);
+	return bg.layout === "banner" && bg.kind !== "none";
 }
 
 /**
@@ -2099,6 +2179,13 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	}
 	if (typeof s.backgroundOpacity !== "number") s.backgroundOpacity = 0.35;
 	if (typeof s.backgroundBlur !== "number") s.backgroundBlur = 2;
+	// Banner mode is purely additive: settings saved before it existed have none
+	// of these keys, and defaulting them to the full-view wallpaper leaves every
+	// existing board looking exactly as it did.
+	if (s.backgroundLayout !== "banner") s.backgroundLayout = "full";
+	s.bannerHeight = clampBannerHeight(s.bannerHeight);
+	if (typeof s.bannerFade !== "boolean") s.bannerFade = true;
+	if (typeof s.bannerFullWidth !== "boolean") s.bannerFullWidth = false;
 	// Fit-to-page is the default for fresh installs; existing users keep their
 	// choice (only backfill when the field is missing entirely).
 	if (typeof raw.fitToPage !== "boolean") s.fitToPage = true;

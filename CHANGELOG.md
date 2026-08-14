@@ -15,6 +15,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A board that wears its background as a banner.** **Appearance → Background →
+  Background layout** offers a second way to show the backdrop you already have:
+  instead of filling the view, it is cropped into a strip across the top of the
+  board — a cover image, the way one sits above a note — and the cards sit below
+  it on your theme's own surface.
+
+  It is the same background either way. The kind, the value, the opacity and the
+  blur all mean exactly what they meant before, a live weather sky included, so
+  switching between the two is one dropdown and loses nothing. What the banner
+  adds is its own shape: **how tall** the strip is, whether its lower edge
+  **fades** into the page or ends on a line, and whether it **lines up with the
+  content** or runs edge to edge.
+
+  Boards choose for themselves. A dashboard that overrides the background now
+  overrides how it is worn too, so one board can carry a cover image while the
+  next keeps the vault's wallpaper. On a fit-to-page board the grid simply takes
+  the height the banner leaves it, and low power mode is unchanged — it still
+  replaces the whole backdrop with its flat colour.
+
 - **A slideshow card.** **Notes & files → Slideshow** is the image embed with
   more than one picture: it shows them in turn, on a timer you set. Choose the
   pictures one by one — each can carry its own caption, and the list can be
