@@ -5,6 +5,7 @@ import {
 	type TAbstractFile,
 } from "obsidian";
 import { emptyState } from "./cardbodies";
+import { deferRedrawWhileTyping } from "./cardfocus";
 import { confirmAction } from "./ui";
 import { t } from "./i18n";
 import type { HomeView } from "./view";
@@ -271,12 +272,25 @@ function mountCardBody(
 		return draw;
 	}
 
+	// Redraws the vault asks for are held while a field inside the card body has
+	// focus, and run once after focus leaves (#212). `editableInPlace` below
+	// covers only the card's *own* textarea; a card also renders focusable
+	// content it doesn't own — anything a plugin puts inside an embed — and that
+	// content is typically what writes the file the card watches, so typing into
+	// it schedules the redraw that destroys it. The returned `draw` stays
+	// un-held: a redraw the user asked for must still be immediate.
+	//
+	// A factory (rather than one shared value) so only the card kinds that
+	// actually redraw from events register the focusout listener — static and
+	// poll cards never call it.
+	const createLiveDraw = () => deferRedrawWhileTyping(body, draw, parent);
+
 	if (live.mode === "watch-file") {
 		// Editable cards sync content edits in their textarea, so don't redraw on
 		// modify (it would drop the cursor) — but still redraw on existence changes.
 		// An embed can switch between a read-only and an editable view, so this is
 		// evaluated per event against whichever view is currently shown.
-		watchCardFile(view, card, events, draw, () => !live.editableInPlace(card), live.watchedPath);
+		watchCardFile(view, card, events, createLiveDraw(), () => !live.editableInPlace(card), live.watchedPath);
 		return draw;
 	}
 
@@ -285,7 +299,10 @@ function mountCardBody(
 	// them — debounced — whenever the vault or its metadata changes.
 	if (live.mode === "vault") {
 		const shouldRedraw = live.shouldRedraw;
-		const redraw = debounce(draw, 400, true);
+		// Held the same way: a dataview/search card can host a plugin's input
+		// just as an embed can. The hold is inside the debounce so it is decided
+		// when the redraw fires, not when it was scheduled.
+		const redraw = debounce(createLiveDraw(), 400, true);
 		events.subscribe((ev) => {
 			// A folder-scoped tasks card reads nothing outside its folders, so
 			// events that provably can't change its content are skipped instead

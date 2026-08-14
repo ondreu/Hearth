@@ -5,6 +5,7 @@ import { renderDashboard } from "./dashboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { applyBackground, renderBanner } from "./background";
+import { deferRedrawWhileTyping } from "./cardfocus";
 import {
 	bannerActive,
 	effectiveFitToPage,
@@ -44,6 +45,9 @@ export class HomeView extends ItemView {
 	hideHeaderInArrange = false;
 	/** Per-render child component so embeds/markdown get cleaned up on re-render. */
 	private renderChild: Component | null = null;
+	/** {@link liveRender}'s focus-held re-render, built on first use (the
+	 * listener it registers lives on `contentEl`, which outlives every render). */
+	private heldLiveRender: (() => void) | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: HearthPlugin) {
 		super(leaf);
@@ -124,6 +128,19 @@ export class HomeView extends ItemView {
 			this.removeChild(this.renderChild);
 			this.renderChild = null;
 		}
+	}
+
+	/**
+	 * The vault-driven re-render behind the "Live refresh on vault changes"
+	 * setting. Identical to {@link render}, except that it is held while the user
+	 * is typing into a field on the board and runs once after focus leaves
+	 * (#212) — otherwise the board rebuild takes the focused input with it, one
+	 * level above the same guard on each card's own redraw. Every other caller
+	 * re-renders on something the user just did, so they keep calling `render`.
+	 */
+	liveRender(): void {
+		this.heldLiveRender ??= deferRedrawWhileTyping(this.contentEl, () => this.render(), this);
+		this.heldLiveRender();
 	}
 
 	/** Full rebuild of the view. Cheap enough to call on any settings change. */
