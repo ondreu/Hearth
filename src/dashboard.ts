@@ -38,12 +38,11 @@ import {
 } from "./types";
 import {
 	applyCardPosition,
-	applyCardPositionFitted,
 	applyEdgeMerging,
+	applyFitLayout,
 	enableDragResize,
 	ensureFreeform,
 	ensureLayout,
-	fitVerticalScale,
 	type GridLayout,
 	GRID_GAP,
 	layoutHeight,
@@ -199,13 +198,9 @@ export function renderDashboard(
 			if (!grid.isConnected) return;
 			// One shared scale keeps relative spacing intact, so cards never
 			// overlap when the window is made short (clamping each card on its own
-			// piled them at the top).
-			const vScale = fitVerticalScale(cards, grid.clientHeight);
-			const boardWidth = grid.clientWidth;
-			for (const card of cards) {
-				const el = gridLayout.elements.get(card);
-				if (el) applyCardPositionFitted(el, card, vScale, boardWidth);
-			}
+			// piled them at the top). Ending a drag re-runs the very same helper, so
+			// an arranged card is never left in a different space from its neighbours.
+			applyFitLayout(grid, gridLayout);
 			applyEdgeMerging(grid);
 		};
 		// Apply the fit synchronously on the next frame, before the browser
