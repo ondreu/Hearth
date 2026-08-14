@@ -771,6 +771,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			strings.effectRefresh,
 			strings.effectLiveRefresh,
 			strings.effectClock,
+			strings.effectSlideshow,
 		]) {
 			list.createEl("li", { text: line });
 		}

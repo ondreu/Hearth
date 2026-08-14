@@ -6512,6 +6512,256 @@ body.hearth-dv-resizing {
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
+/* ---- Slideshow card --------------------------------------------------
+ *
+ * A picture embed that rotates. However many pictures a card has, only two
+ * layers exist — the one on screen and the one coming in — so what is
+ * composited never grows with the size of the folder. Every transition is a
+ * pair of animations on those two layers: the incoming one plays `is-in-*`, the
+ * outgoing one `is-out-*`, both with `both` fill so the pair holds its end state
+ * until the next swap clears the classes and starts over. The `is-trans-none`
+ * variant simply defines neither, which is the cut. */
+.hearth-card-body.hearth-slideshow-host {
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-slideshow {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	/* Overwritten per card from the editor's transition length and hold time. */
+	--hearth-slide-ms: 700ms;
+	--hearth-slide-hold: 8000ms;
+}
+
+.hearth-slide {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+}
+
+.hearth-slide.is-active {
+	opacity: 1;
+	z-index: 2;
+}
+
+.hearth-slide-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.hearth-slideshow.is-fit-cover .hearth-slide-img {
+	object-fit: cover;
+}
+
+.hearth-slideshow.is-fit-contain .hearth-slide-img {
+	object-fit: contain;
+}
+
+/* Crossfade */
+.hearth-slideshow.is-trans-fade > .hearth-slide.is-in-next,
+.hearth-slideshow.is-trans-fade > .hearth-slide.is-in-prev {
+	animation: hearth-slide-fade-in var(--hearth-slide-ms) ease both;
+}
+
+.hearth-slideshow.is-trans-fade > .hearth-slide.is-out-next,
+.hearth-slideshow.is-trans-fade > .hearth-slide.is-out-prev {
+	animation: hearth-slide-fade-out var(--hearth-slide-ms) ease both;
+}
+
+/* Slide. Both layers stay opaque and simply move, in the direction the step was
+ * taken — so stepping back with the controls slides back rather than forward. */
+.hearth-slideshow.is-trans-slide > .hearth-slide.is-in-next {
+	animation: hearth-slide-in-next var(--hearth-slide-ms) ease both;
+}
+
+.hearth-slideshow.is-trans-slide > .hearth-slide.is-out-next {
+	animation: hearth-slide-out-next var(--hearth-slide-ms) ease both;
+}
+
+.hearth-slideshow.is-trans-slide > .hearth-slide.is-in-prev {
+	animation: hearth-slide-in-prev var(--hearth-slide-ms) ease both;
+}
+
+.hearth-slideshow.is-trans-slide > .hearth-slide.is-out-prev {
+	animation: hearth-slide-out-prev var(--hearth-slide-ms) ease both;
+}
+
+/* Zoom: the new picture comes in slightly enlarged, the old one falls back. */
+.hearth-slideshow.is-trans-zoom > .hearth-slide.is-in-next,
+.hearth-slideshow.is-trans-zoom > .hearth-slide.is-in-prev {
+	animation: hearth-slide-zoom-in var(--hearth-slide-ms) ease both;
+}
+
+.hearth-slideshow.is-trans-zoom > .hearth-slide.is-out-next,
+.hearth-slideshow.is-trans-zoom > .hearth-slide.is-out-prev {
+	animation: hearth-slide-zoom-out var(--hearth-slide-ms) ease both;
+}
+
+@keyframes hearth-slide-fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes hearth-slide-fade-out {
+	from { opacity: 1; }
+	to { opacity: 0; }
+}
+
+@keyframes hearth-slide-in-next {
+	from { opacity: 1; transform: translateX(100%); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes hearth-slide-out-next {
+	from { opacity: 1; transform: translateX(0); }
+	to { opacity: 1; transform: translateX(-100%); }
+}
+
+@keyframes hearth-slide-in-prev {
+	from { opacity: 1; transform: translateX(-100%); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes hearth-slide-out-prev {
+	from { opacity: 1; transform: translateX(0); }
+	to { opacity: 1; transform: translateX(100%); }
+}
+
+@keyframes hearth-slide-zoom-in {
+	from { opacity: 0; transform: scale(1.08); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes hearth-slide-zoom-out {
+	from { opacity: 1; transform: scale(1); }
+	to { opacity: 0; transform: scale(0.94); }
+}
+
+/* Optional slow zoom into the picture on screen ("Ken Burns"), lasting exactly
+ * as long as the picture is held so it neither finishes early nor jumps. The
+ * animation restarts on its own: the class is removed from the layer and added
+ * back on every swap. */
+.hearth-slideshow.is-kenburns > .hearth-slide.is-active .hearth-slide-img {
+	animation: hearth-slide-kenburns var(--hearth-slide-hold) ease-out both;
+}
+
+@keyframes hearth-slide-kenburns {
+	from { transform: scale(1); }
+	to { transform: scale(1.09); }
+}
+
+/* The caption sits over the picture with a gradient scrim, so it stays readable
+ * on a light photo and a dark one alike. */
+.hearth-slide-caption {
+	position: absolute;
+	inset: auto 0 0 0;
+	z-index: 3;
+	padding: 22px 12px 9px;
+	color: #fff;
+	font-size: 0.76rem;
+	font-weight: 500;
+	line-height: 1.35;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0));
+	pointer-events: none;
+}
+
+/* Previous / pause / next and the position, revealed on hover or keyboard
+ * focus like the embed card's floating view switcher. */
+.hearth-slideshow-controls {
+	position: absolute;
+	right: 6px;
+	bottom: 6px;
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 140ms ease;
+}
+
+.hearth-card:hover .hearth-slideshow-controls,
+.hearth-slideshow-controls:focus-within {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Nothing hovers on a touch screen, so there the controls are simply always
+ * there — dimmed rather than hidden. */
+@media (hover: none) {
+	.hearth-slideshow-controls {
+		opacity: 0.85;
+		pointer-events: auto;
+	}
+}
+
+.hearth-slideshow-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 3px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition:
+		background 140ms ease,
+		color 140ms ease;
+}
+
+.hearth-slideshow-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-slideshow-btn .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+/* A paused slideshow says so: the play button it now shows is accented, so a
+ * card that has stopped rotating doesn't read as a broken one. */
+.hearth-slideshow-btn.is-paused {
+	color: var(--text-accent);
+}
+
+.hearth-slideshow-count {
+	padding: 0 6px 0 3px;
+	color: var(--text-muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+/* A reader who asked for less motion still gets the slideshow — it just stops
+ * moving: the sliding and zooming transitions become the crossfade, and the slow
+ * zoom is dropped. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-slideshow > .hearth-slide.is-in-next,
+	.hearth-slideshow > .hearth-slide.is-in-prev {
+		animation-name: hearth-slide-fade-in;
+	}
+
+	.hearth-slideshow > .hearth-slide.is-out-next,
+	.hearth-slideshow > .hearth-slide.is-out-prev {
+		animation-name: hearth-slide-fade-out;
+	}
+
+	.hearth-slideshow.is-kenburns > .hearth-slide.is-active .hearth-slide-img {
+		animation: none;
+	}
+}
+
 /* ---- Activity heatmap card ------------------------------------------ */
 .hearth-heatmap {
 	display: flex;

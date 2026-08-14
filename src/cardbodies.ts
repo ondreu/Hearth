@@ -12,7 +12,8 @@ import { type HomeView } from "./view";
  * Shared rendering helpers used by more than one card module (issue #103,
  * Phase B). Each kind's own render logic now lives in its `src/cards/<kind>.ts`
  * module; what remains here is only the cross-cutting machinery those modules
- * build on: the `emptyState` placeholder, the Markdown-embed core (used by the
+ * build on: the `emptyState` placeholder, the floating `cardOverlayButton`
+ * (daily, embed, slideshow), the Markdown-embed core (used by the
  * embed, daily, dataview and text cards), the daily-note path resolvers (daily,
  * embed, calendar, stats, heatmap), the vault-activity helpers (calendar,
  * heatmap), the free-form tile drag/resize grid (links, commands), the embed
@@ -70,6 +71,31 @@ export function emptyState(body: HTMLElement, icon: string, text: string): void 
 	const empty = body.createDiv("hearth-card-empty");
 	setIcon(empty.createDiv("hearth-card-empty-icon"), icon);
 	empty.createDiv({ cls: "hearth-card-empty-text", text });
+}
+
+
+/**
+ * A small action button floated over the card — the "open this file" affordance
+ * the daily, embed and slideshow cards each offer. It is attached to the card
+ * *element* rather than the body, so it takes no part in the body's scroll or
+ * flow, and falls back to the body when the card element can't be found (the
+ * card settings preview has no `.hearth-card` ancestor).
+ */
+export function cardOverlayButton(
+	body: HTMLElement,
+	icon: string,
+	label: string,
+	onClick: (evt: MouseEvent) => void,
+): HTMLButtonElement {
+	const cardEl = body.closest(".hearth-card");
+	const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
+	const button = overlay.createEl("button", {
+		cls: "hearth-open-btn",
+		attr: { "aria-label": label },
+	});
+	setIcon(button, icon);
+	button.addEventListener("click", onClick);
+	return button;
 }
 
 

@@ -50,9 +50,10 @@ Each kind's **render** and **editor** implementations now live in its own module
 keep only the helpers used by more than one kind:
 
 - `../cardbodies.ts` — the render helpers shared across kinds: the `emptyState`
-  placeholder, the Markdown-embed core, the daily-note path resolvers, the
-  vault-activity helpers, the free-form tile grid, the embed view-state cluster
-  and `feedHost`.
+  placeholder, the floating `cardOverlayButton` (the "open this file" affordance
+  on the daily, embed and slideshow cards), the Markdown-embed core, the
+  daily-note path resolvers, the vault-activity helpers, the free-form tile grid,
+  the embed view-state cluster and `feedHost`.
 - `../editors.ts` — the settings-modal framework (`CardSettingsModal`,
   `CardSettingsOptions`) and the generic editor helpers `addResetButton` and
   `moveItem`.
@@ -66,3 +67,12 @@ keep only the helpers used by more than one kind:
 The rule of thumb: logic used by a single kind belongs in that kind's module;
 logic shared across kinds stays in the relevant shared file, and the module
 imports it.
+
+One exception, for tests: a kind's *pure* logic sometimes lives one level up, in
+`src/<kind>.ts` (`taskscope.ts` for the tasks card, `slideshow.ts` for the
+slideshow card). A card module that imports `../editors.ts` sits in an import
+cycle — editors imports the registry barrel, which imports every card module —
+and a unit test that imports the card module directly walks into it, getting a
+half-built registry. Keeping the data-only functions in their own module, with no
+Obsidian imports at all, keeps them directly testable; the card module imports
+them like any other helper.

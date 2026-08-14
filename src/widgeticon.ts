@@ -1,9 +1,7 @@
 import { setIcon, setTooltip, TFile } from "obsidian";
 import type { HomeView } from "./view";
+import { isImageFile } from "./filetypes";
 import { t } from "./i18n";
-
-/** Image file extensions a widget tile can use as its icon (#119). */
-const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "avif", "ico"]);
 
 /**
  * Resolve an icon string to a vault image file, or null when it isn't one. A
@@ -16,7 +14,7 @@ export function resolveIconImage(view: HomeView, icon: string | undefined): TFil
 	const path = icon?.trim();
 	if (!path) return null;
 	const file = view.app.vault.getAbstractFileByPath(path);
-	return file instanceof TFile && IMAGE_EXTS.has(file.extension.toLowerCase()) ? file : null;
+	return file && isImageFile(file) ? file : null;
 }
 
 /**

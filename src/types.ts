@@ -10,6 +10,7 @@ import type {
 /** The kind of content a dashboard card renders. */
 export type CardKind =
 	| "embed"
+	| "slideshow"
 	| "daily"
 	| "web"
 	| "bookmarks"
@@ -1026,6 +1027,79 @@ export interface EmbedView {
 	livePreview?: boolean;
 }
 
+/** One hand-picked picture in a "slideshow" card. Kept as its own object (rather
+ * than a bare path) so a picture can carry a caption and keep a stable identity
+ * while the list is reordered. */
+export interface SlideshowSlide {
+	id: string;
+	/** Vault path of the image file. */
+	path: string;
+	/** Caption shown over the picture; falls back to the file's basename. */
+	caption?: string;
+}
+
+/** Where a "slideshow" card takes its pictures from: the hand-picked `slides`
+ * list, or every image inside a folder. */
+export type SlideshowSource = "list" | "folder";
+
+/**
+ * The order a slideshow shows its pictures in.
+ *
+ * "manual" is the `slides` list's own order — the only order a folder source
+ * cannot honour, so it resolves to "name" there (see `slideshowOrder`).
+ * "random" reshuffles after every full pass, so nothing repeats until every
+ * picture has been shown.
+ */
+export type SlideshowOrder =
+	| "manual"
+	| "name"
+	| "nameDesc"
+	| "created"
+	| "createdDesc"
+	| "modified"
+	| "modifiedDesc"
+	| "random";
+
+/** How one picture gives way to the next. "none" is a cut. */
+export type SlideshowTransition = "none" | "fade" | "slide" | "zoom";
+
+/** How a picture fills the card: cropped to fill it edge to edge ("cover"), or
+ * scaled down whole with letterboxing ("contain"). */
+export type SlideshowFit = "cover" | "contain";
+
+/** Per-card configuration for a "slideshow" card — a picture embed that
+ * rotates. All fields are optional; the defaults noted below are the ones a
+ * freshly added card runs with. */
+export interface SlideshowConfig {
+	/** Where the pictures come from. Default "list". */
+	source?: SlideshowSource;
+	/** The hand-picked pictures, in list order (source "list"). */
+	slides?: SlideshowSlide[];
+	/** Vault folder every image is taken from (source "folder"). */
+	folder?: string;
+	/** Also take images from subfolders of `folder`. Default false. */
+	includeSubfolders?: boolean;
+	/** Display order. Default "manual" (a folder source: "name"). */
+	order?: SlideshowOrder;
+	/** Seconds each picture is shown. Default 8; 0 holds the first picture. */
+	intervalSec?: number;
+	/** How one picture gives way to the next. Default "fade". */
+	transition?: SlideshowTransition;
+	/** Transition length in milliseconds. Default 700. */
+	transitionMs?: number;
+	/** Slowly zoom the picture while it is shown (the "Ken Burns" effect).
+	 * Default false. */
+	kenBurns?: boolean;
+	/** How the picture fills the card. Default "cover". */
+	fit?: SlideshowFit;
+	/** Show the previous/pause/next controls on hover. Default true. */
+	controls?: boolean;
+	/** Show the picture's caption (or file name) over it. Default false. */
+	showCaption?: boolean;
+	/** Hold the current picture while the pointer is over the card. Default false. */
+	pauseOnHover?: boolean;
+}
+
 /** A single tile inside a "links" (launchpad) card. */
 export interface LinkItem {
 	id: string;
@@ -1062,6 +1136,9 @@ export interface DashboardCard {
 	/** kind === "embed": Bases view name to embed when target is a .base file;
 	 * omitted means the default view. */
 	baseView?: string;
+	/** kind === "slideshow": the pictures, where they come from, and how they
+	 * rotate. */
+	slideshow?: SlideshowConfig;
 	/** kind === "web": the web page URL to embed in an iframe. */
 	url?: string;
 	/** kind === "web": allow the framed page same-origin access. Off by default

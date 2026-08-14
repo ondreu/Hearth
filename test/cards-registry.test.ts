@@ -42,6 +42,13 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "note", icon: "file-text", category: "notes", requires: null, build: { kind: "embed", title: "Note", target: "", w: 6, h: 3 } },
 			{ id: "daily", icon: "calendar", category: "notes", requires: null, build: { kind: "daily", w: 6, h: 4 } },
 			{ id: "image", icon: "image", category: "notes", requires: null, build: { kind: "embed", title: "Image", target: "", w: 4, h: 3 } },
+			{
+				id: "slideshow",
+				icon: "images",
+				category: "notes",
+				requires: null,
+				build: { kind: "slideshow", title: "Slideshow", slideshow: { slides: [] }, w: 4, h: 3 },
+			},
 			{ id: "canvas", icon: "layout-dashboard", category: "notes", requires: null, build: { kind: "embed", title: "Canvas", target: "", w: 6, h: 4 } },
 			{ id: "excalidraw", icon: "pen-tool", category: "notes", requires: null, build: { kind: "embed", title: "Drawing", target: "", w: 6, h: 4 } },
 			{ id: "base", icon: "database", category: "notes", requires: null, build: { kind: "embed", title: "Base", target: "", w: 6, h: 4 } },
@@ -177,6 +184,7 @@ function maximalCard(): DashboardCard {
 		links: [{ label: "A", href: "a" } as never],
 		commands: [{ id: "c", name: "C" }],
 		secondView: { target: "sv" },
+		slideshow: { slides: [{ id: "s1", path: "Photos/a.png", caption: "A" }] },
 		tasks: {
 			folders: ["f1"],
 			kanbanOrder: ["k1"],
@@ -228,6 +236,8 @@ describe("cloneCard deep-clone independence", () => {
 		copy.links![0].label = "B";
 		copy.commands![0].name = "D";
 		(copy.secondView as { target: string }).target = "sv2";
+		copy.slideshow!.slides![0].caption = "B";
+		copy.slideshow!.slides!.push({ id: "s2", path: "Photos/b.png" });
 		copy.tasks!.folders!.push("f2");
 		copy.tasks!.kanbanOrder!.push("k9");
 		copy.tasks!.kanbanHidden!.push("k9");
@@ -263,6 +273,7 @@ describe("cloneCard deep-clone independence", () => {
 		expect(orig.links).toEqual(pristine.links);
 		expect(orig.commands).toEqual(pristine.commands);
 		expect(orig.secondView).toEqual(pristine.secondView);
+		expect(orig.slideshow).toEqual(pristine.slideshow);
 		expect(orig.tasks).toEqual(pristine.tasks);
 		expect(orig.calendar).toEqual(pristine.calendar);
 		expect(orig.schedule).toEqual(pristine.schedule);
@@ -292,6 +303,7 @@ describe("liveness classification", () => {
 		);
 		expect(modes).toEqual({
 			embed: "watch-file",
+			slideshow: "vault",
 			daily: "watch-file",
 			web: "poll",
 			bookmarks: "static",

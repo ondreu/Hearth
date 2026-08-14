@@ -102,6 +102,8 @@ export const en = {
 		fileToEmbed: "Pick a file to embed…",
 		command: "Pick a command…",
 		noteToFavorite: "Pick a note to favorite…",
+		folder: "Pick a folder…",
+		image: "Pick an image…",
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
@@ -395,6 +397,7 @@ export const en = {
 				"web, RSS, calendar-subscription and Jira cards stop refreshing on a timer (manual refresh still works)",
 			effectLiveRefresh: "the dashboard stops rebuilding itself on vault changes",
 			effectClock: "clock cards drop seconds and the sweeping second hand",
+			effectSlideshow: "slideshow cards hold one picture instead of rotating",
 			/** Shown in the sections whose settings the mode currently overrides. */
 			overridden:
 				"Low power mode is on, so these are overridden right now. They are " +
@@ -867,6 +870,7 @@ export const en = {
 		done: "Done",
 		kinds: {
 			embed: "Embed (note / image / base)",
+			slideshow: "Slideshow",
 			daily: "Daily note (today)",
 			web: "Web page (iframe)",
 			bookmarks: "Bookmarks",
@@ -933,6 +937,80 @@ export const en = {
 			openButton: "Open button",
 			openButtonDesc:
 				"Show a button that opens the embedded file in its own tab. Off by default.",
+		},
+		slideshow: {
+			source: "Pictures from",
+			sourceDesc:
+				"A list you pick picture by picture, or every image in a folder.",
+			sourceList: "A list of pictures",
+			sourceFolder: "A folder",
+			picturesHeading: "Pictures",
+			picturesEmpty: "No pictures yet — add one below.",
+			picturePlaceholder: "Image path",
+			captionPlaceholder: "Caption (optional)",
+			pickPicture: "Pick an image",
+			addPicture: "Add picture",
+			addFolderPictures: "Add a folder's pictures",
+			removePicture: "Remove picture",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			folder: "Folder",
+			folderDesc: "Every image in this folder is shown. Leave empty for the vault root.",
+			folderPlaceholder: "Attachments/Photos",
+			pickFolder: "Pick a folder",
+			includeSubfolders: "Include subfolders",
+			includeSubfoldersDesc: "Also show images inside this folder's subfolders.",
+			folderCount: (count: number) =>
+				count === 1 ? "1 image found here right now." : `${count} images found here right now.`,
+			playbackHeading: "Playback",
+			order: "Order",
+			orderDesc: "The order the pictures are shown in.",
+			orders: {
+				manual: "List order",
+				name: "Name (A → Z)",
+				nameDesc: "Name (Z → A)",
+				created: "Date created (oldest first)",
+				createdDesc: "Date created (newest first)",
+				modified: "Date modified (oldest first)",
+				modifiedDesc: "Date modified (newest first)",
+				random: "Random",
+			},
+			interval: "Seconds per picture",
+			intervalDesc:
+				"How long each picture is shown. 0 holds the first picture and turns the " +
+				"rotation off; low power mode pauses it too.",
+			intervalAria: "Seconds each picture is shown",
+			transition: "Transition",
+			transitionDesc: "How one picture gives way to the next.",
+			transitions: {
+				none: "Cut (no animation)",
+				fade: "Crossfade",
+				slide: "Slide",
+				zoom: "Zoom",
+			},
+			transitionSpeed: "Transition length",
+			transitionSpeedDesc: "How long the transition takes, in milliseconds.",
+			kenBurns: "Slow zoom",
+			kenBurnsDesc:
+				"Drift slowly into each picture while it is shown (the “Ken Burns” effect).",
+			displayHeading: "Display",
+			fit: "Fit",
+			fitDesc: "How each picture fills the card.",
+			fits: {
+				cover: "Fill the card (crop)",
+				contain: "Fit the whole picture",
+			},
+			controls: "Controls",
+			controlsDesc:
+				"Show previous / pause / next buttons and the position, on hover. On by default.",
+			caption: "Caption",
+			captionDesc:
+				"Show each picture's caption over it, falling back to its file name.",
+			pauseOnHover: "Pause on hover",
+			pauseOnHoverDesc: "Hold the current picture while the pointer is over the card.",
+			openButton: "Open button",
+			openButtonDesc:
+				"Show a button that opens the picture on screen in its own tab. Off by default.",
 		},
 		daily: {
 			editable: "Editable",
@@ -1880,6 +1958,8 @@ export const en = {
 			searchNoQuery: "Set a query in card settings",
 			searchNoMatches: "No matches",
 			embedPickFile: "Pick a file to embed in settings",
+			slideshowEmpty: "Add pictures in card settings",
+			slideshowFolderEmpty: "No images in this folder",
 			embedEnableBases: "Enable the core Bases plugin to embed .base files",
 			embedEnableCanvas: "Enable the core Canvas plugin to embed canvases",
 			embedInstallExcalidraw: "Install the Excalidraw plugin to embed drawings",
@@ -1946,6 +2026,13 @@ export const en = {
 			/** Switcher button label when a view has no file chosen yet. */
 			viewFallback: (n: number) => `View ${n}`,
 			switchTo: (label: string) => `Switch to ${label}`,
+		},
+		slideshow: {
+			previous: "Previous picture",
+			next: "Next picture",
+			pause: "Pause the slideshow",
+			play: "Resume the slideshow",
+			openImage: "Open this picture",
 		},
 		text: {
 			placeholder: "Jot something down…",
@@ -2334,6 +2421,7 @@ export const en = {
 	templates: {
 		note: "Embedded note",
 		image: "Embedded image",
+		slideshow: "Slideshow",
 		base: "Embedded base",
 		excalidraw: "Excalidraw drawing",
 		canvas: "Embedded canvas",
@@ -2370,6 +2458,7 @@ export const en = {
 	templateDescriptions: {
 		note: "Any note, rendered live on the board",
 		image: "A picture from the vault, edge to edge",
+		slideshow: "Pictures from a list or a folder, rotated on a timer",
 		base: "A .base file, rendered by Obsidian's Bases",
 		excalidraw: "An Excalidraw drawing with native pan and zoom",
 		canvas: "A canvas you can pan around in place",

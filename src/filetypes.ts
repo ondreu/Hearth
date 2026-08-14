@@ -16,6 +16,7 @@ export interface FileTypeGroup {
 
 export const FOLDERS_GROUP_ID = "folders";
 export const EXCALIDRAW_GROUP_ID = "excalidraw";
+export const IMAGES_GROUP_ID = "images";
 export const OTHER_GROUP_ID = "other";
 
 /** Community plugin id for Excalidraw (used to detect drawing support). */
@@ -51,6 +52,18 @@ const EXT_TO_GROUP: Map<string, FileTypeGroup> = (() => {
 
 const EXCALIDRAW_GROUP = FILE_TYPE_GROUPS.find((g) => g.id === EXCALIDRAW_GROUP_ID)!;
 const OTHER_GROUP = FILE_TYPE_GROUPS.find((g) => g.id === OTHER_GROUP_ID)!;
+
+/** The picture formats Hearth renders as an `<img>` — the "images" group's own
+ * extensions, so the one list drives the search filter, the widget-tile icons
+ * (#119) and the slideshow card rather than each keeping a copy. */
+export const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set(
+	FILE_TYPE_GROUPS.find((g) => g.id === IMAGES_GROUP_ID)!.extensions,
+);
+
+/** Whether this file is a picture Hearth can show (see IMAGE_EXTENSIONS). */
+export function isImageFile(file: TAbstractFile): file is TFile {
+	return file instanceof TFile && IMAGE_EXTENSIONS.has(file.extension.toLowerCase());
+}
 
 /**
  * Excalidraw drawings are stored either as `*.excalidraw` files or, more
