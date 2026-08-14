@@ -220,8 +220,10 @@ calls**.
   the whole view, or as a **banner** across the top of the board — a cover
   image, the way one sits above a note — with the cards below it on your
   theme's own surface. Set the height, fade the lower edge into the page, and
-  choose whether it lines up with the content or runs edge to edge. Per board,
-  too, so one dashboard can carry a cover while the next keeps the wallpaper.
+  choose whether it lines up with the content or runs edge to edge. Each of
+  those is its own per-board override, so one dashboard can show the vault's
+  background as a banner while the next keeps it as a wallpaper — no picture
+  restated either way.
 - **Frosted glass** — card opacity and backdrop blur at three levels (global →
   per-dashboard → per-card). Merged cards blur as one seamless sheet.
 - **Card corner radius** — from the default 14 px down to sharp 0 px.

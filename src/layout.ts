@@ -936,23 +936,28 @@ function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	const r = raw as Record<string, unknown>;
 	const kinds: BackgroundKind[] = ["none", "color", "image", "url", "weather"];
 	if (!kinds.includes(r.kind as BackgroundKind)) return undefined;
-	const bg: BackgroundConfig = {
+	return {
 		kind: r.kind as BackgroundKind,
 		value: str(r.value) ?? "",
 		opacity: Math.max(0, Math.min(1, num(r.opacity, 0.15))),
 		blur: Math.max(0, Math.min(40, num(r.blur, 0))),
 	};
-	// Banner fields stay absent when the export has none, so a board imported
-	// from an older file resolves to the full-view wallpaper it was saved as.
-	if (r.layout === "banner" || r.layout === "full") bg.layout = r.layout;
+}
+
+/** Read a board's banner overrides off an imported dashboard. Each stays absent
+ * when the file has nothing for it, so an imported board falls back to the
+ * global setting exactly as an unset override should. */
+function applyBannerOverrides(dash: Dashboard, r: Record<string, unknown>): void {
+	if (r.backgroundLayout === "banner" || r.backgroundLayout === "full") {
+		dash.backgroundLayout = r.backgroundLayout;
+	}
 	if (typeof r.bannerHeight === "number") {
-		bg.bannerHeight = clampBannerHeight(r.bannerHeight);
+		dash.bannerHeight = clampBannerHeight(r.bannerHeight);
 	}
-	if (typeof r.bannerFade === "boolean") bg.bannerFade = r.bannerFade;
+	if (typeof r.bannerFade === "boolean") dash.bannerFade = r.bannerFade;
 	if (typeof r.bannerFullWidth === "boolean") {
-		bg.bannerFullWidth = r.bannerFullWidth;
+		dash.bannerFullWidth = r.bannerFullWidth;
 	}
-	return bg;
 }
 
 function sanitizeDashboard(
@@ -1081,6 +1086,7 @@ function sanitizeDashboard(
 	}
 	const bg = sanitizeBackground(r.background);
 	if (bg) dash.background = bg;
+	applyBannerOverrides(dash, r);
 	return dash;
 }
 

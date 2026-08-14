@@ -80,6 +80,13 @@ describe("effectiveBackground under low power", () => {
 			value: LOW_POWER_BACKGROUND,
 			opacity: 1,
 			blur: 0,
+			// The mode replaces the picture, not the shape of the board: the
+			// layout is not a paint cost, and changing it would move every card
+			// on a bannered board the moment the mode is toggled.
+			layout: "full",
+			bannerHeight: BANNER_HEIGHT_DEFAULT,
+			bannerFade: true,
+			bannerFullWidth: false,
 		});
 
 		s.lowPower = false;

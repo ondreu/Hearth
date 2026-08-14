@@ -28,11 +28,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   **fades** into the page or ends on a line, and whether it **lines up with the
   content** or runs edge to edge.
 
-  Boards choose for themselves. A dashboard that overrides the background now
-  overrides how it is worn too, so one board can carry a cover image while the
-  next keeps the vault's wallpaper. On a fit-to-page board the grid simply takes
-  the height the banner leaves it, and low power mode is unchanged — it still
-  replaces the whole backdrop with its flat colour.
+  **Every board chooses for itself**, in its own settings under **Background**.
+  The layout and each part of the banner's shape are separate overrides, and
+  each one either follows the vault or doesn't — so a board can wear the
+  wallpaper you already have as a banner without restating the picture, keep a
+  full background while the rest of the vault has moved to banners, or set its
+  own height and let the fade and width follow along. Every control says which
+  it is doing, and resets to following the vault.
+
+  On a fit-to-page board the grid simply takes the height the banner leaves it.
+  Low power mode still replaces the picture with its flat colour, but it now
+  leaves the *layout* alone: a bannered board keeps its banner, so toggling the
+  mode no longer moves every card on it.
 
 - **A slideshow card.** **Notes & files → Slideshow** is the image embed with
   more than one picture: it shows them in turn, on a timer you set. Choose the

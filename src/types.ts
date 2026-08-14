@@ -1328,7 +1328,13 @@ export function clampBannerHeight(h: number | undefined): number {
 }
 
 /** A self-contained background configuration (used for per-dashboard overrides
- * as well as the global default). */
+ * as well as the global default).
+ *
+ * This is *what the backdrop is* and nothing else. How a board wears it — full
+ * view or banner, and the banner's shape — is deliberately not in here: those
+ * are their own per-dashboard overrides ({@link BannerOverrides}) so a board can
+ * turn the vault's background into a banner without having to restate the
+ * picture. {@link effectiveBackground} joins the two. */
 export interface BackgroundConfig {
 	kind: BackgroundKind;
 	/** A CSS colour, a vault image path, a URL, or — for "weather" — a packed
@@ -1336,17 +1342,41 @@ export interface BackgroundConfig {
 	value: string;
 	opacity: number;
 	blur: number;
-	/** Full-view wallpaper or a banner strip at the top. Undefined = "full", so
-	 * every background saved before banners existed keeps its look. */
-	layout?: BackgroundLayout;
-	/** Banner height in pixels; only read when `layout` is "banner". */
+}
+
+/**
+ * How a board wears its background, as *overrides*: every field is optional and
+ * falls back to the global setting, the same way `gridColumns`, `maxWidth` and
+ * `cardOpacity` already do.
+ *
+ * Kept separate from {@link BackgroundConfig} on purpose. A board's background
+ * override is all-or-nothing — take it and you restate the kind, the value, the
+ * opacity and the blur — and making the banner part of it would have meant a
+ * board could only have a banner by re-specifying the whole picture. These
+ * override independently, so "the vault's background, but as a banner on this
+ * board" is one dropdown.
+ */
+export interface BannerOverrides {
+	/** Full-view wallpaper or a banner strip at the top. */
+	backgroundLayout?: BackgroundLayout;
+	/** Banner height in pixels; only read when the layout resolves to "banner". */
 	bannerHeight?: number;
 	/** Fade the banner's lower edge into the page instead of cutting it off with
-	 * a hard line. Undefined = faded (the default look). */
+	 * a hard line. */
 	bannerFade?: boolean;
 	/** Let the banner run edge to edge instead of lining up with the content
-	 * column. Undefined = aligned with the content. */
+	 * column. */
 	bannerFullWidth?: boolean;
+}
+
+/** A background resolved for painting: what the backdrop is, plus how this
+ * board wears it, with every fallback already applied. What
+ * {@link effectiveBackground} hands to the renderer. */
+export interface ResolvedBackground extends BackgroundConfig {
+	layout: BackgroundLayout;
+	bannerHeight: number;
+	bannerFade: boolean;
+	bannerFullWidth: boolean;
 }
 
 /** A named dashboard: one arrangeable board of cards. The vault can hold several
@@ -1374,7 +1404,7 @@ export interface DashboardHeaderConfig {
 	spacingBelow?: number;
 }
 
-export interface Dashboard {
+export interface Dashboard extends BannerOverrides {
 	id: string;
 	name: string;
 	/** Optional emoji/short text shown on the switcher button instead of its
@@ -1387,6 +1417,9 @@ export interface Dashboard {
 	/** Optional overrides; when omitted the global setting is used. */
 	gridColumns?: number;
 	rowHeight?: number;
+	/** Override *what* the backdrop is for this board. Independent of the
+	 * banner overrides inherited from {@link BannerOverrides}, which say how it
+	 * is worn — a board can override either, both, or neither. */
 	background?: BackgroundConfig;
 	/** Override "fit to page" for this board (undefined = use global). */
 	fitToPage?: boolean;
@@ -2075,40 +2108,46 @@ export function setCardPinned(s: HomeSettings, card: DashboardCard, pinned: bool
 	}
 }
 
-/** Effective background for the active board (per-dashboard override or global,
- * or the flat low power colour when that mode is on).
+/**
+ * Effective background for the active board: what the backdrop is, and how the
+ * board wears it, with every fallback applied.
  *
- * The banner fields come back resolved — never undefined — so callers can paint
- * from the result without repeating the fallbacks. */
-export function effectiveBackground(s: HomeSettings): BackgroundConfig {
-	// Overrides the per-dashboard background too: the point is that no board can
-	// pull in a wallpaper while low power mode is on.
-	if (lowPowerActive(s)) return lowPowerBackground(s);
-	const bg = activeDashboard(s).background;
-	if (bg) {
-		return {
-			...bg,
-			layout: bg.layout ?? "full",
-			bannerHeight: clampBannerHeight(bg.bannerHeight),
-			bannerFade: bg.bannerFade !== false,
-			bannerFullWidth: bg.bannerFullWidth === true,
-		};
-	}
+ * The two halves resolve *separately*, which is the whole point of splitting
+ * them. A board can override the picture and keep the global layout, override
+ * the layout and keep the global picture, or override both — so "the vault's
+ * wallpaper, but as a banner on this one board" needs no picture restated.
+ */
+export function effectiveBackground(s: HomeSettings): ResolvedBackground {
+	const dash = activeDashboard(s);
+	// Low power replaces the backdrop — and only the backdrop. The layout is not
+	// a paint cost, and swapping it would move every card on the board the
+	// moment the mode is toggled, which is exactly what the mode promises not to
+	// do. So a bannered board keeps its banner and simply fills it with the flat
+	// colour. The per-dashboard background is overridden along with the global
+	// one: no board may pull in a wallpaper while the mode is on.
+	const source = lowPowerActive(s)
+		? lowPowerBackground(s)
+		: (dash.background ?? {
+				kind: s.backgroundKind,
+				value: s.backgroundValue,
+				opacity: s.backgroundOpacity,
+				blur: s.backgroundBlur,
+			});
+
 	return {
-		kind: s.backgroundKind,
-		value: s.backgroundValue,
-		opacity: s.backgroundOpacity,
-		blur: s.backgroundBlur,
-		layout: s.backgroundLayout ?? "full",
-		bannerHeight: clampBannerHeight(s.bannerHeight),
-		bannerFade: s.bannerFade !== false,
-		bannerFullWidth: s.bannerFullWidth === true,
+		...source,
+		layout: dash.backgroundLayout ?? s.backgroundLayout ?? "full",
+		bannerHeight: clampBannerHeight(dash.bannerHeight ?? s.bannerHeight),
+		bannerFade: (dash.bannerFade ?? s.bannerFade) !== false,
+		bannerFullWidth: (dash.bannerFullWidth ?? s.bannerFullWidth) === true,
 	};
 }
 
 /** Whether the active board paints its backdrop as a banner rather than as a
  * full-view wallpaper. A "none" background has nothing to put in a banner, so
- * it reports false and the board is drawn without one. */
+ * it reports false and the board is drawn without one. Low power mode does not
+ * change the answer — it swaps what fills the banner, not whether there is one
+ * (see {@link effectiveBackground}). */
 export function bannerActive(s: HomeSettings): boolean {
 	const bg = effectiveBackground(s);
 	return bg.layout === "banner" && bg.kind !== "none";

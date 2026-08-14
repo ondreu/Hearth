@@ -223,13 +223,14 @@ export const en = {
 			opacity: "Opacity",
 			blur: "Blur",
 			backgroundLayout: "Background layout",
-			backgroundLayoutDesc:
-				"Fill this board with the background, or wear it as a banner across " +
-				"the top.",
 			bannerHeight: "Banner height",
 			bannerFade: "Fade the lower edge",
 			bannerFullWidth: "Full width",
+			clearOverride: "Follow the global setting",
 		},
+		useGlobal: "Use global default",
+		on: "on",
+		off: "off",
 		backgroundLayoutOptions: {
 			full: "Full background",
 			banner: "Banner",
@@ -433,7 +434,8 @@ export const en = {
 			layoutDesc:
 				"Fill the whole view with the background, or wear it as a banner — " +
 				"a strip across the top of the board, the way a cover image sits " +
-				"above a note — with the cards below it on the theme's own surface.",
+				"above a note — with the cards below it on the theme's own surface. " +
+				"Each board can override this in its own settings.",
 			layoutLabels: {
 				full: "Full background",
 				banner: "Banner",

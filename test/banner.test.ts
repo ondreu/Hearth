@@ -66,10 +66,9 @@ describe("effectiveBackground banner fields", () => {
 		});
 	});
 
-	it("fills a per-dashboard override's missing banner fields", () => {
+	it("takes the board's picture and the global layout when only the picture is overridden", () => {
 		const s = settings();
 		s.backgroundLayout = "banner";
-		// A background saved before banners existed: layout and the rest absent.
 		s.dashboards[0].background = {
 			kind: "image",
 			value: "Attachments/board.png",
@@ -77,33 +76,97 @@ describe("effectiveBackground banner fields", () => {
 			blur: 12,
 		};
 
-		// The override carries its own layout, so it stays a wallpaper even
-		// though the global default has moved to banners.
 		expect(effectiveBackground(s)).toEqual({
 			kind: "image",
 			value: "Attachments/board.png",
 			opacity: 0.8,
 			blur: 12,
-			layout: "full",
+			layout: "banner",
 			bannerHeight: BANNER_HEIGHT_DEFAULT,
 			bannerFade: true,
 			bannerFullWidth: false,
 		});
 	});
+});
 
-	it("lets one board wear a banner while the vault keeps its wallpaper", () => {
+/**
+ * The reason the layout is its own override rather than a field on the
+ * background: a board must be able to change how the backdrop is worn without
+ * restating what the backdrop is, and vice versa.
+ */
+describe("per-dashboard banner overrides", () => {
+	it("lets a board wear the vault's own background as a banner", () => {
+		const s = settings();
+		s.dashboards[0].backgroundLayout = "banner";
+
+		// Nothing about the picture was restated on the board...
+		expect(s.dashboards[0].background).toBeUndefined();
+		expect(s.backgroundLayout).toBe("full");
+
+		// ...yet the board shows the vault's background, as a banner.
+		const bg = effectiveBackground(s);
+		expect(bannerActive(s)).toBe(true);
+		expect(bg.value).toBe("https://example.com/cover.png");
+		expect(bg.layout).toBe("banner");
+	});
+
+	it("lets a board keep the wallpaper while the vault has moved to banners", () => {
+		const s = settings();
+		s.backgroundLayout = "banner";
+		s.dashboards[0].backgroundLayout = "full";
+
+		expect(bannerActive(s)).toBe(false);
+		expect(effectiveBackground(s).layout).toBe("full");
+	});
+
+	it("overrides each part of the banner's shape on its own", () => {
+		const s = settings();
+		s.backgroundLayout = "banner";
+		s.bannerHeight = 200;
+		s.bannerFade = true;
+		s.bannerFullWidth = false;
+		// Only the height and the fade are the board's; the width still follows.
+		s.dashboards[0].bannerHeight = 400;
+		s.dashboards[0].bannerFade = false;
+
+		const bg = effectiveBackground(s);
+		expect(bg.bannerHeight).toBe(400);
+		expect(bg.bannerFade).toBe(false);
+		expect(bg.bannerFullWidth).toBe(false);
+	});
+
+	it("falls back to the global value once an override is cleared", () => {
+		const s = settings();
+		s.backgroundLayout = "banner";
+		s.bannerHeight = 300;
+		s.dashboards[0].bannerHeight = 120;
+		expect(effectiveBackground(s).bannerHeight).toBe(120);
+
+		s.dashboards[0].bannerHeight = undefined;
+		expect(effectiveBackground(s).bannerHeight).toBe(300);
+	});
+
+	it("clamps a board's height the same way the global one is clamped", () => {
+		const s = settings();
+		s.backgroundLayout = "banner";
+		s.dashboards[0].bannerHeight = 9000;
+		expect(effectiveBackground(s).bannerHeight).toBe(BANNER_HEIGHT_MAX);
+	});
+
+	it("combines a board's own picture with a board's own layout", () => {
 		const s = settings();
 		s.dashboards[0].background = {
 			kind: "url",
 			value: "https://example.com/board-cover.png",
 			opacity: 1,
 			blur: 0,
-			layout: "banner",
-			bannerHeight: 320,
 		};
+		s.dashboards[0].backgroundLayout = "banner";
+		s.dashboards[0].bannerHeight = 320;
 
 		expect(s.backgroundLayout).toBe("full");
 		expect(bannerActive(s)).toBe(true);
+		expect(effectiveBackground(s).value).toBe("https://example.com/board-cover.png");
 		expect(effectiveBackground(s).bannerHeight).toBe(320);
 	});
 });
@@ -126,11 +189,25 @@ describe("bannerActive", () => {
 		expect(bannerActive(s)).toBe(false);
 	});
 
-	it("stays off under low power, which replaces the whole backdrop", () => {
+	// Low power swaps what fills the banner, not whether there is one: changing
+	// the layout would move every card on the board the moment the mode is
+	// toggled, which is the one thing the mode promises not to do.
+	it("survives low power, which replaces the picture but not the layout", () => {
 		const s = settings();
 		s.backgroundLayout = "banner";
 		s.lowPower = true;
-		expect(bannerActive(s)).toBe(false);
+
+		expect(bannerActive(s)).toBe(true);
+		expect(effectiveBackground(s).kind).toBe("color");
+		expect(effectiveBackground(s).layout).toBe("banner");
+	});
+
+	it("keeps a board-level banner under low power too", () => {
+		const s = settings();
+		s.dashboards[0].backgroundLayout = "banner";
+		s.lowPower = true;
+
+		expect(bannerActive(s)).toBe(true);
 		expect(effectiveBackground(s).kind).toBe("color");
 	});
 });

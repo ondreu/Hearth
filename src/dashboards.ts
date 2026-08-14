@@ -7,10 +7,10 @@ import {
 	type Dashboard,
 	type DashboardHeaderConfig,
 	type HeaderAlign,
-	BANNER_HEIGHT_DEFAULT,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
 	CARD_RADIUS_MAX,
+	clampBannerHeight,
 	CARD_BORDER_WIDTH_MAX,
 	HEADER_MARGIN_TOP_MAX,
 	HEADER_MARGIN_TOP_MIN,
@@ -168,6 +168,12 @@ function showDashboardMenu(
 					copy.cardBorderWidth = dash.cardBorderWidth;
 				if (dash.header) copy.header = { ...dash.header };
 				if (dash.background) copy.background = { ...dash.background };
+				if (dash.backgroundLayout != null)
+					copy.backgroundLayout = dash.backgroundLayout;
+				if (dash.bannerHeight != null) copy.bannerHeight = dash.bannerHeight;
+				if (dash.bannerFade != null) copy.bannerFade = dash.bannerFade;
+				if (dash.bannerFullWidth != null)
+					copy.bannerFullWidth = dash.bannerFullWidth;
 				// linkedWorkspace is intentionally not copied: two dashboards
 				// linked to the same workspace would race on auto-switch.
 				const i = s.dashboards.findIndex((d) => d.id === dash.id);
@@ -795,6 +801,12 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				});
 			});
 
+		// How the board wears its backdrop is settable whether or not the board
+		// overrides *what* that backdrop is — the two are separate overrides, so
+		// this comes before the early return below and a board using the vault's
+		// background can still choose to show it as a banner.
+		this.bannerControls(containerEl);
+
 		if (!bg || bg.kind === "none") return;
 
 		// The weather sky stores a place, not a typed-in value, so it gets the
@@ -851,80 +863,162 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			1,
 			DEFAULT_DASH_BG_BLUR,
 		);
-
-		this.bannerControls(containerEl, bg);
 	}
 
 	/**
-	 * Wallpaper or banner, for this board alone — and, once it is a banner, the
-	 * shape of the strip. A board that overrides the background overrides how it
-	 * is worn too, so one dashboard can carry a cover image while the next keeps
-	 * the vault's wallpaper.
+	 * How this board wears its backdrop — full view or banner, and the banner's
+	 * shape — as overrides in their own right, each falling back to the global
+	 * setting.
+	 *
+	 * They are deliberately not tied to the background override above. A board
+	 * that keeps the vault's background can still show it as a banner, and a
+	 * board that overrides the picture can still wear it however the vault does.
 	 */
-	private bannerControls(containerEl: HTMLElement, bg: BackgroundConfig): void {
+	private bannerControls(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
 		const strings = t().dashboards.modal;
+		const globalLayout = s.backgroundLayout ?? "full";
+		const labels = t().dashboards.backgroundLayoutOptions;
 
 		new Setting(containerEl)
 			.setName(strings.backgroundLayout)
-			.setDesc(strings.backgroundLayoutDesc)
+			.setDesc(
+				dash.backgroundLayout
+					? t().dashboards.modal.overriding
+					: t().dashboards.modal.usingGlobal(labels[globalLayout]),
+			)
 			.addDropdown((d) => {
-				const labels = t().dashboards.backgroundLayoutOptions;
+				d.addOption("global", t().dashboards.useGlobal);
 				(Object.keys(labels) as BackgroundLayout[]).forEach((k) => {
 					d.addOption(k, labels[k]);
 				});
-				d.setValue(bg.layout ?? "full").onChange((v) => {
-					bg.layout = v as BackgroundLayout;
-					// Same lift as the global setting: a banner is the picture
-					// itself, not a backdrop for something else, so wallpaper-ish
-					// opacity and blur would hand the reader a grey smear.
-					if (v === "banner") {
-						if (bg.opacity <= 0.5) bg.opacity = 1;
-						if (bg.blur > 0) bg.blur = 0;
+				d.setValue(dash.backgroundLayout ?? "global").onChange((v) => {
+					dash.backgroundLayout =
+						v === "global" ? undefined : (v as BackgroundLayout);
+					// Same lift as the global setting, but only on a background
+					// this board actually owns: a banner is the picture itself,
+					// not a backdrop for something else, so wallpaper-ish opacity
+					// and blur would hand the reader a grey smear. A board riding
+					// the global background is left alone — its opacity and blur
+					// belong to every other board too.
+					if (v === "banner" && dash.background) {
+						if (dash.background.opacity <= 0.5) dash.background.opacity = 1;
+						if (dash.background.blur > 0) dash.background.blur = 0;
 					}
 					this.commit();
 					this.render();
 				});
 			});
 
-		if (bg.layout !== "banner") return;
+		// The strip's shape is worth showing whenever this board ends up with a
+		// banner — whether it chose one itself or inherits one from the vault.
+		if ((dash.backgroundLayout ?? globalLayout) !== "banner") return;
 
-		this.bgNumber(
+		this.dashNumber(
 			containerEl,
 			strings.bannerHeight,
-			bg,
 			"bannerHeight",
 			BANNER_HEIGHT_MIN,
 			BANNER_HEIGHT_MAX,
 			10,
-			BANNER_HEIGHT_DEFAULT,
+			clampBannerHeight(s.bannerHeight),
 		);
-
-		new Setting(containerEl)
-			.setName(strings.bannerFade)
-			.addToggle((tg) =>
-				tg.setValue(bg.bannerFade !== false).onChange((v) => {
-					bg.bannerFade = v;
-					this.commit();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(strings.bannerFullWidth)
-			.addToggle((tg) =>
-				tg.setValue(bg.bannerFullWidth === true).onChange((v) => {
-					bg.bannerFullWidth = v;
-					this.commit();
-				}),
-			);
+		this.dashToggle(containerEl, strings.bannerFade, "bannerFade", s.bannerFade !== false);
+		this.dashToggle(
+			containerEl,
+			strings.bannerFullWidth,
+			"bannerFullWidth",
+			s.bannerFullWidth === true,
+		);
 	}
 
-	/** A per-dashboard background slider (opacity/blur/banner height) with a
-	 * reset button that restores the factory default `def`. */
+	/** A board-level numeric override with a reset button that clears it back to
+	 * the global value, rather than to a hard-coded factory number: these
+	 * overrides *are* "unset = follow the vault", so reset means unset. */
+	private dashNumber(
+		containerEl: HTMLElement,
+		name: string,
+		key: "bannerHeight",
+		min: number,
+		max: number,
+		step: number,
+		globalValue: number,
+	): void {
+		const dash = this.dash;
+		const setting = new Setting(containerEl)
+			.setName(name)
+			.setDesc(
+				dash[key] == null
+					? t().dashboards.modal.usingGlobal(globalValue)
+					: t().dashboards.modal.overriding,
+			);
+		setting.addSlider((sl) => {
+			sl.setLimits(min, max, step)
+				.setValue(dash[key] ?? globalValue)
+				.setDynamicTooltip()
+				.onChange((v) => {
+					dash[key] = v;
+					this.commit();
+				});
+			setting.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t().dashboards.modal.clearOverride)
+					.onClick(() => {
+						dash[key] = undefined;
+						sl.setValue(globalValue);
+						this.commit();
+						this.render();
+					}),
+			);
+		});
+	}
+
+	/** A board-level boolean override: a toggle plus a reset that clears it back
+	 * to following the global setting. */
+	private dashToggle(
+		containerEl: HTMLElement,
+		name: string,
+		key: "bannerFade" | "bannerFullWidth",
+		globalValue: boolean,
+	): void {
+		const dash = this.dash;
+		const setting = new Setting(containerEl)
+			.setName(name)
+			.setDesc(
+				dash[key] == null
+					? t().dashboards.modal.usingGlobal(
+							globalValue ? t().dashboards.on : t().dashboards.off,
+						)
+					: t().dashboards.modal.overriding,
+			);
+		setting.addToggle((tg) =>
+			tg.setValue(dash[key] ?? globalValue).onChange((v) => {
+				dash[key] = v;
+				this.commit();
+				this.render();
+			}),
+		);
+		setting.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().dashboards.modal.clearOverride)
+				.onClick(() => {
+					dash[key] = undefined;
+					this.commit();
+					this.render();
+				}),
+		);
+	}
+
+	/** A per-dashboard background slider (opacity/blur) with a reset button that
+	 * restores the factory default `def`. */
 	private bgNumber(
 		containerEl: HTMLElement,
 		name: string,
 		bg: BackgroundConfig,
-		key: "opacity" | "blur" | "bannerHeight",
+		key: "opacity" | "blur",
 		min: number,
 		max: number,
 		step: number,
@@ -933,10 +1027,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const setting = new Setting(containerEl).setName(name);
 		setting.addSlider((sl) => {
 			sl.setLimits(min, max, step)
-				// `bannerHeight` is optional on a background saved before banners
-				// existed (and on one that has never been in banner mode), so the
-				// slider starts from the factory value rather than from nothing.
-				.setValue(bg[key] ?? def)
+				.setValue(bg[key])
 				// Show the live value in a tooltip. On our declared minAppVersion
 				// (1.8.7) sliders don't yet render the value inline, so this is
 				// how the current opacity/blur stays visible while dragging.

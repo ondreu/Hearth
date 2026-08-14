@@ -7,12 +7,7 @@ import {
 	skyGroupCode,
 } from "./sky";
 import type { HomeView } from "./view";
-import {
-	type BackgroundConfig,
-	clampBannerHeight,
-	effectiveBackground,
-	effectiveMaxWidth,
-} from "./types";
+import { type BackgroundConfig, effectiveBackground, effectiveMaxWidth } from "./types";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
 
 /**
@@ -69,13 +64,14 @@ export function renderBanner(
 	if (!paintable(bg)) return null;
 
 	const banner = parent.createDiv("hearth-banner");
-	banner.style.height = `${clampBannerHeight(bg.bannerHeight)}px`;
-	banner.toggleClass("is-faded", bg.bannerFade !== false);
+	banner.style.height = `${bg.bannerHeight}px`;
+	banner.toggleClass("is-faded", bg.bannerFade);
 	// Full width means "as wide as the pane"; otherwise the banner lines up with
 	// the content column, which is the same max-width `.hearth-inner` uses.
-	const full = bg.bannerFullWidth === true;
-	banner.toggleClass("is-full-width", full);
-	if (!full) banner.style.maxWidth = `${effectiveMaxWidth(view.plugin.settings)}px`;
+	banner.toggleClass("is-full-width", bg.bannerFullWidth);
+	if (!bg.bannerFullWidth) {
+		banner.style.maxWidth = `${effectiveMaxWidth(view.plugin.settings)}px`;
+	}
 
 	const layer = banner.createDiv("hearth-bg");
 	// A blurred layer goes soft at its own edges. Behind a whole view that is
