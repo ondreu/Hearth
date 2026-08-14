@@ -9,7 +9,7 @@ import type {
 } from "./types";
 
 /**
- * The slideshow card's pure half (issue #211): which pictures a card shows, in
+ * The slideshow card's pure half: which pictures a card shows, in
  * what order, how fast, and which vault events are worth a redraw. Data in, data
  * out — no vault, no DOM, no Obsidian imports at all — so all of it is
  * unit-tested in test/slideshow.test.ts.

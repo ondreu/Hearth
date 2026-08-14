@@ -37,7 +37,7 @@ import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 /**
- * The slideshow card: a picture embed that rotates (issue #211).
+ * The slideshow card: a picture embed that rotates.
  *
  * It is the image embed's sibling — same `<img>`, same edge-to-edge framing —
  * with a list of pictures instead of one, and a timer. Pictures come either from
