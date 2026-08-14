@@ -405,7 +405,10 @@ export default class HearthPlugin extends Plugin {
 		if (lowPowerActive(this.settings)) return;
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
-			if (view instanceof HomeView && !view.arrangeMode) view.render();
+			// liveRender, not render: a rebuild triggered by a vault write must not
+			// destroy a field the user is typing into — including the field whose
+			// own writes triggered it (#212).
+			if (view instanceof HomeView && !view.arrangeMode) view.liveRender();
 		});
 	}
 }

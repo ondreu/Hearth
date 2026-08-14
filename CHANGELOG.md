@@ -81,6 +81,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   was simply impossible until you zoomed back out. Guides now come from where
   the cards actually are on screen. A dragged card also no longer jolts to a
   different position the instant it starts moving.
+- **Cards wait for you to finish typing before they refresh.** A card that
+  tracks a file redraws when that file changes on disk — but if the thing
+  changing it was you, typing into a field the card itself is showing, the
+  redraw took the field (and your cursor) with it. Plugin-rendered inputs inside
+  an embedded note are the clearest case: every write went back into the note,
+  and a moment later the card reloaded under your hands, so finishing a sentence
+  meant clicking back in over and over. A card now holds a refresh while a field
+  inside it has focus and catches up once you click away — exactly when you want
+  it to. The same wait applies to **Live refresh on vault changes**, which
+  rebuilt the whole board out from under the same field.
 
 ## [2.0.0]
 
