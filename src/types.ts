@@ -1691,7 +1691,23 @@ export interface HomeSettings {
 	 * when to pop the "What's new" dialog after an update. Empty on a fresh
 	 * install (which is seeded silently, without showing the dialog). */
 	lastSeenVersion: string;
+	/** How far the first-run setup wizard has got. See {@link SetupStatus}. */
+	setupStatus: SetupStatus;
 }
+
+/**
+ * Whether the first-run setup wizard still has something to do.
+ *
+ * - `pending` — a fresh install that hasn't been offered the wizard yet. The
+ *   only value that pops it automatically.
+ * - `done` — the wizard was completed, *or* this is a vault that predates it
+ *   (see `migrateSettings`): an existing dashboard must never be interrupted by
+ *   a wizard offering to rebuild it.
+ * - `skipped` — the wizard was offered and dismissed. Behaves like `done`, but
+ *   is kept distinct so "Set up Hearth" in settings can still read as an
+ *   invitation rather than a redo.
+ */
+export type SetupStatus = "pending" | "done" | "skipped";
 
 export const DEFAULT_SETTINGS: HomeSettings = {
 	title: "Obsidian",
@@ -1782,6 +1798,10 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	maxWidth: 1600,
 
 	lastSeenVersion: "",
+	// Fresh installs start out owing the wizard a run; `migrateSettings` marks
+	// every *existing* vault as done, so nobody is offered a rebuild of a
+	// dashboard they already have.
+	setupStatus: "pending",
 };
 
 /** The cards a brand-new vault starts with. Coordinates and sizes are taken
@@ -2276,6 +2296,18 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 				migratedCommandId = true;
 			}
 		}
+	}
+	// The first-run wizard is for first runs. A vault that has any persisted
+	// settings at all already has a dashboard — possibly one it has been using
+	// for a year — so it is marked done rather than being offered a rebuild.
+	// Mirrors how `lastSeenVersion` tells a fresh install from an upgrade: no
+	// persisted keys whatsoever is the only signal that means "brand new".
+	if (typeof raw.setupStatus !== "string") {
+		s.setupStatus = Object.keys(raw).length === 0 ? "pending" : "done";
+	} else if (s.setupStatus !== "pending" && s.setupStatus !== "done" && s.setupStatus !== "skipped") {
+		// A hand-edited or partially-synced data.json; anything unrecognised is
+		// treated as done, which is the outcome that never surprises anyone.
+		s.setupStatus = "done";
 	}
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
