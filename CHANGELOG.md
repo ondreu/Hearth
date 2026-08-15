@@ -43,6 +43,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   to squeeze onto one screen is set to scroll rather than being scaled down to
   nothing — as an override on that board alone.
 
+  **And it says so on the way out.** The wizard's closing note is that the board
+  it just built is a starting point rather than a preset: enough to show what
+  Hearth can do for you, but only a fraction of what there is. Every card can be
+  moved, resized, retitled, recoloured, reconfigured or thrown out, and there is
+  a great deal more in the settings than the wizard asks about — so go and edit
+  all of it to your liking.
+
   Run it again any time from **Settings → Hearth → About → Build a dashboard**
   or the **Set up Hearth** command. Run that way it **always adds a new
   dashboard** and never touches an existing one, so it is safe to press just to

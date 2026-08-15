@@ -332,9 +332,20 @@ export const en = {
 			nameDesc: "Shown in the dashboard switcher.",
 			/** Seed for the new dashboard's name; numbered if already taken. */
 			defaultName: "Home",
-			reassurance:
-				"Every card can be moved, resized, reconfigured or removed afterwards — and " +
-				"you can run this wizard again any time from Settings → About.",
+			outroTitle: "A starting point, not a preset",
+			outroLead:
+				"This board should be a solid start — enough to show you what Hearth can " +
+				"do for you.",
+			outroCustomize:
+				"But Hearth is built above all to be heavily customizable, and this wizard " +
+				"only touches a fraction of it. Every card can be moved, resized, retitled, " +
+				"recoloured, reconfigured or thrown out, boards can be added and switched " +
+				"between, and there is a great deal more in the settings than was asked " +
+				"about here. Dig around in there and edit everything to your liking — that " +
+				"is what Hearth is for.",
+			outroHint:
+				"Arrange (top-right of the board) edits the cards; Settings → Hearth has the " +
+				"rest. You can run this wizard again any time from Settings → About.",
 		},
 		plan: {
 			/** Fallback names for planned cards that carry no title of their own. */

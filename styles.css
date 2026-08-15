@@ -9741,6 +9741,61 @@ body.hearth-dv-resizing {
 	color: var(--text-normal);
 }
 
+/* ---- The parting note ----
+   Set apart from the notes above it: this is the one paragraph on the step
+   that isn't about the board being built, and the point it makes — that the
+   board is a starting point and everything is yours to change — is the one
+   worth reading twice. An accent edge rather than a box, so it reads as the
+   wizard's closing word rather than another aside. */
+.hearth-setup-outro {
+	margin-top: 20px;
+	padding: 14px 16px;
+	border-left: 3px solid var(--interactive-accent);
+	border-radius: 4px 10px 10px 4px;
+	background: var(--background-secondary);
+}
+
+.hearth-setup-outro-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.hearth-setup-outro-icon {
+	display: inline-flex;
+	color: var(--text-accent);
+}
+
+.hearth-setup-outro-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-setup-outro-title {
+	font-weight: 650;
+}
+
+.hearth-setup-outro-text {
+	margin: 0 0 8px;
+	color: var(--text-muted);
+	font-size: 0.88em;
+	line-height: 1.55;
+}
+
+.hearth-setup-outro-text:last-of-type {
+	margin-bottom: 0;
+}
+
+.hearth-setup-outro-hint {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-faint);
+	font-size: 0.82em;
+	line-height: 1.5;
+}
+
 @media (max-width: 620px) {
 	.hearth-setup {
 		height: min(78vh, 660px);

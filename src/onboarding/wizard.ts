@@ -633,7 +633,29 @@ export class SetupWizardModal extends Modal {
 					}),
 			);
 
-		body.createDiv({ cls: "hearth-setup-note", text: strings.reassurance });
+		this.renderOutro(body);
+	}
+
+	/**
+	 * The parting note, and the most important thing on the step.
+	 *
+	 * A wizard that builds a board for you invites exactly the wrong conclusion —
+	 * that the board it built is *the* board, and that Hearth is a plugin with a
+	 * few presets. It is the opposite: nearly everything here is adjustable, and
+	 * the generated board is a demonstration of that rather than a destination.
+	 * So the last thing the wizard says is to go and change it.
+	 */
+	private renderOutro(body: HTMLElement): void {
+		const strings = t().setup.finish;
+		const outro = body.createDiv("hearth-setup-outro");
+
+		const head = outro.createDiv("hearth-setup-outro-head");
+		setIcon(head.createSpan("hearth-setup-outro-icon"), "sliders-horizontal");
+		head.createSpan({ cls: "hearth-setup-outro-title", text: strings.outroTitle });
+
+		outro.createEl("p", { cls: "hearth-setup-outro-text", text: strings.outroLead });
+		outro.createEl("p", { cls: "hearth-setup-outro-text", text: strings.outroCustomize });
+		outro.createDiv({ cls: "hearth-setup-outro-hint", text: strings.outroHint });
 	}
 
 	/**
