@@ -144,6 +144,8 @@ export function exportSettings(s: HomeSettings): string {
 		title: s.title,
 		showTitle: s.showTitle,
 		logo: s.logo,
+		logoIcon: s.logoIcon,
+		tabIcon: s.tabIcon,
 		showSearch: s.showSearch,
 		searchPlaceholder: s.searchPlaceholder,
 		showNewNoteButton: s.showNewNoteButton,
@@ -1012,6 +1014,10 @@ function sanitizeDashboard(
 		if (title !== undefined) header.title = title;
 		const logo = str(h.logo);
 		if (logo !== undefined) header.logo = logo;
+		// Kept even when empty: an empty override is a board that deliberately
+		// shows no Lucide title icon, which is not the same as no override.
+		const logoIcon = str(h.logoIcon);
+		if (logoIcon !== undefined) header.logoIcon = logoIcon.trim();
 		if (h.align === "left" || h.align === "center" || h.align === "right") {
 			header.align = h.align;
 		}
@@ -1273,6 +1279,10 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (typeof data.showTitle === "boolean") s.showTitle = data.showTitle;
 	const logo = str(data.logo);
 	if (logo !== undefined) s.logo = logo;
+	const logoIcon = str(data.logoIcon);
+	if (logoIcon !== undefined) s.logoIcon = logoIcon.trim();
+	const tabIcon = str(data.tabIcon);
+	if (tabIcon !== undefined) s.tabIcon = tabIcon.trim();
 	if (typeof data.showSearch === "boolean") s.showSearch = data.showSearch;
 	const searchPlaceholder = str(data.searchPlaceholder);
 	if (searchPlaceholder !== undefined) s.searchPlaceholder = searchPlaceholder;

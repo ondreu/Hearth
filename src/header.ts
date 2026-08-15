@@ -2,6 +2,7 @@ import { type Component, Platform, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
 import { hearthIconIdFor } from "./icon";
+import { resolveIconId } from "./lucide";
 import {
 	effectiveHeaderAlign,
 	effectiveHeaderLogoScale,
@@ -9,6 +10,7 @@ import {
 	effectiveHeaderSpacingBelow,
 	effectiveHeaderTitleScale,
 	effectiveLogo,
+	effectiveLogoIcon,
 	effectiveShowSearch,
 	effectiveShowTitle,
 	effectiveTitle,
@@ -52,10 +54,16 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 			titleRow.style.setProperty("--hearth-title-margin-top", `${marginTop}px`);
 		}
 
+		// Three ways to mark the title, in order: a Lucide icon (global, or this
+		// board's override), a custom emoji/text logo shown verbatim, or the
+		// Hearth crystal as the fallback brand mark. An unknown Lucide id draws
+		// nothing, so it falls through rather than leaving an empty slot.
 		const logo = effectiveLogo(s).trim();
-		// A custom emoji/text logo is shown verbatim; otherwise fall back to the
-		// Hearth crystal icon as the brand mark.
-		if (logo === "") {
+		const lucideId = resolveIconId(effectiveLogoIcon(s));
+		if (lucideId) {
+			const logoEl = titleRow.createSpan({ cls: "hearth-logo hearth-logo-icon" });
+			setIcon(logoEl, lucideId);
+		} else if (logo === "") {
 			const logoEl = titleRow.createSpan({ cls: "hearth-logo hearth-logo-icon" });
 			setIcon(logoEl, hearthIconIdFor(target));
 		} else {

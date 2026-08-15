@@ -86,6 +86,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   leaves the *layout* alone: a bannered board keeps its banner, so toggling the
   mode no longer moves every card on it.
 
+- **Lucide icons for the tab and the title.** Hearth's crystal is no longer the
+  only mark it can wear. **Appearance → Home → Tab icon** picks any Lucide icon
+  for Hearth's tab header and ribbon button, and **Title icon** does the same for
+  the icon beside the big title on the board. Leave either empty and nothing
+  changes: the crystal, and the emoji/text logo, stay exactly as they were.
+
+  **Each dashboard can set its own title icon**, under **Header → Title icon** in
+  that board's settings — one board a flame, the next a rocket, or one board back
+  to the plain logo text while the vault-wide setting shows an icon.
+
+  **Every icon field is now a picker.** Type an id if you know it, or press the
+  magnifier and search the whole Lucide set with each icon drawn beside its name;
+  a preview beside the field shows what you'll get. That applies to the dashboard
+  switcher's icon too, which until now was an id typed from memory. An id that
+  names no icon falls back — to the crystal, the logo text, or the switcher's
+  number — rather than leaving a blank where the icon should be.
+
 - **A slideshow card.** **Notes & files → Slideshow** is the image embed with
   more than one picture: it shows them in turn, on a timer you set. Choose the
   pictures one by one — each can carry its own caption, and the list can be

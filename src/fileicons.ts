@@ -1,5 +1,6 @@
-import { getIconIds, setIcon, TFile, type App, type TAbstractFile } from "obsidian";
+import { setIcon, TFile, type App, type TAbstractFile } from "obsidian";
 import { iconForFile } from "./filetypes";
+import { knownIconIds } from "./lucide";
 import { type HomeSettings } from "./types";
 
 /**
@@ -159,27 +160,6 @@ export function iconicIconForPath(fileIcons: unknown, path: string): string | nu
 
 // ---- Reading the plugins ------------------------------------------------
 
-/**
- * The set of icon ids Obsidian has registered, memoized by list length.
- *
- * `getIconIds()` allocates a fresh array of ~1,700 entries, which is too much
- * to redo for every file in a card. Length is a good enough cache key: the list
- * only grows, and only when a plugin calls `addIcon`.
- */
-let knownIconIds: { size: number; ids: Set<string> } | null = null;
-
-function knownIcons(): Set<string> {
-	try {
-		const ids = getIconIds();
-		if (!knownIconIds || knownIconIds.size !== ids.length) {
-			knownIconIds = { size: ids.length, ids: new Set(ids) };
-		}
-		return knownIconIds.ids;
-	} catch {
-		return new Set();
-	}
-}
-
 /** Iconic's plugin instance keeps its settings — including the path→icon map —
  * on the instance itself. */
 function iconicIcon(app: App, path: string): string | null {
@@ -261,7 +241,7 @@ export function resolveFileIcon(
 			iconizeIcon(app, path) ??
 			frontmatterIcon(app, file, opts.frontmatterProperty);
 		if (!raw) return fallback;
-		const ids = knownIcons();
+		const ids = knownIconIds();
 		return normalizeStoredIcon(raw, (id) => ids.has(id)) ?? fallback;
 	} catch {
 		// Both plugins' internals are private; a shape change must cost the user

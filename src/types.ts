@@ -1390,6 +1390,11 @@ export interface DashboardHeaderConfig {
 	title?: string;
 	/** Override the global logo text/icon for this dashboard. Empty = Hearth icon. */
 	logo?: string;
+	/** Override the global title Lucide icon for this dashboard. A bare Lucide id
+	 * (`"flame"`), drawn instead of the logo text. An empty string is a real
+	 * override meaning "no icon on this board" — it falls back to the logo text,
+	 * not to the global icon; undefined follows the global setting. */
+	logoIcon?: string;
 	/** Align only the title/logo block; the search section below has its own
 	 * layout. */
 	align?: HeaderAlign;
@@ -1509,6 +1514,14 @@ export interface HomeSettings {
 	showTitle: boolean;
 	/** Emoji or short text shown as a logo next to the title. */
 	logo: string;
+	/** A Lucide icon id drawn as the title icon instead of the emoji/text logo
+	 * (`"flame"`, `"layout-dashboard"`). Empty = fall back to {@link logo}, and
+	 * to the Hearth crystal when that is empty too. Each dashboard can override
+	 * it — see {@link DashboardHeaderConfig.logoIcon}. */
+	logoIcon: string;
+	/** A Lucide icon id used for Hearth's tab header and ribbon button instead of
+	 * the Hearth crystal. Empty = the crystal. */
+	tabIcon: string;
 	/** What follows the theme's icon color: nothing (brand-purple crystal and
 	 * normal title text, the historical look), the crystal icon, the title
 	 * text, or both. */
@@ -1714,6 +1727,10 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	showTitle: true,
 	// Empty => the Hearth crystal icon is shown as the brand mark.
 	logo: "",
+	// Empty => no Lucide title icon; the logo text (or the crystal) is drawn.
+	logoIcon: "",
+	// Empty => the Hearth crystal is the tab and ribbon icon.
+	tabIcon: "",
 	themeColorTarget: "none",
 	showSearch: true,
 	searchPlaceholder: "Search or command",
@@ -1957,6 +1974,13 @@ export function effectiveTitle(s: HomeSettings): string {
 /** Logo text for the active board's title/logo block. Empty = Hearth icon. */
 export function effectiveLogo(s: HomeSettings): string {
 	return activeDashboard(s).header?.logo ?? s.logo;
+}
+
+/** Lucide title icon for the active board. Empty = none, so the logo text (or
+ * the Hearth crystal) is drawn instead. A board's own empty string wins over a
+ * global icon: that is how a single board opts back out of it. */
+export function effectiveLogoIcon(s: HomeSettings): string {
+	return activeDashboard(s).header?.logoIcon ?? s.logoIcon;
 }
 
 /** Alignment for the active board's title/logo block; search layout is separate. */

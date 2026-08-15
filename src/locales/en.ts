@@ -406,6 +406,10 @@ export const en = {
 		noteToFavorite: "Pick a note to favorite…",
 		folder: "Pick a folder…",
 		image: "Pick an image…",
+		icon: "Search Lucide icons…",
+		iconPlaceholder: "Lucide icon id",
+		iconBrowse: "Browse Lucide icons",
+		iconClear: "Clear icon",
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
@@ -460,8 +464,7 @@ export const en = {
 				"An emoji or short text shown on the switcher button. Empty = number.",
 			switcherLucide: "Switcher Lucide icon",
 			switcherLucideDesc:
-				"A Lucide icon id (e.g. “home”, “star”, “layout-dashboard”). Takes precedence over the emoji above.",
-			lucidePlaceholder: "home",
+				"A Lucide icon (e.g. “home”, “star”, “layout-dashboard”) — browse the set, or type an id. Takes precedence over the emoji above.",
 			linkedWorkspace: "Linked workspace",
 			linkedWorkspaceDesc:
 				"Auto-switch to this dashboard when this workspace loads. Requires the core Workspaces plugin.",
@@ -488,6 +491,9 @@ export const en = {
 			logoText: "Logo text",
 			logoTextDesc:
 				"Override the global logo for this dashboard. Empty uses the Hearth crystal icon.",
+			logoIcon: "Title icon",
+			logoIconDesc:
+				"A Lucide icon drawn beside this dashboard's title instead of the logo text. Clear it to show the logo text (or the Hearth crystal) on this board alone.",
 			titleAlign: "Title alignment",
 			titleAlignDesc:
 				"Align only the title/logo block. The search bar keeps its own layout.",
@@ -603,7 +609,8 @@ export const en = {
 			lowPowerDesc:
 				"Trade the visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
-			homeDesc: "Title, logo, search visibility and overall content width.",
+			homeDesc:
+				"Title, logo, title and tab icons, search visibility and overall content width.",
 			searchBar: "Search bar",
 			searchBarDesc: "How the search field looks and what it does.",
 			grid: "Grid & spacing",
@@ -667,6 +674,15 @@ export const en = {
 			logo: "Logo",
 			logoDesc:
 				"An emoji or short text shown next to the title. Leave empty for the Hearth crystal icon.",
+			logoIcon: "Title icon",
+			logoIconDesc:
+				"A Lucide icon drawn next to the title instead of the logo text. " +
+				"Browse the set or type an id; leave empty to keep the logo text. " +
+				"Each dashboard can override it in its own settings.",
+			tabIcon: "Tab icon",
+			tabIconDesc:
+				"A Lucide icon for Hearth's tab header and ribbon button, in place of " +
+				"the Hearth crystal. Browse the set or type an id; leave empty for the crystal.",
 			themeColorTarget: "Follow theme icon color",
 			themeColorTargetDesc:
 				"Draw the crystal icon and/or the title text in your theme's icon " +

@@ -72,9 +72,10 @@ export class TextComponent {}
 
 export function setIcon(): void {}
 export function addIcon(): void {}
-// fileicons.ts imports this for its icon-registry lookup. The pure helpers
-// under test take the "is this icon registered?" check as a parameter, so the
-// real registry is never consulted.
+// lucide.ts imports this for its icon-registry lookup (fileicons.ts and the
+// icon pickers go through it). The pure helpers under test take the "is this
+// icon registered?" check as a parameter, so the real registry is never
+// consulted; the throw is caught and read as "no registry available".
 export function getIconIds(): string[] {
 	throw new Error("getIconIds is not implemented in tests (Obsidian API)");
 }

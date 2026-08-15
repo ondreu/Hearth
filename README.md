@@ -231,10 +231,10 @@ calls**.
 - **Edge-merging** — snap two cards together and their shared border drops out,
   so the pair reads as one continuous tile.
 - **Multiple dashboards** — a `[1] [2] [+]` switcher in the top-left. Name each
-  board, give it an emoji, reorder by dragging, and override the global width,
-  columns, row height and background per board. Open a board's settings either
-  from **Dashboard settings** in the **Arrange** toolbar or by right-clicking
-  its switcher button.
+  board, give it an emoji or a Lucide icon, reorder by dragging, and override
+  the global width, columns, row height, background and title icon per board.
+  Open a board's settings either from **Dashboard settings** in the **Arrange**
+  toolbar or by right-clicking its switcher button.
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
 - **Fit to page** — lock the board to one screen or let it scroll.
@@ -262,6 +262,11 @@ calls**.
 - **Card corner radius** — from the default 14 px down to sharp 0 px.
 - **Per-card colors** — an accent and a background tint for any card.
 - **Title, logo and compact spacing** for the dashboard header.
+- **Lucide icons** — pick any icon from the Lucide set for Hearth's **tab and
+  ribbon** button and for the **title** beside the board's heading, searched
+  from a picker rather than typed from memory. Each dashboard can override the
+  title icon, so one board can show a flame and the next a rocket; leave a field
+  empty and the Hearth crystal (or your emoji logo) stays as it was.
 
 ## Mobile
 

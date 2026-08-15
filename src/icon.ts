@@ -13,6 +13,8 @@
  *
  * The content is sized to Obsidian's 0 0 100 100 icon viewBox.
  */
+import { resolveIconId } from "./lucide";
+
 export const HEARTH_ICON_ID = "hearth-crystal";
 export const HEARTH_ICON_THEMED_ID = "hearth-crystal-themed";
 
@@ -32,4 +34,20 @@ export const HEARTH_ICON_THEMED_SVG = `<path fill="currentColor" d="${FACETS_INS
  * icon follows the theme, the brand-purple mark otherwise. */
 export function hearthIconIdFor(target: "none" | "icon" | "title" | "both"): string {
 	return target === "icon" || target === "both" ? HEARTH_ICON_THEMED_ID : HEARTH_ICON_ID;
+}
+
+/**
+ * The icon for Hearth's tab header and ribbon button: the user's chosen Lucide
+ * icon, or the crystal when they haven't chosen one.
+ *
+ * The chosen id is resolved against the icons Obsidian actually has, so a typo
+ * in the setting shows the crystal rather than a blank tab — a tab with no icon
+ * at all is much harder to notice, and much harder to undo, than one that
+ * simply didn't change.
+ */
+export function tabIconIdFor(
+	target: "none" | "icon" | "title" | "both",
+	custom: string | undefined,
+): string {
+	return resolveIconId(custom) ?? hearthIconIdFor(target);
 }

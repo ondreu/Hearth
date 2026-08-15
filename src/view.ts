@@ -15,7 +15,7 @@ import {
 	lowPowerActive,
 	renderCards,
 } from "./types";
-import { hearthIconIdFor } from "./icon";
+import { tabIconIdFor } from "./icon";
 import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
 
@@ -63,7 +63,8 @@ export class HomeView extends ItemView {
 	}
 
 	getIcon(): string {
-		return hearthIconIdFor(this.plugin.settings.themeColorTarget);
+		const s = this.plugin.settings;
+		return tabIconIdFor(s.themeColorTarget, s.tabIcon);
 	}
 
 	async onOpen(): Promise<void> {

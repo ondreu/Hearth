@@ -7,7 +7,7 @@ import {
 	HEARTH_ICON_SVG,
 	HEARTH_ICON_THEMED_ID,
 	HEARTH_ICON_THEMED_SVG,
-	hearthIconIdFor,
+	tabIconIdFor,
 } from "./icon";
 import type { WorkspacesInstance } from "./obsidian-ext";
 import { openFile } from "./opener";
@@ -73,7 +73,7 @@ export default class HearthPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
 
 		this.ribbonEl = this.addRibbonIcon(
-			hearthIconIdFor(this.settings.themeColorTarget),
+			this.brandIconId(),
 			t().ribbon.openHome,
 			() => this.activateView(),
 		);
@@ -372,10 +372,16 @@ export default class HearthPlugin extends Plugin {
 		this.refreshViews();
 	}
 
-	/** Re-apply the brand/themed crystal to the ribbon and open tab headers
-	 * after the themeColorTarget setting changes. */
+	/** The mark Hearth wears in the ribbon and on its tab: the user's Lucide tab
+	 * icon, or the brand/themed crystal. */
+	private brandIconId(): string {
+		return tabIconIdFor(this.settings.themeColorTarget, this.settings.tabIcon);
+	}
+
+	/** Re-apply the tab icon to the ribbon and open tab headers after the tab
+	 * icon or themeColorTarget setting changes. */
 	refreshBrandIcons() {
-		if (this.ribbonEl) setIcon(this.ribbonEl, hearthIconIdFor(this.settings.themeColorTarget));
+		if (this.ribbonEl) setIcon(this.ribbonEl, this.brandIconId());
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			// updateHeader is undocumented; when absent the tab icon simply
 			// refreshes the next time the leaf re-renders.
