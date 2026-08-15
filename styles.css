@@ -9741,53 +9741,55 @@ body.hearth-dv-resizing {
 	color: var(--text-normal);
 }
 
-/* ---- The parting note ----
-   Set apart from the notes above it: this is the one paragraph on the step
-   that isn't about the board being built, and the point it makes — that the
-   board is a starting point and everything is yours to change — is the one
-   worth reading twice. An accent edge rather than a box, so it reads as the
-   wizard's closing word rather than another aside. */
-.hearth-setup-outro {
-	margin-top: 20px;
+/* ---- The customize callout ----
+   Leads the final step, above the board preview. Everything below it is a
+   picture, a list and two controls that end at a "Build my dashboard"
+   button, so a note placed after them is a note nobody reads — and the point
+   this one makes, that the board is a starting point and all of it is yours
+   to change, is the one that must land. Given the accent edge and a tinted
+   surface so it reads as the step's opening statement rather than an aside
+   that can be skimmed past. */
+.hearth-setup-callout {
+	margin: 0 0 18px;
 	padding: 14px 16px;
 	border-left: 3px solid var(--interactive-accent);
 	border-radius: 4px 10px 10px 4px;
 	background: var(--background-secondary);
 }
 
-.hearth-setup-outro-head {
+.hearth-setup-callout-head {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 8px;
 }
 
-.hearth-setup-outro-icon {
+.hearth-setup-callout-icon {
 	display: inline-flex;
 	color: var(--text-accent);
 }
 
-.hearth-setup-outro-icon .svg-icon {
+.hearth-setup-callout-icon .svg-icon {
 	width: 16px;
 	height: 16px;
 }
 
-.hearth-setup-outro-title {
+.hearth-setup-callout-title {
 	font-weight: 650;
 }
 
-.hearth-setup-outro-text {
+.hearth-setup-callout-text {
 	margin: 0 0 8px;
 	color: var(--text-muted);
 	font-size: 0.88em;
 	line-height: 1.55;
 }
 
-.hearth-setup-outro-text:last-of-type {
+.hearth-setup-callout-text:last-of-type {
 	margin-bottom: 0;
 }
 
-.hearth-setup-outro-hint {
+.hearth-setup-callout-hint {
 	margin-top: 10px;
 	padding-top: 10px;
 	border-top: 1px solid var(--background-modifier-border);

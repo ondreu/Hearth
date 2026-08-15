@@ -592,6 +592,11 @@ export class SetupWizardModal extends Modal {
 		const a = this.answers;
 		const planned = planCards(a, this.detection, (i) => `preview-${i}`);
 
+		// First, above the preview: the step's body scrolls, and everything below
+		// is a list the reader is about to scroll through and then press a button.
+		// A note at the bottom of that is a note nobody reads.
+		this.renderCustomizeCallout(body);
+
 		if (planned.length === 0) {
 			body.createDiv({ cls: "hearth-setup-note", text: strings.empty });
 		} else {
@@ -632,30 +637,32 @@ export class SetupWizardModal extends Modal {
 						a.dashboardName = v;
 					}),
 			);
-
-		this.renderOutro(body);
 	}
 
 	/**
-	 * The parting note, and the most important thing on the step.
+	 * The most important thing on the step, and so the first thing on it.
 	 *
 	 * A wizard that builds a board for you invites exactly the wrong conclusion —
 	 * that the board it built is *the* board, and that Hearth is a plugin with a
 	 * few presets. It is the opposite: nearly everything here is adjustable, and
 	 * the generated board is a demonstration of that rather than a destination.
-	 * So the last thing the wizard says is to go and change it.
+	 *
+	 * Which is why it leads the step rather than closing it. Below this sit a
+	 * board preview, a card list and two controls — a reader working down that
+	 * and pressing "Build my dashboard" would never reach a footnote, and this is
+	 * the one thing on the step that must not be missed.
 	 */
-	private renderOutro(body: HTMLElement): void {
+	private renderCustomizeCallout(body: HTMLElement): void {
 		const strings = t().setup.finish;
-		const outro = body.createDiv("hearth-setup-outro");
+		const callout = body.createDiv("hearth-setup-callout");
 
-		const head = outro.createDiv("hearth-setup-outro-head");
-		setIcon(head.createSpan("hearth-setup-outro-icon"), "sliders-horizontal");
-		head.createSpan({ cls: "hearth-setup-outro-title", text: strings.outroTitle });
+		const head = callout.createDiv("hearth-setup-callout-head");
+		setIcon(head.createSpan("hearth-setup-callout-icon"), "sliders-horizontal");
+		head.createSpan({ cls: "hearth-setup-callout-title", text: strings.calloutTitle });
 
-		outro.createEl("p", { cls: "hearth-setup-outro-text", text: strings.outroLead });
-		outro.createEl("p", { cls: "hearth-setup-outro-text", text: strings.outroCustomize });
-		outro.createDiv({ cls: "hearth-setup-outro-hint", text: strings.outroHint });
+		callout.createEl("p", { cls: "hearth-setup-callout-text", text: strings.calloutLead });
+		callout.createEl("p", { cls: "hearth-setup-callout-text", text: strings.calloutBody });
+		callout.createDiv({ cls: "hearth-setup-callout-hint", text: strings.calloutHint });
 	}
 
 	/**
