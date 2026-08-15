@@ -21,6 +21,7 @@ export const en = {
 		newDrawing: "Create new Excalidraw drawing",
 		recordVoice: "Start/stop voice recording",
 		openDailyNote: "Open today's daily note",
+		runSetup: "Set up Hearth (first-run wizard)",
 		switchDashboard: (n: number) => `Switch to dashboard ${n}`,
 		nextDashboard: "Next dashboard",
 		previousDashboard: "Previous dashboard",
@@ -95,6 +96,296 @@ export const en = {
 		intro: "Thanks for updating! Here's what's changed since you last checked.",
 		close: "Got it",
 		footer: "Full details live in the plugin's README.",
+	},
+
+	// ---- First-run setup wizard ----------------------------------------
+	setup: {
+		/** Short labels on the progress rail. */
+		stepNames: {
+			welcome: "Welcome",
+			vault: "Your vault",
+			look: "Look",
+			purpose: "What for",
+			integrations: "Integrations",
+			behaviour: "Behaviour",
+			finish: "Finish",
+		},
+		/** The heading at the top of each step. */
+		stepTitles: {
+			welcome: "Welcome to Hearth",
+			vault: "Name your home screen",
+			look: "Pick a look",
+			purpose: "What do you use your vault for?",
+			integrations: "Found in your vault",
+			behaviour: "How Hearth behaves",
+			finish: "Here's your dashboard",
+		},
+		/** The line under each heading. */
+		stepDescs: {
+			welcome: "A few questions, then Hearth builds your first dashboard.",
+			vault: "The title and logo across the top of the board.",
+			look: "You can change any of this later in Settings → Appearance.",
+			purpose: "Pick as many as you like — each one adds cards to your board.",
+			integrations:
+				"Hearth found these already installed. Turn on the ones you'd like it to use.",
+			behaviour: "What happens when Obsidian starts and when you open a note.",
+			finish: "Nothing has been changed yet. Here's what will be built.",
+		},
+		nav: {
+			back: "Back",
+			next: "Next",
+			finish: "Build my dashboard",
+			skip: "Skip setup",
+		},
+		welcome: {
+			lead:
+				"Hearth turns a tab into a home screen for your vault — search, a dashboard " +
+				"of cards, and a launcher. This wizard sets up a board that fits how you " +
+				"actually work, so you're not starting from a blank grid.",
+			bullets: [
+				{
+					icon: "layout-dashboard",
+					title: "A dashboard built for you",
+					desc: "Tell Hearth what you use your vault for and it picks the cards.",
+				},
+				{
+					icon: "plug",
+					title: "Your plugins, already wired up",
+					desc:
+						"Hearth looks for TaskNotes, Dataview, Git and more, and offers to " +
+						"connect them — reading their own settings so cards work right away.",
+				},
+				{
+					icon: "palette",
+					title: "A look you choose",
+					desc: "Background, card style and density, set in one step.",
+				},
+			],
+			detected: (names: string) => `Found in this vault: ${names}.`,
+			detectedNone:
+				"No supported plugins detected yet — that's fine, Hearth works on its own " +
+				"and you can connect them later.",
+		},
+		vault: {
+			title: "Title",
+			titleDesc: "Shown large across the top of the dashboard.",
+			showTitle: "Show the title",
+			showTitleDesc: "Turn off for a board with no heading at all.",
+			logo: "Logo",
+			logoDesc:
+				"An emoji or a couple of characters shown beside the title. Leave empty for " +
+				"the Hearth crystal.",
+			themeColor: "Follow the theme's accent colour",
+			themeColorDesc: "Which parts of the brand mark take your theme's colour.",
+			themeColorOptions: {
+				none: "Neither",
+				icon: "The icon",
+				title: "The title",
+				both: "Both",
+			},
+			showSearch: "Show the search bar",
+			showSearchDesc: "The search and command field under the title.",
+		},
+		look: {
+			surfaceHeading: "Cards",
+			backgroundHeading: "Background",
+			color: "Colour",
+			colorDesc: "The flat colour painted behind the board.",
+			weatherDesc:
+				"A live sky for a place, or one condition pinned and kept. Pick where it " +
+				"comes from below.",
+			layout: "Where the background goes",
+			layoutDesc:
+				"Behind the whole board, or as a banner strip across the top with your " +
+				"cards on the theme's own surface below it.",
+			layoutFull: "Behind everything",
+			layoutBanner: "A banner at the top",
+			compact: "Compact spacing",
+			compactDesc: "Tighten the gaps so more fits on screen.",
+		},
+		surfaces: {
+			glass: {
+				icon: "layers",
+				name: "Frosted",
+				desc: "Translucent cards with a soft blur of the background behind them.",
+			},
+			solid: {
+				icon: "square",
+				name: "Solid",
+				desc: "Opaque panels. Easiest to read over a busy photograph.",
+			},
+			minimal: {
+				icon: "minus",
+				name: "Minimal",
+				desc: "No card surface at all — content floating on the background.",
+			},
+		},
+		backgrounds: {
+			default: {
+				icon: "image",
+				name: "Hearth's wallpaper",
+				desc: "The image that ships with Hearth.",
+			},
+			weather: {
+				icon: "cloud-sun",
+				name: "Live sky",
+				desc: "A sky drawn from the weather where you are — or one you pin.",
+			},
+			color: {
+				icon: "paintbrush",
+				name: "A flat colour",
+				desc: "One colour, no image. The lightest option there is.",
+			},
+			none: {
+				icon: "ban",
+				name: "None",
+				desc: "Your theme's own background, untouched.",
+			},
+		},
+		purposes: {
+			daily: {
+				name: "Daily notes & journaling",
+				desc: "Today's note front and centre, with a calendar to move between days.",
+			},
+			tasks: {
+				name: "Tasks & to-dos",
+				desc: "A task list, read from your checkboxes or from a task plugin.",
+			},
+			planning: {
+				name: "Planning & calendar",
+				desc: "A full month/week/day calendar, including any subscribed feeds.",
+			},
+			browsing: {
+				name: "Finding my notes",
+				desc: "What you touched recently, plus a shelf of favourites.",
+			},
+			capture: {
+				name: "Quick capture & launching",
+				desc: "Tiles for the notes and commands you reach for constantly.",
+			},
+			insights: {
+				name: "Vault statistics",
+				desc: "How big the vault is and how active you've been.",
+			},
+			reading: {
+				name: "Reading & feeds",
+				desc: "An RSS card for the sites you follow.",
+			},
+			ambience: {
+				name: "A bit of life",
+				desc: "Weather, and a small pet that lives on your board.",
+			},
+		},
+		purpose: {
+			count: (n: number) =>
+				n === 1 ? "That's 1 card so far." : `That's ${n} cards so far.`,
+		},
+		integrations: {
+			lead:
+				"Each one Hearth turns on here is configured for you — nothing is installed " +
+				"or changed in the other plugin.",
+			recommended: "Recommended",
+			effects: {
+				tasknotes:
+					"Add a Tasks card reading your TaskNotes tasks, using the field names and " +
+					"completed statuses TaskNotes is set to.",
+				kanban: "Add a Tasks card showing your Kanban board as columns you can drag between.",
+				dataview: "Add a Dataview card, seeded with a query you can edit.",
+				datacore: "Add a Datacore card ready for a query.",
+				git: "Add a Git card showing your repository's status, with commit and sync buttons.",
+				omnisearch: "Use Omnisearch as the engine behind Hearth's search bar.",
+				fileIcons: "Show the per-file icons you've already set, instead of Hearth's file-type icons.",
+				bases: "Add a card embedding a base from your vault.",
+				dailyNotes: "Add a card showing today's daily note, editable in place.",
+				bookmarks: "Add a card listing your bookmarks.",
+			},
+			taskNotesTitle: "Read from your TaskNotes settings",
+			taskNotesStatus: "Status field",
+			taskNotesDue: "Due field",
+			taskNotesPriority: "Priority field",
+			taskNotesDone: "Counts as done",
+			taskNotesDoneNone: "none defined — Hearth will use \"done\"",
+		},
+		behaviour: {
+			openOnStartup: "Open Hearth when Obsidian starts",
+			openOnStartupDesc: "Your dashboard is the first thing you see.",
+			replaceNewTabs: "Use Hearth for new empty tabs",
+			replaceNewTabsDesc: "A new tab opens on the dashboard instead of the empty state.",
+			focusSearch: "Focus the search field on open",
+			focusSearchDesc: "Start typing the moment a Hearth tab opens. Desktop only.",
+			openIn: "Open notes in",
+			openInDesc: "Where a note goes when you open one from the dashboard.",
+		},
+		finish: {
+			empty:
+				"No cards were selected. You can still finish — the board will be empty and " +
+				"you can add cards from the dashboard's Arrange button.",
+			target: "Where this board goes",
+			targetDesc:
+				"Replace the dashboard you're on, or add this as a new one you can switch to.",
+			targetReplace: "Replace my current dashboard",
+			targetNew: "Add it as a new dashboard",
+			targetForcedNew:
+				"This will be added as a new dashboard. Every board you already have is " +
+				"left exactly as it is — nothing is replaced or removed.",
+			name: "Dashboard name",
+			nameDesc: "Shown in the dashboard switcher.",
+			/** Seed for the new dashboard's name; numbered if already taken. */
+			defaultName: "Home",
+			reassurance:
+				"Every card can be moved, resized, reconfigured or removed afterwards — and " +
+				"you can run this wizard again any time from Settings → About.",
+		},
+		plan: {
+			/** Fallback names for planned cards that carry no title of their own. */
+			names: {
+				clock: "Clock & greeting",
+				daily: "Today's note",
+				tasks: "Tasks",
+				schedule: "Calendar",
+				calendar: "Mini calendar",
+				recent: "Recent files",
+				favorites: "Favorites",
+				bookmarks: "Bookmarks",
+				links: "Links",
+				commands: "Commands",
+				stats: "Vault statistics",
+				heatmap: "Activity",
+				rss: "Reading",
+				weather: "Weather",
+				pet: "Pet",
+				dataview: "Dataview",
+				datacore: "Datacore",
+				git: "Git",
+				base: "Base",
+			},
+			/** Why each card is on the board, shown beside it in the review list. */
+			reasons: {
+				always: "Every Hearth board starts with one",
+				daily: "Daily notes & journaling",
+				dailyNotes: "Daily notes is enabled",
+				tasks: "Tasks & to-dos",
+				tasknotes: "Set up for TaskNotes",
+				kanban: "Reading your Kanban board",
+				planning: "Planning & calendar",
+				browsing: "Finding my notes",
+				bookmarks: "Bookmarks is enabled",
+				capture: "Quick capture & launching",
+				insights: "Vault statistics",
+				reading: "Reading & feeds",
+				ambience: "A bit of life",
+				dataview: "Dataview is installed",
+				datacore: "Datacore is installed",
+				git: "Git is installed",
+				bases: "A base was found in your vault",
+			},
+		},
+		notice: {
+			done: (n: number) =>
+				n === 1
+					? "Hearth: your dashboard is ready — 1 card added."
+					: `Hearth: your dashboard is ready — ${n} cards added.`,
+		},
 	},
 
 	// ---- File pickers --------------------------------------------------
@@ -323,6 +614,16 @@ export const en = {
 		about: {
 			heading: "About Hearth",
 			headingDesc: "Project links, support and version.",
+			setup: "Set up Hearth",
+			setupDesc:
+				"Answer a few questions about how you work and what's installed, and Hearth " +
+				"builds a dashboard to match. It's added as a new board — nothing you " +
+				"already have is changed.",
+			setupAgain: "Build a dashboard",
+			setupAgainDesc:
+				"Run the setup wizard again to generate another dashboard. It's always " +
+				"added as a new board, so your existing dashboards are never touched.",
+			setupButton: "Start setup",
 			whatsNew: "What's new",
 			whatsNewDesc: "Read the release notes for this and every past version.",
 			whatsNewButton: "View changelog",

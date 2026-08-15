@@ -15,6 +15,44 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A setup wizard that builds your first dashboard.** A new install no longer
+  lands on a generic starter grid and a wallpaper nobody chose. Hearth asks
+  instead — a title and logo, a card style and a background, what you actually
+  use the vault for, how it should behave on startup — and lays out a board from
+  the answers.
+
+  **It looks before it asks.** Every supported plugin that is installed and
+  enabled in *your* vault is offered on its own step, each with the single
+  concrete thing accepting it will do: TaskNotes and Kanban configure a Tasks
+  card, Dataview and Datacore add a card seeded with an editable query, Git adds
+  a Git card, Omnisearch becomes the search bar's engine, Iconic/Iconize turn on
+  your own file icons, a `.base` in the vault gets embedded, and Daily notes and
+  Bookmarks add the matching cards. Nothing is installed and nothing is changed
+  inside the other plugin.
+
+  **TaskNotes is read properly, not merely noticed.** Its field names are
+  remappable and its statuses are user-defined, so Hearth reads the running
+  plugin's own configuration — the status, due and priority properties, and
+  every status it counts as complete — and copies them across. The step shows
+  you exactly what it found. A vault that renamed `due` to `deadline`, or that
+  treats "cancelled" as finished, gets a Tasks card that is right on its first
+  render instead of one that silently shows nothing.
+
+  **Nothing is written until you say so.** The last step draws the board to
+  scale and lists every card with the answer that put it there. A board too tall
+  to squeeze onto one screen is set to scroll rather than being scaled down to
+  nothing — as an override on that board alone.
+
+  Run it again any time from **Settings → Hearth → About → Build a dashboard**
+  or the **Set up Hearth** command. Run that way it **always adds a new
+  dashboard** and never touches an existing one, so it is safe to press just to
+  see what it would make. Only the first-run prompt offers to replace the
+  untouched starter board.
+
+  Existing vaults are never interrupted: the wizard is offered only to an
+  install with no saved Hearth settings at all, and dismissing it counts as an
+  answer, so it can't nag.
+
 - **A board that wears its background as a banner.** **Appearance → Background →
   Background layout** offers a second way to show the backdrop you already have:
   instead of filling the view, it is cropped into a strip across the top of the

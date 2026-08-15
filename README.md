@@ -42,6 +42,39 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 4. Hit **Arrange** (top-right) to add, move, resize and configure cards right
    on the board.
 
+## Setup wizard
+
+On a fresh install Hearth offers to build your first dashboard for you. It asks
+a handful of questions — a title, a look, what you use your vault for — and lays
+out a board from the answers rather than dropping you on a generic starter grid.
+
+It also **looks at what you already have**. Every supported plugin that is
+installed and enabled is offered with the one thing accepting it will do:
+
+| Found | What Hearth does with it |
+| --- | --- |
+| **TaskNotes** | Adds a Tasks card on the TaskNotes source, using TaskNotes' *own* field names and completed statuses |
+| **Kanban** | Adds a Tasks card showing your board as draggable columns |
+| **Dataview** / **Datacore** | Adds a card, seeded with an editable query |
+| **Git** | Adds a Git card with status, commit and sync |
+| **Omnisearch** | Makes it the engine behind Hearth's search bar |
+| **Iconic** / **Iconize** | Shows the file icons you already set |
+| **Bases** | Embeds a base from your vault |
+| **Daily notes** / **Bookmarks** | Adds the matching card |
+
+The TaskNotes case is the one worth calling out: its field names are
+user-remappable and its statuses user-defined, so Hearth reads them from the
+plugin and copies them across. A vault that renamed `due` to `deadline` gets a
+Tasks card that works on its first render.
+
+The last step previews the board — a scale drawing plus a list of every card and
+why it's there — before anything is written. Nothing is applied until you press
+**Build my dashboard**.
+
+You can run it again any time from **Settings → Hearth → About → Build a
+dashboard**, or the **Set up Hearth** command. Run that way it *always* adds a
+new dashboard: every board you already have is left exactly as it is.
+
 ## Search
 
 The search field is keyboard-first, with four transparent modes:

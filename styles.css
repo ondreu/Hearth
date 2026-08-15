@@ -9344,3 +9344,419 @@ body.hearth-dv-resizing {
 		grid-column: 1 / -1;
 	}
 }
+
+/* ======================================================================
+   Setup wizard (first run)
+   ----------------------------------------------------------------------
+   A stepped dialog rather than a settings page: a progress rail, one step
+   at a time, and a fixed footer. The frame's height is pinned (not maxed)
+   for the same reason the card picker's is — steps differ wildly in
+   length, and a dialog that resizes under the pointer moves the Next
+   button out from under the click that was heading for it.
+   ====================================================================== */
+
+.hearth-setup-modal {
+	max-width: 720px;
+	width: min(720px, 94vw);
+}
+
+.hearth-setup-modal .modal-content {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.hearth-setup {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: min(70vh, 660px);
+}
+
+/* ---- Progress rail ---- */
+.hearth-setup-rail {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	overflow-x: auto;
+	scrollbar-width: none;
+	padding-bottom: 12px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-setup-rail::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-setup-rail-step {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex: none;
+	padding: 4px 10px;
+	border-radius: 999px;
+	color: var(--text-faint);
+	font-size: 0.82em;
+	white-space: nowrap;
+}
+
+.hearth-setup-rail-step.is-done {
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-setup-rail-step.is-done:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-setup-rail-step.is-active {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.hearth-setup-rail-icon {
+	display: inline-flex;
+}
+
+.hearth-setup-rail-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* ---- Step heading ---- */
+.hearth-setup-head {
+	flex: none;
+	padding: 16px 0 12px;
+}
+
+.hearth-setup-title {
+	font-size: 1.35em;
+	font-weight: 650;
+	line-height: 1.25;
+}
+
+.hearth-setup-subtitle {
+	margin-top: 4px;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+/* ---- Step body: the only part that scrolls ---- */
+.hearth-setup-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	/* Room for the scrollbar so option tiles don't run under it. */
+	padding-right: 8px;
+}
+
+/* Settings rows inside the wizard are denser than in the settings pane:
+   there are a lot of them and the dialog is short. */
+.hearth-setup-body .setting-item {
+	padding: 10px 0;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-setup-body .setting-item:first-child {
+	border-top: none;
+}
+
+.hearth-setup-lead {
+	margin: 0 0 16px;
+	color: var(--text-muted);
+	line-height: 1.55;
+}
+
+.hearth-setup-grouplabel {
+	margin: 18px 0 8px;
+	font-size: 0.78em;
+	font-weight: 650;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.hearth-setup-grouplabel:first-child {
+	margin-top: 0;
+}
+
+.hearth-setup-note {
+	margin-top: 14px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: 0.85em;
+	line-height: 1.5;
+}
+
+/* The one note that is a promise rather than an aside — "nothing you have
+   is touched" — so it reads as reassurance, not small print. */
+.hearth-setup-note.is-safe {
+	background: var(--background-modifier-success, var(--background-secondary));
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+/* ---- Welcome bullets ---- */
+.hearth-setup-bullets {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.hearth-setup-bullet {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.hearth-setup-bullet-icon {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: var(--background-modifier-hover);
+	color: var(--text-accent);
+}
+
+.hearth-setup-bullet-title {
+	font-weight: 600;
+}
+
+.hearth-setup-bullet-desc {
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 0.88em;
+	line-height: 1.45;
+}
+
+/* ---- Option tiles ---- */
+.hearth-setup-options {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+	gap: 10px;
+}
+
+.hearth-setup-option {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-primary);
+	cursor: pointer;
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.hearth-setup-option:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-setup-option.is-selected {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.hearth-setup-option-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--text-muted);
+}
+
+.hearth-setup-option.is-selected .hearth-setup-option-icon {
+	color: var(--text-accent);
+}
+
+.hearth-setup-option-name {
+	font-weight: 600;
+	font-size: 0.92em;
+}
+
+.hearth-setup-option-desc {
+	margin-top: 3px;
+	color: var(--text-muted);
+	font-size: 0.82em;
+	line-height: 1.4;
+}
+
+/* A multi-select grid gets a checkmark on its chosen tiles: with several
+   selected at once, a border tint alone reads as "these are highlighted"
+   rather than "these are picked". */
+.hearth-setup-options.is-multi .hearth-setup-option.is-selected::after {
+	content: "✓";
+	margin-left: auto;
+	align-self: center;
+	color: var(--text-accent);
+	font-weight: 700;
+}
+
+/* ---- Integrations ---- */
+.hearth-setup-badge {
+	margin-left: 8px;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-accent);
+	font-size: 0.72em;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	vertical-align: middle;
+}
+
+.hearth-setup-detected {
+	margin-top: 14px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-secondary);
+}
+
+.hearth-setup-detected-title {
+	font-weight: 600;
+	font-size: 0.88em;
+	margin-bottom: 8px;
+}
+
+.hearth-setup-detected-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.hearth-setup-detected-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 0.85em;
+}
+
+.hearth-setup-detected-key {
+	color: var(--text-muted);
+}
+
+.hearth-setup-detected-value {
+	font-family: var(--font-monospace);
+	color: var(--text-normal);
+	text-align: right;
+}
+
+/* ---- The board preview ---- */
+.hearth-setup-preview {
+	display: grid;
+	gap: 4px;
+	height: 190px;
+	padding: 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-secondary);
+}
+
+.hearth-setup-preview-card {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	padding: 2px 4px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+	background: var(--background-primary);
+	overflow: hidden;
+}
+
+.hearth-setup-preview-label {
+	font-size: 0.68em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ---- The plan list ---- */
+.hearth-setup-plan {
+	display: flex;
+	flex-direction: column;
+	margin-top: 12px;
+}
+
+.hearth-setup-plan-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: 0.88em;
+}
+
+.hearth-setup-plan-row:last-child {
+	border-bottom: none;
+}
+
+.hearth-setup-plan-name {
+	font-weight: 550;
+}
+
+.hearth-setup-plan-why {
+	color: var(--text-faint);
+	font-size: 0.9em;
+	text-align: right;
+}
+
+/* ---- Footer ---- */
+.hearth-setup-foot {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding-top: 14px;
+	margin-top: 4px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-setup-foot-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+
+.hearth-setup-skip {
+	background: none;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+
+.hearth-setup-skip:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+@media (max-width: 620px) {
+	.hearth-setup {
+		height: min(78vh, 660px);
+	}
+
+	.hearth-setup-options {
+		grid-template-columns: 1fr;
+	}
+
+	/* The rail's labels are the first thing to go on a phone: the icons plus
+	   the step heading below already say where you are. */
+	.hearth-setup-rail-label {
+		display: none;
+	}
+
+	.hearth-setup-preview {
+		height: 140px;
+	}
+}

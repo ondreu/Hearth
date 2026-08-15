@@ -19,6 +19,7 @@ import {
 	type SettingsTabId,
 } from "./integrations";
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
+import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
 
 /** Keys of HomeSettings whose default lives in DEFAULT_SETTINGS as a number —
@@ -1792,6 +1793,24 @@ export class HomeSettingTab extends PluginSettingTab {
 		// Grouped like every other page, rather than as bare rows: the section
 		// heading replaces what used to be a `setHeading()` row of its own.
 		this.section(containerEl, about.heading, about.headingDesc, (body) => {
+			// First in the list: the row a user who skipped the first-run wizard —
+			// or who simply wants another board — comes here looking for.
+			//
+			// Always `forceNewDashboard`: from settings the wizard is a board
+			// *generator*, not a reset. Every dashboard that already exists is
+			// left untouched and the result arrives as a new one in the switcher,
+			// so this row can be pressed to see what it would make without any
+			// risk to work already done.
+			const skipped = this.plugin.settings.setupStatus !== "done";
+			new Setting(body)
+				.setName(skipped ? about.setup : about.setupAgain)
+				.setDesc(skipped ? about.setupDesc : about.setupAgainDesc)
+				.addButton((b) =>
+					this.aboutButton(b, "wand-2", about.setupButton, () =>
+						openSetupWizard(this.plugin, { forceNewDashboard: true }),
+					),
+				);
+
 			new Setting(body)
 				.setName(about.whatsNew)
 				.setDesc(about.whatsNewDesc)
