@@ -1,0 +1,234 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hearth animation micro-bench</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #16161a; overflow: hidden; }
+  #stage { position: relative; width: 100vw; height: 100vh; }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* --- The three animation shapes Hearth's sky uses, verbatim in form --- */
+  @keyframes drift { from { transform: translateX(-60px); } to { transform: translateX(500px); } }
+  @keyframes fall  { from { transform: translate(0, -20px); opacity: 0; }
+                     15%  { opacity: .6; }
+                     to   { transform: translate(-24px, 240px); opacity: 0; } }
+  @keyframes twinkle { 0%,100% { opacity: .25; } 50% { opacity: .9; } }
+
+  /* SVG children (what Hearth animates) */
+  .svg-drift   { animation: drift 60s linear infinite; }
+  .svg-fall    { animation: fall 1.4s linear infinite; }
+  .svg-twinkle { animation: twinkle 4s ease-in-out infinite; }
+
+  /* The same animations on plain HTML divs, for comparison */
+  .html-drift  { position:absolute; width:40px; height:20px; background:#fff;
+                 animation: drift 60s linear infinite; }
+  .html-fall   { position:absolute; width:2px; height:12px; background:#cfe4ff;
+                 animation: fall 1.4s linear infinite; }
+  .html-twinkle{ position:absolute; width:3px; height:3px; border-radius:50%;
+                 background:#fff; animation: twinkle 4s ease-in-out infinite; }
+
+  /* Hearth's lightning bolt: an animated element carrying a filter. */
+  .bolt { fill:none; stroke:#fff6cf; stroke-width:1.4; opacity:0;
+          filter: drop-shadow(0 0 3px rgba(255,240,170,.9));
+          animation: twinkle 7.3s steps(1,end) infinite; }
+  .bolt-nofilter { fill:none; stroke:#fff6cf; stroke-width:1.4; opacity:0;
+          animation: twinkle 7.3s steps(1,end) infinite; }
+
+  /* Pet: transform on the svg ROOT, opacity stepping on the frame groups. */
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-1.5deg); }
+                   50% { transform: translateY(-6%) rotate(1.5deg); } }
+  @keyframes cycle3 { 0%,33.32% { opacity:1; } 33.33%,100% { opacity:0; } }
+  .pet-sprite { animation: bob 1.1s ease-in-out infinite; }
+  .pet-frame  { animation: cycle3 1.1s steps(1,end) infinite; }
+  @keyframes bobpx { 0%,100% { transform: translateY(0px) rotate(-1.5deg); }
+                     50% { transform: translateY(-6px) rotate(1.5deg); } }
+
+  /* Slideshow Ken Burns. */
+  @keyframes kb { from { transform: scale(1); } to { transform: scale(1.09); } }
+  .kenburns { position:absolute; inset:0;
+              background:linear-gradient(135deg,#2b3a55,#c98a5e);
+              animation: kb 8s ease-out infinite; }
+</style>
+<div id="stage"></div>
+<script>
+const stage = document.getElementById("stage");
+const SVGNS = "http://www.w3.org/2000/svg";
+
+function svgRoot() {
+  const s = document.createElementNS(SVGNS, "svg");
+  s.setAttribute("viewBox", "0 0 400 200");
+  s.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  stage.appendChild(s);
+  return s;
+}
+
+const BUILD = {
+  /** Nothing moving. */
+  none() {},
+
+  /** 52 rain lines as SVG children — exactly what drawPrecipitation() emits. */
+  svgFall(n = 52) {
+    const s = svgRoot();
+    for (let i = 0; i < n; i++) {
+      const l = document.createElementNS(SVGNS, "line");
+      const x = ((i * 37) % 390) + 5;
+      l.setAttribute("x1", x); l.setAttribute("y1", 0);
+      l.setAttribute("x2", x - 3); l.setAttribute("y2", 11);
+      l.setAttribute("stroke", "#cfe4ff");
+      l.classList.add("svg-fall");
+      l.style.animationDelay = `${-(i / n) * 1.4}s`;
+      s.appendChild(l);
+    }
+  },
+
+  /** The same 52 drops as absolutely-positioned HTML divs. */
+  htmlFall(n = 52) {
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement("div");
+      d.className = "html-fall";
+      d.style.left = `${((i * 37) % 1400) + 5}px`;
+      d.style.animationDelay = `${-(i / n) * 1.4}s`;
+      stage.appendChild(d);
+    }
+  },
+
+  /** 9 drifting cloud groups, 4 shapes each — what drawCloud() emits. */
+  svgDrift(n = 9) {
+    const s = svgRoot();
+    for (let i = 0; i < n; i++) {
+      const g = document.createElementNS(SVGNS, "g");
+      g.classList.add("svg-drift");
+      g.style.animationDuration = `${46 + (i % 3) * 20}s`;
+      g.setAttribute("fill", "#fff"); g.setAttribute("opacity", ".32");
+      const inner = document.createElementNS(SVGNS, "g");
+      inner.setAttribute("transform", `translate(0 ${20 + i * 12}) scale(1.1)`);
+      for (const [cx, cy, rx, ry] of [[-14,4,16,10],[2,-2,18,13],[18,5,15,9]]) {
+        const e = document.createElementNS(SVGNS, "ellipse");
+        e.setAttribute("cx", cx); e.setAttribute("cy", cy);
+        e.setAttribute("rx", rx); e.setAttribute("ry", ry);
+        inner.appendChild(e);
+      }
+      g.appendChild(inner); s.appendChild(g);
+    }
+  },
+
+  /** 38 twinkling stars as SVG circles. */
+  svgTwinkle(n = 38) {
+    const s = svgRoot();
+    for (let i = 0; i < n; i++) {
+      const c = document.createElementNS(SVGNS, "circle");
+      c.setAttribute("cx", (i * 37) % 400); c.setAttribute("cy", (i * 53) % 170);
+      c.setAttribute("r", 1); c.setAttribute("fill", "#fff");
+      c.classList.add("svg-twinkle");
+      c.style.animationDelay = `${(i % 30) / 10}s`;
+      s.appendChild(c);
+    }
+  },
+
+  htmlTwinkle(n = 38) {
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement("div");
+      d.className = "html-twinkle";
+      d.style.left = `${(i * 37) % 1400}px`; d.style.top = `${(i * 53) % 800}px`;
+      d.style.animationDelay = `${(i % 30) / 10}s`;
+      stage.appendChild(d);
+    }
+  },
+
+  /** 3 lightning bolts WITH the drop-shadow filter Hearth applies. */
+  boltsFiltered(n = 3) {
+    const s = svgRoot();
+    for (let i = 0; i < n; i++) {
+      const p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", `M${40 + i * 120},20 L${50 + i * 120},70 L${35 + i * 120},110`);
+      p.classList.add("bolt");
+      s.appendChild(p);
+    }
+  },
+
+  /** The pet card: transform on the <svg> ROOT + 3 frame groups stepping
+   *  opacity. Four pets, a busy board. */
+  pets(n = 4) {
+    for (let k = 0; k < n; k++) {
+      const s = document.createElementNS(SVGNS, "svg");
+      s.setAttribute("viewBox", "0 0 16 16");
+      s.style.cssText = `position:absolute;left:${k * 120}px;top:40px;width:96px;height:96px`;
+      s.classList.add("pet-sprite");
+      for (let f = 0; f < 3; f++) {
+        const g = document.createElementNS(SVGNS, "g");
+        g.classList.add("pet-frame");
+        g.style.animationDelay = `${(-f * 1.1) / 3}s`;
+        // ~40 rects per frame, as spriteRuns() emits.
+        for (let i = 0; i < 40; i++) {
+          const r = document.createElementNS(SVGNS, "rect");
+          r.setAttribute("x", i % 16); r.setAttribute("y", (i * 3) % 16);
+          r.setAttribute("width", 2); r.setAttribute("height", 1);
+          r.setAttribute("fill", "#c98a5e");
+          g.appendChild(r);
+        }
+        s.appendChild(g);
+      }
+      stage.appendChild(s);
+    }
+  },
+
+  /** Pet with only the svg-root bob (no frame cycling). */
+  petsBobOnly(n = 4) {
+    BUILD.pets(n);
+    for (const g of stage.querySelectorAll(".pet-frame")) g.style.animation = "none";
+  },
+
+  /** Pet with only the frame cycling (no svg-root transform). */
+  petsFramesOnly(n = 4) {
+    BUILD.pets(n);
+    for (const s of stage.querySelectorAll(".pet-sprite")) s.style.animation = "none";
+  },
+
+  /** The bob, but as a pixel translate instead of a percentage one. */
+  petsBobPx(n = 4) {
+    BUILD.pets(n);
+    for (const g of stage.querySelectorAll(".pet-frame")) g.style.animation = "none";
+    for (const s of stage.querySelectorAll(".pet-sprite")) s.style.animation = "bobpx 1.1s ease-in-out infinite";
+  },
+
+  /** Slideshow Ken Burns: a long transform:scale on an image layer. */
+  kenburns(n = 1) {
+    for (let k = 0; k < n; k++) {
+      const d = document.createElement("div");
+      d.className = "kenburns";
+      stage.appendChild(d);
+    }
+  },
+
+  /** The same bolts without the filter, to price the filter alone. */
+  boltsPlain(n = 3) {
+    const s = svgRoot();
+    for (let i = 0; i < n; i++) {
+      const p = document.createElementNS(SVGNS, "path");
+      p.setAttribute("d", `M${40 + i * 120},20 L${50 + i * 120},70 L${35 + i * 120},110`);
+      p.classList.add("bolt-nofilter");
+      s.appendChild(p);
+    }
+  },
+};
+
+window.microBench = {
+  build(name) {
+    stage.innerHTML = "";
+    BUILD[name]();
+    return document.getAnimations().length;
+  },
+  /** Real frames delivered over `ms`, so a throttled harness is detectable. */
+  frameRate(ms) {
+    return new Promise((res) => {
+      let n = 0;
+      const t0 = performance.now();
+      const tick = () => {
+        n++;
+        if (performance.now() - t0 < ms) requestAnimationFrame(tick);
+        else res(Math.round((n / (performance.now() - t0)) * 1000));
+      };
+      requestAnimationFrame(tick);
+    });
+  },
+};
+</script>
