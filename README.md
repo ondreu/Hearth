@@ -116,7 +116,10 @@ issue or email.
 
 - **Embed** — any note, image, canvas or `.base` file, rendered by Obsidian
   itself. Per-card zoom, optional in-place editing (raw or Live Preview), and a
-  second view you can flip to with a switcher.
+  second view you can flip to with a switcher. A picture can be framed as well
+  as embedded: fill the card and crop, fit the whole thing, stretch it, or fit
+  the width and scroll — with the crop anchored to any of nine points, and zoom
+  working inside the frame.
 - **Slideshow** — pictures from your vault, rotated on a timer. Pick them one by
   one (each with its own caption) or point the card at a folder, with or without
   its subfolders. Order by name, creation or modification date, your own list

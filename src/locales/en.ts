@@ -1276,6 +1276,34 @@ export const en = {
 			zoom: "Zoom",
 			zoomDesc:
 				"Scale the embedded content. Applies when you close this dialog.",
+			zoomImageDesc:
+				"Scale the picture inside the frame it was fitted to — zooming a " +
+				"cropped picture crops in further. Applies when you close this dialog.",
+			imageFit: "Picture fit",
+			imageFitDesc:
+				"How the picture fills the card. Every mode but the first hands it " +
+				"the whole card, edge to edge.",
+			imageFits: {
+				natural: "Original size",
+				contain: "Fit the whole picture",
+				cover: "Fill the card (crop)",
+				stretch: "Stretch to the card",
+				width: "Fit the width (scroll)",
+			},
+			imagePosition: "Picture position",
+			imagePositionDesc: "Where the picture sits in the card.",
+			imagePositionCropDesc: "Which part of the picture the crop keeps.",
+			imagePositions: {
+				"top-left": "Top left",
+				top: "Top",
+				"top-right": "Top right",
+				left: "Left",
+				center: "Center",
+				right: "Right",
+				"bottom-left": "Bottom left",
+				bottom: "Bottom",
+				"bottom-right": "Bottom right",
+			},
 			editable: "Editable",
 			editableDesc:
 				"Edit the embedded note's text in place (Markdown notes only).",

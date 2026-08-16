@@ -923,9 +923,9 @@
 	padding-inline: 0;
 }
 
-/* Read-only embed and jot hosts. `.hearth-embed-live` (canvas/Excalidraw) is
- * excluded — it's deliberately edge-to-edge and its body already zeroes all
- * padding.
+/* Read-only embed and jot hosts. `.hearth-embed-live` (canvas/Excalidraw) and
+ * `.hearth-embed-image` (a picture given a fit mode) are excluded — both are
+ * deliberately edge-to-edge and their bodies already zero all padding.
  *
  * The start gutter is sized from the hang itself rather than being a flat
  * number, because the hang has no upper bound. Obsidian computes
@@ -940,7 +940,8 @@
  * hang only widens it once it would otherwise eat in. The gutter is added on
  * top of the hang, not compared against it, so the checkbox keeps a full
  * gutter's clearance instead of landing flush against the clip edge. */
-.hearth-card-body.is-embed-host > .hearth-embed:not(.hearth-embed-live),
+.hearth-card-body.is-embed-host
+	> .hearth-embed:not(.hearth-embed-live):not(.hearth-embed-image),
 .hearth-card-body.is-jot-host .hearth-jot-preview {
 	padding-inline-start: max(
 		var(--hearth-card-pad-x),
@@ -1014,6 +1015,73 @@
  * desktop runtime) and modern WebKit (mobile) both support `zoom`. */
 .hearth-embed.is-scaled {
 	zoom: var(--hearth-embed-scale, 1);
+}
+
+/* ---- Formatted picture embeds --------------------------------------- */
+
+/* An image embed given a fit mode is drawn by Hearth as a bare <img> (see
+ * renderFormattedImage) and takes the whole card body, so the body drops its
+ * padding and its scrollbar the way a canvas embed's does — a gutter around a
+ * picture that says "fill the card" would be a visible lie, and the picture's
+ * own corners are clipped by the card's radius. */
+.hearth-card > .hearth-card-body.hearth-card-body-image {
+	overflow: hidden;
+	padding: 0;
+}
+
+/* The custom properties come from `embedImageStyle`: the anchor point, once as
+ * an `object-position` (which doubles as the zoom's transform origin) and once
+ * as flex alignment, plus the zoom factor. The flex alignment only bites in
+ * "fit the width", the one mode where the picture doesn't span both axes. */
+.hearth-embed.hearth-embed-image {
+	display: flex;
+	justify-content: var(--hearth-embed-img-justify, center);
+	align-items: var(--hearth-embed-img-align, center);
+	overflow: hidden;
+	padding: 0;
+}
+
+.hearth-embed-image .hearth-embed-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	/* The card's own radius clips the picture; a second radius on a picture that
+	 * reaches the card's edge just cuts a notch out of the corner. */
+	border-radius: 0;
+	object-position: var(--hearth-embed-img-pos, center center);
+	/* Zoom scales the fitted picture about its anchor point, so zooming into a
+	 * cropped picture keeps looking at the same part of it. The host clips. */
+	transform: scale(var(--hearth-embed-img-scale, 1));
+	transform-origin: var(--hearth-embed-img-pos, center center);
+}
+
+.hearth-embed-image.is-fit-contain .hearth-embed-img {
+	object-fit: contain;
+}
+
+.hearth-embed-image.is-fit-cover .hearth-embed-img {
+	object-fit: cover;
+}
+
+.hearth-embed-image.is-fit-stretch .hearth-embed-img {
+	object-fit: fill;
+}
+
+/* "Fit the width": the picture spans the card and keeps its ratio, so its
+ * height is whatever that comes to and the card scrolls. Zoom widens the
+ * picture instead of transforming it — a transform wouldn't reflow the height
+ * derived from the width, leaving a gap under a shrunk picture. */
+.hearth-embed-image.is-fit-width {
+	overflow: auto;
+}
+
+.hearth-embed-image.is-fit-width .hearth-embed-img {
+	width: calc(100% * var(--hearth-embed-img-scale, 1));
+	height: auto;
+	flex: none;
+	object-fit: contain;
+	transform: none;
 }
 
 /* Editable embed: a plain textarea bound to the note's file. Uses a monospace

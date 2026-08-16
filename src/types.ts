@@ -1008,6 +1008,30 @@ export interface MobileActionButton {
 	commandId?: string;
 }
 
+/**
+ * How an embedded picture fills its card.
+ *
+ * "natural" is the original behaviour and stays the default: Obsidian's own
+ * transclusion, the picture at its natural size in a scrolling box. The rest
+ * hand the picture the whole card body and differ in what gives — the crop
+ * ("cover"), the empty space ("contain"), the aspect ratio ("stretch") or the
+ * height ("width", which fills the width and scrolls).
+ */
+export type EmbedImageFit = "natural" | "contain" | "cover" | "stretch" | "width";
+
+/** Where a formatted picture sits in its card — and, when it is cropped, which
+ * part of it survives the crop. The nine points of a 3×3 grid. */
+export type EmbedImagePosition =
+	| "top-left"
+	| "top"
+	| "top-right"
+	| "left"
+	| "center"
+	| "right"
+	| "bottom-left"
+	| "bottom"
+	| "bottom-right";
+
 /** A secondary embed a card can switch to. Only `target` is required; `scale`
  * and `editable` mirror the primary embed's fields and default to that view's
  * behaviour when omitted. A card with a valid second view shows a switcher —
@@ -1020,6 +1044,12 @@ export interface EmbedView {
 	baseView?: string;
 	/** Zoom factor for the embedded content (1 = 100%); omitted means no scaling. */
 	scale?: number;
+	/** How an embedded picture fills the card; omitted means "natural" (the
+	 * picture at its own size). Ignored by every other file type. */
+	imageFit?: EmbedImageFit;
+	/** Where a formatted picture sits, and which part of it a crop keeps;
+	 * omitted means "center". Only read when `imageFit` frames the picture. */
+	imagePosition?: EmbedImagePosition;
 	/** Edit the embedded note's text in place instead of read-only (Markdown only). */
 	editable?: boolean;
 	/** Edit through Obsidian's own Live Preview editor rather than Hearth's plain
@@ -1211,6 +1241,16 @@ export interface DashboardCard {
 	 * Live Preview editor (hosted in the card) instead of Hearth's plain
 	 * raw-Markdown box. Only meaningful together with `editable`. */
 	livePreview?: boolean;
+
+	/** kind === "embed": how an embedded picture fills the card. Omitted means
+	 * "natural" — the picture at its own size, as Obsidian renders it. Ignored
+	 * for every other file type. */
+	imageFit?: EmbedImageFit;
+
+	/** kind === "embed": where a formatted picture sits in the card, and which
+	 * part of it survives a crop. Omitted means "center". Only read when
+	 * `imageFit` frames the picture. */
+	imagePosition?: EmbedImagePosition;
 
 	/** kind === "embed": an optional second view the card can switch to. When it
 	 * carries a target, a switcher toggles the body between the primary embed
