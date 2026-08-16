@@ -23,8 +23,10 @@ import {
 	type Dashboard,
 	type HomeSettings,
 	type OpenIn,
+	type TemplaterItem,
 	newDashboardId,
 } from "../types";
+import { templateDisplayName } from "../templater";
 import type { SetupDetection, SetupIntegrationId } from "./detect";
 import { taskNotesImport } from "./detect";
 
@@ -423,6 +425,22 @@ export function planCards(
 		});
 	}
 
+	if (accepted(answers, "templater") && detection.templaterTemplates.length > 0) {
+		add("templater", "templater", {
+			kind: "templater",
+			title: "New note",
+			// Seeded with the vault's own templates rather than left blank: an
+			// empty launchpad is indistinguishable from a broken one, and the
+			// destination is the one thing the user still has to fill in — which
+			// they can only do once there is a tile to fill it in on.
+			templater: { items: detection.templaterTemplates.map(templaterTile) },
+			x: -1,
+			y: -1,
+			w: 6,
+			h: 2,
+		});
+	}
+
 	if (accepted(answers, "git")) {
 		add("git", "git", { kind: "git", title: "Git", git: {}, x: -1, y: -1, w: 4, h: 4 });
 	}
@@ -444,6 +462,28 @@ export function planCards(
 	const cards: DashboardCard[] = drafts.map((draft, i) => ({ ...draft.card, id: newId(i) }));
 	ensureLayout(cards, PLAN_COLUMNS);
 	return drafts.map((draft, i) => ({ id: draft.id, reason: draft.reason, card: cards[i] }));
+}
+
+/**
+ * One seeded Templater tile: the template, named after itself, with no
+ * destination.
+ *
+ * No folder and no filename pattern on purpose. Both are choices only the user
+ * can make, and both have a sane fallback — the note lands wherever Obsidian
+ * puts new notes and Templater names it — so a tile works on the first click
+ * and is *improved*, not *fixed*, by opening the card's settings.
+ *
+ * Ids are derived from the path rather than generated, so a plan previewed and
+ * then committed produces the same board (nothing in planCards may depend on
+ * the clock or the random seed — the review step renders it twice).
+ */
+function templaterTile(path: string, index: number): TemplaterItem {
+	return {
+		id: `templater-${index}`,
+		label: templateDisplayName(path),
+		icon: "file-plus-2",
+		template: path,
+	};
 }
 
 /** Why the Tasks card is on the board — the integration that asked for it takes

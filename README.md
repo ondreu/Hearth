@@ -56,6 +56,7 @@ installed and enabled is offered with the one thing accepting it will do:
 | **TaskNotes** | Adds a Tasks card on the TaskNotes source, using TaskNotes' *own* field names and completed statuses |
 | **Kanban** | Adds a Tasks card showing your board as draggable columns |
 | **Dataview** / **Datacore** | Adds a card, seeded with an editable query |
+| **Templater** | Adds a launchpad with a button per template you already have |
 | **Git** | Adds a Git card with status, commit and sync |
 | **Omnisearch** | Makes it the engine behind Hearth's search bar |
 | **Iconic** / **Iconize** | Shows the file icons you already set |
@@ -107,7 +108,7 @@ Add cards from the **Arrange** toolbar; configure each one from the card itself
 **Add card** opens a searchable picker: type to match a card's name or its
 description, or browse by category (Notes & files, Planning, Vault insight,
 Tools, Integrations, Fun). Cards backed by a community plugin are always listed
-— they're marked *Needs Dataview* (or Datacore, or Git) when the plugin isn't
+— they're marked *Needs Dataview* (or Datacore, or Templater, or Git) when the plugin isn't
 there, with a one-click jump to install it. And if the card you want doesn't
 exist, **Request a card** at the bottom of the rail opens a pre-filled GitHub
 issue or email.
@@ -205,6 +206,17 @@ issue or email.
 - **Links / launchpad** — a grid of tiles opening notes, URLs or commands, each
   with its own column and row span, droppable anywhere on the card.
 - **Commands** — tiles that run any command-palette command.
+- **New note from template** *(requires
+  [Templater](https://github.com/SilentVoid13/Templater))* — the same launchpad,
+  but each tile makes a note: pick one of your Templater templates, the folder
+  the note goes in, and a filename pattern (`Meeting {{date}}`, `{{prompt}}` to
+  be asked for the rest of the name), and one click creates it. The same
+  template can feed three different folders from three different buttons —
+  something Templater's own per-template commands can't do, since they all obey
+  one default location. Templater does the templating: your user scripts,
+  `tp.system.prompt()` dialogs and `tp.file.cursor()` placement behave exactly
+  as they do from its own command. Tiles that only file something away can skip
+  opening the note.
 - **Bookmarks** — Obsidian's core bookmarks, with site favicons.
 - **Favorites** and **Recent files** — curated and recent note grids.
 - **Web page** — any `http(s)` URL in a sandboxed iframe, with optional

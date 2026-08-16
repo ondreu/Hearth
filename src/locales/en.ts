@@ -55,6 +55,11 @@ export const en = {
 			"Hearth: couldn't undo the recurring task completion.",
 		couldNotAddKanbanCard: "Hearth: couldn't add the card to the Kanban board.",
 		couldNotConvertCard: "Hearth: couldn't convert the card into a note.",
+		templaterNoTemplate: (path: string) =>
+			`Hearth: template not found: ${path}`,
+		templaterFailed: (name: string) =>
+			`Hearth: Templater didn't create a note from ${name}.`,
+		templaterCreated: (path: string) => `Hearth: created ${path}`,
 		layoutExported: "Hearth: layout exported.",
 		layoutImported: "Hearth: layout imported.",
 		layoutImportError: (error: string) => `Hearth: ${error}`,
@@ -88,6 +93,7 @@ export const en = {
 	confirm: {
 		confirm: "Confirm",
 		cancel: "Cancel",
+		ok: "OK",
 	},
 
 	// ---- "What's new" release-notes dialog -----------------------------
@@ -292,6 +298,9 @@ export const en = {
 				kanban: "Add a Tasks card showing your Kanban board as columns you can drag between.",
 				dataview: "Add a Dataview card, seeded with a query you can edit.",
 				datacore: "Add a Datacore card ready for a query.",
+				templater:
+					"Add a card of buttons — one per template you already have — that make a " +
+					"note from it in one click.",
 				git: "Add a Git card showing your repository's status, with commit and sync buttons.",
 				omnisearch: "Use Omnisearch as the engine behind Hearth's search bar.",
 				fileIcons: "Show the per-file icons you've already set, instead of Hearth's file-type icons.",
@@ -387,6 +396,7 @@ export const en = {
 				ambience: "A bit of life",
 				dataview: "Dataview is installed",
 				datacore: "Datacore is installed",
+				templater: "Templater templates were found",
 				git: "Git is installed",
 				bases: "A base was found in your vault",
 			},
@@ -967,6 +977,15 @@ export const en = {
 						"Dataview's successor. The Datacore card runs a Datacore query — or a " +
 						"JS/JSX/TS/TSX script — and renders it with Datacore's own live views.",
 				},
+				templater: {
+					name: "Templater",
+					desc:
+						"The “New note from template” card turns your Templater templates into " +
+						"buttons: each tile carries its own template, destination folder and " +
+						"filename pattern, and one click makes the note. Templater does the " +
+						"templating — your user scripts, tp.system.prompt() dialogs and cursor " +
+						"placement all behave as they do from its own command.",
+				},
 				git: {
 					name: "Git",
 					desc:
@@ -1237,6 +1256,7 @@ export const en = {
 			recent: "Recent files",
 			links: "Links / launchpad",
 			commands: "Commands",
+			templater: "New note from template",
 			clock: "Clock & greeting",
 			tasks: "Tasks",
 			calendar: "Mini calendar",
@@ -1712,6 +1732,50 @@ export const en = {
 			moveDown: "Move down",
 			removeCommand: "Remove command",
 			addCommand: "Add command",
+		},
+		templater: {
+			missing: "Templater isn't enabled",
+			missingDesc:
+				"This card creates notes by calling the Templater plugin — install and " +
+				"enable it, and these tiles start working. Nothing else here needs " +
+				"changing in the meantime.",
+			autoShift: "Auto-shift tiles (beta)",
+			autoShiftDesc:
+				"When on, tiles shove each other aside as one is dragged (like phone " +
+				"widgets). Off by default — tiles are pure free-form and may overlap.",
+			buttonSize: "Button size",
+			buttonSizeDesc:
+				"Default size of the tiles. Resize an individual tile by dragging its " +
+				"bottom-right corner.",
+			heading: "Templates",
+			labelPlaceholder: "Label",
+			pickTemplate: "Pick a template…",
+			pickTemplateTooltip: "Choose the Templater template this tile runs",
+			pickFolderTooltip:
+				"Choose the folder the new note goes in. The vault root means “wherever " +
+				"Obsidian puts new notes”.",
+			filenamePlaceholder: "Filename",
+			filenameTooltip:
+				"Name for the new note, without the extension. {{date}}, {{date:FMT}}, " +
+				"{{time}}, {{time:FMT}} and {{prompt}} are substituted. Leave empty to " +
+				"let Templater name it.",
+			openOn: "Opens the new note — click to file it away silently instead",
+			openOff: "Files the new note away silently — click to open it instead",
+			removeTile: "Remove tile",
+			addTile: "Add a template",
+			tokensHelp:
+				"Filenames may use {{date}}, {{date:YYYY-MM}}, {{time}}, {{time:HH-mm}} " +
+				"and {{prompt}}, which asks you for the rest of the name before the note " +
+				"is made. Everything inside the template itself — <% tp.* %>, your user " +
+				"scripts, tp.system.prompt() — is Templater's own, and runs exactly as it " +
+				"does from Templater's command.",
+			tokensHelpScoped: (folder: string) =>
+				`The picker lists the templates in “${folder}”, Templater's own template ` +
+				"folder. Filenames may use {{date}}, {{date:YYYY-MM}}, {{time}}, " +
+				"{{time:HH-mm}} and {{prompt}}, which asks you for the rest of the name " +
+				"before the note is made. Everything inside the template itself — " +
+				"<% tp.* %>, your user scripts, tp.system.prompt() — is Templater's own, " +
+				"and runs exactly as it does from Templater's command.",
 		},
 		tasks: {
 			source: "Source",
@@ -2359,6 +2423,8 @@ export const en = {
 			recentEmpty: "No recent files",
 			linksEmpty: "Add links in settings",
 			commandsEmpty: "Add commands in card settings",
+			templaterEnable: "Enable the Templater plugin to create notes from templates",
+			templaterEmpty: "Add a template in card settings",
 			tasksEnable:
 				"Enable the TaskNotes plugin, or switch source to checkboxes",
 			tasksEmpty: "No open tasks",
@@ -2381,6 +2447,14 @@ export const en = {
 			leafPickView: "Pick a plugin view in card settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
+		},
+		templater: {
+			untitledTile: "New note",
+			vaultRoot: "Default location",
+			untitledNote: "Untitled",
+			createsIn: (destination: string) => `Creates ${destination}`,
+			promptTitle: "Name the new note",
+			promptPlaceholder: "What is it about?",
 		},
 		pet: {
 			species: {
@@ -2818,6 +2892,7 @@ export const en = {
 		recent: "Recent files",
 		links: "Links / launchpad",
 		commands: "Commands",
+		templater: "New note from template",
 		clock: "Clock & greeting",
 		tasks: "Tasks",
 		calendar: "Mini calendar",
@@ -2855,6 +2930,7 @@ export const en = {
 		recent: "The files you opened most recently",
 		links: "A launchpad of links, notes and folders",
 		commands: "Buttons that run Obsidian commands",
+		templater: "Buttons that make a note from a Templater template, in a folder you pick",
 		clock: "The time, the date and a greeting",
 		tasks: "Checkboxes from your vault, as a list or a board",
 		calendar: "A month at a glance, with your notes on it",

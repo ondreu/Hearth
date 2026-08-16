@@ -27,6 +27,7 @@ import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { GIT_PLUGIN_ID } from "./git";
 import { OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
+import { TEMPLATER_PLUGIN_ID } from "./templater";
 
 /**
  * Ids of the settings ribbon tabs.
@@ -73,6 +74,7 @@ export type IntegrationId =
 	| "tasknotes"
 	| "dataview"
 	| "datacore"
+	| "templater"
 	| "git"
 	| "iconic"
 	| "iconize"
@@ -134,6 +136,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "datacore",
 		group: "plugin",
 		pluginId: DATACORE_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "templater",
+		group: "plugin",
+		pluginId: TEMPLATER_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 	{

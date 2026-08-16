@@ -19,6 +19,7 @@ export type CardKind =
 	| "recent"
 	| "links"
 	| "commands"
+	| "templater"
 	| "clock"
 	| "tasks"
 	| "calendar"
@@ -92,6 +93,50 @@ export interface CommandItem {
 	col?: number;
 	/** Free-form grid row (1-based). See LinkItem.row. */
 	row?: number;
+}
+
+/**
+ * A single tile inside a "templater" card: one template, one destination.
+ *
+ * Deliberately shaped like {@link LinkItem} and {@link CommandItem} — same
+ * label/icon/size/position fields — because the three render through the same
+ * tile machinery and share their arrange-mode drag and resize. What differs is
+ * only what a click *does*.
+ */
+export interface TemplaterItem {
+	id: string;
+	label: string;
+	/** Lucide icon id, or the vault path of an image (see `applyTileVisual`). */
+	icon: string;
+	/** Vault path of the Templater template file. */
+	template: string;
+	/** Vault-relative destination folder. Empty means Templater decides, which
+	 * in practice is Obsidian's "Default location for new notes". */
+	folder?: string;
+	/** Filename pattern, without extension. Supports `{{date}}`, `{{date:FMT}}`,
+	 * `{{time}}`, `{{time:FMT}}` and `{{prompt}}` (which asks before creating).
+	 * Empty means Templater names it "Untitled". */
+	filename?: string;
+	/** Open the new note after creating it. Default true; turn it off for tiles
+	 * that only file something away (a log entry, an inbox capture). */
+	open?: boolean;
+	/** Optional per-tile width in pixels, overriding the card's default. */
+	sizeW?: number;
+	/** Optional per-tile height in pixels, overriding the card's default. */
+	sizeH?: number;
+	/** Legacy single per-tile pixel size (drove width and height together).
+	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
+	size?: number;
+	/** Free-form grid position (1-based grid line). See LinkItem.col. */
+	col?: number;
+	/** Free-form grid row (1-based). See LinkItem.row. */
+	row?: number;
+}
+
+/** Per-card configuration for a "templater" card. */
+export interface TemplaterConfig {
+	/** The tiles, in order. */
+	items?: TemplaterItem[];
 }
 
 /** The Tasks-plugin metadata Hearth's Kanban editor reads and writes on a card.
@@ -1181,6 +1226,8 @@ export interface DashboardCard {
 	links?: LinkItem[];
 	/** kind === "commands": command-palette tiles. */
 	commands?: CommandItem[];
+	/** kind === "templater": the new-note-from-template tiles. */
+	templater?: TemplaterConfig;
 	/** kind === "recent": how many recent files to show. */
 	count?: number;
 	/** kind === "recent": file-type group ids (see FILE_TYPE_GROUPS) to include.
@@ -1263,11 +1310,11 @@ export interface DashboardCard {
 	 * only the results show. No effect on non-base embeds. */
 	hideBaseHeader?: boolean;
 
-	/** kind === "commands": pixel size of the command tiles (min column width).
-	 * Omitted means the default tile size. */
+	/** kind === "commands" / "templater": pixel size of the tiles (min column
+	 * width). Omitted means the default tile size. */
 	tileSize?: number;
 
-	/** kind === "links" / "commands" (beta): when true, tiles auto-shift out
+	/** kind === "links" / "commands" / "templater" (beta): when true, tiles auto-shift out
 	 * of the way (swap with a placeholder) as one is dragged, so the layout
 	 * reorders live like phone widgets. Default off — tiles are pure
 	 * free-form and may overlap. */

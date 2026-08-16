@@ -15,6 +15,37 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A launchpad that makes notes: the Templater card.** Hearth's third tile card
+  sits beside Links and Commands, but each of its buttons creates a note. A tile
+  carries three things — one of your
+  [Templater](https://github.com/SilentVoid13/Templater) templates, the folder
+  the note goes in, and what it is called — and one click makes it.
+
+  **The destination is the point.** Templater's own per-template commands drop
+  the note wherever Obsidian's "Default location for new notes" says, so the
+  same template can only ever land in one place. A tile carries its own folder,
+  so *Meeting* → `Work/Meetings`, *Book note* → `Library`, and *Idea* → `Inbox`
+  are three buttons over one or three templates, whichever you have.
+
+  **Filenames are patterns.** `{{date}}`, `{{date:YYYY-MM}}`, `{{time}}` and
+  `{{time:HH-mm}}` are substituted when the tile is clicked, and `{{prompt}}`
+  asks you for the rest of the name first — so `Meeting {{date}} — {{prompt}}`
+  is one click and one line typed. Leave the field empty and Templater names the
+  note, as it does from its own command.
+
+  **Templater does the templating.** Hearth calls
+  `create_new_note_from_template` on the running plugin and nothing else: your
+  user scripts, `tp.system.prompt()` dialogs, folder templates and
+  `tp.file.cursor()` placement all behave exactly as they do everywhere else.
+  What Hearth adds is where the note *opens* — through its own "Open notes in"
+  setting, so a click from the dashboard no longer replaces the dashboard.
+
+  Tiles drag, resize and overlap like every other launchpad tile, take a Lucide
+  icon or a vault image, and can be told to file the note away silently instead
+  of opening it. The template picker lists Templater's own template folder. And
+  the setup wizard offers the card on a fresh install, seeded with a button per
+  template you already have.
+
 - **A setup wizard that builds your first dashboard.** A new install no longer
   lands on a generic starter grid and a wallpaper nobody chose. Hearth asks
   instead — a title and logo, a card style and a background, what you actually
