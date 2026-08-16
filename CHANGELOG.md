@@ -103,6 +103,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   names no icon falls back — to the crystal, the logo text, or the switcher's
   number — rather than leaving a blank where the icon should be.
 
+- **The calculator converts number bases.** Binary, octal, decimal and hex now
+  read and write in the same grammar as every other conversion:
+  `FF hex to decimal` → `255`, `1010 binary to hex` → `0xA`, `377 octal in
+  decimal` → `255`. A bare number is decimal, as it is everywhere else in the
+  card, so plain arithmetic converts too — `20 + 35 to hex` → `0x37`.
+
+  Results carry the notation you'd paste back into code (`0xFF`, `0b1010`,
+  `0o377`), and the card reads that notation back: `0xFF to decimal` works
+  without naming the source base. Negative values keep a sign in front of the
+  digits (`-0xA`) rather than wrapping into two's complement at a bit width the
+  card never asked you for.
+
 - **A slideshow card.** **Notes & files → Slideshow** is the image embed with
   more than one picture: it shows them in turn, on a timer you set. Choose the
   pictures one by one — each can carry its own caption, and the list can be
