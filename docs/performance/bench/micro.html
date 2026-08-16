@@ -171,6 +171,13 @@ const BUILD = {
     }
   },
 
+  /** 52 SVG drops with the animation paused rather than removed — what the
+   *  focus/visibility gate does, so it can freeze in place with no jump. */
+  svgFallPaused(n = 52) {
+    BUILD.svgFall(n);
+    for (const l of stage.querySelectorAll(".svg-fall")) l.style.animationPlayState = "paused";
+  },
+
   /** The fix: the bob on a wrapper <div>, the sprite <svg> inside it. */
   petsFixed(n = 4) {
     for (let k = 0; k < n; k++) {

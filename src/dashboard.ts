@@ -6,6 +6,7 @@ import {
 } from "obsidian";
 import { emptyState } from "./cardbodies";
 import { deferRedrawWhileTyping } from "./cardfocus";
+import { gateCardMotionOnVisibility } from "./motion";
 import { confirmAction } from "./ui";
 import { t } from "./i18n";
 import type { HomeView } from "./view";
@@ -168,6 +169,11 @@ export function renderDashboard(
 			enableDragResize(view, el, grid, card, gridLayout, component, commit);
 		}
 	}
+
+	// Hold each card's animation while that card is off screen — below the fold
+	// on a scrolling board, or clipped away by a fit-to-page board. One observer
+	// for the whole grid; see src/motion.ts.
+	gateCardMotionOnVisibility(view, grid, component);
 
 	// Sharpen touching corners between neighbouring cards so adjacent cards
 	// read as one merged tile. Recomputed after every drag/resize commit and

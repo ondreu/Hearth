@@ -10,6 +10,7 @@ const CASES = [
 	["none                          (control)", "none"],
 	["52 rain drops — SVG <line>    (Hearth)", "svgFall"],
 	["52 rain drops — HTML <div>", "htmlFall"],
+	["52 rain drops — SVG, play-state paused", "svgFallPaused"],
 	["38 stars       — SVG <circle> (Hearth)", "svgTwinkle"],
 	["38 stars       — HTML <div>", "htmlTwinkle"],
 	["9 clouds       — SVG <g>      (Hearth)", "svgDrift"],

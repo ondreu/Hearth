@@ -6,13 +6,16 @@ import { HERE, launch, loadPlaywright, readMetrics, startTrace, stopTrace } from
 
 const WINDOW_MS = 4000;
 
+/** `css` is applied inline to the view root; `cls` is added as a class, which
+ *  is how Hearth's own motion gate switches off (see src/motion.ts). */
 const MODES = {
-	"visible (control)": "",
-	"display: none  (what a hidden Obsidian tab does)": "display:none",
-	"visibility: hidden": "visibility:hidden",
-	"opacity: 0": "opacity:0",
-	"scrolled out of view / offscreen": "position:absolute;left:-10000px",
-	"content-visibility: hidden": "content-visibility:hidden",
+	"visible (control)": {},
+	"display: none  (what a hidden Obsidian tab does)": { css: "display:none" },
+	"visibility: hidden": { css: "visibility:hidden" },
+	"opacity: 0": { css: "opacity:0" },
+	"scrolled out of view / offscreen": { css: "position:absolute;left:-10000px" },
+	"content-visibility: hidden": { css: "content-visibility:hidden" },
+	"THE GATE: .hearth-motion-paused": { cls: "hearth-motion-paused" },
 };
 
 const browser = await launch(loadPlaywright());
@@ -26,15 +29,16 @@ console.log(`\nAnimated rain sky + frost, ${WINDOW_MS}ms window, DPR 2\n`);
 console.log("mode".padEnd(50) + "anims".padStart(7) + "mainMs".padStart(9) + "recalcs".padStart(9) + "layouts".padStart(9));
 console.log("-".repeat(84));
 
-for (const [label, css] of Object.entries(MODES)) {
+for (const [label, mode] of Object.entries(MODES)) {
 	await page.evaluate(
 		(s) => window.hearthBench.build(s),
 		{ bg: "sky", bgBlur: 2, skyAnimate: true, skyCode: 63, cardBlur: 7 },
 	);
-	await page.evaluate((c) => {
+	await page.evaluate((m) => {
 		const root = document.getElementById("root");
-		root.setAttribute("style", c);
-	}, css);
+		root.setAttribute("style", m.css ?? "");
+		root.setAttribute("class", m.cls ? `hearth-view ${m.cls}` : "hearth-view");
+	}, mode);
 	await page.waitForTimeout(1000);
 
 	const anims = await page.evaluate(() => document.getAnimations().length);

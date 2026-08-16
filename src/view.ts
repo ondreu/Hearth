@@ -6,6 +6,7 @@ import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { applyBackground, renderBanner } from "./background";
 import { deferRedrawWhileTyping } from "./cardfocus";
+import { gateMotionOnWindow } from "./motion";
 import {
 	bannerActive,
 	effectiveFitToPage,
@@ -218,6 +219,11 @@ export class HomeView extends ItemView {
 			const header = inner.createDiv("hearth-header");
 			renderHeader(this, header, child);
 		}
+
+		// Hold every animation on this board while its window isn't the one being
+		// used. Registered on the render component, so it re-reads the setting on
+		// the next render and tears its listeners down with this one.
+		gateMotionOnWindow(this, child);
 
 		if (!mobileOnly) {
 			const dashboard = inner.createDiv("hearth-dashboard");

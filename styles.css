@@ -101,13 +101,35 @@
  * anything on the board — it only stops it from being animated or filtered. */
 .hearth-view.hearth-no-motion *,
 .hearth-view.hearth-no-motion *::before,
-.hearth-view.hearth-no-motion *::after,
-.hearth-view.hearth-motion-paused *,
-.hearth-view.hearth-motion-paused *::before,
-.hearth-view.hearth-motion-paused *::after {
+.hearth-view.hearth-no-motion *::after {
 	transition: none !important;
 	animation: none !important;
 	box-shadow: none !important;
+}
+
+/* ---- The motion gates (src/motion.ts) --------------------------------
+ *
+ * Set while the window is not the one being used (`hearth-motion-paused` on the
+ * view) or while a card is off screen (`is-motion-paused` on the card).
+ *
+ * `animation-play-state` rather than `animation: none`, and the difference is
+ * the whole design. Clearing the animation snaps every element back to its
+ * static position, so a window regaining focus would jolt — raindrops jumping up
+ * the sky, a pet landing mid-hop. Pausing freezes each animation exactly where
+ * it was and resumes it there, which is invisible. It costs the same nothing:
+ * 52 paused SVG animations measure at 0 style recalcs and 0 layouts, the same as
+ * an empty page.
+ *
+ * Transitions are left alone. They are short, they only run in response to
+ * something the reader just did, and a transition frozen halfway is a control
+ * stuck mid-hover. */
+.hearth-view.hearth-motion-paused *,
+.hearth-view.hearth-motion-paused *::before,
+.hearth-view.hearth-motion-paused *::after,
+.hearth-view .hearth-card.is-motion-paused *,
+.hearth-view .hearth-card.is-motion-paused *::before,
+.hearth-view .hearth-card.is-motion-paused *::after {
+	animation-play-state: paused !important;
 }
 
 /* Belt and braces: with every resolved blur at 0 the frost layers are never
@@ -121,10 +143,10 @@
 	-webkit-backdrop-filter: none !important;
 }
 
-/* Loading spinners are the one animation worth keeping: frozen mid-spin they
- * read as a broken card rather than a calm one. Paused with the rest, though,
- * when the gate says nobody is looking — a spinner nobody can see is the
- * clearest case of animating for no one. */
+/* Loading spinners are the one animation the tier keeps: frozen mid-spin they
+ * read as a broken card rather than a calm one. The gates above still pause
+ * them, which is right — a spinner nobody can see is the clearest case of
+ * animating for no one, and it resumes the moment anyone looks. */
 .hearth-view.hearth-no-motion .is-loading {
 	animation: hearth-rss-spin 0.9s linear infinite !important;
 }
@@ -132,16 +154,13 @@
 /* Hover lift on cards and tiles: a transform promotes the element to its own
  * compositor layer on every pointer move across the board. */
 .hearth-view.hearth-no-motion .hearth-card:hover,
-.hearth-view.hearth-no-motion .hearth-link-tile:hover,
-.hearth-view.hearth-motion-paused .hearth-card:hover,
-.hearth-view.hearth-motion-paused .hearth-link-tile:hover {
+.hearth-view.hearth-no-motion .hearth-link-tile:hover {
 	transform: none;
 }
 
 /* The card's drop shadow is applied through a variable so merged edges can drop
  * it; clear the variable as well as the resolved shadow above. */
-.hearth-view.hearth-no-motion .hearth-card,
-.hearth-view.hearth-motion-paused .hearth-card {
+.hearth-view.hearth-no-motion .hearth-card {
 	--hearth-card-lift: none;
 }
 

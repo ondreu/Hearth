@@ -1,6 +1,5 @@
 import { createRequire } from "module";
 const esbuild = createRequire(import.meta.url)("esbuild");
-import { copyFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -26,5 +25,6 @@ await esbuild.build({
 	logLevel: "info",
 });
 
-copyFileSync(resolve(here, "../../../styles.css"), resolve(here, "hearth-styles.css"));
-console.log("bundled + styles copied");
+// styles.css is linked directly by the harness pages, so there is nothing to
+// copy — and nothing that can go stale between an edit and a run.
+console.log("bundled");
