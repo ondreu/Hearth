@@ -1,8 +1,31 @@
 # macOS power draw and overheating — investigation
 
-**Status:** reproduced and root-caused.
+**Status:** reproduced, root-caused, mostly fixed.
 **Against:** Hearth 2.0.0 (`main`), beta 2.1.0-beta.1.
 **Harness:** [`bench/`](bench/) — re-runnable, uses the plugin's own drawing code.
+
+## What has been fixed
+
+| Finding | State |
+|---|---|
+| Pet sprite animating an `<svg>` | **Fixed** — 123.6 ms / 239 recalcs → 4.2 ms / 0 |
+| Off-screen and unfocused boards animating | **Fixed** — 191 ms / 240 recalcs → 0.2 ms / 0 |
+| Frost blurring the whole board | **Fixed** — layer sized to its cards, clamped to the grid |
+| Rebuilding boards nobody is looking at | **Fixed** |
+| A disk write + full rebuild per settings keystroke | **Fixed** — debounced |
+| `prefers-reduced-motion` only partly honoured | **Fixed** — board-wide |
+| Low power mode all-or-nothing | **Replaced** by a four-step performance tier |
+| `cardBlur` on by default | **Now 0** for fresh installs |
+| **The painted sky relayouts every frame** | **Not fixed** — only thinned |
+
+The sky is the one that matters most and the one still outstanding. The
+`balanced` tier draws half the field, which buys about a third of its cost, and
+`reduced` stops it moving entirely — but a full-density animated sky still forces
+a style recalc and a layout on every frame, because its raindrops and clouds are
+still animated SVG children. Removing that means moving them off SVG entirely
+(HTML elements over the gradient, or one canvas), which is a re-implementation of
+the drawing rather than a tweak to it, and wants its own change and its own
+review. Everything else above is done.
 
 Hearth's painted weather sky and its pet sprite animate CSS `transform` on SVG
 elements. Chromium cannot composite that. Every frame it runs a full style
@@ -166,22 +189,33 @@ diagnosis. But it is an all-or-nothing downgrade that also removes the frost, th
 wallpaper and every refresh timer. The defect is that the sky and the pet cost 60
 layouts a second when the same motion could cost nothing.
 
-## Recommended fixes
+## The remaining fix: move the sky off SVG
 
-1. **Move the animated transform off the SVG — pet card.** Wrap
-   `<svg class="hearth-pet-sprite">` in a plain `<div>` and move `hearth-pet-hop`,
-   `-bob`, `-breathe` and `-slouch` onto the wrapper. Small diff, no visual
-   change, takes the pet from 60 recalcs a second to zero.
-2. **Same principle for the sky.** The drops and clouds need to stop being
-   animated SVG children — either positioned as HTML elements over the gradient,
-   or the whole sky drawn once into a `<canvas>` and animated as one composited
-   layer. The gradients, palettes and still-sky fallback can stay as they are.
-3. **Gate animation on real visibility.** An IntersectionObserver toggling
-   `is-animated`, reusing the `leafview.ts` pattern, so off-screen and clipped
-   cards stop animating into a void.
-4. **Size each frost layer to its cards** — the union bounding box of the group
-   rather than `inset: 0`.
-5. **Debounce the settings save** so typing is one disk write and one rebuild.
+The drops, clouds and fog wisps need to stop being animated SVG children. Two
+routes, both a re-implementation of the drawing rather than a tweak:
+
+- **HTML elements over the gradient.** Keeps the shapes as elements, so the
+  existing keyframes and per-shape delays carry over almost unchanged. The catch
+  is geometry: the field is authored in SVG user units under
+  `preserveAspectRatio="xMidYMid slice"`, and an HTML layer has to reproduce that
+  cover mapping exactly or the sun's glow drifts off its disc. The mapping is
+  `scale = max(boxW/W, boxH/H)` with the remainder split evenly, applied as a
+  static transform on a field sized W×H — which keeps child coordinates *and*
+  keyframe distances in user units, and costs nothing per frame since the
+  transform never animates. It needs a ResizeObserver, so `drawSky` needs a
+  Component threaded in from the weather card.
+- **One canvas**, drawn once and animated as a single composited layer. Fewer
+  moving parts, but it gives up the CSS keyframes and the reduced-motion rules
+  that come with them.
+
+Either way the gradients, palettes, the still-sky fallback and the shapes that
+already measure free — stars (opacity only), bolts and the sheet flash (both
+`steps()`) — stay exactly as they are. Only the three moving families move.
+
+The sun and moon *glows* should move too: on a clear sky the glow's
+`transform: scale()` breathe is the only per-frame animation left, so a clear
+board still pays 60 recalcs a second for one element. The discs and the moon's
+crescent don't animate and can stay in SVG.
 
 ## How this was measured
 
