@@ -1243,7 +1243,7 @@
 	height: var(--icon-s);
 }
 
-/* A bulleted "what this does" list inside a note (low power mode's effects). */
+/* A bulleted "what this does" list inside a note (the performance tier's effects). */
 .hearth-setting-note-list {
 	margin: 4px 0 0;
 	padding-left: 1.1em;
@@ -1347,7 +1347,7 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* Settings whose value low power mode is currently overriding. Still live and
+/* Settings whose value the performance tier is currently overriding. Still live and
  * editable — they simply aren't what's on screen right now — so this dims them
  * rather than disabling them. */
 .hearth-settings-overridden .setting-item:not(.hearth-setting-note) {
@@ -8718,7 +8718,7 @@ body.hearth-dv-resizing {
  * two CSS variables the card sets from its config. Everything that moves is
  * a CSS animation on the stage — the card itself repaints only on vault
  * events and a five-minute tick — and every one of them is dropped for a
- * reader who asked for less motion, or by low power mode (`is-still`).
+ * reader who asked for less motion, or by a still performance tier (`is-still`).
  * ===================================================================== */
 
 .hearth-pet {
@@ -8763,14 +8763,36 @@ body.hearth-dv-resizing {
 	outline-offset: 3px;
 }
 
+/* The sprite comes in two elements, and the split is load-bearing rather than
+ * cosmetic. `.hearth-pet-sprite` is a plain <div> and carries every mood
+ * animation; `.hearth-pet-art` is the <svg> inside it and carries none.
+ *
+ * Chromium will not run a CSS transform animation on an SVG element on the
+ * compositor — not on an SVG child, and not on the <svg> root either. With the
+ * hop/bob/breathe on the <svg> it fell to the main thread and recalculated
+ * style on every single frame: measured at 299 style recalcs per 5 seconds for
+ * four pets, against 0 for the same motion on a <div>. Moving the animation one
+ * element out is the whole fix, and nothing about the drawing changes — the
+ * wrapper is exactly the same box, so the percentage translates and the
+ * transform-origin below resolve identically.
+ *
+ * See docs/performance/macos-power-investigation.md. If you ever move an
+ * animation back onto the <svg>, you are paying 60 style recalcs a second for
+ * it. */
 .hearth-pet-sprite {
 	width: 100%;
 	height: 100%;
 	display: block;
-	overflow: visible;
 	/* One transform origin for every mood animation: the pet's feet, so it
 	 * squashes and hops off the ground rather than about its middle. */
 	transform-origin: 50% 100%;
+}
+
+.hearth-pet-art {
+	width: 100%;
+	height: 100%;
+	display: block;
+	overflow: visible;
 }
 
 .hearth-pet-name {
@@ -9067,7 +9089,7 @@ body.hearth-dv-resizing {
 	100% { transform: translate(calc(-50% + (var(--i) - 1) * 16px), -34px) scale(1.1); opacity: 0; }
 }
 
-/* Low power mode and a reduced-motion preference both leave a perfectly
+/* A still performance tier and a reduced-motion preference both leave a perfectly
  * readable pet — the mood is in its face, not in the movement. */
 .hearth-pet-stage.is-still .hearth-pet-sprite,
 .hearth-pet-stage.is-still .hearth-pet-frame {

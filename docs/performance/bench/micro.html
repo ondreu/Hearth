@@ -171,6 +171,33 @@ const BUILD = {
     }
   },
 
+  /** The fix: the bob on a wrapper <div>, the sprite <svg> inside it. */
+  petsFixed(n = 4) {
+    for (let k = 0; k < n; k++) {
+      const wrap = document.createElement("div");
+      wrap.className = "pet-sprite";
+      wrap.style.cssText = `position:absolute;left:${k * 120}px;top:40px;width:96px;height:96px;transform-origin:50% 100%`;
+      const s = document.createElementNS(SVGNS, "svg");
+      s.setAttribute("viewBox", "0 0 16 16");
+      s.style.cssText = "width:100%;height:100%;display:block";
+      for (let f = 0; f < 3; f++) {
+        const g = document.createElementNS(SVGNS, "g");
+        g.classList.add("pet-frame");
+        g.style.animationDelay = `${(-f * 1.1) / 3}s`;
+        for (let i = 0; i < 40; i++) {
+          const r = document.createElementNS(SVGNS, "rect");
+          r.setAttribute("x", i % 16); r.setAttribute("y", (i * 3) % 16);
+          r.setAttribute("width", 2); r.setAttribute("height", 1);
+          r.setAttribute("fill", "#c98a5e");
+          g.appendChild(r);
+        }
+        s.appendChild(g);
+      }
+      wrap.appendChild(s);
+      stage.appendChild(wrap);
+    }
+  },
+
   /** Pet with only the svg-root bob (no frame cycling). */
   petsBobOnly(n = 4) {
     BUILD.pets(n);

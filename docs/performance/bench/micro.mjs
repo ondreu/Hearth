@@ -19,6 +19,7 @@ const CASES = [
 	["  pet: svg-root bob only", "petsBobOnly"],
 	["  pet: frame cycling only", "petsFramesOnly"],
 	["  pet: bob with px instead of %", "petsBobPx"],
+	["4 pets — bob on a <div> wrapper (FIXED)", "petsFixed"],
 	["slideshow Ken Burns            (Hearth)", "kenburns"],
 ];
 

@@ -676,7 +676,7 @@ export function renderWeather(
 	load(false);
 
 	// The TTL above still uses the configured interval; only the timer is
-	// suppressed in low power mode, so the card loads on open but never wakes
+	// suppressed on the minimal tier, so the card loads on open but never wakes
 	// the app up on a clock.
 	const autoRefreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, refreshMin);
 	if (autoRefreshMin > 0) {

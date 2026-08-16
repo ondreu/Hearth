@@ -54,7 +54,7 @@ export function renderLeaf(
  * is the one card that can make a dashboard genuinely slow, and the quiet
  * muted-grey hint it used to be was easy to scroll straight past. It renders as
  * a titled callout with a warning tint and an alert icon, and gains a second
- * paragraph while low power mode is on — that mode turns Hearth's own effects
+ * paragraph while the performance tier is stepped down — the tier turns Hearth's own effects
  * off but cannot touch a view another plugin is running. */
 export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): void {
 	const strings = t().editors.leaf;

@@ -744,7 +744,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 	}
 
-	// ---- Low power mode --------------------------------------------------
+	// ---- Performance tier ------------------------------------------------
 
 	/**
 	 * The low power toggle and its backdrop colour.

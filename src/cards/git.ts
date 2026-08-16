@@ -223,7 +223,7 @@ export function renderGit(
 
 	// Polling is off by default; the events above already cover everything done
 	// inside Obsidian. It earns its keep for a repo also being changed from a
-	// terminal or another device. Low power mode suppresses the timer entirely.
+	// terminal or another device. The minimal tier suppresses the timer entirely.
 	const refreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, cfg.refreshMin ?? 0);
 	if (refreshMin > 0) {
 		component.registerInterval(

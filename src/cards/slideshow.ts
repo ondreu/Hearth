@@ -232,7 +232,7 @@ export function renderSlideshow(
 		window.clearTimeout(timer);
 		timer = null;
 	};
-	// Low power mode switches off every timed refresh, this one included: the card
+	// A still tier switches off every timed refresh, this one included: the card
 	// keeps the picture it is on (and its controls still step through by hand).
 	const rotates = count > 1 && holdMs > 0 && motionAllowed(view.plugin.settings);
 	const schedule = () => {

@@ -926,7 +926,7 @@ export interface WeatherConfig {
 
 	// ---- Artistic style ----
 	/** Animate the painted sky (drifting clouds, falling rain, twinkling stars).
-	 * Default true; forced off by low power mode. */
+	 * Default true; forced off from the `reduced` tier down. */
 	animate?: boolean;
 
 	// ---- Refresh ----
@@ -1379,7 +1379,7 @@ export type BackgroundKind =
 	| "url"
 	| "weather";
 
-/** The flat backdrop low power mode paints instead of the wallpaper: a muted
+/** The flat backdrop the `minimal` tier paints instead of the wallpaper: a muted
  * grey-purple that sits close to Hearth's brand colour without any image
  * decode, opacity layer or blur behind it. */
 export const LOW_POWER_BACKGROUND = "#4a4459";

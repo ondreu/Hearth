@@ -520,7 +520,8 @@ export interface SkyOptions {
 	code: number;
 	/** Daylight at the location, not at the reader's desk. */
 	isDay: boolean;
-	/** Drift, fall and twinkle. Callers switch this off for low power mode. */
+	/** Drift, fall and twinkle. Callers switch this off from the `reduced` tier
+	 * down, and while the focus/visibility gate says nobody is looking. */
 	animate: boolean;
 	/** How much sky there is to fill. Default "card". */
 	spread?: SkySpread;

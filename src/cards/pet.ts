@@ -663,8 +663,13 @@ const RUN_FILL: Record<string, string> = {
  * event and never again to animate. `still` collapses that to frame 0.
  */
 function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood, still: boolean): void {
-	const svg = parent.createSvg("svg", {
-		cls: "hearth-pet-sprite",
+	// The mood animations live on this wrapper <div>, never on the <svg> below
+	// it: Chromium refuses to composite a transform animation on an SVG element
+	// (root included), so an animated <svg> recalculates style on the main thread
+	// every frame. See the .hearth-pet-sprite note in styles.css.
+	const wrap = parent.createDiv("hearth-pet-sprite");
+	const svg = wrap.createSvg("svg", {
+		cls: "hearth-pet-art",
 		attr: {
 			viewBox: `0 0 ${PET_SPRITE_SIZE} ${PET_SPRITE_SIZE}`,
 			"shape-rendering": "crispEdges",
@@ -783,7 +788,7 @@ export function renderPet(
 	 * sprite's own animations keep running underneath. Coalesced into an
 	 * animation frame, since pointermove fires far faster than the screen.
 	 *
-	 * A sleeping pet has its eyes shut, so it never looks; low power mode and
+	 * A sleeping pet has its eyes shut, so it never looks; a still tier and
 	 * a reduced-motion preference skip the listener entirely.
 	 */
 	const wireEyes = () => {
@@ -882,7 +887,7 @@ export function renderPet(
 	paint();
 	// The vault-event redraw covers everything the pet reacts to *except* the
 	// passage of time (bored → sleepy, and a petting wearing off), so re-derive
-	// on a slow timer too. Low power mode keeps the first paint and drops the
+	// on a slow timer too. The minimal tier keeps the first paint and drops the
 	// timer, like the web card's refresh.
 	if (!still) component.registerInterval(window.setInterval(paint, PET_TICK_MS));
 }

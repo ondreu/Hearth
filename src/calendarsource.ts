@@ -311,7 +311,7 @@ export function buildIcsContext(
 		},
 		start: () => {
 			load(false);
-			// ttlMs above keeps using the configured interval; low power mode only
+			// ttlMs above keeps using the configured interval; the minimal tier only
 			// drops the timer, so subscriptions still load on render and on an
 			// explicit refresh.
 			const autoRefreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, refreshMin);
