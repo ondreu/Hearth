@@ -19,6 +19,7 @@ const SCENARIOS = {
 	"3. image wallpaper + frost (SHIPPED DEFAULT)": { bg: "image", bgBlur: 2, skyAnimate: false, skyCode: 63, cardBlur: 7 },
 	"4. animated rain sky, no frost": { bg: "sky", bgBlur: 2, skyAnimate: true, skyCode: 63, cardBlur: 0 },
 	"5. animated rain sky + frost": { bg: "sky", bgBlur: 2, skyAnimate: true, skyCode: 63, cardBlur: 7 },
+	"5b. animated rain sky + frost, density 0.5 (balanced tier)": { bg: "sky", bgBlur: 2, skyAnimate: true, skyCode: 63, cardBlur: 7, density: 0.5 },
 	"6. animated thunder sky + frost (worst case)": { bg: "sky", bgBlur: 2, skyAnimate: true, skyCode: 95, cardBlur: 7 },
 	"7. still sky + frost (sky animation off)": { bg: "sky", bgBlur: 2, skyAnimate: false, skyCode: 95, cardBlur: 7 },
 	"8. low power mode (flat colour, no frost)": { bg: "color", bgBlur: 0, skyAnimate: false, skyCode: 0, cardBlur: 0 },

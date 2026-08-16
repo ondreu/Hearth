@@ -39,6 +39,8 @@ export interface Scenario {
 	skyCode: number;
 	/** backdrop-filter blur px behind the cards; 0 disables the frost layers. */
 	cardBlur: number;
+	/** Fraction of the sky's field to draw — what the "balanced" tier reports. */
+	density?: number;
 }
 
 function makeBoard(root: HTMLElement, s: Scenario): void {
@@ -62,6 +64,7 @@ function makeBoard(root: HTMLElement, s: Scenario): void {
 				code: s.skyCode,
 				isDay: false,
 				animate: s.skyAnimate,
+				density: s.density ?? 1,
 				spread: "board",
 			});
 		}

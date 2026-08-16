@@ -1397,6 +1397,10 @@ export const LOW_POWER_BACKGROUND = "#4a4459";
  * - `full` — everything on.
  * - `balanced` — the painted sky is drawn at half density (fewer drops, stars,
  *   clouds and fog wisps). Nothing is switched off; there is simply less of it.
+ *   Worth about a third of the sky's main-thread cost, not half: the per-frame
+ *   layout the sky forces has a fixed component that no amount of thinning
+ *   removes. Measured at 168.9ms -> 120.0ms per 4s for a board-spread rain
+ *   field. Only `reduced` and below remove the cost rather than trimming it.
  * - `reduced` — no animation anywhere, and no frosted glass. The wallpaper and
  *   every refresh timer stay, so the board still looks like itself and still
  *   updates; it just holds still.
@@ -2187,9 +2191,13 @@ export function motionAllowed(s: HomeSettings): boolean {
  * How much of the painted sky's field to draw, as a fraction.
  *
  * The `balanced` tier's whole content: the sky keeps drifting and falling, there
- * is simply less of it to move. Cost scales with the number of animated shapes,
- * so half the field is close to half the work, and a sky at half density still
- * reads as rain rather than as a broken effect.
+ * is simply less of it to move, and a sky at half density still reads as rain
+ * rather than as a broken effect.
+ *
+ * Buys about a third, not a half. Cost scales with the number of animated shapes
+ * but not only with it — the per-frame layout an animated SVG forces has a fixed
+ * component too — so thinning trims the bill rather than halving it. Measured at
+ * 168.9ms -> 120.0ms per 4s for a board-spread rain field.
  */
 export function skyDensity(s: HomeSettings): number {
 	if (!motionAllowed(s)) return 1; // A still sky costs nothing; keep it whole.

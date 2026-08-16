@@ -5,6 +5,7 @@ import {
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
 	motionAllowed,
+	skyDensity,
 	type PrecipitationUnit,
 	type TemperatureUnit,
 	type WeatherConfig,
@@ -71,6 +72,9 @@ interface Resolved {
 	hourlyCount: number;
 	dailyCount: number;
 	animate: boolean;
+	/** Fraction of the painted sky's field to draw (see skyDensity in types.ts).
+	 * 1 on every tier but "balanced". */
+	density: number;
 }
 
 /** Default hourly-strip length per style: the forecast style is built around
@@ -112,7 +116,7 @@ function resolveHour12(cfg: WeatherConfig): boolean | undefined {
 }
 
 /** Apply every default, so the paint functions read one flat object. */
-export function resolveConfig(cfg: WeatherConfig, lowPower = false): Resolved {
+export function resolveConfig(cfg: WeatherConfig, lowPower = false, density = 1): Resolved {
 	const style = cfg.style ?? "compact";
 	return {
 		style,
@@ -133,9 +137,10 @@ export function resolveConfig(cfg: WeatherConfig, lowPower = false): Resolved {
 		showUpdated: cfg.showUpdated ?? false,
 		hourlyCount: cfg.hourlyCount ?? defaultHourlyCount(style),
 		dailyCount: cfg.dailyCount ?? defaultDailyCount(style),
-		// Low power stops every animation Hearth runs; the painted sky is no
+		// A still tier stops every animation Hearth runs; the painted sky is no
 		// exception, and it is the most expensive one on the board.
 		animate: (cfg.animate ?? true) && !lowPower,
+		density,
 	};
 }
 
@@ -550,7 +555,12 @@ function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 /** Artistic: an edge-to-edge painted sky with the reading laid over it. */
 function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const now = snapshot.now;
-	const sky = drawSky(wrap, { code: now.code, isDay: now.isDay, animate: r.animate });
+	const sky = drawSky(wrap, {
+		code: now.code,
+		isDay: now.isDay,
+		animate: r.animate,
+		density: r.density,
+	});
 	const content = sky.createDiv("hearth-weather-art-content");
 
 	const top = content.createDiv("hearth-weather-art-top");
@@ -616,7 +626,11 @@ export function renderWeather(
 	component: Component,
 ): void {
 	const cfg = card.weather ?? {};
-	const r = resolveConfig(cfg, !motionAllowed(view.plugin.settings));
+	const r = resolveConfig(
+		cfg,
+		!motionAllowed(view.plugin.settings),
+		skyDensity(view.plugin.settings),
+	);
 	const req = requestFor(cfg, r);
 	if (!req) {
 		emptyState(body, "cloud-sun", t().cards.empty.weatherNoLocation);

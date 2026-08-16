@@ -744,8 +744,8 @@ export const en = {
 				"is the setting to step down.",
 			tierBalancedDesc:
 				"The painted sky is drawn at half density — fewer raindrops, stars, " +
-				"clouds and wisps of fog. Nothing is switched off; there is simply " +
-				"less of it to move, for roughly half the cost.",
+				"clouds and wisps of fog. Nothing is switched off and nothing stops " +
+				"moving; there is simply less of it, for about a third less work.",
 			tierReducedDesc:
 				"Nothing on the board moves, and the frosted glass behind cards is " +
 				"off. Your wallpaper stays, cards stay translucent, and every card " +

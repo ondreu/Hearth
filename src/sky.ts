@@ -320,9 +320,17 @@ function drawCloud(svg: SVGElement, cloud: Cloud, field: SkyField): void {
 /** Falling precipitation: slanted streaks for rain and drizzle, drifting discs
  * for snow. Positions are evenly spread with a per-drop delay so the fall never
  * looks like a marching row. */
-function drawPrecipitation(svg: SVGElement, group: WeatherGroup, field: SkyField): void {
+function drawPrecipitation(
+	svg: SVGElement,
+	group: WeatherGroup,
+	field: SkyField,
+	density: number,
+): void {
 	const snow = group === "snow";
-	const count = Math.round(field.drops * (group === "drizzle" ? 0.7 : snow ? 0.8 : 1));
+	const count = thinned(
+		Math.round(field.drops * (group === "drizzle" ? 0.7 : snow ? 0.8 : 1)),
+		density,
+	);
 	// Two classes, so an array — see drawCloud.
 	const layer = svg.createSvg("g", { cls: ["hearth-weather-fall", `is-${group}`] });
 	const span = field.width - 10;
@@ -413,10 +421,10 @@ function drawMoon(svg: SVGElement, field: SkyField): void {
  * keeps changing. The whole bank is faded as a group, so the overlaps merge
  * into one body of haze instead of stacking into visible seams.
  */
-function drawFog(svg: SVGElement, field: SkyField, seed = 0xf066): void {
+function drawFog(svg: SVGElement, field: SkyField, density: number, seed = 0xf066): void {
 	const layer = svg.createSvg("g", { cls: "hearth-weather-fogbank" });
 	const rand = seeded(seed);
-	const count = Math.round(field.width / 26);
+	const count = thinned(Math.round(field.width / 26), density);
 	for (let i = 0; i < count; i++) {
 		// Spread down the whole sky, thickening towards the bottom the way fog
 		// actually sits: the lower half gets the bigger, denser wisps.
@@ -506,6 +514,19 @@ function drawStorm(svg: SVGElement, field: SkyField, seed = 0xb017): void {
 	}
 }
 
+/**
+ * Thin a count of animated shapes by the board's sky density (see skyDensity in
+ * types.ts — the "balanced" performance tier reports 0.5).
+ *
+ * Never below one: a rain sky with no raindrops reads as a bug, not as a
+ * setting. Cost scales with the number of moving shapes, so halving the field is
+ * close to halving the work.
+ */
+function thinned(count: number, density: number): number {
+	if (density >= 1) return count;
+	return Math.max(1, Math.round(count * density));
+}
+
 /** How many of the cloud bank a condition puts on screen — what separates
  * "partly cloudy" from "overcast". */
 function cloudCount(group: WeatherGroup, total: number): number {
@@ -525,6 +546,14 @@ export interface SkyOptions {
 	animate: boolean;
 	/** How much sky there is to fill. Default "card". */
 	spread?: SkySpread;
+	/**
+	 * Fraction of the field to draw, 0–1. Default 1 (the whole field).
+	 *
+	 * The "balanced" performance tier's whole content: fewer drops, stars, clouds
+	 * and wisps of fog, each still moving exactly as before. Callers pass
+	 * `skyDensity(settings)`.
+	 */
+	density?: number;
 }
 
 /**
@@ -534,6 +563,7 @@ export interface SkyOptions {
 export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 	const group = weatherGroup(opts.code);
 	const field = fieldFor(opts.spread ?? "card");
+	const density = Math.max(0, Math.min(1, opts.density ?? 1));
 
 	const sky = parent.createDiv(`hearth-weather-sky sky-${group}`);
 	sky.toggleClass("is-night", !opts.isDay);
@@ -563,7 +593,7 @@ export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 	}
 	if (celestial && !opts.isDay) {
 		const stars = svg.createSvg("g", { cls: "hearth-weather-stars" });
-		for (const star of field.stars) {
+		for (const star of field.stars.slice(0, thinned(field.stars.length, density))) {
 			const dot = stars.createSvg("circle", {
 				attr: { cx: String(star.x), cy: String(star.y), r: String(star.r) },
 			});
@@ -571,16 +601,19 @@ export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 		}
 	}
 
-	if (group === "fog") drawFog(svg, field);
+	if (group === "fog") drawFog(svg, field, density);
 
-	const clouds = cloudCount(group, field.clouds.length);
+	const clouds = thinned(cloudCount(group, field.clouds.length), density);
 	for (let i = 0; i < clouds; i++) drawCloud(svg, field.clouds[i], field);
 
 	if (group === "rain" || group === "drizzle" || group === "snow") {
-		drawPrecipitation(svg, group, field);
+		drawPrecipitation(svg, group, field, density);
 	}
 	if (group === "thunder") {
-		drawPrecipitation(svg, "rain", field);
+		drawPrecipitation(svg, "rain", field, density);
+		// The storm's bolts are not thinned: there are only two or three, and they
+		// step their opacity rather than moving, which measures at no per-frame
+		// cost at all.
 		drawStorm(svg, field);
 	}
 

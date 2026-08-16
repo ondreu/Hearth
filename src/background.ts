@@ -7,7 +7,13 @@ import {
 	skyGroupCode,
 } from "./sky";
 import type { HomeView } from "./view";
-import { type BackgroundConfig, effectiveBackground, effectiveMaxWidth } from "./types";
+import {
+	type BackgroundConfig,
+	effectiveBackground,
+	effectiveMaxWidth,
+	motionAllowed,
+	skyDensity,
+} from "./types";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
 
 /**
@@ -168,7 +174,8 @@ function applyWeatherSky(
 	const sky = parseSkyValue(bg.value);
 	if (!sky) return;
 	const settings = view.plugin.settings;
-	const animate = settings.backgroundSkyAnimate !== false;
+	const animate = settings.backgroundSkyAnimate !== false && motionAllowed(settings);
+	const density = skyDensity(settings);
 
 	// A fixed sky is the whole feature for anyone who wants one weather and
 	// wants it kept: it is drawn once, from a condition the reader chose, and
@@ -178,6 +185,7 @@ function applyWeatherSky(
 			code: skyGroupCode(sky.group),
 			isDay: resolveDaylight(sky.daylight, new Date().getHours()),
 			animate,
+			density,
 			spread: "board",
 		});
 		return;
@@ -201,6 +209,7 @@ function applyWeatherSky(
 				code: snapshot.now.code,
 				isDay: snapshot.now.isDay,
 				animate,
+				density,
 				spread: "board",
 			});
 			return;
@@ -213,6 +222,7 @@ function applyWeatherSky(
 			code: 3,
 			isDay: daylightFromHour(new Date().getHours()),
 			animate,
+			density,
 			spread: "board",
 		});
 	};

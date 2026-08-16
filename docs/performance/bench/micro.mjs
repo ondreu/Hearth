@@ -9,6 +9,7 @@ const WINDOW_MS = Number(process.env.WINDOW_MS ?? 5000);
 const CASES = [
 	["none                          (control)", "none"],
 	["52 rain drops — SVG <line>    (Hearth)", "svgFall"],
+	["26 rain drops — SVG, density 0.5", "svgFallHalf"],
 	["52 rain drops — HTML <div>", "htmlFall"],
 	["52 rain drops — SVG, play-state paused", "svgFallPaused"],
 	["38 stars       — SVG <circle> (Hearth)", "svgTwinkle"],
