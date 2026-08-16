@@ -18,6 +18,7 @@ import { textCard } from "./text";
 import { recentCard } from "./recent";
 import { linksCard } from "./links";
 import { commandsCard } from "./commands";
+import { templaterCard } from "./templater";
 import { clockCard } from "./clock";
 import { tasksCard } from "./tasks";
 import { calendarCard } from "./calendar";
@@ -63,6 +64,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	recent: recentCard,
 	links: linksCard,
 	commands: commandsCard,
+	templater: templaterCard,
 	clock: clockCard,
 	tasks: tasksCard,
 	calendar: calendarCard,
@@ -124,7 +126,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
-	{ category: "integrations", templates: ["dataview", "datacore", "git", "jira", "rss", "weather", "leaf"] },
+	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "leaf"] },
 	{ category: "fun", templates: ["pet"] },
 ];
 

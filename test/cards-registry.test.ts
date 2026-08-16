@@ -76,6 +76,13 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "web", icon: "globe", category: "tools", requires: null, build: { kind: "web", title: "Web", url: "", w: 6, h: 4 } },
 
 			// ---- Integrations ----
+			{
+				id: "templater",
+				icon: "file-plus-2",
+				category: "integrations",
+				requires: "Templater",
+				build: { kind: "templater", title: "New note", templater: { items: [] }, w: 6, h: 2 },
+			},
 			{ id: "dataview", icon: "database", category: "integrations", requires: "Dataview", build: { kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 } },
 			{ id: "datacore", icon: "database-zap", category: "integrations", requires: "Datacore", build: { kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 } },
 			{
@@ -143,7 +150,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 	// only how to badge it.
 	it("offers plugin-backed cards even when the plugin is missing", () => {
 		const app = { plugins: { enabledPlugins: new Set<string>(), plugins: {} } } as unknown as App;
-		for (const id of ["dataview", "datacore", "git"]) {
+		for (const id of ["dataview", "datacore", "git", "templater"]) {
 			const template = CARD_TEMPLATES.find((tpl) => tpl.id === id);
 			expect(template, id).toBeDefined();
 			expect(unmetRequirement(app, template!)?.name, id).toBeTruthy();
@@ -183,6 +190,9 @@ function maximalCard(): DashboardCard {
 		title: "Everything",
 		links: [{ label: "A", href: "a" } as never],
 		commands: [{ id: "c", name: "C" }],
+		templater: {
+			items: [{ id: "t1", label: "Meeting", icon: "file-plus-2", template: "Templates/Meeting.md" }],
+		},
 		secondView: { target: "sv" },
 		slideshow: { slides: [{ id: "s1", path: "Photos/a.png", caption: "A" }] },
 		tasks: {
@@ -235,6 +245,8 @@ describe("cloneCard deep-clone independence", () => {
 		// Mutate every nested structure on the copy...
 		copy.links![0].label = "B";
 		copy.commands![0].name = "D";
+		copy.templater!.items![0].label = "Standup";
+		copy.templater!.items!.push({ id: "t2", label: "Book", icon: "book", template: "Templates/Book.md" });
 		(copy.secondView as { target: string }).target = "sv2";
 		copy.slideshow!.slides![0].caption = "B";
 		copy.slideshow!.slides!.push({ id: "s2", path: "Photos/b.png" });
@@ -272,6 +284,7 @@ describe("cloneCard deep-clone independence", () => {
 		const pristine = maximalCard();
 		expect(orig.links).toEqual(pristine.links);
 		expect(orig.commands).toEqual(pristine.commands);
+		expect(orig.templater).toEqual(pristine.templater);
 		expect(orig.secondView).toEqual(pristine.secondView);
 		expect(orig.slideshow).toEqual(pristine.slideshow);
 		expect(orig.tasks).toEqual(pristine.tasks);
@@ -312,6 +325,7 @@ describe("liveness classification", () => {
 			recent: "static",
 			links: "static",
 			commands: "static",
+			templater: "static",
 			clock: "static",
 			tasks: "vault",
 			calendar: "vault",

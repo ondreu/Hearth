@@ -42,6 +42,7 @@ function emptyDetection(over: Partial<SetupDetection> = {}): SetupDetection {
 		taskNotes: null,
 		basePath: null,
 		kanbanPath: null,
+		templaterTemplates: [],
 		...over,
 	};
 }
@@ -330,6 +331,48 @@ describe("planCards", () => {
 			kanbanFile: "Boards/Work.md",
 			layout: "kanban",
 		});
+	});
+
+	it("seeds a tile per detected Templater template", () => {
+		const templater = planCards(
+			blankAnswers({ integrations: ["templater"] }),
+			emptyDetection({
+				templaterTemplates: ["Templates/Meeting.md", "Templates/Book note.md"],
+			}),
+			(i) => `c${i}`,
+		).find((p) => p.id === "templater");
+
+		expect(templater?.card.templater?.items).toEqual([
+			{ id: "templater-0", label: "Meeting", icon: "file-plus-2", template: "Templates/Meeting.md" },
+			{ id: "templater-1", label: "Book note", icon: "file-plus-2", template: "Templates/Book note.md" },
+		]);
+	});
+
+	// The review step draws the plan and then the finish step builds it again, so
+	// a card whose contents depended on the clock or the RNG would arrive
+	// different from the one that was previewed.
+	it("plans the same Templater card twice in a row", () => {
+		const plan = (): unknown =>
+			planCards(
+				blankAnswers({ integrations: ["templater"] }),
+				emptyDetection({ templaterTemplates: ["Templates/Meeting.md"] }),
+				(i) => `c${i}`,
+			).find((p) => p.id === "templater")?.card;
+
+		expect(plan()).toEqual(plan());
+	});
+
+	// Accepting an integration whose evidence has gone (the templates were moved
+	// between the detection pass and the finish step) must drop the card rather
+	// than plant an empty launchpad.
+	it("skips the Templater card when no templates were found", () => {
+		const planned = planCards(
+			blankAnswers({ integrations: ["templater"] }),
+			emptyDetection(),
+			(i) => `c${i}`,
+		);
+
+		expect(planned.some((p) => p.id === "templater")).toBe(false);
 	});
 
 	it("embeds the detected base under its own name", () => {

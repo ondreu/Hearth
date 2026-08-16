@@ -2646,6 +2646,16 @@
 	transform: translateY(-1px);
 }
 
+/* A tile whose action is still running — the Templater card creating a note,
+   which may involve a prompt of Templater's own. The tile stays in place and
+   keeps its label; it just stops accepting a second click, so an impatient
+   double-click can't make two notes. */
+.hearth-link-tile.is-busy {
+	opacity: 0.6;
+	pointer-events: none;
+	cursor: progress;
+}
+
 /* A tile fully/partially hidden behind another tile — an undesirable overlap.
  * Glow it with the accent (and a warning tint) so the user notices and fixes
  * it. Only applied in arrange mode. */

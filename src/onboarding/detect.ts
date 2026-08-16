@@ -18,6 +18,7 @@ import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "../fileicons";
 import { GIT_PLUGIN_ID } from "../git";
 import { OMNISEARCH_PLUGIN_ID } from "../omnisearch";
 import { TASKNOTES_PLUGIN_ID, readTaskNotesSetup, type TaskNotesSetup } from "../tasknotes";
+import { TEMPLATER_PLUGIN_ID, templaterTemplateFiles } from "../templater";
 
 /** Community plugin id for the Kanban plugin, whose boards the Tasks card can
  * read as a task source. Declared here rather than in `cards/tasks.ts` because
@@ -38,6 +39,7 @@ export type SetupIntegrationId =
 	| "kanban"
 	| "dataview"
 	| "datacore"
+	| "templater"
 	| "git"
 	| "omnisearch"
 	| "fileIcons"
@@ -71,7 +73,17 @@ export interface SetupDetection {
 	basePath: string | null;
 	/** Path of a Kanban board note, when one exists. */
 	kanbanPath: string | null;
+	/** Paths of the templates Templater would offer, capped at
+	 * {@link TEMPLATER_TILE_LIMIT}. Empty when Templater isn't enabled or has no
+	 * templates yet. The wizard seeds one tile per entry, so the card arrives
+	 * with the user's own templates on it rather than blank. */
+	templaterTemplates: string[];
 }
+
+/** How many template tiles the wizard seeds. Enough to show what the card is
+ * for; a vault with forty templates does not want forty buttons chosen for it,
+ * and adding more is one click in the card's settings. */
+export const TEMPLATER_TILE_LIMIT = 6;
 
 /** Whether a community plugin is installed *and* on. */
 function pluginEnabled(app: App, id: string): boolean {
@@ -178,6 +190,20 @@ export function detectSetup(app: App): SetupDetection {
 		});
 	}
 
+	// Offered on the strength of templates existing, not merely of the plugin
+	// being on: a Templater install with no templates yet has nothing for the
+	// card to put on a tile, and a card of zero buttons is worse than no card.
+	const templaterTemplates = pluginEnabled(app, TEMPLATER_PLUGIN_ID)
+		? findTemplaterTemplates(app)
+		: [];
+	if (templaterTemplates.length > 0) {
+		integrations.push({
+			id: "templater",
+			name: pluginName(app, TEMPLATER_PLUGIN_ID, "Templater"),
+			recommended: false,
+		});
+	}
+
 	if (pluginEnabled(app, GIT_PLUGIN_ID)) {
 		integrations.push({
 			id: "git",
@@ -230,7 +256,20 @@ export function detectSetup(app: App): SetupDetection {
 		taskNotes: taskNotesOn ? readTaskNotesSetup(app) : null,
 		basePath,
 		kanbanPath,
+		templaterTemplates,
 	};
+}
+
+/** The first few templates Templater would offer, by path. Never throws: this
+ * runs while the wizard is being built. */
+function findTemplaterTemplates(app: App): string[] {
+	try {
+		return templaterTemplateFiles(app)
+			.slice(0, TEMPLATER_TILE_LIMIT)
+			.map((file) => file.path);
+	} catch {
+		return [];
+	}
 }
 
 /** The vault's name, or "" when it can't be read. */
