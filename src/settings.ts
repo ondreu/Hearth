@@ -3,6 +3,7 @@ import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
+import { addIconPicker } from "./lucide";
 import { CommandPickerModal } from "./pickers";
 import { configuredPlaces, renderSkySource } from "./placepicker";
 import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, DEFAULT_SETTINGS, defaultMobileActionButtons, type HomeSettings, LOW_POWER_BACKGROUND, type MobileActionButton, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule } from "./types";
@@ -612,6 +613,30 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			this.addTextReset(logo, txt, "logo");
 		});
+
+		addIconPicker(
+			new Setting(containerEl)
+				.setName(t().settings.appearance.logoIcon)
+				.setDesc(t().settings.appearance.logoIconDesc),
+			this.app,
+			s.logoIcon,
+			(v) => {
+				s.logoIcon = v;
+				void this.save();
+			},
+		);
+
+		addIconPicker(
+			new Setting(containerEl)
+				.setName(t().settings.appearance.tabIcon)
+				.setDesc(t().settings.appearance.tabIconDesc),
+			this.app,
+			s.tabIcon,
+			(v) => {
+				s.tabIcon = v;
+				void this.save().then(() => this.plugin.refreshBrandIcons());
+			},
+		);
 
 		new Setting(containerEl)
 			.setName(t().settings.appearance.themeColorTarget)
@@ -1778,6 +1803,10 @@ export class HomeSettingTab extends PluginSettingTab {
 					return;
 				}
 				void this.save();
+				// An import can carry a different tab icon (or theme-color
+				// target), and neither the ribbon button nor an open tab header
+				// is redrawn by a settings save on its own.
+				this.plugin.refreshBrandIcons();
 				this.rerender();
 				new Notice(opts.imported);
 			},

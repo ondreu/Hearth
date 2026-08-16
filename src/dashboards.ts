@@ -22,6 +22,7 @@ import {
 	newDashboardId,
 } from "./types";
 import { cloneCard } from "./cards";
+import { addIconPicker, renderIcon } from "./lucide";
 import { configuredPlaces, renderSkySource } from "./placepicker";
 import { formatSkyValue, parseSkyValue } from "./sky";
 import { confirmAction } from "./ui";
@@ -58,11 +59,9 @@ export function renderDashboardSwitcher(
 		const btn = bar.createEl("button", {
 			cls: "hearth-dash-btn",
 		});
-		if (lucide) {
-			setIcon(btn, lucide);
-		} else {
-			btn.setText(icon || String(i + 1));
-		}
+		// An icon id that names nothing renderable falls through to the emoji or
+		// the number, so a mistyped id never leaves a blank switcher button.
+		if (!renderIcon(btn, lucide)) btn.setText(icon || String(i + 1));
 		const active = d.id === s.activeDashboardId;
 		btn.toggleClass("is-active", active);
 		if (active) btn.setAttribute("aria-current", "true");
@@ -315,18 +314,17 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				}),
 			);
 
-		new Setting(containerEl)
-			.setName(t().dashboards.modal.switcherLucide)
-			.setDesc(t().dashboards.modal.switcherLucideDesc)
-			.addText((tx) =>
-				tx
-					.setPlaceholder(t().dashboards.modal.lucidePlaceholder)
-					.setValue(dash.iconLucide ?? "")
-					.onChange((v) => {
-						dash.iconLucide = v.trim() || undefined;
-						this.commit();
-					}),
-			);
+		addIconPicker(
+			new Setting(containerEl)
+				.setName(t().dashboards.modal.switcherLucide)
+				.setDesc(t().dashboards.modal.switcherLucideDesc),
+			this.view.app,
+			dash.iconLucide ?? "",
+			(v) => {
+				dash.iconLucide = v || undefined;
+				this.commit();
+			},
+		);
 
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.mobileDefault)
@@ -479,6 +477,18 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			},
 		);
 
+		this.overrideHeaderIcon(
+			containerEl,
+			t().dashboards.modal.logoIcon,
+			t().dashboards.modal.logoIconDesc,
+			header?.logoIcon,
+			s.logoIcon,
+			(v) => {
+				this.setHeaderOverride("logoIcon", v);
+				this.commit();
+			},
+		);
+
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.titleAlign)
 			.setDesc(t().dashboards.modal.titleAlignDesc)
@@ -583,6 +593,42 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					set(v);
 				}),
 			);
+		}
+	}
+
+	/**
+	 * The icon counterpart of {@link overrideHeaderText}: a toggle that takes the
+	 * board off the global icon, and — once it has — a full Lucide picker.
+	 *
+	 * Turning the toggle on seeds the override with whatever the global icon is,
+	 * so the board starts from the look it already had; clearing the picker
+	 * leaves an empty override, which is a board that deliberately shows no
+	 * Lucide icon while the global setting has one.
+	 */
+	private overrideHeaderIcon(
+		containerEl: HTMLElement,
+		name: string,
+		desc: string,
+		current: string | undefined,
+		fallback: string,
+		set: (value: string | undefined) => void,
+	): void {
+		const overriding = current !== undefined;
+		const row = new Setting(containerEl)
+			.setName(name)
+			.setDesc(
+				overriding
+					? desc
+					: t().dashboards.modal.usingDefaultText(fallback || "∅"),
+			)
+			.addToggle((tg) =>
+				tg.setValue(overriding).onChange((v) => {
+					set(v ? fallback : undefined);
+					this.render();
+				}),
+			);
+		if (overriding) {
+			addIconPicker(row, this.view.app, current, (v) => set(v));
 		}
 	}
 

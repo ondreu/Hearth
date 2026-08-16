@@ -2431,6 +2431,53 @@
 	display: none;
 }
 
+/* ---- Lucide icon fields --------------------------------------------- */
+
+/* The live preview beside a Lucide icon field (settings, dashboard settings).
+   It keeps its box when empty so the row doesn't jump as icons come and go —
+   an unrecognised id simply leaves a dim, empty slot. */
+.hearth-icon-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	flex: none;
+	border-radius: var(--radius-s, 4px);
+	color: var(--text-normal);
+	background: var(--background-modifier-form-field);
+}
+
+.hearth-icon-preview.is-empty {
+	background: transparent;
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+.hearth-icon-preview svg {
+	width: 18px;
+	height: 18px;
+}
+
+/* A row in the Lucide icon picker: the icon itself, then its id. */
+.hearth-icon-suggestion {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.hearth-icon-suggestion-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	flex: none;
+}
+
+.hearth-icon-suggestion-icon svg {
+	width: 18px;
+	height: 18px;
+}
+
 /* The small "?" help badge beside an icon field in the card editors (#119). */
 .hearth-icon-help {
 	display: inline-flex;
