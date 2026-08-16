@@ -137,6 +137,79 @@ describe("evaluate — currency (rates supplied by caller)", () => {
 	});
 });
 
+describe("evaluate — number bases", () => {
+	it("reads a named source base", () => {
+		expect(ok("FF hex to decimal").formatted).toBe("255");
+		expect(ok("377 octal to decimal").formatted).toBe("255");
+		expect(ok("1010 binary to decimal").formatted).toBe("10");
+	});
+
+	it("writes the target base with its prefix", () => {
+		expect(ok("255 to hex").formatted).toBe("0xFF");
+		expect(ok("255 to binary").formatted).toBe("0b11111111");
+		expect(ok("255 to octal").formatted).toBe("0o377");
+		expect(ok("1010 binary to hex").formatted).toBe("0xA");
+	});
+
+	it("keeps the decimal value alongside the formatted result", () => {
+		const r = ok("FF hex to decimal");
+		expect(r.value).toBe(255);
+		expect(ok("1010 binary to hex").value).toBe(10);
+	});
+
+	it("notes what was converted from what", () => {
+		expect(ok("FF hex to decimal").note).toBe("0xFF → decimal");
+		expect(ok("255 to hex").note).toBe("255 → hex");
+	});
+
+	it("bare numbers are decimal, so arithmetic still works", () => {
+		expect(ok("20 + 35 to hex").formatted).toBe("0x37");
+		expect(ok("2^10 to hex").formatted).toBe("0x400");
+	});
+
+	it("accepts every alias and the in/as keywords", () => {
+		expect(ok("ff hexadecimal in dec").formatted).toBe("255");
+		expect(ok("11 bin as base10").formatted).toBe("3");
+		expect(ok("777 oct to base16").formatted).toBe("0x1FF");
+	});
+
+	it("round-trips its own prefixed output", () => {
+		expect(ok("0xFF to decimal").formatted).toBe("255");
+		expect(ok("0b1010 to hex").formatted).toBe("0xA");
+		expect(ok("0o377 to hex").note).toBe("0o377 → hex");
+	});
+
+	it("negatives keep a signed prefix rather than wrapping", () => {
+		expect(ok("-10 to hex").formatted).toBe("-0xA");
+		expect(ok("-A hex to decimal").value).toBe(-10);
+	});
+
+	it("converts to itself and through decimal", () => {
+		expect(ok("255 to decimal").formatted).toBe("255");
+		expect(ok("FF hex to hex").formatted).toBe("0xFF");
+	});
+
+	it("rejects digits the source base doesn't have", () => {
+		const r = evaluate("FG hex to decimal");
+		expect(r.ok).toBe(false);
+		if (!r.ok) expect(r.error).toMatch(/hex/);
+		expect(evaluate("1012 binary to decimal").ok).toBe(false);
+		expect(evaluate("999 octal to decimal").ok).toBe(false);
+	});
+
+	it("rejects fractional and unsafe values", () => {
+		const r = evaluate("2.5 to hex");
+		expect(r.ok).toBe(false);
+		if (!r.ok) expect(r.error).toMatch(/whole numbers/i);
+		expect(evaluate("2^70 to hex").ok).toBe(false);
+	});
+
+	it("leaves unit conversions alone", () => {
+		expect(ok("10 km to miles").formatted).toContain("mi");
+		expect(evaluate("10 km to hex").ok).toBe(false);
+	});
+});
+
 describe("evaluate — errors", () => {
 	it("empty input", () => {
 		expect(evaluate("").ok).toBe(false);

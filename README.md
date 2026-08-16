@@ -207,7 +207,8 @@ issue or email.
 - **Web page** — any `http(s)` URL in a sandboxed iframe, with optional
   auto-refresh.
 - **Text / jot-down** — a quick Markdown scratch field saved with the card.
-- **Calculator** — evaluates as you type: math, unit conversions, live currency
+- **Calculator** — evaluates as you type: math, unit conversions, number bases
+  (`FF hex to decimal`, `255 to hex`), live currency
   ([Frankfurter](https://www.frankfurter.app/), ECB rates) and plain-language
   queries (`20% of 150`). Optional on-screen keypad.
 - **Pet** — a pixel-art companion (cat, dog, bird, fox, frog or blob) whose

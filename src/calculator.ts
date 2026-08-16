@@ -7,6 +7,7 @@
  *   2. Unit conversions:  `10 km to miles`, `100 f in c`, `1 hour in minutes`
  *   3. Plain language:    `20% of 150`, `3 plus 4`, `10 squared`, `2 x 3`
  *   4. Currency:          `10 € to USD`, `$5 in czk` (needs exchange rates)
+ *   5. Number bases:      `FF hex to decimal`, `1010 binary to hex`, `255 to hex`
  *
  * Everything except currency is computed locally — no network, no dependencies.
  * Currency conversions use exchange rates the caller supplies (fetched and
@@ -198,6 +199,96 @@ function fromCelsius(c: number, unit: string): number {
 	if (unit === "f") return c * 9 / 5 + 32;
 	if (unit === "k") return c + 273.15;
 	return c;
+}
+
+// ---- Number bases ------------------------------------------------------
+
+/** A number base the calculator can read from and write to. */
+interface NumberBase {
+	radix: number;
+	/** Name used in notes and errors ("hex", "binary"). */
+	label: string;
+	/** Notation written before the digits ("0x"); empty for decimal. */
+	prefix: string;
+}
+
+/** Base table keyed by lowercase alias, in the same spirit as UNITS. */
+const BASES: Record<string, NumberBase> = {};
+
+function defBase(aliases: string[], radix: number, label: string, prefix: string): void {
+	for (const a of aliases) BASES[a] = { radix, label, prefix };
+}
+
+defBase(["bin", "binary", "base2"], 2, "binary", "0b");
+defBase(["oct", "octal", "base8"], 8, "octal", "0o");
+defBase(["dec", "decimal", "base10"], 10, "decimal", "");
+defBase(["hex", "hexadecimal", "base16"], 16, "hex", "0x");
+
+/** Decimal is the assumed base everywhere a query doesn't name one. */
+const DECIMAL = BASES.decimal;
+
+/** Prefixes recognised on a bare literal, mapped to their base. */
+const BASE_PREFIXES: Record<string, NumberBase> = {
+	"0b": BASES.binary,
+	"0o": BASES.octal,
+	"0x": BASES.hex,
+};
+
+/** Resolve a raw token to a number base, or null if it isn't one. */
+function lookupBase(raw: string): NumberBase | null {
+	return BASES[normalizeUnit(raw)] ?? null;
+}
+
+/** The digits legal in a base: 0-9 then a-z, as many as the radix allows. */
+function baseDigitsRe(radix: number): RegExp {
+	const digits = "0123456789abcdefghijklmnopqrstuvwxyz".slice(0, radix);
+	return new RegExp(`^[${digits}]+$`, "i");
+}
+
+/**
+ * Read a single literal in the given base: an optional sign, the base's own
+ * prefix if the user typed one, then digits (which may be grouped with `_`,
+ * `,` or spaces, as they are elsewhere in the calculator). Returns null when
+ * the text isn't a valid literal in that base.
+ */
+function parseInBase(raw: string, base: NumberBase): number | null {
+	const m = /^([+-]?)\s*(.+)$/.exec(raw.trim());
+	if (!m) return null;
+	let digits = m[2].replace(/[_,\s]/g, "");
+	if (base.prefix && digits.toLowerCase().startsWith(base.prefix)) {
+		digits = digits.slice(base.prefix.length);
+	}
+	if (!digits || !baseDigitsRe(base.radix).test(digits)) return null;
+	const value = parseInt(digits, base.radix);
+	if (!Number.isSafeInteger(value)) return null;
+	return m[1] === "-" ? -value : value;
+}
+
+/**
+ * Read a bare prefixed literal ("0xFF", "-0b1010") — the notation this module
+ * itself prints, so a result can be pasted straight back in. Prefixed literals
+ * inside larger expressions (`0xFF & 0x0F`) are deliberately not supported:
+ * that needs tokenizer-level literals and bitwise operators.
+ */
+function parsePrefixed(raw: string): { value: number; base: NumberBase } | null {
+	const m = /^([+-]?)\s*(0[box])([0-9a-z_, ]+)$/i.exec(raw.trim());
+	if (!m) return null;
+	const base = BASE_PREFIXES[m[2].toLowerCase()];
+	const digits = parseInBase(m[3], base);
+	if (digits === null) return null;
+	return { value: m[1] === "-" ? -digits : digits, base };
+}
+
+/**
+ * Write a number in the given base. Negatives carry a sign in front of the
+ * digits (`-0xA`) rather than being wrapped into two's complement, because the
+ * calculator has no bit width to wrap them at and treats negatives as signed
+ * values everywhere else.
+ */
+function formatInBase(value: number, base: NumberBase): string {
+	if (base.radix === 10) return formatNumber(value);
+	const sign = value < 0 ? "-" : "";
+	return `${sign}${base.prefix}${Math.abs(value).toString(base.radix).toUpperCase()}`;
 }
 
 // ---- Expression evaluator (recursive descent) --------------------------
@@ -542,7 +633,12 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 	const targetLinear = lookupUnit(targetRaw);
 	const targetTemp = lookupTemp(targetRaw);
 	const targetCurrency = lookupCurrency(targetRaw);
-	if (!targetLinear && !targetTemp && !targetCurrency) return null; // not a conversion.
+	const targetBase = lookupBase(targetRaw);
+	if (!targetLinear && !targetTemp && !targetCurrency && !targetBase) return null; // not a conversion.
+
+	// Bases read their own left-hand side: it may name a source base ("FF hex")
+	// rather than end in a unit, so it can't go through extractTrailingUnit.
+	if (targetBase) return convertBase(leftRaw, targetBase, opts);
 
 	// Split the left side into a numeric expression and its trailing source unit.
 	const src = extractTrailingUnit(leftRaw);
@@ -605,6 +701,53 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 		value: out,
 		formatted: `${formatNumber(out)} ${to.label}`,
 		note: `${formatNumber(value)} ${from.label} → ${to.label}`,
+	};
+}
+
+/**
+ * Convert the left-hand side of a "… to <base>" query into the target base.
+ * The source base is whichever one the query names ("FF hex", "1010 binary")
+ * or the prefix it carries ("0xFF"); anything else is an ordinary decimal
+ * expression, so plain arithmetic still works (`20 + 35 to hex`).
+ */
+function convertBase(leftRaw: string, target: NumberBase, opts: CalcOptions): CalcResult | null {
+	const trimmed = leftRaw.trim();
+	// A trailing word naming the source base, e.g. the "hex" of "FF hex".
+	const named = /^(.*?)\s*([a-z][a-z0-9]*)\s*$/i.exec(trimmed);
+	const namedBase = named ? lookupBase(named[2]) : null;
+
+	let value: number;
+	let source = DECIMAL;
+	if (namedBase) {
+		const digits = named![1].trim();
+		if (!digits) return null; // a bare "hex to decimal" names no quantity.
+		const parsed = parseInBase(digits, namedBase);
+		if (parsed === null) return { ok: false, error: `"${digits}" isn't a ${namedBase.label} number` };
+		value = parsed;
+		source = namedBase;
+	} else {
+		const prefixed = parsePrefixed(trimmed);
+		if (prefixed) {
+			value = prefixed.value;
+			source = prefixed.base;
+		} else {
+			try {
+				value = evaluateExpression(trimmed, opts);
+			} catch {
+				return null;
+			}
+		}
+	}
+
+	if (!Number.isFinite(value)) return { ok: false, error: "Not a number" };
+	if (!Number.isInteger(value)) return { ok: false, error: `Only whole numbers convert to ${target.label}` };
+	if (!Number.isSafeInteger(value)) return { ok: false, error: "Number too large to convert exactly" };
+
+	return {
+		ok: true,
+		value,
+		formatted: formatInBase(value, target),
+		note: `${formatInBase(value, source)} → ${target.label}`,
 	};
 }
 
