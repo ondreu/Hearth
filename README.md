@@ -30,6 +30,12 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 
 <img src="assets/mobile.png" width="280" alt="Hearth on mobile" />
 
+## Disclaimer
+
+This plugin was created using AI.
+
+All PR are tested in testing vault by human before merging, and all releases are beta tested in testing vault by human before promoting to stable.
+
 ## Quick start
 
 1. Install **Hearth** from Obsidian's community plugin browser — or drop
