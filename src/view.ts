@@ -12,7 +12,8 @@ import {
 	effectiveMaxWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
-	lowPowerActive,
+	frostAllowed,
+	motionAllowed,
 	renderCards,
 } from "./types";
 import { tabIconIdFor } from "./icon";
@@ -161,11 +162,15 @@ export class HomeView extends ItemView {
 		root.empty();
 		root.addClass("hearth-view");
 		root.toggleClass("hearth-compact", this.plugin.settings.compact);
-		// Low power mode: the flag CSS keys off to drop transitions, animations,
-		// shadows and hover transforms across the whole view. The background and
-		// card-surface side of the mode is handled by the effective* resolvers, so
-		// this class only covers what has no setting behind it.
-		root.toggleClass("hearth-low-power", lowPowerActive(this.plugin.settings));
+		// The two performance-tier flags CSS keys off. They are separate because
+		// the tiers drop motion and frost at the same rung but for different
+		// reasons, and because `hearth-no-motion` is also what the focus/visibility
+		// gate toggles at runtime (see motion.ts) without touching the tier.
+		// Everything with a setting behind it — the background, card opacity, the
+		// blur radius, the refresh timers — is handled by the effective* resolvers
+		// instead, so these classes only cover what has no setting to override.
+		root.toggleClass("hearth-no-motion", !motionAllowed(this.plugin.settings));
+		root.toggleClass("hearth-no-frost", !frostAllowed(this.plugin.settings));
 		// In arrange mode the user can hide the per-card headers to see each
 		// card's full body. The class is only applied while arranging so the
 		// headers come back automatically when arranging ends.

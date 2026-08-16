@@ -1,7 +1,7 @@
 import { Component, Setting } from "obsidian";
 import { moment } from "../cardbodies";
 import { t } from "../i18n";
-import { type ClockConfig, type DashboardCard, lowPowerActive } from "../types";
+import { type ClockConfig, type DashboardCard, motionAllowed } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -162,7 +162,7 @@ export function renderClock(
 	// every second — it has to, or the minute would land up to a second late —
 	// but with seconds gone every tick becomes a pure comparison that writes
 	// nothing to the DOM 59 times out of 60.
-	const lowPower = lowPowerActive(view.plugin.settings);
+	const lowPower = !motionAllowed(view.plugin.settings);
 
 	const tickAnalog = analog ? renderAnalogClock(wrap, cfg, lowPower) : null;
 	const timeEl = analog ? null : wrap.createDiv("hearth-clock-time");

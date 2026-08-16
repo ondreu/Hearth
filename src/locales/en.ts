@@ -615,9 +615,9 @@ export const en = {
 		},
 		/** Sub-section headings used to group settings within a tab. */
 		sections: {
-			lowPower: "Low power mode",
-			lowPowerDesc:
-				"Trade the visual effects for battery life and smoothness on slower hardware.",
+			performance: "Performance",
+			performanceDesc:
+				"How much of the decoration to pay for. Trade visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
 			homeDesc:
 				"Title, logo, title and tab icons, search visibility and overall content width.",
@@ -727,31 +727,59 @@ export const en = {
 			contentWidth: "Content width",
 			contentWidthDesc: "Maximum width of the home content, in pixels.",
 		},
-		lowPower: {
-			enable: "Low power mode",
-			enableDesc:
-				"Replace the background with a flat colour and switch off the " +
-				"frosted glass, card transparency, animations and every timed " +
-				"background refresh. Nothing below is overwritten — your settings " +
-				"come back exactly as they were when you turn this off.",
-			color: "Low power background",
+		performance: {
+			tier: "Performance tier",
+			tierDesc:
+				"Each step down drops the next most expensive thing the board does. " +
+				"Nothing below is overwritten — your settings come back exactly as " +
+				"they were when you move back up.",
+			tierFull: "Full — everything on",
+			tierBalanced: "Balanced — a lighter sky",
+			tierReduced: "Reduced — nothing moves",
+			tierMinimal: "Minimal — plain and still",
+			/** One line per tier, shown under the dropdown for the selected one. */
+			tierFullDesc:
+				"Every effect at full strength. The painted weather sky is the most " +
+				"expensive thing here: if the board is warming up your machine, this " +
+				"is the setting to step down.",
+			tierBalancedDesc:
+				"The painted sky is drawn at half density — fewer raindrops, stars, " +
+				"clouds and wisps of fog. Nothing is switched off; there is simply " +
+				"less of it to move, for roughly half the cost.",
+			tierReducedDesc:
+				"Nothing on the board moves, and the frosted glass behind cards is " +
+				"off. Your wallpaper stays, cards stay translucent, and every card " +
+				"still refreshes on its timer — the board just holds still.",
+			tierMinimalDesc:
+				"The frugal end: a flat colour instead of the wallpaper, opaque " +
+				"cards, no motion, and no card refreshing itself on a timer.",
+			pauseWhenUnfocused: "Pause animation when Obsidian isn't in front",
+			pauseWhenUnfocusedDesc:
+				"Hold every animation while you are working in another app or " +
+				"another window. A Hearth tab hidden behind another tab already " +
+				"costs nothing; this covers a visible board in a window you are not " +
+				"using — beside a browser, or on a second screen. Turn it off if you " +
+				"keep the dashboard running on a second display.",
+			color: "Minimal background",
 			colorDesc:
-				"The flat colour shown behind the home view while low power mode is " +
-				"on. Any CSS colour, e.g. #4a4459.",
-			/** Bullet list of what the mode currently changes, shown under the toggle. */
-			effects: "While it is on:",
+				"The flat colour shown behind the home view on the minimal tier. " +
+				"Any CSS colour, e.g. #4a4459.",
+			/** Bullet list of what the selected tier changes, shown under the dropdown. */
+			effects: "At this tier:",
+			effectSkyHalf: "the painted weather sky is drawn at half density",
 			effectBackground: "the background is a flat colour — no image, GIF, opacity layer or blur",
-			effectFrost: "cards are opaque, with no frosted-glass blur behind them",
+			effectOpaque: "cards are opaque rather than translucent",
+			effectFrost: "no frosted-glass blur behind cards",
 			effectMotion: "transitions, hover lifts, shadows and animations are off",
 			effectRefresh:
 				"web, RSS, calendar-subscription and Jira cards stop refreshing on a timer (manual refresh still works)",
 			effectLiveRefresh: "the dashboard stops rebuilding itself on vault changes",
 			effectClock: "clock cards drop seconds and the sweeping second hand",
 			effectSlideshow: "slideshow cards hold one picture instead of rotating",
-			/** Shown in the sections whose settings the mode currently overrides. */
+			/** Shown in the sections whose settings the tier currently overrides. */
 			overridden:
-				"Low power mode is on, so these are overridden right now. They are " +
-				"kept as they are and take effect again when you turn it off.",
+				"The performance tier overrides these right now. They are kept as " +
+				"they are and take effect again when you move back up.",
 		},
 		background: {
 			heading: "Background",
@@ -2301,10 +2329,10 @@ export const en = {
 				"plugin's own timers, listeners and rendering going for as long as " +
 				"the board is open — every one of these cards costs again. Use one " +
 				"or two at most, and expect a slower dashboard on modest hardware.",
-			perfNoteLowPower:
-				"Low power mode is on. It cannot slow this card down — a hosted view " +
-				"manages itself — so this is the one card worth removing if the " +
-				"dashboard still feels heavy.",
+			perfNoteTier:
+				"You have stepped the performance tier down. It cannot slow this " +
+				"card down — a hosted view manages itself — so this is the one card " +
+				"worth removing if the dashboard still feels heavy.",
 			note: "Beta",
 			noteDesc:
 				"Hosts another plugin's view inside the card. Some views expect a " +

@@ -82,49 +82,98 @@
 	max-height: 60%;
 }
 
-/* ---- Low power mode ---------------------------------------------------
+/* ---- Performance tiers ------------------------------------------------
  *
- * The paint-cost half of the setting. Everything with a value behind it — the
- * background, the card blur, card opacity, the refresh timers — is handled by
- * the effective* resolvers in types.ts, which report low power values without
- * touching what the user configured. What is left here is the decoration that
- * has no setting to override: transitions, animations, shadows and hover
- * transforms. They are killed wholesale rather than case by case, so a card,
- * tile or control added later is covered without anyone remembering to.
+ * The paint-cost half of the performance tier (see PerformanceTier in
+ * types.ts). Everything with a value behind it — the background, the card blur,
+ * card opacity, the refresh timers — is handled by the effective* resolvers,
+ * which report the tier's value without touching what the user configured. What
+ * is left here is the decoration that has no setting to override.
  *
- * Nothing in this block changes layout, so toggling the mode never moves
+ * Two classes rather than one, because they are switched at different moments:
+ * `hearth-no-frost` follows the tier alone, while `hearth-no-motion` is also
+ * toggled at runtime by the focus/visibility gate (src/motion.ts) on a board
+ * whose tier still allows motion. They are killed wholesale rather than case by
+ * case, so a card, tile or control added later is covered without anyone
+ * remembering to.
+ *
+ * Nothing in this block changes layout, so toggling either class never moves
  * anything on the board — it only stops it from being animated or filtered. */
-.hearth-view.hearth-low-power *,
-.hearth-view.hearth-low-power *::before,
-.hearth-view.hearth-low-power *::after {
+.hearth-view.hearth-no-motion *,
+.hearth-view.hearth-no-motion *::before,
+.hearth-view.hearth-no-motion *::after,
+.hearth-view.hearth-motion-paused *,
+.hearth-view.hearth-motion-paused *::before,
+.hearth-view.hearth-motion-paused *::after {
 	transition: none !important;
 	animation: none !important;
-	/* Belt and braces: with every resolved blur at 0 the frost layers are never
-	 * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
-	 * header) are switched off here too — each one is a separate backdrop root
-	 * the compositor has to re-filter on scroll. */
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
 	box-shadow: none !important;
 }
 
+/* Belt and braces: with every resolved blur at 0 the frost layers are never
+ * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
+ * header) are switched off here too — each one is a separate backdrop root the
+ * compositor has to re-filter on scroll. */
+.hearth-view.hearth-no-frost *,
+.hearth-view.hearth-no-frost *::before,
+.hearth-view.hearth-no-frost *::after {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
 /* Loading spinners are the one animation worth keeping: frozen mid-spin they
- * read as a broken card rather than a calm one. */
-.hearth-view.hearth-low-power .is-loading {
+ * read as a broken card rather than a calm one. Paused with the rest, though,
+ * when the gate says nobody is looking — a spinner nobody can see is the
+ * clearest case of animating for no one. */
+.hearth-view.hearth-no-motion .is-loading {
 	animation: hearth-rss-spin 0.9s linear infinite !important;
 }
 
 /* Hover lift on cards and tiles: a transform promotes the element to its own
  * compositor layer on every pointer move across the board. */
-.hearth-view.hearth-low-power .hearth-card:hover,
-.hearth-view.hearth-low-power .hearth-link-tile:hover {
+.hearth-view.hearth-no-motion .hearth-card:hover,
+.hearth-view.hearth-no-motion .hearth-link-tile:hover,
+.hearth-view.hearth-motion-paused .hearth-card:hover,
+.hearth-view.hearth-motion-paused .hearth-link-tile:hover {
 	transform: none;
 }
 
 /* The card's drop shadow is applied through a variable so merged edges can drop
  * it; clear the variable as well as the resolved shadow above. */
-.hearth-view.hearth-low-power .hearth-card {
+.hearth-view.hearth-no-motion .hearth-card,
+.hearth-view.hearth-motion-paused .hearth-card {
 	--hearth-card-lift: none;
+}
+
+/* ---- Reduced motion ---------------------------------------------------
+ *
+ * A reader who has asked the OS for less motion gets the same treatment as the
+ * `reduced` tier, board-wide. Individual features already honour the preference
+ * in their own sections (the painted sky keeps its shapes, the pet keeps its
+ * posture, the slideshow keeps crossfading) and those rules are the nicer
+ * answer where they exist; this is the catch-all underneath them, so anything
+ * without a bespoke rule — the obscured-tile pulse, hover lifts, card
+ * transitions, a card added next year — stops moving too.
+ *
+ * Spinners are deliberately exempt: an indeterminate spinner that does not spin
+ * reads as a hung card, and the preference is about motion that decorates,
+ * not motion that reports. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-view *,
+	.hearth-view *::before,
+	.hearth-view *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+
+	.hearth-view .is-loading {
+		animation: hearth-rss-spin 0.9s linear infinite !important;
+	}
+
+	.hearth-view .hearth-card:hover,
+	.hearth-view .hearth-link-tile:hover {
+		transform: none;
+	}
 }
 
 .hearth-scroll {

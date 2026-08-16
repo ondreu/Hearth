@@ -3,7 +3,7 @@ import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";
 import { FilePickerModal } from "../pickers";
-import { type DashboardCard, type HomeSettings, lowPowerActive } from "../types";
+import { type DashboardCard, type HomeSettings, performanceTier } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -67,10 +67,10 @@ export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): 
 	// supports (see the settings-pane error box).
 	setIcon(icon, "alert-triangle");
 	note.nameEl.prepend(icon);
-	if (lowPowerActive(settings)) {
+	if (performanceTier(settings) !== "full") {
 		note.descEl.createDiv({
 			cls: "hearth-setting-warning-extra",
-			text: strings.perfNoteLowPower,
+			text: strings.perfNoteTier,
 		});
 	}
 }

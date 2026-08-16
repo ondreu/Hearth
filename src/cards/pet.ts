@@ -1,7 +1,7 @@
 import { Component, type DropdownComponent, Setting } from "obsidian";
 import { localDayKey } from "../dates";
 import { t } from "../i18n";
-import { type DashboardCard, type PetConfig, type PetSpecies, lowPowerActive } from "../types";
+import { type DashboardCard, type PetConfig, type PetSpecies, motionAllowed } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -748,7 +748,7 @@ export function renderPet(
 	const cfg = (card.pet ??= {});
 	const species = cfg.species ?? "cat";
 	const palette = paletteFor(cfg);
-	const still = lowPowerActive(view.plugin.settings);
+	const still = !motionAllowed(view.plugin.settings);
 
 	const wrap = body.createDiv("hearth-pet");
 	wrap.addClass(`is-${cfg.size ?? "md"}`);

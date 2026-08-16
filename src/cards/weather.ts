@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import {
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
-	lowPowerActive,
+	motionAllowed,
 	type PrecipitationUnit,
 	type TemperatureUnit,
 	type WeatherConfig,
@@ -616,7 +616,7 @@ export function renderWeather(
 	component: Component,
 ): void {
 	const cfg = card.weather ?? {};
-	const r = resolveConfig(cfg, lowPowerActive(view.plugin.settings));
+	const r = resolveConfig(cfg, !motionAllowed(view.plugin.settings));
 	const req = requestFor(cfg, r);
 	if (!req) {
 		emptyState(body, "cloud-sun", t().cards.empty.weatherNoLocation);

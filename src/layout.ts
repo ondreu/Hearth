@@ -43,6 +43,8 @@ import {
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
 	clampBannerHeight,
+	PERFORMANCE_TIERS,
+	type PerformanceTier,
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
@@ -165,11 +167,12 @@ export function exportSettings(s: HomeSettings): string {
 		bannerHeight: s.bannerHeight,
 		bannerFade: s.bannerFade,
 		bannerFullWidth: s.bannerFullWidth,
-		// Low power mode overrides the four above rather than replacing them, so
-		// it has to travel with them — otherwise an export taken while it is on
-		// would describe a look the importing vault doesn't show.
-		lowPower: s.lowPower,
+		// The performance tier overrides the four above rather than replacing
+		// them, so it has to travel with them — otherwise an export taken on a
+		// lower tier would describe a look the importing vault doesn't show.
+		performanceTier: s.performanceTier,
 		lowPowerBackgroundColor: s.lowPowerBackgroundColor,
+		pauseWhenUnfocused: s.pauseWhenUnfocused,
 
 		// Behaviour
 		openOnStartup: s.openOnStartup,
@@ -1355,9 +1358,19 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (typeof data.bannerFullWidth === "boolean") {
 		s.bannerFullWidth = data.bannerFullWidth;
 	}
-	if (typeof data.lowPower === "boolean") s.lowPower = data.lowPower;
+	// A layout exported before the tiers carries the old boolean; fold it the
+	// same way migrateSettings does so an old export still lands somewhere sane.
+	const tier = str(data.performanceTier);
+	if (PERFORMANCE_TIERS.includes(tier as PerformanceTier)) {
+		s.performanceTier = tier as PerformanceTier;
+	} else if (typeof data.lowPower === "boolean") {
+		s.performanceTier = data.lowPower ? "minimal" : "full";
+	}
 	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();
 	if (lowPowerColor) s.lowPowerBackgroundColor = lowPowerColor;
+	if (typeof data.pauseWhenUnfocused === "boolean") {
+		s.pauseWhenUnfocused = data.pauseWhenUnfocused;
+	}
 
 	// Behaviour
 	if (typeof data.openOnStartup === "boolean")
