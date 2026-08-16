@@ -115,6 +115,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   digits (`-0xA`) rather than wrapping into two's complement at a bit width the
   card never asked you for.
 
+- **An embedded picture can be framed, not just embedded.** An image embed used
+  to render at whatever size the picture happened to be, in a box that scrolled
+  — a wide photo in a short card showed a sliver of itself. The embed card's
+  Content tab now offers the usual choices for any picture target, on the
+  primary view and the second view alike:
+
+  - **Fit the whole picture** — scaled down whole, letterboxed if it has to be.
+  - **Fill the card (crop)** — the whole card, edge to edge, cropping the
+    overflow.
+  - **Stretch to the card** — both edges pinned, aspect ratio be damned.
+  - **Fit the width (scroll)** — full width, its own height, scroll for the rest.
+  - **Original size** — what image embeds have always done, and still the
+    default, so no existing card changes.
+
+  **Picture position** anchors the picture to any of nine points, which is what
+  decides *which part* a crop keeps — a portrait cropped to a wide card can hold
+  onto the face instead of the middle. **Zoom** now works inside the frame too:
+  zooming a cropped picture crops in further rather than scrolling the box.
+
 - **A slideshow card.** **Notes & files → Slideshow** is the image embed with
   more than one picture: it shows them in turn, on a timer you set. Choose the
   pictures one by one — each can carry its own caption, and the list can be

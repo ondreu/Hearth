@@ -117,6 +117,8 @@ export function embedViews(card: DashboardCard): EmbedView[] {
 			target: card.target,
 			baseView: card.baseView,
 			scale: card.scale,
+			imageFit: card.imageFit,
+			imagePosition: card.imagePosition,
 			editable: card.editable,
 			livePreview: card.livePreview,
 		},

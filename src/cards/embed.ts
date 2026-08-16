@@ -14,11 +14,26 @@ import {
 	watchedCardPath,
 	wireMarkdownLinks,
 } from "../cardbodies";
-import { EXCALIDRAW_PLUGIN_ID, isExcalidraw } from "../filetypes";
+import {
+	EMBED_IMAGE_FITS,
+	EMBED_IMAGE_POSITIONS,
+	embedImageFit,
+	embedImagePosition,
+	embedImagePositionApplies,
+	embedImageScale,
+	embedImageStyle,
+	framesEmbedImage,
+} from "../embedimage";
+import { EXCALIDRAW_PLUGIN_ID, isExcalidraw, isImageFile, isImagePath } from "../filetypes";
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
-import { type DashboardCard, type EmbedView } from "../types";
+import {
+	type DashboardCard,
+	type EmbedImageFit,
+	type EmbedImagePosition,
+	type EmbedView,
+} from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -104,15 +119,23 @@ export function renderEmbed(
 	// + filter/property controls) so only the results show. Scoped via a class on
 	// the host so it only affects this card's base embed.
 	if (ext === "base" && card.hideBaseHeader) host.addClass("hearth-embed-hide-base-header");
+	// A picture with a fit mode set is drawn by Hearth rather than transcluded,
+	// so it can be sized against the card (see renderFormattedImage). Zoom is
+	// part of that sizing there, which is why the host zoom below skips it.
+	const fit = isImageFile(file) ? embedImageFit(active) : "natural";
+	const framed = framesEmbedImage(fit);
+
 	// Optional zoom: scale the rendered content and widen it inversely so it
 	// still fills the card width before scaling (the body handles overflow).
-	const scale = active.scale && active.scale > 0 ? active.scale : 1;
-	if (scale !== 1) {
+	const scale = embedImageScale(active.scale);
+	if (scale !== 1 && !framed) {
 		host.addClass("is-scaled");
 		host.style.setProperty("--hearth-embed-scale", String(scale));
 	}
 
-	if (isMarkdown && !excalidraw) {
+	if (framed) {
+		renderFormattedImage(view, file, body, host, fit, embedImagePosition(active), scale);
+	} else if (isMarkdown && !excalidraw) {
 		// Render the note's actual content so all Markdown (headings, lists,
 		// callouts, links…) shows. A bare ![[embed]] only renders a placeholder
 		// outside a real Markdown view, which looks empty on the dashboard.
@@ -141,6 +164,48 @@ export function renderEmbed(
 			body.addClass("hearth-card-body-live");
 		}
 	}
+}
+
+
+/**
+ * Draw a picture that has been given a fit mode — "Fit the whole picture",
+ * "Fill the card", "Stretch to the card" or "Fit the width".
+ *
+ * These are the modes where the picture is sized against the card rather than
+ * against itself, and Obsidian's transclusion can't express them: it renders
+ * into wrappers of its own with their own margins, so there is no element to
+ * hang an `object-fit` on that reliably spans the card. Hearth therefore draws
+ * the `<img>` itself here — the picture gets the whole body, edge to edge, and
+ * the CSS does the rest from the custom properties set below.
+ *
+ * "natural" never reaches this function: it stays on the transclusion path it
+ * has always used, so an embed card nobody has formatted renders exactly as
+ * before.
+ */
+function renderFormattedImage(
+	view: HomeView,
+	file: TFile,
+	body: HTMLElement,
+	host: HTMLElement,
+	fit: EmbedImageFit,
+	position: EmbedImagePosition,
+	scale: number,
+): void {
+	// The body stops scrolling and drops its padding, exactly as it does for a
+	// canvas embed: the picture is the card's whole surface now, and a gutter
+	// around a "fill the card" picture would be a visible lie.
+	body.addClass("hearth-card-body-image");
+	host.addClass("hearth-embed-image", `is-fit-${fit}`);
+	for (const [prop, value] of Object.entries(embedImageStyle(fit, position, scale)))
+		host.style.setProperty(prop, value);
+
+	const img = host.createEl("img", { cls: "hearth-embed-img" });
+	img.src = view.app.vault.getResourcePath(file);
+	img.alt = file.basename;
+	// The picture is the card's surface here, not something to drag out of it —
+	// the native image drag would otherwise fight the card's own in arrange mode.
+	img.draggable = false;
+	img.decoding = "async";
 }
 
 
@@ -219,6 +284,91 @@ function renderEmbedOpenButton(view: HomeView, file: TFile, body: HTMLElement): 
 }
 
 
+/**
+ * The picture-formatting controls: how the picture fills the card, and — for
+ * the modes where that leaves it something to decide — where it sits.
+ *
+ * Shown only when the view's target names a picture, since every other file
+ * type ignores the fields. Shared by both embed views, so the second view
+ * formats its picture exactly like the primary one does.
+ */
+function imageFormatSettings(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	target: string | undefined,
+	view: Pick<EmbedView, "imageFit" | "imagePosition">,
+): void {
+	if (!isImagePath(target)) return;
+	const strings = t().editors.embed;
+	const fit = embedImageFit(view);
+
+	new Setting(containerEl)
+		.setName(strings.imageFit)
+		.setDesc(strings.imageFitDesc)
+		.addDropdown((d) => {
+			for (const option of EMBED_IMAGE_FITS)
+				d.addOption(option, strings.imageFits[option]);
+			d.setValue(fit).onChange((v) => {
+				view.imageFit = v === "natural" ? undefined : (v as EmbedImageFit);
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// The anchor control below only exists for some of the modes.
+				ctx.requestRender();
+			});
+		});
+
+	if (!embedImagePositionApplies(fit)) return;
+	new Setting(containerEl)
+		.setName(strings.imagePosition)
+		.setDesc(fit === "cover" ? strings.imagePositionCropDesc : strings.imagePositionDesc)
+		.addDropdown((d) => {
+			for (const option of EMBED_IMAGE_POSITIONS)
+				d.addOption(option, strings.imagePositions[option]);
+			d.setValue(embedImagePosition(view)).onChange((v) => {
+				view.imagePosition = v === "center" ? undefined : (v as EmbedImagePosition);
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+}
+
+
+/** The zoom slider, shared by both embed views. Its description depends on what
+ * is being zoomed: a framed picture is scaled inside the frame it was fitted to
+ * (so zooming a cropped picture crops further), everything else is scaled as a
+ * whole with the card scrolling around it. */
+function zoomSetting(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	target: string | undefined,
+	view: Pick<EmbedView, "imageFit" | "scale">,
+): void {
+	const framed = isImagePath(target) && framesEmbedImage(embedImageFit(view));
+	new Setting(containerEl)
+		.setName(t().editors.embed.zoom)
+		.setDesc(framed ? t().editors.embed.zoomImageDesc : t().editors.embed.zoomDesc)
+		.addSlider((s) => {
+			s.setLimits(50, 200, 10)
+				.setValue(Math.round((view.scale ?? 1) * 100))
+				.setDynamicTooltip()
+				.onChange((v) => {
+					view.scale = v === 100 ? undefined : v / 100;
+					ctx.opts.save();
+				});
+		})
+		.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					view.scale = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+}
+
+
 export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
 	const setting = new Setting(containerEl)
@@ -252,28 +402,8 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			ctx.opts.save();
 		},
 	);
-	new Setting(containerEl)
-		.setName(t().editors.embed.zoom)
-		.setDesc(t().editors.embed.zoomDesc)
-		.addSlider((s) => {
-			s.setLimits(50, 200, 10)
-				.setValue(Math.round((card.scale ?? 1) * 100))
-				.setDynamicTooltip()
-				.onChange((v) => {
-					card.scale = v === 100 ? undefined : v / 100;
-					ctx.opts.save();
-				});
-		})
-		.addExtraButton((b) =>
-			b
-				.setIcon("rotate-ccw")
-				.setTooltip(t().settings.resetSlider)
-				.onClick(() => {
-					card.scale = undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-		);
+	imageFormatSettings(ctx, containerEl, card.target, card);
+	zoomSetting(ctx, containerEl, card.target, card);
 	new Setting(containerEl)
 		.setName(t().editors.embed.editable)
 		.setDesc(t().editors.embed.editableDesc)
@@ -323,7 +453,10 @@ export function setPrimaryEmbedTarget(ctx: CardEditorContext, value: string, rer
 	ctx.card.target = value;
 	if (!isBase || targetChanged) ctx.card.baseView = undefined;
 	ctx.opts.save();
-	if (rerender || wasBase !== isBase || (isBase && targetChanged))
+	// A picture brings the formatting controls with it, and loses them again
+	// when the target stops being one.
+	const imageChanged = isImagePath(previousTarget) !== isImagePath(nextTarget);
+	if (rerender || wasBase !== isBase || imageChanged || (isBase && targetChanged))
 		ctx.requestRender();
 }
 
@@ -442,28 +575,8 @@ export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement
 				ctx.opts.save();
 			},
 		);
-		new Setting(containerEl)
-			.setName(t().editors.embed.zoom)
-			.setDesc(t().editors.embed.zoomDesc)
-			.addSlider((s) => {
-				s.setLimits(50, 200, 10)
-					.setValue(Math.round((view.scale ?? 1) * 100))
-					.setDynamicTooltip()
-					.onChange((v) => {
-						view.scale = v === 100 ? undefined : v / 100;
-						ctx.opts.save();
-					});
-			})
-			.addExtraButton((b) =>
-				b
-					.setIcon("rotate-ccw")
-					.setTooltip(t().settings.resetSlider)
-					.onClick(() => {
-						view.scale = undefined;
-						ctx.opts.save();
-						ctx.requestRender();
-					}),
-			);
+		imageFormatSettings(ctx, containerEl, view.target, view);
+		zoomSetting(ctx, containerEl, view.target, view);
 		new Setting(containerEl)
 			.setName(t().editors.embed.editable)
 			.setDesc(t().editors.embed.editableDesc)
@@ -496,7 +609,8 @@ export function setSecondViewTarget(ctx: CardEditorContext, value: string, reren
 		ctx.card.secondView = next;
 	}
 	ctx.opts.save();
-	if (rerender || wasBase !== isBase || (isBase && targetChanged))
+	const imageChanged = isImagePath(previousTarget) !== isImagePath(target);
+	if (rerender || wasBase !== isBase || imageChanged || (isBase && targetChanged))
 		ctx.requestRender();
 }
 

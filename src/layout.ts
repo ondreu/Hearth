@@ -10,6 +10,8 @@ import {
 	type DashboardCard,
 	type DatacoreConfig,
 	type DataviewConfig,
+	type EmbedImageFit,
+	type EmbedImagePosition,
 	type GitConfig,
 	type HeatmapConfig,
 	type HomeSettings,
@@ -44,6 +46,7 @@ import {
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
+import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
 	SLIDESHOW_MAX_INTERVAL_SEC,
 	SLIDESHOW_MAX_TRANSITION_MS,
@@ -232,6 +235,21 @@ function sanitizeBaseViewName(raw: unknown): string | undefined {
 	return isEmbeddableBaseViewName(name) ? name : undefined;
 }
 
+/** An embed's picture-fit mode, or undefined when the import names one Hearth
+ * doesn't have (a newer file, or a hand-edited one). */
+function sanitizeImageFit(raw: unknown): EmbedImageFit | undefined {
+	return EMBED_IMAGE_FITS.includes(raw as EmbedImageFit)
+		? (raw as EmbedImageFit)
+		: undefined;
+}
+
+/** An embed's picture anchor point, or undefined when it isn't one of the nine. */
+function sanitizeImagePosition(raw: unknown): EmbedImagePosition | undefined {
+	return EMBED_IMAGE_POSITIONS.includes(raw as EmbedImagePosition)
+		? (raw as EmbedImagePosition)
+		: undefined;
+}
+
 function sanitizeEmbedView(
 	raw: unknown,
 ): DashboardCard["secondView"] | undefined {
@@ -243,6 +261,10 @@ function sanitizeEmbedView(
 	const baseView = sanitizeBaseViewName(r.baseView);
 	if (baseView !== undefined) view.baseView = baseView;
 	if (typeof r.scale === "number") view.scale = r.scale;
+	const imageFit = sanitizeImageFit(r.imageFit);
+	if (imageFit !== undefined) view.imageFit = imageFit;
+	const imagePosition = sanitizeImagePosition(r.imagePosition);
+	if (imagePosition !== undefined) view.imagePosition = imagePosition;
 	if (typeof r.editable === "boolean") view.editable = r.editable;
 	if (typeof r.livePreview === "boolean") view.livePreview = r.livePreview;
 	return view;
@@ -321,6 +343,10 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (background !== undefined) card.background = background;
 	if (typeof r.count === "number") card.count = r.count;
 	if (typeof r.scale === "number") card.scale = r.scale;
+	const cardImageFit = sanitizeImageFit(r.imageFit);
+	if (cardImageFit !== undefined) card.imageFit = cardImageFit;
+	const cardImagePosition = sanitizeImagePosition(r.imagePosition);
+	if (cardImagePosition !== undefined) card.imagePosition = cardImagePosition;
 	if (typeof r.refreshSec === "number") card.refreshSec = r.refreshSec;
 	if (typeof r.editable === "boolean") card.editable = r.editable;
 	if (typeof r.livePreview === "boolean") card.livePreview = r.livePreview;

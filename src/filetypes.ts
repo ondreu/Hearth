@@ -65,6 +65,14 @@ export function isImageFile(file: TAbstractFile): file is TFile {
 	return file instanceof TFile && IMAGE_EXTENSIONS.has(file.extension.toLowerCase());
 }
 
+/** Whether this vault path names a picture. The path-based twin of
+ * `isImageFile`, for the card editors: a target is typed there as text and may
+ * not resolve to a file in the vault (yet) when the controls are drawn. */
+export function isImagePath(path: string | undefined): boolean {
+	const ext = /\.([^./\\]+)$/.exec((path ?? "").trim())?.[1];
+	return !!ext && IMAGE_EXTENSIONS.has(ext.toLowerCase());
+}
+
 /**
  * Excalidraw drawings are stored either as `*.excalidraw` files or, more
  * commonly with the Excalidraw plugin, as `*.excalidraw.md` notes. The latter
