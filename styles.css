@@ -905,9 +905,13 @@
 	inset: 0;
 	pointer-events: none;
 }
+/* Position and size are set inline per layer by updateFrostLayers(), to the
+ * bounding box of that layer's own cards — NOT `inset: 0`. A backdrop-filter is
+ * priced by its element's box rather than by how much of it the mask reveals, so
+ * a board-sized layer blurs the whole board's backdrop and then masks the result
+ * away. */
 .hearth-frost {
 	position: absolute;
-	inset: 0;
 	pointer-events: none;
 	-webkit-mask-repeat: no-repeat;
 	mask-repeat: no-repeat;

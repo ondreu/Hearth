@@ -808,9 +808,14 @@ function resolveGridRadius(gridEl: HTMLElement): number {
  *  renders as a straight line to its endpoint, so all four arcs are always
  *  emitted regardless of merge state. Coordinates are in the grid's own pixel
  *  space (offset* is relative to the positioned grid). */
-function cardSilhouettePath(el: HTMLElement, radius: number): string {
-	const x = el.offsetLeft;
-	const y = el.offsetTop;
+function cardSilhouettePath(
+	el: HTMLElement,
+	radius: number,
+	originX = 0,
+	originY = 0,
+): string {
+	const x = el.offsetLeft - originX;
+	const y = el.offsetTop - originY;
 	const w = el.offsetWidth;
 	const h = el.offsetHeight;
 	const cl = el.classList;
@@ -860,8 +865,6 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 		else byBlur.set(b, [c]);
 	}
 
-	const w = gridEl.clientWidth;
-	const h = gridEl.clientHeight;
 	const radius = resolveGridRadius(gridEl);
 	const seen = new Set<string>();
 	for (const [blur, group] of byBlur) {
@@ -876,8 +879,52 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 		const filter = `blur(${blur}px)`;
 		layer.style.setProperty("backdrop-filter", filter);
 		layer.style.setProperty("-webkit-backdrop-filter", filter);
+
+		// Size the layer to its own cards rather than to the whole board.
+		//
+		// A backdrop-filter is priced by the element's box, not by how much of it
+		// the mask lets through: a layer spanning the grid makes the compositor
+		// blur the entire board's backdrop and *then* mask the result away. On a
+		// Retina display that is the full board area at 2x, re-evaluated whenever
+		// anything behind it changes.
+		//
+		// Padded by twice the blur radius, the same convention the banner uses
+		// (see background.ts): a blurred layer goes soft at its own edges, so the
+		// box has to reach past the cards for the blur under a card's border to
+		// sample real backdrop rather than a clamped edge. The mask is emitted in
+		// the layer's own coordinates, hence the origin passed to
+		// cardSilhouettePath.
+		// …and clamped to the grid, which is what the layer used to span. That
+		// makes this strictly an improvement rather than a trade: on a board whose
+		// cards fill it, the padded box would otherwise come out *larger* than the
+		// grid and cost more than it saved. Clamped, the layer is at worst exactly
+		// the old full-grid box, and smaller by however much of the board the
+		// cards leave empty — which is also why the saving is a big one on a
+		// sparse board and nothing at all on a packed one.
+		const pad = Math.ceil((Number(blur) || 0) * 2);
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
+		for (const c of group) {
+			minX = Math.min(minX, c.offsetLeft);
+			minY = Math.min(minY, c.offsetTop);
+			maxX = Math.max(maxX, c.offsetLeft + c.offsetWidth);
+			maxY = Math.max(maxY, c.offsetTop + c.offsetHeight);
+		}
+		const gridW = gridEl.clientWidth;
+		const gridH = gridEl.clientHeight;
+		const x = Math.max(0, Math.floor(minX) - pad);
+		const y = Math.max(0, Math.floor(minY) - pad);
+		const w = Math.min(gridW, Math.ceil(maxX) + pad) - x;
+		const h = Math.min(gridH, Math.ceil(maxY) + pad) - y;
+		layer.style.left = `${x}px`;
+		layer.style.top = `${y}px`;
+		layer.style.width = `${w}px`;
+		layer.style.height = `${h}px`;
+
 		const paths = group
-			.map((c) => `<path d="${cardSilhouettePath(c, radius)}" fill="#fff"/>`)
+			.map((c) => `<path d="${cardSilhouettePath(c, radius, x, y)}" fill="#fff"/>`)
 			.join("");
 		const svg =
 			`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
