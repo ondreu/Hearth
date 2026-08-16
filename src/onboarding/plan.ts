@@ -18,9 +18,11 @@
  */
 import { ensureLayout } from "../grid";
 import {
+	type BackgroundConfig,
 	type BackgroundLayout,
 	type DashboardCard,
 	type Dashboard,
+	type DashboardHeaderConfig,
 	type HomeSettings,
 	type OpenIn,
 	newDashboardId,
@@ -519,27 +521,82 @@ export function applySetup(
 	detection: SetupDetection,
 	planned: PlannedCard[] = planCards(answers, detection),
 ): SetupOutcome {
-	applyHeader(settings, answers);
-	applyLook(settings, answers);
 	applyBehaviour(settings, answers);
 	applyIntegrations(settings, answers, detection);
 
 	const cards = planned.map((p) => p.card);
-	const outcome = installBoard(settings, answers, cards);
+	const { outcome, dashboard } = installBoard(settings, answers, cards);
+
+	// The look is scoped to what the run did, not to a fixed choice.
+	//
+	// Replacing a board means the wizard *is* setting up the vault, so the look
+	// belongs in the global settings where the settings pane can show it and
+	// later boards inherit it. Adding a board means the opposite: the run has
+	// promised to leave everything else alone, and every look answer that can be
+	// a per-dashboard override becomes one. Writing the banner layout globally
+	// from an "add a dashboard" run is what this split exists to prevent.
+	if (outcome.replaced) applyLookGlobally(settings, answers, dashboard);
+	else applyLookToBoard(dashboard, answers);
 
 	settings.setupStatus = "done";
 	return outcome;
 }
 
-function applyHeader(settings: HomeSettings, answers: SetupAnswers): void {
+/**
+ * What the backdrop is, resolved from the answers — the kind, the value, and
+ * the opacity/blur tuned to it.
+ *
+ * Shared by both scopes below, which is why it returns a {@link BackgroundConfig}
+ * rather than writing anything: a board's `background` override is exactly this
+ * shape, and the four global `background*` fields are the same four values
+ * spelled out flat. One resolution, one weather fallback, two destinations.
+ */
+export function resolveBackground(answers: SetupAnswers): BackgroundConfig {
+	const tuning = BACKGROUND_TUNING[answers.background];
+
+	switch (answers.background) {
+		case "color":
+			return { kind: "color", value: answers.backgroundColor, ...tuning };
+		case "none":
+			return { kind: "none", value: "", ...tuning };
+		case "weather":
+			// A weather background with no place picked would paint nothing at all,
+			// which reads as a broken setup rather than a deliberate one — so an
+			// unfinished sky falls back to the bundled image, tuning included.
+			return answers.skyValue
+				? { kind: "weather", value: answers.skyValue, ...tuning }
+				: { kind: "default", value: "", ...BACKGROUND_TUNING.default };
+		case "default":
+			return { kind: "default", value: "", ...tuning };
+	}
+}
+
+/**
+ * Write the look and header answers to the *vault*, and clear the built board's
+ * own overrides for the same things.
+ *
+ * Used when the wizard replaced a board, where "this board" and "the vault" are
+ * the same thing. Global is the right home for them there: the settings pane
+ * then shows what is actually on screen, and a dashboard made later inherits
+ * the look instead of reverting to Hearth's factory defaults.
+ *
+ * The clearing matters as much as the writing. A board that already carried,
+ * say, its own background override would go on painting it and quietly ignore
+ * the choice just made in the wizard — the classic "why does this setting do
+ * nothing" trap. Only the keys the wizard actually sets are cleared; a board's
+ * header alignment, scales and margins are none of its business.
+ */
+function applyLookGlobally(
+	settings: HomeSettings,
+	answers: SetupAnswers,
+	dashboard: Dashboard | null,
+): void {
 	settings.title = answers.title.trim() || settings.title;
 	settings.showTitle = answers.showTitle;
 	settings.logo = answers.logo.trim();
 	settings.themeColorTarget = answers.themeColorTarget;
 	settings.showSearch = answers.showSearch;
-}
 
-function applyLook(settings: HomeSettings, answers: SetupAnswers): void {
 	const surface = SURFACE_PRESETS[answers.surface];
 	settings.cardOpacity = surface.cardOpacity;
 	settings.cardBlur = surface.cardBlur;
@@ -547,40 +604,65 @@ function applyLook(settings: HomeSettings, answers: SetupAnswers): void {
 	settings.cardBorderWidth = surface.cardBorderWidth;
 	settings.compact = answers.compact;
 
-	const tuning = BACKGROUND_TUNING[answers.background];
-	settings.backgroundOpacity = tuning.opacity;
-	settings.backgroundBlur = tuning.blur;
+	const background = resolveBackground(answers);
+	settings.backgroundKind = background.kind;
+	settings.backgroundValue = background.value;
+	settings.backgroundOpacity = background.opacity;
+	settings.backgroundBlur = background.blur;
 	settings.backgroundLayout = answers.backgroundLayout;
 
-	switch (answers.background) {
-		case "default":
-			settings.backgroundKind = "default";
-			settings.backgroundValue = "";
-			break;
-		case "color":
-			settings.backgroundKind = "color";
-			settings.backgroundValue = answers.backgroundColor;
-			break;
-		case "weather":
-			// A weather background with no place picked would paint nothing at
-			// all, which reads as a broken setup rather than a deliberate one —
-			// so an unfinished sky falls back to the bundled image.
-			if (answers.skyValue) {
-				settings.backgroundKind = "weather";
-				settings.backgroundValue = answers.skyValue;
-			} else {
-				settings.backgroundKind = "default";
-				settings.backgroundValue = "";
-				const fallback = BACKGROUND_TUNING.default;
-				settings.backgroundOpacity = fallback.opacity;
-				settings.backgroundBlur = fallback.blur;
-			}
-			break;
-		case "none":
-			settings.backgroundKind = "none";
-			settings.backgroundValue = "";
-			break;
+	if (!dashboard) return;
+	delete dashboard.background;
+	delete dashboard.backgroundLayout;
+	delete dashboard.cardOpacity;
+	delete dashboard.cardBlur;
+	delete dashboard.cardRadius;
+	delete dashboard.cardBorderWidth;
+	delete dashboard.showSearch;
+	if (dashboard.header) {
+		delete dashboard.header.showTitle;
+		delete dashboard.header.title;
+		delete dashboard.header.logo;
+		// A header object holding nothing is just noise in the saved data.
+		if (Object.keys(dashboard.header).length === 0) delete dashboard.header;
 	}
+}
+
+/**
+ * Write the look and header answers to one board, as overrides.
+ *
+ * Used when the wizard *added* a dashboard, where the whole promise is that
+ * nothing else changes. Writing the banner layout, the background or the card
+ * surface globally would repaint every board in the vault — which is precisely
+ * what somebody pressing "build me another dashboard" is not asking for.
+ *
+ * `compact` and `themeColorTarget` are absent on purpose: they are the two
+ * questions the wizard asks that have no per-board equivalent at all, so there
+ * is nowhere to put them that doesn't affect every board. Rather than apply
+ * them behind the user's back, the wizard doesn't ask on a run that can only
+ * add (see `renderLookStep`).
+ */
+function applyLookToBoard(dashboard: Dashboard, answers: SetupAnswers): void {
+	const header: DashboardHeaderConfig = dashboard.header ?? {};
+	header.showTitle = answers.showTitle;
+	// An empty title is "leave it to the vault", not "this board is nameless" —
+	// the field is pre-filled, so clearing it reads as declining to override.
+	const title = answers.title.trim();
+	if (title) header.title = title;
+	else delete header.title;
+	header.logo = answers.logo.trim();
+	dashboard.header = header;
+
+	dashboard.showSearch = answers.showSearch;
+
+	const surface = SURFACE_PRESETS[answers.surface];
+	dashboard.cardOpacity = surface.cardOpacity;
+	dashboard.cardBlur = surface.cardBlur;
+	dashboard.cardRadius = surface.cardRadius;
+	dashboard.cardBorderWidth = surface.cardBorderWidth;
+
+	dashboard.background = resolveBackground(answers);
+	dashboard.backgroundLayout = answers.backgroundLayout;
 }
 
 function applyBehaviour(settings: HomeSettings, answers: SetupAnswers): void {
@@ -646,7 +728,7 @@ function installBoard(
 	settings: HomeSettings,
 	answers: SetupAnswers,
 	cards: DashboardCard[],
-): SetupOutcome {
+): { outcome: SetupOutcome; dashboard: Dashboard } {
 	// A tall board scrolls rather than being scaled down to nothing. Stored as a
 	// per-dashboard override rather than by changing the global setting, so it
 	// only affects the board the wizard built.
@@ -663,7 +745,10 @@ function installBoard(
 			// whatever the user (or the global default) already had.
 			if (tall) active.fitToPage = false;
 			settings.activeDashboardId = active.id;
-			return { dashboardId: active.id, cardCount: cards.length, replaced: true };
+			return {
+				outcome: { dashboardId: active.id, cardCount: cards.length, replaced: true },
+				dashboard: active,
+			};
 		}
 		// No dashboards at all (a hand-emptied data.json); fall through and make
 		// one rather than dropping the board on the floor.
@@ -677,7 +762,10 @@ function installBoard(
 	};
 	settings.dashboards.push(dashboard);
 	settings.activeDashboardId = dashboard.id;
-	return { dashboardId: dashboard.id, cardCount: cards.length, replaced: false };
+	return {
+		outcome: { dashboardId: dashboard.id, cardCount: cards.length, replaced: false },
+		dashboard,
+	};
 }
 
 /**

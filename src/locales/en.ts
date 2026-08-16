@@ -202,6 +202,11 @@ export const en = {
 			layoutBanner: "A banner at the top",
 			compact: "Compact spacing",
 			compactDesc: "Tighten the gaps so more fits on screen.",
+			vaultWideNote:
+				"Everything on this step is set on the new dashboard alone, so your other " +
+				"boards keep the look they have. A couple of appearance settings — spacing " +
+				"density and the theme accent colour — apply to the whole vault and so " +
+				"aren't asked here; they live in Settings → Hearth → Appearance.",
 		},
 		surfaces: {
 			glass: {

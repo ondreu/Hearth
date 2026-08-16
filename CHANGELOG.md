@@ -56,6 +56,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   see what it would make. Only the first-run prompt offers to replace the
   untouched starter board.
 
+  **And "never touches an existing one" includes the look.** When the wizard
+  adds a board, every appearance answer it can scope — the background and how
+  it is worn, banner included, the card surface, the title, logo and search bar
+  — is written as an override *on that board*, so the rest of the vault keeps
+  the look it had. When it replaces a board, the same answers go to the global
+  settings instead, where the settings pane shows them and later boards inherit
+  them; any stale override on the replaced board is cleared so the choice you
+  just made is the one you see. The two appearance settings with no per-board
+  equivalent at all — spacing density and the theme accent colour — are simply
+  not asked about on a run that can only add.
+
   Existing vaults are never interrupted: the wizard is offered only to an
   install with no saved Hearth settings at all, and dismissing it counts as an
   answer, so it can't nag.

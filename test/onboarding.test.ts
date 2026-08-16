@@ -387,7 +387,7 @@ describe("planCards", () => {
 
 // ---- Applying the answers --------------------------------------------
 
-describe("applySetup", () => {
+describe("applySetup — replacing a board writes the look to the vault", () => {
 	it("writes the chosen surface preset", () => {
 		const settings = freshSettings();
 		applySetup(settings, blankAnswers({ surface: "minimal" }), emptyDetection());
@@ -428,6 +428,153 @@ describe("applySetup", () => {
 		expect(settings.backgroundKind).toBe("weather");
 		expect(settings.backgroundValue).toBe("fixed:clear:auto");
 	});
+
+	it("leaves the replaced board carrying no overrides of its own", () => {
+		const settings = freshSettings();
+		applySetup(
+			settings,
+			blankAnswers({ backgroundLayout: "banner", surface: "solid" }),
+			emptyDetection(),
+		);
+
+		const board = settings.dashboards[0];
+		expect(settings.backgroundLayout).toBe("banner");
+		expect(board.backgroundLayout).toBeUndefined();
+		expect(board.background).toBeUndefined();
+		expect(board.cardOpacity).toBeUndefined();
+		expect(board.header).toBeUndefined();
+	});
+
+	it("clears a stale override that would otherwise ignore the new choice", () => {
+		const settings = freshSettings();
+		// A board already wearing its own wallpaper: without clearing, the global
+		// value the wizard just wrote would never be seen.
+		settings.dashboards[0].background = {
+			kind: "color",
+			value: "#ff0000",
+			opacity: 1,
+			blur: 0,
+		};
+		settings.dashboards[0].cardOpacity = 0.1;
+		settings.dashboards[0].header = { title: "Old", align: "left" };
+
+		applySetup(settings, blankAnswers({ background: "none" }), emptyDetection());
+
+		const board = settings.dashboards[0];
+		expect(board.background).toBeUndefined();
+		expect(board.cardOpacity).toBeUndefined();
+		expect(board.header?.title).toBeUndefined();
+		// Header settings the wizard never asks about survive.
+		expect(board.header?.align).toBe("left");
+	});
+});
+
+describe("applySetup — adding a board keeps the look on that board", () => {
+	/** Apply to a vault whose existing board has a deliberate look of its own,
+	 * and hand back both boards. */
+	function addBoard(over: Partial<SetupAnswers> = {}) {
+		const settings = freshSettings();
+		const existing = settings.dashboards[0];
+		const before = {
+			backgroundKind: settings.backgroundKind,
+			backgroundLayout: settings.backgroundLayout,
+			cardOpacity: settings.cardOpacity,
+			compact: settings.compact,
+			title: settings.title,
+			showSearch: settings.showSearch,
+			themeColorTarget: settings.themeColorTarget,
+		};
+
+		applySetup(settings, blankAnswers({ target: "new", ...over }), emptyDetection());
+
+		return { settings, existing, added: settings.dashboards[1], before };
+	}
+
+	it("puts the banner layout on the new board, not on the vault", () => {
+		const { settings, added, before } = addBoard({ backgroundLayout: "banner" });
+
+		expect(added.backgroundLayout).toBe("banner");
+		expect(settings.backgroundLayout).toBe(before.backgroundLayout);
+		expect(settings.backgroundLayout).toBe("full");
+	});
+
+	it("puts the background on the new board, not on the vault", () => {
+		const { settings, added, before } = addBoard({
+			background: "color",
+			backgroundColor: "#102030",
+		});
+
+		expect(added.background).toEqual({
+			kind: "color",
+			value: "#102030",
+			opacity: 1,
+			blur: 0,
+		});
+		expect(settings.backgroundKind).toBe(before.backgroundKind);
+		expect(settings.backgroundValue).toBe("");
+	});
+
+	it("puts the card surface on the new board, not on the vault", () => {
+		const { settings, added, before } = addBoard({ surface: "minimal" });
+
+		expect(added).toMatchObject(SURFACE_PRESETS.minimal);
+		expect(settings.cardOpacity).toBe(before.cardOpacity);
+		expect(settings.cardBlur).toBe(DEFAULT_SETTINGS.cardBlur);
+	});
+
+	it("puts the title, logo and search bar on the new board, not on the vault", () => {
+		const { settings, added, before } = addBoard({
+			title: "Planning",
+			logo: "📅",
+			showSearch: false,
+		});
+
+		expect(added.header).toMatchObject({ title: "Planning", logo: "📅", showTitle: true });
+		expect(added.showSearch).toBe(false);
+		expect(settings.title).toBe(before.title);
+		expect(settings.showSearch).toBe(before.showSearch);
+	});
+
+	it("leaves an existing board completely untouched", () => {
+		const { existing } = addBoard({
+			backgroundLayout: "banner",
+			background: "color",
+			surface: "minimal",
+			title: "Planning",
+		});
+
+		expect(existing.backgroundLayout).toBeUndefined();
+		expect(existing.background).toBeUndefined();
+		expect(existing.cardOpacity).toBeUndefined();
+		expect(existing.header).toBeUndefined();
+		expect(existing.showSearch).toBeUndefined();
+	});
+
+	it("never touches the two vault-wide settings that have no per-board home", () => {
+		const { settings, before } = addBoard({ compact: true, themeColorTarget: "both" });
+
+		expect(settings.compact).toBe(before.compact);
+		expect(settings.themeColorTarget).toBe(before.themeColorTarget);
+	});
+
+	it("still applies vault-wide behaviour and integration answers", () => {
+		const { settings } = addBoard({ openOnStartup: false, integrations: ["omnisearch"] });
+
+		// These have no per-board equivalent *and* are what the user asked for at
+		// the vault level, so an added board still sets them.
+		expect(settings.openOnStartup).toBe(false);
+		expect(settings.searchEngine).toBe("omnisearch");
+	});
+
+	it("declines to override the title when the field was cleared", () => {
+		const { settings, added } = addBoard({ title: "  " });
+
+		expect(added.header?.title).toBeUndefined();
+		expect(settings.title).toBe(DEFAULT_SETTINGS.title);
+	});
+});
+
+describe("applySetup", () => {
 
 	it("syncs the TaskNotes field mapping into settings", () => {
 		const settings = freshSettings();

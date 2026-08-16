@@ -357,19 +357,23 @@ export class SetupWizardModal extends Modal {
 					}),
 			);
 
-		new Setting(body)
-			.setName(strings.themeColor)
-			.setDesc(strings.themeColorDesc)
-			.addDropdown((d) => {
-				const labels = t().setup.vault.themeColorOptions;
-				d.addOption("none", labels.none);
-				d.addOption("icon", labels.icon);
-				d.addOption("title", labels.title);
-				d.addOption("both", labels.both);
-				d.setValue(a.themeColorTarget).onChange((v) => {
-					a.themeColorTarget = v as SetupAnswers["themeColorTarget"];
+		// Vault-wide with no per-board equivalent — same reasoning as the density
+		// toggle on the look step, so it is asked only when the run can set it.
+		if (!this.options.forceNewDashboard) {
+			new Setting(body)
+				.setName(strings.themeColor)
+				.setDesc(strings.themeColorDesc)
+				.addDropdown((d) => {
+					const labels = t().setup.vault.themeColorOptions;
+					d.addOption("none", labels.none);
+					d.addOption("icon", labels.icon);
+					d.addOption("title", labels.title);
+					d.addOption("both", labels.both);
+					d.setValue(a.themeColorTarget).onChange((v) => {
+						a.themeColorTarget = v as SetupAnswers["themeColorTarget"];
+					});
 				});
-			});
+		}
 
 		new Setting(body)
 			.setName(strings.showSearch)
@@ -451,6 +455,15 @@ export class SetupWizardModal extends Modal {
 						a.backgroundLayout = v as SetupAnswers["backgroundLayout"];
 					});
 				});
+		}
+
+		// Density has no per-dashboard override, so on a run that can only *add* a
+		// board there is nowhere to put it that wouldn't re-space every board in
+		// the vault. Rather than ask and then either ignore the answer or break the
+		// run's one promise, don't ask — and say where it lives instead.
+		if (this.options.forceNewDashboard) {
+			body.createDiv({ cls: "hearth-setup-note", text: strings.vaultWideNote });
+			return;
 		}
 
 		new Setting(body)

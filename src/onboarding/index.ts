@@ -25,6 +25,7 @@ export {
 	defaultAnswers,
 	isUntouchedStarterBoard,
 	planCards,
+	resolveBackground,
 	PURPOSE_ICONS,
 	SETUP_BACKGROUNDS,
 	SETUP_PURPOSES,
