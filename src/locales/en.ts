@@ -610,7 +610,7 @@ export const en = {
 				"Trade the visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
 			homeDesc:
-				"Title, logo, title and tab icons, search visibility and overall content width.",
+				"Title, logo, the tab's name and icon, search visibility and overall content width.",
 			searchBar: "Search bar",
 			searchBarDesc: "How the search field looks and what it does.",
 			grid: "Grid & spacing",
@@ -679,6 +679,10 @@ export const en = {
 				"A Lucide icon drawn next to the title instead of the logo text. " +
 				"Browse the set or type an id; leave empty to keep the logo text. " +
 				"Each dashboard can override it in its own settings.",
+			tabTitle: "Tab title",
+			tabTitleDesc:
+				"What Hearth's tab is called, in the tab header and wherever Obsidian " +
+				"lists open tabs. Leave empty for the default name.",
 			tabIcon: "Tab icon",
 			tabIconDesc:
 				"A Lucide icon for Hearth's tab header and ribbon button, in place of " +

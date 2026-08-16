@@ -267,6 +267,7 @@ calls**.
   from a picker rather than typed from memory. Each dashboard can override the
   title icon, so one board can show a flame and the next a rocket; leave a field
   empty and the Hearth crystal (or your emoji logo) stays as it was.
+- **Tab title** — call Hearth's tab whatever you like instead of "Home".
 
 ## Mobile
 

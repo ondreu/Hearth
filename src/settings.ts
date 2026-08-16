@@ -626,6 +626,21 @@ export class HomeSettingTab extends PluginSettingTab {
 			},
 		);
 
+		new Setting(containerEl)
+			.setName(t().settings.appearance.tabTitle)
+			.setDesc(t().settings.appearance.tabTitleDesc)
+			.addText((txt) =>
+				txt
+					// The default name, so the field shows what an empty value gives.
+					.setPlaceholder(t().view.displayName)
+					.setValue(s.tabTitle)
+					.onChange(async (v) => {
+						s.tabTitle = v;
+						await this.save();
+						this.plugin.refreshTabHeader();
+					}),
+			);
+
 		addIconPicker(
 			new Setting(containerEl)
 				.setName(t().settings.appearance.tabIcon)
@@ -634,7 +649,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			s.tabIcon,
 			(v) => {
 				s.tabIcon = v;
-				void this.save().then(() => this.plugin.refreshBrandIcons());
+				void this.save().then(() => this.plugin.refreshTabHeader());
 			},
 		);
 
@@ -651,7 +666,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.onChange(async (v) => {
 						s.themeColorTarget = v as HomeSettings["themeColorTarget"];
 						await this.save();
-						this.plugin.refreshBrandIcons();
+						this.plugin.refreshTabHeader();
 					}),
 			);
 
@@ -1806,7 +1821,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				// An import can carry a different tab icon (or theme-color
 				// target), and neither the ribbon button nor an open tab header
 				// is redrawn by a settings save on its own.
-				this.plugin.refreshBrandIcons();
+				this.plugin.refreshTabHeader();
 				this.rerender();
 				new Notice(opts.imported);
 			},

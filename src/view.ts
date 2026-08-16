@@ -12,6 +12,7 @@ import {
 	effectiveMaxWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	effectiveTabTitle,
 	lowPowerActive,
 	renderCards,
 } from "./types";
@@ -59,7 +60,7 @@ export class HomeView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return t().view.displayName;
+		return effectiveTabTitle(this.plugin.settings, t().view.displayName);
 	}
 
 	getIcon(): string {

@@ -378,13 +378,14 @@ export default class HearthPlugin extends Plugin {
 		return tabIconIdFor(this.settings.themeColorTarget, this.settings.tabIcon);
 	}
 
-	/** Re-apply the tab icon to the ribbon and open tab headers after the tab
-	 * icon or themeColorTarget setting changes. */
-	refreshBrandIcons() {
+	/** Re-apply the ribbon icon and redraw every open tab header, so a change to
+	 * the tab icon, the tab title or themeColorTarget shows immediately rather
+	 * than the next time the tab happens to be rebuilt. */
+	refreshTabHeader() {
 		if (this.ribbonEl) setIcon(this.ribbonEl, this.brandIconId());
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
-			// updateHeader is undocumented; when absent the tab icon simply
-			// refreshes the next time the leaf re-renders.
+			// updateHeader is undocumented; when absent the tab's icon and title
+			// simply refresh the next time the leaf re-renders.
 			(leaf as WorkspaceLeaf & { updateHeader?: () => void }).updateHeader?.();
 		});
 	}

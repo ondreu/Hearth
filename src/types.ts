@@ -1522,6 +1522,9 @@ export interface HomeSettings {
 	/** A Lucide icon id used for Hearth's tab header and ribbon button instead of
 	 * the Hearth crystal. Empty = the crystal. */
 	tabIcon: string;
+	/** What Hearth's tab is called, in the tab header and anywhere Obsidian
+	 * lists open views. Empty = the translated default ("Home"). */
+	tabTitle: string;
 	/** What follows the theme's icon color: nothing (brand-purple crystal and
 	 * normal title text, the historical look), the crystal icon, the title
 	 * text, or both. */
@@ -1731,6 +1734,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	logoIcon: "",
 	// Empty => the Hearth crystal is the tab and ribbon icon.
 	tabIcon: "",
+	// Empty => the tab is called by its translated default name.
+	tabTitle: "",
 	themeColorTarget: "none",
 	showSearch: true,
 	searchPlaceholder: "Search or command",
@@ -1974,6 +1979,17 @@ export function effectiveTitle(s: HomeSettings): string {
 /** Logo text for the active board's title/logo block. Empty = Hearth icon. */
 export function effectiveLogo(s: HomeSettings): string {
 	return activeDashboard(s).header?.logo ?? s.logo;
+}
+
+/**
+ * What Hearth's tab is called: the user's own name for it, or the translated
+ * default when they haven't set one.
+ *
+ * `fallback` is passed in rather than read from the locale here so this stays a
+ * pure function — the caller is the view, which has `t()` to hand anyway.
+ */
+export function effectiveTabTitle(s: HomeSettings, fallback: string): string {
+	return s.tabTitle.trim() || fallback;
 }
 
 /** Lucide title icon for the active board. Empty = none, so the logo text (or

@@ -5,14 +5,19 @@ import {
 	DEFAULT_SETTINGS,
 	effectiveLogo,
 	effectiveLogoIcon,
+	effectiveTabTitle,
 	type HomeSettings,
 } from "../src/types";
 
 /**
- * Lucide icons reach Hearth from three directions — a picker, a hand-typed id
- * and an imported settings file — so what counts as "an icon" has to be decided
- * in one place. These tests pin that decision: which id `setIcon` is handed,
- * and what happens when the value names nothing.
+ * How Hearth presents itself: the icons and names it wears on its tab and on
+ * the board.
+ *
+ * Lucide icons reach it from three directions — a picker, a hand-typed id and
+ * an imported settings file — so what counts as "an icon" has to be decided in
+ * one place. These tests pin that decision: which id `setIcon` is handed, and
+ * what happens when the value names nothing. The same goes for the tab title,
+ * where an empty value has to mean "the default name" rather than a blank tab.
  */
 
 /** The registered ids Obsidian would report: the Lucide set is prefixed. */
@@ -83,6 +88,30 @@ function settings(): HomeSettings {
 	s.activeDashboardId = "d1";
 	return s;
 }
+
+describe("effectiveTabTitle", () => {
+	it("uses the translated default when nothing is set", () => {
+		expect(effectiveTabTitle(settings(), "Home")).toBe("Home");
+	});
+
+	it("uses the user's own name for the tab", () => {
+		const s = settings();
+		s.tabTitle = "Vault";
+		expect(effectiveTabTitle(s, "Home")).toBe("Vault");
+	});
+
+	it("treats a whitespace-only name as unset, so the tab is never blank", () => {
+		const s = settings();
+		s.tabTitle = "   ";
+		expect(effectiveTabTitle(s, "Home")).toBe("Home");
+	});
+
+	it("keeps the spacing inside a name the user meant", () => {
+		const s = settings();
+		s.tabTitle = "  My  Home  ";
+		expect(effectiveTabTitle(s, "Home")).toBe("My  Home");
+	});
+});
 
 describe("effectiveLogoIcon", () => {
 	it("is empty by default, so the logo text keeps its place", () => {

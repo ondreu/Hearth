@@ -734,7 +734,7 @@ export class SetupWizardModal extends Modal {
 		// for a build they have just been set up on.
 		this.plugin.settings.lastSeenVersion = this.plugin.manifest.version;
 		await this.plugin.saveSettings();
-		this.plugin.refreshBrandIcons();
+		this.plugin.refreshTabHeader();
 		this.close();
 		new Notice(t().setup.notice.done(outcome.cardCount));
 		await this.plugin.activateView();

@@ -146,6 +146,7 @@ export function exportSettings(s: HomeSettings): string {
 		logo: s.logo,
 		logoIcon: s.logoIcon,
 		tabIcon: s.tabIcon,
+		tabTitle: s.tabTitle,
 		showSearch: s.showSearch,
 		searchPlaceholder: s.searchPlaceholder,
 		showNewNoteButton: s.showNewNoteButton,
@@ -1283,6 +1284,8 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (logoIcon !== undefined) s.logoIcon = logoIcon.trim();
 	const tabIcon = str(data.tabIcon);
 	if (tabIcon !== undefined) s.tabIcon = tabIcon.trim();
+	const tabTitle = str(data.tabTitle);
+	if (tabTitle !== undefined) s.tabTitle = tabTitle;
 	if (typeof data.showSearch === "boolean") s.showSearch = data.showSearch;
 	const searchPlaceholder = str(data.searchPlaceholder);
 	if (searchPlaceholder !== undefined) s.searchPlaceholder = searchPlaceholder;

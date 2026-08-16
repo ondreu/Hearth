@@ -86,6 +86,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   leaves the *layout* alone: a bannered board keeps its banner, so toggling the
   mode no longer moves every card on it.
 
+- **Name Hearth's tab whatever you like.** **Appearance → Home → Tab title**
+  replaces "Home" in the tab header — and everywhere else Obsidian lists an open
+  tab — with a name of your own. Leave it empty and the tab keeps its translated
+  default; type only spaces and it does too, so the tab can't end up nameless.
+
 - **Lucide icons for the tab and the title.** Hearth's crystal is no longer the
   only mark it can wear. **Appearance → Home → Tab icon** picks any Lucide icon
   for Hearth's tab header and ribbon button, and **Title icon** does the same for
