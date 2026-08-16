@@ -617,7 +617,14 @@
 	background: var(--background-primary);
 	color: var(--text-muted);
 	cursor: pointer;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-filter:hover {
@@ -761,7 +768,14 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	cursor: pointer;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-type-filter-chip:hover {
@@ -2728,23 +2742,35 @@
  * Glow it with the accent (and a warning tint) so the user notices and fixes
  * it. Only applied in arrange mode. */
 .hearth-link-tile.is-obscured {
+	position: relative;
 	outline: 2px solid var(--color-red, #f55);
 	outline-offset: 2px;
-	box-shadow: 0 0 12px 2px
-		color-mix(in srgb, var(--color-red, #f55) 55%, transparent);
 	border-color: var(--color-red, #f55);
+}
+
+/* The glow pulses on a pseudo-element's opacity rather than on the tile's own
+ * box-shadow. A box-shadow animation is a paint-property animation: it can never
+ * be composited, so it repaints the tile on every frame for as long as the board
+ * is being arranged. Fading a fixed shadow in and out is compositable and looks
+ * the same. */
+.hearth-link-tile.is-obscured::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	box-shadow: 0 0 16px 3px
+		color-mix(in srgb, var(--color-red, #f55) 65%, transparent);
 	animation: hearth-tile-obscured-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes hearth-tile-obscured-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 8px 1px
-			color-mix(in srgb, var(--color-red, #f55) 40%, transparent);
+		opacity: 0.5;
 	}
 	50% {
-		box-shadow: 0 0 16px 3px
-			color-mix(in srgb, var(--color-red, #f55) 65%, transparent);
+		opacity: 1;
 	}
 }
 
@@ -5242,7 +5268,14 @@
 	color: var(--text-muted);
 	cursor: pointer;
 	font-size: 0.85rem;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-tool-btn:hover {
@@ -5352,7 +5385,14 @@
 	cursor: pointer;
 	font-size: 0.85rem;
 	line-height: 1;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-dash-btn:hover {

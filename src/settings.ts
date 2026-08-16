@@ -1,4 +1,4 @@
-import { type App, type ButtonComponent, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
+import { type App, type ButtonComponent, debounce, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
@@ -146,8 +146,39 @@ export class HomeSettingTab extends PluginSettingTab {
 		}
 	}
 
-	private async save(): Promise<void> {
-		await this.plugin.saveSettings();
+	/**
+	 * Persist the settings and refresh open boards, coalescing a burst of edits
+	 * into one of each.
+	 *
+	 * Every control in this pane calls `save()` from its `onChange`, and for a
+	 * text field or a slider that is once per keystroke or per drag step. Each
+	 * call was writing the entire settings JSON to disk *and* tearing down and
+	 * rebuilding the DOM of every open board — so typing a twenty-character
+	 * search placeholder cost twenty full board rebuilds and twenty disk writes.
+	 *
+	 * `resetTimer` so a run of edits settles once at the end rather than firing
+	 * partway through. The window is short enough to feel immediate for a slider
+	 * whose effect the user is watching on the board behind the pane.
+	 *
+	 * Anything that must not be left pending flushes it: {@link hide} when the
+	 * pane closes, and {@link rerender} before the pane is rebuilt.
+	 */
+	private readonly saveDebounced = debounce(() => void this.plugin.saveSettings(), 200, true);
+
+	private save(): void {
+		this.saveDebounced();
+	}
+
+	/** Write out any edit still sitting in the debounce window. */
+	private flushSave(): void {
+		this.saveDebounced.run();
+	}
+
+	hide(): void {
+		// The pane is closing, so there may be a keystroke from a moment ago that
+		// has not reached disk yet.
+		this.flushSave();
+		super.hide();
 	}
 
 	/** Tell the user Omnisearch isn't available and offer a one-click jump to it
@@ -172,9 +203,6 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * is never attached, so rendering into it would silently go nowhere. */
 	private renderTarget: HTMLElement | null = null;
 
-	/** Temporary #52 diagnostic state — see getSettingDefinitions. */
-	private loggedDefinitionsQuery = false;
-
 	/** Title of a section to scroll to on the next render, set by a catalogue
 	 * row's "Show" button. */
 	private revealSectionTitle: string | null = null;
@@ -190,19 +218,6 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * `display()`. Same builder either way.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		// Temporary #52 diagnostic: Obsidian 1.13+ calls this once when the tab
-		// is added to the settings modal (for search indexing) and again per
-		// display cycle; pre-1.13 never calls it. One log on the first call
-		// closes the gap between the load log in main.ts and the render-path
-		// warns below — "queried but never rendered" (this line without a
-		// render line) is otherwise indistinguishable from "old Obsidian,
-		// display() pipeline". Remove with the other #52 warns.
-		if (!this.loggedDefinitionsQuery) {
-			this.loggedDefinitionsQuery = true;
-			console.warn(
-				`Hearth ${this.plugin.manifest.version}: settings tab queried on the 1.13 definitions pipeline`,
-			);
-		}
 		return [
 			{
 				name: this.plugin.manifest.name,
@@ -216,12 +231,6 @@ export class HomeSettingTab extends PluginSettingTab {
 					host.empty();
 					host.addClass("hearth-settings-host");
 					this.renderTarget = host;
-					// Temporary #52 diagnostic: names the render path in the
-					// console of whichever window hosts settings. Remove once
-					// the blank-pane report is confirmed fixed.
-					console.warn(
-						`Hearth ${this.plugin.manifest.version}: rendering settings via setting definitions (Obsidian 1.13+)`,
-					);
 					this.renderInto(host);
 					return () => {
 						if (this.renderTarget === host) this.renderTarget = null;
@@ -233,16 +242,17 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	display(): void {
 		this.renderTarget = this.containerEl;
-		// Temporary #52 diagnostic — see getSettingDefinitions above.
-		console.warn(
-			`Hearth ${this.plugin.manifest.version}: rendering settings via legacy display()`,
-		);
 		this.renderInto(this.containerEl);
 	}
 
 	/** Re-render the pane in place after a state change (tab switch, list
 	 * mutation, import) — into whichever element the pane currently lives in. */
 	private rerender(): void {
+		// A rerender follows a structural change (a card added, a list reordered,
+		// a settings import) and rebuilds every control from `plugin.settings`.
+		// Flush first so the pending edit is on disk before the pane that produced
+		// it is thrown away.
+		this.flushSave();
 		this.renderInto(this.renderTarget ?? this.containerEl);
 	}
 
@@ -541,7 +551,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					const def = DEFAULT_SETTINGS[key];
 					(this.plugin.settings as unknown as Record<string, number>)[key] = def;
 					sl.setValue(def);
-					await this.save();
+					this.save();
 				}),
 		);
 	}
@@ -562,7 +572,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					const def = DEFAULT_SETTINGS[key];
 					(this.plugin.settings as unknown as Record<string, string>)[key] = def;
 					txt.setValue(def);
-					await this.save();
+					this.save();
 				}),
 		);
 	}
@@ -578,7 +588,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.showTitle).onChange(async (v) => {
 					s.showTitle = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -588,7 +598,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.showSearch).onChange(async (v) => {
 					s.showSearch = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -598,7 +608,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		title.addText((txt) => {
 			txt.setValue(s.title).onChange(async (v) => {
 				s.title = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(title, txt, "title");
 		});
@@ -609,7 +619,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		logo.addText((txt) => {
 			txt.setValue(s.logo).onChange(async (v) => {
 				s.logo = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(logo, txt, "logo");
 		});
@@ -634,7 +644,10 @@ export class HomeSettingTab extends PluginSettingTab {
 			s.tabIcon,
 			(v) => {
 				s.tabIcon = v;
-				void this.save().then(() => this.plugin.refreshBrandIcons());
+				this.save();
+				// Reads the setting straight from memory, so it doesn't wait on the
+				// (now debounced) write reaching disk.
+				this.plugin.refreshBrandIcons();
 			},
 		);
 
@@ -650,7 +663,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setValue(s.themeColorTarget)
 					.onChange(async (v) => {
 						s.themeColorTarget = v as HomeSettings["themeColorTarget"];
-						await this.save();
+						this.save();
 						this.plugin.refreshBrandIcons();
 					}),
 			);
@@ -664,7 +677,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.maxWidth = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(width, sl, "maxWidth");
 		});
@@ -680,7 +693,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		searchPlaceholder.addText((txt) => {
 			txt.setValue(s.searchPlaceholder).onChange(async (v) => {
 				s.searchPlaceholder = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(searchPlaceholder, txt, "searchPlaceholder");
 		});
@@ -691,7 +704,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.searchContents).onChange(async (v) => {
 					s.searchContents = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -712,11 +725,11 @@ export class HomeSettingTab extends PluginSettingTab {
 							this.promptInstallOmnisearch();
 							d.setValue("builtin");
 							s.searchEngine = "builtin";
-							await this.save();
+							this.save();
 							return;
 						}
 						s.searchEngine = engine;
-						await this.save();
+						this.save();
 					});
 			});
 
@@ -726,7 +739,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.showNewNoteButton).onChange(async (v) => {
 					s.showNewNoteButton = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -739,7 +752,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setValue(s.newNoteButtonMode)
 					.onChange(async (v) => {
 						s.newNoteButtonMode = v as typeof s.newNoteButtonMode;
-						await this.save();
+						this.save();
 					});
 			});
 	}
@@ -775,7 +788,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				for (const value of PERFORMANCE_TIERS) d.addOption(value, label[value]);
 				d.setValue(tier).onChange(async (v) => {
 					s.performanceTier = v as PerformanceTier;
-					await this.save();
+					this.save();
 					// The colour field, the effects list and the "overridden" notes
 					// below all follow the selected tier.
 					this.rerender();
@@ -800,7 +813,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.pauseWhenUnfocused).onChange(async (v) => {
 					s.pauseWhenUnfocused = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -813,7 +826,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setValue(s.lowPowerBackgroundColor)
 					.onChange(async (v) => {
 						s.lowPowerBackgroundColor = v;
-						await this.save();
+						this.save();
 					});
 				this.addTextReset(color, txt, "lowPowerBackgroundColor");
 			});
@@ -910,7 +923,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			setting.addText((txt) => {
 				txt.setValue(s.backgroundValue).onChange(async (v) => {
 					s.backgroundValue = v;
-					await this.save();
+					this.save();
 				});
 				this.addTextReset(setting, txt, "backgroundValue");
 			});
@@ -932,7 +945,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (v) => {
 						s.backgroundOpacity = v;
-						await this.save();
+						this.save();
 					});
 				this.addSliderReset(opacity, sl, "backgroundOpacity");
 			});
@@ -946,7 +959,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (v) => {
 						s.backgroundBlur = v;
-						await this.save();
+						this.save();
 					});
 				this.addSliderReset(blur, sl, "backgroundBlur");
 			});
@@ -1000,7 +1013,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.bannerHeight = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(height, sl, "bannerHeight");
 		});
@@ -1011,7 +1024,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.bannerFade !== false).onChange(async (v) => {
 					s.bannerFade = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1021,7 +1034,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.bannerFullWidth === true).onChange(async (v) => {
 					s.bannerFullWidth = v;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1058,7 +1071,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.backgroundSkyAnimate !== false).onChange(async (v) => {
 					s.backgroundSkyAnimate = v ? undefined : false;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1074,7 +1087,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.openOnStartup).onChange(async (v) => {
 					s.openOnStartup = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1084,7 +1097,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.replaceNewTabs).onChange(async (v) => {
 					s.replaceNewTabs = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1095,7 +1108,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.addToggle((tg) =>
 					tg.setValue(s.focusSearchOnOpen).onChange(async (v) => {
 						s.focusSearchOnOpen = v;
-						await this.save();
+						this.save();
 					}),
 				);
 		}
@@ -1106,7 +1119,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.liveRefresh).onChange(async (v) => {
 					s.liveRefresh = v;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1130,7 +1143,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
 				d.setValue(s.openIn).onChange(async (v) => {
 					s.openIn = v as OpenIn;
-					await this.save();
+					this.save();
 				});
 			});
 
@@ -1149,7 +1162,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						const overrides = { ...DEFAULT_SETTINGS.openInOverrides, ...s.openInOverrides };
 						overrides[source] = v as OpenInRule;
 						s.openInOverrides = overrides;
-						await this.save();
+						this.save();
 					});
 				});
 		}
@@ -1169,7 +1182,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				d.addOption("tab", outside.tab);
 				d.setValue(s.openFromOutside ?? "same").onChange(async (v) => {
 					s.openFromOutside = v as OpenOutsideRule;
-					await this.save();
+					this.save();
 				});
 			});
 	}
@@ -1185,7 +1198,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.disableExternalCalls).onChange(async (v) => {
 					s.disableExternalCalls = v;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1201,7 +1214,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.mobileSearchOnly).onChange(async (v) => {
 					s.mobileSearchOnly = v;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1217,7 +1230,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.showMobileActionBar).onChange(async (v) => {
 					s.showMobileActionBar = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1227,13 +1240,13 @@ export class HomeSettingTab extends PluginSettingTab {
 			row.addText((txt) =>
 				txt.setPlaceholder(t().settings.mobileActions.labelPlaceholder).setValue(btn.label).onChange(async (v) => {
 					btn.label = v;
-					await this.save();
+					this.save();
 				}),
 			);
 			row.addText((txt) =>
 				txt.setPlaceholder(t().settings.mobileActions.iconPlaceholder).setValue(btn.icon).onChange(async (v) => {
 					btn.icon = v;
-					await this.save();
+					this.save();
 				}),
 			);
 			// A button can run a command, open a note/file, or open a URL — pick the
@@ -1282,7 +1295,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						.setValue(currentTarget)
 						.onChange(async (v) => {
 							btn.target = v;
-							await this.save();
+							this.save();
 						}),
 				);
 			}
@@ -1306,7 +1319,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setTooltip(t().settings.mobileActions.removeButton)
 					.onClick(async () => {
 						buttons.splice(index, 1);
-						await this.save();
+						this.save();
 						this.rerender();
 					}),
 			);
@@ -1325,7 +1338,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						type: "command",
 						target: "",
 					});
-					await this.save();
+					this.save();
 					this.rerender();
 				}),
 			)
@@ -1335,7 +1348,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setTooltip(t().settings.mobileActions.resetDefaults)
 					.onClick(async () => {
 						s.mobileActionButtons = defaultMobileActionButtons();
-						await this.save();
+						this.save();
 						this.rerender();
 					}),
 			);
@@ -1469,7 +1482,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		statusField.addText((txt) => {
 			txt.setValue(s.taskNotesStatusField).onChange(async (v) => {
 				s.taskNotesStatusField = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(statusField, txt, "taskNotesStatusField");
 		});
@@ -1480,7 +1493,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		dueField.addText((txt) => {
 			txt.setValue(s.taskNotesDueField).onChange(async (v) => {
 				s.taskNotesDueField = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(dueField, txt, "taskNotesDueField");
 		});
@@ -1491,7 +1504,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		priorityField.addText((txt) => {
 			txt.setValue(s.taskNotesPriorityField).onChange(async (v) => {
 				s.taskNotesPriorityField = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(priorityField, txt, "taskNotesPriorityField");
 		});
@@ -1502,7 +1515,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		doneValue.addText((txt) => {
 			txt.setValue(s.taskNotesDoneValue).onChange(async (v) => {
 				s.taskNotesDoneValue = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(doneValue, txt, "taskNotesDoneValue");
 		});
@@ -1517,7 +1530,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tog) =>
 				tog.setValue(s.taskFieldsEnabled).onChange(async (v) => {
 					s.taskFieldsEnabled = v;
-					await this.save();
+					this.save();
 					this.rerender();
 				}),
 			);
@@ -1541,7 +1554,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setTooltip(t().editors.tasks.fieldsReset)
 				.onClick(async () => {
 					s.taskFields = [];
-					await this.save();
+					this.save();
 				}),
 		);
 	}
@@ -1561,7 +1574,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tog) =>
 				tog.setValue(s.customFileIcons).onChange(async (v) => {
 					s.customFileIcons = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1571,7 +1584,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		property.addText((txt) => {
 			txt.setValue(s.iconizeIconProperty).onChange(async (v) => {
 				s.iconizeIconProperty = v;
-				await this.save();
+				this.save();
 			});
 			this.addTextReset(property, txt, "iconizeIconProperty");
 		});
@@ -1591,7 +1604,7 @@ export class HomeSettingTab extends PluginSettingTab {
 						if (v) hidden.delete(group.id);
 						else hidden.add(group.id);
 						s.hiddenFilters = Array.from(hidden);
-						await this.save();
+						this.save();
 					}),
 				);
 		}
@@ -1608,7 +1621,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.fitToPage).onChange(async (v) => {
 					s.fitToPage = v;
-					await this.save();
+					this.save();
 				}),
 			);
 
@@ -1618,7 +1631,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(s.compact).onChange(async (v) => {
 					s.compact = v;
-					await this.save();
+					this.save();
 				}),
 			);
 	}
@@ -1638,7 +1651,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setValue(s.arrangeButtonVisibility === "hover" ? "hover" : "always")
 					.onChange(async (v) => {
 						s.arrangeButtonVisibility = v as HomeSettings["arrangeButtonVisibility"];
-						await this.save();
+						this.save();
 					});
 			});
 
@@ -1651,7 +1664,7 @@ export class HomeSettingTab extends PluginSettingTab {
 					.setValue(s.dashboardSwitcherVisibility === "hover" ? "hover" : "always")
 					.onChange(async (v) => {
 						s.dashboardSwitcherVisibility = v as HomeSettings["dashboardSwitcherVisibility"];
-						await this.save();
+						this.save();
 					});
 			});
 	}
@@ -1675,7 +1688,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardOpacity = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(cardOpacity, sl, "cardOpacity");
 		});
@@ -1689,7 +1702,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardBlur = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(cardBlur, sl, "cardBlur");
 		});
@@ -1705,7 +1718,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardRadius = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(cardRadius, sl, "cardRadius");
 		});
@@ -1719,7 +1732,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardBorderWidth = v;
-					await this.save();
+					this.save();
 				});
 			this.addSliderReset(cardBorderWidth, sl, "cardBorderWidth");
 		});
