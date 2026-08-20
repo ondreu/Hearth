@@ -59,6 +59,14 @@ import {
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
+	filterTagLabel,
+	hitStatusValue,
+	isTaskFilterActive,
+	normalizeFilterTag,
+	taskMatchesFilter,
+	type TaskFilterHit,
+} from "../taskfilter";
+import {
 	type DashboardCard,
 	type HomeSettings,
 	type TaskDueFilter,
@@ -73,7 +81,7 @@ import {
 	type TaskSortField,
 	type TaskSortRule,
 } from "../types";
-import { openInTaskNotes, TASKNOTES_PLUGIN_ID } from "../tasknotes";
+import { openInTaskNotes, readTaskNotesSetup, TASKNOTES_PLUGIN_ID } from "../tasknotes";
 import { confirmAction, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -151,6 +159,10 @@ interface TaskHit {
 	/** Checkbox source: the raw checkbox status symbol (the char inside `- [ ]`),
 	 * used to group the task into its status column on the Kanban board. */
 	checkboxStatus?: string;
+	/** TaskNotes source: context tags from frontmatter (e.g. home, errands). */
+	contexts?: string[];
+	/** TaskNotes source: linked project names from frontmatter. */
+	projects?: string[];
 }
 
 
@@ -217,11 +229,19 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
  * source-appropriate add control (TaskNotes' create command, or a Kanban
  * quick-add into the first column). When the card has a title the controls dock
  * into its title header; otherwise they float over the card's top-right corner. */
+/** Distinct filter values gathered from the card's full task set. */
+interface TaskFilterChoices {
+	source: string;
+	statuses: string[];
+	contexts: string[];
+	projects: string[];
+}
+
+
 function renderTasksListHeader(
 	view: HomeView,
 	cfg: TasksConfig,
-	source: string,
-	availableStatuses: string[],
+	filterChoices: TaskFilterChoices,
 	boardColumns: string[] | undefined,
 	container: HTMLElement,
 	refresh: () => void,
@@ -229,12 +249,12 @@ function renderTasksListHeader(
 	const actions = resolveTaskActionsHost(view, container);
 	// Filter and sort controls for the whole list. Like the add control, they're
 	// revealed on card hover (see styles.css) so the header stays uncluttered.
-	renderTaskFilterControl(view, actions, cfg, availableStatuses, refresh);
-	renderTaskListSortControl(view, actions, cfg, availableStatuses, refresh);
-	if (source === "tasknotes") {
+	renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
+	renderTaskListSortControl(view, actions, cfg, filterChoices.statuses, refresh);
+	if (filterChoices.source === "tasknotes") {
 		// TaskNotes add is a single command button, so it sits with the controls.
 		taskNotesAddButton(view, actions);
-	} else if (source === "kanban" && boardColumns && boardColumns.length) {
+	} else if (filterChoices.source === "kanban" && boardColumns && boardColumns.length) {
 		// Kanban add expands into a form, so give it a full-width row below the
 		// header; new cards go into the board's first column.
 		const target = boardColumns[0];
@@ -1536,66 +1556,36 @@ class TaskSortModal extends Modal {
 /** The status-like value a task exposes for filtering: the TaskNotes status or
  * the Kanban column, whichever the source provides (checkbox tasks have neither
  * and so aren't offered status chips). */
-function hitStatusValue(hit: TaskHit): string | null {
-	return hit.status ?? hit.boardColumn ?? null;
-}
-
-
-/** The coarse priority bucket of a task for filtering. No priority — or a value
- * that doesn't map to high/medium/low — counts as "none". */
-function hitPriorityLevel(hit: TaskHit): TaskPriorityLevel {
-	if (!hit.priority || !hit.priority.trim()) return "none";
-	const lvl = priorityLevel(hit.priority);
-	return lvl === "other" ? "none" : lvl;
-}
-
-
-/** Whether a filter constrains anything. An all-empty filter is inactive and
- * shows everything, so the control renders as "off" and nothing is filtered. */
-function isTaskFilterActive(f: TaskFilterConfig | undefined): boolean {
-	if (!f) return false;
-	return !!(f.statuses?.length || f.priorities?.length || f.due || (f.text && f.text.trim()));
-}
-
-
-/** Whether a task satisfies a due-date constraint. Dates compare as YYYY-MM-DD
- * strings; "week" means due today through seven days out. */
-function taskMatchesDue(hit: TaskHit, due: TaskDueFilter, today: string): boolean {
-	const raw = effectiveDate(hit);
-	const d = raw ? raw.slice(0, 10) : null;
-	switch (due) {
-		case "hasDate":
-			return !!d;
-		case "noDate":
-			return !d;
-		case "overdue":
-			return !!d && d < today && !hit.done;
-		case "today":
-			return d === today;
-		case "week": {
-			if (!d) return false;
-			const end = moment(today).add(7, "day").format("YYYY-MM-DD");
-			return d >= today && d <= end;
+/** Build distinct filter chip choices from every task the card loaded, so the
+ * options don't shift as the filter narrows the visible list. */
+function collectTaskFilterChoices(hits: TaskHit[], source: string): TaskFilterChoices {
+	const statuses: string[] = [];
+	const contexts: string[] = [];
+	const projects: string[] = [];
+	const seenStatus = new Set<string>();
+	const seenContext = new Set<string>();
+	const seenProject = new Set<string>();
+	for (const hit of hits) {
+		const status = hitStatusValue(hit);
+		if (status && !seenStatus.has(status.toLowerCase())) {
+			seenStatus.add(status.toLowerCase());
+			statuses.push(status);
+		}
+		if (source !== "tasknotes") continue;
+		for (const context of hit.contexts ?? []) {
+			const key = normalizeFilterTag(context);
+			if (!key || seenContext.has(key)) continue;
+			seenContext.add(key);
+			contexts.push(context);
+		}
+		for (const project of hit.projects ?? []) {
+			const key = normalizeFilterTag(project);
+			if (!key || seenProject.has(key)) continue;
+			seenProject.add(key);
+			projects.push(project);
 		}
 	}
-	return true;
-}
-
-
-/** Whether a task passes an active filter: it must satisfy every set criterion
- * (statuses, priorities, due, text) — unset criteria impose no constraint. */
-function taskMatchesFilter(hit: TaskHit, f: TaskFilterConfig, today: string): boolean {
-	if (f.statuses?.length) {
-		const v = (hitStatusValue(hit) ?? "").trim().toLowerCase();
-		if (!f.statuses.some((s) => s.trim().toLowerCase() === v)) return false;
-	}
-	if (f.priorities?.length && !f.priorities.includes(hitPriorityLevel(hit))) return false;
-	if (f.due && !taskMatchesDue(hit, f.due, today)) return false;
-	if (f.text && f.text.trim()) {
-		const needle = f.text.trim().toLowerCase();
-		if (!(hit.text || hit.file.basename).toLowerCase().includes(needle)) return false;
-	}
-	return true;
+	return { source, statuses, contexts, projects };
 }
 
 
@@ -1605,7 +1595,7 @@ function renderTaskFilterControl(
 	view: HomeView,
 	parent: HTMLElement,
 	cfg: TasksConfig,
-	availableStatuses: string[],
+	filterChoices: TaskFilterChoices,
 	refresh: () => void,
 ): void {
 	const btn = parent.createEl("button", {
@@ -1617,7 +1607,7 @@ function renderTaskFilterControl(
 	if (isTaskFilterActive(cfg.taskFilter)) btn.addClass("is-active");
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		new TaskFilterModal(view.app, cfg.taskFilter ?? {}, availableStatuses, (next) => {
+		new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
 			cfg.taskFilter = isTaskFilterActive(next) ? next : undefined;
 			void view.plugin.saveData(view.plugin.settings);
 			refresh();
@@ -1651,7 +1641,7 @@ class TaskFilterModal extends Modal {
 	constructor(
 		app: App,
 		initial: TaskFilterConfig,
-		private readonly availableStatuses: string[],
+		private readonly filterChoices: TaskFilterChoices,
 		private readonly onSubmit: (filter: TaskFilterConfig) => void,
 	) {
 		super(app);
@@ -1659,6 +1649,8 @@ class TaskFilterModal extends Modal {
 		this.working = {
 			statuses: [...(initial.statuses ?? [])],
 			priorities: [...(initial.priorities ?? [])],
+			contexts: [...(initial.contexts ?? [])],
+			projects: [...(initial.projects ?? [])],
 			due: initial.due,
 			text: initial.text,
 		};
@@ -1683,14 +1675,23 @@ class TaskFilterModal extends Modal {
 		const row = parent.createDiv("hearth-taskfilter-presets");
 		this.presetSyncs = [];
 		const preset = (label: string, isOn: () => boolean, apply: (on: boolean) => void) => {
-			const chip = row.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+			const chip = row.createDiv({
+				cls: "hearth-taskfilter-chip",
+				attr: { role: "button", tabindex: "0" },
+				text: label,
+			});
 			const sync = () => setChipState(chip, isOn());
 			sync();
 			this.presetSyncs.push(sync);
-			chip.addEventListener("click", () => {
+			const activate = (e: Event) => {
+				e.preventDefault();
 				apply(!isOn());
 				this.renderBody();
 				this.syncPresets();
+			};
+			chip.addEventListener("click", activate);
+			chip.addEventListener("keydown", (e: KeyboardEvent) => {
+				if (e.key === "Enter" || e.key === " ") activate(e);
 			});
 		};
 		const duePreset = (label: string, value: TaskDueFilter) =>
@@ -1752,7 +1753,7 @@ class TaskFilterModal extends Modal {
 		}
 
 		// Status/column chips (only when the source exposes statuses).
-		const statuses = this.statusOptions();
+		const statuses = this.chipOptions(this.filterChoices.statuses, this.working.statuses);
 		if (statuses.length) {
 			const statusRow = new Setting(body).setName(labels.filterStatus).setClass("hearth-taskfilter-row");
 			const statusHost = statusRow.controlEl.createDiv("hearth-taskfilter-chips");
@@ -1766,6 +1767,30 @@ class TaskFilterModal extends Modal {
 			}
 		}
 
+		if (this.filterChoices.source === "tasknotes") {
+			const contexts = this.chipOptions(this.filterChoices.contexts, this.working.contexts);
+			if (contexts.length) {
+				const contextRow = new Setting(body).setName(labels.filterContexts).setClass("hearth-taskfilter-row");
+				const contextHost = contextRow.controlEl.createDiv("hearth-taskfilter-chips");
+				for (const context of contexts) {
+					this.toggleTagChip(contextHost, context, () => this.working.contexts, (next) => {
+						this.working.contexts = next;
+					});
+				}
+			}
+
+			const projects = this.chipOptions(this.filterChoices.projects, this.working.projects);
+			if (projects.length) {
+				const projectRow = new Setting(body).setName(labels.filterProjects).setClass("hearth-taskfilter-row");
+				const projectHost = projectRow.controlEl.createDiv("hearth-taskfilter-chips");
+				for (const project of projects) {
+					this.toggleTagChip(projectHost, project, () => this.working.projects, (next) => {
+						this.working.projects = next;
+					});
+				}
+			}
+		}
+
 		// Free-text substring.
 		new Setting(body).setName(labels.filterText).addText((txt) => {
 			txt.setPlaceholder(labels.filterTextPlaceholder).setValue(this.working.text ?? "");
@@ -1773,32 +1798,78 @@ class TaskFilterModal extends Modal {
 		});
 	}
 
-	/** The statuses to offer as chips: those the card's tasks actually use,
-	 * plus any the working filter still selects that no longer appear. Without
-	 * the second group a filter kept from an earlier state (a status renamed,
-	 * or its last task deleted) would go on hiding tasks with no chip left to
-	 * switch it off. */
-	private statusOptions(): string[] {
-		const out = [...this.availableStatuses];
-		const seen = new Set(out.map((s) => s.toLowerCase()));
-		for (const status of this.working.statuses ?? []) {
-			if (seen.has(status.toLowerCase())) continue;
-			seen.add(status.toLowerCase());
-			out.push(status);
+	/** Values to offer as chips: those the card's tasks actually use, plus any
+	 * the working filter still selects that no longer appear. Without the second
+	 * group a filter kept from an earlier state would hide tasks with no chip
+	 * left to switch it off. */
+	private chipOptions(available: string[], selected: string[] | undefined): string[] {
+		const out = [...available];
+		const seen = new Set(out.map((v) => normalizeFilterTag(v)));
+		for (const value of selected ?? []) {
+			const key = normalizeFilterTag(value);
+			if (seen.has(key)) continue;
+			seen.add(key);
+			out.push(value);
 		}
 		return out;
 	}
 
+	/** Multi-select chip for TaskNotes contexts/projects (wikilink-aware match). */
+	private toggleTagChip(
+		host: HTMLElement,
+		value: string,
+		read: () => string[] | undefined,
+		write: (next: string[] | undefined) => void,
+	): void {
+		const label = filterTagLabel(value);
+		const bare = value.trim().replace(/^\[\[/, "").replace(/\]\]$/, "").split("|")[0].trim();
+		this.toggleChip(
+			host,
+			label,
+			() => (read() ?? []).some((v) => normalizeFilterTag(v) === normalizeFilterTag(value)),
+			() => {
+				const cur = read() ?? [];
+				const has = cur.some((v) => normalizeFilterTag(v) === normalizeFilterTag(value));
+				const next = has
+					? cur.filter((v) => normalizeFilterTag(v) !== normalizeFilterTag(value))
+					: [...cur, value];
+				write(next.length ? next : undefined);
+			},
+			label !== bare ? bare : undefined,
+		);
+	}
+
 	/** A single multi-select chip: reflects `isOn()` and flips it on click.
-	 * Updated in place rather than by re-rendering the row, so the chip you
-	 * just clicked keeps keyboard focus. */
-	private toggleChip(host: HTMLElement, label: string, isOn: () => boolean, flip: () => void): void {
-		const chip = host.createEl("button", { cls: "hearth-taskfilter-chip", attr: { type: "button" }, text: label });
+	 * Rendered as a `div[role=button]` rather than a real `<button>` so themes
+	 * that restyle every `.modal button` (notably Prism's transparent
+	 * non-CTA rule) cannot erase the selected fill. */
+	private toggleChip(
+		host: HTMLElement,
+		label: string,
+		isOn: () => boolean,
+		flip: () => void,
+		title?: string,
+	): void {
+		const chip = host.createDiv({
+			cls: "hearth-taskfilter-chip",
+			attr: {
+				role: "button",
+				tabindex: "0",
+				...(title ? { title } : {}),
+			},
+			text: label,
+		});
 		setChipState(chip, isOn());
-		chip.addEventListener("click", () => {
+		const activate = (e: Event) => {
+			e.preventDefault();
+			e.stopPropagation();
 			flip();
 			setChipState(chip, isOn());
 			this.syncPresets();
+		};
+		chip.addEventListener("click", activate);
+		chip.addEventListener("keydown", (e: KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === " ") activate(e);
 		});
 	}
 
@@ -1870,23 +1941,15 @@ async function loadAndRenderTasks(
 
 	const today: string = moment().format("YYYY-MM-DD");
 
-	// Distinct status/column values present, offered as filter chips (computed
-	// from all hits so the choices don't shift as the filter narrows the list).
-	const availableStatuses: string[] = [];
-	const seenStatus = new Set<string>();
-	for (const h of hits) {
-		const v = hitStatusValue(h);
-		if (v && !seenStatus.has(v.toLowerCase())) {
-			seenStatus.add(v.toLowerCase());
-			availableStatuses.push(v);
-		}
-	}
+	// Distinct filter values present, offered as chips (computed from all hits
+	// so the choices don't shift as the filter narrows the list).
+	const filterChoices = collectTaskFilterChoices(hits, source);
 
 	// List layout: hide completed unless asked, apply any active filter, then cap.
 	let list = cfg.showCompleted ? hits : hits.filter((h) => !h.done);
 	if (isTaskFilterActive(cfg.taskFilter)) {
 		const filter = cfg.taskFilter as TaskFilterConfig;
-		list = list.filter((h) => taskMatchesFilter(h, filter, today));
+		list = list.filter((h) => taskMatchesFilter(asTaskFilterHit(h), filter, today));
 	}
 	const limit = cfg.count && cfg.count > 0 ? cfg.count : 10;
 	list = list.slice(0, limit);
@@ -1894,7 +1957,7 @@ async function loadAndRenderTasks(
 	// The list's sort/filter/add controls — docked into the card's title header
 	// when it has one, otherwise floating over the card's corner. Rendered even
 	// when empty so the controls stay reachable.
-	renderTasksListHeader(view, cfg, source, availableStatuses, boardColumns, container, refresh);
+	renderTasksListHeader(view, cfg, filterChoices, boardColumns, container, refresh);
 
 	if (list.length === 0) {
 		const empty = isTaskFilterActive(cfg.taskFilter) ? t().cards.empty.tasksNoMatch : t().cards.empty.tasksEmpty;
@@ -3046,11 +3109,55 @@ function scalarField(v: unknown): string | undefined {
 }
 
 
+/** A string list from frontmatter: YAML arrays become entries; a scalar becomes
+ * one entry. Duplicate values (case-insensitive, wikilink-normalized) collapse. */
+function listField(v: unknown): string[] {
+	const raw: string[] = [];
+	if (Array.isArray(v)) {
+		for (const item of v) {
+			const s = scalarField(item);
+			if (s) raw.push(s);
+		}
+	} else {
+		const s = scalarField(v);
+		if (s) raw.push(s);
+	}
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const entry of raw) {
+		const key = normalizeFilterTag(entry);
+		if (!key || seen.has(key)) continue;
+		seen.add(key);
+		out.push(entry);
+	}
+	return out;
+}
+
+
+function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
+	return {
+		text: hit.text,
+		fileBasename: hit.file.basename,
+		done: hit.done,
+		due: hit.due,
+		scheduled: hit.scheduled,
+		status: hit.status,
+		boardColumn: hit.boardColumn,
+		priority: hit.priority,
+		contexts: hit.contexts,
+		projects: hit.projects,
+	};
+}
+
+
 function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	const s = view.plugin.settings;
-	const statusField = s.taskNotesStatusField.trim() || "status";
-	const dueField = s.taskNotesDueField.trim() || "due";
-	const priorityField = s.taskNotesPriorityField.trim() || "priority";
+	const setup = readTaskNotesSetup(view.app);
+	const statusField = s.taskNotesStatusField.trim() || setup.fields.status;
+	const dueField = s.taskNotesDueField.trim() || setup.fields.due;
+	const priorityField = s.taskNotesPriorityField.trim() || setup.fields.priority;
+	const contextsField = setup.fields.contexts;
+	const projectsField = setup.fields.projects;
 	// Which status values count as complete. A per-card list (e.g. "done" +
 	// "canceled") overrides the single global done value; otherwise fall back to
 	// that global value alone.
@@ -3079,6 +3186,8 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 		const scheduledRaw: unknown = fm["scheduled"];
 		const scheduled: string | null = typeof scheduledRaw === "string" ? scheduledRaw : null;
 		const priority = scalarField(fm[priorityField]);
+		const contexts = listField(fm[contextsField]);
+		const projects = listField(fm[projectsField]);
 		// TaskNotes stores the recurrence rule in a "recurrence" frontmatter
 		// field (an RRULE like "FREQ=WEEKLY;INTERVAL=1" or "RRULE:FREQ=DAILY").
 		const recurrence = scalarField(fm["recurrence"]);
@@ -3102,6 +3211,8 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 			completeInstances,
 			status,
 			priority,
+			contexts,
+			projects,
 		});
 	}
 	return hits;
