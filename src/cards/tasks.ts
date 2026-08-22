@@ -1725,8 +1725,9 @@ class TaskFilterModal extends Modal {
 		body.empty();
 		const labels = t().cards.tasks;
 
-		// Due-date constraint (a dropdown; "" = any).
-		new Setting(body).setName(labels.filterDue).addDropdown((d) => {
+		// Date constraint (a dropdown; "" = any). Matches either of a task's
+		// dates — see `taskMatchesFilter`.
+		new Setting(body).setName(labels.filterDue).setDesc(labels.filterDueDesc).addDropdown((d) => {
 			d.addOption("", labels.filterDueAny);
 			d.addOption("overdue", labels.filterPresets.overdue);
 			d.addOption("today", labels.filterPresets.today);
@@ -3181,9 +3182,10 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 			dueRaw = expr;
 			due = resolveDate(expr);
 		}
-		// TaskNotes' scheduled field is conventionally "scheduled"; read it as
-		// a fallback sort key when no due date is set.
-		const scheduledRaw: unknown = fm["scheduled"];
+		// TaskNotes' scheduled field ("scheduled" by default, remappable in its
+		// field mapping): the day you plan to do the task. Read alongside due so
+		// sorting and the date filter both see it.
+		const scheduledRaw: unknown = fm[setup.fields.scheduled];
 		const scheduled: string | null = typeof scheduledRaw === "string" ? scheduledRaw : null;
 		const priority = scalarField(fm[priorityField]);
 		const contexts = listField(fm[contextsField]);

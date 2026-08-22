@@ -52,8 +52,13 @@ export function hitPriorityLevel(hit: Pick<TaskFilterHit, "priority">): TaskPrio
 	return lvl === "other" ? "none" : lvl;
 }
 
-function effectiveDate(hit: TaskFilterHit): string | null {
-	return hit.due ?? hit.scheduled ?? null;
+/** Every day a task is pinned to: its due date and its scheduled date. Both
+ * count for the date filter — TaskNotes treats "due" (when it must be done)
+ * and "scheduled" (when you plan to do it) as independent, and its own date
+ * views honour either, so a task due next week but scheduled for today has to
+ * pass a "Today" filter. Dates are compared as plain YYYY-MM-DD days. */
+function hitDates(hit: TaskFilterHit): string[] {
+	return [hit.due, hit.scheduled].filter((d): d is string => !!d).map((d) => d.slice(0, 10));
 }
 
 /** Whether a filter constrains anything. An all-empty filter is inactive. */
@@ -70,21 +75,19 @@ export function isTaskFilterActive(f: TaskFilterConfig | undefined): boolean {
 }
 
 function taskMatchesDue(hit: TaskFilterHit, due: TaskDueFilter, today: string): boolean {
-	const raw = effectiveDate(hit);
-	const d = raw ? raw.slice(0, 10) : null;
+	const dates = hitDates(hit);
 	switch (due) {
 		case "hasDate":
-			return !!d;
+			return dates.length > 0;
 		case "noDate":
-			return !d;
+			return dates.length === 0;
 		case "overdue":
-			return !!d && d < today && !hit.done;
+			return !hit.done && dates.some((d) => d < today);
 		case "today":
-			return d === today;
+			return dates.some((d) => d === today);
 		case "week": {
-			if (!d) return false;
 			const end = moment(today).add(7, "day").format("YYYY-MM-DD");
-			return d >= today && d <= end;
+			return dates.some((d) => d >= today && d <= end);
 		}
 	}
 	return true;

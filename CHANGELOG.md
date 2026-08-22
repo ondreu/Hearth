@@ -257,6 +257,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Filtering tasks by date honours TaskNotes' scheduled dates.** A task due
+  next week but scheduled for today vanished from a **Today** filter: the card
+  looked only at the due date and fell back to the scheduled one when there was
+  no due date at all. **Today**, **This week**, **Overdue**, **Has a date** and
+  **No date** now match on either of a task's dates, the way TaskNotes' own
+  date views do, and the scheduled date is read through your TaskNotes field
+  mapping rather than the literal `scheduled` key. The filter's presets are
+  renamed to "Today" and "This week" to say what they now match (#225).
 - **Moving one occurrence of a repeating calendar event moves it, instead of
   showing it twice.** Drag a single occurrence to another day in Google Calendar
   (or edit or delete just that one) and the calendar card listed it in both
