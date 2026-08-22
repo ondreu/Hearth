@@ -650,6 +650,10 @@ function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (TASK_DUE_FILTERS.includes(r.due as (typeof TASK_DUE_FILTERS)[number])) {
 		cfg.due = r.due as TaskFilterConfig["due"];
 	}
+	const contexts = strArray(r.contexts);
+	if (contexts) cfg.contexts = contexts;
+	const projects = strArray(r.projects);
+	if (projects) cfg.projects = projects;
 	const text = str(r.text);
 	if (text !== undefined) cfg.text = text;
 	return cfg;

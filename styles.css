@@ -6645,13 +6645,19 @@ body.hearth-dv-resizing {
 }
 
 .hearth-taskfilter-chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	padding: 3px 10px;
 	border-radius: 999px;
 	border: 1px solid var(--background-modifier-border);
 	background: var(--background-secondary);
 	color: var(--text-normal);
 	font-size: 0.78rem;
+	line-height: 1.2;
 	cursor: pointer;
+	user-select: none;
+	box-shadow: none;
 	transition:
 		background 140ms ease,
 		color 140ms ease,
@@ -6662,10 +6668,20 @@ body.hearth-dv-resizing {
 	background: var(--background-modifier-hover);
 }
 
+.hearth-taskfilter-chip:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+/* Selected fill. Prism remaps --interactive-accent to a faint tint and forces
+ * `.modal button` backgrounds transparent, so chips are non-button elements
+ * and the fill uses the stronger accent-base / accent-text tokens when present. */
 .hearth-taskfilter-chip.is-on {
-	background: var(--interactive-accent);
-	border-color: var(--interactive-accent);
-	color: var(--text-on-accent);
+	background-color: var(--interactive-accent-base, var(--interactive-accent)) !important;
+	background: var(--interactive-accent-base, var(--interactive-accent)) !important;
+	border-color: var(--interactive-accent-base, var(--interactive-accent)) !important;
+	color: var(--interactive-accent-text, var(--text-on-accent, var(--highlight-text-normal))) !important;
+	box-shadow: none !important;
 }
 
 /* ---- Task custom-sort modal ----------------------------------------- */

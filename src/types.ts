@@ -181,6 +181,12 @@ export interface TaskFilterConfig {
 	statuses?: string[];
 	/** Only tasks at one of these coarse priority levels. */
 	priorities?: TaskPriorityLevel[];
+	/** TaskNotes only: task must carry at least one of these contexts
+	 * (case-insensitive; wikilink brackets ignored). */
+	contexts?: string[];
+	/** TaskNotes only: task must carry at least one of these projects
+	 * (case-insensitive; wikilink brackets ignored). */
+	projects?: string[];
 	/** A due-date constraint (see {@link TaskDueFilter}). */
 	due?: TaskDueFilter;
 	/** Case-insensitive substring the task text must contain. */
