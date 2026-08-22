@@ -1,5 +1,5 @@
 import { getAllTags, setIcon, Setting, TFile, TFolder } from "obsidian";
-import { dailyNotePath, dailyNotesOptions, moment, type Moment } from "../cardbodies";
+import { dailyNoteFinder, dailyNotesOptions, moment, type Moment } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupById, groupForFile } from "../filetypes";
 import { t } from "../i18n";
@@ -116,13 +116,15 @@ function dailyNoteStreak(view: HomeView): number | null {
 	const options = dailyNotesOptions(view);
 	if (!options) return null;
 
+	// One finder for the whole walk: the folder scan its locale-tolerant path
+	// may need happens once, not once per day (issue #229).
+	const noteAt = dailyNoteFinder(view, options);
+
 	let day: Moment = moment();
-	if (!(view.app.vault.getAbstractFileByPath(dailyNotePath(day, options)) instanceof TFile)) {
-		day = day.clone().subtract(1, "day");
-	}
+	if (!noteAt(day)) day = day.clone().subtract(1, "day");
 
 	let streak = 0;
-	while (view.app.vault.getAbstractFileByPath(dailyNotePath(day, options)) instanceof TFile) {
+	while (noteAt(day)) {
 		streak++;
 		day = day.clone().subtract(1, "day");
 		if (streak > 3650) break;

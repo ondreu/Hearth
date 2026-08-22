@@ -1,7 +1,7 @@
 import { Component, setIcon, Setting, TFile } from "obsidian";
 import {
 	activityByDay,
-	dailyNotePath,
+	dailyNoteFinder,
 	dailyNotesOptions,
 	emptyState,
 	heatLevel,
@@ -252,6 +252,8 @@ function renderCalendarGrid(
 	operon: OperonOverlay,
 ): void {
 	const grid = wrap.createDiv("hearth-calendar-grid");
+	// One finder for the whole month, so its (lazy) folder scan runs at most once.
+	const noteAt = options ? dailyNoteFinder(view, options) : null;
 	const startOfWeek = moment.localeData().firstDayOfWeek();
 	const weekNumbers = cfg.showWeekNumbers === true;
 	if (weekNumbers) {
@@ -286,8 +288,7 @@ function renderCalendarGrid(
 			grid.createDiv({ cls: "hearth-calendar-wk", text: day.format("W") });
 		}
 		const dayKey = day.format("YYYY-MM-DD");
-		const path = options ? dailyNotePath(day, options) : null;
-		const file = path ? view.app.vault.getAbstractFileByPath(path) : null;
+		const file = noteAt?.(day) ?? null;
 		const isToday = dayKey === today;
 		const events = ics.on(dayKey);
 
@@ -369,6 +370,7 @@ function renderCalendarAgenda(
 	operon: OperonOverlay,
 ): void {
 	wrap.addClass("is-agenda");
+	const noteAt = options ? dailyNoteFinder(view, options) : null;
 	const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
 	const start = moment().startOf("day");
 
@@ -392,9 +394,8 @@ function renderCalendarAgenda(
 			lastMonth = day.month();
 		}
 
-		const path = options ? dailyNotePath(day, options) : null;
-		const file = path ? view.app.vault.getAbstractFileByPath(path) : null;
-		const hasNote = file instanceof TFile;
+		const file = noteAt?.(day) ?? null;
+		const hasNote = file !== null;
 		const isToday = i === 0;
 		const events = ics.on(dayKey);
 
