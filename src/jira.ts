@@ -730,7 +730,7 @@ export function renderJiraCard(
 	paintToolbar();
 	paintIssues();
 	coordinator.request({ force: false, refinedOnly: false });
-	// Low power mode reports 0 here, so Jira is fetched on render and on the
+	// The minimal tier reports 0 here, so Jira is fetched on render and on the
 	// manual refresh only — never on a timer.
 	const refreshMin = effectiveAutoRefreshMinutes(
 		view.plugin.settings,

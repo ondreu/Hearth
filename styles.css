@@ -82,49 +82,117 @@
 	max-height: 60%;
 }
 
-/* ---- Low power mode ---------------------------------------------------
+/* ---- Performance tiers ------------------------------------------------
  *
- * The paint-cost half of the setting. Everything with a value behind it — the
- * background, the card blur, card opacity, the refresh timers — is handled by
- * the effective* resolvers in types.ts, which report low power values without
- * touching what the user configured. What is left here is the decoration that
- * has no setting to override: transitions, animations, shadows and hover
- * transforms. They are killed wholesale rather than case by case, so a card,
- * tile or control added later is covered without anyone remembering to.
+ * The paint-cost half of the performance tier (see PerformanceTier in
+ * types.ts). Everything with a value behind it — the background, the card blur,
+ * card opacity, the refresh timers — is handled by the effective* resolvers,
+ * which report the tier's value without touching what the user configured. What
+ * is left here is the decoration that has no setting to override.
  *
- * Nothing in this block changes layout, so toggling the mode never moves
+ * Two classes rather than one, because they are switched at different moments:
+ * `hearth-no-frost` follows the tier alone, while `hearth-no-motion` is also
+ * toggled at runtime by the focus/visibility gate (src/motion.ts) on a board
+ * whose tier still allows motion. They are killed wholesale rather than case by
+ * case, so a card, tile or control added later is covered without anyone
+ * remembering to.
+ *
+ * Nothing in this block changes layout, so toggling either class never moves
  * anything on the board — it only stops it from being animated or filtered. */
-.hearth-view.hearth-low-power *,
-.hearth-view.hearth-low-power *::before,
-.hearth-view.hearth-low-power *::after {
+.hearth-view.hearth-no-motion *,
+.hearth-view.hearth-no-motion *::before,
+.hearth-view.hearth-no-motion *::after {
 	transition: none !important;
 	animation: none !important;
-	/* Belt and braces: with every resolved blur at 0 the frost layers are never
-	 * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
-	 * header) are switched off here too — each one is a separate backdrop root
-	 * the compositor has to re-filter on scroll. */
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
 	box-shadow: none !important;
 }
 
-/* Loading spinners are the one animation worth keeping: frozen mid-spin they
- * read as a broken card rather than a calm one. */
-.hearth-view.hearth-low-power .is-loading {
+/* ---- The motion gates (src/motion.ts) --------------------------------
+ *
+ * Set while the window is not the one being used (`hearth-motion-paused` on the
+ * view) or while a card is off screen (`is-motion-paused` on the card).
+ *
+ * `animation-play-state` rather than `animation: none`, and the difference is
+ * the whole design. Clearing the animation snaps every element back to its
+ * static position, so a window regaining focus would jolt — raindrops jumping up
+ * the sky, a pet landing mid-hop. Pausing freezes each animation exactly where
+ * it was and resumes it there, which is invisible. It costs the same nothing:
+ * 52 paused SVG animations measure at 0 style recalcs and 0 layouts, the same as
+ * an empty page.
+ *
+ * Transitions are left alone. They are short, they only run in response to
+ * something the reader just did, and a transition frozen halfway is a control
+ * stuck mid-hover. */
+.hearth-view.hearth-motion-paused *,
+.hearth-view.hearth-motion-paused *::before,
+.hearth-view.hearth-motion-paused *::after,
+.hearth-view .hearth-card.is-motion-paused *,
+.hearth-view .hearth-card.is-motion-paused *::before,
+.hearth-view .hearth-card.is-motion-paused *::after {
+	animation-play-state: paused !important;
+}
+
+/* Belt and braces: with every resolved blur at 0 the frost layers are never
+ * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
+ * header) are switched off here too — each one is a separate backdrop root the
+ * compositor has to re-filter on scroll. */
+.hearth-view.hearth-no-frost *,
+.hearth-view.hearth-no-frost *::before,
+.hearth-view.hearth-no-frost *::after {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* Loading spinners are the one animation the tier keeps: frozen mid-spin they
+ * read as a broken card rather than a calm one. The gates above still pause
+ * them, which is right — a spinner nobody can see is the clearest case of
+ * animating for no one, and it resumes the moment anyone looks. */
+.hearth-view.hearth-no-motion .is-loading {
 	animation: hearth-rss-spin 0.9s linear infinite !important;
 }
 
 /* Hover lift on cards and tiles: a transform promotes the element to its own
  * compositor layer on every pointer move across the board. */
-.hearth-view.hearth-low-power .hearth-card:hover,
-.hearth-view.hearth-low-power .hearth-link-tile:hover {
+.hearth-view.hearth-no-motion .hearth-card:hover,
+.hearth-view.hearth-no-motion .hearth-link-tile:hover {
 	transform: none;
 }
 
 /* The card's drop shadow is applied through a variable so merged edges can drop
  * it; clear the variable as well as the resolved shadow above. */
-.hearth-view.hearth-low-power .hearth-card {
+.hearth-view.hearth-no-motion .hearth-card {
 	--hearth-card-lift: none;
+}
+
+/* ---- Reduced motion ---------------------------------------------------
+ *
+ * A reader who has asked the OS for less motion gets the same treatment as the
+ * `reduced` tier, board-wide. Individual features already honour the preference
+ * in their own sections (the painted sky keeps its shapes, the pet keeps its
+ * posture, the slideshow keeps crossfading) and those rules are the nicer
+ * answer where they exist; this is the catch-all underneath them, so anything
+ * without a bespoke rule — the obscured-tile pulse, hover lifts, card
+ * transitions, a card added next year — stops moving too.
+ *
+ * Spinners are deliberately exempt: an indeterminate spinner that does not spin
+ * reads as a hung card, and the preference is about motion that decorates,
+ * not motion that reports. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-view *,
+	.hearth-view *::before,
+	.hearth-view *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+
+	.hearth-view .is-loading {
+		animation: hearth-rss-spin 0.9s linear infinite !important;
+	}
+
+	.hearth-view .hearth-card:hover,
+	.hearth-view .hearth-link-tile:hover {
+		transform: none;
+	}
 }
 
 .hearth-scroll {
@@ -549,7 +617,14 @@
 	background: var(--background-primary);
 	color: var(--text-muted);
 	cursor: pointer;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-filter:hover {
@@ -693,7 +768,14 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	cursor: pointer;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-type-filter-chip:hover {
@@ -823,9 +905,13 @@
 	inset: 0;
 	pointer-events: none;
 }
+/* Position and size are set inline per layer by updateFrostLayers(), to the
+ * bounding box of that layer's own cards — NOT `inset: 0`. A backdrop-filter is
+ * priced by its element's box rather than by how much of it the mask reveals, so
+ * a board-sized layer blurs the whole board's backdrop and then masks the result
+ * away. */
 .hearth-frost {
 	position: absolute;
-	inset: 0;
 	pointer-events: none;
 	-webkit-mask-repeat: no-repeat;
 	mask-repeat: no-repeat;
@@ -1194,7 +1280,7 @@
 	height: var(--icon-s);
 }
 
-/* A bulleted "what this does" list inside a note (low power mode's effects). */
+/* A bulleted "what this does" list inside a note (the performance tier's effects). */
 .hearth-setting-note-list {
 	margin: 4px 0 0;
 	padding-left: 1.1em;
@@ -1298,7 +1384,7 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* Settings whose value low power mode is currently overriding. Still live and
+/* Settings whose value the performance tier is currently overriding. Still live and
  * editable — they simply aren't what's on screen right now — so this dims them
  * rather than disabling them. */
 .hearth-settings-overridden .setting-item:not(.hearth-setting-note) {
@@ -2660,23 +2746,35 @@
  * Glow it with the accent (and a warning tint) so the user notices and fixes
  * it. Only applied in arrange mode. */
 .hearth-link-tile.is-obscured {
+	position: relative;
 	outline: 2px solid var(--color-red, #f55);
 	outline-offset: 2px;
-	box-shadow: 0 0 12px 2px
-		color-mix(in srgb, var(--color-red, #f55) 55%, transparent);
 	border-color: var(--color-red, #f55);
+}
+
+/* The glow pulses on a pseudo-element's opacity rather than on the tile's own
+ * box-shadow. A box-shadow animation is a paint-property animation: it can never
+ * be composited, so it repaints the tile on every frame for as long as the board
+ * is being arranged. Fading a fixed shadow in and out is compositable and looks
+ * the same. */
+.hearth-link-tile.is-obscured::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	box-shadow: 0 0 16px 3px
+		color-mix(in srgb, var(--color-red, #f55) 65%, transparent);
 	animation: hearth-tile-obscured-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes hearth-tile-obscured-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 8px 1px
-			color-mix(in srgb, var(--color-red, #f55) 40%, transparent);
+		opacity: 0.5;
 	}
 	50% {
-		box-shadow: 0 0 16px 3px
-			color-mix(in srgb, var(--color-red, #f55) 65%, transparent);
+		opacity: 1;
 	}
 }
 
@@ -5174,7 +5272,14 @@
 	color: var(--text-muted);
 	cursor: pointer;
 	font-size: 0.85rem;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-tool-btn:hover {
@@ -5284,7 +5389,14 @@
 	cursor: pointer;
 	font-size: 0.85rem;
 	line-height: 1;
-	transition: all 120ms ease;
+	/* Named rather than `all`: these are the only properties any of this
+	 * control's states change, and `all` makes the browser watch every animatable
+	 * property for a transition nobody asked for. */
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease;
 }
 
 .hearth-dash-btn:hover {
@@ -8685,7 +8797,7 @@ body.hearth-dv-resizing {
  * two CSS variables the card sets from its config. Everything that moves is
  * a CSS animation on the stage — the card itself repaints only on vault
  * events and a five-minute tick — and every one of them is dropped for a
- * reader who asked for less motion, or by low power mode (`is-still`).
+ * reader who asked for less motion, or by a still performance tier (`is-still`).
  * ===================================================================== */
 
 .hearth-pet {
@@ -8730,14 +8842,36 @@ body.hearth-dv-resizing {
 	outline-offset: 3px;
 }
 
+/* The sprite comes in two elements, and the split is load-bearing rather than
+ * cosmetic. `.hearth-pet-sprite` is a plain <div> and carries every mood
+ * animation; `.hearth-pet-art` is the <svg> inside it and carries none.
+ *
+ * Chromium will not run a CSS transform animation on an SVG element on the
+ * compositor — not on an SVG child, and not on the <svg> root either. With the
+ * hop/bob/breathe on the <svg> it fell to the main thread and recalculated
+ * style on every single frame: measured at 299 style recalcs per 5 seconds for
+ * four pets, against 0 for the same motion on a <div>. Moving the animation one
+ * element out is the whole fix, and nothing about the drawing changes — the
+ * wrapper is exactly the same box, so the percentage translates and the
+ * transform-origin below resolve identically.
+ *
+ * See docs/performance/macos-power-investigation.md. If you ever move an
+ * animation back onto the <svg>, you are paying 60 style recalcs a second for
+ * it. */
 .hearth-pet-sprite {
 	width: 100%;
 	height: 100%;
 	display: block;
-	overflow: visible;
 	/* One transform origin for every mood animation: the pet's feet, so it
 	 * squashes and hops off the ground rather than about its middle. */
 	transform-origin: 50% 100%;
+}
+
+.hearth-pet-art {
+	width: 100%;
+	height: 100%;
+	display: block;
+	overflow: visible;
 }
 
 .hearth-pet-name {
@@ -9034,7 +9168,7 @@ body.hearth-dv-resizing {
 	100% { transform: translate(calc(-50% + (var(--i) - 1) * 16px), -34px) scale(1.1); opacity: 0; }
 }
 
-/* Low power mode and a reduced-motion preference both leave a perfectly
+/* A still performance tier and a reduced-motion preference both leave a perfectly
  * readable pet — the mood is in its face, not in the movement. */
 .hearth-pet-stage.is-still .hearth-pet-sprite,
 .hearth-pet-stage.is-still .hearth-pet-frame {

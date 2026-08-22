@@ -216,7 +216,7 @@ export function renderRss(
 
 	load(false);
 	// The cache TTL above still uses the configured interval; only the timer is
-	// suppressed in low power mode, so the card loads on render and on the manual
+	// suppressed on the minimal tier, so the card loads on render and on the manual
 	// refresh button but never on its own.
 	const autoRefreshMin = effectiveAutoRefreshMinutes(view.plugin.settings, refreshMin);
 	if (autoRefreshMin > 0) {

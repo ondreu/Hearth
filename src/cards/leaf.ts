@@ -3,7 +3,7 @@ import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";
 import { FilePickerModal } from "../pickers";
-import { type DashboardCard, type HomeSettings, lowPowerActive } from "../types";
+import { type DashboardCard, type HomeSettings, performanceTier } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -54,7 +54,7 @@ export function renderLeaf(
  * is the one card that can make a dashboard genuinely slow, and the quiet
  * muted-grey hint it used to be was easy to scroll straight past. It renders as
  * a titled callout with a warning tint and an alert icon, and gains a second
- * paragraph while low power mode is on — that mode turns Hearth's own effects
+ * paragraph while the performance tier is stepped down — the tier turns Hearth's own effects
  * off but cannot touch a view another plugin is running. */
 export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): void {
 	const strings = t().editors.leaf;
@@ -67,10 +67,10 @@ export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): 
 	// supports (see the settings-pane error box).
 	setIcon(icon, "alert-triangle");
 	note.nameEl.prepend(icon);
-	if (lowPowerActive(settings)) {
+	if (performanceTier(settings) !== "full") {
 		note.descEl.createDiv({
 			cls: "hearth-setting-warning-extra",
-			text: strings.perfNoteLowPower,
+			text: strings.perfNoteTier,
 		});
 	}
 }

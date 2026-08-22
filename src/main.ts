@@ -1,6 +1,6 @@
-import { addIcon, apiVersion, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
-import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, lowPowerActive, migrateSettings } from "./types";
+import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings, timersAllowed } from "./types";
 import { HomeSettingTab } from "./settings";
 import {
 	HEARTH_ICON_ID,
@@ -19,6 +19,23 @@ import { clearContentSearchCache } from "./query";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
 const AUDIO_RECORDER_PLUGIN_ID = "audio-recorder";
+
+/**
+ * Whether a leaf is actually on screen, rather than merely open.
+ *
+ * Obsidian takes an inactive leaf in a tab group out of layout, which is what
+ * makes a backgrounded Hearth tab cost nothing to have open. `offsetParent` is
+ * null for exactly that case (and for a collapsed sidebar), so it is the cheapest
+ * honest test available — no geometry, no observer, no undocumented API.
+ *
+ * Deliberately conservative: anything it cannot resolve reads as visible, so a
+ * board is only ever skipped when it is definitely not being looked at.
+ */
+function leafIsVisible(leaf: WorkspaceLeaf): boolean {
+	const el = leaf.view?.containerEl;
+	if (!el) return true;
+	return el.offsetParent !== null || el.isShown?.() === true;
+}
 
 export default class HearthPlugin extends Plugin {
 	settings: HomeSettings;
@@ -43,21 +60,6 @@ export default class HearthPlugin extends Plugin {
 	private liveRefreshDebounced = debounce(() => this.runLiveRefresh(), 600, true);
 
 	async onload() {
-		// Temporary #52 diagnostic: one report has the settings pane blank with
-		// zero console output even from the render-path warns in settings.ts,
-		// which is only possible if the tab never renders at all — this line
-		// tells apart "an older build is still installed" from "this build is
-		// loaded but its settings tab is never rendered". It also embeds the
-		// environment details every hypothesis so far has hinged on (app/API
-		// version, Electron installer version, CPU architecture), so one
-		// screenshot answers them all. Remove together with the render-path
-		// warns once #52 is closed out.
-		const proc = (window as unknown as { process?: { versions?: Record<string, string>; arch?: string } }).process;
-		console.warn(
-			`Hearth ${this.manifest.version} loaded (Obsidian API ${apiVersion}, ` +
-				`electron ${proc?.versions?.electron ?? "n/a"}, arch ${proc?.arch ?? "n/a"})`,
-		);
-
 		// Pick the locale from Obsidian's UI language before anything renders or
 		// registers a translated command name.
 		setLanguage();
@@ -389,10 +391,20 @@ export default class HearthPlugin extends Plugin {
 		});
 	}
 
+	/**
+	 * Re-render every open home view.
+	 *
+	 * Only the ones actually on screen, though. A full rebuild tears down and
+	 * recreates the whole board — every card body, every embed, every hosted leaf
+	 * — and doing that for a leaf sitting behind another tab is work nobody can
+	 * see the result of. Nothing goes stale: `maybeRefreshOnFocus` re-renders a
+	 * home view when it becomes the active leaf again, so a board skipped here is
+	 * rebuilt from current settings before anyone looks at it.
+	 */
 	refreshViews() {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
-			if (view instanceof HomeView) view.render();
+			if (view instanceof HomeView && leafIsVisible(leaf)) view.render();
 		});
 	}
 
@@ -417,17 +429,24 @@ export default class HearthPlugin extends Plugin {
 	 * setting is on; never rebuilds a board mid-arrange. */
 	private runLiveRefresh() {
 		if (!this.settings.liveRefresh) return;
-		// Low power mode suppresses it without clearing the setting: a full board
+		// The minimal tier suppresses it without clearing the setting: a full board
 		// rebuild on every burst of vault writes is the most expensive thing
 		// Hearth does off its own render path. Views still refresh when their tab
 		// is focused again, so nothing goes permanently stale.
-		if (lowPowerActive(this.settings)) return;
+		if (!timersAllowed(this.settings)) return;
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
 			// liveRender, not render: a rebuild triggered by a vault write must not
 			// destroy a field the user is typing into — including the field whose
 			// own writes triggered it (#212).
-			if (view instanceof HomeView && !view.arrangeMode) view.liveRender();
+			//
+			// Visible boards only, for the same reason as refreshViews: rebuilding a
+			// board behind another tab on every burst of vault writes is the single
+			// most expensive thing Hearth does off its own render path, and the
+			// focus refresh brings it up to date before it is seen.
+			if (view instanceof HomeView && !view.arrangeMode && leafIsVisible(leaf)) {
+				view.liveRender();
+			}
 		});
 	}
 }

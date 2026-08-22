@@ -6,6 +6,7 @@ import {
 } from "obsidian";
 import { emptyState } from "./cardbodies";
 import { deferRedrawWhileTyping } from "./cardfocus";
+import { gateCardMotionOnVisibility } from "./motion";
 import { confirmAction } from "./ui";
 import { t } from "./i18n";
 import type { HomeView } from "./view";
@@ -30,7 +31,7 @@ import {
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveRowHeight,
-	lowPowerActive,
+	timersAllowed,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
@@ -169,6 +170,11 @@ export function renderDashboard(
 		}
 	}
 
+	// Hold each card's animation while that card is off screen — below the fold
+	// on a scrolling board, or clipped away by a fit-to-page board. One observer
+	// for the whole grid; see src/motion.ts.
+	gateCardMotionOnVisibility(view, grid, component);
+
 	// Sharpen touching corners between neighbouring cards so adjacent cards
 	// read as one merged tile. Recomputed after every drag/resize commit and
 	// on viewport resize (handled below) since card positions reflow.
@@ -262,10 +268,10 @@ function mountCardBody(
 
 	const live = def.liveness;
 	if (live.mode === "poll") {
-		// Low power mode suppresses the timer (not the first draw): a web card
+		// The minimal tier suppresses the timer (not the first draw): a web card
 		// keeps showing what it loaded, it just stops reloading on a clock.
 		const configured = card.refreshSec && card.refreshSec > 0 ? card.refreshSec : 0;
-		const every = lowPowerActive(view.plugin.settings) ? 0 : configured;
+		const every = timersAllowed(view.plugin.settings) ? configured : 0;
 		// registerInterval ties the timer to the view's render lifecycle, so it
 		// is cleared on the next full rebuild (and on view close).
 		if (every) parent.registerInterval(window.setInterval(draw, every * 1000));

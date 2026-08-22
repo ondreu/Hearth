@@ -189,23 +189,23 @@ describe("bannerActive", () => {
 		expect(bannerActive(s)).toBe(false);
 	});
 
-	// Low power swaps what fills the banner, not whether there is one: changing
-	// the layout would move every card on the board the moment the mode is
-	// toggled, which is the one thing the mode promises not to do.
-	it("survives low power, which replaces the picture but not the layout", () => {
+	// The minimal tier swaps what fills the banner, not whether there is one:
+	// changing the layout would move every card on the board the moment the tier
+	// changed, which is the one thing the tiers promise not to do.
+	it("survives the minimal tier, which replaces the picture but not the layout", () => {
 		const s = settings();
 		s.backgroundLayout = "banner";
-		s.lowPower = true;
+		s.performanceTier = "minimal";
 
 		expect(bannerActive(s)).toBe(true);
 		expect(effectiveBackground(s).kind).toBe("color");
 		expect(effectiveBackground(s).layout).toBe("banner");
 	});
 
-	it("keeps a board-level banner under low power too", () => {
+	it("keeps a board-level banner on the minimal tier too", () => {
 		const s = settings();
 		s.dashboards[0].backgroundLayout = "banner";
-		s.lowPower = true;
+		s.performanceTier = "minimal";
 
 		expect(bannerActive(s)).toBe(true);
 		expect(effectiveBackground(s).kind).toBe("color");

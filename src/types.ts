@@ -932,7 +932,7 @@ export interface WeatherConfig {
 
 	// ---- Artistic style ----
 	/** Animate the painted sky (drifting clouds, falling rain, twinkling stars).
-	 * Default true; forced off by low power mode. */
+	 * Default true; forced off from the `reduced` tier down. */
 	animate?: boolean;
 
 	// ---- Refresh ----
@@ -1385,10 +1385,43 @@ export type BackgroundKind =
 	| "url"
 	| "weather";
 
-/** The flat backdrop low power mode paints instead of the wallpaper: a muted
+/** The flat backdrop the `minimal` tier paints instead of the wallpaper: a muted
  * grey-purple that sits close to Hearth's brand colour without any image
  * decode, opacity layer or blur behind it. */
 export const LOW_POWER_BACKGROUND = "#4a4459";
+
+/**
+ * How much of the home view's decoration to pay for, as a ladder rather than a
+ * switch.
+ *
+ * Each step is a measured cost, not a taste: see
+ * docs/performance/macos-power-investigation.md. The old boolean low power mode
+ * was only ever the bottom rung — it fixed the power draw by removing the
+ * wallpaper, the frosted glass, the animation *and* every refresh timer at
+ * once, which is far more than most people need to give up.
+ *
+ * - `full` — everything on.
+ * - `balanced` — the painted sky is drawn at half density (fewer drops, stars,
+ *   clouds and fog wisps). Nothing is switched off; there is simply less of it.
+ *   Worth about a third of the sky's main-thread cost, not half: the per-frame
+ *   layout the sky forces has a fixed component that no amount of thinning
+ *   removes. Measured at 168.9ms -> 120.0ms per 4s for a board-spread rain
+ *   field. Only `reduced` and below remove the cost rather than trimming it.
+ * - `reduced` — no animation anywhere, and no frosted glass. The wallpaper and
+ *   every refresh timer stay, so the board still looks like itself and still
+ *   updates; it just holds still.
+ * - `minimal` — the former low power mode: a flat colour instead of the
+ *   wallpaper, opaque cards, no animation, and no timer-driven refresh.
+ */
+export type PerformanceTier = "full" | "balanced" | "reduced" | "minimal";
+
+/** Every tier, richest first — the order the settings dropdown offers them. */
+export const PERFORMANCE_TIERS: readonly PerformanceTier[] = [
+	"full",
+	"balanced",
+	"reduced",
+	"minimal",
+];
 
 /**
  * Where the background is painted.
@@ -1698,24 +1731,36 @@ export interface HomeSettings {
 	 * choice would flip this for everyone on upgrade. */
 	openFromOutside: OpenOutsideRule;
 
-	// ---- Low power mode ----
+	// ---- Performance ----
 	/**
-	 * Strip the expensive parts of the home view: the wallpaper (replaced by a
-	 * flat colour), the frosted-glass card blur, card translucency, CSS
-	 * transitions/animations and every timer-driven background refresh.
+	 * How much of the home view's decoration to pay for. See
+	 * {@link PerformanceTier} for what each step drops.
 	 *
 	 * Deliberately an *override*, not a bulk edit of the settings below: nothing
-	 * else in this object is touched while it is on, and every resolver
-	 * (`effectiveBackground`, `effectiveCardBlur`, …) simply reports the low
-	 * power value instead. Turning it back off therefore restores the previous
-	 * look exactly — including per-dashboard and per-card overrides — with no
-	 * snapshot to keep in sync and nothing to lose if the vault is synced or the
-	 * settings file is edited by hand while the mode is on.
+	 * else in this object is touched by the tier, and every resolver
+	 * (`effectiveBackground`, `effectiveCardBlur`, …) simply reports the tier's
+	 * value instead. Moving back up a tier therefore restores the previous look
+	 * exactly — including per-dashboard and per-card overrides — with no snapshot
+	 * to keep in sync and nothing to lose if the vault is synced or the settings
+	 * file is edited by hand while a lower tier is selected.
 	 */
-	lowPower: boolean;
-	/** The flat background colour used while {@link lowPower} is on. Any CSS
-	 * colour; defaults to {@link LOW_POWER_BACKGROUND}. */
+	performanceTier: PerformanceTier;
+	/** The flat background colour used on the "minimal" tier. Any CSS colour;
+	 * defaults to {@link LOW_POWER_BACKGROUND}. */
 	lowPowerBackgroundColor: string;
+	/**
+	 * Hold every animation while the Obsidian window is not the one being used.
+	 *
+	 * A Hearth tab the workspace has hidden already costs nothing — Obsidian
+	 * takes an inactive leaf out of layout, and the browser stops animating a
+	 * subtree that isn't laid out. A *visible* Hearth tab in an unfocused window
+	 * is the gap this closes: side by side with a browser, or on a second
+	 * monitor, the board keeps animating at the full frame rate for nobody.
+	 *
+	 * On by default because the animation it pauses is one nobody is looking at;
+	 * off for anyone who wants the board live on a second screen.
+	 */
+	pauseWhenUnfocused: boolean;
 
 	// ---- Appearance (layout density) ----
 	/** Tighten card and top-of-page spacing to enlarge the usable area. */
@@ -1864,16 +1909,27 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openInOverrides: { link: "default", search: "default", card: "default", newNote: "default" },
 	openFromOutside: "same",
 
-	lowPower: false,
+	performanceTier: "full",
 	lowPowerBackgroundColor: LOW_POWER_BACKGROUND,
+	// On by default: it pauses animation nobody is looking at (see the field's
+	// own note for why a hidden tab is already free but an unfocused window is
+	// not), and anyone running the board on a second screen can turn it off.
+	pauseWhenUnfocused: true,
 
 	compact: false,
 	arrangeButtonVisibility: "always",
 	dashboardSwitcherVisibility: "always",
 	cardOpacity: 0.5,
-	// Frosted glass on by default: a translucent card surface with a gentle blur
-	// of the background behind it. Pairs with the 0.5 opacity above.
-	cardBlur: 7,
+	// Frosted glass is off by default, and is the one default that changed for
+	// power rather than for looks. Every blurred card is a backdrop-filter layer
+	// the compositor re-evaluates whenever anything behind it changes, so on a
+	// board with a moving wallpaper it is re-blurred every frame at the display's
+	// full pixel density. Translucency (above) is kept: alpha compositing is
+	// cheap, so the cards still read as glass over the wallpaper.
+	//
+	// Existing vaults are unaffected — `cardBlur` is already present in their
+	// data.json, so loadSettings keeps whatever they chose.
+	cardBlur: 0,
 	// The design baseline corner radius; also the maximum (only sharper is
 	// allowed) so it matches the hardcoded 14 the layout was tuned around.
 	cardRadius: 14,
@@ -2107,15 +2163,76 @@ export function effectiveMaxWidth(s: HomeSettings): number {
 	return activeDashboard(s).maxWidth ?? s.maxWidth;
 }
 
-/** Whether low power mode is currently on. Every override below funnels
- * through this so the mode has exactly one switch. */
-export function lowPowerActive(s: HomeSettings): boolean {
-	return s.lowPower === true;
+/**
+ * The selected tier, repaired on read.
+ *
+ * Every predicate below funnels through this, so the ladder has exactly one
+ * definition and an unknown value (a hand-edited data.json, a newer tier synced
+ * back from a future version) can only ever read as `full` rather than as
+ * something arbitrary.
+ */
+export function performanceTier(s: HomeSettings): PerformanceTier {
+	return PERFORMANCE_TIERS.includes(s.performanceTier) ? s.performanceTier : "full";
 }
 
-/** The background low power mode substitutes for whatever is configured: a flat
- * colour at full opacity with no blur, so there is no image to fetch/decode and
- * no filtered layer to composite. */
+/** Rank on the ladder, so the predicates below can say "at least this frugal"
+ * without spelling out every tier. */
+function tierRank(s: HomeSettings): number {
+	return PERFORMANCE_TIERS.indexOf(performanceTier(s));
+}
+
+/**
+ * Whether the board may animate at all: the painted sky's drift and fall, the
+ * pet's moods, slideshow transitions, the clock's second hand, and every CSS
+ * transition and hover lift.
+ *
+ * False from `reduced` down. This is the predicate that matters for power —
+ * animation is the single most expensive thing Hearth does.
+ */
+export function motionAllowed(s: HomeSettings): boolean {
+	return tierRank(s) < PERFORMANCE_TIERS.indexOf("reduced");
+}
+
+/**
+ * How much of the painted sky's field to draw, as a fraction.
+ *
+ * The `balanced` tier's whole content: the sky keeps drifting and falling, there
+ * is simply less of it to move, and a sky at half density still reads as rain
+ * rather than as a broken effect.
+ *
+ * Buys about a third, not a half. Cost scales with the number of animated shapes
+ * but not only with it — the per-frame layout an animated SVG forces has a fixed
+ * component too — so thinning trims the bill rather than halving it. Measured at
+ * 168.9ms -> 120.0ms per 4s for a board-spread rain field.
+ */
+export function skyDensity(s: HomeSettings): number {
+	if (!motionAllowed(s)) return 1; // A still sky costs nothing; keep it whole.
+	return performanceTier(s) === "balanced" ? 0.5 : 1;
+}
+
+/** Whether the frosted-glass blur behind cards may be built. False from
+ * `reduced` down: each layer is a backdrop-filter the compositor has to
+ * re-evaluate whenever anything behind it changes. */
+export function frostAllowed(s: HomeSettings): boolean {
+	return tierRank(s) < PERFORMANCE_TIERS.indexOf("reduced");
+}
+
+/** Whether timer-driven work may run at all: card auto-refresh and the
+ * vault-driven live rebuild. False only on `minimal`. */
+export function timersAllowed(s: HomeSettings): boolean {
+	return performanceTier(s) !== "minimal";
+}
+
+/** The bottom rung — what used to be "low power mode". Replaces the wallpaper
+ * with a flat colour and makes cards opaque, on top of everything the tiers
+ * above it already drop. */
+export function lowPowerActive(s: HomeSettings): boolean {
+	return performanceTier(s) === "minimal";
+}
+
+/** The background the `minimal` tier substitutes for whatever is configured: a
+ * flat colour at full opacity with no blur, so there is no image to fetch/decode
+ * and no filtered layer to composite. */
 export function lowPowerBackground(s: HomeSettings): BackgroundConfig {
 	const value = s.lowPowerBackgroundColor?.trim() || LOW_POWER_BACKGROUND;
 	return { kind: "color", value, opacity: 1, blur: 0 };
@@ -2123,15 +2240,15 @@ export function lowPowerBackground(s: HomeSettings): BackgroundConfig {
 
 /**
  * Timer-driven auto-refresh interval a live card should actually use, in
- * minutes. Low power mode reports 0 (manual refresh only) so no card wakes the
- * app up on a timer; the configured value is left untouched and comes back the
- * moment the mode is turned off.
+ * minutes. The `minimal` tier reports 0 (manual refresh only) so no card wakes
+ * the app up on a timer; the configured value is left untouched and comes back
+ * the moment a higher tier is selected.
  *
  * Only the *timer* is suppressed — callers that also derive a cache TTL from
  * the configured interval must keep using the raw value for that.
  */
 export function effectiveAutoRefreshMinutes(s: HomeSettings, minutes: number): number {
-	return lowPowerActive(s) ? 0 : minutes;
+	return timersAllowed(s) ? minutes : 0;
 }
 
 /** Effective card surface opacity for the active board (per-dashboard override
@@ -2156,10 +2273,11 @@ export function resolveCardOpacity(s: HomeSettings, card: DashboardCard): number
 /** Effective card backdrop blur (px) for the active board (per-dashboard
  * override or global). 0 = no frosted-glass blur. Clamped to a sane range. */
 export function effectiveCardBlur(s: HomeSettings): number {
-	// Low power: no frosted glass. Reporting 0 here (and in resolveCardBlur) is
-	// enough to switch it off wholesale — no card is marked .has-blur, so
-	// updateFrostLayers never builds a backdrop-filter layer or its SVG mask.
-	if (lowPowerActive(s)) return 0;
+	// From `reduced` down: no frosted glass. Reporting 0 here (and in
+	// resolveCardBlur) is enough to switch it off wholesale — no card is marked
+	// .has-blur, so updateFrostLayers never builds a backdrop-filter layer or its
+	// SVG mask.
+	if (!frostAllowed(s)) return 0;
 	const v = activeDashboard(s).cardBlur ?? s.cardBlur;
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(40, v)) : 0;
 }
@@ -2167,7 +2285,7 @@ export function effectiveCardBlur(s: HomeSettings): number {
 /** Resolve the per-card blur override (px), falling back to the board/global
  * value from effectiveCardBlur. */
 export function resolveCardBlur(s: HomeSettings, card: DashboardCard): number {
-	if (lowPowerActive(s)) return 0;
+	if (!frostAllowed(s)) return 0;
 	const v = card.cardBlur ?? effectiveCardBlur(s);
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(40, v)) : 0;
 }
@@ -2341,15 +2459,36 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	}
 	if (typeof s.rowHeight !== "number" || s.rowHeight <= 0) s.rowHeight = 92;
 	if (typeof s.cardOpacity !== "number") s.cardOpacity = 0.5;
-	if (typeof s.cardBlur !== "number") s.cardBlur = 7;
+	if (typeof s.cardBlur !== "number") s.cardBlur = DEFAULT_SETTINGS.cardBlur;
 	if (typeof s.cardRadius !== "number") s.cardRadius = CARD_RADIUS_MAX;
 	if (typeof s.cardBorderWidth !== "number") s.cardBorderWidth = 1;
-	// Low power mode is purely additive: settings saved before it existed have
-	// neither key, so both are simply defaulted (fillMissingDefaults already does
-	// this on load; these guards also repair a wrong-typed value from a
-	// hand-edited or partially-synced data.json). Nothing else is touched — the
-	// mode never rewrites the settings it overrides.
-	if (typeof s.lowPower !== "boolean") s.lowPower = false;
+	// ---- Performance tier (replaced the boolean low power mode) ----
+	//
+	// One-way: the old `lowPower` flag is folded into the tier and the key is
+	// dropped, so it cannot linger and then contradict the tier once someone
+	// changes it. Keyed off `raw` rather than `s`, because loadSettings has
+	// already merged DEFAULT_SETTINGS over the persisted data by the time this
+	// runs — `s.performanceTier` is therefore always populated, and testing it
+	// would mean never seeing the legacy flag at all.
+	let migratedLowPower = false;
+	if (!PERFORMANCE_TIERS.includes(raw.performanceTier as PerformanceTier)) {
+		// No tier persisted. If the legacy flag is there, honour it; otherwise
+		// leave whatever is already in memory (a valid tier set by a caller, or
+		// the default) rather than stamping over it.
+		if ("lowPower" in raw) {
+			s.performanceTier = raw.lowPower === true ? "minimal" : "full";
+			migratedLowPower = true;
+		} else if (!PERFORMANCE_TIERS.includes(s.performanceTier)) {
+			s.performanceTier = "full";
+		}
+	} else {
+		s.performanceTier = raw.performanceTier as PerformanceTier;
+	}
+	if ("lowPower" in (s as object)) {
+		delete (s as Partial<HomeSettings> & { lowPower?: unknown }).lowPower;
+		migratedLowPower = true;
+	}
+	if (typeof s.pauseWhenUnfocused !== "boolean") s.pauseWhenUnfocused = true;
 	if (typeof s.lowPowerBackgroundColor !== "string" || !s.lowPowerBackgroundColor.trim()) {
 		s.lowPowerBackgroundColor = LOW_POWER_BACKGROUND;
 	}
@@ -2431,5 +2570,5 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
-	return migratedCommandId;
+	return migratedCommandId || migratedLowPower;
 }

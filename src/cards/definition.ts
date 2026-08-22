@@ -142,6 +142,6 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	): void;
 	/** A note shown under the type dropdown in the editor (leaf's perf warning).
 	 * Gets the global settings so a note can react to them — the leaf card's
-	 * warning says something extra while low power mode is on. */
+	 * warning says something extra while the performance tier is stepped down. */
 	editorTypeNote?(container: HTMLElement, settings: HomeSettings): void;
 }
