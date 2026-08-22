@@ -15,6 +15,28 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Move an Operon task by dragging it, and add one from the card.** The Operon
+  board card now supports **drag and drop between status columns** — with the
+  same move on each row's **right-click menu**, so it is reachable without a
+  pointer — and the
+  board and list cards offer a **+** that creates a task. Both are off until you
+  switch on **Allow changes** under Settings → Hearth → Integrations → Operon:
+  Operon's developer grant is all-or-nothing, so asking for write access by
+  default would make every read-only vault approve it, and turning it on widens
+  the request and needs a fresh approval in Operon's own Developer API
+  Integrations.
+
+  Operon stays in charge of both. Hearth previews a change, Operon rates it and
+  applies it, and any plan it marks as needing consent — or as more than routine
+  — is confirmed with you before it runs. A move carries the status the board
+  was drawn from, so a drag on a board that has gone stale is refused instead of
+  silently reverting a change made elsewhere. Where a new task lives, and
+  whether it is an inline checkbox or its own note, is read from Operon's own
+  settings rather than decided by the card. And if Operon can't confirm whether
+  a change landed, Hearth resolves that one plan with Operon and then says the
+  outcome is uncertain — it never re-applies, which is how a task ends up moved
+  twice.
+
 - **Operon tasks, boards, agendas and the running timer on the dashboard.** Four
   new cards read from the [Operon](https://github.com/hasanyilmaz/operon) task
   plugin: a task **list**, a **board** whose columns are Operon's own pipeline

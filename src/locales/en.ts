@@ -36,6 +36,13 @@ export const en = {
 		operonTaskMissing:
 			"Hearth: that Operon task's note is no longer in the vault.",
 		operonRechecked: "Hearth: rechecked the Operon connection.",
+		operonWriteFailed: (reason: string) => `Hearth: Operon refused the change — ${reason}`,
+		/** The mutation may have landed. Hearth has already spent its one legal
+		 * recovery attempt, so the honest report is "unknown", not "failed" —
+		 * and never an offer to retry, which could apply the change twice. */
+		operonWriteUnknown: (reason: string) =>
+			`Hearth: Operon couldn't confirm whether the change was applied (${reason}). ` +
+			"The card has been re-read — check the task before trying again.",
 		enableExcalidraw:
 			"Hearth: enable the Excalidraw plugin to create drawings.",
 		excalidrawCommandMissing:
@@ -1213,11 +1220,22 @@ export const en = {
 			statusError: "Operon refused the connection.",
 			detail: "Operon reported",
 			install: "Open Operon in Community plugins",
+			writes: "Allow changes",
+			writesDesc:
+				"Lets the board card move a task to another status by dragging it, and " +
+				"adds a “+” for creating one. Operon decides where a new task goes and " +
+				"whether a move is legal; Hearth only asks. Turning this on widens what " +
+				"Hearth requests, so you'll need to approve it again in Operon's " +
+				"Developer API Integrations. Off means Hearth can only read.",
+			writesPending:
+				"Reading works, but the change permissions haven't been granted yet — " +
+				"approve Hearth again in Operon's Developer API Integrations. Until then " +
+				"the cards stay read-only.",
 			capabilities: "Requested access",
 			capabilitiesDesc:
-				"Read-only. Hearth asks for all of these at once because Operon does " +
-				"not open a partly approved session, and it never asks for permission " +
-				"to change anything.",
+				"Hearth asks for all of these at once because Operon does not open a " +
+				"partly approved session. Read-only unless “Allow changes” is on, which " +
+				"adds the task-transition and task-creation permissions.",
 			missing: (names: string) => `Not yet granted: ${names}`,
 			recheck: "Recheck",
 			recheckDesc:
@@ -2618,6 +2636,18 @@ export const en = {
 			/** Operon's own words, shown verbatim under an empty state so the
 			 * problem is diagnosable instead of guessed at. */
 			errorDetail: (code: string, reason: string) => (reason ? `${code} — ${reason}` : code),
+			addTask: "Add task",
+			moveTo: "Move to",
+			addTaskPlaceholder: "What needs doing?",
+			addTaskDue: "Due date",
+			confirmTitle: "Operon needs a confirmation",
+			/** Operon assessed the change and asked for consent; its own summary
+			 * of what would happen is shown rather than Hearth's guess at it. */
+			confirmMessage: (risk: string, effects: string) =>
+				effects
+					? `Operon rates this change as ${risk}: ${effects}`
+					: `Operon rates this change as ${risk}.`,
+			confirmApply: "Apply",
 		},
 		templater: {
 			untitledTile: "New note",

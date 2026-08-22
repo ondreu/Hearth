@@ -6,6 +6,7 @@
  *
  * - `api.ts`      accessor probe, session lifecycle, access-state rules
  * - `reads.ts`    never-throwing wrappers over the reads Hearth uses
+ * - `mutations.ts` the preview → apply → recover flow behind the two writes
  * - `catalog.ts`  short-lived cache of Operon's taxonomy
  * - `map.ts`      pure shaping (due buckets, day groups, board columns, sort)
  * - `open.ts`     opening a task's note at its locator
@@ -17,9 +18,11 @@
  */
 
 export {
+	OPERON_ALL_CAPABILITIES,
 	OPERON_MIN_APP_VERSION,
 	OPERON_PLUGIN_ID,
 	OPERON_READ_CAPABILITIES,
+	OPERON_WRITE_CAPABILITIES,
 	OperonSession,
 	accessErrorOf,
 	classifyAccess,
@@ -28,7 +31,9 @@ export {
 	isOperonPlatformSupported,
 	isTransientAccessState,
 	missingCapabilities,
+	operonCapabilities,
 	retryDelayMs,
+	writesGranted,
 	type OperonAccess,
 	type OperonAccessError,
 	type OperonAccessState,
@@ -45,6 +50,22 @@ export {
 	type OperonResult,
 	type OperonTaskPage,
 } from "./reads";
+
+export {
+	canWrite,
+	classifyExecution,
+	createIntent,
+	createTask,
+	isMutable,
+	needsConfirmation,
+	targetOf,
+	transitionIntent,
+	transitionTask,
+	type OperonConfirm,
+	type OperonNewTask,
+	type OperonWriteOutcome,
+	type OperonWriteResult,
+} from "./mutations";
 
 export { cachedTaxonomy, forgetTaxonomy, loadTaxonomy, warmTaxonomy } from "./catalog";
 

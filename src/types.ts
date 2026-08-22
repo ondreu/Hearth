@@ -1905,6 +1905,13 @@ export interface HomeSettings {
 	 * is added — the session is only opened when one renders. */
 	operonIntegration: boolean;
 
+	/** Let Hearth *change* Operon tasks: dragging a card between board columns,
+	 * and the card's "+". Off by default, and separate from the switch above
+	 * because Operon's grant is all-or-nothing — turning this on widens what
+	 * Hearth asks for and needs a fresh approval in Operon's settings, so it is
+	 * never done on a vault's behalf. */
+	operonWrites: boolean;
+
 	// ---- Layout ----
 	maxWidth: number;
 
@@ -2035,6 +2042,9 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// On by default, but inert until an Operon card exists: no session is
 	// opened — and so no grant is requested — until one renders.
 	operonIntegration: true,
+	// Reading is the default; writing is a decision, since it widens the grant
+	// the user has to approve in Operon.
+	operonWrites: false,
 
 	maxWidth: 1600,
 

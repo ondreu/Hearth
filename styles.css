@@ -10335,3 +10335,44 @@ body.hearth-dv-resizing {
 	color: var(--text-faint);
 	text-decoration: line-through;
 }
+
+/* ---- Operon writes ----------------------------------------------------
+   Dragging a task between board columns, and the quick-add at the foot of a
+   column. The drop target, the add button and the add field are the Kanban
+   card's own classes — an Operon board that highlighted differently from the
+   board beside it would read as a different control. Only the states those
+   classes don't have are defined here. */
+
+.hearth-operon-task[draggable="true"] {
+	cursor: grab;
+}
+
+.hearth-operon-task.is-dragging {
+	opacity: 0.45;
+	cursor: grabbing;
+}
+
+/* The whole board dims while a transition is in flight: the drop has been
+   accepted, the write hasn't come back, and a second drag in that window would
+   be building on a status that is already changing. */
+.hearth-operon-board.is-writing {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.hearth-operon-add-form.is-busy {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* The due field sits under the description, quiet enough that a one-line add
+   still reads as one line. */
+.hearth-operon-add-due {
+	width: 100%;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	padding: 4px 8px;
+	font-size: 0.8rem;
+	color: var(--text-muted);
+}

@@ -52,6 +52,38 @@ export const OPERON_READ_CAPABILITIES: readonly CapabilityIdV1[] = [
 ];
 
 /**
+ * The writes Hearth can perform, requested only when the user turns them on.
+ *
+ * Kept separate from the reads because the grant is all-or-nothing: folding
+ * these into the default set would make every vault approve write access to
+ * see a read-only card, and would suspend the grants people have already given.
+ * Turning the setting on renegotiates, which files a fresh request for the
+ * wider set — the one moment it is fair to ask.
+ *
+ * Both halves of each mutation are needed: Operon will not apply a plan whose
+ * preview capability was never granted.
+ */
+export const OPERON_WRITE_CAPABILITIES: readonly CapabilityIdV1[] = [
+	"tasks.transition.preview",
+	"tasks.transition.apply",
+	"tasks.create.preview",
+	"tasks.create.apply",
+];
+
+/** Reads and writes together — the set requested once writes are enabled.
+ * A constant rather than a fresh array per call, so a session can tell "the
+ * same set as last time" by identity and not renegotiate on every render. */
+export const OPERON_ALL_CAPABILITIES: readonly CapabilityIdV1[] = [
+	...OPERON_READ_CAPABILITIES,
+	...OPERON_WRITE_CAPABILITIES,
+];
+
+/** Everything Hearth asks Operon for, given whether writes are enabled. */
+export function operonCapabilities(writes: boolean): readonly CapabilityIdV1[] {
+	return writes ? OPERON_ALL_CAPABILITIES : OPERON_READ_CAPABILITIES;
+}
+
+/**
  * Why an Operon card can't show data right now — or that it can ("ready").
  * Every state maps to its own empty-state string, because "Operon isn't
  * installed" and "you haven't approved Hearth yet" need very different
@@ -101,6 +133,10 @@ export interface OperonAccess {
 	retryAfterMs: number | null;
 	/** Capabilities requested but not granted, for the settings readout. */
 	missing: readonly string[];
+	/** Whether this session may write: the user opted in, Operon granted every
+	 * write capability, and its channel admits writes. Checked per mutation, not
+	 * assumed from the setting — a grant can be narrowed after it was given. */
+	canWrite: boolean;
 }
 
 /** The bare structural probe: is something plugged in at `operon` that offers
@@ -257,9 +293,12 @@ export function accessErrorOf(error: unknown): OperonAccessError | null {
 }
 
 /** Requested capabilities Operon has not granted, in requested order. */
-export function missingCapabilities(status: DeveloperApiChannelStatusV1 | null): string[] {
+export function missingCapabilities(
+	status: DeveloperApiChannelStatusV1 | null,
+	requested: readonly CapabilityIdV1[] = OPERON_READ_CAPABILITIES,
+): string[] {
 	const grant = status?.grant;
-	if (!grant) return [...OPERON_READ_CAPABILITIES];
+	if (!grant) return [...requested];
 	const granted = new Set<string>(grant.grantedCapabilities);
 	return grant.requestedCapabilities.filter((id) => !granted.has(id));
 }
@@ -269,6 +308,20 @@ export function missingCapabilities(status: DeveloperApiChannelStatusV1 | null):
  * that approving in Operon's settings takes effect without a reload. */
 const RETRY_BACKOFF_MS = 5_000;
 
+/**
+ * Whether Operon actually admits writes on this session.
+ *
+ * Two conditions, both Operon's: every write capability is in the *effective*
+ * set (a grant can be narrowed to a subset of what was requested), and the
+ * channel currently admits writes at all — it withholds them while the runtime
+ * settles, exactly as it does reads.
+ */
+export function writesGranted(status: DeveloperApiChannelStatusV1 | null): boolean {
+	if (!status?.admission.writes) return false;
+	const effective = new Set<string>(status.grant?.effectiveCapabilities ?? []);
+	return OPERON_WRITE_CAPABILITIES.every((id) => effective.has(id));
+}
+
 const UNAVAILABLE: OperonAccess = {
 	state: "absent",
 	api: null,
@@ -276,6 +329,7 @@ const UNAVAILABLE: OperonAccess = {
 	error: null,
 	retryAfterMs: null,
 	missing: OPERON_READ_CAPABILITIES,
+	canWrite: false,
 };
 
 /**
@@ -286,6 +340,13 @@ const UNAVAILABLE: OperonAccess = {
  */
 export class OperonSession {
 	private readonly plugin: Plugin;
+	/** Whether the vault has opted into writes. Read through a callback rather
+	 * than copied, because the setting can change while a session is open — and
+	 * when it does, the requested capability set changes with it. */
+	private readonly wantsWrites: () => boolean;
+	/** The capability set the open session was negotiated for. Comparing it to
+	 * what is wanted now is what makes flipping the setting take effect. */
+	private negotiatedFor: readonly CapabilityIdV1[] = OPERON_READ_CAPABILITIES;
 	/** The accessor the current session was opened against. Operon invalidates
 	 * sessions when either plugin reloads, and there is no event for it, so
 	 * identity drift against the live registry is the signal we have. */
@@ -297,8 +358,15 @@ export class OperonSession {
 	private retryAfter = 0;
 	private readonly onInvalidate: (() => void)[] = [];
 
-	constructor(plugin: Plugin) {
+	constructor(plugin: Plugin, wantsWrites: () => boolean = () => false) {
 		this.plugin = plugin;
+		this.wantsWrites = wantsWrites;
+	}
+
+	/** Everything this session asks Operon for right now. The settings tab lists
+	 * it, so what the user reviews there is what Operon was actually sent. */
+	requested(): readonly CapabilityIdV1[] {
+		return operonCapabilities(this.wantsWrites());
 	}
 
 	/** Run `fn` whenever the session is dropped. Used to clear caches keyed to
@@ -328,7 +396,8 @@ export class OperonSession {
 		// A swapped-out instance means either plugin reloaded, which is exactly
 		// what makes a session stale — that is the only signal available, since
 		// Operon has no change events to subscribe to.
-		if (this.accessor !== accessor) {
+		const wanted = this.requested();
+		if (this.accessor !== accessor || this.negotiatedFor !== wanted) {
 			this.cached = null;
 			this.retryAfter = 0;
 		} else if (this.cached) {
@@ -361,6 +430,8 @@ export class OperonSession {
 
 	private open(accessor: OperonDeveloperApiAccessorV1): OperonAccess {
 		this.accessor = accessor;
+		const requested = this.requested();
+		this.negotiatedFor = requested;
 
 		// Check the two hard preconditions ourselves: Operon reports them too,
 		// but only after building a status, and this way a mobile vault never
@@ -376,6 +447,7 @@ export class OperonSession {
 				error: null,
 				retryAfterMs: null,
 				missing: [],
+				canWrite: false,
 			};
 			return this.cached;
 		}
@@ -387,7 +459,7 @@ export class OperonSession {
 				// Pinned: a future Runtime V2 must fail access cleanly rather
 				// than be driven with V1 assumptions.
 				runtimeApi: { min: 1, max: 1 },
-				requestedCapabilities: OPERON_READ_CAPABILITIES,
+				requestedCapabilities: requested,
 			});
 		} catch {
 			// A throwing accessor is out of contract; treat it as absent so the
@@ -411,7 +483,11 @@ export class OperonSession {
 			status,
 			error,
 			retryAfterMs: typeof status?.retryAfterMs === "number" ? status.retryAfterMs : null,
-			missing: missingCapabilities(status),
+			missing: missingCapabilities(status, requested),
+			// Writes need the setting *and* the grant. A vault that turned them
+			// on but hasn't re-approved in Operon reads normally and offers no
+			// drag handle, rather than offering one that fails on drop.
+			canWrite: state === "ready" && requested === OPERON_ALL_CAPABILITIES && writesGranted(status),
 		};
 		return this.cached;
 	}

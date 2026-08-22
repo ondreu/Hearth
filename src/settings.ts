@@ -22,7 +22,7 @@ import {
 import {
 	isOperonAvailable,
 	OPERON_PLUGIN_ID,
-	OPERON_READ_CAPABILITIES,
+	operonCapabilities,
 	type OperonAccessState,
 } from "./operon";
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
@@ -1619,6 +1619,25 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
+		// Writes are their own decision. Operon grants all-or-nothing, so turning
+		// this on widens what Hearth requests and needs a fresh approval in
+		// Operon's settings — which is why it is never on by default and why the
+		// session is dropped either way, so the next read renegotiates for the
+		// new set instead of reusing a session with the old one.
+		if (settings.operonIntegration) {
+			new Setting(containerEl)
+				.setName(s.writes)
+				.setDesc(s.writesDesc)
+				.addToggle((tog) =>
+					tog.setValue(settings.operonWrites).onChange((v) => {
+						settings.operonWrites = v;
+						this.plugin.operon.invalidate();
+						this.save();
+						this.rerender();
+					}),
+				);
+		}
+
 		// Asking for the state is what opens a session, so ask only when the user
 		// has opted in and Operon is actually there — otherwise merely opening
 		// this pane would file a capability request nobody asked for. Read once
@@ -1654,8 +1673,20 @@ export class HomeSettingTab extends PluginSettingTab {
 			.setDesc(s.capabilitiesDesc);
 		capabilities.controlEl.createDiv({
 			cls: "hearth-operon-caps",
-			text: OPERON_READ_CAPABILITIES.join(", "),
+			// What Operon was actually sent, which widens with the writes
+			// toggle — a list that always showed the reads would understate the
+			// grant the user is being asked to approve.
+			text: operonCapabilities(settings.operonWrites).join(", "),
 		});
+		// Approved for reads, but the writes the user asked for haven't been
+		// granted: the cards read fine and simply offer no drag or "+", which is
+		// confusing without saying why.
+		if (settings.operonWrites && connected?.state === "ready" && !connected.canWrite) {
+			capabilities.descEl.createDiv({
+				cls: "hearth-operon-caps-missing",
+				text: s.writesPending,
+			});
+		}
 		// Only meaningful once a session has actually been attempted and came
 		// back short of what was asked for.
 		if (connected && connected.state !== "ready" && connected.missing.length > 0) {

@@ -1,4 +1,4 @@
-import { type App, Setting, setIcon, type Component } from "obsidian";
+import { type App, Menu, Notice, Setting, setIcon, type Component } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { formatRelativeDate, localDayKey } from "../dates";
 import { addResetButton } from "../editors";
@@ -6,6 +6,8 @@ import { t } from "../i18n";
 import {
 	boardColumns,
 	cachedTaxonomy,
+	canWrite,
+	createTask,
 	dueRange,
 	dueState,
 	findPriority,
@@ -14,6 +16,7 @@ import {
 	formatElapsed,
 	groupByDay,
 	isClosed,
+	isMutable,
 	isOperonAvailable,
 	isOperonPlatformSupported,
 	OPERON_PLUGIN_ID,
@@ -25,18 +28,21 @@ import {
 	retryDelayMs,
 	sortTasks,
 	taskDay,
+	transitionTask,
 	warmTaxonomy,
 	type OperonAccessError,
 	type OperonAccessState,
+	type OperonConfirm,
 	type OperonResult,
 	type OperonSortKey,
 	type OperonStatus,
 	type OperonTask,
 	type OperonTaskPage,
 	type OperonTaxonomy,
+	type OperonWriteResult,
 } from "../operon";
 import { type DashboardCard, type OperonConfig } from "../types";
-import { makeClickable } from "../ui";
+import { confirmAction, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -139,25 +145,39 @@ function mountAsync<T>(
 	body: HTMLElement,
 	component: Component,
 	load: () => Promise<T>,
-	draw: (value: T, host: HTMLElement) => void,
+	draw: (value: T, host: HTMLElement, reload: () => void) => void,
 ): void {
 	const host = body.createDiv("hearth-operon");
-	host.createDiv({ cls: "hearth-operon-loading", text: t().cards.operon.loading });
 	let alive = true;
 	component.register(() => {
 		alive = false;
 	});
-	void load()
-		.then((value) => {
-			if (!alive) return;
-			host.empty();
-			draw(value, host);
-		})
-		.catch((err: unknown) => {
-			if (!alive) return;
-			host.empty();
-			renderReadFailure(host, err instanceof Error ? err.message : String(err));
-		});
+
+	// A write refreshes its own card. Operon persists to Markdown, so the vault
+	// hub will redraw this card anyway — but only once Obsidian notices the
+	// file, which is after the drop animation has already ended. Re-reading
+	// immediately is what makes a dropped card land where it was dropped.
+	//
+	// `generation` is the same guard the calendar overlay uses: an older read
+	// resolving last must not overwrite a newer one's result.
+	let generation = 0;
+	const run = () => {
+		const mine = ++generation;
+		host.empty();
+		host.createDiv({ cls: "hearth-operon-loading", text: t().cards.operon.loading });
+		void load()
+			.then((value) => {
+				if (!alive || mine !== generation) return;
+				host.empty();
+				draw(value, host, run);
+			})
+			.catch((err: unknown) => {
+				if (!alive || mine !== generation) return;
+				host.empty();
+				renderReadFailure(host, err instanceof Error ? err.message : String(err));
+			});
+	};
+	run();
 }
 
 
@@ -275,7 +295,16 @@ function renderDueChip(row: HTMLElement, task: OperonTask, today: string): void 
 	if (!task.dates.due) chip.addClass("is-scheduled");
 }
 
-/** One task row, shared by the list, board and agenda views. */
+/** How the board offers a status change on one row: dragging it, or picking a
+ * column from its context menu. Only the board passes this — the list and the
+ * agenda have no columns to move between. */
+interface OperonMove {
+	columns: readonly OperonStatus[];
+	to: (task: OperonTask, statusId: string) => void;
+}
+
+/** One task row, shared by the list, board and agenda views. `move` is passed
+ * only by the board, and only when Operon will actually accept the change. */
 function renderTaskRow(
 	view: HomeView,
 	cfg: OperonConfig,
@@ -283,9 +312,44 @@ function renderTaskRow(
 	task: OperonTask,
 	taxonomy: OperonTaxonomy | null,
 	today: string,
+	move?: OperonMove,
 ): void {
 	const row = parent.createDiv("hearth-list-item hearth-task hearth-operon-task");
 	row.toggleClass("is-done", isClosed(task));
+
+	// A task Operon flags as unsafe to target (a duplicated or legacy id) stays
+	// put: better an undraggable row than a drop that is refused.
+	if (move && isMutable(task)) {
+		row.setAttribute("draggable", "true");
+		row.addEventListener("dragstart", (e) => {
+			e.dataTransfer?.setData(DRAG_TYPE, task.identity.operonId);
+			// Copy is wrong (nothing is duplicated) and so is link; a status
+			// change is a move.
+			if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+			row.addClass("is-dragging");
+		});
+		row.addEventListener("dragend", () => row.removeClass("is-dragging"));
+
+		// The same move without a mouse. A drag is the only way to reach a
+		// pointer-free status change otherwise, and Obsidian's own menu is
+		// keyboard-navigable and opens from the context-menu key.
+		row.addEventListener("contextmenu", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			const menu = new Menu();
+			menu.addItem((item) => item.setTitle(t().cards.operon.moveTo).setIsLabel(true));
+			for (const status of move.columns) {
+				if (status.id === task.workflow?.status.id) continue;
+				menu.addItem((item) =>
+					item
+						.setTitle(status.label)
+						.setIcon(status.isFinished ? "check" : status.isCancelled ? "x" : "circle")
+						.onClick(() => move.to(task, status.id)),
+				);
+			}
+			menu.showAtMouseEvent(e);
+		});
+	}
 
 	const title = task.description || t().cards.operon.untitled;
 	row.createDiv({ cls: "hearth-list-label hearth-task-text", text: title });
@@ -320,6 +384,154 @@ function renderTaskRow(
 	row.addEventListener("click", open);
 	makeClickable(row, open, title);
 }
+
+// ---- Writes --------------------------------------------------------------
+
+/**
+ * Whether this card may offer its write controls.
+ *
+ * Three conditions, checked at draw time rather than remembered: the
+ * integration is on, the vault opted into writes, and Operon's session says the
+ * grant actually covers them. A card that offers a drag handle it cannot honour
+ * is worse than one that offers none.
+ */
+function writesEnabled(view: HomeView): boolean {
+	const settings = view.plugin.settings;
+	if (!settings.operonIntegration || !settings.operonWrites) return false;
+	return canWrite(view.plugin.operon.access());
+}
+
+/** Ask before applying a plan Operon flagged as needing consent or as more than
+ * routine. Operon owns the risk assessment; Hearth just relays it. */
+function confirmPlan(view: HomeView): OperonConfirm {
+	return (plan) =>
+		new Promise<boolean>((resolve) => {
+			confirmAction(view.app, {
+				title: t().cards.operon.confirmTitle,
+				message: t().cards.operon.confirmMessage(
+					plan.riskLevel,
+					plan.predictedEffects.map((effect) => effect.summary).join("; "),
+				),
+				confirmText: t().cards.operon.confirmApply,
+				onConfirm: () => resolve(true),
+				// A dismissed dialog is a "no": the plan is abandoned, and the
+				// card must not be left waiting on an answer that never comes.
+				onDismiss: () => resolve(false),
+			});
+		});
+}
+
+/**
+ * Report a finished write and refresh the card.
+ *
+ * The `unknown` outcome gets its own message on purpose. Operon uses it to say
+ * the mutation may have landed, and Hearth has already spent its one legal
+ * recovery attempt by this point — so the honest thing is to say the state is
+ * uncertain and let the reload show whatever Operon now reports, rather than
+ * claiming success or offering a retry that could write twice.
+ */
+function settleWrite(result: OperonWriteResult, reload: () => void, undo?: () => void): void {
+	if (result.ok) {
+		reload();
+		return;
+	}
+	// Declining the confirmation is not an event to report — but the control
+	// that put itself into an in-flight state has to come back out of it, or a
+	// dismissed dialog leaves a dimmed board or a frozen form behind.
+	if (result.cancelled) {
+		undo?.();
+		return;
+	}
+	if (result.outcome === "unknown") {
+		new Notice(t().notices.operonWriteUnknown(result.reason));
+		reload();
+		return;
+	}
+	new Notice(t().notices.operonWriteFailed(result.reason));
+	reload();
+}
+
+/** The MIME-ish key a dragged Operon task travels under. Distinct from the
+ * tasks card's `text/plain` index so the two boards can never accept each
+ * other's drags — the payload is an Operon id, meaningless anywhere else. */
+const DRAG_TYPE = "application/hearth-operon-task";
+
+/**
+ * A one-line "+ Add task" control, mirroring the Kanban quick-add in the tasks
+ * card: a button that becomes a field, Enter commits, Escape cancels.
+ *
+ * Where the task lands — which note, inline or as its own file — is Operon's
+ * decision, taken from its own settings. The card only supplies the text, the
+ * column it was dropped into, and an optional due date.
+ */
+function renderQuickAdd(
+	view: HomeView,
+	parent: HTMLElement,
+	statusId: string | undefined,
+	reload: () => void,
+): void {
+	const addBtn = parent.createDiv({ cls: "hearth-kanban-add hearth-operon-add" });
+	setIcon(addBtn.createSpan("hearth-kanban-add-icon"), "plus");
+	addBtn.createSpan({ cls: "hearth-kanban-add-label", text: t().cards.operon.addTask });
+	addBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		addBtn.hide();
+		const form = parent.createDiv({ cls: "hearth-kanban-add-form hearth-operon-add-form" });
+		const input = form.createEl("input", {
+			cls: "hearth-kanban-add-input",
+			attr: { type: "text", placeholder: t().cards.operon.addTaskPlaceholder },
+		});
+		const due = form.createEl("input", {
+			cls: "hearth-operon-add-due",
+			attr: { type: "date", "aria-label": t().cards.operon.addTaskDue },
+		});
+
+		let committed = false;
+		const cancel = () => {
+			if (committed) return;
+			form.remove();
+			addBtn.show();
+		};
+		const commit = () => {
+			if (committed) return;
+			const text = input.value.trim();
+			if (!text) return cancel();
+			committed = true;
+			form.addClass("is-busy");
+			void createTask(
+				view.plugin.operon,
+				{ description: text, statusId, due: due.value || undefined },
+				confirmPlan(view),
+			).then((result) =>
+				settleWrite(result, reload, () => {
+					// Hand the half-typed task back rather than discarding it.
+					committed = false;
+					form.removeClass("is-busy");
+					input.focus();
+				}),
+			);
+		};
+		input.addEventListener("keydown", (ke) => {
+			if (ke.key === "Enter") {
+				ke.preventDefault();
+				commit();
+			} else if (ke.key === "Escape") {
+				ke.preventDefault();
+				cancel();
+			}
+		});
+		// Clicking away commits what was typed, the same as the tasks card —
+		// but not when focus merely moved to the date field beside it.
+		form.addEventListener("focusout", () => {
+			window.setTimeout(() => {
+				if (!form.isConnected || form.contains(activeDocument.activeElement)) return;
+				commit();
+			}, 0);
+		});
+		input.focus();
+	});
+}
+
 
 /** "Showing 10 of 42" — Operon reports what it had to leave out, and dropping
  * that quietly is how a dashboard starts lying about the size of a backlog. */
@@ -358,7 +570,7 @@ function renderList(
 			const taxonomy = await loadTaxonomy(view.plugin.operon);
 			return { taxonomy, result: await loadTasks(view, cfg, today, limit) };
 		},
-		({ taxonomy, result }, host) => {
+		({ taxonomy, result }, host, reload) => {
 			if (!result.ok) {
 				renderReadFailure(host, result.error.reason);
 				return;
@@ -366,12 +578,17 @@ function renderList(
 			const tasks = sortTasks(result.value.tasks, sortKeyOf(cfg), !!cfg.sortReverse, taxonomy);
 			if (tasks.length === 0) {
 				emptyState(host, "check", t().cards.empty.operonNoTasks);
+				// An empty list is exactly where adding one is most useful.
+				if (writesEnabled(view)) renderQuickAdd(view, host, undefined, reload);
 				return;
 			}
 			renderStaleness(host, result.freshness.verified);
 			const listEl = host.createDiv("hearth-list hearth-tasks");
 			for (const task of tasks) renderTaskRow(view, cfg, listEl, task, taxonomy, today);
 			renderTruncation(host, result.value.page);
+			// No status: a list spans every column, so the new task takes
+			// whichever status Operon starts one in.
+			if (writesEnabled(view)) renderQuickAdd(view, host, undefined, reload);
 		},
 	);
 }
@@ -443,7 +660,7 @@ function renderBoard(
 			const limit = Math.min(countOf(cfg) * Math.max(1, columns.length), BOARD_MAX_LIMIT);
 			return { taxonomy, columns, result: await loadTasks(view, cfg, today, limit) };
 		},
-		({ taxonomy, columns, result }, host) => {
+		({ taxonomy, columns, result }, host, reload) => {
 			if (!result.ok) {
 				renderReadFailure(host, result.error.reason);
 				return;
@@ -465,7 +682,24 @@ function renderBoard(
 				else byStatus.set(id, [task]);
 			}
 
-			const board = host.createDiv("hearth-kanban hearth-operon-board");
+			const writes = writesEnabled(view);
+			// One place a status change happens, whether it arrived by drag or
+			// from the row's menu — so both paths get the same in-flight
+			// guarding, the same confirmation and the same reload.
+			let board: HTMLElement;
+			const moveTask = (task: OperonTask, statusId: string) => {
+				board.addClass("is-writing");
+				void transitionTask(view.plugin.operon, task, statusId, confirmPlan(view)).then(
+					(outcome) => settleWrite(outcome, reload, () => board.removeClass("is-writing")),
+				);
+			};
+			// A drop carries an Operon id, not a row index: the board re-reads
+			// between renders, so an index would address a different task by
+			// the time it is used.
+			const dragged = new Map<string, OperonTask>();
+			for (const task of result.value.tasks) dragged.set(task.identity.operonId, task);
+
+			board = host.createDiv("hearth-kanban hearth-operon-board");
 			for (const status of columns) {
 				const colEl = board.createDiv("hearth-kanban-col");
 				const head = colEl.createDiv("hearth-kanban-col-head");
@@ -479,9 +713,44 @@ function renderBoard(
 				);
 				head.createSpan({ cls: "hearth-kanban-col-count", text: String(tasks.length) });
 				const colBody = colEl.createDiv("hearth-kanban-col-body");
-				for (const task of tasks.slice(0, countOf(cfg))) {
-					renderTaskRow(view, cfg, colBody, task, taxonomy, today);
+
+				if (writes) {
+					colBody.addEventListener("dragover", (e) => {
+						if (!e.dataTransfer?.types.includes(DRAG_TYPE)) return;
+						e.preventDefault();
+						e.dataTransfer.dropEffect = "move";
+						colBody.addClass("is-drop-target");
+					});
+					colBody.addEventListener("dragleave", () => colBody.removeClass("is-drop-target"));
+					colBody.addEventListener("drop", (e) => {
+						colBody.removeClass("is-drop-target");
+						const id = e.dataTransfer?.getData(DRAG_TYPE);
+						if (!id) return;
+						e.preventDefault();
+						const task = dragged.get(id);
+						if (!task) return;
+						// Operon decides whether the move is legal; the card
+						// only says where it was dropped. The board is greyed
+						// while the write is in flight so the same drag can't
+						// be applied twice.
+						moveTask(task, status.id);
+					});
 				}
+
+				for (const task of tasks.slice(0, countOf(cfg))) {
+					renderTaskRow(
+						view,
+						cfg,
+						colBody,
+						task,
+						taxonomy,
+						today,
+						writes ? { columns, to: moveTask } : undefined,
+					);
+				}
+				// Adding into a column means adding *with that status*, which is
+				// the one thing a board's "+" can say that a list's cannot.
+				if (writes) renderQuickAdd(view, colBody, status.id, reload);
 			}
 			renderTruncation(host, result.value.page);
 		},

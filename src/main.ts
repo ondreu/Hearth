@@ -53,7 +53,7 @@ export default class HearthPlugin extends Plugin {
 	 * one capability grant and one session — not one per card. Nothing is
 	 * negotiated here: the session opens lazily, the first time a card (or the
 	 * settings readout) actually asks for it. */
-	operon = new OperonSession(this);
+	operon = new OperonSession(this, () => this.settings.operonWrites);
 
 	/** Home-view leaves that have already been the active leaf at least once.
 	 * Their first activation was the fresh onOpen render, so the focus refresh

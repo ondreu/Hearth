@@ -178,15 +178,28 @@ issue or email.
   Operon by choosing one of its own scopes (*Happening today*, *Overdue*,
   *Recently touched*). Clicking a task opens its note, landing on the exact line
   for an inline task. Hearth reads through the API and never parses Operon's
-  notes, so recurrence, statuses and completion stay Operon's to define. It is
-  **read-only**: nothing here changes a task.
+  notes, so recurrence, statuses and completion stay Operon's to define.
+
+  **Reading is the default; changing is a choice.** Switch on *Allow changes*
+  (Settings → Hearth → Integrations → Operon) and the board card lets you
+  **drag a task into another status column** (or pick one from the row's
+  right-click menu, so it works without a mouse), and every card grows a **+** that
+  creates one — where Operon's own settings say a new task goes, inline or as
+  its own note. Operon runs both: Hearth previews the change, Operon rates it
+  and applies it, and anything it flags as more than routine is confirmed with
+  you first. A move carries the status the board was drawn from, so a drag onto
+  a stale board is refused rather than quietly undoing someone else's change.
+  Leave the switch off and Hearth can only read — no drag handles, no **+**,
+  and no permission to change anything is ever requested.
 
   Two things to know before adding one. Operon's developer API is **desktop-only
   and needs Obsidian 1.12.2 or newer**, and it requires **your approval** —
   Hearth's first request appears in **Settings → Operon → Core → General →
-  Developer API Integrations**, where you approve the read capabilities it asked
-  for. Until then the cards say exactly what they're waiting for. See
-  Settings → Hearth → Integrations for the connection status and a kill switch.
+  Developer API Integrations**, where you approve the capabilities it asked
+  for. Until then the cards say exactly what they're waiting for. Operon grants
+  all-or-nothing, so turning *Allow changes* on widens the request and needs a
+  fresh approval there. See Settings → Hearth → Integrations for the connection
+  status, what was requested, and a kill switch.
 
 **Time & data**
 
