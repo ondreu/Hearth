@@ -133,6 +133,144 @@ describe("parseIcs — basic parsing", () => {
 	});
 });
 
+describe("parseIcs — per-instance overrides (RECURRENCE-ID)", () => {
+	const day = 86400_000;
+	const base = Date.UTC(2026, 6, 20, 9, 0, 0); // Mon 20 Jul 2026, 09:00Z
+
+	/** A daily series plus one instance moved to another day, exactly as Google
+	 * Calendar publishes it after dragging an occurrence (issue #232): the master
+	 * keeps its RRULE and gains no EXDATE, and a second VEVENT with the same UID
+	 * names the original start it replaces. */
+	function movedInstance(...extra: string[]): string {
+		return cal(
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup",
+				"DTSTART:20260720T090000Z",
+				"DTEND:20260720T093000Z",
+				"RRULE:FREQ=DAILY;COUNT=3",
+			),
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup",
+				"RECURRENCE-ID:20260721T090000Z",
+				"DTSTART:20260722T140000Z",
+				"DTEND:20260722T143000Z",
+				...extra,
+			),
+		);
+	}
+
+	it("moves the overridden instance instead of duplicating it", () => {
+		const parsed = parseIcs(movedInstance())!;
+		const occ = expandEvents(parsed.events, base, base + 30 * day);
+		expect(occ.map((o) => o.start).sort((a, b) => a - b)).toEqual([
+			base, // Mon, from the series
+			base + 2 * day, // Wed, from the series
+			Date.UTC(2026, 6, 22, 14, 0, 0), // the Tue instance, moved to Wed 14:00
+		]);
+	});
+
+	it("excludes the original start from the series", () => {
+		const master = parseIcs(movedInstance())!.events[0];
+		expect(master.exdates).toContain(Date.UTC(2026, 6, 21, 9, 0, 0));
+	});
+
+	it("does not let an override repeat as its own series", () => {
+		// Some feeds copy the master's RRULE onto the override; a single-instance
+		// override must stay a single instance regardless.
+		const parsed = parseIcs(movedInstance("RRULE:FREQ=DAILY;COUNT=3"))!;
+		const override = parsed.events.find((e) => e.start === Date.UTC(2026, 6, 22, 14, 0, 0))!;
+		expect(override.rrule).toBeNull();
+	});
+
+	it("drops a cancelled instance from the series", () => {
+		const doc = cal(
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup",
+				"DTSTART:20260720T090000Z",
+				"RRULE:FREQ=DAILY;COUNT=3",
+			),
+			vevent(
+				"UID:series@example.com",
+				"RECURRENCE-ID:20260721T090000Z",
+				"DTSTART:20260721T090000Z",
+				"STATUS:CANCELLED",
+			),
+		);
+		const occ = expandEvents(parseIcs(doc)!.events, base, base + 30 * day);
+		expect(occ.map((o) => o.start)).toEqual([base, base + 2 * day]);
+	});
+
+	it("drops a cancelled one-off event", () => {
+		const doc = cal(vevent("UID:x", "SUMMARY:Off", "DTSTART:20260720T090000Z", "STATUS:CANCELLED"));
+		expect(parseIcs(doc)!.events).toHaveLength(0);
+	});
+
+	it("keeps an override whose master is not in the feed", () => {
+		const doc = cal(
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup",
+				"RECURRENCE-ID:20260721T090000Z",
+				"DTSTART:20260722T140000Z",
+			),
+		);
+		const occ = expandEvents(parseIcs(doc)!.events, base, base + 30 * day);
+		expect(occ.map((o) => o.start)).toEqual([Date.UTC(2026, 6, 22, 14, 0, 0)]);
+	});
+
+	it("truncates the series at a RANGE=THISANDFUTURE override", () => {
+		const doc = cal(
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup",
+				"DTSTART:20260720T090000Z",
+				"RRULE:FREQ=DAILY",
+			),
+			vevent(
+				"UID:series@example.com",
+				"SUMMARY:Standup, later",
+				"RECURRENCE-ID;RANGE=THISANDFUTURE:20260722T090000Z",
+				"DTSTART:20260722T140000Z",
+			),
+		);
+		const occ = expandEvents(parseIcs(doc)!.events, base, base + 4 * day);
+		expect(occ.map((o) => o.start).sort((a, b) => a - b)).toEqual([
+			base, // Mon 09:00
+			base + day, // Tue 09:00
+			Date.UTC(2026, 6, 22, 14, 0, 0), // Wed onwards at 14:00
+			Date.UTC(2026, 6, 23, 14, 0, 0),
+		]);
+	});
+
+	it("matches an all-day override on its date", () => {
+		const doc = cal(
+			vevent(
+				"UID:allday@example.com",
+				"SUMMARY:Sprint day",
+				"DTSTART;VALUE=DATE:20260720",
+				"DTEND;VALUE=DATE:20260721",
+				"RRULE:FREQ=DAILY;COUNT=2",
+			),
+			vevent(
+				"UID:allday@example.com",
+				"SUMMARY:Sprint day",
+				"RECURRENCE-ID;VALUE=DATE:20260721",
+				"DTSTART;VALUE=DATE:20260725",
+				"DTEND;VALUE=DATE:20260726",
+			),
+		);
+		const start = new Date(2026, 6, 20).getTime();
+		const occ = expandEvents(parseIcs(doc)!.events, start, start + 30 * day);
+		expect(occ.map((o) => o.start).sort((a, b) => a - b)).toEqual([
+			start,
+			new Date(2026, 6, 25).getTime(),
+		]);
+	});
+});
+
 describe("parseIcsDate", () => {
 	it("parses UTC datetimes", () => {
 		expect(parseIcsDate("20260720T130000Z")).toBe(Date.UTC(2026, 6, 20, 13, 0, 0));
