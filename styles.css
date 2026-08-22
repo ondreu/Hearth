@@ -1954,6 +1954,14 @@
 	cursor: pointer;
 }
 
+/* A Recent files card set to "fit to card height" renders every file it
+   remembers and then clips the rows past the card's edge, so the visible count
+   follows the card's size (#228). display:none rather than visibility so the
+   hidden rows take no space and the flex column doesn't scroll. */
+.hearth-list-item-clipped {
+	display: none;
+}
+
 .hearth-list-item:hover {
 	background: var(--background-modifier-hover);
 }

@@ -1546,8 +1546,14 @@ export const en = {
 			refreshIntervalAria: "Refresh interval in seconds",
 		},
 		recent: {
+			fit: "Fit to card height",
+			fitDesc:
+				"List as many files as the card is tall enough to show, instead of a " +
+				"fixed number. Resizing the card changes how many appear.",
 			count: "Number of files",
-			countDesc: "How many recently-opened files to list.",
+			countDesc: (max: number) =>
+				`How many recently-opened files to list — at most ${max}, which is as ` +
+				`far back as Hearth's recent-file history goes.`,
 			types: "File types",
 			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
 		},

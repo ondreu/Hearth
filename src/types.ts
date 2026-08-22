@@ -1303,8 +1303,13 @@ export interface DashboardCard {
 	commands?: CommandItem[];
 	/** kind === "templater": the new-note-from-template tiles. */
 	templater?: TemplaterConfig;
-	/** kind === "recent": how many recent files to show. */
+	/** kind === "recent": how many recent files to show. Clamped to what Hearth's
+	 * own recent-file history can hold (see RECENT_HISTORY_MAX); ignored when
+	 * `recentAuto` is on. */
 	count?: number;
+	/** kind === "recent": show as many files as fit the card's height instead of
+	 * a fixed count. Undefined/false is the fixed-count behaviour. */
+	recentAuto?: boolean;
 	/** kind === "recent": file-type group ids (see FILE_TYPE_GROUPS) to include.
 	 * Any combination of the search filter's types; undefined or empty means all
 	 * types are shown. */
