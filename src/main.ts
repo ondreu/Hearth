@@ -16,6 +16,7 @@ import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
 import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
+import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
@@ -154,6 +155,19 @@ export default class HearthPlugin extends Plugin {
 		this.registerEvent(this.app.vault.on("delete", onVaultChange));
 		this.registerEvent(this.app.vault.on("rename", onVaultChange));
 		this.registerEvent(this.app.vault.on("modify", onVaultChange));
+
+		// Hearth's own recent-file history (#228). Obsidian's getLastOpenFiles()
+		// stops at ten entries, so a Recent files card asking for more has to be
+		// told about opens as they happen; a rename is followed so a moved file
+		// keeps its place instead of vanishing from the list.
+		this.registerEvent(
+			this.app.workspace.on("file-open", (file) => recordRecentFile(this.app, file)),
+		);
+		this.registerEvent(
+			this.app.vault.on("rename", (file, oldPath) =>
+				renameRecentFile(this.app, oldPath, file.path),
+			),
+		);
 
 		// Follow core-Workspace loads: when the active workspace matches a
 		// dashboard's linked workspace, switch to that dashboard. There is no

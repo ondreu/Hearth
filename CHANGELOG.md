@@ -241,6 +241,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Recent files shows every file you asked for — or as many as the card is
+  tall.** Setting **Number of files** to 15 listed ten and left the rest of the
+  card empty, because Obsidian's own recent-files list stops at ten entries and
+  no amount of asking afterwards makes it longer. Hearth now keeps its own
+  recent-file history — up to 50 files, deduplicated, most recent first, stored
+  per vault on this machine like Obsidian's own and following renames — so a
+  larger number is a number the card can actually fill. The setting is clamped
+  to what that history holds rather than accepting a value it would quietly
+  ignore. And a new **Fit to card height** toggle lists as many files as the
+  card has room for, so a tall card fills instead of ending in a band of unused
+  space, and resizing it changes how many appear.
 - **Arranging a fit-to-page board keeps the arrangement.** On a board whose
   cards are taller than the pane — which is what happens as soon as you zoom
   Obsidian in, so it depended on your screen and zoom level rather than on

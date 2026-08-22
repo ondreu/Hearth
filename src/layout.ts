@@ -349,6 +349,7 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	const background = str(r.background);
 	if (background !== undefined) card.background = background;
 	if (typeof r.count === "number") card.count = r.count;
+	if (typeof r.recentAuto === "boolean") card.recentAuto = r.recentAuto;
 	if (typeof r.scale === "number") card.scale = r.scale;
 	const cardImageFit = sanitizeImageFit(r.imageFit);
 	if (cardImageFit !== undefined) card.imageFit = cardImageFit;
