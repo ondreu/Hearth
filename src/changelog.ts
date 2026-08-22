@@ -14,6 +14,9 @@ export interface ChangelogEntry {
 	url: string;
 	/** The section body — everything under the heading, reflowed for display. */
 	markdown: string;
+	/** The same body, split into `### …` sections of headline/detail items —
+	 * what the "What's new" dialog draws. See {@link parseSections}. */
+	sections: ChangelogSection[];
 }
 
 /**
@@ -132,12 +135,16 @@ export function parseChangelog(md: string): ChangelogEntry[] {
 		// Lines before the first heading are the file preamble — ignored.
 	}
 
-	return entries.map((e) => ({
-		version: e.version,
-		date: e.date,
-		url: urls.get(e.version) ?? "",
-		markdown: reflowMarkdown(e.body.join("\n")),
-	}));
+	return entries.map((e) => {
+		const markdown = reflowMarkdown(e.body.join("\n"));
+		return {
+			version: e.version,
+			date: e.date,
+			url: urls.get(e.version) ?? "",
+			markdown,
+			sections: parseSections(markdown),
+		};
+	});
 }
 
 /** The numeric release components of a version, ignoring any pre-release suffix
@@ -161,4 +168,190 @@ export function isNewer(a: string, b: string): boolean {
 		if (x !== y) return x > y;
 	}
 	return false;
+}
+
+/* ── Structured entries: sections and headline/detail items ───────────────
+ *
+ * `CHANGELOG.md` is written to a house style the dialog can lean on: each
+ * release is split into `### Added` / `### Changed` / `### Fixed` sections, and
+ * every bullet opens with a bold sentence saying what changed, followed by the
+ * paragraphs that explain it. Rendering the section body as one block of
+ * Markdown therefore produces a wall of text — several screens of it for a
+ * release like 2.0.0. Splitting it back into (headline, details) pairs lets the
+ * dialog show the headlines as a scannable list and keep each explanation
+ * folded away until it's asked for.
+ */
+
+/** The Keep-a-Changelog section a bullet sits under, normalised. */
+export type ChangeKind = "added" | "changed" | "fixed" | "removed" | "deprecated" | "security" | "other";
+
+/** One bullet from a release section, split into what changed and why. */
+export interface ChangelogItem {
+	/** The bullet's opening bold sentence — the one-line summary. Markdown. */
+	headline: string;
+	/** Everything after the headline: the explanation, as Markdown. May be
+	 * empty, in which case the item is a headline and nothing more. */
+	details: string;
+	/** Issue numbers from the trailing `(#123)` reference, without the `#`.
+	 * Lifted out of {@link details} so the dialog can show them as links. */
+	issues: string[];
+}
+
+/** One `### …` section of a release. */
+export interface ChangelogSection {
+	/** The normalised section kind, for the label and icon. */
+	kind: ChangeKind;
+	/** The heading as written, e.g. `Added`. */
+	label: string;
+	/** The section's bullets, in file order. */
+	items: ChangelogItem[];
+	/** Any prose that isn't a bullet (rare — a section intro). Markdown. */
+	prose: string;
+}
+
+/** A `### Added`-style section heading. */
+const SECTION_RE = /^###\s+(.+?)\s*$/;
+/** A top-level list bullet (a nested one is indented, so it stays in details). */
+const BULLET_RE = /^[-*+]\s+(.*)$/;
+/** The bold sentence a bullet opens with. */
+const HEADLINE_RE = /^\*\*(.+?)\*\*[ \t]*/;
+/** The `(#123)` — or `(#123, #124)` — reference bullets close with, which the
+ * house style writes inside the closing full stop: `… as any other (#229).` */
+const ISSUE_REF_RE = /\s*\((#\d+(?:\s*,\s*#\d+)*)\)(\.?)\s*$/;
+
+/** Map a section heading to a known kind, so unknown headings still render. */
+function sectionKind(label: string): ChangeKind {
+	const l = label.toLowerCase();
+	for (const kind of ["added", "changed", "fixed", "removed", "deprecated", "security"] as const) {
+		if (l.startsWith(kind)) return kind;
+	}
+	return "other";
+}
+
+/**
+ * Split one bullet's Markdown into a headline and the details beneath it.
+ *
+ * The house style opens every bullet with `**A bold sentence.**`, which becomes
+ * the headline verbatim. Without one, the bullet's first sentence stands in —
+ * truncating nothing, since the whole first line is kept as the headline when
+ * it is short and the rest becomes details.
+ */
+export function splitItem(md: string): ChangelogItem {
+	const trimmed = md.trim();
+	const bold = HEADLINE_RE.exec(trimmed);
+
+	let headline: string;
+	let rest: string;
+	if (bold) {
+		headline = bold[1].trim();
+		rest = trimmed.slice(bold[0].length);
+	} else {
+		// No bold lead: break at the first sentence end on the opening line, so
+		// there is still something short to scan.
+		const firstLine = trimmed.split("\n")[0];
+		const stop = /[.!?](\s|$)/.exec(firstLine);
+		const cut = stop && stop.index < 160 ? stop.index + 1 : firstLine.length;
+		headline = firstLine.slice(0, cut).trim();
+		rest = trimmed.slice(cut);
+	}
+
+	// The trailing issue reference belongs to the item, not its prose — the
+	// dialog draws it as a link beside the headline.
+	const issues: string[] = [];
+	let details = rest.replace(/^[ \t]+/, "").trimEnd();
+	const refs = ISSUE_REF_RE.exec(details) ?? ISSUE_REF_RE.exec(headline);
+	if (refs) {
+		for (const n of refs[1].split(",")) issues.push(n.trim().replace(/^#/, ""));
+		// The full stop the reference sat inside stays with the sentence.
+		if (ISSUE_REF_RE.test(details)) details = details.replace(ISSUE_REF_RE, refs[2]);
+		else headline = headline.replace(ISSUE_REF_RE, refs[2]);
+	}
+
+	return { headline: headline.trim(), details: details.trim(), issues };
+}
+
+/**
+ * Split a release body (as produced by {@link reflowMarkdown}) into its
+ * sections, each split into headline/detail items. A body with no `###`
+ * headings yields a single `other` section, so a hand-written release still
+ * renders; bullet-less prose is kept in {@link ChangelogSection.prose}.
+ */
+export function parseSections(md: string): ChangelogSection[] {
+	const sections: ChangelogSection[] = [];
+	let current: ChangelogSection | null = null;
+	/** Raw lines of the bullet being accumulated, and the loose prose lines. */
+	let bullet: string[] | null = null;
+	let prose: string[] = [];
+	let inFence = false;
+
+	const openSection = (label: string) => {
+		flushBullet();
+		flushProse();
+		current = { kind: sectionKind(label), label, items: [], prose: "" };
+		sections.push(current);
+	};
+	const ensureSection = () => {
+		if (!current) openSection("");
+		return current as ChangelogSection;
+	};
+	const flushBullet = () => {
+		if (bullet && current) {
+			const item = splitItem(dedent(bullet.join("\n")));
+			if (item.headline || item.details) current.items.push(item);
+		}
+		bullet = null;
+	};
+	const flushProse = () => {
+		const text = prose.join("\n").trim();
+		if (text && current) current.prose = `${current.prose}\n\n${text}`.trim();
+		prose = [];
+	};
+
+	for (const line of md.split("\n")) {
+		if (FENCE_RE.test(line)) inFence = !inFence;
+
+		if (!inFence) {
+			const heading = SECTION_RE.exec(line);
+			if (heading) {
+				openSection(heading[1]);
+				continue;
+			}
+			const item = BULLET_RE.exec(line);
+			if (item) {
+				ensureSection();
+				flushBullet();
+				flushProse();
+				bullet = [item[1]];
+				continue;
+			}
+		}
+
+		// A blank or indented line continues the bullet it follows; anything at
+		// column zero (outside a bullet) is the section's own prose.
+		if (bullet && (line.trim() === "" || /^\s/.test(line) || inFence)) {
+			bullet.push(line);
+			continue;
+		}
+		flushBullet();
+		if (line.trim() !== "" || prose.length) {
+			ensureSection();
+			prose.push(line);
+		}
+	}
+	flushBullet();
+	flushProse();
+
+	return sections.filter((s) => s.items.length > 0 || s.prose !== "");
+}
+
+/** Strip the common indentation from a bullet's continuation lines, so its
+ * nested lists and follow-on paragraphs render on their own. */
+function dedent(md: string): string {
+	const lines = md.split("\n");
+	const indents = lines
+		.slice(1)
+		.filter((l) => l.trim() !== "")
+		.map((l) => /^\s*/.exec(l)?.[0].length ?? 0);
+	const common = indents.length ? Math.min(...indents) : 0;
+	return [lines[0], ...lines.slice(1).map((l) => l.slice(common))].join("\n");
 }

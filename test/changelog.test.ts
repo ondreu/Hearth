@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNewer, parseChangelog, reflowMarkdown } from "../src/changelog";
+import { isNewer, parseChangelog, parseSections, reflowMarkdown, splitItem } from "../src/changelog";
 
 describe("reflowMarkdown", () => {
 	it("joins a hard-wrapped paragraph into one line", () => {
@@ -119,5 +119,102 @@ describe("isNewer", () => {
 
 	it("treats an unknown or empty seen version as older than everything", () => {
 		expect(isNewer("1.5.0", "")).toBe(true);
+	});
+});
+
+describe("splitItem", () => {
+	it("takes the bullet's bold lead sentence as the headline", () => {
+		const item = splitItem("**A slideshow card.** It cycles through pictures.");
+		expect(item.headline).toBe("A slideshow card.");
+		expect(item.details).toBe("It cycles through pictures.");
+	});
+
+	it("lifts the trailing issue reference out, keeping the full stop", () => {
+		const item = splitItem("**Snapping works.** It rounded the wrong way (#228).");
+		expect(item.issues).toEqual(["228"]);
+		expect(item.details).toBe("It rounded the wrong way.");
+	});
+
+	it("reads a multi-issue reference, and one on a headline-only bullet", () => {
+		expect(splitItem("**Fixed.** Two at once (#12, #34)").issues).toEqual(["12", "34"]);
+		const bare = splitItem("**Icons show up now (#132).**");
+		expect(bare.issues).toEqual(["132"]);
+		expect(bare.headline).toBe("Icons show up now.");
+		expect(bare.details).toBe("");
+	});
+
+	it("falls back to the first sentence when there is no bold lead", () => {
+		const item = splitItem("A plain bullet. With more after it.");
+		expect(item.headline).toBe("A plain bullet.");
+		expect(item.details).toBe("With more after it.");
+	});
+
+	it("keeps a short unpunctuated bullet whole", () => {
+		const item = splitItem("Just a short note");
+		expect(item.headline).toBe("Just a short note");
+		expect(item.details).toBe("");
+	});
+});
+
+describe("parseSections", () => {
+	const body = [
+		"### Added",
+		"",
+		"- **A new card.** It does things.",
+		"- **Another card.** It does other things (#7).",
+		"",
+		"### Fixed",
+		"",
+		"- **A bug.** It is gone now.",
+	].join("\n");
+
+	it("groups the bullets under their normalised section", () => {
+		const sections = parseSections(body);
+		expect(sections.map((s) => [s.kind, s.label, s.items.length])).toEqual([
+			["added", "Added", 2],
+			["fixed", "Fixed", 1],
+		]);
+		expect(sections[0].items[1].issues).toEqual(["7"]);
+	});
+
+	it("keeps a section's non-bullet prose separate from its items", () => {
+		const [section] = parseSections("### Changed\n\nSome preamble.\n\n- **An item.** Detail.");
+		expect(section.prose).toBe("Some preamble.");
+		expect(section.items).toHaveLength(1);
+	});
+
+	it("handles a release with no section headings at all", () => {
+		const [section] = parseSections("- **Just this.** And its detail.");
+		expect(section.kind).toBe("other");
+		expect(section.items[0].headline).toBe("Just this.");
+	});
+
+	it("leaves an unknown heading's own wording in place", () => {
+		expect(parseSections("### Notes\n\n- **A note.** Body.")[0]).toMatchObject({
+			kind: "other",
+			label: "Notes",
+		});
+	});
+
+	it("keeps an item's own paragraphs and nested lists, dedented to render", () => {
+		const [section] = parseSections(
+			["- **Headline.** First para.", "", "  Second para.", "", "  - a nested point"].join("\n"),
+		);
+		expect(section.items[0].details).toBe("First para.\n\nSecond para.\n\n- a nested point");
+	});
+
+	it("keeps a fenced code block inside the item it belongs to", () => {
+		const [section] = parseSections(
+			["### Added", "", "- **Code.** Like so:", "", "  ```js", "  - not a bullet", "  ```"].join(
+				"\n",
+			),
+		);
+		expect(section.items).toHaveLength(1);
+		expect(section.items[0].details).toContain("- not a bullet");
+	});
+
+	it("is reachable from a parsed entry", () => {
+		const [entry] = parseChangelog("## [2.0.0]\n\n### Fixed\n\n- **A bug.** Gone (#3).");
+		expect(entry.sections[0].items[0]).toMatchObject({ headline: "A bug.", issues: ["3"] });
 	});
 });

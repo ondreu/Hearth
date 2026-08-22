@@ -119,8 +119,32 @@ export const en = {
 	whatsNew: {
 		title: "What's new in Hearth",
 		intro: "Thanks for updating! Here's what's changed since you last checked.",
+		/** Shown instead of {@link intro} when there are headlines to click. */
+		introHint:
+			"Thanks for updating! Here's what's changed since you last checked — " +
+			"click any line to read the details.",
 		close: "Got it",
 		footer: "Full details live in the plugin's README.",
+		/** The Added / Changed / Fixed group labels. */
+		kinds: {
+			added: "New",
+			changed: "Changed",
+			fixed: "Fixed",
+			removed: "Removed",
+			deprecated: "Deprecated",
+			security: "Security",
+			other: "Also",
+		},
+		filterPlaceholder: "Filter changes…",
+		expandAll: "Expand all",
+		collapseAll: "Collapse all",
+		noMatches: (query: string) => `Nothing here mentions "${query}".`,
+		/** Tooltip on a version's compare/release link. */
+		releaseNotes: (version: string) => `Release notes for ${version} on GitHub`,
+		/** Label for the header row that folds a release away. */
+		releaseToggle: (version: string) => `Show or hide what changed in ${version}`,
+		/** Tooltip on the `#123` link beside a change. */
+		issue: (n: string) => `Issue #${n} on GitHub`,
 	},
 
 	// ---- First-run setup wizard ----------------------------------------
