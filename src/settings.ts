@@ -19,6 +19,12 @@ import {
 	integrationStatus,
 	type SettingsTabId,
 } from "./integrations";
+import {
+	isOperonAvailable,
+	OPERON_PLUGIN_ID,
+	operonCapabilities,
+	type OperonAccessState,
+} from "./operon";
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
@@ -454,6 +460,9 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.integrationsCatalogue(b),
 				);
 				this.section(body, s.tasks.heading, s.tasks.headingDesc, (b) => this.tasksSection(b));
+				this.section(body, s.operon.heading, s.operon.headingDesc, (b) =>
+					this.operonSection(b),
+				);
 				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
 					this.fileIconsSection(b),
 				);
@@ -1557,6 +1566,158 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 		);
+	}
+
+	// ---- Operon ---------------------------------------------------------
+
+	/** Which of Operon's states describes the connection right now, for the
+	 * readout below. Reuses the same rules the cards branch on, so the settings
+	 * pane and the dashboard never disagree about why nothing is showing. */
+	private operonStatusText(state: OperonAccessState | "idle" | "off"): string {
+		const s = t().settings.operon;
+		switch (state) {
+			case "unsupported":
+				return s.statusUnsupported;
+			case "booting":
+				return s.statusBooting;
+			case "pending":
+				return s.statusPending;
+			case "suspended":
+				return s.statusSuspended;
+			case "revoked":
+				return s.statusRevoked;
+			case "ready":
+				return s.statusReady;
+			case "idle":
+				return s.statusIdle;
+			case "off":
+				return s.statusOff;
+			case "error":
+				return s.statusError;
+			case "absent":
+			default:
+				return s.statusAbsent;
+		}
+	}
+
+	private operonSection(containerEl: HTMLElement): void {
+		const settings = this.plugin.settings;
+		const s = t().settings.operon;
+
+		new Setting(containerEl)
+			.setName(s.enable)
+			.setDesc(s.enableDesc)
+			.addToggle((tog) =>
+				tog.setValue(settings.operonIntegration).onChange((v) => {
+					settings.operonIntegration = v;
+					// Drop any live session immediately, so turning the switch off
+					// stops Hearth holding a handle to Operon rather than merely
+					// hiding the cards.
+					if (!v) this.plugin.operon.invalidate();
+					this.save();
+					this.rerender();
+				}),
+			);
+
+		// Writes are their own decision. Operon grants all-or-nothing, so turning
+		// this on widens what Hearth requests and needs a fresh approval in
+		// Operon's settings — which is why it is never on by default and why the
+		// session is dropped either way, so the next read renegotiates for the
+		// new set instead of reusing a session with the old one.
+		if (settings.operonIntegration) {
+			new Setting(containerEl)
+				.setName(s.writes)
+				.setDesc(s.writesDesc)
+				.addToggle((tog) =>
+					tog.setValue(settings.operonWrites).onChange((v) => {
+						settings.operonWrites = v;
+						this.plugin.operon.invalidate();
+						this.save();
+						this.rerender();
+					}),
+				);
+		}
+
+		// Asking for the state is what opens a session, so ask only when the user
+		// has opted in and Operon is actually there — otherwise merely opening
+		// this pane would file a capability request nobody asked for. Read once
+		// and derive everything below from it, so the status line and the
+		// missing-capability list can never describe different attempts.
+		const available = isOperonAvailable(this.plugin.app);
+		const connected = settings.operonIntegration && available
+			? this.plugin.operon.access()
+			: null;
+		const state: OperonAccessState | "idle" | "off" = connected
+			? connected.state
+			: !available
+				? "absent"
+				: settings.operonIntegration
+					? "idle"
+					: "off";
+
+		const statusRow = new Setting(containerEl)
+			.setName(s.status)
+			.setDesc(this.operonStatusText(state));
+		// Operon's own code and sentence, verbatim, whenever it gave one. This is
+		// the only place the exact refusal is visible, and it is what makes a
+		// problem reportable rather than guessable.
+		if (connected?.error) {
+			statusRow.descEl.createDiv({
+				cls: "hearth-operon-caps-missing",
+				text: `${s.detail}: ${connected.error.reasonCode ?? connected.error.code}${connected.error.reason ? ` — ${connected.error.reason}` : ""}`,
+			});
+		}
+
+		const capabilities = new Setting(containerEl)
+			.setName(s.capabilities)
+			.setDesc(s.capabilitiesDesc);
+		capabilities.controlEl.createDiv({
+			cls: "hearth-operon-caps",
+			// What Operon was actually sent, which widens with the writes
+			// toggle — a list that always showed the reads would understate the
+			// grant the user is being asked to approve.
+			text: operonCapabilities(settings.operonWrites).join(", "),
+		});
+		// Approved for reads, but the writes the user asked for haven't been
+		// granted: the cards read fine and simply offer no drag or "+", which is
+		// confusing without saying why.
+		if (settings.operonWrites && connected?.state === "ready" && !connected.canWrite) {
+			capabilities.descEl.createDiv({
+				cls: "hearth-operon-caps-missing",
+				text: s.writesPending,
+			});
+		}
+		// Only meaningful once a session has actually been attempted and came
+		// back short of what was asked for.
+		if (connected && connected.state !== "ready" && connected.missing.length > 0) {
+			capabilities.descEl.createDiv({
+				cls: "hearth-operon-caps-missing",
+				text: s.missing(connected.missing.join(", ")),
+			});
+		}
+
+		new Setting(containerEl)
+			.setName(s.recheck)
+			.setDesc(s.recheckDesc)
+			.addButton((btn) =>
+				btn.setButtonText(s.recheckAction).onClick(() => {
+					this.plugin.operon.invalidate();
+					new Notice(t().notices.operonRechecked);
+					this.rerender();
+				}),
+			);
+
+		if (!available) {
+			const link = containerEl.createEl("a", {
+				cls: "hearth-operon-install",
+				text: s.install,
+				href: `obsidian://show-plugin?id=${OPERON_PLUGIN_ID}`,
+			});
+			link.addEventListener("click", (e) => {
+				e.preventDefault();
+				window.open(link.href);
+			});
+		}
 	}
 
 	// ---- File icons (Iconic / Iconize) ----------------------------------

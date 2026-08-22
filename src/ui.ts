@@ -48,16 +48,19 @@ export class ConfirmModal extends Modal {
 	private message: string;
 	private confirmText: string;
 	private onConfirm: () => void;
+	/** Called when the dialog closes *without* confirming — dismissed with
+	 * Escape, the close button, or Cancel. Only some callers need it: one that
+	 * is awaiting an answer has to hear "no" as well as "yes". */
+	private onDismiss?: () => void;
+	private confirmed = false;
 
-	constructor(
-		app: App,
-		opts: { title: string; message: string; confirmText?: string; onConfirm: () => void },
-	) {
+	constructor(app: App, opts: ConfirmOptions) {
 		super(app);
 		this.titleEl.setText(opts.title);
 		this.message = opts.message;
 		this.confirmText = opts.confirmText ?? t().confirm.confirm;
 		this.onConfirm = opts.onConfirm;
+		this.onDismiss = opts.onDismiss;
 	}
 
 	onOpen(): void {
@@ -71,6 +74,9 @@ export class ConfirmModal extends Modal {
 			b.setButtonText(this.confirmText)
 				.setWarning()
 				.onClick(() => {
+					// Set before close() so onClose can tell a confirmed dialog
+					// from a dismissed one — close() runs first.
+					this.confirmed = true;
 					this.close();
 					this.onConfirm();
 				});
@@ -79,14 +85,21 @@ export class ConfirmModal extends Modal {
 
 	onClose(): void {
 		this.contentEl.empty();
+		if (!this.confirmed) this.onDismiss?.();
 	}
 }
 
+export interface ConfirmOptions {
+	title: string;
+	message: string;
+	confirmText?: string;
+	onConfirm: () => void;
+	/** Optional: the dialog was closed without confirming. */
+	onDismiss?: () => void;
+}
+
 /** Convenience: open a confirm dialog. */
-export function confirmAction(
-	app: App,
-	opts: { title: string; message: string; confirmText?: string; onConfirm: () => void },
-): void {
+export function confirmAction(app: App, opts: ConfirmOptions): void {
 	new ConfirmModal(app, opts).open();
 }
 

@@ -26,6 +26,14 @@ import { type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
+import {
+	isOperonAvailable,
+	isOperonPlatformSupported,
+	openOperonTask,
+	queryTasks,
+	taskDay,
+	type OperonTask,
+} from "../operon";
 
 // ---- Mini calendar -------------------------------------------------------
 
@@ -57,15 +65,21 @@ export function renderCalendar(
 	const activity = cfg.heatmap ? activityByDay(view.app, cfg.heatmapMetric ?? "modified") : null;
 
 	const ics = buildIcsContext(view, cfg, sources, component);
+	const operon = buildOperonOverlay(view, cfg, component);
 	if (cfg.view === "agenda") {
 		const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
 		const draw = () => {
 			wrap.empty();
 			const start = moment().startOf("day");
 			ics.expand(start.valueOf(), start.clone().add(days, "days").valueOf());
-			renderCalendarAgenda(view, wrap, options, cfg, activity, ics);
+			operon.expand(
+				start.format("YYYY-MM-DD"),
+				start.clone().add(days, "days").format("YYYY-MM-DD"),
+			);
+			renderCalendarAgenda(view, wrap, options, cfg, activity, ics, operon);
 		};
 		ics.onLoaded(draw);
+		operon.onLoaded(draw);
 		draw();
 		ics.start();
 		return;
@@ -93,15 +107,117 @@ export function renderCalendar(
 			cursor.clone().startOf("month").subtract(7, "days").valueOf(),
 			cursor.clone().endOf("month").add(7, "days").valueOf(),
 		);
-		renderCalendarGrid(view, wrap, cursor, options, cfg, activity, ics);
+		operon.expand(
+			cursor.clone().startOf("month").subtract(7, "days").format("YYYY-MM-DD"),
+			cursor.clone().endOf("month").add(7, "days").format("YYYY-MM-DD"),
+		);
+		renderCalendarGrid(view, wrap, cursor, options, cfg, activity, ics, operon);
 	};
 	ics.onLoaded(draw);
+	operon.onLoaded(draw);
 	draw();
 	ics.start();
 }
 
 
 
+
+/**
+ * The Operon half of a calendar card's overlay.
+ *
+ * Deliberately shaped like {@link IcsContext}: the grid and the agenda ask both
+ * overlays the same three questions — what falls on this day, what colour is
+ * it, tell me when you have more — so adding Operon needed no change to how a
+ * day cell is drawn.
+ *
+ * One caveat worth knowing: Operon's query filters range over the due date, so
+ * a task that is only *scheduled* is not returned by the window read and will
+ * not appear on the grid.
+ */
+interface OperonOverlay {
+	/** Load the tasks due in `[from, to]` (inclusive day keys). */
+	expand(from: string, to: string): void;
+	/** Tasks landing on a local day key (YYYY-MM-DD). */
+	on(dayKey: string): OperonTask[];
+	/** Whether the card asked for the overlay at all. */
+	readonly enabled: boolean;
+	/** CSS colour for the task markers. */
+	readonly color: string;
+	/** Register a redraw to run once a read resolves. */
+	onLoaded(cb: () => void): void;
+}
+
+/** Cap on how many tasks one window read pulls back. A month of a busy vault
+ * fits comfortably; beyond that the grid would be unreadable anyway. */
+const OPERON_OVERLAY_LIMIT = 400;
+
+function buildOperonOverlay(
+	view: HomeView,
+	cfg: NonNullable<DashboardCard["calendar"]>,
+	component: Component,
+): OperonOverlay {
+	// Platform is checked here as well as in the session: on mobile the read
+	// could only ever come back refused, so the overlay stays inert rather than
+	// firing a query per month the user scrolls through.
+	const enabled =
+		!!cfg.operonTasks &&
+		view.plugin.settings.operonIntegration &&
+		isOperonAvailable(view.app) &&
+		isOperonPlatformSupported();
+	let byDay = new Map<string, OperonTask[]>();
+	let redraw: (() => void) | null = null;
+	let loadedWindow = "";
+	/** Which read the buckets belong to. Flipping months faster than Operon
+	 * answers would otherwise let an older month's response land last and
+	 * overwrite the newer one — the same guard the Omnisearch integration uses
+	 * for out-of-order results. */
+	let generation = 0;
+	let destroyed = false;
+	component.register(() => {
+		destroyed = true;
+	});
+
+	const expand = (from: string, to: string): void => {
+		if (!enabled) return;
+		// Navigating back to a month already read redraws from what we have
+		// instead of asking Operon again.
+		const key = `${from}..${to}`;
+		if (key === loadedWindow) return;
+		loadedWindow = key;
+		const mine = ++generation;
+		void queryTasks(view.plugin.operon, { due: { from, to } }, OPERON_OVERLAY_LIMIT).then(
+			(result) => {
+				if (destroyed || mine !== generation) return;
+				if (!result.ok) {
+					// Let a later visit to this window try again rather than
+					// leaving it permanently marked as read.
+					if (loadedWindow === key) loadedWindow = "";
+					return;
+				}
+				const next = new Map<string, OperonTask[]>();
+				for (const task of result.value.tasks) {
+					const day = taskDay(task);
+					if (!day) continue;
+					const bucket = next.get(day);
+					if (bucket) bucket.push(task);
+					else next.set(day, [task]);
+				}
+				byDay = next;
+				redraw?.();
+			},
+		);
+	};
+
+	return {
+		expand,
+		on: (key) => byDay.get(key) ?? [],
+		enabled,
+		color: cfg.operonTaskColor || "var(--interactive-accent)",
+		onLoaded: (cb) => {
+			redraw = cb;
+		},
+	};
+}
 
 
 function renderCalendarHead(
@@ -133,6 +249,7 @@ function renderCalendarGrid(
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	activity: Map<string, number> | null,
 	ics: IcsContext,
+	operon: OperonOverlay,
 ): void {
 	const grid = wrap.createDiv("hearth-calendar-grid");
 	const startOfWeek = moment.localeData().firstDayOfWeek();
@@ -186,9 +303,13 @@ function renderCalendarGrid(
 		}
 		cell.createDiv({ cls: "hearth-calendar-daynum", text: String(day.date()) });
 
+		const tasks = operon.on(dayKey);
+
 		// Markers row: the daily-note dot, then one coloured dot per external
-		// event (capped) so a busy day reads at a glance without overflowing.
-		if (file instanceof TFile || events.length) {
+		// event (capped) so a busy day reads at a glance without overflowing,
+		// then a single square for Operon tasks due that day — a different
+		// shape, so a task is never mistaken for a calendar event.
+		if (file instanceof TFile || events.length || tasks.length) {
 			const dots = cell.createDiv("hearth-calendar-dots");
 			if (file instanceof TFile) dots.createDiv("hearth-calendar-dot");
 			for (const ev of events.slice(0, 3)) {
@@ -198,10 +319,20 @@ function renderCalendarGrid(
 				// "what's left" at a glance — the way TaskNotes shows it.
 				dot.toggleClass("is-done", taskNotesMeta(ev)?.done === true);
 			}
+			if (tasks.length) {
+				const mark = dots.createDiv("hearth-calendar-taskdot");
+				mark.style.setProperty("--ev-color", operon.color);
+				mark.setAttribute("aria-hidden", "true");
+			}
 			if (events.length) {
 				cell.setAttribute(
 					"aria-label",
 					t().cards.calendar.dayEvents(day.format("MMM D"), events.length),
+				);
+			} else if (tasks.length) {
+				cell.setAttribute(
+					"aria-label",
+					t().cards.calendar.dayTasks(day.format("MMM D"), tasks.length),
 				);
 			}
 		}
@@ -235,6 +366,7 @@ function renderCalendarAgenda(
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	activity: Map<string, number> | null,
 	ics: IcsContext,
+	operon: OperonOverlay,
 ): void {
 	wrap.addClass("is-agenda");
 	const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;
@@ -305,6 +437,14 @@ function renderCalendarAgenda(
 			const evList = list.createDiv("hearth-agenda-events");
 			for (const ev of events) renderEventRow(view, evList, ev, day, ics);
 		}
+
+		// Operon tasks due that day, listed after the events. Clicking one opens
+		// its note at the task, the same as on an Operon card.
+		const tasks = operon.on(dayKey);
+		if (tasks.length) {
+			const taskList = list.createDiv("hearth-agenda-events hearth-agenda-tasks");
+			for (const task of tasks) renderAgendaTask(view, taskList, task, day, operon);
+		}
 	}
 }
 
@@ -314,6 +454,33 @@ function renderCalendarAgenda(
  * calendar is in play. A TaskNotes entry additionally carries a completion box,
  * its due/recurring markers, and strikes through once it's done — so the agenda
  * reads like TaskNotes' own list while staying a calendar. */
+
+/** One Operon task line in the agenda: a coloured square (matching the grid
+ * marker), the task's description, and a struck-through look when it is already
+ * closed. */
+function renderAgendaTask(
+	view: HomeView,
+	parent: HTMLElement,
+	task: OperonTask,
+	day: Moment,
+	operon: OperonOverlay,
+): void {
+	const label = task.description || t().cards.operon.untitled;
+	const row = parent.createDiv("hearth-agenda-event hearth-agenda-task");
+	row.toggleClass("is-done", task.checkbox !== "open");
+	const bullet = row.createDiv("hearth-agenda-evbullet hearth-agenda-taskbullet");
+	bullet.style.setProperty("--ev-color", operon.color);
+
+	const body = row.createDiv("hearth-agenda-evbody");
+	body.createSpan({ cls: "hearth-agenda-evtitle", text: label });
+	if (task.workflow) {
+		body.createSpan({ cls: "hearth-agenda-evbadge", text: task.workflow.status.label });
+	}
+
+	const open = () => void openOperonTask(view.app, task);
+	row.addEventListener("click", open);
+	makeClickable(row, open, `${label} — ${day.format("MMM D")}`);
+}
 
 
 
@@ -389,6 +556,33 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 					ctx.opts.save();
 				});
 			});
+	}
+
+	// Only offered when Operon is actually installed — a toggle for a plugin
+	// the vault doesn't have is noise, and the card would ignore it anyway.
+	if (isOperonAvailable(ctx.app) && isOperonPlatformSupported()) {
+		new Setting(containerEl)
+			.setName(t().editors.calendar.operonTasks)
+			.setDesc(t().editors.calendar.operonTasksDesc)
+			.addToggle((tog) =>
+				tog.setValue(cfg.operonTasks ?? false).onChange((v) => {
+					cfg.operonTasks = v || undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+			);
+		if (cfg.operonTasks) {
+			new Setting(containerEl)
+				.setName(t().editors.calendar.operonTaskColor)
+				.setDesc(t().editors.calendar.operonTaskColorDesc)
+				.addColorPicker((picker) =>
+					picker.setValue(cfg.operonTaskColor || "#7c5cff").onChange((v) => {
+						cfg.operonTaskColor = v;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+				);
+		}
 	}
 
 	// The chips ride on agenda entries; the month grid draws dots instead.

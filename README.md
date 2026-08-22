@@ -167,6 +167,41 @@ issue or email.
   change it.
 - **Quick view** — click a task for a compact popover with editable metadata
   and description instead of jumping into the note.
+- **Operon** *(requires the [Operon](https://github.com/hasanyilmaz/operon)
+  plugin, desktop only)* — four cards backed by Operon's own in-process
+  developer API: an **Operon tasks** list, an **Operon board** whose columns are
+  Operon's pipeline statuses (in its order, with its colours), an **Operon
+  agenda** grouping the next few days of due work, and an **Operon timer**
+  showing the running time tracker, ticking live. Filter by pipeline, status,
+  priority, completion state, note or text — the pickers list what Operon
+  actually has, so you never type an id by hand — or hand the whole question to
+  Operon by choosing one of its own scopes (*Happening today*, *Overdue*,
+  *Recently touched*). Clicking a task opens its note, landing on the exact line
+  for an inline task. Hearth reads through the API and never parses Operon's
+  notes, so recurrence, statuses and completion stay Operon's to define.
+
+  **Reading is the default; changing is a choice.** Switch on *Allow changes*
+  (Settings → Hearth → Integrations → Operon) and the board card lets you
+  **drag a task into another status column** (or pick one from the row's
+  right-click menu, so it works without a mouse), and every card grows a **+** that
+  creates one — where Operon's own settings say a new task goes, inline or as
+  its own note — with a per-card **New tasks** choice between Operon's two
+  configured targets (inline, or a note of its own) for when one of them can't
+  be resolved. Operon runs both: Hearth previews the change, Operon rates it
+  and applies it, and anything it flags as more than routine is confirmed with
+  you first. A move carries the status the board was drawn from, so a drag onto
+  a stale board is refused rather than quietly undoing someone else's change.
+  Leave the switch off and Hearth can only read — no drag handles, no **+**,
+  and no permission to change anything is ever requested.
+
+  Two things to know before adding one. Operon's developer API is **desktop-only
+  and needs Obsidian 1.12.2 or newer**, and it requires **your approval** —
+  Hearth's first request appears in **Settings → Operon → Core → General →
+  Developer API Integrations**, where you approve the capabilities it asked
+  for. Until then the cards say exactly what they're waiting for. Operon grants
+  all-or-nothing, so turning *Allow changes* on widens the request and needs a
+  fresh approval there. See Settings → Hearth → Integrations for the connection
+  status, what was requested, and a kill switch.
 
 **Time & data**
 
@@ -180,7 +215,12 @@ issue or email.
   plugin, with dots for existing notes, ISO week numbers and an edit heatmap.
   Subscribe to external **ICS/iCal** calendars, or use **TaskNotes** as a
   source (scheduled tasks, due dates, recurrences, timeblocks). Create a note
-  from any event, linked back by ID.
+  from any event, linked back by ID. With the
+  [Operon](https://github.com/hasanyilmaz/operon) plugin connected it can also
+  mark days that have an **Operon task** due — a small square, so it never reads
+  as a calendar event — and list those tasks under each day in the agenda.
+  (Operon's query filters range over the due date, so a task that is only
+  *scheduled* isn't shown.)
 - **Vault statistics** — notes, attachments, folders, tags and daily-note
   streak.
 - **Activity heatmap** — a GitHub-style grid of notes edited or created per day.

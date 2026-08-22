@@ -16,6 +16,7 @@ import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
 import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
+import { forgetTaxonomy, OperonSession } from "./operon";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
 const AUDIO_RECORDER_PLUGIN_ID = "audio-recorder";
@@ -47,6 +48,13 @@ export default class HearthPlugin extends Plugin {
 	 * themeColorTarget setting changes. */
 	private ribbonEl?: HTMLElement;
 
+	/** Hearth's single connection to the Operon plugin's Developer API. Shared
+	 * by every Operon card and the settings tab so the vault sees one consumer,
+	 * one capability grant and one session — not one per card. Nothing is
+	 * negotiated here: the session opens lazily, the first time a card (or the
+	 * settings readout) actually asks for it. */
+	operon = new OperonSession(this, () => this.settings.operonWrites);
+
 	/** Home-view leaves that have already been the active leaf at least once.
 	 * Their first activation was the fresh onOpen render, so the focus refresh
 	 * (#110) skips it and only re-renders on genuine re-focus (this also avoids
@@ -73,6 +81,10 @@ export default class HearthPlugin extends Plugin {
 		addIcon(HEARTH_ICON_THEMED_ID, HEARTH_ICON_THEMED_SVG);
 
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
+
+		// A renegotiated Operon session may be looking at different settings, so
+		// the cached taxonomy it filled is no longer trustworthy.
+		this.operon.registerInvalidation(forgetTaxonomy);
 
 		this.ribbonEl = this.addRibbonIcon(
 			this.brandIconId(),
@@ -168,6 +180,9 @@ export default class HearthPlugin extends Plugin {
 		// The content-search cache holds lower-cased note bodies, though, so
 		// drop it rather than leave a copy of the vault behind after unload.
 		clearContentSearchCache();
+		// The Operon session holds a reference to that plugin's instance; drop
+		// it so an unloaded Hearth isn't left holding a live handle.
+		this.operon.invalidate();
 	}
 
 	private maybeReplaceNewTab(leaf: WorkspaceLeaf | null) {

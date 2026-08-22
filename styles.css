@@ -9465,6 +9465,77 @@ body.hearth-dv-resizing {
 	height: 12px;
 }
 
+/* ---- Operon cards ----------------------------------------------------
+   Operon rows reuse the task-card markup (.hearth-list-item.hearth-task and
+   the Kanban column layout), so almost everything here is either a colour
+   hook fed from Operon's own taxonomy or one of the few pieces the shared
+   classes don't cover: the loading line, the freshness marker, the
+   truncation footer and the agenda day headers. */
+.hearth-operon {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 0;
+	height: 100%;
+	overflow: auto;
+}
+
+.hearth-operon-loading {
+	padding: 8px 2px;
+	font-size: 0.8rem;
+	color: var(--text-faint);
+}
+
+/* Operon reported its own view as settling rather than verified: say so
+   quietly instead of letting the card look simply wrong. */
+.hearth-operon-stale {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+}
+
+.hearth-operon-stale-icon {
+	display: inline-flex;
+}
+
+.hearth-operon-stale-icon .svg-icon {
+	width: 11px;
+	height: 11px;
+}
+
+/* "Showing 10 of 42" — Operon's own count of what it left out. */
+.hearth-operon-truncated {
+	padding-top: 2px;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+}
+
+/* Status and priority colours come from Operon's taxonomy, set per element as
+   --hearth-operon-color; each falls back to the theme when a status carries
+   no colour of its own. */
+.hearth-operon-task .hearth-task-statuschip {
+	color: var(--hearth-operon-color, var(--text-muted));
+}
+
+.hearth-operon-priority .hearth-task-priority-dot {
+	background: var(--hearth-operon-color, var(--text-faint));
+}
+
+.hearth-operon-meta {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.hearth-operon-meta .svg-icon {
+	width: 12px;
+	height: 12px;
+}
+
 .hearth-card-tile.is-unmet .hearth-card-tile-icon {
 	color: var(--text-muted);
 }
@@ -9538,6 +9609,103 @@ body.hearth-dv-resizing {
 }
 
 .hearth-picker-request-icon .svg-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.hearth-operon-flag.is-active {
+	color: var(--interactive-accent);
+}
+
+.hearth-operon-flag.is-blocked {
+	color: var(--text-error, var(--color-red));
+}
+
+.hearth-operon-file {
+	flex: 0 0 auto;
+	max-width: 40%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+}
+
+/* Today's work carries the accent; overdue already turns red via the shared
+   .hearth-task-due.is-overdue rule. */
+.hearth-operon-task .hearth-task-due.is-today {
+	color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+/* A date the task only has because it is scheduled, not due — dashed so it
+   isn't read as a deadline Operon never set. */
+.hearth-operon-task .hearth-task-due.is-scheduled {
+	border-bottom: 1px dashed currentColor;
+}
+
+/* Operon's own refusal, under the empty state. Small and muted: it is
+   diagnostic detail, not the headline. */
+.hearth-operon-errordetail {
+	padding: 0 12px 8px;
+	text-align: center;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	word-break: break-word;
+}
+
+/* ---- Operon agenda view ---- */
+.hearth-operon-day {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.hearth-operon-day-head {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	padding: 2px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-operon-day-label {
+	font-size: 0.76rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.hearth-operon-day-count {
+	font-size: 0.7rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-faint);
+}
+
+/* ---- Operon board view ---- */
+.hearth-operon-board .hearth-kanban-col-title {
+	color: var(--hearth-operon-color, var(--text-normal));
+}
+
+/* ---- Operon timer view ---- */
+.hearth-operon-timer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	height: 100%;
+	text-align: center;
+}
+
+.hearth-operon-timer-icon {
+	color: var(--text-faint);
+}
+
+.hearth-operon-timer-icon.is-running {
+	color: var(--interactive-accent);
+}
+
+.hearth-operon-timer-icon .svg-icon {
 	width: 20px;
 	height: 20px;
 }
@@ -10091,4 +10259,129 @@ body.hearth-dv-resizing {
 	.hearth-setup-preview {
 		height: 140px;
 	}
+}
+
+.hearth-operon-timer-clock {
+	font-size: 1.6rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.1;
+}
+
+.hearth-operon-timer-label {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.78rem;
+	color: var(--text-muted);
+}
+
+.hearth-operon-timer-note {
+	font-size: 0.72rem;
+	color: var(--text-faint);
+}
+
+.hearth-operon-timer-idle {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+/* ---- Operon settings section ---- */
+.hearth-operon-caps {
+	font-family: var(--font-monospace);
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	word-break: break-word;
+}
+
+.hearth-operon-caps-missing {
+	margin-top: 4px;
+	color: var(--text-warning, var(--color-orange));
+}
+
+.hearth-operon-install {
+	display: inline-block;
+	margin-top: 4px;
+	font-size: 0.8rem;
+}
+
+.hearth-operon-hint {
+	font-size: 0.76rem;
+	color: var(--text-faint);
+}
+
+/* ---- Operon overlay on the calendar card ----------------------------
+   A square rather than another dot, so an Operon task due that day is never
+   mistaken for one of the round external-calendar event dots beside it. */
+.hearth-calendar-taskdot {
+	width: 4px;
+	height: 4px;
+	border-radius: 1px;
+	background: var(--ev-color, var(--interactive-accent));
+}
+
+.hearth-calendar-day.is-today .hearth-calendar-taskdot {
+	box-shadow: 0 0 0 1px var(--background-primary);
+}
+
+.hearth-agenda-taskbullet {
+	border-radius: 1px;
+}
+
+.hearth-agenda-task.is-done .hearth-agenda-evtitle {
+	color: var(--text-faint);
+	text-decoration: line-through;
+}
+
+/* ---- Operon writes ----------------------------------------------------
+   Dragging a task between board columns, and the quick-add at the foot of a
+   column. The drop target, the add button and the add field are the Kanban
+   card's own classes — an Operon board that highlighted differently from the
+   board beside it would read as a different control. Only the states those
+   classes don't have are defined here. */
+
+.hearth-operon-task[draggable="true"] {
+	cursor: grab;
+}
+
+.hearth-operon-task.is-dragging {
+	opacity: 0.45;
+	cursor: grabbing;
+}
+
+/* The whole board dims while a transition is in flight: the drop has been
+   accepted, the write hasn't come back, and a second drag in that window would
+   be building on a status that is already changing. */
+.hearth-operon-board.is-writing {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.hearth-operon-add-form.is-busy {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* What Operon is configured to do with a new task, under the card's "New
+   tasks" setting. Quiet, but present — it is the only place the daily-note /
+   folder / active-file choice is visible from Hearth. */
+.hearth-operon-target {
+	margin-top: 4px;
+	color: var(--text-muted);
+	font-size: 0.8rem;
+}
+
+/* The due field sits under the description, quiet enough that a one-line add
+   still reads as one line. */
+.hearth-operon-add-due {
+	width: 100%;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	padding: 4px 8px;
+	font-size: 0.8rem;
+	color: var(--text-muted);
 }

@@ -15,6 +15,59 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Move an Operon task by dragging it, and add one from the card.** The Operon
+  board card now supports **drag and drop between status columns** — with the
+  same move on each row's **right-click menu**, so it is reachable without a
+  pointer — and the
+  board and list cards offer a **+** that creates a task. Both are off until you
+  switch on **Allow changes** under Settings → Hearth → Integrations → Operon:
+  Operon's developer grant is all-or-nothing, so asking for write access by
+  default would make every read-only vault approve it, and turning it on widens
+  the request and needs a fresh approval in Operon's own Developer API
+  Integrations.
+
+  Operon stays in charge of both. Hearth previews a change, Operon rates it and
+  applies it, and any plan it marks as needing consent — or as more than routine
+  — is confirmed with you before it runs. A move carries the status the board
+  was drawn from, so a drag on a board that has gone stale is refused instead of
+  silently reverting a change made elsewhere. Where a new task lives, and
+  whether it is an inline checkbox or its own note, is read from Operon's own
+  settings rather than decided by the card — with a **New tasks** choice on the
+  card for the times that decision doesn't work: Operon offers two configured
+  targets (an inline one — the daily note, a specific file or the active file —
+  and a task note in its own folder), and a card can ask for either when one of
+  them can't be resolved. A refused create now names the target Operon was
+  configured to use, so *"Configured Daily Note target is unavailable or
+  invalid"* says which setting it means. And if Operon can't confirm whether
+  a change landed, Hearth resolves that one plan with Operon and then says the
+  outcome is uncertain — it never re-applies, which is how a task ends up moved
+  twice.
+
+- **Operon tasks, boards, agendas and the running timer on the dashboard.** Four
+  new cards read from the [Operon](https://github.com/hasanyilmaz/operon) task
+  plugin: a task **list**, a **board** whose columns are Operon's own pipeline
+  statuses in its order and colours, an **agenda** grouping the next few days of
+  due work, and a **timer** showing the active tracker, ticking live. Filter by
+  pipeline, status, priority, completion state, note or text — the pickers offer
+  what Operon actually has, so there are no ids to type — or delegate the
+  question entirely by picking one of Operon's own scopes (*Happening today*,
+  *Overdue*, *Recently touched*). Clicking a task opens its note, landing on the
+  exact line for an inline task. The **Mini calendar** card can mark days with an
+  Operon task due and list them in the agenda alongside external-calendar events.
+
+  Unlike the TaskNotes integration, this reads nothing off disk: Operon ships an
+  in-process developer API, and Hearth uses it, so recurrence, statuses,
+  priorities and what counts as done all stay Operon's to define and keep working
+  as Operon changes. The integration is **read-only** — no card here modifies a
+  task.
+
+  Operon's developer API is **desktop-only, needs Obsidian 1.12.2 or newer**, and
+  requires **your approval**: Hearth's first request appears under Settings →
+  Operon → Core → General → Developer API Integrations, and the cards say exactly
+  what they're waiting for until you approve it. Settings → Hearth →
+  Integrations shows the connection status, the read access Hearth asks for, and
+  a switch to turn the whole thing off.
+
 - **A launchpad that makes notes: the Templater card.** Hearth's third tile card
   sits beside Links and Commands, but each of its buttons creates a note. A tile
   carries three things — one of your

@@ -35,6 +35,7 @@ export type CardKind =
 	| "jira"
 	| "weather"
 	| "git"
+	| "operon"
 	| "leaf"
 	| "pet";
 
@@ -367,6 +368,68 @@ export interface TasksConfig {
 	kanbanDoneColumns?: string[];
 }
 
+/**
+ * Per-card configuration for an "operon" card.
+ *
+ * Every field maps onto something Operon's Developer API already understands —
+ * its pipelines, statuses, priorities and finder scopes — so the card asks
+ * Operon for a set of tasks rather than filtering a vault scan of its files.
+ * Ids are Operon's; the card resolves them to labels and colors through its
+ * taxonomy at render time, and shows the raw id if one has been deleted.
+ */
+export interface OperonConfig {
+	/** What the card draws. "list" is a flat task list, "board" groups tasks
+	 * into pipeline-status columns, "agenda" lists the next few days, "timer"
+	 * shows the running time tracker. */
+	view?: "list" | "board" | "agenda" | "timer";
+	/** List view: which of Operon's own scoped views to read. "query" (default)
+	 * applies the filters below instead; the rest delegate the definition of
+	 * "overdue" or "happening today" to Operon. */
+	scope?: "query" | "normal" | "overdue" | "happens-today" | "recent";
+	/** Restrict to these Operon pipelines. Empty means all. */
+	pipelineIds?: string[];
+	/** Restrict to these Operon status ids. Empty means all. */
+	statusIds?: string[];
+	/** Restrict to these Operon priority ids. Empty means all. */
+	priorityIds?: string[];
+	/** Which checkbox states to include. Unset shows open tasks only. */
+	checkbox?: ("open" | "done" | "cancelled")[];
+	/** Restrict to tasks living in this note. */
+	filePath?: string;
+	/** Free-text match on the task description. */
+	text?: string;
+	/** Agenda view: how many days ahead to list, including today. Default 7. */
+	agendaDays?: number;
+	/** Max tasks shown. Default 10. */
+	count?: number;
+	/** Board view: explicit left-to-right order of status ids (drag to
+	 * reorder). Statuses not listed keep their Operon order after the listed
+	 * ones, so a status added upstream still appears. */
+	boardOrder?: string[];
+	/** Board view: status ids the user has hidden. */
+	boardHidden?: string[];
+	/** Where the card's "+" asks Operon to put a new task: unset follows
+	 * Operon's own default, "inline" forces its configured inline target (daily
+	 * note, a specific file, the active file), "file" forces a task note in its
+	 * configured folder. The path is always Operon's — this only picks which of
+	 * its two configured targets to use, which is the way past an inline target
+	 * Operon can't currently resolve. */
+	createAs?: "inline" | "file";
+	/** Sort order for the list and each board column. Default "smart"
+	 * (date → priority → age). Open tasks always sort before closed ones. */
+	sortKey?: "smart" | "due" | "priority" | "created" | "alpha";
+	/** Reverse the chosen sort direction. */
+	sortReverse?: boolean;
+	/** Which metadata chips each row shows. All on by default. */
+	showDue?: boolean;
+	showPriority?: boolean;
+	showStatus?: boolean;
+	showRecurrence?: boolean;
+	showTracker?: boolean;
+	showPinned?: boolean;
+	showFile?: boolean;
+}
+
 /** An external calendar (ICS/iCal) subscription a "calendar" card overlays on
  * top of its daily-note grid. `url` is an http(s)/webcal `.ics` address; `color`
  * tints the source's event dots and chips; `name` labels it in the editor. */
@@ -423,6 +486,12 @@ export interface CalendarConfig extends CalendarSourcesConfig {
 	heatmap?: boolean;
 	/** Which timestamp the heatmap counts. Default "modified". */
 	heatmapMetric?: "modified" | "created";
+	/** Overlay Operon tasks with a due date on the grid and agenda, the same
+	 * way external calendars are overlaid. Requires the Operon integration to
+	 * be available and approved. */
+	operonTasks?: boolean;
+	/** CSS color for the Operon task markers. Falls back to the accent color. */
+	operonTaskColor?: string;
 }
 
 
@@ -1272,6 +1341,8 @@ export interface DashboardCard {
 	weather?: WeatherConfig;
 	/** kind === "git": sections, action buttons and commit behaviour. */
 	git?: GitConfig;
+	/** kind === "operon": view, Operon filters and display options. */
+	operon?: OperonConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
 	/** kind === "pet": species, colors, name and what feeds its mood. */
@@ -1834,6 +1905,20 @@ export interface HomeSettings {
 	 * default rather than assuming nobody changed it. */
 	iconizeIconProperty: string;
 
+	// ---- Operon ----
+	/** Let Hearth talk to the Operon plugin's Developer API. Turning this off
+	 * is a kill switch: Operon cards stop reading and no capability grant is
+	 * ever requested. On by default, but nothing happens until an Operon card
+	 * is added — the session is only opened when one renders. */
+	operonIntegration: boolean;
+
+	/** Let Hearth *change* Operon tasks: dragging a card between board columns,
+	 * and the card's "+". Off by default, and separate from the switch above
+	 * because Operon's grant is all-or-nothing — turning this on widens what
+	 * Hearth asks for and needs a fresh approval in Operon's settings, so it is
+	 * never done on a vault's behalf. */
+	operonWrites: boolean;
+
 	// ---- Layout ----
 	maxWidth: number;
 
@@ -1960,6 +2045,13 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// to see. "icon" is Iconize's own default property name.
 	customFileIcons: true,
 	iconizeIconProperty: "icon",
+
+	// On by default, but inert until an Operon card exists: no session is
+	// opened — and so no grant is requested — until one renders.
+	operonIntegration: true,
+	// Reading is the default; writing is a decision, since it widens the grant
+	// the user has to approve in Operon.
+	operonWrites: false,
 
 	maxWidth: 1600,
 
