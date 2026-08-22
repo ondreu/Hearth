@@ -257,6 +257,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Moving one occurrence of a repeating calendar event moves it, instead of
+  showing it twice.** Drag a single occurrence to another day in Google Calendar
+  (or edit or delete just that one) and the calendar card listed it in both
+  places at once. The feed says as much in two parts — the series keeps its
+  repeat rule untouched, and a second entry carries the same event with the
+  original time it replaces — and Hearth read those as two separate events.
+  Hearth now folds the second entry back into the series: the occurrence appears
+  where you moved it and nowhere else, a deleted one disappears, and an edit
+  that takes over "this and all following events" splits the series at that
+  point (#232).
 - **Recent files shows every file you asked for — or as many as the card is
   tall.** Setting **Number of files** to 15 listed ten and left the rest of the
   card empty, because Obsidian's own recent-files list stops at ten entries and

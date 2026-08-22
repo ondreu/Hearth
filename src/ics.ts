@@ -6,8 +6,10 @@
  * restrictions a plain `fetch` would hit) and parsed with a small, dependency
  * free RFC 5545 reader — enough for the VEVENTs real calendars (Google, iCloud,
  * Fastmail, Nextcloud, …) publish: all-day and timed events, multi-day spans,
- * and the common recurrence rules (DAILY/WEEKLY/MONTHLY/YEARLY with INTERVAL,
- * COUNT, UNTIL, weekly BYDAY, and EXDATE exclusions).
+ * the common recurrence rules (DAILY/WEEKLY/MONTHLY/YEARLY with INTERVAL,
+ * COUNT, UNTIL, weekly BYDAY, and EXDATE exclusions), and the per-instance
+ * overrides (RECURRENCE-ID) a calendar writes when one occurrence of a series
+ * is edited, moved or deleted.
  *
  * Results are cached in memory per URL for a card-configurable window, mirroring
  * the RSS card: a board with several calendar cards (and Hearth's frequent full
@@ -43,8 +45,13 @@ export interface IcsEvent {
 	allDay: boolean;
 	/** Raw RRULE value (without the "RRULE:" prefix), or null for one-offs. */
 	rrule: string | null;
-	/** Epoch ms of excluded occurrence starts (EXDATE). */
+	/** Epoch ms of excluded occurrence starts (EXDATE, plus the original starts
+	 * of any instances overridden by a RECURRENCE-ID VEVENT). */
 	exdates: number[];
+	/** Exclusive epoch-ms cutoff for the series, set when a
+	 * `RECURRENCE-ID;RANGE=THISANDFUTURE` override takes over from here on.
+	 * Occurrences at or after it belong to the override, not this event. */
+	seriesEnd?: number | null;
 	/** Opaque payload for events synthesised by a non-ICS provider (currently
 	 * the TaskNotes source), carried onto every occurrence so the card can
 	 * recognise and style them. Never set by the ICS parser. */
@@ -195,7 +202,8 @@ export function parseIcs(raw: string): IcsCalendar | null {
 	const lines = unfold(raw);
 
 	let name = "";
-	const events: IcsEvent[] = [];
+	const masters: IcsEvent[] = [];
+	const overrides: ParsedVevent[] = [];
 	let cur: Record<string, { value: string; params: Record<string, string> }[]> | null = null;
 
 	for (const line of lines) {
@@ -206,8 +214,12 @@ export function parseIcs(raw: string): IcsCalendar | null {
 		}
 		if (upper === "END:VEVENT") {
 			if (cur) {
-				const ev = buildEvent(cur);
-				if (ev) events.push(ev);
+				const parsedEvent = buildEvent(cur);
+				// A cancelled VEVENT is a deletion, not an event: drop the master
+				// outright, and keep a cancelled override only long enough to
+				// exclude its instance from the series below.
+				if (parsedEvent && parsedEvent.recurrenceId !== null) overrides.push(parsedEvent);
+				else if (parsedEvent && !parsedEvent.cancelled) masters.push(parsedEvent.event);
 			}
 			cur = null;
 			continue;
@@ -221,7 +233,55 @@ export function parseIcs(raw: string): IcsCalendar | null {
 		}
 	}
 
-	return { name, events, fetched: Date.now() };
+	return { name, events: applyOverrides(masters, overrides), fetched: Date.now() };
+}
+
+/**
+ * Fold per-instance overrides back into their series.
+ *
+ * When one occurrence of a recurring event is edited — the common case being
+ * dragging it to another day in Google Calendar — the feed keeps the master
+ * VEVENT untouched and adds a second VEVENT with the same UID and a
+ * RECURRENCE-ID naming the *original* start of the instance it replaces. Read
+ * naively that is two events, so the moved occurrence shows up twice: once
+ * where the series still puts it, once where it actually is. Excluding the
+ * original start from the master (exactly as an EXDATE would) leaves one.
+ *
+ * `RANGE=THISANDFUTURE` overrides replace the rest of the series instead of a
+ * single instance, so they truncate the master rather than punch a hole in it.
+ */
+function applyOverrides(masters: IcsEvent[], overrides: ParsedVevent[]): IcsEvent[] {
+	if (!overrides.length) return masters;
+	const byUid = new Map<string, IcsEvent[]>();
+	for (const m of masters) {
+		if (m.uid) (byUid.get(m.uid) ?? byUid.set(m.uid, []).get(m.uid)!).push(m);
+	}
+
+	const events = masters.slice();
+	for (const o of overrides) {
+		const recurrenceId = o.recurrenceId;
+		if (recurrenceId === null) continue;
+		for (const master of byUid.get(o.event.uid) ?? []) {
+			if (o.thisAndFuture) {
+				master.seriesEnd = Math.min(master.seriesEnd ?? Infinity, recurrenceId);
+			} else {
+				master.exdates.push(recurrenceId);
+			}
+		}
+		// A cancelled instance only removes; anything else replaces. An override
+		// stands alone (its RRULE, if any, belongs to the master's series) unless
+		// it took over the rest of the series.
+		if (o.cancelled) continue;
+		if (o.thisAndFuture) {
+			// The rest of the series carries on from the override, which usually
+			// leaves the repeat rule implicit — inherit the master's.
+			o.event.rrule ??= byUid.get(o.event.uid)?.find((m) => m.rrule)?.rrule ?? null;
+		} else {
+			o.event.rrule = null;
+		}
+		events.push(o.event);
+	}
+	return events;
 }
 
 /** Unfold RFC 5545 continuation lines: a CRLF followed by a space or tab
@@ -260,11 +320,26 @@ function parseLine(
 	return { name, params, value };
 }
 
-/** Assemble an IcsEvent from a VEVENT's collected properties, or null when it
+/** A VEVENT as read from the document, before per-instance overrides are folded
+ * into their series. */
+interface ParsedVevent {
+	event: IcsEvent;
+	/** Epoch ms of the instance start this VEVENT replaces (RECURRENCE-ID), or
+	 * null for a plain event or a series master. */
+	recurrenceId: number | null;
+	/** Whether the override replaces the rest of the series (RANGE=THISANDFUTURE)
+	 * rather than the single named instance. */
+	thisAndFuture: boolean;
+	/** STATUS:CANCELLED — the event (or, with a RECURRENCE-ID, the instance) has
+	 * been deleted and must not be shown. */
+	cancelled: boolean;
+}
+
+/** Assemble a ParsedVevent from a VEVENT's collected properties, or null when it
  * lacks a usable DTSTART. */
 function buildEvent(
 	props: Record<string, { value: string; params: Record<string, string> }[]>,
-): IcsEvent | null {
+): ParsedVevent | null {
 	const dtstart = props.DTSTART?.[0];
 	if (!dtstart) return null;
 	const start = parseIcsDate(dtstart.value, dtstart.params);
@@ -288,17 +363,25 @@ function buildEvent(
 		}
 	}
 
+	const recur = props["RECURRENCE-ID"]?.[0];
+	const recurrenceId = recur ? parseIcsDate(recur.value, recur.params) : null;
+
 	return {
-		uid: props.UID?.[0]?.value ?? "",
-		summary: unescapeText(props.SUMMARY?.[0]?.value ?? ""),
-		location: unescapeText(props.LOCATION?.[0]?.value ?? ""),
-		description: unescapeText(props.DESCRIPTION?.[0]?.value ?? ""),
-		url: (props.URL?.[0]?.value ?? "").trim(),
-		start,
-		end,
-		allDay,
-		rrule: props.RRULE?.[0]?.value ?? null,
-		exdates,
+		event: {
+			uid: props.UID?.[0]?.value ?? "",
+			summary: unescapeText(props.SUMMARY?.[0]?.value ?? ""),
+			location: unescapeText(props.LOCATION?.[0]?.value ?? ""),
+			description: unescapeText(props.DESCRIPTION?.[0]?.value ?? ""),
+			url: (props.URL?.[0]?.value ?? "").trim(),
+			start,
+			end,
+			allDay,
+			rrule: props.RRULE?.[0]?.value ?? null,
+			exdates,
+		},
+		recurrenceId,
+		thisAndFuture: (recur?.params.RANGE ?? "").toUpperCase() === "THISANDFUTURE",
+		cancelled: (props.STATUS?.[0]?.value ?? "").trim().toUpperCase() === "CANCELLED",
 	};
 }
 
@@ -421,7 +504,9 @@ function expandRecurring(
 		emit(ev.start);
 		return;
 	}
-	const until = rule.until ?? Infinity;
+	// A THISANDFUTURE override ends the series just before its own start.
+	const truncated = ev.seriesEnd != null ? ev.seriesEnd - 1 : Infinity;
+	const until = Math.min(rule.until ?? Infinity, truncated);
 	const hardEnd = Math.min(windowEnd, until === Infinity ? windowEnd : until + duration + 1);
 	let count = 0;
 	let emitted = 0;
