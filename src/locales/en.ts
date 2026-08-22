@@ -37,6 +37,12 @@ export const en = {
 			"Hearth: that Operon task's note is no longer in the vault.",
 		operonRechecked: "Hearth: rechecked the Operon connection.",
 		operonWriteFailed: (reason: string) => `Hearth: Operon refused the change — ${reason}`,
+		/** A refused create, with the Operon setting that decided the target —
+		 * the error alone names a configured target without saying which one. */
+		operonCreateFailed: (reason: string, where: string) =>
+			`Hearth: Operon refused to create the task — ${reason} ${where} ` +
+			"Change it in Operon's settings, or pick a different target under “New tasks” " +
+			"in this card's settings.",
 		/** The mutation may have landed. Hearth has already spent its one legal
 		 * recovery attempt, so the honest report is "unknown", not "failed" —
 		 * and never an offer to retry, which could apply the change twice. */
@@ -2259,6 +2265,15 @@ export const en = {
 			scopeToday: "Happening today",
 			scopeOverdue: "Overdue",
 			scopeRecent: "Recently touched",
+			createAs: "New tasks",
+			createAsDesc:
+				"What the card's “+” asks Operon to make. Operon's default follows its own " +
+				"settings; the other two pick which of its configured targets to use — " +
+				"useful when one of them can't be resolved. Where the task actually goes " +
+				"is Operon's decision either way.",
+			createAsDefault: "Operon's default",
+			createAsInline: "Inline, in a note",
+			createAsFile: "Its own note",
 			agendaDays: "Days ahead",
 			agendaDaysDesc: "How many days the agenda covers, including today.",
 			count: "Tasks shown",
@@ -2638,6 +2653,16 @@ export const en = {
 			errorDetail: (code: string, reason: string) => (reason ? `${code} — ${reason}` : code),
 			addTask: "Add task",
 			moveTo: "Move to",
+			targetDaily: "Operon is set to put new inline tasks in today's daily note.",
+			targetFile: (path: string) => `Operon is set to put new inline tasks in ${path}.`,
+			targetActive: "Operon is set to put new inline tasks in the active file.",
+			targetAsk:
+				"Operon is set to ask where each new inline task goes, which a dashboard " +
+				"card can't answer — choose “Its own note” on this card instead.",
+			targetNote: (folder: string) =>
+				folder
+					? `Operon is set to create new tasks as notes in ${folder}.`
+					: "Operon is set to create new tasks as their own notes.",
 			addTaskPlaceholder: "What needs doing?",
 			addTaskDue: "Due date",
 			confirmTitle: "Operon needs a confirmation",

@@ -1,4 +1,5 @@
 import type {
+	CatalogPoliciesV1,
 	CatalogPipelineV1,
 	CatalogPriorityV1,
 	CatalogStatusV1,
@@ -24,6 +25,18 @@ export type OperonTask = DeepReadonlyV1<TaskContextV1>;
 
 /** Operon's taxonomy: the pipelines, their statuses, and the priority scale. */
 export type OperonTaxonomy = DeepReadonlyV1<CatalogTaxonomyV1>;
+
+/** Operon's own rules — most usefully `creation`, which says where a new task
+ * goes: inline into the daily note, into one specific file, into the active
+ * file, or as its own note. Hearth never applies these itself (Operon does);
+ * it reads them so a refusal can name the setting behind it. */
+export type OperonPolicies = DeepReadonlyV1<CatalogPoliciesV1>;
+
+/** One catalog snapshot: what things are called, and how Operon behaves. */
+export interface OperonCatalog {
+	taxonomy: OperonTaxonomy;
+	policies: OperonPolicies | null;
+}
 
 export type OperonPipeline = DeepReadonlyV1<CatalogPipelineV1>;
 

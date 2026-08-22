@@ -42,7 +42,7 @@ export {
 export {
 	findTasks,
 	queryTasks,
-	readTaxonomy,
+	readCatalog,
 	readTimer,
 	shouldRenegotiate,
 	type OperonFreshness,
@@ -55,6 +55,7 @@ export {
 	canWrite,
 	classifyExecution,
 	createIntent,
+	createTarget,
 	createTask,
 	isMutable,
 	needsConfirmation,
@@ -62,12 +63,21 @@ export {
 	transitionIntent,
 	transitionTask,
 	type OperonConfirm,
+	type OperonCreateAs,
+	type OperonCreateTarget,
 	type OperonNewTask,
 	type OperonWriteOutcome,
 	type OperonWriteResult,
 } from "./mutations";
 
-export { cachedTaxonomy, forgetTaxonomy, loadTaxonomy, warmTaxonomy } from "./catalog";
+export {
+	cachedPolicies,
+	cachedTaxonomy,
+	forgetTaxonomy,
+	loadCatalog,
+	loadTaxonomy,
+	warmTaxonomy,
+} from "./catalog";
 
 export {
 	addDays,
@@ -90,7 +100,9 @@ export {
 export { openOperonTask } from "./open";
 
 export type {
+	OperonCatalog,
 	OperonPipeline,
+	OperonPolicies,
 	OperonPriority,
 	OperonStatus,
 	OperonTask,

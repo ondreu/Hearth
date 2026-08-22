@@ -785,6 +785,7 @@ function sanitizeOperon(r: Record<string, unknown>): OperonConfig {
 		cfg.sortKey = r.sortKey as OperonConfig["sortKey"];
 	}
 	if (typeof r.sortReverse === "boolean") cfg.sortReverse = r.sortReverse;
+	if (r.createAs === "inline" || r.createAs === "file") cfg.createAs = r.createAs;
 	for (const key of [
 		"showDue",
 		"showPriority",

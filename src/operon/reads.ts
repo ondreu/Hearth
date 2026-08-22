@@ -7,7 +7,7 @@ import type {
 	TaskQueryPageV1,
 } from "@stratejya/operon-cli/contracts/v1";
 import type { OperonAccess, OperonSession } from "./api";
-import type { OperonTask, OperonTaxonomy, OperonTimerState } from "./types";
+import type { OperonCatalog, OperonTask, OperonTaxonomy, OperonTimerState } from "./types";
 
 /**
  * Thin, never-throwing wrappers over the Operon reads Hearth uses.
@@ -210,10 +210,16 @@ export function findTasks(
 	});
 }
 
-/** Operon's taxonomy: pipelines with their ordered, colored statuses, and the
- * priority scale. Board columns and every status/priority chip come from here
- * rather than from strings Hearth invents. */
-export function readTaxonomy(session: OperonSession): Promise<OperonResult<OperonTaxonomy>> {
+/**
+ * One catalog snapshot: Operon's taxonomy *and* its policies.
+ *
+ * Both arrive in the same read, and the policies are worth keeping. They carry
+ * `creation`, which decides where a new task lands — the setting behind
+ * "Configured Daily Note target is unavailable or invalid" and the other
+ * create-time refusals, which are otherwise impossible to explain from an
+ * error code alone.
+ */
+export function readCatalog(session: OperonSession): Promise<OperonResult<OperonCatalog>> {
 	return withApi(session, async (access) => {
 		const api = access.api;
 		if (!api) return { ok: false, error: failure(undefined, "no session") };
@@ -230,7 +236,10 @@ export function readTaxonomy(session: OperonSession): Promise<OperonResult<Opero
 			if (!result.ok) return { ok: false, error: failure(result.error, "catalog failed") };
 			return {
 				ok: true,
-				value: result.taxonomy,
+				// Policies are optional in the DTO so a V1 client can still read
+				// a catalog from an older runtime; a card degrades to "no hint"
+				// rather than to no taxonomy.
+				value: { taxonomy: result.taxonomy, policies: result.policies ?? null },
 				freshness: freshnessOf(result.freshness),
 				warnings: result.warnings ?? [],
 			};

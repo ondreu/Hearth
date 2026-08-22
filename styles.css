@@ -10365,6 +10365,15 @@ body.hearth-dv-resizing {
 	pointer-events: none;
 }
 
+/* What Operon is configured to do with a new task, under the card's "New
+   tasks" setting. Quiet, but present — it is the only place the daily-note /
+   folder / active-file choice is visible from Hearth. */
+.hearth-operon-target {
+	margin-top: 4px;
+	color: var(--text-muted);
+	font-size: 0.8rem;
+}
+
 /* The due field sits under the description, quiet enough that a one-line add
    still reads as one line. */
 .hearth-operon-add-due {

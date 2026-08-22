@@ -185,7 +185,9 @@ issue or email.
   **drag a task into another status column** (or pick one from the row's
   right-click menu, so it works without a mouse), and every card grows a **+** that
   creates one — where Operon's own settings say a new task goes, inline or as
-  its own note. Operon runs both: Hearth previews the change, Operon rates it
+  its own note — with a per-card **New tasks** choice between Operon's two
+  configured targets (inline, or a note of its own) for when one of them can't
+  be resolved. Operon runs both: Hearth previews the change, Operon rates it
   and applies it, and anything it flags as more than routine is confirmed with
   you first. A move carries the status the board was drawn from, so a drag onto
   a stale board is refused rather than quietly undoing someone else's change.

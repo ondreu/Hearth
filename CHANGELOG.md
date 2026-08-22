@@ -32,7 +32,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   was drawn from, so a drag on a board that has gone stale is refused instead of
   silently reverting a change made elsewhere. Where a new task lives, and
   whether it is an inline checkbox or its own note, is read from Operon's own
-  settings rather than decided by the card. And if Operon can't confirm whether
+  settings rather than decided by the card — with a **New tasks** choice on the
+  card for the times that decision doesn't work: Operon offers two configured
+  targets (an inline one — the daily note, a specific file or the active file —
+  and a task note in its own folder), and a card can ask for either when one of
+  them can't be resolved. A refused create now names the target Operon was
+  configured to use, so *"Configured Daily Note target is unavailable or
+  invalid"* says which setting it means. And if Operon can't confirm whether
   a change landed, Hearth resolves that one plan with Operon and then says the
   outcome is uncertain — it never re-applies, which is how a task ends up moved
   twice.

@@ -17,6 +17,7 @@ import {
 	canWrite,
 	classifyExecution,
 	createIntent,
+	createTarget,
 	createTask,
 	isMutable,
 	needsConfirmation,
@@ -24,7 +25,7 @@ import {
 	transitionIntent,
 	transitionTask,
 } from "../src/operon/mutations";
-import type { OperonTask } from "../src/operon/types";
+import type { OperonPolicies, OperonTask } from "../src/operon/types";
 
 /**
  * The rules behind Hearth's two Operon writes.
@@ -280,6 +281,22 @@ describe("createIntent", () => {
 		expect(spec.items[0].fields).toEqual([]);
 	});
 
+	it("asks for a specific representation only when the card chose one", () => {
+		const spec = (intent: ReturnType<typeof createIntent>) =>
+			(intent.spec as unknown as { items: { target: Record<string, unknown> }[] }).items[0].target;
+		// Still Operon's configured path in every case — only the representation
+		// is ever Hearth's to state.
+		expect(spec(createIntent({ description: "x" }))).toEqual({ mode: "configured-default" });
+		expect(spec(createIntent({ description: "x", createAs: "file" }))).toEqual({
+			representation: "file",
+			mode: "configured-default",
+		});
+		expect(spec(createIntent({ description: "x", createAs: "inline" }))).toEqual({
+			representation: "inline",
+			mode: "configured-default",
+		});
+	});
+
 	it("passes the column's status and an optional due date through", () => {
 		const intent = createIntent({ description: "Buy milk", statusId: "doing", due: "2026-09-01" });
 		const spec = intent.spec as unknown as {
@@ -287,6 +304,64 @@ describe("createIntent", () => {
 		};
 		expect(spec.items[0].statusId).toBe("doing");
 		expect(spec.items[0].fields).toEqual([{ kind: "date", field: "dateDue", value: "2026-09-01" }]);
+	});
+});
+
+/** Only the creation half of Operon's policies matters here. */
+function policies(creation: Partial<OperonPolicies["creation"]>): OperonPolicies {
+	return {
+		creation: {
+			descriptionRequired: false,
+			assigneesRequired: false,
+			defaultEstimateMinutes: 0,
+			defaultToFileTask: false,
+			fileTaskTargetFolder: "Tasks",
+			fileTaskTemplateFolder: "Templates",
+			inlineTaskSaveMode: "daily-notes",
+			inlineTaskTargetFile: "Inbox.md",
+			inlineTaskHeading: "## Tasks",
+			dailyNoteAddsStartDate: false,
+			dailyNoteAddsScheduledDate: false,
+			createDailyNotesAsFileTasks: false,
+			calendarInlineTaskHeading: "",
+			builtInTemplateCandidates: [],
+			...creation,
+		},
+	} as OperonPolicies;
+}
+
+describe("createTarget", () => {
+	it("names the daily note when that is Operon's inline target", () => {
+		// The case behind "Configured Daily Note target is unavailable or
+		// invalid": without this, the refusal names a setting the user has no
+		// way to identify from Hearth.
+		expect(createTarget(policies({ inlineTaskSaveMode: "daily-notes" }))).toEqual({ kind: "daily" });
+	});
+
+	it("names the specific file, the active file and the ask-every-time mode", () => {
+		expect(createTarget(policies({ inlineTaskSaveMode: "specific-file" }))).toEqual({
+			kind: "file",
+			path: "Inbox.md",
+		});
+		expect(createTarget(policies({ inlineTaskSaveMode: "active-file" }))).toEqual({ kind: "active" });
+		expect(createTarget(policies({ inlineTaskSaveMode: "ask-every-time" }))).toEqual({ kind: "ask" });
+	});
+
+	it("follows Operon's own file-task default when the card expresses no preference", () => {
+		expect(createTarget(policies({ defaultToFileTask: true }))).toEqual({
+			kind: "note",
+			folder: "Tasks",
+		});
+	});
+
+	it("lets the card pick the other target when one of them can't be resolved", () => {
+		const daily = policies({ inlineTaskSaveMode: "daily-notes" });
+		expect(createTarget(daily, "file")).toEqual({ kind: "note", folder: "Tasks" });
+		expect(createTarget(policies({ defaultToFileTask: true }), "inline")).toEqual({ kind: "daily" });
+	});
+
+	it("says nothing rather than guessing when the runtime publishes no policies", () => {
+		expect(createTarget(null)).toEqual({ kind: "unknown" });
 	});
 });
 

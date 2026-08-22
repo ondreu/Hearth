@@ -8,7 +8,7 @@ import type {
 	StructuredErrorV1,
 } from "@stratejya/operon-cli/contracts/v1";
 import type { OperonAccess, OperonSession } from "./api";
-import type { OperonTask } from "./types";
+import type { OperonPolicies, OperonTask } from "./types";
 
 /**
  * The two Operon writes Hearth performs: moving a task to another status
@@ -92,6 +92,18 @@ export function transitionIntent(
 	};
 }
 
+/**
+ * How the card asks for a new task to be represented.
+ *
+ * `undefined` leaves it entirely to Operon. The other two still leave *where*
+ * to Operon's settings — they only pick which of its two configured targets to
+ * use. That matters when one of them is unreachable: a vault whose inline
+ * target is the daily note gets "Configured Daily Note target is unavailable or
+ * invalid" from Operon, and choosing "file" is a real way past it rather than a
+ * workaround Hearth invents by writing somewhere itself.
+ */
+export type OperonCreateAs = "inline" | "file";
+
 /** What the "+" on a card can set on a new task. Everything but the text is
  * optional: the quick-add is meant to be one line and Enter. */
 export interface OperonNewTask {
@@ -101,6 +113,46 @@ export interface OperonNewTask {
 	priorityId?: string;
 	/** ISO day (YYYY-MM-DD). */
 	due?: string;
+	createAs?: OperonCreateAs;
+}
+
+/**
+ * Where a new task would land, in the terms Operon's own settings use.
+ *
+ * Pure, and derived from the catalog Operon publishes — so when it refuses a
+ * create, the card can name the setting responsible instead of repeating an
+ * error code. "unknown" covers an older runtime that publishes no policies.
+ */
+export type OperonCreateTarget =
+	| { kind: "daily" }
+	| { kind: "file"; path: string }
+	| { kind: "active" }
+	| { kind: "ask" }
+	| { kind: "note"; folder: string }
+	| { kind: "unknown" };
+
+export function createTarget(
+	policies: OperonPolicies | null,
+	createAs?: OperonCreateAs,
+): OperonCreateTarget {
+	const creation = policies?.creation;
+	if (!creation) return { kind: "unknown" };
+	// An explicit choice decides the representation; otherwise Operon's own
+	// default does.
+	const asFile = createAs === "file" || (createAs === undefined && creation.defaultToFileTask);
+	if (asFile) return { kind: "note", folder: creation.fileTaskTargetFolder };
+	switch (creation.inlineTaskSaveMode) {
+		case "daily-notes":
+			return { kind: "daily" };
+		case "specific-file":
+			return { kind: "file", path: creation.inlineTaskTargetFile };
+		case "active-file":
+			return { kind: "active" };
+		default:
+			// "ask-every-time" has no answer a dashboard card can give: there is
+			// no prompt in the mutation contract to answer it with.
+			return { kind: "ask" };
+	}
 }
 
 /**
@@ -115,7 +167,11 @@ export function createIntent(input: OperonNewTask): DeveloperMutationPreviewInpu
 	const item: CreateTaskItemV1 = {
 		itemRef: "hearth-1",
 		description: input.description,
-		target: { mode: "configured-default" },
+		// Still `configured-default` in every case: the card may pick which of
+		// Operon's two configured targets to use, never a path of its own.
+		target: input.createAs
+			? { representation: input.createAs, mode: "configured-default" }
+			: { mode: "configured-default" },
 		fields: input.due ? [{ kind: "date", field: "dateDue", value: input.due }] : [],
 	};
 	if (input.statusId) item.statusId = input.statusId;

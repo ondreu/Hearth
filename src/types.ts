@@ -408,6 +408,13 @@ export interface OperonConfig {
 	boardOrder?: string[];
 	/** Board view: status ids the user has hidden. */
 	boardHidden?: string[];
+	/** Where the card's "+" asks Operon to put a new task: unset follows
+	 * Operon's own default, "inline" forces its configured inline target (daily
+	 * note, a specific file, the active file), "file" forces a task note in its
+	 * configured folder. The path is always Operon's — this only picks which of
+	 * its two configured targets to use, which is the way past an inline target
+	 * Operon can't currently resolve. */
+	createAs?: "inline" | "file";
 	/** Sort order for the list and each board column. Default "smart"
 	 * (date → priority → age). Open tasks always sort before closed ones. */
 	sortKey?: "smart" | "due" | "priority" | "created" | "alpha";

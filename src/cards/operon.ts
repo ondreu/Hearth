@@ -5,8 +5,10 @@ import { addResetButton } from "../editors";
 import { t } from "../i18n";
 import {
 	boardColumns,
+	cachedPolicies,
 	cachedTaxonomy,
 	canWrite,
+	createTarget,
 	createTask,
 	dueRange,
 	dueState,
@@ -33,6 +35,7 @@ import {
 	type OperonAccessError,
 	type OperonAccessState,
 	type OperonConfirm,
+	type OperonCreateTarget,
 	type OperonResult,
 	type OperonSortKey,
 	type OperonStatus,
@@ -430,7 +433,12 @@ function confirmPlan(view: HomeView): OperonConfirm {
  * uncertain and let the reload show whatever Operon now reports, rather than
  * claiming success or offering a retry that could write twice.
  */
-function settleWrite(result: OperonWriteResult, reload: () => void, undo?: () => void): void {
+function settleWrite(
+	result: OperonWriteResult,
+	reload: () => void,
+	undo?: () => void,
+	report?: (reason: string) => void,
+): void {
 	if (result.ok) {
 		reload();
 		return;
@@ -447,8 +455,45 @@ function settleWrite(result: OperonWriteResult, reload: () => void, undo?: () =>
 		reload();
 		return;
 	}
-	new Notice(t().notices.operonWriteFailed(result.reason));
+	report ? report(result.reason) : new Notice(t().notices.operonWriteFailed(result.reason));
 	reload();
+}
+
+/**
+ * Where a new task from this card would land, in words.
+ *
+ * Operon's create refusals name a *setting* ("Configured Daily Note target is
+ * unavailable or invalid") without saying which of its settings, or that the
+ * card could ask for the other target instead. This turns the policy Operon
+ * publishes in its catalog into that sentence.
+ */
+function describeCreateTarget(target: OperonCreateTarget): string {
+	const strings = t().cards.operon;
+	switch (target.kind) {
+		case "daily":
+			return strings.targetDaily;
+		case "file":
+			return strings.targetFile(target.path);
+		case "active":
+			return strings.targetActive;
+		case "ask":
+			return strings.targetAsk;
+		case "note":
+			return strings.targetNote(target.folder);
+		default:
+			return "";
+	}
+}
+
+/** Report a refused create with the setting behind it, which the error code
+ * alone never names. */
+function noticeCreateFailure(cfg: OperonConfig, reason: string): void {
+	const where = describeCreateTarget(createTarget(cachedPolicies(), cfg.createAs));
+	new Notice(
+		where
+			? t().notices.operonCreateFailed(reason, where)
+			: t().notices.operonWriteFailed(reason),
+	);
 }
 
 /** The MIME-ish key a dragged Operon task travels under. Distinct from the
@@ -466,6 +511,7 @@ const DRAG_TYPE = "application/hearth-operon-task";
  */
 function renderQuickAdd(
 	view: HomeView,
+	cfg: OperonConfig,
 	parent: HTMLElement,
 	statusId: string | undefined,
 	reload: () => void,
@@ -500,15 +546,20 @@ function renderQuickAdd(
 			form.addClass("is-busy");
 			void createTask(
 				view.plugin.operon,
-				{ description: text, statusId, due: due.value || undefined },
+				{ description: text, statusId, due: due.value || undefined, createAs: cfg.createAs },
 				confirmPlan(view),
 			).then((result) =>
-				settleWrite(result, reload, () => {
-					// Hand the half-typed task back rather than discarding it.
-					committed = false;
-					form.removeClass("is-busy");
-					input.focus();
-				}),
+				settleWrite(
+					result,
+					reload,
+					() => {
+						// Hand the half-typed task back rather than discarding it.
+						committed = false;
+						form.removeClass("is-busy");
+						input.focus();
+					},
+					(reason) => noticeCreateFailure(cfg, reason),
+				),
 			);
 		};
 		input.addEventListener("keydown", (ke) => {
@@ -579,7 +630,7 @@ function renderList(
 			if (tasks.length === 0) {
 				emptyState(host, "check", t().cards.empty.operonNoTasks);
 				// An empty list is exactly where adding one is most useful.
-				if (writesEnabled(view)) renderQuickAdd(view, host, undefined, reload);
+				if (writesEnabled(view)) renderQuickAdd(view, cfg, host, undefined, reload);
 				return;
 			}
 			renderStaleness(host, result.freshness.verified);
@@ -588,7 +639,7 @@ function renderList(
 			renderTruncation(host, result.value.page);
 			// No status: a list spans every column, so the new task takes
 			// whichever status Operon starts one in.
-			if (writesEnabled(view)) renderQuickAdd(view, host, undefined, reload);
+			if (writesEnabled(view)) renderQuickAdd(view, cfg, host, undefined, reload);
 		},
 	);
 }
@@ -750,7 +801,7 @@ function renderBoard(
 				}
 				// Adding into a column means adding *with that status*, which is
 				// the one thing a board's "+" can say that a list's cannot.
-				if (writes) renderQuickAdd(view, colBody, status.id, reload);
+				if (writes) renderQuickAdd(view, cfg, colBody, status.id, reload);
 			}
 			renderTruncation(host, result.value.page);
 		},
@@ -983,6 +1034,30 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 
 	// The timer view reads one value and has nothing to filter or sort.
 	if (operonView(cfg) === "timer") return;
+
+	// Only meaningful where there is a "+" to configure: the agenda has none.
+	if (operonView(cfg) !== "agenda") {
+		const target = new Setting(containerEl)
+			.setName(strings.createAs)
+			.setDesc(strings.createAsDesc)
+			.addDropdown((d) => {
+				d.addOption("", strings.createAsDefault);
+				d.addOption("inline", strings.createAsInline);
+				d.addOption("file", strings.createAsFile);
+				d.setValue(cfg.createAs ?? "").onChange((v) => {
+					cfg.createAs = v === "inline" || v === "file" ? v : undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				});
+			});
+		// What Operon itself is configured to do, read from its catalog. This is
+		// the line that turns "Configured Daily Note target is unavailable or
+		// invalid" into something actionable — it names the target the setting
+		// above is choosing between.
+		const where = describeCreateTarget(createTarget(cachedPolicies(), cfg.createAs));
+		if (where) target.descEl.createDiv({ cls: "hearth-operon-target", text: where });
+	}
 
 	if (operonView(cfg) === "list") {
 		new Setting(containerEl)
