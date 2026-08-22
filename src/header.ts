@@ -16,6 +16,7 @@ import {
 	effectiveTitle,
 } from "./types";
 import { t } from "./i18n";
+import { newNoteButtonLabel } from "./newnote";
 
 /** The search engine used by the “Search online” button action.
  * DuckDuckGo's GET endpoint works without an API key and is privacy-friendly. */
@@ -127,14 +128,21 @@ function searchOnline(bar: HTMLElement): void {
 	}
 }
 
-/** The original New-note button: creates a new note on click. */
+/** The New-note button: creates a note on click. What that note is — blank, or
+ * made from a Templater template, and where it lands — is configured in
+ * Settings → Appearance and resolved by `src/newnote.ts` (#227); the button's
+ * text is configurable there too, so a board can say "Capture" or "New meeting
+ * note" instead. */
 function createNewNoteButton(view: HomeView): HTMLElement {
+	const label = newNoteButtonLabel(view.plugin.settings);
 	const btn = createEl("button", {
 		cls: "hearth-newnote",
-		attr: { "aria-label": t().header.newNoteAria },
+		// A renamed button describes itself; the generic aria label is only
+		// right for the default one.
+		attr: { "aria-label": view.plugin.settings.newNoteButtonLabel.trim() || t().header.newNoteAria },
 	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
-	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.newNote });
+	btn.createSpan({ cls: "hearth-newnote-label", text: label });
 	btn.addEventListener("click", () => {
 		void view.plugin.createNewNote(view);
 	});

@@ -1,4 +1,4 @@
-import { addIcon, debounce, Platform, Plugin, setIcon, TFolder, WorkspaceLeaf, Notice } from "obsidian";
+import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings, timersAllowed } from "./types";
 import { HomeSettingTab } from "./settings";
@@ -10,7 +10,7 @@ import {
 	tabIconIdFor,
 } from "./icon";
 import type { WorkspacesInstance } from "./obsidian-ext";
-import { openFile } from "./opener";
+import { createConfiguredNote } from "./newnote";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
@@ -301,29 +301,21 @@ export default class HearthPlugin extends Plugin {
 		await workspace.revealLeaf(leaf);
 	}
 
-	/** Create a new note in the user's configured default location and open it.
-	 * `from` is the view the "New note" button was pressed in, so the note can
-	 * replace that Hearth tab when the user asked for "same tab" (#106); the
-	 * command palette has no view and falls back to the active leaf. */
+	/** Create the note the "New note" button is configured to create, and open
+	 * it. What that is — a blank note in the default location, or a Templater
+	 * template landing in a folder of the user's choosing — lives in settings
+	 * and is resolved by `src/newnote.ts`, so this button, the search-bar card's
+	 * button and this command all behave the same.
+	 *
+	 * `from` is the view the button was pressed in, so the note can replace that
+	 * Hearth tab when the user asked for "same tab" (#106); the command palette
+	 * has no view and falls back to the active leaf. */
 	async createNewNote(from?: HomeView) {
-		try {
-			const parent = this.app.fileManager.getNewFileParent("");
-			const file = await this.app.fileManager.createNewMarkdownFile(
-				parent instanceof TFolder ? parent : this.app.vault.getRoot(),
-				"Untitled",
-			);
-			await openFile(
-				from ?? { app: this.app, settings: this.settings },
-				file,
-				"newNote",
-			);
-		} catch (err) {
-			// Fall back to the core command if the internal API shape changes.
-			if (!this.app.commands.executeCommandById("file-explorer:new-file")) {
-				new Notice(t().notices.couldNotCreateNote);
-				console.error("Hearth new note error", err);
-			}
-		}
+		await createConfiguredNote(
+			this.app,
+			this.settings,
+			from ?? { app: this.app, settings: this.settings },
+		);
 	}
 
 	/** Create a new Excalidraw drawing via the Excalidraw plugin's own "new

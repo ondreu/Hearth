@@ -15,6 +15,22 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The "New note" button is yours to configure.** Settings → Appearance →
+  **The "New note" button** now decides what that button makes: give it a
+  **Templater template** and it creates the note from that instead of a blank
+  one, send it to a **folder** of your choosing (created if it isn't there yet),
+  and name the note with a **filename pattern** — `{{date}}`, `{{date:FMT}}`,
+  `{{time}}`, `{{time:FMT}}` and `{{prompt}}`, the same tokens the Templater
+  card uses, with `{{prompt}}` asking you for the name on each click. The
+  button's **text** is configurable too, so it can read "Capture" or "New
+  meeting note". Templater does the templating, exactly as it does from its own
+  command: your user scripts, `tp.system.prompt()` dialogs and cursor placement
+  all behave unchanged, and the note opens the way Hearth opens notes rather
+  than replacing your board. The settings drive the header button, a search-bar
+  card's button and Hearth's "Create new note" command alike; leave them alone
+  and the button does what it always did. Folder and filename apply to a blank
+  note too, so it is configurable without Templater installed (#227).
+
 - **Move an Operon task by dragging it, and add one from the card.** The Operon
   board card now supports **drag and drop between status columns** — with the
   same move on each row's **right-click menu**, so it is reachable without a
