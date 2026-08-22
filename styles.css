@@ -8007,23 +8007,74 @@ body.hearth-dv-resizing {
 
 /* ── "What's new" release-notes dialog ─────────────────────────────────── */
 .hearth-whatsnew-modal {
-	max-width: 680px;
-	width: min(680px, 92vw);
+	max-width: 720px;
+	width: min(720px, 94vw);
 }
 
-/* Intro and footer stay put; only the release list scrolls, so the close
- * button is reachable however long the log is. */
+/* Intro, toolbar and footer stay put; only the release list scrolls, so the
+ * close button is reachable however long the log is. */
 .hearth-whatsnew-modal .modal-content {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	max-height: min(70vh, 720px);
+	max-height: min(74vh, 760px);
 }
 
 .hearth-whatsnew-modal .hearth-whatsnew-intro {
 	flex: none;
-	margin: 0 0 14px;
+	margin: 0 0 12px;
 	color: var(--text-muted);
+}
+
+/* Filter box and the expand/collapse-all control. */
+.hearth-whatsnew-toolbar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.hearth-whatsnew-search {
+	position: relative;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.hearth-whatsnew-search-icon {
+	position: absolute;
+	left: 9px;
+	display: flex;
+	color: var(--text-faint);
+	pointer-events: none;
+}
+
+.hearth-whatsnew-search-icon svg {
+	width: 15px;
+	height: 15px;
+}
+
+.hearth-whatsnew-filter {
+	width: 100%;
+	padding-left: 30px;
+}
+
+.hearth-whatsnew-expand-all {
+	flex: none;
+	padding: 5px 10px;
+	border-radius: var(--radius-s);
+	font-size: 0.8rem;
+	color: var(--text-muted);
+	background: var(--background-modifier-form-field);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.hearth-whatsnew-expand-all:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
 }
 
 .hearth-whatsnew-body {
@@ -8037,16 +8088,39 @@ body.hearth-dv-resizing {
 /* One release. A hairline rule above every section after the first stacks the
  * log as dated entries rather than one run-on list. */
 .hearth-whatsnew-release + .hearth-whatsnew-release {
-	margin-top: 24px;
-	padding-top: 20px;
+	margin-top: 18px;
+	padding-top: 14px;
 	border-top: 1px solid var(--background-modifier-border);
 }
 
+/* The header folds its release away, so a long log reads as a list of
+ * versions until one is opened. */
 .hearth-whatsnew-release-header {
 	display: flex;
-	align-items: baseline;
-	gap: 10px;
-	margin-bottom: 10px;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 4px 4px 0;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.hearth-whatsnew-release-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-whatsnew-release-chevron {
+	display: flex;
+	color: var(--text-faint);
+	transition: transform 120ms ease;
+}
+
+.hearth-whatsnew-release-chevron svg {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-whatsnew-release.is-collapsed .hearth-whatsnew-release-chevron {
+	transform: rotate(-90deg);
 }
 
 .hearth-whatsnew-version {
@@ -8072,9 +8146,75 @@ body.hearth-dv-resizing {
 	white-space: nowrap;
 }
 
-/* The Added / Changed / Fixed section labels within a release. */
-.hearth-whatsnew-release-body h3 {
-	margin: 18px 0 8px;
+/* One pill per kind of change ("10 New", "7 Fixed"), so a folded release still
+ * says what it holds. */
+.hearth-whatsnew-counts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	margin-left: auto;
+}
+
+.hearth-whatsnew-count {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 0.72rem;
+	color: var(--text-muted);
+	background: var(--background-secondary-alt);
+	white-space: nowrap;
+}
+
+.hearth-whatsnew-count-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+/* Added / Changed / Fixed each get their own colour: the group label wears it
+ * as text, the count pill's dot as a swatch. */
+.hearth-whatsnew-group.is-added .hearth-whatsnew-group-label {
+	color: var(--color-green);
+}
+
+.hearth-whatsnew-count.is-added .hearth-whatsnew-count-dot {
+	background: var(--color-green);
+}
+
+.hearth-whatsnew-group.is-changed .hearth-whatsnew-group-label {
+	color: var(--color-yellow);
+}
+
+.hearth-whatsnew-count.is-changed .hearth-whatsnew-count-dot {
+	background: var(--color-yellow);
+}
+
+.hearth-whatsnew-group.is-fixed .hearth-whatsnew-group-label {
+	color: var(--color-blue);
+}
+
+.hearth-whatsnew-count.is-fixed .hearth-whatsnew-count-dot {
+	background: var(--color-blue);
+}
+
+.hearth-whatsnew-group.is-removed .hearth-whatsnew-group-label,
+.hearth-whatsnew-group.is-security .hearth-whatsnew-group-label {
+	color: var(--color-red);
+}
+
+.hearth-whatsnew-count.is-removed .hearth-whatsnew-count-dot,
+.hearth-whatsnew-count.is-security .hearth-whatsnew-count-dot {
+	background: var(--color-red);
+}
+
+.hearth-whatsnew-group-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 16px 0 6px;
 	font-size: 0.72rem;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -8082,46 +8222,177 @@ body.hearth-dv-resizing {
 	color: var(--text-muted);
 }
 
-.hearth-whatsnew-release-body h3:first-child {
-	margin-top: 0;
+.hearth-whatsnew-group:first-child .hearth-whatsnew-group-label {
+	margin-top: 8px;
 }
 
-.hearth-whatsnew-release-body p {
+.hearth-whatsnew-group-icon {
+	display: flex;
+}
+
+.hearth-whatsnew-group-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Prose that isn't a bullet — a section intro, if a release ever carries one. */
+.hearth-whatsnew-prose {
 	margin: 0 0 8px;
+	color: var(--text-muted);
 	line-height: 1.55;
 }
 
-.hearth-whatsnew-release-body ul,
-.hearth-whatsnew-release-body ol {
-	margin: 0;
-	padding-left: 1.25em;
-}
-
-.hearth-whatsnew-release-body li {
-	margin: 0 0 10px;
-	line-height: 1.55;
-}
-
-.hearth-whatsnew-release-body li:last-child {
-	margin-bottom: 0;
-}
-
-/* A bullet's follow-on paragraphs sit tight under its first line. */
-.hearth-whatsnew-release-body li > p {
+.hearth-whatsnew-prose p {
 	margin: 0 0 6px;
 }
 
-.hearth-whatsnew-release-body li > p:last-child {
+/* One change: a headline that is always visible, and its explanation folded
+ * away underneath. */
+.hearth-whatsnew-items {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.hearth-whatsnew-item {
+	border-radius: var(--radius-s);
+}
+
+.hearth-whatsnew-item.is-expanded {
+	background: var(--background-primary-alt);
+}
+
+.hearth-whatsnew-item-summary {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.hearth-whatsnew-item-summary:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-whatsnew-item-summary.is-static {
+	cursor: default;
+}
+
+.hearth-whatsnew-item-summary.is-static:hover {
+	background: none;
+}
+
+.hearth-whatsnew-item-chevron {
+	flex: none;
+	display: flex;
+	margin-top: 2px;
+	color: var(--text-faint);
+}
+
+.hearth-whatsnew-item-chevron svg {
+	width: 15px;
+	height: 15px;
+}
+
+/* The chevron's column is held even when there is nothing to open, so every
+ * headline in a group starts at the same place. */
+.hearth-whatsnew-item-summary.is-static .hearth-whatsnew-item-chevron {
+	width: 15px;
+}
+
+.hearth-whatsnew-headline {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 550;
+	line-height: 1.45;
+}
+
+/* MarkdownRenderer wraps the headline in a paragraph; keep it on its line. */
+.hearth-whatsnew-headline p {
+	display: inline;
+	margin: 0;
+}
+
+.hearth-whatsnew-headline code {
+	font-size: 0.85em;
+}
+
+.hearth-whatsnew-issues {
+	flex: none;
+	display: flex;
+	gap: 4px;
+	margin-top: 1px;
+}
+
+.hearth-whatsnew-issue {
+	padding: 1px 6px;
+	border-radius: var(--radius-s);
+	font-size: 0.72rem;
+	color: var(--text-muted);
+	background: var(--background-secondary-alt);
+	text-decoration: none;
+}
+
+.hearth-whatsnew-issue:hover {
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+}
+
+.hearth-whatsnew-detail {
+	padding: 0 10px 10px 31px;
+	font-size: 0.92rem;
+	line-height: 1.6;
+	color: var(--text-muted);
+}
+
+.hearth-whatsnew-detail p {
+	margin: 0 0 8px;
+}
+
+.hearth-whatsnew-detail > :last-child {
 	margin-bottom: 0;
 }
 
-.hearth-whatsnew-release-body code {
+.hearth-whatsnew-detail ul,
+.hearth-whatsnew-detail ol {
+	margin: 0 0 8px;
+	padding-left: 1.25em;
+}
+
+.hearth-whatsnew-detail li {
+	margin: 0 0 4px;
+}
+
+.hearth-whatsnew-detail code {
 	font-size: 0.85em;
+}
+
+/* Keyboard focus: both rows are clickable divs, so they draw their own ring. */
+.hearth-whatsnew-item-summary:focus-visible,
+.hearth-whatsnew-release-header:focus-visible,
+.hearth-whatsnew-expand-all:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+/* Filtered away by the search box — rows, and any group or release left with
+ * nothing in it. */
+.hearth-whatsnew-item.is-filtered-out,
+.hearth-whatsnew-group.is-filtered-out,
+.hearth-whatsnew-release.is-filtered-out {
+	display: none;
+}
+
+.hearth-whatsnew-empty {
+	margin: 24px 0;
+	text-align: center;
+	color: var(--text-muted);
 }
 
 .hearth-whatsnew-footer {
 	flex: none;
-	margin: 16px 0 0;
+	margin: 14px 0 0;
 	font-size: 0.82rem;
 	color: var(--text-muted);
 }
@@ -8131,6 +8402,12 @@ body.hearth-dv-resizing {
 	flex: none;
 	border-top: none;
 	padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-whatsnew-release-chevron {
+		transition: none;
+	}
 }
 
 /* Jira saved-filter card */

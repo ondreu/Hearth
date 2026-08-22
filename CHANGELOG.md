@@ -325,6 +325,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   it to. The same wait applies to **Live refresh on vault changes**, which
   rebuilt the whole board out from under the same field.
 
+### Changed
+
+- **"What's new" reads as a list of headlines, not a wall of text.** The dialog
+  after an update — and **View changelog** in Settings → About — now shows one
+  line per change, grouped under **New**, **Fixed** and **Changed** with a
+  count per group beside the version, and folds each explanation away until you
+  click the line you care about. A release you aren't reading collapses to a
+  single row, so upgrading across several versions is a short list rather than
+  several screens of prose, and a filter box searches every headline *and* its
+  detail. The issue a change closes sits beside it as a link to GitHub. It is
+  the same `CHANGELOG.md` as before, and still the only source: nothing is
+  rewritten or summarised, only folded.
+
 ## [2.0.0]
 
 ### Added
