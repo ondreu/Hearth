@@ -1,6 +1,7 @@
 import { Component, debounce, MarkdownRenderer, moment as createMoment, setIcon, Setting, TFile } from "obsidian";
 import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
+import { dailyNameMatcher } from "./dailyformat";
 import { localDayKey } from "./dates";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
@@ -552,6 +553,57 @@ export function todaysDailyNotePath(options: DailyNotesOptions): string {
 }
 
 
+/**
+ * A lookup for *existing* daily notes that survives a locale mismatch.
+ *
+ * The formatted path is tried first — that's the answer in every ordinary vault
+ * and costs one map lookup. It misses when the note's name contains a
+ * locale-dependent token (`dd`, `dddd`, `Do`) and the file was written under a
+ * different locale than the one moment is running in now — Periodic Notes with
+ * its own locale override, or a note carried over from another machine
+ * (issue #229). For those formats only, the daily-note folder is scanned once
+ * per finder and indexed by day, so the note is found by the date it encodes
+ * rather than by the weekday name moment would spell today.
+ *
+ * Create one finder per render and reuse it across days: the scan is lazy and
+ * happens at most once, however many days are probed.
+ */
+export function dailyNoteFinder(
+	view: HomeView,
+	options: DailyNotesOptions,
+): (day: Moment) => TFile | null {
+	const format = (options.format || "").trim() || "YYYY-MM-DD";
+	const folder = (options.folder || "").trim().replace(/^\/+|\/+$/g, "");
+	const matcher = dailyNameMatcher(format);
+	const prefix = folder ? `${folder}/` : "";
+	// Only a format that nests (YYYY/MM/DD) may match a name containing a
+	// separator; otherwise notes deeper in the tree aren't daily notes.
+	const nested = format.includes("/");
+	let index: Map<string, TFile> | null = null;
+
+	const scan = (): Map<string, TFile> => {
+		const found = new Map<string, TFile>();
+		for (const file of view.app.vault.getMarkdownFiles()) {
+			if (!file.path.startsWith(prefix)) continue;
+			const name = file.path.slice(prefix.length, -".md".length);
+			if (!nested && name.includes("/")) continue;
+			const key = matcher?.dayKey(name);
+			// First match wins, so a duplicate never displaces the earlier note.
+			if (key && !found.has(key)) found.set(key, file);
+		}
+		return found;
+	};
+
+	return (day: Moment): TFile | null => {
+		const direct = view.app.vault.getAbstractFileByPath(dailyNotePath(day, options));
+		if (direct instanceof TFile) return direct;
+		if (!matcher?.localeDependent) return null;
+		index ??= scan();
+		return index.get(day.format("YYYY-MM-DD")) ?? null;
+	};
+}
+
+
 /** The vault path an embed/daily card currently tracks, used to refresh the card
  * live when that file changes. Returns null when there's nothing to watch. */
 export function watchedCardPath(view: HomeView, card: DashboardCard): string | null {
@@ -561,7 +613,9 @@ export function watchedCardPath(view: HomeView, card: DashboardCard): string | n
 	if (card.kind === "daily") {
 		const options = dailyNotesOptions(view);
 		if (!options) return null;
-		return todaysDailyNotePath(options);
+		// Watch the note the card actually shows: with a locale-dependent format
+		// that can be a different name than today's path formats to (issue #229).
+		return dailyNoteFinder(view, options)(moment())?.path ?? todaysDailyNotePath(options);
 	}
 	return null;
 }

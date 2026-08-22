@@ -257,6 +257,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Daily notes are found even when their name spells the weekday in another
+  language.** A daily-note format with a locale-dependent token — `dd`, `dddd`,
+  `Do` — was resolved by formatting the date in whatever locale Obsidian is
+  running in now, so a note written under a different one ("Wed, 19.08.2026"
+  next to a moment locale that spells it "Mi") looked missing: the day streak
+  read 0, the calendar day lost its dot and the daily card offered to create a
+  note that already existed. For those formats Hearth now reads the date back
+  out of the filenames in the daily-note folder, ignoring the parts only the
+  locale decides, so notes made by Periodic Notes with its own locale override
+  — or carried over from another machine — resolve the same as any other
+  (#229).
 - **Filtering tasks by date honours TaskNotes' scheduled dates.** A task due
   next week but scheduled for today vanished from a **Today** filter: the card
   looked only at the due date and fell back to the scheduled one when there was

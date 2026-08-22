@@ -1,13 +1,14 @@
-import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
+import { Component, Notice, setIcon, Setting } from "obsidian";
 import {
 	cardOverlayButton,
+	dailyNoteFinder,
 	dailyNotesOptions,
 	emptyState,
 	livePreviewSetting,
+	moment,
 	renderEditableEmbed,
 	renderLivePreviewEmbed,
 	renderMarkdownFile,
-	todaysDailyNotePath,
 	watchedCardPath,
 } from "../cardbodies";
 import { t } from "../i18n";
@@ -34,10 +35,9 @@ export function renderDaily(
 		return;
 	}
 
-	const path = todaysDailyNotePath(options);
-	const file = view.app.vault.getAbstractFileByPath(path);
+	const file = dailyNoteFinder(view, options)(moment());
 
-	if (!(file instanceof TFile)) {
+	if (!file) {
 		const empty = body.createDiv("hearth-card-empty");
 		setIcon(empty.createDiv("hearth-card-empty-icon"), "calendar-plus");
 		empty.createDiv({ cls: "hearth-card-empty-text", text: t().cards.daily.noNoteYet });
