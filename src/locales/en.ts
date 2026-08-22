@@ -2789,6 +2789,8 @@ export const en = {
 				none: "None",
 			},
 			filterStatus: "Status",
+			filterContexts: "Contexts",
+			filterProjects: "Projects",
 			filterText: "Text contains",
 			filterTextPlaceholder: "Search task text…",
 			filterApply: "Apply",
