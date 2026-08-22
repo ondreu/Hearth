@@ -156,6 +156,10 @@ export function exportSettings(s: HomeSettings): string {
 		searchPlaceholder: s.searchPlaceholder,
 		showNewNoteButton: s.showNewNoteButton,
 		newNoteButtonMode: s.newNoteButtonMode,
+		newNoteButtonLabel: s.newNoteButtonLabel,
+		newNoteTemplate: s.newNoteTemplate,
+		newNoteFolder: s.newNoteFolder,
+		newNoteFilename: s.newNoteFilename,
 		searchContents: s.searchContents,
 		searchEngine: s.searchEngine,
 
@@ -1396,6 +1400,14 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	) {
 		s.newNoteButtonMode = data.newNoteButtonMode;
 	}
+	const newNoteButtonLabel = str(data.newNoteButtonLabel);
+	if (newNoteButtonLabel !== undefined) s.newNoteButtonLabel = newNoteButtonLabel;
+	const newNoteTemplate = str(data.newNoteTemplate);
+	if (newNoteTemplate !== undefined) s.newNoteTemplate = newNoteTemplate.trim();
+	const newNoteFolder = str(data.newNoteFolder);
+	if (newNoteFolder !== undefined) s.newNoteFolder = newNoteFolder.trim();
+	const newNoteFilename = str(data.newNoteFilename);
+	if (newNoteFilename !== undefined) s.newNoteFilename = newNoteFilename;
 	if (typeof data.searchContents === "boolean")
 		s.searchContents = data.searchContents;
 	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {

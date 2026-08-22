@@ -1736,6 +1736,18 @@ export interface HomeSettings {
 	/** What the single button beside the search bar does: create a new note, or
 	 * run a web search for the current search-field contents. */
 	newNoteButtonMode: "newNote" | "searchOnline";
+	/** Text on the New-note button. Empty means the built-in "New note". */
+	newNoteButtonLabel: string;
+	/** Vault path of a Templater template the New-note button runs instead of
+	 * making a blank note. Empty (or Templater missing) means a blank note. */
+	newNoteTemplate: string;
+	/** Destination folder for the notes the New-note button makes. Empty hands
+	 * the choice back to Obsidian's "Default location for new notes". */
+	newNoteFolder: string;
+	/** Filename pattern for those notes, without the extension. Supports the
+	 * same `{{date}}` / `{{time}}` / `{{prompt}}` tokens as the Templater card;
+	 * empty keeps Obsidian's "Untitled" (or lets Templater name it). */
+	newNoteFilename: string;
 	/** Also search inside note bodies (full-text), not just names/tags/properties. */
 	searchContents: boolean;
 	/** Which engine powers the search bar: Hearth's built-in vault search, or the
@@ -1964,6 +1976,10 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	searchPlaceholder: "Search or command",
 	showNewNoteButton: true,
 	newNoteButtonMode: "newNote",
+	newNoteButtonLabel: "",
+	newNoteTemplate: "",
+	newNoteFolder: "",
+	newNoteFilename: "",
 	searchContents: true,
 	searchEngine: "builtin",
 

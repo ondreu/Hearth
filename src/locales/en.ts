@@ -76,6 +76,9 @@ export const en = {
 		templaterFailed: (name: string) =>
 			`Hearth: Templater didn't create a note from ${name}.`,
 		templaterCreated: (path: string) => `Hearth: created ${path}`,
+		newNoteTemplaterMissing:
+			"Hearth: the “New note” button is set to a Templater template, but " +
+			"Templater isn’t enabled — making a blank note instead.",
 		layoutExported: "Hearth: layout exported.",
 		layoutImported: "Hearth: layout imported.",
 		layoutImportError: (error: string) => `Hearth: ${error}`,
@@ -740,6 +743,39 @@ export const en = {
 				"search the web for the current search-field contents.",
 			newNoteButtonModeNewNote: "New note",
 			newNoteButtonModeSearchOnline: "Search online",
+			newNoteHeading: "The “New note” button",
+			newNoteHeadingDesc:
+				"What the button makes, and where. The same settings drive the " +
+				"button beside the search bar, the one on a search-bar card, and " +
+				"Hearth’s “Create new note” command.",
+			newNoteButtonLabel: "Button text",
+			newNoteButtonLabelDesc:
+				"Text on the button. Leave empty for “New note”.",
+			newNoteTemplate: "Template",
+			newNoteTemplateDesc:
+				"Make the note from a Templater template instead of a blank one. " +
+				"Templater does the templating — your user scripts, " +
+				"tp.system.prompt() dialogs and cursor placement all behave as they " +
+				"do from its own command.",
+			newNoteTemplateNone: "Blank note",
+			newNoteTemplatePick: "Pick a template…",
+			newNoteTemplateClear: "Use a blank note",
+			newNoteTemplaterMissing:
+				"Templater isn’t enabled. Install and enable it to use a template " +
+				"here; until then the button makes a blank note.",
+			newNoteFolder: "Location",
+			newNoteFolderDesc:
+				"Folder the new note goes in, created if it doesn’t exist yet. " +
+				"“Default location” means wherever Obsidian puts new notes.",
+			newNoteFolderClear: "Use the default location",
+			newNoteFilename: "Filename",
+			newNoteFilenameDesc:
+				"Name for the new note, without the extension. {{date}}, " +
+				"{{date:FMT}}, {{time}}, {{time:FMT}} and {{prompt}} are " +
+				"substituted — {{prompt}} asks you for the name on each click. " +
+				"Leave empty for “Untitled”.",
+			newNoteFilenamePlaceholder: "Untitled",
+			newNoteDestination: (destination: string) => `Creates ${destination}`,
 			contentWidth: "Content width",
 			contentWidthDesc: "Maximum width of the home content, in pixels.",
 		},

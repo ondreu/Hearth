@@ -4,7 +4,7 @@ import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { addIconPicker } from "./lucide";
-import { CommandPickerModal } from "./pickers";
+import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { configuredPlaces, renderSkySource } from "./placepicker";
 import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
@@ -28,6 +28,13 @@ import {
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
+import {
+	destinationSummary,
+	isTemplaterAvailable,
+	isTemplaterTemplate,
+	normalizeFolderPath,
+	templateDisplayName,
+} from "./templater";
 
 /** Keys of HomeSettings whose default lives in DEFAULT_SETTINGS as a number —
  * used to reset slider-backed settings back to their factory value. */
@@ -764,6 +771,144 @@ export class HomeSettingTab extends PluginSettingTab {
 						this.save();
 					});
 			});
+
+		this.newNoteSection(containerEl);
+	}
+
+	/**
+	 * What the "New note" button makes (#227): its text, an optional Templater
+	 * template, the folder the note lands in and the name it gets.
+	 *
+	 * Shown whatever the search-bar button is set to, because these settings
+	 * also drive the search-bar card's button and Hearth's own "Create new note"
+	 * command — a user who has switched the header button to "Search online"
+	 * still has both of those.
+	 */
+	private newNoteSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.appearance;
+
+		new Setting(containerEl)
+			.setName(strings.newNoteHeading)
+			.setDesc(strings.newNoteHeadingDesc)
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(strings.newNoteButtonLabel)
+			.setDesc(strings.newNoteButtonLabelDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(t().header.newNote)
+					.setValue(s.newNoteButtonLabel)
+					.onChange(async (v) => {
+						s.newNoteButtonLabel = v;
+						this.save();
+					}),
+			);
+
+		// Say it here rather than leaving the user to wonder why picking a
+		// template did nothing — the same courtesy the Templater card extends.
+		const template = new Setting(containerEl)
+			.setName(strings.newNoteTemplate)
+			.setDesc(
+				isTemplaterAvailable(this.plugin.app)
+					? strings.newNoteTemplateDesc
+					: strings.newNoteTemplaterMissing,
+			);
+		template.addButton((b) => {
+			b.setButtonText(
+				templateDisplayName(s.newNoteTemplate) || strings.newNoteTemplateNone,
+			);
+			b.setTooltip(strings.newNoteTemplatePick);
+			b.onClick(() => {
+				new FilePickerModal(
+					this.plugin.app,
+					(file) => {
+						s.newNoteTemplate = file.path;
+						this.save();
+						this.rerender();
+					},
+					strings.newNoteTemplatePick,
+					(file: TFile) => isTemplaterTemplate(this.plugin.app, file),
+				).open();
+			});
+		});
+		if (s.newNoteTemplate) {
+			template.addExtraButton((b) =>
+				b
+					.setIcon("x")
+					.setTooltip(strings.newNoteTemplateClear)
+					.onClick(() => {
+						s.newNoteTemplate = "";
+						this.save();
+						this.rerender();
+					}),
+			);
+		}
+
+		const folder = new Setting(containerEl)
+			.setName(strings.newNoteFolder)
+			.setDesc(strings.newNoteFolderDesc);
+		folder.addButton((b) => {
+			b.setButtonText(
+				normalizeFolderPath(s.newNoteFolder) || t().cards.templater.vaultRoot,
+			);
+			b.onClick(() => {
+				new FolderPickerModal(this.plugin.app, (picked) => {
+					// The picker offers the root as "/", which normalizes to "" —
+					// the same value as "wherever Obsidian puts new notes".
+					s.newNoteFolder = normalizeFolderPath(picked.path);
+					this.save();
+					this.rerender();
+				}).open();
+			});
+		});
+		if (normalizeFolderPath(s.newNoteFolder)) {
+			folder.addExtraButton((b) =>
+				b
+					.setIcon("x")
+					.setTooltip(strings.newNoteFolderClear)
+					.onClick(() => {
+						s.newNoteFolder = "";
+						this.save();
+						this.rerender();
+					}),
+			);
+		}
+
+		const filename = new Setting(containerEl)
+			.setName(strings.newNoteFilename)
+			.setDesc(strings.newNoteFilenameDesc);
+		filename.addText((txt) =>
+			txt
+				.setPlaceholder(strings.newNoteFilenamePlaceholder)
+				.setValue(s.newNoteFilename)
+				.onChange(async (v) => {
+					s.newNoteFilename = v;
+					this.save();
+					destination.setDesc(this.newNoteDestination());
+				}),
+		);
+
+		// The one thing the rows above can't show between them: where a click
+		// actually puts the note.
+		const destination = new Setting(containerEl).setDesc(this.newNoteDestination());
+		destination.settingEl.addClass("hearth-setting-note");
+	}
+
+	/** One line spelling out the path the New-note button will write to. */
+	private newNoteDestination(): string {
+		const s = this.plugin.settings;
+		return t().settings.appearance.newNoteDestination(
+			destinationSummary(
+				s.newNoteFolder,
+				s.newNoteFilename,
+				t().cards.templater.vaultRoot,
+				// A template with no filename is Templater's to name; a blank note
+				// with no filename is "Untitled". Both read as "Untitled" here.
+				t().cards.templater.untitledNote,
+			),
+		);
 	}
 
 	// ---- Performance tier ------------------------------------------------
