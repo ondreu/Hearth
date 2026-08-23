@@ -509,7 +509,6 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		days.addSlider((s) => {
 			s.setLimits(3, 60, 1)
 				.setValue(cfg.agendaDays ?? 14)
-				.setDynamicTooltip()
 				.onChange((v) => {
 					cfg.agendaDays = v === 14 ? undefined : v;
 					ctx.opts.save();

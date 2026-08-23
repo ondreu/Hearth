@@ -78,7 +78,6 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	buttonSize.addSlider((s) => {
 		s.setLimits(60, 180, 10)
 			.setValue(card.tileSize ?? 90)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				card.tileSize = v === 90 ? undefined : v;
 				ctx.opts.save();

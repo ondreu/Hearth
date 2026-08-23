@@ -94,7 +94,6 @@ export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 	weeks.addSlider((s) => {
 		s.setLimits(8, 53, 1)
 			.setValue(cfg.weeks ?? 26)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.weeks = v === 26 ? undefined : v;
 				ctx.opts.save();

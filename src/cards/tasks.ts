@@ -23,7 +23,6 @@ import {
 	priorityClass,
 	priorityDisplayLabel,
 	priorityKey,
-	priorityLevel,
 	priorityRank,
 	readPriorityEmoji,
 } from "../priority";
@@ -5119,8 +5118,6 @@ export class TaskFieldsModal extends Modal {
 				.setName(labels.fieldOpacity)
 				.setDesc(labels.fieldOpacityDesc)
 				.addSlider((sl) =>
-					// No setDynamicTooltip: it is deprecated, and current Obsidian
-					// already shows a slider's value inline beside it.
 					sl
 						.setLimits(1, 100, 1)
 						.setValue(fieldOpacity(field))

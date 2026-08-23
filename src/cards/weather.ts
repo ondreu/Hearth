@@ -1,4 +1,4 @@
-import { Component, Notice, setIcon, Setting } from "obsidian";
+import { Component, setIcon, Setting } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import {
@@ -22,9 +22,7 @@ import {
 	formatTemp,
 	formatWeekday,
 	formatWind,
-	type GeoResult,
 	loadWeather,
-	searchPlaces,
 	today,
 	upcomingDays,
 	upcomingHours,

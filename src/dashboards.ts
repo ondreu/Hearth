@@ -688,7 +688,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				sl
 					.setLimits(min, max, step)
 					.setValue(current)
-					.setDynamicTooltip()
 					.onChange((v) => set(v)),
 			);
 		}
@@ -857,7 +856,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				sl
 					.setLimits(min, max, step)
 					.setValue(current)
-					.setDynamicTooltip()
 					.onChange((v) => set(v)),
 			);
 		}
@@ -1050,7 +1048,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		setting.addSlider((sl) => {
 			sl.setLimits(min, max, step)
 				.setValue(dash[key] ?? globalValue)
-				.setDynamicTooltip()
 				.onChange((v) => {
 					dash[key] = v;
 					this.commit();
@@ -1122,10 +1119,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		setting.addSlider((sl) => {
 			sl.setLimits(min, max, step)
 				.setValue(bg[key])
-				// Show the live value in a tooltip. On our declared minAppVersion
-				// (1.8.7) sliders don't yet render the value inline, so this is
-				// how the current opacity/blur stays visible while dragging.
-				.setDynamicTooltip()
 				.onChange((v) => {
 					bg[key] = v;
 					this.commit();

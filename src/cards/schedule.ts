@@ -909,7 +909,6 @@ export function scheduleEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		s
 			.setLimits(0, 10, 1)
 			.setValue(cfg.maxPerDay ?? 3)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.maxPerDay = v === 3 ? undefined : v;
 				save();
@@ -950,7 +949,6 @@ export function scheduleEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		s
 			.setLimits(20, 160, 4)
 			.setValue(clampHourHeight(cfg.hourHeight))
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.hourHeight = v === 44 ? undefined : v;
 				save();
@@ -978,7 +976,6 @@ export function scheduleEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		s
 			.setLimits(3, 90, 1)
 			.setValue(listDays(cfg))
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.listDays = v === 14 ? undefined : v;
 				save();

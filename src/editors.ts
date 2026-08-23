@@ -230,7 +230,6 @@ export class CardSettingsModal extends HearthTabbedModal {
 			sl
 				.setLimits(0, 1, 0.05)
 				.setValue(card.cardOpacity ?? 1)
-				.setDynamicTooltip()
 				.onChange((v) => {
 					card.cardOpacity = v;
 					this.opts.save();
@@ -256,7 +255,6 @@ export class CardSettingsModal extends HearthTabbedModal {
 			sl
 				.setLimits(0, 24, 1)
 				.setValue(card.cardBlur ?? 0)
-				.setDynamicTooltip()
 				.onChange((v) => {
 					card.cardBlur = v;
 					this.opts.save();
@@ -282,7 +280,6 @@ export class CardSettingsModal extends HearthTabbedModal {
 			sl
 				.setLimits(0, CARD_BORDER_WIDTH_MAX, 1)
 				.setValue(card.cardBorderWidth ?? effectiveCardBorderWidth(this.opts.settings))
-				.setDynamicTooltip()
 				.onChange((v) => {
 					card.cardBorderWidth = v;
 					this.opts.save();

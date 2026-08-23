@@ -389,7 +389,6 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 	items.addSlider((s) => {
 		s.setLimits(3, 50, 1)
 			.setValue(cfg.itemLimit ?? 15)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.itemLimit = v === 15 ? undefined : v;
 				ctx.opts.save();
@@ -414,7 +413,6 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 	refresh.addSlider((s) => {
 		s.setLimits(0, 180, 5)
 			.setValue(cfg.refreshMin ?? 30)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.refreshMin = v === 30 ? undefined : v;
 				ctx.opts.save();
