@@ -15,7 +15,8 @@ launchers — on desktop and mobile.
 Think of it as a new-tab dashboard, start page and command launcher in one.
 
 - 🔍 **Search everything** — fuzzy, full-text, tags, frontmatter and commands
-- 🧩 **25+ card types** — embeds, tasks, calendars, Dataview, Git, Jira, and more
+- 🧩 **35+ cards** — embeds, tasks, calendars, Dataview, Git, Jira, Operon, and more
+- 🔌 **25 integrations** — picked up automatically when the plugin is enabled
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
@@ -30,11 +31,13 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 
 <img src="assets/mobile.png" width="280" alt="Hearth on mobile" />
 
-## Disclaimer
+## Contents
 
-This plugin was created using AI.
-
-All PR are tested in testing vault by human before merging, and all releases are beta tested in testing vault by human before promoting to stable.
+[Quick start](#quick-start) · [Setup wizard](#setup-wizard) ·
+[Search](#search) · [Cards](#cards) · [Integrations](#integrations) ·
+[Layout](#layout) · [Appearance](#appearance) · [Mobile](#mobile) ·
+[Settings & shortcuts](#settings--shortcuts) · [Development](#development) ·
+[Contributing](#contributing)
 
 ## Quick start
 
@@ -54,8 +57,8 @@ On a fresh install Hearth offers to build your first dashboard for you. It asks
 a handful of questions — a title, a look, what you use your vault for — and lays
 out a board from the answers rather than dropping you on a generic starter grid.
 
-It also **looks at what you already have**. Every supported plugin that is
-installed and enabled is offered with the one thing accepting it will do:
+It also **looks at what you already have**. Every plugin below that is installed
+and enabled is offered with the one thing accepting it will do:
 
 | Found | What Hearth does with it |
 | --- | --- |
@@ -73,6 +76,9 @@ The TaskNotes case is the one worth calling out: its field names are
 user-remappable and its statuses user-defined, so Hearth reads them from the
 plugin and copies them across. A vault that renamed `due` to `deadline` gets a
 Tasks card that works on its first render.
+
+The wizard covers the integrations above; everything else in
+[Integrations](#integrations) is added by hand from the **Add card** picker.
 
 The last step previews the board — a scale drawing plus a list of every card and
 why it's there — before anything is written. Nothing is applied until you press
@@ -97,7 +103,8 @@ The search field is keyboard-first, with four transparent modes:
   your vault (notes, images, video, canvas, bases, Excalidraw…). Click one to
   list its items; hide the ones you don't need.
 - **Recent files** appear in an empty, focused search field.
-- **New note** button creates a note in your default location.
+- **New note** button creates a note in your default location — or sends the
+  query to DuckDuckGo instead, if you'd rather.
 - **Omnisearch engine** *(optional)* — swap the built-in engine for
   [Omnisearch](https://github.com/scambier/obsidian-omnisearch) under
   **Settings → Appearance → Search engine**.
@@ -109,51 +116,41 @@ The search field is keyboard-first, with four transparent modes:
 ## Cards
 
 Add cards from the **Arrange** toolbar; configure each one from the card itself
-(title, content, colors, size, opacity, blur).
+(title, content, colors, size, opacity, blur). **Add card** opens a searchable
+picker — type to match a card's name or description, or browse by the
+categories below. Cards backed by a community plugin are always listed, marked
+*Needs Dataview* (or Git, Operon…) when the plugin isn't there, with a one-click
+jump to install it. If the card you want doesn't exist, **Request a card** at
+the bottom of the rail opens a pre-filled GitHub issue or email.
 
-**Add card** opens a searchable picker: type to match a card's name or its
-description, or browse by category (Notes & files, Planning, Vault insight,
-Tools, Integrations, Fun). Cards backed by a community plugin are always listed
-— they're marked *Needs Dataview* (or Datacore, or Templater, or Git) when the plugin isn't
-there, with a one-click jump to install it. And if the card you want doesn't
-exist, **Request a card** at the bottom of the rail opens a pre-filled GitHub
-issue or email.
+### Notes & files
 
-**Notes & files**
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom, optional in-place editing (raw or Live Preview) and a second view you can flip to | — |
+| **Daily note** | Always today's note, created on first click | Daily notes (core) |
+| **Embedded image** | A picture from the vault — fill and crop, fit, stretch or scroll, anchored to any of nine points | — |
+| **Slideshow** | Pictures from a list or a folder, rotated on a timer: captions, sort order, transition and length, slow zoom, hover controls | — |
+| **Embedded canvas** | A canvas you can pan around in place | Canvas (core) |
+| **Excalidraw drawing** | A drawing with native pan and zoom | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) |
+| **Embedded base** | A `.base` file, rendered by Obsidian's Bases | Bases (core) |
+| **Recent files** | The files you opened most recently | — |
+| **Favorites** | The notes you starred in Hearth | — |
+| **Bookmarks** | Your Obsidian bookmarks, with site favicons | Bookmarks (core) |
 
-- **Embed** — any note, image, canvas or `.base` file, rendered by Obsidian
-  itself. Per-card zoom, optional in-place editing (raw or Live Preview), and a
-  second view you can flip to with a switcher. A picture can be framed as well
-  as embedded: fill the card and crop, fit the whole thing, stretch it, or fit
-  the width and scroll — with the crop anchored to any of nine points, and zoom
-  working inside the frame.
-- **Slideshow** — pictures from your vault, rotated on a timer. Pick them one by
-  one (each with its own caption) or point the card at a folder, with or without
-  its subfolders. Order by name, creation or modification date, your own list
-  order, or shuffled; choose the seconds per picture, the transition (cut,
-  crossfade, slide or zoom) and its length, an optional slow zoom while a picture
-  is held, and whether pictures fill the card or fit inside it. Hover for
-  previous / pause / next.
-- **Daily note** — always today's note, with one-click creation when missing.
-- **Excalidraw & canvas** — edge-to-edge templates with native pan/zoom.
-- **Plugin view** *(beta)* — host another plugin's side-panel view (calendar,
-  outline, tag pane, Kanban…) inside a card, optionally pinned to one file.
-- **Dataview** *(requires [Dataview](https://github.com/blacksmithgu/obsidian-dataview))*
-  — run a DQL or DataviewJS query and render it through Dataview's own,
-  live-updating renderers, with resizable table columns.
-- **Datacore** *(requires [Datacore](https://github.com/blacksmithgu/datacore))*
-  — the same for Dataview's successor: write a Datacore query and get a live
-  list of what it matches, or a full JS/JSX/TS/TSX script rendered by
-  Datacore's own views.
+### Planning
 
-**Tasks**
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **Tasks** | Markdown checkboxes, TaskNotes task notes or a [Kanban](https://github.com/obsidian-community/obsidian-kanban) board — as a list or a drag-and-drop board | — |
+| **Calendar** | Month, week, day and list views over the same sources, with a scrolling time grid, overlapping-event columns and an all-day band | — |
+| **Mini calendar** | A month grid or agenda with dots for existing notes, ISO week numbers and an edit heatmap | Daily notes (core) |
+| **Clock & greeting** | Digital or analogue face, custom date formats, optional playful greeting | — |
 
-- **Tasks** — reads Markdown checkboxes, TaskNotes task notes, or a
-  [Kanban](https://github.com/obsidian-community/obsidian-kanban)
-  board note. Toggle, create and open tasks in place; scope by folder.
-- **Kanban board** — render any source as a drag-and-drop board with custom
-  columns and task states. Drops are written back in Kanban's own format, so
-  the note stays editable in the Kanban plugin.
+**Inside the Tasks card**
+
+- **Kanban write-back** — drops are written in Kanban's own format, so the note
+  stays editable in the Kanban plugin.
 - **Dates & priorities** — full
   [obsidian-tasks](https://github.com/obsidian-tasks-group/obsidian-tasks)
   marks (🔺⏫🔼🔽⏬ 🔁 🛫 ⏳ 📅 ✅), relative labels ("Today", "Next Friday"),
@@ -161,130 +158,150 @@ issue or email.
   recurring tasks.
 - **Sorting & filtering** — smart chain (due → scheduled → priority → created)
   or a custom multi-rule sort, per list and per Kanban column.
-- **Custom task fields** *(opt-in)* — build what a task shows from scratch:
-  name a field, pick how it's drawn (chip, dot, text, row tint or glow), and
-  map any frontmatter or built-in key to labels and colors. Click a value to
-  change it.
-- **Quick view** — click a task for a compact popover with editable metadata
-  and description instead of jumping into the note.
-- **Operon** *(requires the [Operon](https://github.com/hasanyilmaz/operon)
-  plugin, desktop only)* — four cards backed by Operon's own in-process
-  developer API: an **Operon tasks** list, an **Operon board** whose columns are
-  Operon's pipeline statuses (in its order, with its colours), an **Operon
-  agenda** grouping the next few days of due work, and an **Operon timer**
-  showing the running time tracker, ticking live. Filter by pipeline, status,
-  priority, completion state, note or text — the pickers list what Operon
-  actually has, so you never type an id by hand — or hand the whole question to
-  Operon by choosing one of its own scopes (*Happening today*, *Overdue*,
-  *Recently touched*). Clicking a task opens its note, landing on the exact line
-  for an inline task. Hearth reads through the API and never parses Operon's
-  notes, so recurrence, statuses and completion stay Operon's to define.
+- **Custom task fields** *(opt-in)* — name a field, pick how it's drawn (chip,
+  dot, text, row tint or glow), and map any frontmatter or built-in key to
+  labels and colors. Click a value to change it.
+- **Quick view** — click a task for a compact popover with editable metadata and
+  description instead of jumping into the note.
 
-  **Reading is the default; changing is a choice.** Switch on *Allow changes*
-  (Settings → Hearth → Integrations → Operon) and the board card lets you
-  **drag a task into another status column** (or pick one from the row's
-  right-click menu, so it works without a mouse), and every card grows a **+** that
-  creates one — where Operon's own settings say a new task goes, inline or as
-  its own note — with a per-card **New tasks** choice between Operon's two
-  configured targets (inline, or a note of its own) for when one of them can't
-  be resolved. Operon runs both: Hearth previews the change, Operon rates it
-  and applies it, and anything it flags as more than routine is confirmed with
-  you first. A move carries the status the board was drawn from, so a drag onto
-  a stale board is refused rather than quietly undoing someone else's change.
-  Leave the switch off and Hearth can only read — no drag handles, no **+**,
-  and no permission to change anything is ever requested.
+**Inside the calendars** — both follow your locale's week start and clock by
+default; week start, hidden weekends, week numbers, drawn hours and hour height
+are all yours to set. Mini calendar also subscribes to external **ICS/iCal**
+feeds, reads **TaskNotes** (scheduled, due, recurrences, timeblocks) and
+**Operon** due dates, and creates a note from any event, linked back by ID.
 
-  Two things to know before adding one. Operon's developer API is **desktop-only
-  and needs Obsidian 1.12.2 or newer**, and it requires **your approval** —
-  Hearth's first request appears in **Settings → Operon → Core → General →
-  Developer API Integrations**, where you approve the capabilities it asked
-  for. Until then the cards say exactly what they're waiting for. Operon grants
-  all-or-nothing, so turning *Allow changes* on widens the request and needs a
-  fresh approval there. See Settings → Hearth → Integrations for the connection
-  status, what was requested, and a kill switch.
+### Vault insight
 
-**Time & data**
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **Query** | A saved search, kept live | — |
+| **Search bar** | A search field on the board, framed or bare | — |
+| **Vault statistics** | Notes, attachments, folders, tags and daily-note streak | — |
+| **Activity heatmap** | A year of vault activity, day by day | — |
 
-- **Calendar** — month, week, day and list views over the same sources, with
-  named events in the month cells, a scrolling time grid that splits
-  overlapping events into columns and marks the current time, and an all-day
-  band. Follows your locale's week start and clock by default; the week start,
-  hidden weekends, week numbers, drawn hours, hour height and much else are
-  yours to set.
-- **Mini calendar** — month grid or agenda, resolved from the core Daily notes
-  plugin, with dots for existing notes, ISO week numbers and an edit heatmap.
-  Subscribe to external **ICS/iCal** calendars, or use **TaskNotes** as a
-  source (scheduled tasks, due dates, recurrences, timeblocks). Create a note
-  from any event, linked back by ID. With the
-  [Operon](https://github.com/hasanyilmaz/operon) plugin connected it can also
-  mark days that have an **Operon task** due — a small square, so it never reads
-  as a calendar event — and list those tasks under each day in the agenda.
-  (Operon's query filters range over the due date, so a task that is only
-  *scheduled* isn't shown.)
-- **Vault statistics** — notes, attachments, folders, tags and daily-note
-  streak.
-- **Activity heatmap** — a GitHub-style grid of notes edited or created per day.
-- **Saved search** — a stored query, refreshed live.
-- **Jira filter** — a saved Jira filter over HTTPS with bearer PAT auth, plus
-  status / assignee / priority / type / sprint / version filtering. Exports
-  never include the PAT.
-- **Weather** — current conditions and a forecast from
-  [Open-Meteo](https://open-meteo.com), free and with no API key or account.
-  Five styles, from a bare glyph and temperature to an edge-to-edge painted sky
-  that follows the real conditions and the time of day (drifting clouds, rain,
-  snow, stars, lightning). Search for a place or type coordinates, pick your
-  units, and switch on exactly what you want to see — feels-like, high/low,
-  humidity, wind, precipitation, UV, pressure, sunrise and sunset, an hourly
-  strip and a daily forecast.
-- **Clock & greeting** — digital or analogue face, custom date formats, and an
-  optional playful greeting.
-- **Git** *(requires [Git](https://github.com/Vinzent03/obsidian-git))* — your
-  vault's repository at a glance: branch, staged and changed files, unpushed
-  commits and the recent log, with buttons that commit, sync, push, pull,
-  stage and discard. Every one of those is the Git plugin doing the work
-  through its own task queue, so your remote, credentials and commit-message
-  template apply unchanged — and right-clicking a changed file offers its diff,
-  staging and discard. Choose which sections and which buttons the card shows,
-  and what a commit from it covers.
+### Tools
 
-**Launchers & utilities**
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **Links / launchpad** | A grid of tiles opening notes, URLs or commands, each with its own column and row span | — |
+| **Commands** | Tiles that run any command-palette command | — |
+| **Text / jot-down** | A quick Markdown scratchpad saved with the card | — |
+| **Calculator** | Math, unit conversions, number bases (`FF hex to decimal`), live currency and plain-language queries (`20% of 150`), with an optional keypad | Network for rates |
+| **Web page** | Any `http(s)` URL in a sandboxed iframe, optionally auto-refreshed | Network |
 
-- **Links / launchpad** — a grid of tiles opening notes, URLs or commands, each
-  with its own column and row span, droppable anywhere on the card.
-- **Commands** — tiles that run any command-palette command.
-- **New note from template** *(requires
-  [Templater](https://github.com/SilentVoid13/Templater))* — the same launchpad,
-  but each tile makes a note: pick one of your Templater templates, the folder
-  the note goes in, and a filename pattern (`Meeting {{date}}`, `{{prompt}}` to
-  be asked for the rest of the name), and one click creates it. The same
-  template can feed three different folders from three different buttons —
-  something Templater's own per-template commands can't do, since they all obey
-  one default location. Templater does the templating: your user scripts,
-  `tp.system.prompt()` dialogs and `tp.file.cursor()` placement behave exactly
-  as they do from its own command. Tiles that only file something away can skip
-  opening the note.
-- **Bookmarks** — Obsidian's core bookmarks, with site favicons.
-- **Favorites** and **Recent files** — curated and recent note grids.
-- **Web page** — any `http(s)` URL in a sandboxed iframe, with optional
-  auto-refresh.
-- **Text / jot-down** — a quick Markdown scratch field saved with the card.
-- **Calculator** — evaluates as you type: math, unit conversions, number bases
-  (`FF hex to decimal`, `255 to hex`), live currency
-  ([Frankfurter](https://www.frankfurter.app/), ECB rates) and plain-language
-  queries (`20% of 150`). Optional on-screen keypad.
-- **Pet** — a pixel-art companion (cat, dog, bird, fox, frog or blob) whose
-  mood follows your vault: content, happy or bouncing with joy as you write,
-  slouched and bored and then curled up asleep on a quiet day. Each mood is
-  drawn animation — blinking, head-wagging, hopping, breathing — and its eyes
-  follow your pointer. Set a night window and a quiet small hour reads as the
-  hour, not as neglect. No hunger, no age, nothing to lose — and clicking it
-  earns hearts. Name it, color it, and set where every mood begins.
+### Integration cards
+
+Categorized as **Integrations** in the picker.
+
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **New note from template** | Buttons that each make a note from a Templater template, in a folder and filename pattern you pick | [Templater](https://github.com/SilentVoid13/Templater) |
+| **Dataview query** | A DQL or DataviewJS query, rendered by Dataview's own live renderers, with resizable table columns | [Dataview](https://github.com/blacksmithgu/obsidian-dataview) |
+| **Datacore query** | A Datacore query, or a full JS/JSX/TS/TSX script rendered by Datacore's views | [Datacore](https://github.com/blacksmithgu/datacore) |
+| **Git** | Branch, staged and changed files, unpushed commits and recent log, with commit / sync / push / pull / stage / discard buttons and per-file diffs | [Git](https://github.com/Vinzent03/obsidian-git) |
+| **Jira filter** | Issues from a saved Jira filter or JQL search, filtered by status, assignee, priority, type, sprint and version | Jira over HTTPS |
+| **RSS feed** | Headlines from any RSS 2.0 or Atom feed you follow | Network |
+| **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in five styles, up to an edge-to-edge painted sky that follows real conditions and time of day | Network |
+| **Operon tasks / board / agenda / timer** | Four cards on [Operon](https://github.com/hasanyilmaz/operon)'s own API — a task list, a pipeline board, a few days' agenda, and the running time tracker | Operon (desktop) |
+| **Plugin view** *(beta)* | Another plugin's side-panel view (calendar, outline, tag pane, Kanban…) hosted in a card, optionally pinned to one file | A plugin with a view |
+
+The Templater card does something Templater's own per-template commands can't:
+the same template can feed three different folders from three different
+buttons. Templater still does the templating — user scripts,
+`tp.system.prompt()` dialogs and `tp.file.cursor()` placement all behave as they
+do from its own command.
+
+Git and Operon both work *through* the other plugin rather than around it: Git
+commits go through the Git plugin's own task queue, so your remote, credentials
+and commit-message template apply unchanged, and Hearth never parses Operon's
+notes. See [Operon](#operon) for its setup, which is the one that needs a step
+from you.
+
+### Fun
+
+| Card | What it shows | Needs |
+| --- | --- | --- |
+| **Pet** | A pixel-art companion (cat, dog, bird, fox, frog or blob) whose mood follows your vault — content, happy, bored, or asleep on a quiet day, with drawn animation and eyes that follow your pointer. Set a night window, name it, color it. Nothing to lose; clicking it earns hearts | — |
 
 Everything is **live**: embeds and editable notes follow vault events without
 losing your cursor, data cards redraw on vault and metadata changes, and web
-cards can refresh on a timer. Cards that reach the network (Jira, calendars,
-weather, currency) all respect **Settings → Behaviour → Disable external
-calls**.
+cards refresh on a timer. Every card that reaches the network respects
+**Settings → Behaviour → Disable external calls**.
+
+## Integrations
+
+Hearth picks these up on its own — nothing to connect, no keys to paste. The
+full list, with live status and where each one's settings live, is under
+**Settings → Hearth → Integrations**.
+
+**Community plugins**
+
+| Plugin | What Hearth does with it | Configured in |
+| --- | --- | --- |
+| [Omnisearch](https://github.com/scambier/obsidian-omnisearch) | Becomes the engine behind the search bar | Search tab |
+| [TaskNotes](https://obsidian.md/plugins?id=tasknotes) | Tasks cards read one-note-per-task vaults — status, due date and priority from frontmatter, under TaskNotes' own field names | Integrations tab |
+| [Dataview](https://github.com/blacksmithgu/obsidian-dataview) | The Dataview card: DQL and DataviewJS, rendered live | The card |
+| [Datacore](https://github.com/blacksmithgu/datacore) | The Datacore card: queries and JS/JSX/TS/TSX scripts | The card |
+| [Templater](https://github.com/SilentVoid13/Templater) | The "New note from template" launchpad | The card |
+| [Git](https://github.com/Vinzent03/obsidian-git) | The Git card, acting through the plugin's own task queue | The card |
+| [Operon](https://github.com/hasanyilmaz/operon) | Four cards on Operon's Developer API — [details below](#operon) | Integrations tab |
+| [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | Your per-file icons show wherever Hearth lists a file | Integrations tab |
+| [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) | Drawings render live in Embed cards; "New drawing" runs its command | The card |
+| [Kanban](https://github.com/obsidian-community/obsidian-kanban) | Tasks cards read and write its board notes in its own format | The card |
+
+**Obsidian core plugins**
+
+| Core plugin | What Hearth does with it |
+| --- | --- |
+| **Daily notes** | Daily note, Mini calendar and Vault statistics resolve today's note from its folder, format and template |
+| **Bases** | Embed cards show a `.base` view |
+| **Canvas** | Embed cards show a canvas, interactive and edge to edge |
+| **Bookmarks** | The Bookmarks card, groups and all |
+| **Search** | Hands a query to Obsidian's search pane for the full results |
+| **File explorer** | Powers "Reveal in file explorer" on search results |
+| **Workspaces** | A dashboard can switch to a saved workspace when you open it |
+| **Audio recorder** | The mobile "Record voice" action button |
+| **Any plugin with a side panel** | The Plugin view card hosts whatever views are registered |
+
+**External services** — all silenced at once by **Behaviour → Privacy &
+network → Disable external calls**.
+
+| Service | Used by | Account / key |
+| --- | --- | --- |
+| [Open-Meteo](https://open-meteo.com) | Weather cards and the live weather sky | None. Only the coordinates you pick are sent, and a pinned sky needs no location at all |
+| [Frankfurter](https://www.frankfurter.app/) (ECB rates) | Calculator currency conversion | None |
+| Jira Cloud / Server | Jira cards, over REST with bearer PAT auth | Yours, entered on the card; exports never include the PAT |
+| RSS / Atom feeds | RSS cards | None |
+| ICS / webcal feeds | Mini calendar subscriptions (Google, iCloud, Fastmail, Nextcloud…) | The feed URL |
+| DuckDuckGo | The search bar's optional web-search button | None |
+
+### Operon
+
+The four Operon cards read through Operon's own in-process developer API, so
+recurrence, statuses and completion stay Operon's to define. Filters are
+pickers over what Operon actually has — pipeline, status, priority, completion,
+note or text — or you can hand the whole question over to one of Operon's own
+scopes (*Happening today*, *Overdue*, *Recently touched*). Clicking a task
+opens its note on the exact line.
+
+**Reading is the default; changing is a choice.** Switch on *Allow changes*
+(**Settings → Hearth → Integrations → Operon**) and the board card lets you drag
+a task into another status column — or pick one from the row's right-click menu,
+so it works without a mouse — and every card grows a **+** that creates a task
+where Operon's own settings say new tasks go. Hearth previews the change,
+Operon rates it and applies it, and anything more than routine is confirmed with
+you first. A move carries the status the board was drawn from, so a drag onto a
+stale board is refused rather than quietly undoing someone else's change. Leave
+the switch off and Hearth can only read.
+
+Before you add one:
+
+| | |
+| --- | --- |
+| **Platform** | Desktop only, Obsidian 1.12.2 or newer |
+| **Approval** | Hearth's request appears in **Settings → Operon → Core → General → Developer API Integrations** — approve it there. Until then the cards say what they're waiting for |
+| **Widening it** | Operon grants all-or-nothing, so turning *Allow changes* on needs a fresh approval |
+| **Status & kill switch** | **Settings → Hearth → Integrations** shows the connection, what was requested, and how to cut it |
 
 ## Layout
 
@@ -295,7 +312,7 @@ calls**.
 - **Multiple dashboards** — a `[1] [2] [+]` switcher in the top-left. Name each
   board, give it an emoji or a Lucide icon, reorder by dragging, and override
   the global width, columns, row height, background and title icon per board.
-  Open a board's settings either from **Dashboard settings** in the **Arrange**
+  Open a board's settings from **Dashboard settings** in the **Arrange**
   toolbar or by right-clicking its switcher button.
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
@@ -309,26 +326,24 @@ calls**.
   draws, spread across the whole window and following the real conditions and
   time of day over a place you pick. Or pin one sky — clear night, snow,
   thunder — and keep it whatever the weather is doing, which needs no location
-  and never goes online. All with opacity and blur.
-  Ships with a soft ambient default.
+  and never goes online. All with opacity and blur. Ships with a soft ambient
+  default.
 - **Banner or full background** — wear that same backdrop either way: filling
-  the whole view, or as a **banner** across the top of the board — a cover
-  image, the way one sits above a note — with the cards below it on your
-  theme's own surface. Set the height, fade the lower edge into the page, and
-  choose whether it lines up with the content or runs edge to edge. Each of
-  those is its own per-board override, so one dashboard can show the vault's
-  background as a banner while the next keeps it as a wallpaper — no picture
-  restated either way.
+  the whole view, or as a **banner** across the top of the board, the way a
+  cover image sits above a note, with the cards below it on your theme's own
+  surface. Set the height, fade the lower edge into the page, and choose whether
+  it lines up with the content or runs edge to edge — each a per-board override,
+  so one dashboard can show the vault's background as a banner while the next
+  keeps it as a wallpaper.
 - **Frosted glass** — card opacity and backdrop blur at three levels (global →
   per-dashboard → per-card). Merged cards blur as one seamless sheet.
 - **Card corner radius** — from the default 14 px down to sharp 0 px.
 - **Per-card colors** — an accent and a background tint for any card.
 - **Title, logo and compact spacing** for the dashboard header.
-- **Lucide icons** — pick any icon from the Lucide set for Hearth's **tab and
-  ribbon** button and for the **title** beside the board's heading, searched
-  from a picker rather than typed from memory. Each dashboard can override the
-  title icon, so one board can show a flame and the next a rocket; leave a field
-  empty and the Hearth crystal (or your emoji logo) stays as it was.
+- **Lucide icons** — pick any icon for Hearth's **tab and ribbon** button and
+  for the **title** beside the board's heading, searched from a picker rather
+  than typed from memory. Each dashboard can override the title icon; leave a
+  field empty and the Hearth crystal (or your emoji logo) stays as it was.
 
 ## Mobile
 
@@ -339,14 +354,12 @@ calls**.
   command.
 - **Keyboard-aware** — the visible area tracks the on-screen keyboard.
 
-## Settings
+## Settings & shortcuts
 
 Everything lives under **Settings → Hearth**, grouped by a category ribbon:
 **Appearance**, **Search**, **Dashboard**, **Behaviour** (startup, new tabs,
 where notes open, mobile, privacy), **Integrations**, **Backup** and **About**.
 Per-card settings are edited from the card itself in arrange mode.
-
-## Keyboard shortcuts
 
 Bindable under **Settings → Hotkeys**:
 
@@ -355,6 +368,14 @@ Bindable under **Settings → Hotkeys**:
 - **Switch to next / previous dashboard**
 
 In the search field: `↑`/`↓` to move, `Enter` to open, `Esc` to dismiss.
+
+## Disclaimer
+
+This plugin was created using AI.
+
+All PRs are tested in a testing vault by a human before merging, and all
+releases are beta tested in a testing vault by a human before being promoted to
+stable.
 
 ## Development
 
