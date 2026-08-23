@@ -17,6 +17,7 @@ import { DATAVIEW_PLUGIN_ID } from "../dataview";
 import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "../fileicons";
 import { GIT_PLUGIN_ID } from "../git";
 import { OMNISEARCH_PLUGIN_ID } from "../omnisearch";
+import { OPERON_PLUGIN_ID, isOperonAvailable, isOperonPlatformSupported } from "../operon";
 import { TASKNOTES_PLUGIN_ID, readTaskNotesSetup, type TaskNotesSetup } from "../tasknotes";
 import { TEMPLATER_PLUGIN_ID, templaterTemplateFiles } from "../templater";
 
@@ -41,6 +42,7 @@ export type SetupIntegrationId =
 	| "datacore"
 	| "templater"
 	| "git"
+	| "operon"
 	| "omnisearch"
 	| "fileIcons"
 	| "bases"
@@ -99,6 +101,29 @@ function pluginEnabled(app: App, id: string): boolean {
 function corePluginEnabled(app: App, id: string): boolean {
 	try {
 		return app.internalPlugins?.getPluginById(id)?.enabled === true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Whether an Operon card could work in this vault at all.
+ *
+ * Stricter than "the plugin is on", and deliberately so: Operon itself runs on
+ * mobile but its Developer API does not, and an old Operon exposes no accessor
+ * to call — so on a phone, or against a build without the API, the card can
+ * never show anything and offering it would be a promise the wizard can't keep.
+ * The two probes are the same ones the card's own picker requirement uses, so
+ * the wizard offers Operon exactly when the picker would let you add it.
+ *
+ * What this cannot know is whether the user has approved Hearth in Operon's own
+ * settings: that answer only exists after an async session negotiation, which
+ * is far more than a detection pass should do. The card explains the approval
+ * step itself, and the wizard's offer says so up front.
+ */
+function operonUsable(app: App): boolean {
+	try {
+		return isOperonPlatformSupported() && isOperonAvailable(app);
 	} catch {
 		return false;
 	}
@@ -208,6 +233,14 @@ export function detectSetup(app: App): SetupDetection {
 		integrations.push({
 			id: "git",
 			name: pluginName(app, GIT_PLUGIN_ID, "Git"),
+			recommended: false,
+		});
+	}
+
+	if (operonUsable(app)) {
+		integrations.push({
+			id: "operon",
+			name: pluginName(app, OPERON_PLUGIN_ID, "Operon"),
 			recommended: false,
 		});
 	}

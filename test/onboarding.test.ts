@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
+import { Platform } from "obsidian";
 import { detectSetup, taskNotesImport } from "../src/onboarding/detect";
 import {
 	applySetup,
@@ -72,13 +73,18 @@ function fakeApp(opts: {
 	vaultName?: string;
 }): App {
 	const files = opts.files ?? [];
+	const instances = opts.pluginSettings ?? {};
 	return {
 		plugins: {
 			enabledPlugins: new Set(opts.enabled ?? []),
 			manifests: Object.fromEntries(
 				Object.entries(opts.installed ?? {}).map(([id, name]) => [id, { name }]),
 			),
-			plugins: opts.pluginSettings ?? {},
+			plugins: instances,
+			// Operon is probed through its own plugin object rather than the
+			// enabled-plugins set, because what matters is whether it exposes the
+			// Developer API accessor at all.
+			getPlugin: (id: string) => instances[id] ?? null,
 		},
 		internalPlugins: {
 			getPluginById: (id: string) =>
@@ -211,6 +217,49 @@ describe("detectSetup", () => {
 		expect(detectSetup(fakeApp({ files, core: { bases: true } })).basePath).toBe(
 			"Tables/Books.base",
 		);
+	});
+
+	// Operon is the one integration whose offer is not "is the plugin on": its
+	// Developer API is desktop-only and only newer builds expose the accessor, so
+	// the wizard must offer it exactly when a card added from the picker could
+	// actually work — not merely when Operon is installed.
+	const operonApp = (over: Record<string, unknown> = {}) =>
+		fakeApp({
+			enabled: ["operon"],
+			installed: { operon: "Operon" },
+			pluginSettings: { operon: { getDeveloperApiV1: () => null, ...over } },
+		});
+
+	it("offers Operon when its developer API accessor is there", () => {
+		expect(detectSetup(operonApp()).integrations.map((i) => i.id)).toContain("operon");
+	});
+
+	it("does not offer Operon when it exposes no accessor", () => {
+		const detection = detectSetup(
+			fakeApp({
+				enabled: ["operon"],
+				installed: { operon: "Operon" },
+				pluginSettings: { operon: {} },
+			}),
+		);
+
+		expect(detection.integrations.map((i) => i.id)).not.toContain("operon");
+	});
+
+	it("does not offer Operon on mobile, where its API cannot run", () => {
+		Platform.isDesktopApp = false;
+		try {
+			expect(detectSetup(operonApp()).integrations.map((i) => i.id)).not.toContain("operon");
+		} finally {
+			Platform.isDesktopApp = true;
+		}
+	});
+
+	it("leaves Operon off by default — it adds a card and needs approval", () => {
+		const detection = detectSetup(operonApp());
+
+		expect(detection.integrations.find((i) => i.id === "operon")?.recommended).toBe(false);
+		expect(defaultAnswers(freshSettings(), detection).integrations).not.toContain("operon");
 	});
 
 	it("survives an app whose internals are missing entirely", () => {
@@ -386,6 +435,16 @@ describe("planCards", () => {
 			kind: "embed",
 			target: "Tables/Reading list.base",
 			title: "Reading list",
+		});
+	});
+
+	it("plans an Operon list card when Operon is accepted", () => {
+		const planned = planCards(blankAnswers({ integrations: ["operon"] }), emptyDetection(), (i) => `c${i}`);
+
+		expect(planned.map((p) => p.id)).toContain("operon");
+		expect(planned.find((p) => p.id === "operon")?.card).toMatchObject({
+			kind: "operon",
+			operon: { view: "list" },
 		});
 	});
 

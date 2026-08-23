@@ -89,6 +89,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   alongside the status and priority chips, so a card can show just the work for
   one project or one context without a query (#231).
 
+- **The setup wizard offers Operon.** "Found in your vault" now includes Operon
+  and, when you accept it, the built board arrives with an **Operon tasks** card
+  on it. The offer appears only where the card could actually work — Operon's
+  Developer API is desktop-only and needs Obsidian 1.12.2, so the wizard uses
+  the same two checks the Add card picker does rather than merely noticing the
+  plugin is installed. It is off by default, and says up front that Operon will
+  ask you to approve Hearth the first time the card loads.
+
 ### Fixed
 
 - **Daily notes are found even when their name spells the weekday in another

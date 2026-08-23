@@ -345,6 +345,10 @@ export const en = {
 					"Add a card of buttons — one per template you already have — that make a " +
 					"note from it in one click.",
 				git: "Add a Git card showing your repository's status, with commit and sync buttons.",
+				operon:
+					"Add an Operon tasks card, reading through Operon's Developer API. " +
+					"You'll be asked to approve Hearth in Operon's own settings the first " +
+					"time the card loads; until then it says what it's waiting for.",
 				omnisearch: "Use Omnisearch as the engine behind Hearth's search bar.",
 				fileIcons: "Show the per-file icons you've already set, instead of Hearth's file-type icons.",
 				bases: "Add a card embedding a base from your vault.",
@@ -441,6 +445,7 @@ export const en = {
 				datacore: "Datacore is installed",
 				templater: "Templater templates were found",
 				git: "Git is installed",
+				operon: "Operon's developer API is available",
 				bases: "A base was found in your vault",
 			},
 		},
