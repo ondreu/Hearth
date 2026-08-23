@@ -1082,7 +1082,6 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 		days.addSlider((s) => {
 			s.setLimits(1, 31, 1)
 				.setValue(cfg.agendaDays ?? DEFAULT_AGENDA_DAYS)
-				.setDynamicTooltip()
 				.onChange((v) => {
 					cfg.agendaDays = v;
 					ctx.opts.save();
@@ -1101,7 +1100,6 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 	count.addSlider((s) => {
 		s.setLimits(1, 50, 1)
 			.setValue(countOf(cfg))
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.count = v;
 				ctx.opts.save();

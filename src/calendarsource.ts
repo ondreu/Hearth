@@ -1203,7 +1203,6 @@ export function calendarSourcesEditor(ctx: CardEditorContext, containerEl: HTMLE
 	refresh.addSlider((s) => {
 		s.setLimits(0, 180, 5)
 			.setValue(cfg.refreshMin ?? 60)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.refreshMin = v === 60 ? undefined : v;
 				ctx.opts.save();

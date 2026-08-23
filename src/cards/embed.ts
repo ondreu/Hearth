@@ -350,7 +350,6 @@ function zoomSetting(
 		.addSlider((s) => {
 			s.setLimits(50, 200, 10)
 				.setValue(Math.round((view.scale ?? 1) * 100))
-				.setDynamicTooltip()
 				.onChange((v) => {
 					view.scale = v === 100 ? undefined : v / 100;
 					ctx.opts.save();

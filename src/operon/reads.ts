@@ -7,7 +7,7 @@ import type {
 	TaskQueryPageV1,
 } from "@stratejya/operon-cli/contracts/v1";
 import type { OperonAccess, OperonSession } from "./api";
-import type { OperonCatalog, OperonTask, OperonTaxonomy, OperonTimerState } from "./types";
+import type { OperonCatalog, OperonTask, OperonTimerState } from "./types";
 
 /**
  * Thin, never-throwing wrappers over the Operon reads Hearth uses.

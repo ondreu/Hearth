@@ -553,7 +553,7 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	/** Add a reset (rotate-ccw) extra button to a slider Setting that restores
 	 * the factory default from DEFAULT_SETTINGS. The current value is surfaced by
-	 * the slider's own dynamic tooltip (see the sliders below). */
+	 * Obsidian itself, which draws it inline beside the slider. */
 	private addSliderReset(
 		setting: Setting,
 		sl: SliderComponent,
@@ -690,7 +690,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		width.addSlider((sl) => {
 			sl.setLimits(700, 1600, 20)
 				.setValue(s.maxWidth)
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.maxWidth = v;
 					this.save();
@@ -1096,7 +1095,6 @@ export class HomeSettingTab extends PluginSettingTab {
 			opacity.addSlider((sl) => {
 				sl.setLimits(0, 1, 0.05)
 					.setValue(s.backgroundOpacity)
-					.setDynamicTooltip()
 					.onChange(async (v) => {
 						s.backgroundOpacity = v;
 						this.save();
@@ -1110,7 +1108,6 @@ export class HomeSettingTab extends PluginSettingTab {
 			blur.addSlider((sl) => {
 				sl.setLimits(0, 40, 1)
 					.setValue(s.backgroundBlur)
-					.setDynamicTooltip()
 					.onChange(async (v) => {
 						s.backgroundBlur = v;
 						this.save();
@@ -1164,7 +1161,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		height.addSlider((sl) => {
 			sl.setLimits(BANNER_HEIGHT_MIN, BANNER_HEIGHT_MAX, 10)
 				.setValue(clampBannerHeight(s.bannerHeight))
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.bannerHeight = v;
 					this.save();
@@ -1991,7 +1987,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		cardOpacity.addSlider((sl) => {
 			sl.setLimits(0, 1, 0.05)
 				.setValue(s.cardOpacity)
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardOpacity = v;
 					this.save();
@@ -2005,7 +2000,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		cardBlur.addSlider((sl) => {
 			sl.setLimits(0, 24, 1)
 				.setValue(s.cardBlur)
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardBlur = v;
 					this.save();
@@ -2021,7 +2015,6 @@ export class HomeSettingTab extends PluginSettingTab {
 			// since rounding beyond it was never tuned for.
 			sl.setLimits(0, DEFAULT_SETTINGS.cardRadius, 1)
 				.setValue(s.cardRadius)
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardRadius = v;
 					this.save();
@@ -2035,7 +2028,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		cardBorderWidth.addSlider((sl) => {
 			sl.setLimits(0, CARD_BORDER_WIDTH_MAX, 1)
 				.setValue(s.cardBorderWidth)
-				.setDynamicTooltip()
 				.onChange(async (v) => {
 					s.cardBorderWidth = v;
 					this.save();

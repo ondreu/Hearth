@@ -34,8 +34,6 @@ import type { OperonPolicies, OperonTask } from "./types";
  * render.
  */
 
-const CONTRACT_VERSION = 1 as const;
-
 /** Risk levels Hearth applies without asking. Anything above these — or any
  * plan Operon marks as needing consent — goes to the user first. */
 const SILENT_RISK: readonly RiskLevelV1[] = ["none", "routine"];

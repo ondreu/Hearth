@@ -455,7 +455,6 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 			s
 				.setLimits(100, SLIDESHOW_MAX_TRANSITION_MS, 100)
 				.setValue(slideshowTransitionMs(cfg))
-				.setDynamicTooltip()
 				.onChange((v) => {
 					// No redraw per step — dragging a slider would rebuild the board (and
 					// restart every slideshow on it) on every notch. It applies when the

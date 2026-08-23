@@ -598,11 +598,13 @@
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	--n: 1;
-	/* max(…, 1) keeps the single-chip case from dividing by zero. */
-	column-gap: clamp(8px, calc((100% - var(--n) * 38px) / max(var(--n) - 1, 1)), 48px);
-	/* A percentage row-gap would resolve against the container's indefinite
-	 * height and can collapse to 0, so wrapped rows get a fixed gap. */
-	row-gap: 8px;
+	/* Row gap first, then column gap. A percentage row-gap would resolve against
+	 * the container's indefinite height and can collapse to 0, so wrapped rows
+	 * get a fixed one; max(…, 1) keeps the single-chip case from dividing by
+	 * zero. Written as the `gap` shorthand rather than a `column-gap` longhand:
+	 * the two are equivalent on a flex container, but `column-gap` reads to
+	 * linters as the multi-column property of the same name. */
+	gap: 8px clamp(8px, calc((100% - var(--n) * 38px) / max(var(--n) - 1, 1)), 48px);
 	width: 100%;
 }
 
@@ -657,15 +659,22 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	/* "safe" keeps a card too short for its contents overflowing downwards only,
-	 * instead of centring the overflow and pushing the bar up out of the card.
-	 * Ignored by engines that don't know it, which leaves plain centring. */
-	justify-content: safe center;
 	gap: 8px;
 	width: 100%;
 	height: 100%;
 	flex: 1 1 auto;
 	min-width: 0;
+}
+
+/* "safe" keeps a card too short for its contents overflowing downwards only,
+   instead of centring the overflow and pushing the bar up out of the card.
+   Behind @supports rather than a second justify-content declaration in the rule
+   above, so engines that don't know the keyword keep plain centring without the
+   two declarations reading as a duplicate. */
+@supports (justify-content: safe center) {
+	.hearth-searchbar-card {
+		justify-content: safe center;
+	}
 }
 
 .hearth-card.is-searchbar-card .hearth-card-body {

@@ -179,7 +179,6 @@ export function datacoreEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	paging.addSlider((s) => {
 		s.setLimits(0, 100, 5)
 			.setValue(cfg.pageSize ?? 0)
-			.setDynamicTooltip()
 			.onChange((v) => {
 				cfg.pageSize = v > 0 ? v : undefined;
 				ctx.opts.save();
