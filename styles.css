@@ -402,6 +402,19 @@
 	height: 100%;
 }
 
+/* The bar draws its own hover and focus state; the field inside it is only
+   text. Obsidian paints every text input on hover —
+
+     input[type='text']:not(:disabled):hover { background-color: … }
+
+   at specificity (0,3,1), which outranks the (0,3,0) rule above and lights a
+   grey slab across the bar's interior, carrying the input's own --input-radius
+   rather than the bar's 14px. Adding :hover here is (0,4,0): it wins on class
+   count, so the field stays transparent without an !important. */
+.hearth-view .hearth-search-bar .hearth-search-input:hover {
+	background: transparent;
+}
+
 .hearth-newnote {
 	display: flex;
 	align-items: center;
