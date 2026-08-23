@@ -441,6 +441,23 @@ export function planCards(
 		});
 	}
 
+	if (accepted(answers, "operon")) {
+		// The list view, not the board: it is the one Operon view that reads
+		// correctly at any size, needs no pipeline chosen for it, and asks only
+		// for the read capabilities Hearth requests by default. A board seeded
+		// with someone else's idea of which pipeline matters is a worse first
+		// impression than a list of what is due.
+		add("operon", "operon", {
+			kind: "operon",
+			title: "Operon",
+			operon: { view: "list" },
+			x: -1,
+			y: -1,
+			w: 4,
+			h: 4,
+		});
+	}
+
 	if (accepted(answers, "git")) {
 		add("git", "git", { kind: "git", title: "Git", git: {}, x: -1, y: -1, w: 4, h: 4 });
 	}
