@@ -14,9 +14,7 @@
 import type { App, TFile } from "obsidian";
 import { DATACORE_PLUGIN_ID } from "../datacore";
 import { DATAVIEW_PLUGIN_ID } from "../dataview";
-import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "../fileicons";
 import { GIT_PLUGIN_ID } from "../git";
-import { OMNISEARCH_PLUGIN_ID } from "../omnisearch";
 import { OPERON_PLUGIN_ID, isOperonAvailable, isOperonPlatformSupported } from "../operon";
 import { TASKNOTES_PLUGIN_ID, readTaskNotesSetup, type TaskNotesSetup } from "../tasknotes";
 import { TEMPLATER_PLUGIN_ID, templaterTemplateFiles } from "../templater";
@@ -30,10 +28,16 @@ export const KANBAN_PLUGIN_ID = "obsidian-kanban";
  * The integrations the wizard offers to set up.
  *
  * Deliberately a *subset* of `INTEGRATIONS`: an entry earns a place here only
- * when accepting it has a concrete, automatic effect — a card added and
- * configured, or a setting flipped. Anything Hearth merely tolerates (Canvas,
- * Excalidraw, the file explorer) has nothing for the wizard to do and would
- * only be a question with no answer worth giving.
+ * when accepting it has a concrete, automatic effect *on the board being
+ * built* — a card added and configured. Anything Hearth merely tolerates
+ * (Canvas, Excalidraw, the file explorer) has nothing for the wizard to do and
+ * would only be a question with no answer worth giving.
+ *
+ * Two former entries — Omnisearch as the search engine, and Iconic/Iconize as
+ * the file-icon source — are deliberately gone. Both are vault-wide switches
+ * with no per-board form, and the wizard writes nothing vault-wide (see
+ * `plan.ts`). They are one toggle away in Settings → Hearth → Integrations,
+ * which is where a setting that affects every board belongs.
  */
 export type SetupIntegrationId =
 	| "tasknotes"
@@ -43,8 +47,6 @@ export type SetupIntegrationId =
 	| "templater"
 	| "git"
 	| "operon"
-	| "omnisearch"
-	| "fileIcons"
 	| "bases"
 	| "dailyNotes"
 	| "bookmarks";
@@ -242,29 +244,6 @@ export function detectSetup(app: App): SetupDetection {
 			id: "operon",
 			name: pluginName(app, OPERON_PLUGIN_ID, "Operon"),
 			recommended: false,
-		});
-	}
-
-	if (pluginEnabled(app, OMNISEARCH_PLUGIN_ID)) {
-		integrations.push({
-			id: "omnisearch",
-			name: pluginName(app, OMNISEARCH_PLUGIN_ID, "Omnisearch"),
-			recommended: true,
-		});
-	}
-
-	// Iconic and Iconize are interchangeable as far as Hearth is concerned —
-	// both feed the one "use the icons you already set" switch — so they are
-	// offered as a single row named after whichever is actually installed.
-	const iconic = pluginEnabled(app, ICONIC_PLUGIN_ID);
-	const iconize = pluginEnabled(app, ICONIZE_PLUGIN_ID);
-	if (iconic || iconize) {
-		integrations.push({
-			id: "fileIcons",
-			name: iconic
-				? pluginName(app, ICONIC_PLUGIN_ID, "Iconic")
-				: pluginName(app, ICONIZE_PLUGIN_ID, "Iconize"),
-			recommended: true,
 		});
 	}
 

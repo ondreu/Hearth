@@ -156,7 +156,6 @@ export const en = {
 			look: "Look",
 			purpose: "What for",
 			integrations: "Integrations",
-			behaviour: "Behaviour",
 			finish: "Finish",
 		},
 		/** The heading at the top of each step. */
@@ -166,19 +165,21 @@ export const en = {
 			look: "Pick a look",
 			purpose: "What do you use your vault for?",
 			integrations: "Found in your vault",
-			behaviour: "How Hearth behaves",
 			finish: "Here's your dashboard",
 		},
 		/** The line under each heading. */
 		stepDescs: {
 			welcome: "A few questions, then Hearth builds your first dashboard.",
-			vault: "The title and logo across the top of the board.",
-			look: "You can change any of this later in Settings → Appearance.",
+			vault: "The title and logo across the top of this board.",
+			look:
+				"This applies to the board being built — every other board keeps its " +
+				"own look. You can change any of it later from the board's own settings.",
 			purpose: "Pick as many as you like — each one adds cards to your board.",
 			integrations:
 				"Hearth found these already installed. Turn on the ones you'd like it to use.",
-			behaviour: "What happens when Obsidian starts and when you open a note.",
-			finish: "Nothing has been changed yet. Here's what will be built.",
+			finish:
+				"Nothing has been changed yet. Here's what will be built — as one " +
+				"dashboard, leaving your vault-wide settings alone.",
 		},
 		nav: {
 			back: "Back",
@@ -331,13 +332,14 @@ export const en = {
 		},
 		integrations: {
 			lead:
-				"Each one Hearth turns on here is configured for you — nothing is installed " +
-				"or changed in the other plugin.",
+				"Each one Hearth turns on here adds a card to this board, configured for " +
+				"you — nothing is installed or changed in the other plugin, and nothing " +
+				"outside this dashboard is touched.",
 			recommended: "Recommended",
 			effects: {
 				tasknotes:
-					"Add a Tasks card reading your TaskNotes tasks, using the field names and " +
-					"completed statuses TaskNotes is set to.",
+					"Add a Tasks card reading your TaskNotes tasks, with the field names and " +
+					"completed statuses TaskNotes is set to stored on the card itself.",
 				kanban: "Add a Tasks card showing your Kanban board as columns you can drag between.",
 				dataview: "Add a Dataview card, seeded with a query you can edit.",
 				datacore: "Add a Datacore card ready for a query.",
@@ -349,28 +351,16 @@ export const en = {
 					"Add an Operon tasks card, reading through Operon's Developer API. " +
 					"You'll be asked to approve Hearth in Operon's own settings the first " +
 					"time the card loads; until then it says what it's waiting for.",
-				omnisearch: "Use Omnisearch as the engine behind Hearth's search bar.",
-				fileIcons: "Show the per-file icons you've already set, instead of Hearth's file-type icons.",
 				bases: "Add a card embedding a base from your vault.",
 				dailyNotes: "Add a card showing today's daily note, editable in place.",
 				bookmarks: "Add a card listing your bookmarks.",
 			},
-			taskNotesTitle: "Read from your TaskNotes settings",
+			taskNotesTitle: "Read from your TaskNotes settings, onto this card",
 			taskNotesStatus: "Status field",
 			taskNotesDue: "Due field",
 			taskNotesPriority: "Priority field",
 			taskNotesDone: "Counts as done",
 			taskNotesDoneNone: "none defined — Hearth will use \"done\"",
-		},
-		behaviour: {
-			openOnStartup: "Open Hearth when Obsidian starts",
-			openOnStartupDesc: "Your dashboard is the first thing you see.",
-			replaceNewTabs: "Use Hearth for new empty tabs",
-			replaceNewTabsDesc: "A new tab opens on the dashboard instead of the empty state.",
-			focusSearch: "Focus the search field on open",
-			focusSearchDesc: "Start typing the moment a Hearth tab opens. Desktop only.",
-			openIn: "Open notes in",
-			openInDesc: "Where a note goes when you open one from the dashboard.",
 		},
 		finish: {
 			empty:
@@ -571,6 +561,23 @@ export const en = {
 			fitStateScroll: "scroll",
 			fitOptionFit: "Fit to one page",
 			fitOptionScroll: "Allow scrolling",
+			themeColorTarget: "Accent colour on the title",
+			themeColorTargetDesc:
+				"Which parts of this board's brand mark follow the theme's icon colour. Overrides the global setting for this board; Hearth's tab and ribbon icons keep following the global one.",
+			themeColorTargetDefault: (state: string) => `Use global default (${state})`,
+			themeColorTargetOptions: {
+				none: "Neither",
+				icon: "The icon",
+				title: "The title",
+				both: "Both",
+			},
+			compact: "Compact spacing",
+			compactDesc: "Override the global spacing for this board.",
+			compactDefault: (state: string) => `Use global default (${state})`,
+			compactOptionOn: "Compact",
+			compactOptionOff: "Roomy",
+			compactStateOn: "compact",
+			compactStateOff: "roomy",
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
 			cardRadius: "Card corner radius",
@@ -698,7 +705,9 @@ export const en = {
 			setupAgain: "Build a dashboard",
 			setupAgainDesc:
 				"Run the setup wizard again to generate another dashboard. It's always " +
-				"added as a new board, so your existing dashboards are never touched.",
+				"added as a new board, so your existing dashboards are never touched — " +
+				"and everything it sets lands on that one board, not on your vault-wide " +
+				"settings.",
 			setupButton: "Start setup",
 			whatsNew: "What's new",
 			whatsNewDesc: "Read the release notes for this and every past version.",

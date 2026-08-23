@@ -99,6 +99,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The setup wizard no longer changes your vault-wide settings.** Running setup
+  — or re-running it later from **Settings → Hearth → About → Build a
+  dashboard** — used to write its answers straight into the global settings: the
+  title, logo and accent, the card surface preset, compact spacing, the
+  background, and the TaskNotes field mapping. On a fresh install that was
+  invisible; on a re-run it silently restyled *every* board you already had and
+  repointed every Tasks card in the vault. Every answer now lands on the
+  dashboard the wizard builds — as a per-board override, or on the card itself
+  for the TaskNotes field names and completed statuses — so a setup run cannot
+  touch another board or a vault-wide preference. Two new per-board overrides
+  came out of it, both also available from a board's own settings: **Compact
+  spacing** and **Accent colour on the title**. And the wizard no longer asks
+  about the things that can only be vault-wide — opening Hearth on startup,
+  using it for new tabs, focusing search on open, where notes open, Omnisearch
+  as the search engine, and Iconic/Iconize file icons — since it cannot set them
+  without changing Hearth everywhere; each is one toggle in **Settings →
+  Hearth**.
 - **Daily notes are found even when their name spells the weekday in another
   language.** A daily-note format with a locale-dependent token — `dd`, `dddd`,
   `Do` — was resolved by formatting the date in whatever locale Obsidian is

@@ -24,8 +24,6 @@ import type HearthPlugin from "../main";
 import { configuredPlaces, renderSkySource } from "../placepicker";
 import { formatSkyValue, parseSkyValue } from "../sky";
 import { makeClickable } from "../ui";
-import type { OpenIn } from "../types";
-import { OPEN_IN_MODES } from "../types";
 import { detectSetup, type DetectedIntegration, type SetupDetection } from "./detect";
 import {
 	applySetup,
@@ -51,7 +49,6 @@ type SetupStepId =
 	| "look"
 	| "purpose"
 	| "integrations"
-	| "behaviour"
 	| "finish";
 
 /** The Lucide icon shown beside each step on the progress rail. */
@@ -61,7 +58,6 @@ const STEP_ICONS: Record<SetupStepId, string> = {
 	look: "palette",
 	purpose: "compass",
 	integrations: "plug",
-	behaviour: "settings-2",
 	finish: "check",
 };
 
@@ -152,7 +148,7 @@ export class SetupWizardModal extends Modal {
 	private wizardSteps(): SetupStepId[] {
 		const steps: SetupStepId[] = ["welcome", "vault", "look", "purpose"];
 		if (this.detection.integrations.length > 0) steps.push("integrations");
-		steps.push("behaviour", "finish");
+		steps.push("finish");
 		return steps;
 	}
 
@@ -288,9 +284,6 @@ export class SetupWizardModal extends Modal {
 				break;
 			case "integrations":
 				this.renderIntegrationsStep(body);
-				break;
-			case "behaviour":
-				this.renderBehaviourStep(body);
 				break;
 			case "finish":
 				this.renderFinishStep(body);
@@ -542,49 +535,6 @@ export class SetupWizardModal extends Modal {
 	private integrationEffect(found: DetectedIntegration): string {
 		const effects = t().setup.integrations.effects;
 		return effects[found.id];
-	}
-
-	private renderBehaviourStep(body: HTMLElement): void {
-		const strings = t().setup.behaviour;
-		const a = this.answers;
-
-		new Setting(body)
-			.setName(strings.openOnStartup)
-			.setDesc(strings.openOnStartupDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.openOnStartup).onChange((v) => {
-					a.openOnStartup = v;
-				}),
-			);
-
-		new Setting(body)
-			.setName(strings.replaceNewTabs)
-			.setDesc(strings.replaceNewTabsDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.replaceNewTabs).onChange((v) => {
-					a.replaceNewTabs = v;
-				}),
-			);
-
-		new Setting(body)
-			.setName(strings.focusSearch)
-			.setDesc(strings.focusSearchDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.focusSearchOnOpen).onChange((v) => {
-					a.focusSearchOnOpen = v;
-				}),
-			);
-
-		new Setting(body)
-			.setName(strings.openIn)
-			.setDesc(strings.openInDesc)
-			.addDropdown((d) => {
-				const labels = t().settings.behaviour.openInModes;
-				for (const mode of OPEN_IN_MODES) d.addOption(mode, labels[mode]);
-				d.setValue(a.openIn).onChange((v) => {
-					a.openIn = v as OpenIn;
-				});
-			});
 	}
 
 	private renderFinishStep(body: HTMLElement): void {

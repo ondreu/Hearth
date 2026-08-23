@@ -623,11 +623,11 @@ async function writeTaskFieldValue(
 	const s = view.plugin.settings;
 	const property =
 		builtin === "status"
-			? s.taskNotesStatusField.trim() || "status"
+			? taskNotesFieldName(s, cfg, "status", "status")
 			: builtin === "priority"
-				? s.taskNotesPriorityField.trim() || "priority"
+				? taskNotesFieldName(s, cfg, "priority", "priority")
 				: builtin === "due"
-					? s.taskNotesDueField.trim() || "due"
+					? taskNotesFieldName(s, cfg, "due", "due")
 					: builtin === "scheduled"
 						? "scheduled"
 						: sourceProperty(source);
@@ -2066,7 +2066,7 @@ function renderTaskKanban(
 	boardColumns?: string[],
 ): void {
 	const source = cfg.source ?? "checkbox";
-	const doneValue = (view.plugin.settings.taskNotesDoneValue.trim() || "done");
+	const doneValue = taskNotesDoneValue(view.plugin.settings, cfg);
 
 	// Build the ordered list of columns and assign each hit to one.
 	interface Column { key: string; label: string; hits: TaskHit[]; statusSymbol?: string; statusDone?: boolean }
@@ -2217,7 +2217,7 @@ function renderTaskKanban(
 				return;
 			}
 			const value = col.label === t().cards.tasks.noStatus ? "" : col.label;
-			void setTaskNotesStatus(view, hit, value).then(refresh);
+			void setTaskNotesStatus(view, cfg, hit, value).then(refresh);
 		}
 	};
 
@@ -3087,6 +3087,48 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
  * Only files that actually have the configured status field are treated as
  * tasks, so unrelated notes with a `due` or `priority` property aren't
  * mistaken for one. */
+/**
+ * The TaskNotes frontmatter field a card reads for one of the three mapped
+ * properties.
+ *
+ * A card may carry its own mapping (the setup wizard writes one, read from
+ * TaskNotes itself, so a vault that renamed its fields gets a working card
+ * without a global setting being changed for every other board too); otherwise
+ * the global mapping from Settings → Hearth applies, and an empty global falls
+ * back to whatever the caller knows — TaskNotes' own live setting where it has
+ * been read, or the stock field name.
+ */
+function taskNotesFieldName(
+	settings: HomeSettings,
+	cfg: TasksConfig | null,
+	key: "status" | "due" | "priority",
+	fallback: string,
+): string {
+	const own = (
+		key === "status"
+			? cfg?.taskNotesStatusField
+			: key === "due"
+				? cfg?.taskNotesDueField
+				: cfg?.taskNotesPriorityField
+	)?.trim();
+	if (own) return own;
+	const global = (
+		key === "status"
+			? settings.taskNotesStatusField
+			: key === "due"
+				? settings.taskNotesDueField
+				: settings.taskNotesPriorityField
+	).trim();
+	return global || fallback;
+}
+
+/** The single status value counted as complete: the card's own override, then
+ * the global done value, then "done". Only consulted when the card lists no
+ * `taskNotesDoneStatuses` of its own. */
+function taskNotesDoneValue(settings: HomeSettings, cfg: TasksConfig | null): string {
+	return cfg?.taskNotesDoneValue?.trim() || settings.taskNotesDoneValue.trim() || "done";
+}
+
 /** Build a predicate deciding whether a TaskNotes status value counts as
  * complete. If the card lists its own complete statuses (`taskNotesDoneStatuses`,
  * e.g. "done" + "canceled") those win; otherwise the single global done value
@@ -3154,15 +3196,15 @@ function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	const s = view.plugin.settings;
 	const setup = readTaskNotesSetup(view.app);
-	const statusField = s.taskNotesStatusField.trim() || setup.fields.status;
-	const dueField = s.taskNotesDueField.trim() || setup.fields.due;
-	const priorityField = s.taskNotesPriorityField.trim() || setup.fields.priority;
+	const statusField = taskNotesFieldName(s, cfg, "status", setup.fields.status);
+	const dueField = taskNotesFieldName(s, cfg, "due", setup.fields.due);
+	const priorityField = taskNotesFieldName(s, cfg, "priority", setup.fields.priority);
 	const contextsField = setup.fields.contexts;
 	const projectsField = setup.fields.projects;
 	// Which status values count as complete. A per-card list (e.g. "done" +
 	// "canceled") overrides the single global done value; otherwise fall back to
 	// that global value alone.
-	const isDone = doneStatusMatcher(cfg, s.taskNotesDoneValue);
+	const isDone = doneStatusMatcher(cfg, taskNotesDoneValue(s, cfg));
 
 	const files = view.app.vault.getMarkdownFiles().filter((f) => inTaskScope(f.path, cfg));
 	const hits: TaskHit[] = [];
@@ -4419,7 +4461,7 @@ async function setCheckboxSymbol(
  * "canceled" as complete writes "done"), otherwise the global done value. */
 function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
 	const custom = (cfg.taskNotesDoneStatuses ?? []).map((v) => v.trim()).filter(Boolean);
-	return custom[0] ?? (view.plugin.settings.taskNotesDoneValue.trim() || "done");
+	return custom[0] ?? taskNotesDoneValue(view.plugin.settings, cfg);
 }
 
 /** A completion checkbox for a non-recurring TaskNotes task (list layout).
@@ -4447,12 +4489,17 @@ function renderTaskNotesCheckbox(
 	check.addEventListener("pointerdown", stop);
 	check.addEventListener("change", () => {
 		const value = check.checked ? doneWriteValue(view, cfg) : openStatus;
-		void setTaskNotesStatus(view, hit, value).then(refresh);
+		void setTaskNotesStatus(view, cfg, hit, value).then(refresh);
 	});
 }
 
-async function setTaskNotesStatus(view: HomeView, hit: TaskHit, value: string): Promise<void> {
-	const field = view.plugin.settings.taskNotesStatusField.trim() || "status";
+async function setTaskNotesStatus(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	value: string,
+): Promise<void> {
+	const field = taskNotesFieldName(view.plugin.settings, cfg, "status", "status");
 	try {
 		await view.app.fileManager.processFrontMatter(hit.file, (fm) => {
 			fm[field] = value;
@@ -4767,8 +4814,8 @@ async function discoverTaskFields(
 		values.set(key, set);
 	};
 
-	const statusField = settings.taskNotesStatusField.trim() || "status";
-	const priorityField = settings.taskNotesPriorityField.trim() || "priority";
+	const statusField = taskNotesFieldName(settings, cfg, "status", "status");
+	const priorityField = taskNotesFieldName(settings, cfg, "priority", "priority");
 	const wanted = new Set(
 		fields.flatMap((f) => f.keys.map((k) => sourceProperty(k.source)).filter(Boolean)),
 	);

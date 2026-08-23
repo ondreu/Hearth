@@ -282,13 +282,13 @@ describe("defaultAnswers", () => {
 			freshSettings(),
 			emptyDetection({
 				integrations: [
-					{ id: "omnisearch", name: "Omnisearch", recommended: true },
+					{ id: "dailyNotes", name: "Daily notes", recommended: true },
 					{ id: "git", name: "Git", recommended: false },
 				],
 			}),
 		);
 
-		expect(answers.integrations).toEqual(["omnisearch"]);
+		expect(answers.integrations).toEqual(["dailyNotes"]);
 	});
 
 	it("assumes someone running a task plugin wants tasks on their board", () => {
@@ -363,6 +363,11 @@ describe("planCards", () => {
 
 		expect(tasks?.card.tasks).toEqual({
 			source: "tasknotes",
+			// TaskNotes' own field names, on the card rather than in settings.
+			taskNotesStatusField: "status",
+			taskNotesDueField: "due",
+			taskNotesPriorityField: "priority",
+			taskNotesDoneValue: "done",
 			taskNotesDoneStatuses: ["done", "cancelled"],
 		});
 		expect(tasks?.reason).toBe("tasknotes");
@@ -490,48 +495,117 @@ describe("planCards", () => {
 // ---- Applying the answers --------------------------------------------
 
 describe("applySetup", () => {
-	it("writes the chosen surface preset", () => {
-		const settings = freshSettings();
-		applySetup(settings, blankAnswers({ surface: "minimal" }), emptyDetection());
+	/** The board the wizard just built. */
+	const built = (settings: HomeSettings, outcome: { dashboardId: string }) => {
+		const dash = settings.dashboards.find((d) => d.id === outcome.dashboardId);
+		if (!dash) throw new Error("the wizard reported a dashboard it did not install");
+		return dash;
+	};
 
-		expect(settings).toMatchObject(SURFACE_PRESETS.minimal);
+	it("writes the chosen surface preset onto the board, not the vault", () => {
+		const settings = freshSettings();
+		const before = structuredClone(settings);
+		const outcome = applySetup(
+			settings,
+			blankAnswers({ surface: "minimal" }),
+			emptyDetection(),
+		);
+
+		expect(built(settings, outcome)).toMatchObject(SURFACE_PRESETS.minimal);
+		expect(settings).toMatchObject({
+			cardOpacity: before.cardOpacity,
+			cardBlur: before.cardBlur,
+			cardRadius: before.cardRadius,
+			cardBorderWidth: before.cardBorderWidth,
+		});
 	});
 
 	it("paints a flat colour at full strength rather than fading it", () => {
 		const settings = freshSettings();
-		applySetup(
+		const outcome = applySetup(
 			settings,
 			blankAnswers({ background: "color", backgroundColor: "#102030" }),
 			emptyDetection(),
 		);
 
-		expect(settings.backgroundKind).toBe("color");
-		expect(settings.backgroundValue).toBe("#102030");
-		expect(settings.backgroundOpacity).toBe(1);
-		expect(settings.backgroundBlur).toBe(0);
+		expect(built(settings, outcome).background).toEqual({
+			kind: "color",
+			value: "#102030",
+			opacity: 1,
+			blur: 0,
+		});
 	});
 
 	it("falls back to the bundled wallpaper when a live sky has no place yet", () => {
 		const settings = freshSettings();
-		applySetup(settings, blankAnswers({ background: "weather", skyValue: "" }), emptyDetection());
+		const outcome = applySetup(
+			settings,
+			blankAnswers({ background: "weather", skyValue: "" }),
+			emptyDetection(),
+		);
 
-		expect(settings.backgroundKind).toBe("default");
-		expect(settings.backgroundOpacity).toBe(0.35);
+		expect(built(settings, outcome).background).toMatchObject({
+			kind: "default",
+			opacity: 0.35,
+		});
 	});
 
 	it("keeps a weather background once a sky is picked", () => {
 		const settings = freshSettings();
-		applySetup(
+		const outcome = applySetup(
 			settings,
 			blankAnswers({ background: "weather", skyValue: "fixed:clear:auto" }),
 			emptyDetection(),
 		);
 
-		expect(settings.backgroundKind).toBe("weather");
-		expect(settings.backgroundValue).toBe("fixed:clear:auto");
+		expect(built(settings, outcome).background).toMatchObject({
+			kind: "weather",
+			value: "fixed:clear:auto",
+		});
 	});
 
-	it("syncs the TaskNotes field mapping into settings", () => {
+	it("writes the header answers as this board's own overrides", () => {
+		const settings = freshSettings();
+		const outcome = applySetup(
+			settings,
+			blankAnswers({
+				title: "Second Brain",
+				showTitle: false,
+				logo: "🔥",
+				themeColorTarget: "both",
+				showSearch: false,
+				compact: true,
+			}),
+			emptyDetection(),
+		);
+		const dash = built(settings, outcome);
+
+		expect(dash.header).toMatchObject({
+			title: "Second Brain",
+			showTitle: false,
+			logo: "🔥",
+			themeColorTarget: "both",
+		});
+		expect(dash.showSearch).toBe(false);
+		expect(dash.compact).toBe(true);
+
+		// None of it leaked into the vault-wide header.
+		expect(settings.title).toBe(DEFAULT_SETTINGS.title);
+		expect(settings.showTitle).toBe(true);
+		expect(settings.logo).toBe(DEFAULT_SETTINGS.logo);
+		expect(settings.themeColorTarget).toBe("none");
+		expect(settings.showSearch).toBe(true);
+		expect(settings.compact).toBe(false);
+	});
+
+	it("leaves the title alone when the field was left blank", () => {
+		const settings = freshSettings();
+		const outcome = applySetup(settings, blankAnswers({ title: "   " }), emptyDetection());
+
+		expect(built(settings, outcome).header?.title).toBeUndefined();
+	});
+
+	it("puts the TaskNotes field mapping on the card, not in settings", () => {
 		const settings = freshSettings();
 		const detection = emptyDetection({
 			taskNotes: parseTaskNotesSettings({
@@ -540,35 +614,70 @@ describe("applySetup", () => {
 			}),
 		});
 
-		applySetup(settings, blankAnswers({ integrations: ["tasknotes"] }), detection);
+		const outcome = applySetup(
+			settings,
+			blankAnswers({ integrations: ["tasknotes"] }),
+			detection,
+		);
+		const tasks = built(settings, outcome).cards.find((c) => c.kind === "tasks");
 
-		expect(settings).toMatchObject({
+		expect(tasks?.tasks).toMatchObject({
+			source: "tasknotes",
 			taskNotesStatusField: "state",
 			taskNotesDueField: "deadline",
 			taskNotesPriorityField: "urgency",
 			taskNotesDoneValue: "shipped",
+			taskNotesDoneStatuses: ["shipped"],
+		});
+		expect(settings).toMatchObject({
+			taskNotesStatusField: DEFAULT_SETTINGS.taskNotesStatusField,
+			taskNotesDueField: DEFAULT_SETTINGS.taskNotesDueField,
+			taskNotesPriorityField: DEFAULT_SETTINGS.taskNotesPriorityField,
+			taskNotesDoneValue: DEFAULT_SETTINGS.taskNotesDoneValue,
 		});
 	});
 
-	it("switches the search engine only when Omnisearch is accepted", () => {
-		const declined = freshSettings();
-		applySetup(declined, blankAnswers(), emptyDetection());
-		expect(declined.searchEngine).toBe("builtin");
-
-		const accepted = freshSettings();
-		applySetup(accepted, blankAnswers({ integrations: ["omnisearch"] }), emptyDetection());
-		expect(accepted.searchEngine).toBe("omnisearch");
-	});
-
-	it("never turns an integration off — declining leaves settings alone", () => {
+	/**
+	 * The guarantee the whole module rests on, asserted wholesale rather than
+	 * setting by setting: run the wizard with every answer turned away from its
+	 * default and compare the settings object against an untouched clone,
+	 * ignoring only the three structural fields installing a board *is*.
+	 *
+	 * A future answer that writes a global setting fails here even if nobody
+	 * thought to write a test for it.
+	 */
+	it("changes nothing vault-wide but the board list and the setup flag", () => {
 		const settings = freshSettings();
-		settings.searchEngine = "omnisearch";
-		settings.customFileIcons = true;
+		const before = structuredClone(settings);
 
-		applySetup(settings, blankAnswers({ integrations: [] }), emptyDetection());
+		applySetup(
+			settings,
+			blankAnswers({
+				title: "Elsewhere",
+				showTitle: false,
+				logo: "🔥",
+				themeColorTarget: "both",
+				showSearch: false,
+				surface: "minimal",
+				compact: true,
+				background: "color",
+				backgroundColor: "#102030",
+				backgroundLayout: "banner",
+				purposes: ["daily", "tasks", "browsing", "insights"],
+				integrations: ["dataview", "bookmarks"],
+				target: "new",
+				dashboardName: "Elsewhere",
+			}),
+			emptyDetection(),
+		);
 
-		expect(settings.searchEngine).toBe("omnisearch");
-		expect(settings.customFileIcons).toBe(true);
+		const structural = new Set(["dashboards", "activeDashboardId", "setupStatus"]);
+		for (const key of Object.keys(before) as (keyof HomeSettings)[]) {
+			if (structural.has(key)) continue;
+			expect({ [key]: settings[key] }).toEqual({ [key]: before[key] });
+		}
+		// And the boards that already existed are untouched too.
+		expect(settings.dashboards[0]).toEqual(before.dashboards[0]);
 	});
 
 	it("replaces the active board's cards when asked to replace", () => {

@@ -9,6 +9,7 @@ import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateMotionOnWindow } from "./motion";
 import {
 	bannerActive,
+	effectiveCompact,
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveShowSearch,
@@ -162,7 +163,7 @@ export class HomeView extends ItemView {
 		const root = this.contentEl;
 		root.empty();
 		root.addClass("hearth-view");
-		root.toggleClass("hearth-compact", this.plugin.settings.compact);
+		root.toggleClass("hearth-compact", effectiveCompact(this.plugin.settings));
 		// The two performance-tier flags CSS keys off. They are separate because
 		// the tiers drop motion and frost at the same rung but for different
 		// reasons, and because `hearth-no-motion` is also what the focus/visibility
