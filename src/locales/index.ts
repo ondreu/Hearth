@@ -1,4 +1,5 @@
 import { en } from "./en";
+import { zh } from "./zh";
 
 /**
  * The shape every locale must implement. English is the source of truth: a new
@@ -17,4 +18,5 @@ export type Translations = typeof en;
  */
 export const LOCALES: Record<string, Translations> = {
 	en,
+	zh,
 };

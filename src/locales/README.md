@@ -4,6 +4,13 @@ Hearth's user-facing strings live in this folder so the plugin can be
 translated without touching feature code. English (`en.ts`) is the source of
 truth; every other locale is type-checked against it.
 
+## Available languages
+
+| Code | Language | File |
+| --- | --- | --- |
+| `en` | English (source of truth) | [`en.ts`](en.ts) |
+| `zh` | Simplified Chinese — 简体中文 | [`zh.ts`](zh.ts) |
+
 ## How it works
 
 - `src/i18n.ts` exposes `t()`, which returns the active locale object, and
