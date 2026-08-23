@@ -715,6 +715,15 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (folders) cfg.folders = folders;
 	const taskNotesDoneStatuses = strArray(r.taskNotesDoneStatuses);
 	if (taskNotesDoneStatuses) cfg.taskNotesDoneStatuses = taskNotesDoneStatuses;
+	const taskNotesStatusField = str(r.taskNotesStatusField);
+	if (taskNotesStatusField !== undefined) cfg.taskNotesStatusField = taskNotesStatusField;
+	const taskNotesDueField = str(r.taskNotesDueField);
+	if (taskNotesDueField !== undefined) cfg.taskNotesDueField = taskNotesDueField;
+	const taskNotesPriorityField = str(r.taskNotesPriorityField);
+	if (taskNotesPriorityField !== undefined)
+		cfg.taskNotesPriorityField = taskNotesPriorityField;
+	const taskNotesDoneValue = str(r.taskNotesDoneValue);
+	if (taskNotesDoneValue !== undefined) cfg.taskNotesDoneValue = taskNotesDoneValue;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
 	if (typeof r.taskFieldsEnabled === "boolean")
@@ -1108,6 +1117,7 @@ function sanitizeDashboard(
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
+	if (typeof r.compact === "boolean") dash.compact = r.compact;
 	const linkedWorkspace = str(r.linkedWorkspace);
 	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
 		dash.linkedWorkspace = linkedWorkspace;
@@ -1124,6 +1134,14 @@ function sanitizeDashboard(
 		// shows no Lucide title icon, which is not the same as no override.
 		const logoIcon = str(h.logoIcon);
 		if (logoIcon !== undefined) header.logoIcon = logoIcon.trim();
+		if (
+			h.themeColorTarget === "none" ||
+			h.themeColorTarget === "icon" ||
+			h.themeColorTarget === "title" ||
+			h.themeColorTarget === "both"
+		) {
+			header.themeColorTarget = h.themeColorTarget;
+		}
 		if (h.align === "left" || h.align === "center" || h.align === "right") {
 			header.align = h.align;
 		}

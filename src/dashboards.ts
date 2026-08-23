@@ -7,6 +7,7 @@ import {
 	type Dashboard,
 	type DashboardHeaderConfig,
 	type HeaderAlign,
+	type HomeSettings,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
 	CARD_RADIUS_MAX,
@@ -160,6 +161,7 @@ function showDashboardMenu(
 				if (dash.fitToPage != null) copy.fitToPage = dash.fitToPage;
 				if (dash.maxWidth != null) copy.maxWidth = dash.maxWidth;
 				if (dash.showSearch != null) copy.showSearch = dash.showSearch;
+				if (dash.compact != null) copy.compact = dash.compact;
 				if (dash.cardOpacity != null) copy.cardOpacity = dash.cardOpacity;
 				if (dash.cardBlur != null) copy.cardBlur = dash.cardBlur;
 				if (dash.cardRadius != null) copy.cardRadius = dash.cardRadius;
@@ -508,6 +510,31 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				});
 			});
 
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.themeColorTarget)
+			.setDesc(t().dashboards.modal.themeColorTargetDesc)
+			.addDropdown((d) => {
+				const labels = t().dashboards.modal.themeColorTargetOptions;
+				d.addOption(
+					"default",
+					t().dashboards.modal.themeColorTargetDefault(labels[s.themeColorTarget]),
+				);
+				d.addOption("none", labels.none);
+				d.addOption("icon", labels.icon);
+				d.addOption("title", labels.title);
+				d.addOption("both", labels.both);
+				d.setValue(header?.themeColorTarget ?? "default");
+				d.onChange((v) => {
+					this.setHeaderOverride(
+						"themeColorTarget",
+						v === "default"
+							? undefined
+							: (v as HomeSettings["themeColorTarget"]),
+					);
+					this.commit();
+				});
+			});
+
 		this.overrideHeaderSlider(
 			containerEl,
 			t().dashboards.modal.titleSize,
@@ -718,6 +745,27 @@ class DashboardSettingsModal extends HearthTabbedModal {
 	private styleSection(containerEl: HTMLElement): void {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;
+
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.compact)
+			.setDesc(t().dashboards.modal.compactDesc)
+			.addDropdown((d) => {
+				d.addOption(
+					"default",
+					t().dashboards.modal.compactDefault(
+						s.compact
+							? t().dashboards.modal.compactStateOn
+							: t().dashboards.modal.compactStateOff,
+					),
+				);
+				d.addOption("on", t().dashboards.modal.compactOptionOn);
+				d.addOption("off", t().dashboards.modal.compactOptionOff);
+				d.setValue(dash.compact === undefined ? "default" : dash.compact ? "on" : "off");
+				d.onChange((v) => {
+					dash.compact = v === "default" ? undefined : v === "on";
+					this.commit();
+				});
+			});
 
 		this.overrideSlider(
 			containerEl,

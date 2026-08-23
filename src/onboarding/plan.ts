@@ -1,28 +1,39 @@
 /**
  * Turning the wizard's answers into a dashboard.
  *
- * Everything here is pure: answers plus a detection snapshot go in, a board and
- * a settings patch come out. The wizard (`wizard.ts`) only collects the answers
- * and draws the result — none of the decisions below depend on Obsidian, so all
- * of them are unit-testable, which matters because this is the one code path a
- * new user's very first impression of Hearth is built by.
+ * Everything here is pure: answers plus a detection snapshot go in, a board
+ * comes out. The wizard (`wizard.ts`) only collects the answers and draws the
+ * result — none of the decisions below depend on Obsidian, so all of them are
+ * unit-testable, which matters because this is the one code path a new user's
+ * very first impression of Hearth is built by.
  *
  * The two halves are deliberately separate:
  *
  *  - {@link planCards} decides *what board to build* — which cards, configured
  *    how, laid out where.
- *  - {@link applySetup} decides *what to change in settings* — the look, the
- *    behaviour, the integration wiring — and installs the board.
+ *  - {@link applySetup} installs that board and writes the look onto it.
  *
  * so the review step can show the first without committing the second.
+ *
+ * ⚠️ **The wizard never writes a global setting.** Every answer it collects
+ * lands on the dashboard it builds — as a per-dashboard override (the header,
+ * the card surface, the background, compact spacing) or in a card's own config
+ * (the TaskNotes field mapping) — so running setup, or re-running it later,
+ * cannot change how any *other* board looks or how Hearth behaves vault-wide.
+ * The only fields of {@link HomeSettings} touched here are the structural ones
+ * that installing a board *is*: the `dashboards` list, `activeDashboardId`, and
+ * the `setupStatus` flag that stops the wizard offering itself twice. Anything
+ * the wizard cannot express as a board-level override is therefore not asked
+ * about at all — it belongs in Settings → Hearth, where it applies to
+ * everything by design.
  */
 import { ensureLayout } from "../grid";
 import {
+	type BackgroundConfig,
 	type BackgroundLayout,
 	type DashboardCard,
 	type Dashboard,
 	type HomeSettings,
-	type OpenIn,
 	type TemplaterItem,
 	newDashboardId,
 } from "../types";
@@ -130,6 +141,9 @@ export interface SetupAnswers {
 	showTitle: boolean;
 	logo: string;
 	themeColorTarget: HomeSettings["themeColorTarget"];
+	/** Whether the built board shows the search/command section. Stored as the
+	 * board's own {@link Dashboard.showSearch} override, not the global one. */
+	showSearch: boolean;
 
 	// ---- Step: the look ----
 	surface: SetupSurface;
@@ -147,13 +161,6 @@ export interface SetupAnswers {
 
 	// ---- Step: integrations ----
 	integrations: SetupIntegrationId[];
-
-	// ---- Step: behaviour ----
-	openOnStartup: boolean;
-	replaceNewTabs: boolean;
-	focusSearchOnOpen: boolean;
-	showSearch: boolean;
-	openIn: OpenIn;
 
 	// ---- Step: finish ----
 	target: SetupTarget;
@@ -184,6 +191,7 @@ export function defaultAnswers(
 		showTitle: true,
 		logo: "",
 		themeColorTarget: "none",
+		showSearch: true,
 
 		surface: "glass",
 		compact: false,
@@ -195,12 +203,6 @@ export function defaultAnswers(
 		purposes,
 
 		integrations: detection.integrations.filter((i) => i.recommended).map((i) => i.id),
-
-		openOnStartup: true,
-		replaceNewTabs: true,
-		focusSearchOnOpen: false,
-		showSearch: true,
-		openIn: "tab",
 
 		target: "replace",
 		dashboardName: "Home",
@@ -517,7 +519,10 @@ function taskReason(answers: SetupAnswers): string {
  * The TaskNotes branch is the reason this feature exists: switching the source
  * is one line, but a card pointed at TaskNotes without its *completed* statuses
  * shows every cancelled task as outstanding, and one pointed at a vault that
- * renamed its fields shows nothing at all. Both are read from the plugin.
+ * renamed its fields shows nothing at all. Both are read from the plugin — and
+ * both are stored *on the card*, not in the vault-wide TaskNotes mapping in
+ * Settings → Hearth, so a wizard run configures this board's card and leaves
+ * every other card reading whatever it read before.
  */
 function planTasksConfig(
 	answers: SetupAnswers,
@@ -527,9 +532,12 @@ function planTasksConfig(
 		const imported = taskNotesImport(detection.taskNotes);
 		return {
 			source: "tasknotes",
-			// Only stored when TaskNotes actually defines completed statuses;
-			// otherwise the card falls back to the single global done-value,
-			// which `applySetup` has just synced from the same place.
+			taskNotesStatusField: imported.statusField,
+			taskNotesDueField: imported.dueField,
+			taskNotesPriorityField: imported.priorityField,
+			// The single done-value is the fallback for a vault that marks no
+			// status complete; a vault that does gets the full list, which wins.
+			taskNotesDoneValue: imported.doneValue,
 			...(imported.doneStatuses.length
 				? { taskNotesDoneStatuses: imported.doneStatuses }
 				: {}),
@@ -564,11 +572,18 @@ export interface SetupOutcome {
 }
 
 /**
- * Write the wizard's answers into settings and install the planned board.
+ * Install the planned board and write the wizard's answers onto it.
  *
  * Mutates `settings` in place — the same contract `migrateSettings` has — and
  * leaves persisting to the caller, so the wizard saves once at the end rather
  * than after every step.
+ *
+ * The board is installed *first* and every answer is then written onto that
+ * dashboard as an override, which is the whole shape of this function: there is
+ * no path here that assigns to a look-or-behaviour field of `settings`, so a
+ * setup run cannot change any other board or any vault-wide preference. See the
+ * module comment for why the wizard asks only about things that can be said
+ * per-board.
  */
 export function applySetup(
 	settings: HomeSettings,
@@ -576,100 +591,75 @@ export function applySetup(
 	detection: SetupDetection,
 	planned: PlannedCard[] = planCards(answers, detection),
 ): SetupOutcome {
-	applyHeader(settings, answers);
-	applyLook(settings, answers);
-	applyBehaviour(settings, answers);
-	applyIntegrations(settings, answers, detection);
-
 	const cards = planned.map((p) => p.card);
-	const outcome = installBoard(settings, answers, cards);
+	const { dashboard, outcome } = installBoard(settings, answers, cards);
+
+	applyHeader(dashboard, answers);
+	applyLook(dashboard, answers);
 
 	settings.setupStatus = "done";
 	return outcome;
 }
 
-function applyHeader(settings: HomeSettings, answers: SetupAnswers): void {
-	settings.title = answers.title.trim() || settings.title;
-	settings.showTitle = answers.showTitle;
-	settings.logo = answers.logo.trim();
-	settings.themeColorTarget = answers.themeColorTarget;
-	settings.showSearch = answers.showSearch;
+/** The title block: this board's own text, visibility, logo and accent, none of
+ * which touches the vault-wide header. */
+function applyHeader(dashboard: Dashboard, answers: SetupAnswers): void {
+	const header: NonNullable<Dashboard["header"]> = {
+		...(dashboard.header ?? {}),
+		showTitle: answers.showTitle,
+		// An empty logo is a real override: this board shows the Hearth crystal
+		// even in a vault whose global logo is an emoji.
+		logo: answers.logo.trim(),
+		themeColorTarget: answers.themeColorTarget,
+	};
+	// A blank title is not an override — it is a user who left the field alone,
+	// and a board with an empty title override would show no heading at all.
+	const title = answers.title.trim();
+	if (title) header.title = title;
+	else delete header.title;
+
+	dashboard.header = header;
+	dashboard.showSearch = answers.showSearch;
 }
 
-function applyLook(settings: HomeSettings, answers: SetupAnswers): void {
+/** The look: card surface, spacing and backdrop, all as overrides on the board
+ * the wizard just built. */
+function applyLook(dashboard: Dashboard, answers: SetupAnswers): void {
 	const surface = SURFACE_PRESETS[answers.surface];
-	settings.cardOpacity = surface.cardOpacity;
-	settings.cardBlur = surface.cardBlur;
-	settings.cardRadius = surface.cardRadius;
-	settings.cardBorderWidth = surface.cardBorderWidth;
-	settings.compact = answers.compact;
+	dashboard.cardOpacity = surface.cardOpacity;
+	dashboard.cardBlur = surface.cardBlur;
+	dashboard.cardRadius = surface.cardRadius;
+	dashboard.cardBorderWidth = surface.cardBorderWidth;
+	dashboard.compact = answers.compact;
 
+	dashboard.background = plannedBackground(answers);
+	dashboard.backgroundLayout = answers.backgroundLayout;
+}
+
+/**
+ * The backdrop this board wears, as a complete per-dashboard override.
+ *
+ * All four fields at once, because a board's background override is
+ * all-or-nothing (see {@link BannerOverrides}) — and the tuning differs per
+ * choice: a photograph needs pushing well back to keep text legible, while a
+ * flat colour is *already* legible and fading it only makes it muddy.
+ */
+function plannedBackground(answers: SetupAnswers): BackgroundConfig {
 	const tuning = BACKGROUND_TUNING[answers.background];
-	settings.backgroundOpacity = tuning.opacity;
-	settings.backgroundBlur = tuning.blur;
-	settings.backgroundLayout = answers.backgroundLayout;
-
 	switch (answers.background) {
-		case "default":
-			settings.backgroundKind = "default";
-			settings.backgroundValue = "";
-			break;
 		case "color":
-			settings.backgroundKind = "color";
-			settings.backgroundValue = answers.backgroundColor;
-			break;
+			return { kind: "color", value: answers.backgroundColor, ...tuning };
 		case "weather":
 			// A weather background with no place picked would paint nothing at
 			// all, which reads as a broken setup rather than a deliberate one —
 			// so an unfinished sky falls back to the bundled image.
-			if (answers.skyValue) {
-				settings.backgroundKind = "weather";
-				settings.backgroundValue = answers.skyValue;
-			} else {
-				settings.backgroundKind = "default";
-				settings.backgroundValue = "";
-				const fallback = BACKGROUND_TUNING.default;
-				settings.backgroundOpacity = fallback.opacity;
-				settings.backgroundBlur = fallback.blur;
-			}
-			break;
+			return answers.skyValue
+				? { kind: "weather", value: answers.skyValue, ...tuning }
+				: { kind: "default", value: "", ...BACKGROUND_TUNING.default };
 		case "none":
-			settings.backgroundKind = "none";
-			settings.backgroundValue = "";
-			break;
-	}
-}
-
-function applyBehaviour(settings: HomeSettings, answers: SetupAnswers): void {
-	settings.openOnStartup = answers.openOnStartup;
-	settings.replaceNewTabs = answers.replaceNewTabs;
-	settings.focusSearchOnOpen = answers.focusSearchOnOpen;
-	settings.openIn = answers.openIn;
-}
-
-/**
- * Wire up the accepted integrations.
- *
- * Only ever *positive*: declining an offer leaves the corresponding setting
- * exactly as it was rather than turning it off. The wizard can be re-run at any
- * time, and a re-run that silently disabled things the user had since set up by
- * hand would be a trap. The one exception is `customFileIcons`, whose default
- * is already on — accepting simply keeps it there.
- */
-function applyIntegrations(
-	settings: HomeSettings,
-	answers: SetupAnswers,
-	detection: SetupDetection,
-): void {
-	if (accepted(answers, "omnisearch")) settings.searchEngine = "omnisearch";
-	if (accepted(answers, "fileIcons")) settings.customFileIcons = true;
-
-	if (accepted(answers, "tasknotes") && detection.taskNotes) {
-		const imported = taskNotesImport(detection.taskNotes);
-		settings.taskNotesStatusField = imported.statusField;
-		settings.taskNotesDueField = imported.dueField;
-		settings.taskNotesPriorityField = imported.priorityField;
-		settings.taskNotesDoneValue = imported.doneValue;
+			return { kind: "none", value: "", ...tuning };
+		default:
+			return { kind: "default", value: "", ...tuning };
 	}
 }
 
@@ -703,7 +693,7 @@ function installBoard(
 	settings: HomeSettings,
 	answers: SetupAnswers,
 	cards: DashboardCard[],
-): SetupOutcome {
+): { dashboard: Dashboard; outcome: SetupOutcome } {
 	// A tall board scrolls rather than being scaled down to nothing. Stored as a
 	// per-dashboard override rather than by changing the global setting, so it
 	// only affects the board the wizard built.
@@ -720,7 +710,10 @@ function installBoard(
 			// whatever the user (or the global default) already had.
 			if (tall) active.fitToPage = false;
 			settings.activeDashboardId = active.id;
-			return { dashboardId: active.id, cardCount: cards.length, replaced: true };
+			return {
+				dashboard: active,
+				outcome: { dashboardId: active.id, cardCount: cards.length, replaced: true },
+			};
 		}
 		// No dashboards at all (a hand-emptied data.json); fall through and make
 		// one rather than dropping the board on the floor.
@@ -734,7 +727,10 @@ function installBoard(
 	};
 	settings.dashboards.push(dashboard);
 	settings.activeDashboardId = dashboard.id;
-	return { dashboardId: dashboard.id, cardCount: cards.length, replaced: false };
+	return {
+		dashboard,
+		outcome: { dashboardId: dashboard.id, cardCount: cards.length, replaced: false },
+	};
 }
 
 /**

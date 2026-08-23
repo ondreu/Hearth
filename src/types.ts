@@ -338,6 +338,20 @@ export interface TasksConfig {
 	 * e.g., both "done" and "canceled" can be treated as complete. When unset, the
 	 * single global `taskNotesDoneValue` from Settings → Hearth is used. */
 	taskNotesDoneStatuses?: string[];
+	/** TaskNotes source: this card's own frontmatter field names, overriding the
+	 * global mapping in Settings → Hearth. Set by the setup wizard, which reads
+	 * them from TaskNotes itself — a vault that renamed its fields gets a card
+	 * that works on the first render without the wizard reaching into a global
+	 * setting every other card and board also follows. Undefined = follow the
+	 * global mapping. */
+	taskNotesStatusField?: string;
+	taskNotesDueField?: string;
+	taskNotesPriorityField?: string;
+	/** TaskNotes source: this card's own single "complete" status, overriding the
+	 * global `taskNotesDoneValue`. Only consulted when
+	 * {@link taskNotesDoneStatuses} is unset — a card that lists its complete
+	 * statuses has already answered this. */
+	taskNotesDoneValue?: string;
 	/** List layout: an active filter narrowing which tasks appear. Presets in the
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
@@ -1597,6 +1611,11 @@ export interface DashboardHeaderConfig {
 	 * override meaning "no icon on this board" — it falls back to the logo text,
 	 * not to the global icon; undefined follows the global setting. */
 	logoIcon?: string;
+	/** Override which parts of this board's brand mark follow the theme's icon
+	 * colour (undefined = use the global {@link HomeSettings.themeColorTarget}).
+	 * Scoped to the board's own title block; Hearth's tab and ribbon icons are
+	 * app-level and keep following the global setting. */
+	themeColorTarget?: HomeSettings["themeColorTarget"];
 	/** Align only the title/logo block; the search section below has its own
 	 * layout. */
 	align?: HeaderAlign;
@@ -1632,6 +1651,8 @@ export interface Dashboard extends BannerOverrides {
 	fitToPage?: boolean;
 	/** Override the content max-width (px) for this board (undefined = global). */
 	maxWidth?: number;
+	/** Override compact spacing for this board (undefined = global). */
+	compact?: boolean;
 	/** Override the card surface opacity for this board (undefined = global). */
 	cardOpacity?: number;
 	/** Override the card surface backdrop blur (px) for this board (undefined =
@@ -2269,6 +2290,20 @@ export function effectiveHeaderMarginTop(s: HomeSettings): number | undefined {
 /** Optional spacing below the whole header block in pixels. Undefined keeps CSS default. */
 export function effectiveHeaderSpacingBelow(s: HomeSettings): number | undefined {
 	return clampHeaderSpacingBelow(activeDashboard(s).header?.spacingBelow);
+}
+
+/** Whether the active board draws with compact spacing (per-dashboard override
+ * or global). */
+export function effectiveCompact(s: HomeSettings): boolean {
+	return activeDashboard(s).compact ?? s.compact;
+}
+
+/** Which parts of the active board's brand mark follow the theme's icon colour
+ * (per-dashboard override or global). The board's title block only — the tab
+ * and ribbon icons are app-level and read {@link HomeSettings.themeColorTarget}
+ * directly. */
+export function effectiveThemeColorTarget(s: HomeSettings): HomeSettings["themeColorTarget"] {
+	return activeDashboard(s).header?.themeColorTarget ?? s.themeColorTarget;
 }
 
 /** Effective content max-width for the active board (per-dashboard override or global). */

@@ -68,18 +68,26 @@ and enabled is offered with the one thing accepting it will do:
 | **Templater** | Adds a launchpad with a button per template you already have |
 | **Git** | Adds a Git card with status, commit and sync |
 | **Operon** | Adds an Operon tasks card (desktop only — Operon still asks you to approve Hearth) |
-| **Omnisearch** | Makes it the engine behind Hearth's search bar |
-| **Iconic** / **Iconize** | Shows the file icons you already set |
 | **Bases** | Embeds a base from your vault |
 | **Daily notes** / **Bookmarks** | Adds the matching card |
 
 The TaskNotes case is the one worth calling out: its field names are
 user-remappable and its statuses user-defined, so Hearth reads them from the
-plugin and copies them across. A vault that renamed `due` to `deadline` gets a
-Tasks card that works on its first render.
+plugin and copies them onto the card it builds. A vault that renamed `due` to
+`deadline` gets a Tasks card that works on its first render.
 
 The wizard offers the integrations above; everything else in
 [Integrations](#integrations) is added by hand from the **Add card** picker.
+
+**The wizard only ever writes to the dashboard it builds.** The title, the logo,
+the accent, the card surface, the spacing and the background all land as
+*per-board overrides* on that one dashboard, and the TaskNotes field mapping
+lands on the Tasks card itself — so your vault-wide settings, and every other
+board you have, come out of a setup run exactly as they went in. That is also
+why it no longer asks about things that can only be vault-wide (whether Hearth
+opens on startup, where notes open, which search engine to use, whose file
+icons to show): those live in **Settings → Hearth**, one toggle each, and apply
+to everything by design.
 
 The last step previews the board — a scale drawing plus a list of every card and
 why it's there — before anything is written. Nothing is applied until you press

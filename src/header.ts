@@ -13,6 +13,7 @@ import {
 	effectiveLogoIcon,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	effectiveThemeColorTarget,
 	effectiveTitle,
 } from "./types";
 import { t } from "./i18n";
@@ -44,8 +45,9 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	if (effectiveShowTitle(s)) {
 		const titleRow = container.createDiv("hearth-title");
 		// Tint the crystal and/or title text with the theme's icon color per
-		// the themeColorTarget setting (see styles.css).
-		const target = s.themeColorTarget;
+		// the themeColorTarget setting — this board's override, or the global one
+		// (see styles.css).
+		const target = effectiveThemeColorTarget(s);
 		if (target === "icon" || target === "both") titleRow.addClass("is-icon-themed");
 		if (target === "title" || target === "both") titleRow.addClass("is-title-themed");
 		titleRow.style.setProperty("--hearth-title-scale", String(effectiveHeaderTitleScale(s)));
