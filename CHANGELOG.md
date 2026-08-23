@@ -97,6 +97,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plugin is installed. It is off by default, and says up front that Operon will
   ask you to approve Hearth the first time the card loads.
 
+- **Hearth speaks Simplified Chinese.** A full `zh` locale joins English, so
+  every string Hearth draws — commands, notices, the setup wizard, all of the
+  plugin and card settings, card bodies and the add-card picker — comes out in
+  简体中文 when Obsidian's own display language is Chinese. It is picked up from
+  Obsidian's language at load and needs no setting of its own; regional codes
+  fall back to `zh`, and anything untranslated still falls back to English. The
+  README has a Chinese translation too ([README.zh-CN.md](README.zh-CN.md)).
+
 ### Fixed
 
 - **Hovering the search bar no longer lights a grey slab inside it.** Obsidian
