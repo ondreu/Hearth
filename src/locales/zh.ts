@@ -304,8 +304,7 @@ export const zh: Translations = {
 			},
 		},
 		purpose: {
-			count: (n: number) =>
-				n === 1 ? "目前共 1 张卡片。" : `目前共 ${n} 张卡片。`,
+			count: (n: number) => `目前共 ${n} 张卡片。`,
 		},
 		integrations: {
 			lead:
@@ -410,10 +409,7 @@ export const zh: Translations = {
 			},
 		},
 		notice: {
-			done: (n: number) =>
-				n === 1
-					? "Hearth：面板已就绪 — 添加了 1 张卡片。"
-					: `Hearth：面板已就绪 — 添加了 ${n} 张卡片。`,
+			done: (n: number) => `Hearth：面板已就绪 — 添加了 ${n} 张卡片。`,
 		},
 	},
 
@@ -2721,7 +2717,7 @@ export const zh: Translations = {
 			noCommits: "还没有提交",
 			noMessage: "（无提交信息）",
 			lastCommit: (when: string) => `最后提交于 ${when}`,
-			more: (count: number) => `还有 ${count} 个…`,
+			more: (count: number) => `还有 ${count} 个文件…`,
 			openSourceControl: "打开源代码管理",
 			openHistory: "打开历史",
 			openDiff: "打开差异",
@@ -2749,10 +2745,10 @@ export const zh: Translations = {
 			previousMonth: "上个月",
 			nextMonth: "下个月",
 			backToToday: "回到今天",
-			dayEdited: (date: string, count: number) => `${date}：编辑了 ${count} 篇`,
+			dayEdited: (date: string, count: number) => `${date}：编辑了 ${count} 篇笔记`,
 			dayTasks: (date: string, count: number) => `${date}：${count} 个任务`,
 			dayMetric: (date: string, count: number, metric: string) =>
-				`${date}：${count} ${metric}`,
+				`${date}：${metric} ${count} 篇`,
 			dayEvents: (date: string, count: number) => `${date}：${count} 个事件`,
 			agendaNoNote: "无笔记",
 			allDay: "全天",
@@ -2784,7 +2780,7 @@ export const zh: Translations = {
 				day: "日",
 				list: "列表",
 			},
-			more: (count: number) => `还有 ${count} 个`,
+			more: (count: number) => `+${count} 项`,
 			listEmpty: (days: number) => `未来 ${days} 天没有任何安排`,
 		},
 		stats: {
@@ -2832,7 +2828,7 @@ export const zh: Translations = {
 			doneDate: "完成日期",
 			recurrenceLabel: "重复",
 			recurrenceNever: "从不",
-			recurrenceEvery: "每",
+			recurrenceEvery: "间隔",
 			recurrenceInterval: "重复间隔",
 			recurrenceUnits: {
 				day: "每天",
@@ -2944,7 +2940,7 @@ export const zh: Translations = {
 			month: "个月",
 			year: "年",
 		},
-		everyOne: (unit: string) => `每 1 ${unit}重复`,
+		everyOne: (unit: string) => `每${unit}重复`,
 		everyMany: (count: number, unit: string) => `每 ${count} ${unit}重复`,
 	},
 
