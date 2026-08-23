@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [2.1.0]
+## [2.2.0]
 
 ### Added
 
@@ -83,6 +83,105 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   what they're waiting for until you approve it. Settings → Hearth →
   Integrations shows the connection status, the read access Hearth asks for, and
   a switch to turn the whole thing off.
+
+- **Filter TaskNotes tasks by Context and Project.** The Tasks card's filter
+  modal now offers Contexts and Projects as chip rows for TaskNotes sources,
+  alongside the status and priority chips, so a card can show just the work for
+  one project or one context without a query (#231).
+
+### Fixed
+
+- **Daily notes are found even when their name spells the weekday in another
+  language.** A daily-note format with a locale-dependent token — `dd`, `dddd`,
+  `Do` — was resolved by formatting the date in whatever locale Obsidian is
+  running in now, so a note written under a different one ("Wed, 19.08.2026"
+  next to a moment locale that spells it "Mi") looked missing: the day streak
+  read 0, the calendar day lost its dot and the daily card offered to create a
+  note that already existed. For those formats Hearth now reads the date back
+  out of the filenames in the daily-note folder, ignoring the parts only the
+  locale decides, so notes made by Periodic Notes with its own locale override
+  — or carried over from another machine — resolve the same as any other
+  (#229).
+- **Filtering tasks by date honours TaskNotes' scheduled dates.** A task due
+  next week but scheduled for today vanished from a **Today** filter: the card
+  looked only at the due date and fell back to the scheduled one when there was
+  no due date at all. **Today**, **This week**, **Overdue**, **Has a date** and
+  **No date** now match on either of a task's dates, the way TaskNotes' own
+  date views do, and the scheduled date is read through your TaskNotes field
+  mapping rather than the literal `scheduled` key. The filter's presets are
+  renamed to "Today" and "This week" to say what they now match (#225).
+- **Moving one occurrence of a repeating calendar event moves it, instead of
+  showing it twice.** Drag a single occurrence to another day in Google Calendar
+  (or edit or delete just that one) and the calendar card listed it in both
+  places at once. The feed says as much in two parts — the series keeps its
+  repeat rule untouched, and a second entry carries the same event with the
+  original time it replaces — and Hearth read those as two separate events.
+  Hearth now folds the second entry back into the series: the occurrence appears
+  where you moved it and nowhere else, a deleted one disappears, and an edit
+  that takes over "this and all following events" splits the series at that
+  point (#232).
+- **Recent files shows every file you asked for — or as many as the card is
+  tall.** Setting **Number of files** to 15 listed ten and left the rest of the
+  card empty, because Obsidian's own recent-files list stops at ten entries and
+  no amount of asking afterwards makes it longer. Hearth now keeps its own
+  recent-file history — up to 50 files, deduplicated, most recent first, stored
+  per vault on this machine like Obsidian's own and following renames — so a
+  larger number is a number the card can actually fill. The setting is clamped
+  to what that history holds rather than accepting a value it would quietly
+  ignore. And a new **Fit to card height** toggle lists as many files as the
+  card has room for, so a tall card fills instead of ending in a band of unused
+  space, and resizing it changes how many appear.
+
+### Changed
+
+- **Low power mode is now a four-step performance tier.** One switch used to
+  take the wallpaper, the frosted glass, every animation and every refresh
+  timer away together — far more than most people need to give up, which is why
+  it rescued nobody from the power draw it was meant to fix. Settings →
+  Appearance → **Performance** now ladders it:
+
+  - **Full** — everything on.
+  - **Balanced** — the painted sky is drawn at half density: fewer raindrops,
+    stars, clouds and fog wisps. Nothing is switched off, there is simply less
+    of it, for roughly half the cost.
+  - **Reduced** — nothing moves and no frosted glass, but the wallpaper stays,
+    cards stay translucent, and every refresh timer keeps running.
+  - **Minimal** — the former low power mode.
+
+  Card auto-refresh is no longer tangled up with animation, so a board on
+  **Reduced** holds still and still stays up to date, and translucency parts
+  company with the blur so cards still read as glass. An existing low power
+  mode setting folds into the ladder on upgrade.
+
+  Underneath, the animations themselves got much cheaper. The pet sprite and
+  the painted sky animated a CSS transform on an SVG element, which Chromium
+  will not composite — every frame recalculated style on the main thread, and
+  for the sky laid out as well. The pet now animates a wrapper `div` instead:
+  measured over four seconds with four pets, 123.6 ms of main-thread time and
+  239 style recalculations became 4.2 ms and none. Motion is also paused when
+  nobody can see it — a board in an unfocused window (**Pause animation when
+  unfocused**, on by default, desktop only) and a card scrolled off screen or
+  clipped away by a fit-to-page board. Pausing freezes each animation where it
+  stood rather than clearing it, so regaining focus resumes instead of
+  snapping the sky and the pet back to their static positions. And
+  `prefers-reduced-motion` is now honoured board-wide rather than by the three
+  features that had their own rules for it. Card blur defaults to 0 for new
+  vaults; existing vaults keep the value they have (#223).
+
+- **"What's new" reads as a list of headlines, not a wall of text.** The dialog
+  after an update — and **View changelog** in Settings → About — now shows one
+  line per change, grouped under **New**, **Fixed** and **Changed** with a
+  count per group beside the version, and folds each explanation away until you
+  click the line you care about. A release you aren't reading collapses to a
+  single row, so upgrading across several versions is a short list rather than
+  several screens of prose, and a filter box searches every headline *and* its
+  detail. The issue a change closes sits beside it as a link to GitHub. It is
+  the same `CHANGELOG.md` as before, and still the only source: nothing is
+  rewritten or summarised, only folded.
+
+## [2.1.0]
+
+### Added
 
 - **A launchpad that makes notes: the Templater card.** Hearth's third tile card
   sits beside Links and Commands, but each of its buttons creates a note. A tile
@@ -257,46 +356,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- **Daily notes are found even when their name spells the weekday in another
-  language.** A daily-note format with a locale-dependent token — `dd`, `dddd`,
-  `Do` — was resolved by formatting the date in whatever locale Obsidian is
-  running in now, so a note written under a different one ("Wed, 19.08.2026"
-  next to a moment locale that spells it "Mi") looked missing: the day streak
-  read 0, the calendar day lost its dot and the daily card offered to create a
-  note that already existed. For those formats Hearth now reads the date back
-  out of the filenames in the daily-note folder, ignoring the parts only the
-  locale decides, so notes made by Periodic Notes with its own locale override
-  — or carried over from another machine — resolve the same as any other
-  (#229).
-- **Filtering tasks by date honours TaskNotes' scheduled dates.** A task due
-  next week but scheduled for today vanished from a **Today** filter: the card
-  looked only at the due date and fell back to the scheduled one when there was
-  no due date at all. **Today**, **This week**, **Overdue**, **Has a date** and
-  **No date** now match on either of a task's dates, the way TaskNotes' own
-  date views do, and the scheduled date is read through your TaskNotes field
-  mapping rather than the literal `scheduled` key. The filter's presets are
-  renamed to "Today" and "This week" to say what they now match (#225).
-- **Moving one occurrence of a repeating calendar event moves it, instead of
-  showing it twice.** Drag a single occurrence to another day in Google Calendar
-  (or edit or delete just that one) and the calendar card listed it in both
-  places at once. The feed says as much in two parts — the series keeps its
-  repeat rule untouched, and a second entry carries the same event with the
-  original time it replaces — and Hearth read those as two separate events.
-  Hearth now folds the second entry back into the series: the occurrence appears
-  where you moved it and nowhere else, a deleted one disappears, and an edit
-  that takes over "this and all following events" splits the series at that
-  point (#232).
-- **Recent files shows every file you asked for — or as many as the card is
-  tall.** Setting **Number of files** to 15 listed ten and left the rest of the
-  card empty, because Obsidian's own recent-files list stops at ten entries and
-  no amount of asking afterwards makes it longer. Hearth now keeps its own
-  recent-file history — up to 50 files, deduplicated, most recent first, stored
-  per vault on this machine like Obsidian's own and following renames — so a
-  larger number is a number the card can actually fill. The setting is clamped
-  to what that history holds rather than accepting a value it would quietly
-  ignore. And a new **Fit to card height** toggle lists as many files as the
-  card has room for, so a tall card fills instead of ending in a band of unused
-  space, and resizing it changes how many appear.
 - **Arranging a fit-to-page board keeps the arrangement.** On a board whose
   cards are taller than the pane — which is what happens as soon as you zoom
   Obsidian in, so it depended on your screen and zoom level rather than on
@@ -324,19 +383,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   inside it has focus and catches up once you click away — exactly when you want
   it to. The same wait applies to **Live refresh on vault changes**, which
   rebuilt the whole board out from under the same field.
-
-### Changed
-
-- **"What's new" reads as a list of headlines, not a wall of text.** The dialog
-  after an update — and **View changelog** in Settings → About — now shows one
-  line per change, grouped under **New**, **Fixed** and **Changed** with a
-  count per group beside the version, and folds each explanation away until you
-  click the line you care about. A release you aren't reading collapses to a
-  single row, so upgrading across several versions is a short list rather than
-  several screens of prose, and a filter box searches every headline *and* its
-  detail. The issue a change closes sits beside it as a link to GitHub. It is
-  the same `CHANGELOG.md` as before, and still the only source: nothing is
-  rewritten or summarised, only folded.
 
 ## [2.0.0]
 
