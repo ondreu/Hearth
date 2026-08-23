@@ -99,6 +99,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Hovering the search bar no longer lights a grey slab inside it.** Obsidian
+  paints every text input on hover, and that rule outranked the one that makes
+  Hearth's search field transparent, so a second rounded rectangle — carrying
+  the field's own corner radius, not the bar's — appeared inset inside the bar.
+  The bar keeps drawing its own hover and focus affordance; only the stray
+  rectangle is gone.
 - **The setup wizard no longer changes your vault-wide settings.** Running setup
   — or re-running it later from **Settings → Hearth → About → Build a
   dashboard** — used to write its answers straight into the global settings: the
@@ -192,6 +198,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   `prefers-reduced-motion` is now honoured board-wide rather than by the three
   features that had their own rules for it. Card blur defaults to 0 for new
   vaults; existing vaults keep the value they have (#223).
+
+- **Deprecated Obsidian APIs cleared out of the settings UI.** Hearth no longer
+  calls `setDynamicTooltip()` on its sliders: Obsidian draws a slider's value
+  inline itself as of 1.13, where the call did nothing. On Obsidian 1.8.7–1.12.x
+  — still Hearth's declared minimum — a slider now shows no number while you
+  drag it; the value it lands on is the one the setting keeps, as before.
 
 - **"What's new" reads as a list of headlines, not a wall of text.** The dialog
   after an update — and **View changelog** in Settings → About — now shows one
