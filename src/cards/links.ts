@@ -1,10 +1,10 @@
-import { setTooltip, Setting, TFile } from "obsidian";
+import { Setting, TFile } from "obsidian";
 import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { openFile, openLink as openLinkTarget } from "../opener";
 import { CommandPickerModal } from "../pickers";
-import { addIconHelp, applyTileVisual } from "../widgeticon";
+import { addTileIconField, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -103,17 +103,10 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					ctx.opts.save();
 				}),
 		);
-		row.addText((txt) => {
-			txt
-				.setPlaceholder(t().editors.links.iconPlaceholder)
-				.setValue(link.icon)
-				.onChange((v) => {
-					link.icon = v;
-					ctx.opts.save();
-				});
-			setTooltip(txt.inputEl, t().editors.iconHelp);
+		addTileIconField(row, ctx.app, link.icon, (v) => {
+			link.icon = v;
+			ctx.opts.save();
 		});
-		addIconHelp(row.controlEl);
 		row.addDropdown((d) => {
 			(Object.keys(t().editors.linkTypes) as LinkItem["type"][]).forEach(
 				(k) => {

@@ -1,6 +1,8 @@
-import { setIcon, setTooltip, TFile } from "obsidian";
+import { setIcon, setTooltip, TextComponent, type App, type Setting, TFile } from "obsidian";
 import type { HomeView } from "./view";
 import { isImageFile } from "./filetypes";
+import { applyTileIcon, iconizeEnabled, IconizeIconPickerModal } from "./iconizeicons";
+import { LucideIconPickerModal } from "./lucide";
 import { t } from "./i18n";
 
 /**
@@ -24,8 +26,8 @@ export function resolveIconImage(view: HomeView, icon: string | undefined): TFil
  *   (object-fit: cover) with the label overlaid on top (#119). The caller adds
  *   the label afterwards; the `hearth-tile-has-image` class makes CSS position
  *   the image behind it and give the label a legibility scrim.
- * - Otherwise the usual centered Lucide icon slot is used (falling back to
- *   `fallback` when the string is empty).
+ * - Otherwise a centered icon slot is used: Lucide, emoji, Iconize pack icon,
+ *   or `fallback` when the string is empty or unrecognised.
  */
 export function applyTileVisual(
 	view: HomeView,
@@ -40,16 +42,80 @@ export function applyTileVisual(
 		img.src = view.app.vault.getResourcePath(image);
 		return;
 	}
-	setIcon(tile.createDiv("hearth-link-icon"), icon?.trim() || fallback);
+	const slot = tile.createDiv("hearth-link-icon");
+	if (!applyTileIcon(view.app, slot, icon)) {
+		setIcon(slot, fallback);
+	}
 }
 
 /**
  * Append a small "?" help badge to an icon field's control row, carrying the
  * shared icon help as its tooltip so users can discover that the field accepts
- * a Lucide id or a vault image path without having to hover the input (#119).
+ * a Lucide id, an Iconize icon, or a vault image path (#119).
  */
 export function addIconHelp(controlEl: HTMLElement): void {
 	const help = controlEl.createSpan({ cls: "hearth-icon-help", text: "?" });
 	setTooltip(help, t().editors.iconHelp);
 	help.setAttribute("aria-label", t().editors.iconHelp);
+}
+
+/**
+ * Icon field for command / launchpad / templater tiles: text input, live
+ * preview, Lucide browse, and — when Iconize is enabled — an Iconize browse
+ * button for downloaded icon packs.
+ */
+export function addTileIconField(
+	row: Setting,
+	app: App,
+	value: string,
+	onChange: (value: string) => void,
+): void {
+	const preview = row.controlEl.createSpan({
+		cls: "hearth-icon-preview hearth-link-icon",
+	});
+	let text: TextComponent | undefined;
+
+	const apply = (next: string) => {
+		const trimmed = next.trim();
+		preview.empty();
+		preview.toggleClass("is-empty", !applyTileIcon(app, preview, trimmed));
+		onChange(trimmed);
+	};
+
+	row.addText((tx) => {
+		text = tx;
+		tx.setPlaceholder(t().pickers.iconPlaceholder)
+			.setValue(value)
+			.onChange((v) => apply(v));
+		setTooltip(tx.inputEl, t().editors.iconHelp);
+	});
+
+	row.addExtraButton((b) =>
+		b
+			.setIcon("search")
+			.setTooltip(t().pickers.iconBrowse)
+			.onClick(() => {
+				new LucideIconPickerModal(app, (name) => {
+					text?.setValue(name);
+					apply(name);
+				}).open();
+			}),
+	);
+
+	if (iconizeEnabled(app)) {
+		row.addExtraButton((b) =>
+			b
+				.setIcon("shapes")
+				.setTooltip(t().pickers.iconizeBrowse)
+				.onClick(() => {
+					new IconizeIconPickerModal(app, (name) => {
+						text?.setValue(name);
+						apply(name);
+					}).open();
+				}),
+		);
+	}
+
+	addIconHelp(row.controlEl);
+	preview.toggleClass("is-empty", !applyTileIcon(app, preview, value));
 }

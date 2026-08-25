@@ -27,7 +27,7 @@ import {
 import { type DashboardCard, type TemplaterItem } from "../types";
 import { makeClickable, promptForText } from "../ui";
 import { type HomeView } from "../view";
-import { addIconHelp, applyTileVisual } from "../widgeticon";
+import { addTileIconField, applyTileVisual } from "../widgeticon";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
@@ -266,17 +266,10 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 				}),
 		);
 
-		row.addText((txt) => {
-			txt
-				.setPlaceholder(t().pickers.iconPlaceholder)
-				.setValue(item.icon)
-				.onChange((v) => {
-					item.icon = v;
-					ctx.opts.save();
-				});
-			setTooltip(txt.inputEl, t().editors.iconHelp);
+		addTileIconField(row, ctx.app, item.icon, (v) => {
+			item.icon = v;
+			ctx.opts.save();
 		});
-		addIconHelp(row.controlEl);
 
 		// A template is addressed by vault path, which is exactly the kind of
 		// thing a fuzzy picker is for. Scoped to Templater's own template folder

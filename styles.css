@@ -2580,6 +2580,13 @@
 	height: 24px;
 }
 
+/* Iconize pack icons inject raw SVG rather than Obsidian's .svg-icon wrapper. */
+.hearth-link-icon svg {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
 /* A vault image used as a tile icon (#119): the image covers the whole tile and
  * the label is overlaid on top of it. */
 .hearth-link-tile.hearth-tile-has-image {

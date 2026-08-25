@@ -457,6 +457,8 @@ export const en = {
 		icon: "Search Lucide icons…",
 		iconPlaceholder: "Lucide icon id",
 		iconBrowse: "Browse Lucide icons",
+		iconize: "Search Iconize icons…",
+		iconizeBrowse: "Browse Iconize icons",
 		iconClear: "Clear icon",
 	},
 
@@ -1130,7 +1132,8 @@ export const en = {
 					name: "Iconize",
 					desc:
 						"The same for Iconize (formerly Obsidian Icon Folder), including icons " +
-						"set through a frontmatter property.",
+						"set through a frontmatter property. Iconize pack icons can also be " +
+						"used on command, launchpad and templater tiles.",
 				},
 				excalidraw: {
 					name: "Excalidraw",
@@ -1402,8 +1405,10 @@ export const en = {
 		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
 		iconHelp:
 			"Enter a Lucide icon id (e.g. “home”, “star”, “calendar”) — browse them at " +
-			"lucide.dev/icons. You can also enter a vault image path (e.g. " +
-			"Attachments/icon.png) to use your own picture as the icon.",
+			"lucide.dev/icons. When Iconize is enabled, you can also pick one of its " +
+			"icon-pack icons (e.g. “FaBook”), or type an Iconize name directly. You " +
+			"can also enter a vault image path (e.g. Attachments/icon.png) to use your " +
+			"own picture as the icon.",
 		/** Tabs across the top of the card settings modal. */
 		tabs: {
 			content: "Content",

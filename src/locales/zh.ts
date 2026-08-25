@@ -423,6 +423,8 @@ export const zh: Translations = {
 		icon: "搜索 Lucide 图标…",
 		iconPlaceholder: "Lucide 图标 id",
 		iconBrowse: "浏览 Lucide 图标",
+		iconize: "搜索 Iconize 图标…",
+		iconizeBrowse: "浏览 Iconize 图标",
 		iconClear: "清除图标",
 	},
 

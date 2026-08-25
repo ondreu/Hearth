@@ -3,7 +3,7 @@ import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOv
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
-import { addIconHelp, applyTileVisual } from "../widgeticon";
+import { addTileIconField, applyTileVisual } from "../widgeticon";
 import { type CommandItem, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -101,17 +101,10 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		const row = new Setting(containerEl)
 			.setClass("hearth-link-setting")
 			.setName(cmd.name || cmd.id);
-		row.addText((txt) => {
-			txt
-				.setPlaceholder(t().editors.commands.iconOptionalPlaceholder)
-				.setValue(cmd.icon ?? "")
-				.onChange((v) => {
-					cmd.icon = v || undefined;
-					ctx.opts.save();
-				});
-			setTooltip(txt.inputEl, t().editors.iconHelp);
+		addTileIconField(row, ctx.app, cmd.icon ?? "", (v) => {
+			cmd.icon = v || undefined;
+			ctx.opts.save();
 		});
-		addIconHelp(row.controlEl);
 		row.addText((txt) => {
 			txt
 				.setPlaceholder(t().editors.commands.sizePlaceholder)
