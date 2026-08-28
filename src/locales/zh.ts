@@ -518,6 +518,13 @@ export const zh: Translations = {
 			titleTopMargin: "标题上边距",
 			headerSpacingBelow: "标题/顶部下方间距",
 			contentWidth: "内容宽度",
+			fullWidth: "全宽",
+			fullWidthDesc: "为此面板覆盖宽度上限。",
+			fullWidthDefault: (state: string) => `使用全局默认（${state}）`,
+			fullWidthOptionOn: "填满窗格",
+			fullWidthOptionOff: "限制宽度",
+			fullWidthStateOn: "填满窗格",
+			fullWidthStateOff: "限制宽度",
 			fitToPage: "适应页面",
 			fitToPageDesc: "为此面板覆盖滚动行为。",
 			fitDefault: (state: string) => `使用全局默认（${state}）`,
@@ -758,7 +765,13 @@ export const zh: Translations = {
 			newNoteFilenamePlaceholder: "Untitled",
 			newNoteDestination: (destination: string) => `将创建于 ${destination}`,
 			contentWidth: "内容宽度",
-			contentWidthDesc: "主页内容的最大宽度（像素）。",
+			contentWidthDesc:
+				"主页内容可以扩展到的最大宽度（像素）。这只是上限，而非固定宽度 — " +
+				"在较窄的窗格中内容仍会自动收缩。",
+			fullWidth: "全宽",
+			fullWidthDesc:
+				"让内容填满整个窗格，而不停在下方设置的宽度处。窗格变宽时卡片会按比例" +
+				"放大，但文字不会随之变大，因此非常宽的面板看起来会比较稀疏。",
 		},
 		performance: {
 			tier: "性能档位",

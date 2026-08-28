@@ -11,6 +11,7 @@ import {
 	bannerActive,
 	effectiveCompact,
 	effectiveFitToPage,
+	effectiveFullWidth,
 	effectiveMaxWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
@@ -212,7 +213,12 @@ export class HomeView extends ItemView {
 		if (banner) renderBanner(this, scroll, child);
 
 		const inner = scroll.createDiv("hearth-inner");
-		inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
+		// The column is fluid either way — it is `width: 100%` centred in the
+		// scroll area, so it already follows a narrow pane down. The setting only
+		// decides how far it may grow: to a pixel ceiling, or to the pane itself.
+		if (!effectiveFullWidth(this.plugin.settings)) {
+			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
+		}
 
 		if (!mobileOnly) renderDashboardSwitcher(this, inner);
 

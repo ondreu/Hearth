@@ -553,6 +553,13 @@ export const en = {
 			titleTopMargin: "Title top margin",
 			headerSpacingBelow: "Spacing below title/header",
 			contentWidth: "Content width",
+			fullWidth: "Full width",
+			fullWidthDesc: "Override the width limit for this board.",
+			fullWidthDefault: (state: string) => `Use global default (${state})`,
+			fullWidthOptionOn: "Fill the pane",
+			fullWidthOptionOff: "Limit the width",
+			fullWidthStateOn: "fill the pane",
+			fullWidthStateOff: "limited",
 			fitToPage: "Fit to page",
 			fitToPageDesc: "Override scrolling for this board.",
 			fitDefault: (state: string) => `Use global default (${state})`,
@@ -813,7 +820,14 @@ export const en = {
 			newNoteFilenamePlaceholder: "Untitled",
 			newNoteDestination: (destination: string) => `Creates ${destination}`,
 			contentWidth: "Content width",
-			contentWidthDesc: "Maximum width of the home content, in pixels.",
+			contentWidthDesc:
+				"The widest the home content may grow, in pixels. It is a ceiling, " +
+				"not a width — the content still shrinks to fit a narrower pane.",
+			fullWidth: "Full width",
+			fullWidthDesc:
+				"Let the content fill the pane instead of stopping at the width " +
+				"below. Cards keep their proportions as the pane widens, but text " +
+				"does not grow with them, so a very wide board reads sparser.",
 		},
 		performance: {
 			tier: "Performance tier",
