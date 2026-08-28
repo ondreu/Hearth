@@ -1622,24 +1622,23 @@ export interface DashboardHeaderConfig {
 	showTitle?: boolean;
 	/** Override the global title text for this dashboard. */
 	title?: string;
-	/** Override the global logo text/icon for this dashboard. Empty = Hearth icon. */
-	logo?: string;
-	/** Override the global title Lucide icon for this dashboard. A bare Lucide id
-	 * (`"flame"`), drawn instead of the logo text. An empty string is a real
-	 * override meaning "no icon on this board" — it falls back to the logo text,
-	 * not to the global icon; undefined follows the global setting. */
-	logoIcon?: string;
+	/** Override the global title icon for this dashboard: a Lucide id, an emoji
+	 * or short text, a vault image path, or an image URL (see `titleicon.ts`).
+	 * An empty string is a real override meaning "the Hearth crystal on this
+	 * board"; undefined follows {@link HomeSettings.titleIcon}. */
+	titleIcon?: string;
 	/** Override which parts of this board's brand mark follow the theme's icon
 	 * colour (undefined = use the global {@link HomeSettings.themeColorTarget}).
 	 * Scoped to the board's own title block; Hearth's tab and ribbon icons are
 	 * app-level and keep following the global setting. */
 	themeColorTarget?: HomeSettings["themeColorTarget"];
-	/** Align only the title/logo block; the search section below has its own
+	/** Align only the title block; the search section below has its own
 	 * layout. */
 	align?: HeaderAlign;
 	/** Title size multiplier, clamped to a conservative range. */
 	titleScale?: number;
-	/** Logo size multiplier, clamped to a conservative range. */
+	/** Title icon size multiplier, clamped to a conservative range. The key
+	 * keeps its pre-2.2 name so no board's sizing needs migrating. */
 	logoScale?: number;
 	/** Title block top margin in pixels. Undefined keeps the stylesheet default. */
 	marginTop?: number;
@@ -1680,7 +1679,7 @@ export interface Dashboard extends BannerOverrides {
 	cardRadius?: number;
 	/** Override the card border width (px) for this board (undefined = global). */
 	cardBorderWidth?: number;
-	/** Per-dashboard overrides for the title/logo block. */
+	/** Per-dashboard overrides for the title block. */
 	header?: DashboardHeaderConfig;
 	/** Override the global search/command section visibility for this board
 	 * (undefined = follow {@link HomeSettings.showSearch}). */
@@ -1753,13 +1752,12 @@ export interface HomeSettings {
 	// ---- Header ----
 	title: string;
 	showTitle: boolean;
-	/** Emoji or short text shown as a logo next to the title. */
-	logo: string;
-	/** A Lucide icon id drawn as the title icon instead of the emoji/text logo
-	 * (`"flame"`, `"layout-dashboard"`). Empty = fall back to {@link logo}, and
-	 * to the Hearth crystal when that is empty too. Each dashboard can override
-	 * it — see {@link DashboardHeaderConfig.logoIcon}. */
-	logoIcon: string;
+	/** The mark drawn beside the title. One field holding any of five things —
+	 * a Lucide id (`"flame"`), an emoji or short text, a vault image path, an
+	 * image URL, or empty for the Hearth crystal; `titleicon.ts` decides which
+	 * a value is. Each dashboard can override it — see
+	 * {@link DashboardHeaderConfig.titleIcon}. */
+	titleIcon: string;
 	/** A Lucide icon id used for Hearth's tab header and ribbon button instead of
 	 * the Hearth crystal. Empty = the crystal. */
 	tabIcon: string;
@@ -2005,9 +2003,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	title: "Obsidian",
 	showTitle: true,
 	// Empty => the Hearth crystal icon is shown as the brand mark.
-	logo: "",
-	// Empty => no Lucide title icon; the logo text (or the crystal) is drawn.
-	logoIcon: "",
+	titleIcon: "",
 	// Empty => the Hearth crystal is the tab and ribbon icon.
 	tabIcon: "",
 	themeColorTarget: "none",
@@ -2262,40 +2258,36 @@ function clampHeaderSpacingBelow(v: unknown): number | undefined {
 		: undefined;
 }
 
-/** Whether the active board should show the title/logo block. */
+/** Whether the active board should show the title block. */
 export function effectiveShowTitle(s: HomeSettings): boolean {
 	return activeDashboard(s).header?.showTitle ?? s.showTitle;
 }
 
-/** Title text for the active board's title/logo block. */
+/** Title text for the active board's title block. */
 export function effectiveTitle(s: HomeSettings): string {
 	return activeDashboard(s).header?.title ?? s.title;
 }
 
-/** Logo text for the active board's title/logo block. Empty = Hearth icon. */
-export function effectiveLogo(s: HomeSettings): string {
-	return activeDashboard(s).header?.logo ?? s.logo;
+/** The title icon for the active board — a Lucide id, emoji/text, a vault image
+ * path or an image URL; `titleicon.ts` decides which. Empty = the Hearth
+ * crystal, and a board's own empty string wins over a global icon: that is how
+ * a single board opts back out of it. */
+export function effectiveTitleIcon(s: HomeSettings): string {
+	return activeDashboard(s).header?.titleIcon ?? s.titleIcon;
 }
 
-/** Lucide title icon for the active board. Empty = none, so the logo text (or
- * the Hearth crystal) is drawn instead. A board's own empty string wins over a
- * global icon: that is how a single board opts back out of it. */
-export function effectiveLogoIcon(s: HomeSettings): string {
-	return activeDashboard(s).header?.logoIcon ?? s.logoIcon;
-}
-
-/** Alignment for the active board's title/logo block; search layout is separate. */
+/** Alignment for the active board's title block; search layout is separate. */
 export function effectiveHeaderAlign(s: HomeSettings): HeaderAlign {
 	const align = activeDashboard(s).header?.align;
 	return align === "left" || align === "right" ? align : "center";
 }
 
-/** Title size multiplier for the active board's title/logo block. */
+/** Title size multiplier for the active board's title block. */
 export function effectiveHeaderTitleScale(s: HomeSettings): number {
 	return clampHeaderScale(activeDashboard(s).header?.titleScale);
 }
 
-/** Logo size multiplier for the active board's title/logo block. */
+/** Title icon size multiplier for the active board's title block. */
 export function effectiveHeaderLogoScale(s: HomeSettings): number {
 	return clampHeaderScale(activeDashboard(s).header?.logoScale);
 }
@@ -2609,7 +2601,8 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * fields. Idempotent — safe to run on every load.
  *
  * Returns `true` when it performed a destructive/one-way migration whose result
- * must be flushed back to storage (currently only the `commandId` → `target`
+ * must be flushed back to storage (the `commandId` → `target` fold, the
+ * `lowPower` → performance tier fold, and the `logo`/`logoIcon` → `titleIcon`
  * fold), so the caller knows to persist. The purely additive back-fills above
  * remain in-memory until the next ordinary save, exactly as before.
  */
@@ -2734,7 +2727,87 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
+	const migratedTitleIcon = migrateTitleIcon(s, raw);
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
-	return migratedCommandId || migratedLowPower;
+	return migratedCommandId || migratedLowPower || migratedTitleIcon;
+}
+
+/** The pre-2.2 title mark: an emoji/text `logo` beside a Lucide `logoIcon` that
+ * won whenever it held anything (#252). Both are read off persisted data, so
+ * neither is typed as a string until it has been checked. */
+interface LegacyTitleFields {
+	logo?: unknown;
+	logoIcon?: unknown;
+}
+
+function trimmedString(v: unknown): string | undefined {
+	return typeof v === "string" ? v.trim() : undefined;
+}
+
+/**
+ * The one value the legacy `logo`/`logoIcon` pair actually drew.
+ *
+ * `own` is the pair being folded and `inherited` the pair it fell back to field
+ * by field — for a board that is the vault-wide pair, for the vault-wide pair
+ * itself there is none. The precedence is the header's own, from before the
+ * merge: a Lucide icon beat the logo text, and the text was drawn only when no
+ * icon was set. Both sides are consulted independently, because a board that
+ * overrode only one of the two inherited the other.
+ */
+export function legacyTitleIcon(
+	own: LegacyTitleFields,
+	inherited: LegacyTitleFields = {},
+): string {
+	const icon = trimmedString(own.logoIcon) ?? trimmedString(inherited.logoIcon) ?? "";
+	if (icon) return icon;
+	return trimmedString(own.logo) ?? trimmedString(inherited.logo) ?? "";
+}
+
+/**
+ * One-way migration (added 2.2.0): fold `logo` + `logoIcon` into the single
+ * `titleIcon`, vault-wide and on every board that overrode either (#252).
+ *
+ * The merged value is what the pair *drew*, not a preference for one field over
+ * the other — a board keeps exactly the mark it had, even where that means its
+ * own logo text was being hidden by a global Lucide icon all along. A board
+ * whose merged value matches the vault-wide one loses the override entirely
+ * rather than freezing a copy of it, so a later change to the global icon still
+ * reaches it.
+ *
+ * This does NOT round-trip: downgrading below 2.2.0 after it has run shows the
+ * Hearth crystal again until the logo fields are set anew. See CHANGELOG.
+ */
+function migrateTitleIcon(s: HomeSettings, raw: Record<string, unknown>): boolean {
+	let migrated = false;
+	const legacy = raw as LegacyTitleFields;
+	// Keyed off `raw`: loadSettings has already merged DEFAULT_SETTINGS over the
+	// persisted data, so `s.titleIcon` is always a string by now and testing it
+	// would mean never seeing the legacy fields at all.
+	if (typeof raw.titleIcon !== "string") s.titleIcon = legacyTitleIcon(legacy);
+	for (const key of ["logo", "logoIcon"] as const) {
+		if (key in (s as object)) {
+			delete (s as Partial<HomeSettings> & LegacyTitleFields)[key];
+			migrated = true;
+		}
+	}
+	for (const dash of s.dashboards) {
+		const header: (DashboardHeaderConfig & LegacyTitleFields) | undefined = dash.header;
+		if (!header) continue;
+		const hadLegacy = "logo" in header || "logoIcon" in header;
+		if (hadLegacy && typeof header.titleIcon !== "string") {
+			const folded = legacyTitleIcon(header, legacy);
+			// An override that resolves to the vault-wide mark is not an override:
+			// dropping it keeps the board following the global setting.
+			if (folded !== s.titleIcon) header.titleIcon = folded;
+		}
+		if (!hadLegacy) continue;
+		delete header.logo;
+		delete header.logoIcon;
+		migrated = true;
+		// A header left with nothing in it would still read as "this board
+		// overrides its header" everywhere that checks for the object.
+		if (Object.keys(header).length === 0) delete dash.header;
+	}
+	return migrated;
 }

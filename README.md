@@ -81,7 +81,7 @@ plugin and copies them onto the card it builds. A vault that renamed `due` to
 The wizard offers the integrations above; everything else in
 [Integrations](#integrations) is added by hand from the **Add card** picker.
 
-**The wizard only ever writes to the dashboard it builds.** The title, the logo,
+**The wizard only ever writes to the dashboard it builds.** The title, its icon,
 the accent, the card surface, the spacing and the background all land as
 *per-board overrides* on that one dashboard, and the TaskNotes field mapping
 lands on the Tasks card itself — so your vault-wide settings, and every other
@@ -350,11 +350,13 @@ Before you add one:
   per-dashboard → per-card). Merged cards blur as one seamless sheet.
 - **Card corner radius** — from the default 14 px down to sharp 0 px.
 - **Per-card colors** — an accent and a background tint for any card.
-- **Title, logo and compact spacing** for the dashboard header.
-- **Lucide icons** — pick any icon for Hearth's **tab and ribbon** button and
-  for the **title** beside the board's heading, searched from a picker rather
-  than typed from memory. Each dashboard can override the title icon; leave a
-  field empty and the Hearth crystal (or your emoji logo) stays as it was.
+- **Title, title icon and compact spacing** for the dashboard header.
+- **One title icon, four ways to set it** — the mark beside the board's heading
+  takes a **Lucide icon** (searched from a picker rather than typed from
+  memory), an **emoji or a couple of characters**, the **vault path of an
+  image**, or the **URL of an image on the web**. Each dashboard can override
+  it; leave it empty and the Hearth crystal stays as it was. Hearth's **tab and
+  ribbon** button takes a Lucide icon of its own.
 
 ## Mobile
 

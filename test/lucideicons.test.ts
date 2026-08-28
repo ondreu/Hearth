@@ -1,18 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bareIconName, pickIconId } from "../src/lucide";
 import { HEARTH_ICON_ID, HEARTH_ICON_THEMED_ID, tabIconIdFor } from "../src/icon";
-import {
-	DEFAULT_SETTINGS,
-	effectiveLogo,
-	effectiveLogoIcon,
-	type HomeSettings,
-} from "../src/types";
 
 /**
  * Lucide icons reach Hearth from three directions — a picker, a hand-typed id
  * and an imported settings file — so what counts as "an icon" has to be decided
  * in one place. These tests pin that decision: which id `setIcon` is handed,
- * and what happens when the value names nothing.
+ * and what happens when the value names nothing. The title icon, which takes
+ * more than a Lucide id, is covered in titleicon.test.ts.
  */
 
 /** The registered ids Obsidian would report: the Lucide set is prefixed. */
@@ -71,49 +66,5 @@ describe("tabIconIdFor", () => {
 		// through — which is exactly the behaviour a user with a valid id sees.
 		expect(tabIconIdFor("none", "flame")).toBe("flame");
 		expect(tabIconIdFor("icon", " layout-dashboard ")).toBe("layout-dashboard");
-	});
-});
-
-function settings(): HomeSettings {
-	const s: HomeSettings = structuredClone(DEFAULT_SETTINGS);
-	s.dashboards = [
-		{ id: "d1", name: "Dashboard 1", cards: [] },
-		{ id: "d2", name: "Dashboard 2", cards: [] },
-	];
-	s.activeDashboardId = "d1";
-	return s;
-}
-
-describe("effectiveLogoIcon", () => {
-	it("is empty by default, so the logo text keeps its place", () => {
-		const s = settings();
-		expect(effectiveLogoIcon(s)).toBe("");
-		expect(effectiveLogo(s)).toBe(DEFAULT_SETTINGS.logo);
-	});
-
-	it("follows the global icon on a board with no override", () => {
-		const s = settings();
-		s.logoIcon = "flame";
-		expect(effectiveLogoIcon(s)).toBe("flame");
-	});
-
-	it("lets a board pick its own icon without touching the others", () => {
-		const s = settings();
-		s.logoIcon = "flame";
-		s.dashboards[0].header = { logoIcon: "rocket" };
-		expect(effectiveLogoIcon(s)).toBe("rocket");
-		s.activeDashboardId = "d2";
-		expect(effectiveLogoIcon(s)).toBe("flame");
-	});
-
-	it("treats an empty override as 'no icon on this board'", () => {
-		// Distinct from having no override at all: the board opts out of the
-		// global icon and shows the logo text (or the crystal) instead.
-		const s = settings();
-		s.logoIcon = "flame";
-		s.dashboards[0].header = { logoIcon: "" };
-		expect(effectiveLogoIcon(s)).toBe("");
-		s.activeDashboardId = "d2";
-		expect(effectiveLogoIcon(s)).toBe("flame");
 	});
 });

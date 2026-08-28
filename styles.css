@@ -339,6 +339,24 @@
 	height: 1em;
 }
 
+/* A picture used as the title icon — from the vault or from the web. Sized off
+   the same 1em as a Lucide mark, so the "Title icon size" slider moves it too,
+   with the natural aspect ratio kept and a cap so a wide wordmark can't crowd
+   the title out of the row. */
+.hearth-logo-image {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.hearth-logo-image img {
+	height: 1em;
+	width: auto;
+	max-width: min(100%, 6em);
+	object-fit: contain;
+}
+
 /* "Follow theme icon color" setting: tint the crystal and/or the title text
    with the theme's icon color instead of the brand purple / normal text. */
 .hearth-title.is-icon-themed .hearth-logo-icon {
@@ -2640,6 +2658,13 @@
 .hearth-icon-preview svg {
 	width: 18px;
 	height: 18px;
+}
+
+/* The preview also shows pictures, since the title-icon field takes them. */
+.hearth-icon-preview img {
+	max-width: 24px;
+	max-height: 24px;
+	object-fit: contain;
 }
 
 /* A row in the Lucide icon picker: the icon itself, then its id. */

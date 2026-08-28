@@ -244,6 +244,36 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the same `CHANGELOG.md` as before, and still the only source: nothing is
   rewritten or summarised, only folded.
 
+- **One "Title icon" setting, and it takes a picture.** The mark beside a
+  board's heading was split across two fields — **Logo**, holding an emoji or a
+  couple of characters, and **Title icon**, holding a Lucide id that silently
+  won whenever both were set — in the vault-wide settings and again in every
+  board's own. They are now a single **Title icon**, in both places, that reads
+  whatever you give it:
+
+  - a **Lucide icon** id (`flame`), browsable from the 🔍 button as before;
+  - an **emoji or short text**, shown verbatim;
+  - the **vault path of an image** (`Assets/logo.png`), pickable from a new 📷
+    button — so a board can wear your own mark rather than a stock icon;
+  - the **URL of an image on the web**;
+  - or nothing at all, for the Hearth crystal.
+
+  A picture is sized off the same **Title icon size** slider (renamed from
+  "Logo size") that a Lucide icon uses, so it lines up with the title at any
+  scale, and a vault image that has been moved or deleted falls back to the
+  crystal rather than leaving a gap. The setup wizard asks once instead of
+  twice, and its field takes all of the above too.
+
+  **On upgrade, every board keeps the mark it was already showing.** The old
+  pair is folded into the new field by what it *drew*, not by which field held
+  it — so a board whose own logo text was being hidden by a vault-wide Lucide
+  icon keeps the icon, and one that had opted out of that icon keeps its text.
+  A board whose merged value matches the vault-wide one drops its override
+  entirely, so a later change to the global icon still reaches it. The fold is
+  one-way: downgrading below 2.2.0 afterwards shows the Hearth crystal again
+  until the old fields are set anew. A settings export taken before 2.2.0
+  imports through the same fold (#252).
+
 ## [2.1.0]
 
 ### Added

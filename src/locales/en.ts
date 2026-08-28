@@ -170,7 +170,7 @@ export const en = {
 		/** The line under each heading. */
 		stepDescs: {
 			welcome: "A few questions, then Hearth builds your first dashboard.",
-			vault: "The title and logo across the top of this board.",
+			vault: "The title and its icon across the top of this board.",
 			look:
 				"This applies to the board being built — every other board keeps its " +
 				"own look. You can change any of it later from the board's own settings.",
@@ -221,10 +221,10 @@ export const en = {
 			titleDesc: "Shown large across the top of the dashboard.",
 			showTitle: "Show the title",
 			showTitleDesc: "Turn off for a board with no heading at all.",
-			logo: "Logo",
-			logoDesc:
-				"An emoji or a couple of characters shown beside the title. Leave empty for " +
-				"the Hearth crystal.",
+			titleIcon: "Title icon",
+			titleIconDesc:
+				"An emoji, a couple of characters, a Lucide icon id, a vault image path or " +
+				"an image URL, shown beside the title. Leave empty for the Hearth crystal.",
 			themeColor: "Follow the theme's accent colour",
 			themeColorDesc: "Which parts of the brand mark take your theme's colour.",
 			themeColorOptions: {
@@ -458,6 +458,8 @@ export const en = {
 		iconPlaceholder: "Lucide icon id",
 		iconBrowse: "Browse Lucide icons",
 		iconClear: "Clear icon",
+		titleIconPlaceholder: "Icon id, emoji, image path or URL",
+		titleIconBrowseImage: "Pick an image from the vault",
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
@@ -522,7 +524,7 @@ export const en = {
 				"Open this dashboard when Hearth loads on a phone or tablet. Only one board can be the mobile default; enabling this clears it on the others.",
 			titleVisibility: "Title visibility",
 			titleVisibilityDesc:
-				"Show or hide only the title/logo block for this dashboard. Overrides the global setting.",
+				"Show or hide only the title block for this dashboard. Overrides the global setting.",
 			titleVisibilityDefault: (state: string) => `Use global default (${state})`,
 			searchVisibility: "Search visibility",
 			searchVisibilityDesc:
@@ -536,21 +538,18 @@ export const en = {
 			visibilityHide: "Hide title",
 			titleText: "Title text",
 			titleTextDesc: "Override the global title text for this dashboard.",
-			logoText: "Logo text",
-			logoTextDesc:
-				"Override the global logo for this dashboard. Empty uses the Hearth crystal icon.",
-			logoIcon: "Title icon",
-			logoIconDesc:
-				"A Lucide icon drawn beside this dashboard's title instead of the logo text. Clear it to show the logo text (or the Hearth crystal) on this board alone.",
+			titleIcon: "Title icon",
+			titleIconDesc:
+				"The mark beside this dashboard's title: a Lucide icon id, an emoji or short text, a vault image path, or an image URL. Clear it to wear the Hearth crystal on this board alone.",
 			titleAlign: "Title alignment",
 			titleAlignDesc:
-				"Align only the title/logo block. The search bar keeps its own layout.",
+				"Align only the title block. The search bar keeps its own layout.",
 			alignDefault: "Default (center)",
 			alignLeft: "Left",
 			alignCenter: "Center",
 			alignRight: "Right",
 			titleSize: "Title size",
-			logoSize: "Logo size",
+			titleIconSize: "Title icon size",
 			titleTopMargin: "Title top margin",
 			headerSpacingBelow: "Spacing below title/header",
 			contentWidth: "Content width",
@@ -645,7 +644,7 @@ export const en = {
 		/** One line per category, shown on its index row and again at the top of
 		 * its page: what a reader will find if they open it. */
 		tabDescs: {
-			appearance: "Title, logo, background, and low power mode.",
+			appearance: "Title, title icon, background, and low power mode.",
 			search: "The search bar and which results it offers.",
 			dashboard: "Grid, card surface, and the controls around the board.",
 			behaviour: "Startup, how notes open, mobile, and privacy.",
@@ -675,7 +674,7 @@ export const en = {
 				"How much of the decoration to pay for. Trade visual effects for battery life and smoothness on slower hardware.",
 			home: "Home",
 			homeDesc:
-				"Title, logo, title and tab icons, search visibility and overall content width.",
+				"Title, title and tab icons, search visibility and overall content width.",
 			searchBar: "Search bar",
 			searchBarDesc: "How the search field looks and what it does.",
 			grid: "Grid & spacing",
@@ -729,23 +728,22 @@ export const en = {
 		},
 		appearance: {
 			heading: "Appearance",
-			headingDesc: "Title, logo, search bar and overall content width.",
+			headingDesc: "Title, title icon, search bar and overall content width.",
 			showTitle: "Show title",
-			showTitleDesc: "Display the big title/logo at the top.",
+			showTitleDesc: "Display the big title and its icon at the top.",
 			showSearch: "Show search section",
 			showSearchDesc:
 				"Display the search and command bar with its results and filter buttons. " +
 				"Individual dashboards can override this in their settings.",
 			title: "Title",
 			titleDesc: "The heading text shown at the top of the home view.",
-			logo: "Logo",
-			logoDesc:
-				"An emoji or short text shown next to the title. Leave empty for the Hearth crystal icon.",
-			logoIcon: "Title icon",
-			logoIconDesc:
-				"A Lucide icon drawn next to the title instead of the logo text. " +
-				"Browse the set or type an id; leave empty to keep the logo text. " +
-				"Each dashboard can override it in its own settings.",
+			titleIcon: "Title icon",
+			titleIconDesc:
+				"The mark drawn next to the title. It takes any of: a Lucide icon id " +
+				"(browse the set with the 🔍 button), an emoji or a couple of " +
+				"characters, the vault path of an image (📷 button), or the URL of an " +
+				"image on the web. Leave it empty for the Hearth crystal. Each " +
+				"dashboard can override it in its own settings.",
 			tabIcon: "Tab icon",
 			tabIconDesc:
 				"A Lucide icon for Hearth's tab header and ribbon button, in place of " +

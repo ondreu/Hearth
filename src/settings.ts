@@ -5,6 +5,7 @@ import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
+import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
 import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
@@ -54,7 +55,6 @@ type NumericSettingKey =
  * value. */
 type StringSettingKey =
 	| "title"
-	| "logo"
 	| "searchPlaceholder"
 	| "backgroundValue"
 	| "lowPowerBackgroundColor"
@@ -593,7 +593,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		);
 	}
 
-	// ---- Home (title, logo, width) --------------------------------------
+	// ---- Home (title, title icon, width) --------------------------------
 
 	private homeSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
@@ -629,25 +629,14 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.addTextReset(title, txt, "title");
 		});
 
-		const logo = new Setting(containerEl)
-			.setName(t().settings.appearance.logo)
-			.setDesc(t().settings.appearance.logoDesc);
-		logo.addText((txt) => {
-			txt.setValue(s.logo).onChange(async (v) => {
-				s.logo = v;
-				this.save();
-			});
-			this.addTextReset(logo, txt, "logo");
-		});
-
-		addIconPicker(
+		addTitleIconPicker(
 			new Setting(containerEl)
-				.setName(t().settings.appearance.logoIcon)
-				.setDesc(t().settings.appearance.logoIconDesc),
+				.setName(t().settings.appearance.titleIcon)
+				.setDesc(t().settings.appearance.titleIconDesc),
 			this.app,
-			s.logoIcon,
+			s.titleIcon,
 			(v) => {
-				s.logoIcon = v;
+				s.titleIcon = v;
 				void this.save();
 			},
 		);

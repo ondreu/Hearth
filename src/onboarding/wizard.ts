@@ -23,6 +23,7 @@ import { t } from "../i18n";
 import type HearthPlugin from "../main";
 import { configuredPlaces, renderSkySource } from "../placepicker";
 import { formatSkyValue, parseSkyValue } from "../sky";
+import { addTitleIconPicker } from "../titleicon";
 import { makeClickable } from "../ui";
 import { detectSetup, type DetectedIntegration, type SetupDetection } from "./detect";
 import {
@@ -338,17 +339,14 @@ export class SetupWizardModal extends Modal {
 				}),
 			);
 
-		new Setting(body)
-			.setName(strings.logo)
-			.setDesc(strings.logoDesc)
-			.addText((text) =>
-				text
-					.setPlaceholder("🔥")
-					.setValue(a.logo)
-					.onChange((v) => {
-						a.logo = v;
-					}),
-			);
+		addTitleIconPicker(
+			new Setting(body).setName(strings.titleIcon).setDesc(strings.titleIconDesc),
+			this.app,
+			a.titleIcon,
+			(v) => {
+				a.titleIcon = v;
+			},
+		);
 
 		new Setting(body)
 			.setName(strings.themeColor)
