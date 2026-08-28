@@ -75,12 +75,20 @@ export function emptyState(body: HTMLElement, icon: string, text: string): void 
 }
 
 
+/** The floating overlay a card's action buttons live in. Named here because
+ * two things need to agree on it: what {@link cardOverlayButton} creates, and
+ * what {@link resetCardBody} clears away before the next draw. */
+const CARD_OVERLAY_CLASS = "hearth-card-actions-overlay";
+
 /**
  * A small action button floated over the card — the "open this file" affordance
  * the daily, embed and slideshow cards each offer. It is attached to the card
  * *element* rather than the body, so it takes no part in the body's scroll or
  * flow, and falls back to the body when the card element can't be found (the
  * card settings preview has no `.hearth-card` ancestor).
+ *
+ * Because it sits outside the body, emptying the body doesn't remove it — the
+ * redraw does, through {@link resetCardBody}.
  */
 export function cardOverlayButton(
 	body: HTMLElement,
@@ -89,7 +97,7 @@ export function cardOverlayButton(
 	onClick: (evt: MouseEvent) => void,
 ): HTMLButtonElement {
 	const cardEl = body.closest(".hearth-card");
-	const overlay = (cardEl ?? body).createDiv("hearth-card-actions-overlay");
+	const overlay = (cardEl ?? body).createDiv(CARD_OVERLAY_CLASS);
 	const button = overlay.createEl("button", {
 		cls: "hearth-open-btn",
 		attr: { "aria-label": label },
@@ -97,6 +105,44 @@ export function cardOverlayButton(
 	setIcon(button, icon);
 	button.addEventListener("click", onClick);
 	return button;
+}
+
+
+/**
+ * Put a card's body back to the state its first draw started from, so every
+ * redraw begins from the same place that one did.
+ *
+ * `body.empty()` alone isn't enough, and neither gap shows up until a card is
+ * redrawn — which cards do constantly: on a watched file changing, on any vault
+ * event, or on the embed card's view switcher.
+ *
+ * - **Classes.** A render marks the body with what it drew (`is-embed-host`,
+ *   `is-jot-host`, `hearth-card-body-image`, `hearth-card-body-live`,
+ *   `hearth-slideshow-host` …) and several of those zero the body's padding.
+ *   `empty()` takes away children, not classes, so the marks accumulated: an
+ *   embed card switched from its picture view to a note kept
+ *   `hearth-card-body-image` and drew the note flush against the card's edges.
+ *   Restoring the mount-time list (the body's own class, plus `has-bg`) rather
+ *   than naming the render-added ones means a kind can mark the body however it
+ *   likes without this having to know.
+ * - **Overlays.** {@link cardOverlayButton} deliberately floats its button on
+ *   the card *element*, outside the body's scroll and flow — so emptying the
+ *   body left it behind and every redraw stacked another copy on top. Pixel
+ *   aligned and 0.7 opaque, they never looked like duplicates; they looked like
+ *   one button quietly darkening as the vault changed, over a growing pile of
+ *   dead click handlers.
+ */
+export function resetCardBody(body: HTMLElement, baseClasses: string): void {
+	body.empty();
+	if (body.className !== baseClasses) body.className = baseClasses;
+	const cardEl = body.closest(".hearth-card");
+	if (!cardEl) return;
+	// Direct children only, and read into an array first: a "leaf" card hosts
+	// another plugin's view, whose contents are none of Hearth's business, and
+	// removing while iterating a live HTMLCollection skips elements.
+	for (const child of Array.from(cardEl.children)) {
+		if (child.classList.contains(CARD_OVERLAY_CLASS)) child.remove();
+	}
 }
 
 

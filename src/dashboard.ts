@@ -4,7 +4,7 @@ import {
 	setIcon,
 	type TAbstractFile,
 } from "obsidian";
-import { emptyState } from "./cardbodies";
+import { emptyState, resetCardBody } from "./cardbodies";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateCardMotionOnVisibility } from "./motion";
 import { confirmAction } from "./ui";
@@ -242,11 +242,15 @@ function mountCardBody(
 ): () => void {
 	const def = cardDefinition(card);
 	let child: Component | null = null;
+	// The classes the body carries before any card has drawn into it — its own,
+	// plus `has-bg`. A render adds its own marks on top and `empty()` leaves
+	// them there, so each draw restores this snapshot (see `resetCardBody`).
+	const baseClasses = body.className;
 	const draw = () => {
 		if (child) parent.removeChild(child);
 		child = new Component();
 		parent.addChild(child);
-		body.empty();
+		resetCardBody(body, baseClasses);
 		try {
 			def.render(view, card, body, child);
 		} catch (err) {
@@ -260,7 +264,9 @@ function mountCardBody(
 			// to the one card and say so on its face, with the real error on the
 			// console for a bug report.
 			console.error(`Hearth: the ${card.kind} card failed to render`, err);
-			body.empty();
+			// Clear whatever the half-finished render left behind — its marks on
+			// the body included — so the failure notice draws in a plain card.
+			resetCardBody(body, baseClasses);
 			emptyState(body, "alert-triangle", t().cards.empty.renderFailed);
 		}
 	};
