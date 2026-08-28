@@ -57,6 +57,7 @@ export const en = {
 		couldNotRecordVoice: "Hearth: couldn't start voice recording.",
 		enableDailyNotes: "Hearth: enable the core Daily notes plugin.",
 		couldNotOpenDaily: "Hearth: couldn't open today's daily note.",
+		couldNotOpenPeriodic: "Hearth: Periodic Notes couldn't make that note.",
 		commandNotFound: (id: string) => `Hearth: command not found: ${id}`,
 		couldNotCreateNoteForDay: (day: string) =>
 			`Hearth: couldn't create a note for ${day}.`,
@@ -1116,6 +1117,13 @@ export const en = {
 						"templating — your user scripts, tp.system.prompt() dialogs and cursor " +
 						"placement all behave as they do from its own command.",
 				},
+				periodicNotes: {
+					name: "Periodic Notes",
+					desc:
+						"The Periodic note card shows this week's, month's, quarter's or " +
+						"year's note, resolved — and created, from your own template — by " +
+						"Periodic Notes itself.",
+				},
 				git: {
 					name: "Git",
 					desc:
@@ -1439,6 +1447,7 @@ export const en = {
 			embed: "Embed (note / image / base)",
 			slideshow: "Slideshow",
 			daily: "Daily note (today)",
+			periodic: "Periodic note (week / month / year)",
 			web: "Web page (iframe)",
 			bookmarks: "Bookmarks",
 			favorites: "Favorites",
@@ -1634,6 +1643,32 @@ export const en = {
 			info: "Daily notes",
 			infoDesc:
 				"Today's note is resolved from the core Daily notes plugin's date format and folder. The card updates live as you edit.",
+		},
+		periodic: {
+			granularity: "Period",
+			granularityDesc:
+				"Which periodic note this card shows. It is always the current one, so " +
+				"the card moves on by itself when the period ends.",
+			granularities: {
+				day: "Daily",
+				week: "Weekly",
+				month: "Monthly",
+				quarter: "Quarterly",
+				year: "Yearly",
+			},
+			editable: "Editable",
+			editableDesc:
+				"Edit the note in place instead of read-only. Saves to the vault.",
+			openButton: "Open button",
+			openButtonDesc: "Show a button to open the note in the editor.",
+			info: "Periodic Notes",
+			infoDesc:
+				"The note is resolved from the Periodic Notes plugin's own folder, date " +
+				"format and template, and a missing one is created by Periodic Notes " +
+				"itself. The card updates live as you edit.",
+			missingDesc:
+				"This card needs the Periodic Notes community plugin. Install and enable " +
+				"it, then turn on the note type you want here.",
 		},
 		web: {
 			url: "URL",
@@ -2696,6 +2731,7 @@ export const en = {
 			embedEnableCanvas: "Enable the core Canvas plugin to embed canvases",
 			embedInstallExcalidraw: "Install the Excalidraw plugin to embed drawings",
 			dailyEnable: "Enable the core Daily notes plugin",
+			periodicInstall: "Install the Periodic Notes plugin",
 			scheduleNoSources:
 				"Enable the core Daily notes plugin, or subscribe to a calendar in this card's settings",
 			webNoUrl: "Set a web URL in settings",
@@ -2957,6 +2993,21 @@ export const en = {
 			createToday: "Create today's note",
 			openToday: "Open today's note",
 			noNoteYet: "No note for today yet",
+		},
+		periodic: {
+			/** The current period, as it reads inside the sentences below. */
+			period: {
+				day: "today",
+				week: "this week",
+				month: "this month",
+				quarter: "this quarter",
+				year: "this year",
+			},
+			noNoteYet: (period: string) => `No note for ${period} yet`,
+			create: (period: string) => `Create ${period}'s note`,
+			open: (period: string) => `Open ${period}'s note`,
+			notEnabled: (granularity: string) =>
+				`Turn on ${granularity} notes in Periodic Notes`,
 		},
 		heatmap: {
 			less: "Less",
@@ -3225,6 +3276,7 @@ export const en = {
 		excalidraw: "Excalidraw drawing",
 		canvas: "Embedded canvas",
 		daily: "Daily note (today)",
+		periodic: "Periodic note",
 		web: "Web page (iframe)",
 		bookmarks: "Bookmarks",
 		favorites: "Favorites",
@@ -3267,6 +3319,7 @@ export const en = {
 		excalidraw: "An Excalidraw drawing with native pan and zoom",
 		canvas: "A canvas you can pan around in place",
 		daily: "Always today's note, created on first click",
+		periodic: "This week's, month's or year's note, from Periodic Notes",
 		web: "A web page in an iframe, refreshed on a timer",
 		bookmarks: "Your Obsidian bookmarks, one click away",
 		favorites: "The notes you starred in Hearth",
