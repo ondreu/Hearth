@@ -15,6 +15,26 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A slideshow can change once a day, and it stays where you left it.** The
+  slideshow card's **Change picture** setting now offers three ways to move on:
+  **on a timer** (what it always did), **once a day**, or **only by hand**. A
+  daily card works its picture out from today's date rather than from a clock,
+  so redrawing the board, switching dashboards, editing the card or restarting
+  Obsidian all land on the same picture — it changes at midnight and not before.
+  **Days per picture** stretches that to any number of days up to a year, for a
+  picture of the week or of the month, and a board left open overnight turns its
+  picture over on its own. A "random" daily card deals its order once and keeps
+  it, so random still means a different picture each day rather than a different
+  one every time the board blinks.
+
+  Both the daily and the by-hand cards **remember where they were left** and
+  come back to it after a restart — stepping a daily card forward simply
+  re-anchors it, so tomorrow continues from the picture you chose. The position
+  is kept per vault on this machine, not in the layout, so it never travels
+  through sync. Cards saved before this that had their interval set to 0 — the
+  old way of saying "don't rotate" — now read as by-hand cards, and so gain the
+  remembered position too (#249).
+
 - **The "New note" button is yours to configure.** Settings → Appearance →
   **The "New note" button** now decides what that button makes: give it a
   **Templater template** and it creates the note from that instead of a blank

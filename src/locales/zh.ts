@@ -1435,10 +1435,23 @@ export const zh: Translations = {
 				modifiedDesc: "修改日期（最新在前）",
 				random: "随机",
 			},
+			advance: "切换图片的方式",
+			advanceDesc:
+				"由什么来推进卡片：定时器、日历，或仅由控件操作。“每天一张”会根据当天日期" +
+				"推算出要显示的图片，因此无论看板重绘多少次，它整天都保持不变 —— 它与" +
+				"“仅手动”都会记住上次停留的位置。",
+			advances: {
+				timer: "按定时器",
+				daily: "每天一张",
+				manual: "仅手动",
+			},
 			interval: "每张图片秒数",
 			intervalDesc:
 				"每张图片显示的时长。0 表示固定显示第一张并关闭轮播；低功耗模式也会暂停它。",
 			intervalAria: "每张图片显示的秒数",
+			days: "每张图片天数",
+			daysDesc: "每张图片保留多少天后换成下一张。1 表示每天午夜更换；7 则是每周一张。",
+			daysAria: "每张图片显示的天数",
 			transition: "过渡",
 			transitionDesc: "一张图片如何切换到下一张。",
 			transitions: {

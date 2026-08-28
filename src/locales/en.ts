@@ -1560,11 +1560,27 @@ export const en = {
 				modifiedDesc: "Date modified (newest first)",
 				random: "Random",
 			},
+			advance: "Change picture",
+			advanceDesc:
+				"What moves the card on: a timer, the calendar, or nothing but the " +
+				"controls. A daily card works its picture out from today's date, so it " +
+				"stays put all day however often the board is redrawn — and both it and " +
+				"a manual card remember where they were left.",
+			advances: {
+				timer: "On a timer",
+				daily: "Once a day",
+				manual: "Only by hand",
+			},
 			interval: "Seconds per picture",
 			intervalDesc:
 				"How long each picture is shown. 0 holds the first picture and turns the " +
 				"rotation off; low power mode pauses it too.",
 			intervalAria: "Seconds each picture is shown",
+			days: "Days per picture",
+			daysDesc:
+				"How many days each picture is kept before the next one takes over. " +
+				"1 changes at midnight; 7 gives you a picture of the week.",
+			daysAria: "Days each picture is shown",
 			transition: "Transition",
 			transitionDesc: "How one picture gives way to the next.",
 			transitions: {

@@ -6,27 +6,39 @@ import { t } from "../i18n";
 import { openFile } from "../opener";
 import { FilePickerModal, FolderPickerModal } from "../pickers";
 import {
+	SLIDESHOW_ADVANCES,
+	SLIDESHOW_DEFAULT_DAY_COUNT,
 	SLIDESHOW_DEFAULT_INTERVAL_SEC,
 	SLIDESHOW_FITS,
+	SLIDESHOW_MAX_DAY_COUNT,
 	SLIDESHOW_MAX_INTERVAL_SEC,
 	SLIDESHOW_MAX_TRANSITION_MS,
 	SLIDESHOW_ORDERS,
 	SLIDESHOW_TRANSITIONS,
 	SLIDESHOW_DEFAULT_TRANSITION_MS,
+	dailySlideIndex,
+	msUntilNextDay,
 	normalizeFolderPath,
 	orderPictures,
 	pictureLabel,
+	rememberSlideshowPosition,
+	sanitizeSlideshowPositions,
 	shufflePictures,
+	slideshowAdvance,
+	slideshowDayCount,
 	slideshowIntervalMs,
 	slideshowOrder,
+	slideshowPeriod,
 	slideshowReactsTo,
 	slideshowSource,
 	slideshowTransitionMs,
 	type SlideshowPicture,
+	type SlideshowPosition,
 } from "../slideshow";
 import {
 	motionAllowed,
 	type DashboardCard,
+	type SlideshowAdvance,
 	type SlideshowConfig,
 	type SlideshowFit,
 	type SlideshowOrder,
@@ -40,12 +52,16 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * The slideshow card: a picture embed that rotates.
  *
  * It is the image embed's sibling — same `<img>`, same edge-to-edge framing —
- * with a list of pictures instead of one, and a timer. Pictures come either from
- * a hand-picked list (each entry can carry its own caption) or from a folder,
+ * with a list of pictures instead of one. Pictures come either from a
+ * hand-picked list (each entry can carry its own caption) or from a folder,
  * optionally including subfolders; both can be ordered by name, creation or
  * modification date, or shuffled.
  *
- * Two things are worth knowing about the implementation:
+ * What moves the card on is one of three things (`slideshowAdvance`): a timer,
+ * the calendar — one picture per day, or per few days, worked out from today's
+ * date so a redraw never changes it — or nothing but the controls.
+ *
+ * Three things are worth knowing about the implementation:
  *
  * - **Two layers, not N.** However many pictures a card has, only two `<img>`
  *   elements exist: the one on screen and the one coming in. A card pointed at a
@@ -53,9 +69,13 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  *   transition is a plain CSS animation between that pair (see the
  *   `.hearth-slide` rules in styles.css).
  * - **The pure parts live next door.** Ordering, the folder-scope test, the
- *   interval clamps and the redraw predicate are data-only functions in
- *   `src/slideshow.ts`, unit-tested there; this module is the vault reads, the
- *   DOM and the editor.
+ *   interval clamps, the daily arithmetic and the redraw predicate are data-only
+ *   functions in `src/slideshow.ts`, unit-tested there; this module is the vault
+ *   reads, the DOM and the editor.
+ * - **Two kinds of memory.** Where a card is up to survives a redraw in a
+ *   `WeakMap` on the card object, and — for the daily and by-hand advances, the
+ *   ones that change rarely enough to be worth a write — a restart in Obsidian's
+ *   local storage.
  */
 
 // ---- Vault reads --------------------------------------------------------
@@ -103,11 +123,55 @@ function folderPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
 	return pictures;
 }
 
-/** Every picture the card shows, in display order. */
-export function collectSlideshowPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
+/**
+ * Every picture the card shows, in display order. `seed` fixes the "random"
+ * order to one deal — a daily card passes its id so the shuffle it walks
+ * through is the same one tomorrow (see `seededShuffle`).
+ */
+export function collectSlideshowPictures(
+	app: App,
+	cfg: SlideshowConfig,
+	seed?: string,
+): SlideshowPicture[] {
 	const pictures =
 		slideshowSource(cfg) === "folder" ? folderPictures(app, cfg) : listPictures(app, cfg);
-	return orderPictures(pictures, slideshowOrder(cfg));
+	return orderPictures(pictures, slideshowOrder(cfg), seed);
+}
+
+
+// ---- Remembered positions ------------------------------------------------
+
+/**
+ * Where each card was left, per vault.
+ *
+ * In Obsidian's local storage rather than in the layout, for the reason
+ * `recentfiles.ts` gives: which picture this machine is looking at is not a
+ * setting, and writing one into `data.json` would put sync traffic (and merge
+ * conflicts) through the layout every time somebody clicked "next".
+ *
+ * Only the advances that change rarely are written — a daily card writes once a
+ * day, a manual one when you press a button. A timer card would write every few
+ * seconds for a position nobody asked to keep, so it keeps its in-memory resume
+ * (`slideshowState`) and starts from the top after a restart.
+ */
+const POSITIONS_KEY = "hearth:slideshow-positions";
+
+/** Whether an advance's position is worth keeping between sessions. */
+function remembersPosition(advance: SlideshowAdvance): boolean {
+	return advance !== "timer";
+}
+
+function readPosition(app: App, cardId: string): SlideshowPosition | undefined {
+	return sanitizeSlideshowPositions(app.loadLocalStorage(POSITIONS_KEY))[cardId];
+}
+
+function writePosition(app: App, cardId: string, position: SlideshowPosition): void {
+	const store = sanitizeSlideshowPositions(app.loadLocalStorage(POSITIONS_KEY));
+	const current = store[cardId];
+	// Drawing a board rewrites every card's position; skip the ones that haven't
+	// actually moved so a redraw isn't a local-storage write per slideshow.
+	if (current && current.path === position.path && current.period === position.period) return;
+	app.saveLocalStorage(POSITIONS_KEY, rememberSlideshowPosition(store, cardId, position));
 }
 
 
@@ -117,12 +181,13 @@ export function collectSlideshowPictures(app: App, cfg: SlideshowConfig): Slides
  * Transient per-card rotation state, keyed by the card object (the same trick
  * `activeEmbedView` uses). It survives body redraws — dropping a photo into a
  * watched folder, or leaving arrange mode — so the slideshow picks up where it
- * was instead of jumping back to the first picture, and resets when Obsidian
- * reloads.
+ * was instead of jumping back to the first picture.
+ *
+ * A timer card's state lives and dies with the session. A daily or manual one
+ * is seeded from (and written back to) the stored positions above, so it also
+ * survives an Obsidian restart.
  */
-interface SlideshowState {
-	/** Path of the picture that was on screen. */
-	path?: string;
+interface SlideshowState extends SlideshowPosition {
 	/** Whether the viewer paused the rotation with the pause button. */
 	paused?: boolean;
 }
@@ -141,7 +206,12 @@ export function renderSlideshow(
 	component: Component,
 ): void {
 	const cfg = card.slideshow ?? {};
-	const pictures = collectSlideshowPictures(view.app, cfg);
+	const mode = slideshowAdvance(cfg);
+	const dayCount = slideshowDayCount(cfg);
+	// A daily card has to deal its "random" order the same way every time, or the
+	// picture of the day would change on every redraw — the one thing #249 asks
+	// it not to do. The card's id seeds the deal.
+	const pictures = collectSlideshowPictures(view.app, cfg, mode === "daily" ? card.id : undefined);
 	if (pictures.length === 0) {
 		emptyState(
 			body,
@@ -153,7 +223,11 @@ export function renderSlideshow(
 		return;
 	}
 
-	const state = slideshowState.get(card) ?? {};
+	// Within a session the card object carries its own position; the first draw
+	// after a restart takes it from local storage instead.
+	const state: SlideshowState =
+		slideshowState.get(card) ??
+		(remembersPosition(mode) ? { ...readPosition(view.app, card.id) } : {});
 	slideshowState.set(card, state);
 
 	const holdMs = slideshowIntervalMs(cfg);
@@ -185,11 +259,34 @@ export function renderSlideshow(
 		return img;
 	});
 
-	// Resume where the rotation was, when that picture is still in the set.
-	const resumeAt = pictures.findIndex((picture) => picture.path === state.path);
-	let index = resumeAt >= 0 ? resumeAt : 0;
+	// Which picture to open on. A daily card asks the calendar — how many day
+	// slots have passed since the position it remembers — so a redraw, a board
+	// switch or a restart on the same day all land on the same picture. Everything
+	// else resumes where it was left, when that picture is still in the set.
+	let period = slideshowPeriod(Date.now(), dayCount);
+	let index = 0;
+	if (mode === "daily") {
+		index = dailySlideIndex(
+			pictures.map((picture) => picture.path),
+			state,
+			period,
+		);
+	} else {
+		const resumeAt = pictures.findIndex((picture) => picture.path === state.path);
+		if (resumeAt >= 0) index = resumeAt;
+	}
 	let active = 0;
 	let hovering = false;
+
+	/** Note where the card is now, both for the next redraw and — for the
+	 * advances that change rarely enough to be worth a write — the next session. */
+	const remember = () => {
+		state.path = pictures[index].path;
+		if (mode === "daily") state.period = period;
+		if (remembersPosition(mode)) {
+			writePosition(view.app, card.id, { path: state.path, period: state.period });
+		}
+	};
 
 	const resourcePath = (path: string): string | null => {
 		const file = view.app.vault.getAbstractFileByPath(path);
@@ -234,7 +331,10 @@ export function renderSlideshow(
 	};
 	// A still tier switches off every timed refresh, this one included: the card
 	// keeps the picture it is on (and its controls still step through by hand).
-	const rotates = count > 1 && holdMs > 0 && motionAllowed(view.plugin.settings);
+	// Only a timer card rotates at all — a daily one moves with the calendar and a
+	// manual one only when asked.
+	const rotates =
+		mode === "timer" && count > 1 && holdMs > 0 && motionAllowed(view.plugin.settings);
 	const schedule = () => {
 		stop();
 		if (!rotates || state.paused === true || hovering) return;
@@ -244,6 +344,36 @@ export function renderSlideshow(
 		}, holdMs);
 	};
 	component.register(stop);
+
+	// A daily card has no rotation to run, but it does have to notice the day
+	// turning over under it: a board left open overnight should be showing this
+	// morning's picture, not yesterday's until something happens to redraw it.
+	// That is one timeout re-armed just after each local midnight — not a clock —
+	// so unlike the rotation it isn't switched off by a still performance tier.
+	let dayTimer: number | null = null;
+	const stopDayWatch = () => {
+		if (dayTimer === null) return;
+		window.clearTimeout(dayTimer);
+		dayTimer = null;
+	};
+	const watchTheDate = () => {
+		stopDayWatch();
+		if (mode !== "daily") return;
+		dayTimer = window.setTimeout(() => {
+			const now = slideshowPeriod(Date.now(), dayCount);
+			if (now !== period) {
+				// One step per day slot passed, so a laptop opened after a week away
+				// catches up rather than showing the picture it went to sleep on.
+				const steps = now - period;
+				period = now;
+				const target = steps > 0 && count > 1 ? (index + steps) % count : index;
+				if (target !== index) swap(target, "next");
+				else remember();
+			}
+			watchTheDate();
+		}, msUntilNextDay());
+	};
+	component.register(stopDayWatch);
 
 	const swap = (target: number, direction: "next" | "prev") => {
 		if (target === index) return;
@@ -261,7 +391,9 @@ export function renderSlideshow(
 		layers[active].addClass(direction === "prev" ? "is-out-prev" : "is-out-next");
 		active = incoming;
 		index = target;
-		state.path = pictures[index].path;
+		// Stepping a daily card by hand re-anchors its walk: today's picture is the
+		// one you chose, and tomorrow's is the one after it.
+		remember();
 		updateChrome();
 	};
 
@@ -271,8 +403,9 @@ export function renderSlideshow(
 		if (target >= count) {
 			// A shuffled card reshuffles between passes, so a long slideshow doesn't
 			// repeat the same running order forever — while still showing every
-			// picture once per pass.
-			if (order === "random") reshuffle();
+			// picture once per pass. Not a daily one: its deal is fixed (see the
+			// seed above) precisely so tomorrow's picture is the one after today's.
+			if (order === "random" && mode !== "daily") reshuffle();
 			target = 0;
 		} else if (target < 0) {
 			target = count - 1;
@@ -303,11 +436,12 @@ export function renderSlideshow(
 	// First paint: no transition, and the caption/counter filled in for it.
 	paint(active, pictures[index]);
 	layers[active].addClass("is-active");
-	state.path = pictures[index].path;
+	remember();
 	updateChrome();
 	schedule();
+	watchTheDate();
 
-	if (cfg.pauseOnHover === true) {
+	if (cfg.pauseOnHover === true && rotates) {
 		stage.addEventListener("pointerenter", () => {
 			hovering = true;
 			stop();
@@ -403,35 +537,83 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 			});
 		});
 
-	const interval = new Setting(containerEl)
-		.setName(strings.interval)
-		.setDesc(strings.intervalDesc);
-	interval.addText((txt) => {
-		txt
-			.setValue(String(cfg.intervalSec ?? SLIDESHOW_DEFAULT_INTERVAL_SEC))
-			.onChange((v) => {
-				// Saved per keystroke but not redrawn per keystroke: the new interval
-				// takes effect when the dialog closes (which redraws the board).
-				const n = parseInt(v, 10);
-				cfg.intervalSec =
-					Number.isNaN(n) || n < 0 ? undefined : Math.min(n, SLIDESHOW_MAX_INTERVAL_SEC);
+	const advance = slideshowAdvance(cfg);
+	new Setting(containerEl)
+		.setName(strings.advance)
+		.setDesc(strings.advanceDesc)
+		.addDropdown((d) => {
+			for (const a of SLIDESHOW_ADVANCES) d.addOption(a, strings.advances[a]);
+			d.setValue(advance).onChange((v) => {
+				cfg.advance = v as SlideshowAdvance;
+				// A card that used to say "don't rotate" with an interval of 0 has to
+				// let go of it, or picking the timer would leave it standing still.
+				if (cfg.advance === "timer" && cfg.intervalSec === 0) cfg.intervalSec = undefined;
 				ctx.opts.save();
-			});
-		txt.inputEl.type = "number";
-		txt.inputEl.addClass("hearth-count-input");
-		txt.inputEl.setAttribute("aria-label", strings.intervalAria);
-	});
-	interval.addExtraButton((b) =>
-		b
-			.setIcon("rotate-ccw")
-			.setTooltip(t().settings.resetField)
-			.onClick(() => {
-				cfg.intervalSec = undefined;
-				ctx.opts.save();
+				// Each advance is configured with a different number below it.
 				ctx.requestRender();
 				ctx.opts.rerender();
-			}),
-	);
+			});
+		});
+
+	if (advance === "timer") {
+		const interval = new Setting(containerEl)
+			.setName(strings.interval)
+			.setDesc(strings.intervalDesc);
+		interval.addText((txt) => {
+			txt
+				.setValue(String(cfg.intervalSec ?? SLIDESHOW_DEFAULT_INTERVAL_SEC))
+				.onChange((v) => {
+					// Saved per keystroke but not redrawn per keystroke: the new interval
+					// takes effect when the dialog closes (which redraws the board).
+					const n = parseInt(v, 10);
+					cfg.intervalSec =
+						Number.isNaN(n) || n < 0 ? undefined : Math.min(n, SLIDESHOW_MAX_INTERVAL_SEC);
+					ctx.opts.save();
+				});
+			txt.inputEl.type = "number";
+			txt.inputEl.addClass("hearth-count-input");
+			txt.inputEl.setAttribute("aria-label", strings.intervalAria);
+		});
+		interval.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetField)
+				.onClick(() => {
+					cfg.intervalSec = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+		);
+	}
+
+	if (advance === "daily") {
+		const days = new Setting(containerEl).setName(strings.days).setDesc(strings.daysDesc);
+		days.addText((txt) => {
+			txt.setValue(String(cfg.dayCount ?? SLIDESHOW_DEFAULT_DAY_COUNT)).onChange((v) => {
+				const n = parseInt(v, 10);
+				cfg.dayCount =
+					Number.isNaN(n) || n < 1
+						? undefined
+						: Math.min(n, SLIDESHOW_MAX_DAY_COUNT);
+				ctx.opts.save();
+			});
+			txt.inputEl.type = "number";
+			txt.inputEl.addClass("hearth-count-input");
+			txt.inputEl.setAttribute("aria-label", strings.daysAria);
+		});
+		days.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetField)
+				.onClick(() => {
+					cfg.dayCount = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+		);
+	}
 
 	new Setting(containerEl)
 		.setName(strings.transition)
@@ -507,16 +689,19 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 	toggle(ctx, containerEl, strings.caption, strings.captionDesc, cfg.showCaption === true, (v) => {
 		cfg.showCaption = v || undefined;
 	});
-	toggle(
-		ctx,
-		containerEl,
-		strings.pauseOnHover,
-		strings.pauseOnHoverDesc,
-		cfg.pauseOnHover === true,
-		(v) => {
-			cfg.pauseOnHover = v || undefined;
-		},
-	);
+	// Nothing to pause on a card that isn't on a timer.
+	if (advance === "timer") {
+		toggle(
+			ctx,
+			containerEl,
+			strings.pauseOnHover,
+			strings.pauseOnHoverDesc,
+			cfg.pauseOnHover === true,
+			(v) => {
+				cfg.pauseOnHover = v || undefined;
+			},
+		);
+	}
 	toggle(
 		ctx,
 		containerEl,
