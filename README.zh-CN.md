@@ -128,6 +128,7 @@ TaskNotes 这一项值得特别一提：它的字段名可由用户重映射、�
 | --- | --- | --- |
 | **嵌入笔记** | 任意笔记，由 Obsidian 实时渲染，支持按卡片缩放、可选的就地编辑（原始或实时预览），以及一个可切换的第二视图 | — |
 | **日记** | 始终是今天的笔记，首次点击时创建 | 日记（核心） |
+| **周期笔记** | 始终是本周、本月、本季度或本年的笔记，首次点击时按您自己的模板创建 | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) |
 | **嵌入图片** | 仓库中的一张图片 —— 填充并裁剪、完整显示、拉伸或滚动，可锚定到九个位置中的任意一个 | — |
 | **幻灯片** | 来自列表或文件夹的图片：按计时器轮播、每天（或每隔几天，依日期推算）一张，或仅手动切换；支持说明文字、排序、过渡与时长、缓慢推近、悬停控件 | — |
 | **嵌入白板** | 一块可以就地平移的白板 | 白板（核心） |
@@ -236,6 +237,7 @@ Hearth 会自行识别这些插件 —— 无需连接，也不用粘贴任何�
 | [Dataview](https://github.com/blacksmithgu/obsidian-dataview) | Dataview 卡片：DQL 与 DataviewJS，实时渲染 | 卡片本身 |
 | [Datacore](https://github.com/blacksmithgu/datacore) | Datacore 卡片：查询与 JS/JSX/TS/TSX 脚本 | 卡片本身 |
 | [Templater](https://github.com/SilentVoid13/Templater) | “从模板新建笔记”启动台 | 卡片本身 |
+| [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) | 周期笔记卡片：本周、本月、本季度或本年的笔记，由该插件自己定位并创建 | 卡片本身 |
 | [Git](https://github.com/Vinzent03/obsidian-git) | Git 卡片，通过该插件自己的任务队列执行 | 卡片本身 |
 | [Operon](https://github.com/hasanyilmaz/operon) | 基于 Operon 开发者 API 的四张卡片 —— [详情见下](#operon) | 集成标签页 |
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | 您的按文件图标会出现在 Hearth 列出文件的任何位置 | 集成标签页 |

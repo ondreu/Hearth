@@ -27,6 +27,7 @@ import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
 import { GIT_PLUGIN_ID } from "./git";
 import { OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { OPERON_PLUGIN_ID } from "./operon";
+import { PERIODIC_NOTES_PLUGIN_ID } from "./periodic";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
 import { TEMPLATER_PLUGIN_ID } from "./templater";
 
@@ -76,6 +77,7 @@ export type IntegrationId =
 	| "dataview"
 	| "datacore"
 	| "templater"
+	| "periodicNotes"
 	| "git"
 	| "operon"
 	| "iconic"
@@ -144,6 +146,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "templater",
 		group: "plugin",
 		pluginId: TEMPLATER_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "periodicNotes",
+		group: "plugin",
+		pluginId: PERIODIC_NOTES_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 	{
