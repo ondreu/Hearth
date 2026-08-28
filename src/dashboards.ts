@@ -24,6 +24,7 @@ import {
 } from "./types";
 import { cloneCard } from "./cards";
 import { addIconPicker, renderIcon } from "./lucide";
+import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
 import { formatSkyValue, parseSkyValue } from "./sky";
 import { confirmAction } from "./ui";
@@ -391,7 +392,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		this.ensureHeader()[key] = value;
 	}
 
-	/** Per-dashboard overrides for the header: the title/logo block, and whether
+	/** Per-dashboard overrides for the header: the title block, and whether
 	 * the search section below it is drawn. */
 	private headerSection(containerEl: HTMLElement): void {
 		const dash = this.dash;
@@ -467,26 +468,14 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			},
 		);
 
-		this.overrideHeaderText(
-			containerEl,
-			t().dashboards.modal.logoText,
-			t().dashboards.modal.logoTextDesc,
-			header?.logo,
-			s.logo,
-			(v) => {
-				this.setHeaderOverride("logo", v);
-				this.commit();
-			},
-		);
-
 		this.overrideHeaderIcon(
 			containerEl,
-			t().dashboards.modal.logoIcon,
-			t().dashboards.modal.logoIconDesc,
-			header?.logoIcon,
-			s.logoIcon,
+			t().dashboards.modal.titleIcon,
+			t().dashboards.modal.titleIconDesc,
+			header?.titleIcon,
+			s.titleIcon,
 			(v) => {
-				this.setHeaderOverride("logoIcon", v);
+				this.setHeaderOverride("titleIcon", v);
 				this.commit();
 			},
 		);
@@ -551,7 +540,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 
 		this.overrideHeaderSlider(
 			containerEl,
-			t().dashboards.modal.logoSize,
+			t().dashboards.modal.titleIconSize,
 			header?.logoScale,
 			DEFAULT_HEADER_SCALE,
 			HEADER_SCALE_MIN,
@@ -625,12 +614,14 @@ class DashboardSettingsModal extends HearthTabbedModal {
 
 	/**
 	 * The icon counterpart of {@link overrideHeaderText}: a toggle that takes the
-	 * board off the global icon, and — once it has — a full Lucide picker.
+	 * board off the vault-wide title icon, and — once it has — the same
+	 * title-icon field the settings tab offers (icon, emoji/text, vault picture
+	 * or URL).
 	 *
-	 * Turning the toggle on seeds the override with whatever the global icon is,
-	 * so the board starts from the look it already had; clearing the picker
-	 * leaves an empty override, which is a board that deliberately shows no
-	 * Lucide icon while the global setting has one.
+	 * Turning the toggle on seeds the override with whatever the global mark is,
+	 * so the board starts from the look it already had; clearing the field
+	 * leaves an empty override, which is a board that deliberately wears the
+	 * Hearth crystal while the vault-wide setting has something else.
 	 */
 	private overrideHeaderIcon(
 		containerEl: HTMLElement,
@@ -655,7 +646,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				}),
 			);
 		if (overriding) {
-			addIconPicker(row, this.view.app, current, (v) => set(v));
+			addTitleIconPicker(row, this.view.app, current, (v) => set(v));
 		}
 	}
 

@@ -571,7 +571,7 @@ describe("applySetup", () => {
 			blankAnswers({
 				title: "Second Brain",
 				showTitle: false,
-				logo: "🔥",
+				titleIcon: "🔥",
 				themeColorTarget: "both",
 				showSearch: false,
 				compact: true,
@@ -583,7 +583,7 @@ describe("applySetup", () => {
 		expect(dash.header).toMatchObject({
 			title: "Second Brain",
 			showTitle: false,
-			logo: "🔥",
+			titleIcon: "🔥",
 			themeColorTarget: "both",
 		});
 		expect(dash.showSearch).toBe(false);
@@ -592,7 +592,7 @@ describe("applySetup", () => {
 		// None of it leaked into the vault-wide header.
 		expect(settings.title).toBe(DEFAULT_SETTINGS.title);
 		expect(settings.showTitle).toBe(true);
-		expect(settings.logo).toBe(DEFAULT_SETTINGS.logo);
+		expect(settings.titleIcon).toBe(DEFAULT_SETTINGS.titleIcon);
 		expect(settings.themeColorTarget).toBe("none");
 		expect(settings.showSearch).toBe(true);
 		expect(settings.compact).toBe(false);
@@ -655,7 +655,7 @@ describe("applySetup", () => {
 			blankAnswers({
 				title: "Elsewhere",
 				showTitle: false,
-				logo: "🔥",
+				titleIcon: "🔥",
 				themeColorTarget: "both",
 				showSearch: false,
 				surface: "minimal",

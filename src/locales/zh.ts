@@ -202,8 +202,9 @@ export const zh: Translations = {
 			titleDesc: "以大字显示在面板顶部。",
 			showTitle: "显示标题",
 			showTitleDesc: "关闭后面板将完全没有标题。",
-			logo: "图标",
-			logoDesc: "标题旁显示的表情或一两个字符。留空则使用 Hearth 水晶图标。",
+			titleIcon: "标题图标",
+			titleIconDesc:
+				"标题旁显示的表情、一两个字符、Lucide 图标 id、仓库图片路径或图片网址。留空则使用 Hearth 水晶图标。",
 			themeColor: "跟随主题的强调色",
 			themeColorDesc: "品牌标识的哪些部分采用主题的颜色。",
 			themeColorOptions: {
@@ -424,6 +425,8 @@ export const zh: Translations = {
 		iconPlaceholder: "Lucide 图标 id",
 		iconBrowse: "浏览 Lucide 图标",
 		iconClear: "清除图标",
+		titleIconPlaceholder: "图标 id、表情、图片路径或网址",
+		titleIconBrowseImage: "从仓库中选择图片",
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
@@ -501,11 +504,9 @@ export const zh: Translations = {
 			visibilityHide: "隐藏标题",
 			titleText: "标题文本",
 			titleTextDesc: "为此面板覆盖全局标题文本。",
-			logoText: "图标文本",
-			logoTextDesc: "为此面板覆盖全局图标。留空则使用 Hearth 水晶图标。",
-			logoIcon: "标题图标",
-			logoIconDesc:
-				"在此面板标题旁绘制一个 Lucide 图标，取代图标文本。清空后，仅此面板会显示图标文本（或 Hearth 水晶图标）。",
+			titleIcon: "标题图标",
+			titleIconDesc:
+				"此面板标题旁的标识：Lucide 图标 id、表情或短文本、仓库图片路径，或图片网址。清空后，仅此面板会显示 Hearth 水晶图标。",
 			titleAlign: "标题对齐",
 			titleAlignDesc: "仅对齐标题/图标区块。搜索栏保持自身布局。",
 			alignDefault: "默认（居中）",
@@ -513,7 +514,7 @@ export const zh: Translations = {
 			alignCenter: "居中",
 			alignRight: "右对齐",
 			titleSize: "标题大小",
-			logoSize: "图标大小",
+			titleIconSize: "标题图标大小",
 			titleTopMargin: "标题上边距",
 			headerSpacingBelow: "标题/顶部下方间距",
 			contentWidth: "内容宽度",
@@ -691,13 +692,11 @@ export const zh: Translations = {
 				"显示搜索与命令栏及其结果和筛选按钮。各个面板可在自己的设置中覆盖此项。",
 			title: "标题",
 			titleDesc: "显示在主页视图顶部的标题文本。",
-			logo: "图标",
-			logoDesc: "标题旁显示的表情或短文本。留空则使用 Hearth 水晶图标。",
-			logoIcon: "标题图标",
-			logoIconDesc:
-				"在标题旁绘制一个 Lucide 图标，取代图标文本。" +
-				"可浏览图标集或输入 id；留空则保留图标文本。" +
-				"每个面板都可以在自己的设置中覆盖此项。",
+			titleIcon: "标题图标",
+			titleIconDesc:
+				"标题旁绘制的标识。可以是 Lucide 图标 id（用 🔍 按钮浏览图标集）、" +
+				"表情或一两个字符、仓库中图片的路径（📷 按钮），或网络图片的网址。" +
+				"留空则使用 Hearth 水晶图标。每个面板都可以在自己的设置中覆盖此项。",
 			tabIcon: "标签页图标",
 			tabIconDesc:
 				"用于 Hearth 标签页标题栏和侧边栏按钮的 Lucide 图标，取代 Hearth 水晶图标。" +

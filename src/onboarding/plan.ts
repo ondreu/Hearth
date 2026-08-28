@@ -139,7 +139,9 @@ export interface SetupAnswers {
 	// ---- Step: your vault ----
 	title: string;
 	showTitle: boolean;
-	logo: string;
+	/** The mark beside the title: emoji/text, a Lucide id, a vault image path or
+	 * an image URL — see `titleicon.ts`. Empty = the Hearth crystal. */
+	titleIcon: string;
 	themeColorTarget: HomeSettings["themeColorTarget"];
 	/** Whether the built board shows the search/command section. Stored as the
 	 * board's own {@link Dashboard.showSearch} override, not the global one. */
@@ -189,7 +191,7 @@ export function defaultAnswers(
 	return {
 		title: detection.vaultName || settings.title,
 		showTitle: true,
-		logo: "",
+		titleIcon: "",
 		themeColorTarget: "none",
 		showSearch: true,
 
@@ -601,15 +603,15 @@ export function applySetup(
 	return outcome;
 }
 
-/** The title block: this board's own text, visibility, logo and accent, none of
+/** The title block: this board's own text, visibility, icon and accent, none of
  * which touches the vault-wide header. */
 function applyHeader(dashboard: Dashboard, answers: SetupAnswers): void {
 	const header: NonNullable<Dashboard["header"]> = {
 		...(dashboard.header ?? {}),
 		showTitle: answers.showTitle,
-		// An empty logo is a real override: this board shows the Hearth crystal
-		// even in a vault whose global logo is an emoji.
-		logo: answers.logo.trim(),
+		// An empty title icon is a real override: this board shows the Hearth
+		// crystal even in a vault whose global mark is an emoji.
+		titleIcon: answers.titleIcon.trim(),
 		themeColorTarget: answers.themeColorTarget,
 	};
 	// A blank title is not an override — it is a user who left the field alone,

@@ -16,6 +16,7 @@ import {
 	type HeatmapConfig,
 	type HomeSettings,
 	type LeafViewConfig,
+	legacyTitleIcon,
 	type LinkItem,
 	type MobileActionButton,
 	type OperonConfig,
@@ -152,8 +153,7 @@ export function exportSettings(s: HomeSettings): string {
 		// Header
 		title: s.title,
 		showTitle: s.showTitle,
-		logo: s.logo,
-		logoIcon: s.logoIcon,
+		titleIcon: s.titleIcon,
 		tabIcon: s.tabIcon,
 		showSearch: s.showSearch,
 		searchPlaceholder: s.searchPlaceholder,
@@ -1090,6 +1090,11 @@ function sanitizeDashboard(
 	raw: unknown,
 	s: HomeSettings,
 	index: number,
+	/** The export's vault-wide keys, so a board that overrode only one half of
+	 * the pre-2.2.0 `logo`/`logoIcon` pair folds against the same fallback the
+	 * settings migration uses (#252). Empty for a layout-only export, which
+	 * carries no vault-wide header fields at all. */
+	globals: Record<string, unknown> = {},
 ): Dashboard | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
@@ -1137,12 +1142,14 @@ function sanitizeDashboard(
 		if (typeof h.showTitle === "boolean") header.showTitle = h.showTitle;
 		const title = str(h.title);
 		if (title !== undefined) header.title = title;
-		const logo = str(h.logo);
-		if (logo !== undefined) header.logo = logo;
 		// Kept even when empty: an empty override is a board that deliberately
-		// shows no Lucide title icon, which is not the same as no override.
-		const logoIcon = str(h.logoIcon);
-		if (logoIcon !== undefined) header.logoIcon = logoIcon.trim();
+		// wears the Hearth crystal, which is not the same as no override. An
+		// export taken before 2.2.0 carries the old `logo`/`logoIcon` pair
+		// instead, folded here the same way the settings migration folds it.
+		const hadLegacy = typeof h.logo === "string" || typeof h.logoIcon === "string";
+		const titleIcon =
+			str(h.titleIcon) ?? (hadLegacy ? legacyTitleIcon(h, globals) : undefined);
+		if (titleIcon !== undefined) header.titleIcon = titleIcon.trim();
 		if (
 			h.themeColorTarget === "none" ||
 			h.themeColorTarget === "icon" ||
@@ -1257,7 +1264,7 @@ function applyLayout(
 	// v2: a full multi-dashboard layout.
 	if (Array.isArray(data.dashboards)) {
 		const dashboards = data.dashboards
-			.map((d, i) => sanitizeDashboard(d, s, i))
+			.map((d, i) => sanitizeDashboard(d, s, i, data))
 			.filter((d): d is Dashboard => d !== null);
 		if (dashboards.length === 0) return t().layout.noValidDashboards;
 		s.dashboards = dashboards;
@@ -1410,10 +1417,12 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	const title = str(data.title);
 	if (title !== undefined) s.title = title;
 	if (typeof data.showTitle === "boolean") s.showTitle = data.showTitle;
-	const logo = str(data.logo);
-	if (logo !== undefined) s.logo = logo;
-	const logoIcon = str(data.logoIcon);
-	if (logoIcon !== undefined) s.logoIcon = logoIcon.trim();
+	// A pre-2.2.0 export carries `logo` and `logoIcon` rather than the merged
+	// `titleIcon`; fold the pair exactly as the settings migration does (#252).
+	const hadLegacyIcon = typeof data.logo === "string" || typeof data.logoIcon === "string";
+	const titleIcon =
+		str(data.titleIcon) ?? (hadLegacyIcon ? legacyTitleIcon(data) : undefined);
+	if (titleIcon !== undefined) s.titleIcon = titleIcon.trim();
 	const tabIcon = str(data.tabIcon);
 	if (tabIcon !== undefined) s.tabIcon = tabIcon.trim();
 	if (typeof data.showSearch === "boolean") s.showSearch = data.showSearch;
