@@ -31,6 +31,7 @@ import {
 	type RssConfig,
 	type RssSource,
 	type SavedSearchConfig,
+	type SlideshowAdvance,
 	type SlideshowConfig,
 	type SlideshowOrder,
 	type SlideshowSlide,
@@ -51,6 +52,8 @@ import { CARD_KINDS } from "./cards";
 import { isEmbeddableBaseViewName } from "./bases";
 import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
+	SLIDESHOW_ADVANCES,
+	SLIDESHOW_MAX_DAY_COUNT,
 	SLIDESHOW_MAX_INTERVAL_SEC,
 	SLIDESHOW_MAX_TRANSITION_MS,
 	SLIDESHOW_ORDERS,
@@ -907,8 +910,14 @@ function sanitizeSlideshow(r: Record<string, unknown>): SlideshowConfig {
 	if (SLIDESHOW_ORDERS.includes(r.order as SlideshowOrder)) {
 		cfg.order = r.order as SlideshowOrder;
 	}
+	if (SLIDESHOW_ADVANCES.includes(r.advance as SlideshowAdvance)) {
+		cfg.advance = r.advance as SlideshowAdvance;
+	}
 	if (typeof r.intervalSec === "number" && Number.isFinite(r.intervalSec)) {
 		cfg.intervalSec = clampNum(r.intervalSec, 0, SLIDESHOW_MAX_INTERVAL_SEC, 0);
+	}
+	if (typeof r.dayCount === "number" && Number.isFinite(r.dayCount)) {
+		cfg.dayCount = clampNum(r.dayCount, 1, SLIDESHOW_MAX_DAY_COUNT, 0);
 	}
 	if (SLIDESHOW_TRANSITIONS.includes(r.transition as SlideshowTransition)) {
 		cfg.transition = r.transition as SlideshowTransition;

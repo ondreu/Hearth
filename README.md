@@ -141,7 +141,7 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
 | **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom, optional in-place editing (raw or Live Preview) and a second view you can flip to | — |
 | **Daily note** | Always today's note, created on first click | Daily notes (core) |
 | **Embedded image** | A picture from the vault — fill and crop, fit, stretch or scroll, anchored to any of nine points | — |
-| **Slideshow** | Pictures from a list or a folder, rotated on a timer: captions, sort order, transition and length, slow zoom, hover controls | — |
+| **Slideshow** | Pictures from a list or a folder: on a timer, one a day (or every few days, worked out from the date) or only by hand, with captions, sort order, transition and length, slow zoom and hover controls | — |
 | **Embedded canvas** | A canvas you can pan around in place | Canvas (core) |
 | **Excalidraw drawing** | A drawing with native pan and zoom | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) |
 | **Embedded base** | A `.base` file, rendered by Obsidian's Bases | Bases (core) |

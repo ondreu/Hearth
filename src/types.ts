@@ -1224,6 +1224,17 @@ export type SlideshowOrder =
 	| "modifiedDesc"
 	| "random";
 
+/**
+ * What moves a slideshow on to the next picture.
+ *
+ * - "timer" — a clock, every `intervalSec` seconds. The original behaviour.
+ * - "daily" — the calendar: one picture per `dayCount` days, worked out from
+ *   today's date rather than from a timer, so a redraw, a board switch or an
+ *   Obsidian restart all land on the same picture (#249).
+ * - "manual" — nothing but the controls; the card stays where you left it.
+ */
+export type SlideshowAdvance = "timer" | "daily" | "manual";
+
 /** How one picture gives way to the next. "none" is a cut. */
 export type SlideshowTransition = "none" | "fade" | "slide" | "zoom";
 
@@ -1245,8 +1256,15 @@ export interface SlideshowConfig {
 	includeSubfolders?: boolean;
 	/** Display order. Default "manual" (a folder source: "name"). */
 	order?: SlideshowOrder;
-	/** Seconds each picture is shown. Default 8; 0 holds the first picture. */
+	/** What moves the card on to the next picture. Default "timer" — except on
+	 * a card saved before this field existed with `intervalSec: 0`, which was
+	 * the only way to say "don't rotate" and so reads as "manual". */
+	advance?: SlideshowAdvance;
+	/** Seconds each picture is shown (advance "timer"). Default 8; 0 holds the
+	 * first picture. */
 	intervalSec?: number;
+	/** Days each picture is shown (advance "daily"). Default 1, at most 365. */
+	dayCount?: number;
 	/** How one picture gives way to the next. Default "fade". */
 	transition?: SlideshowTransition;
 	/** Transition length in milliseconds. Default 700. */
