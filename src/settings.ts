@@ -7,7 +7,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
+import { BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import { exportLayout, exportSettings, importLayout, importSettings } from "./layout";
 import { confirmAction, downloadTextFile, makeClickable, pickTextFile } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
@@ -673,11 +673,26 @@ export class HomeSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(containerEl)
+			.setName(t().settings.appearance.fullWidth)
+			.setDesc(t().settings.appearance.fullWidthDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.fullWidth).onChange(async (v) => {
+					s.fullWidth = v;
+					this.save();
+					// The slider below is the ceiling this toggle removes, so it goes
+					// away with it rather than sitting there doing nothing.
+					this.rerender();
+				}),
+			);
+
+		if (s.fullWidth) return;
+
 		const width = new Setting(containerEl)
 			.setName(t().settings.appearance.contentWidth)
 			.setDesc(t().settings.appearance.contentWidthDesc);
 		width.addSlider((sl) => {
-			sl.setLimits(700, 1600, 20)
+			sl.setLimits(CONTENT_WIDTH_MIN, CONTENT_WIDTH_MAX, CONTENT_WIDTH_STEP)
 				.setValue(s.maxWidth)
 				.onChange(async (v) => {
 					s.maxWidth = v;

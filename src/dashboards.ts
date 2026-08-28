@@ -13,6 +13,9 @@ import {
 	CARD_RADIUS_MAX,
 	clampBannerHeight,
 	CARD_BORDER_WIDTH_MAX,
+	CONTENT_WIDTH_MAX,
+	CONTENT_WIDTH_MIN,
+	CONTENT_WIDTH_STEP,
 	HEADER_MARGIN_TOP_MAX,
 	HEADER_MARGIN_TOP_MIN,
 	HEADER_SCALE_MAX,
@@ -161,6 +164,7 @@ function showDashboardMenu(
 				if (dash.rowHeight != null) copy.rowHeight = dash.rowHeight;
 				if (dash.fitToPage != null) copy.fitToPage = dash.fitToPage;
 				if (dash.maxWidth != null) copy.maxWidth = dash.maxWidth;
+				if (dash.fullWidth != null) copy.fullWidth = dash.fullWidth;
 				if (dash.showSearch != null) copy.showSearch = dash.showSearch;
 				if (dash.compact != null) copy.compact = dash.compact;
 				if (dash.cardOpacity != null) copy.cardOpacity = dash.cardOpacity;
@@ -689,19 +693,48 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;
 
-		this.overrideSlider(
-			containerEl,
-			t().dashboards.modal.contentWidth,
-			dash.maxWidth,
-			s.maxWidth,
-			700,
-			1600,
-			20,
-			(v) => {
-				dash.maxWidth = v;
-				this.commit();
-			},
-		);
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.fullWidth)
+			.setDesc(t().dashboards.modal.fullWidthDesc)
+			.addDropdown((d) => {
+				d.addOption(
+					"default",
+					t().dashboards.modal.fullWidthDefault(
+						s.fullWidth
+							? t().dashboards.modal.fullWidthStateOn
+							: t().dashboards.modal.fullWidthStateOff,
+					),
+				);
+				d.addOption("on", t().dashboards.modal.fullWidthOptionOn);
+				d.addOption("off", t().dashboards.modal.fullWidthOptionOff);
+				d.setValue(
+					dash.fullWidth === undefined ? "default" : dash.fullWidth ? "on" : "off",
+				);
+				d.onChange((v) => {
+					dash.fullWidth = v === "default" ? undefined : v === "on";
+					this.commit();
+					// The width slider below is the ceiling this drops, so it appears
+					// and disappears with the choice rather than sitting there inert.
+					this.render();
+				});
+			});
+
+		// Only offered while this board actually has a ceiling to set.
+		if (!(dash.fullWidth ?? s.fullWidth)) {
+			this.overrideSlider(
+				containerEl,
+				t().dashboards.modal.contentWidth,
+				dash.maxWidth,
+				s.maxWidth,
+				CONTENT_WIDTH_MIN,
+				CONTENT_WIDTH_MAX,
+				CONTENT_WIDTH_STEP,
+				(v) => {
+					dash.maxWidth = v;
+					this.commit();
+				},
+			);
+		}
 
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.fitToPage)

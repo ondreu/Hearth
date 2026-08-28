@@ -1668,6 +1668,9 @@ export interface Dashboard extends BannerOverrides {
 	fitToPage?: boolean;
 	/** Override the content max-width (px) for this board (undefined = global). */
 	maxWidth?: number;
+	/** Override "full width" for this board (undefined = global). When true the
+	 * board's content fills the pane and {@link maxWidth} is ignored. */
+	fullWidth?: boolean;
 	/** Override compact spacing for this board (undefined = global). */
 	compact?: boolean;
 	/** Override the card surface opacity for this board (undefined = global). */
@@ -1974,7 +1977,14 @@ export interface HomeSettings {
 	operonWrites: boolean;
 
 	// ---- Layout ----
+	/** The widest the content column may grow, in pixels. It is a ceiling, not a
+	 * width: the column is fluid and shrinks to fit a narrower pane. Ignored
+	 * entirely while {@link fullWidth} is on. */
 	maxWidth: number;
+	/** Drop the ceiling and let the content column fill the pane at any size.
+	 * Off by default: card geometry scales with the column but type does not, so
+	 * an unbounded column turns a board on a wide monitor sparse. */
+	fullWidth: boolean;
 
 	// ---- Internal bookkeeping ----
 	/** The plugin version whose release notes the user last saw. Used to decide
@@ -2110,6 +2120,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	operonWrites: false,
 
 	maxWidth: 1600,
+	fullWidth: false,
 
 	lastSeenVersion: "",
 	// Fresh installs start out owing the wizard a run; `migrateSettings` marks
@@ -2316,9 +2327,25 @@ export function effectiveThemeColorTarget(s: HomeSettings): HomeSettings["themeC
 	return activeDashboard(s).header?.themeColorTarget ?? s.themeColorTarget;
 }
 
+/** Content-width bounds, in pixels. The floor keeps the column wide enough for
+ * a readable multi-column board; the ceiling reaches the full width of a 4K
+ * panel, past which a fixed number stops meaning anything and "full width" is
+ * the honest answer. The settings sliders, the per-board override and the
+ * clamp applied to an imported layout all read these, so the range has exactly
+ * one definition. */
+export const CONTENT_WIDTH_MIN = 700;
+export const CONTENT_WIDTH_MAX = 3840;
+export const CONTENT_WIDTH_STEP = 20;
+
 /** Effective content max-width for the active board (per-dashboard override or global). */
 export function effectiveMaxWidth(s: HomeSettings): number {
 	return activeDashboard(s).maxWidth ?? s.maxWidth;
+}
+
+/** Whether the active board ignores its width ceiling and fills the pane
+ * (per-dashboard override or global). */
+export function effectiveFullWidth(s: HomeSettings): boolean {
+	return activeDashboard(s).fullWidth ?? s.fullWidth;
 }
 
 /**
@@ -2660,6 +2687,9 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	s.bannerHeight = clampBannerHeight(s.bannerHeight);
 	if (typeof s.bannerFade !== "boolean") s.bannerFade = true;
 	if (typeof s.bannerFullWidth !== "boolean") s.bannerFullWidth = false;
+	// Additive too: a vault saved before the content column could go unbounded
+	// has no key here, and false leaves it drawing at exactly the width it did.
+	if (typeof s.fullWidth !== "boolean") s.fullWidth = false;
 	// Fit-to-page is the default for fresh installs; existing users keep their
 	// choice (only backfill when the field is missing entirely).
 	if (typeof raw.fitToPage !== "boolean") s.fitToPage = true;

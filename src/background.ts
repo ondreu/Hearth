@@ -10,6 +10,7 @@ import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
 	effectiveBackground,
+	effectiveFullWidth,
 	effectiveMaxWidth,
 	motionAllowed,
 	skyDensity,
@@ -73,9 +74,10 @@ export function renderBanner(
 	banner.style.height = `${bg.bannerHeight}px`;
 	banner.toggleClass("is-faded", bg.bannerFade);
 	// Full width means "as wide as the pane"; otherwise the banner lines up with
-	// the content column, which is the same max-width `.hearth-inner` uses.
+	// the content column, which is the same max-width `.hearth-inner` uses — and
+	// so is uncapped exactly when the column is, keeping the two in line.
 	banner.toggleClass("is-full-width", bg.bannerFullWidth);
-	if (!bg.bannerFullWidth) {
+	if (!bg.bannerFullWidth && !effectiveFullWidth(view.plugin.settings)) {
 		banner.style.maxWidth = `${effectiveMaxWidth(view.plugin.settings)}px`;
 	}
 

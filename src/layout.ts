@@ -45,6 +45,8 @@ import {
 	type TasksConfig,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
+	CONTENT_WIDTH_MAX,
+	CONTENT_WIDTH_MIN,
 	clampBannerHeight,
 	PERFORMANCE_TIERS,
 	type PerformanceTier,
@@ -91,6 +93,7 @@ export interface LayoutExport {
 	rowHeight: number;
 	fitToPage: boolean;
 	maxWidth: number;
+	fullWidth: boolean;
 	favorites: string[];
 }
 
@@ -99,7 +102,7 @@ export interface LayoutExport {
 const RANGE = {
 	gridColumns: { min: 4, max: 16 },
 	rowHeight: { min: 32, max: 160 },
-	maxWidth: { min: 700, max: 1600 },
+	maxWidth: { min: CONTENT_WIDTH_MIN, max: CONTENT_WIDTH_MAX },
 	cardW: { min: 1, max: 16 },
 	cardH: { min: 1, max: 60 },
 	cardBlur: { min: 0, max: 24 },
@@ -132,6 +135,7 @@ function layoutPayload(s: HomeSettings): LayoutExport {
 		rowHeight: s.rowHeight,
 		fitToPage: s.fitToPage,
 		maxWidth: s.maxWidth,
+		fullWidth: s.fullWidth,
 		favorites: s.favorites,
 	};
 }
@@ -1203,6 +1207,7 @@ function sanitizeDashboard(
 			s.maxWidth,
 		);
 	}
+	if (typeof r.fullWidth === "boolean") dash.fullWidth = r.fullWidth;
 	if (typeof r.cardOpacity === "number") {
 		dash.cardOpacity = Math.max(0, Math.min(1, r.cardOpacity));
 	}
@@ -1353,6 +1358,10 @@ function applyGlobals(s: HomeSettings, data: Record<string, unknown>): void {
 		s.maxWidth,
 	);
 	if (typeof data.fitToPage === "boolean") s.fitToPage = data.fitToPage;
+	// Absent from layouts exported before full width existed, and left alone
+	// rather than defaulted so importing an old layout can't quietly re-impose a
+	// ceiling the vault has already dropped.
+	if (typeof data.fullWidth === "boolean") s.fullWidth = data.fullWidth;
 	if (Array.isArray(data.favorites)) {
 		s.favorites = data.favorites.filter(
 			(p): p is string => typeof p === "string",

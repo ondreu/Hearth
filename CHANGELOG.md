@@ -15,6 +15,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The board can be as wide as your monitor.** **Content width** used to stop
+  at 1600px, which on a large display left the board marooned in the middle of
+  an empty pane. The slider now runs to **3840px** — the full width of a 4K
+  panel — and above it sits **Full width**, which drops the ceiling altogether
+  and lets the content follow the pane at whatever size it is. The column was
+  always fluid *downwards*; this is the same behaviour going up. Both settings
+  are overridable per dashboard under a board's own settings, so one board can
+  fill an ultrawide while the rest stay comfortable to read, and both travel
+  with an exported layout. Nothing changes for a board you leave alone: the
+  ceiling stays where it was (#251).
+
 - **A slideshow can change once a day, and it stays where you left it.** The
   slideshow card's **Change picture** setting now offers three ways to move on:
   **on a timer** (what it always did), **once a day**, or **only by hand**. A
