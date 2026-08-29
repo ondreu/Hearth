@@ -150,11 +150,24 @@ describe("tileMetrics", () => {
 		expect(m.rowH).toBe(34);
 	});
 
-	it("gives a scaled cell a fraction of the card, in both directions", () => {
-		const m = tileMetrics(500, SCALED);
+	it("gives a scaled cell a fraction of the card's width, and takes its row height as measured", () => {
+		const m = tileMetrics(500, SCALED, 120);
 		expect(m.columns).toBe(6);
 		expect(m.colW).toBeCloseTo((500 - 5 * TILE_GAP) / 6, 5);
-		expect(m.rowH).toBeCloseTo(m.colW * 0.78, 5);
+		// The rows are shares of the card's height, so only the rendered grid
+		// knows how tall one is — the caller measures it and passes it in.
+		expect(m.rowH).toBe(120);
+	});
+
+	it("falls back to a cell-shaped row while a scaled grid can't be measured", () => {
+		for (const rowHeight of [undefined, 0, -20]) {
+			const m = tileMetrics(500, SCALED, rowHeight);
+			expect(m.rowH).toBeCloseTo(m.colW * 0.78, 5);
+		}
+	});
+
+	it("ignores a measured row height in the fixed style, whose rows are always 34px", () => {
+		expect(tileMetrics(500, FIXED, 120).rowH).toBe(34);
 	});
 
 	it("makes a scaled cell grow with the card — the whole point of it", () => {

@@ -1959,19 +1959,22 @@ export const en = {
 			heading: "Buttons",
 			sizing: "Button sizing",
 			sizingDesc:
-				"Whether the buttons scale with the card — the way a card scales with " +
-				"the dashboard — or keep a fixed pixel size however big the card is. " +
+				"Whether the buttons fill the card — every one of them visible however " +
+				"big the card is, growing and shrinking with it, and no scrollbar — or " +
+				"keep a fixed pixel size, so a card too small for them all scrolls. " +
 				"Cards made before this setting existed stay on the fixed style until " +
 				"you switch them; each style keeps its own sizes, so switching back " +
 				"restores what you had.",
-			sizingScale: "Scale with the card",
+			sizingScale: "Fill the card",
 			sizingFixed: "Fixed size (legacy)",
 			across: "Buttons across",
 			acrossDesc:
-				"How many buttons wide the card is, and so how big one button is: a " +
-				"fraction of the card, whatever size the card ends up. A button can " +
-				"still be made two or three of those wide (or tall) by dragging its " +
-				"bottom-right corner in arrange mode — it stays on the grid.",
+				"How many buttons wide the card is, and so how wide one button is: a " +
+				"fraction of the card. Their height works the same way — the rows share " +
+				"whatever height the card has between them — so a shorter card means " +
+				"shorter buttons rather than hidden ones. A button can still be made " +
+				"two or three cells wide (or tall) by dragging its bottom-right corner " +
+				"in arrange mode.",
 		},
 		links: {
 			heading: "Links",

@@ -1456,10 +1456,13 @@ export interface DashboardCard {
 	 * - `"fixed"` (the default when absent) — the original behaviour: a button
 	 *   is a fixed number of pixels, so a wider card fits more buttons rather
 	 *   than bigger ones.
-	 * - `"scale"` — the card is divided into `tileCols` columns and a button
-	 *   spans whole cells of that grid, so every button grows and shrinks with
-	 *   the card, the same way a card grows with the dashboard. Buttons stay on
-	 *   the grid: they are sized in cells, not freely in pixels.
+	 * - `"scale"` — the buttons fill the card: it is divided into `tileCols`
+	 *   columns and as many rows as the buttons need, the rows sharing the
+	 *   card's height between them, and a button spans whole cells of that grid.
+	 *   So every button grows and shrinks with the card the same way a card
+	 *   grows with the dashboard, every one of them stays visible whatever size
+	 *   the card is, and the card never scrolls. Buttons stay on the grid: they
+	 *   are sized in cells, not freely in pixels.
 	 *
 	 * Cards created before this existed carry no value and so keep the fixed
 	 * style; every card added since asks for `"scale"` in its template, and the

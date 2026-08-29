@@ -348,9 +348,9 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	/**
 	 * How big the buttons are on a launchpad-like card (links, commands,
-	 * templater): which of the two sizing styles the card is on and, for the
-	 * scaled one, how many buttons wide its grid is — which is what decides how
-	 * big a button is, since a scaled button is a fraction of the card.
+	 * templater): which of the two sizing styles the card is on and, when they
+	 * fill the card, how many buttons wide it is — which is what decides how big
+	 * a button is, since a filled button is a fraction of the card.
 	 *
 	 * It sits in the Layout tab, under the card's own size, because that is the
 	 * question it answers: how the card's buttons are laid out, not what is on
@@ -371,7 +371,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 					card.tileSizing = v === "scale" ? "scale" : "fixed";
 					this.opts.save();
 					this.opts.rerender();
-					// The column count below belongs to the scaled style alone, and
+					// The column count below belongs to the filled style alone, and
 					// the fixed style's pixel size (in the Content tab) to the other,
 					// so rebuild the modal around the choice.
 					this.render();

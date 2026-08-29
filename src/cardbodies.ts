@@ -908,8 +908,29 @@ export function makeTileResizable(
 /** The metrics of the grid a tile sits in, measured from the DOM. */
 function gridMetrics(tile: HTMLElement, spec: TileSpec): TileMetrics {
 	const grid = tile.closest<HTMLElement>(".hearth-links");
-	const width = grid?.getBoundingClientRect().width ?? 0;
-	return tileMetrics(width, spec);
+	if (!grid) return tileMetrics(0, spec);
+	return measureGrid(grid, spec);
+}
+
+
+/** Measure a tile grid: its content width, and — for a scaled grid, whose rows
+ * are equal shares of the card's height — the height one row actually came out
+ * at. Only the browser knows that: it depends on how many rows the buttons
+ * needed, which is grid layout's business, so it's read back off the resolved
+ * `grid-template-rows` rather than recomputed here. */
+function measureGrid(grid: HTMLElement, spec: TileSpec): TileMetrics {
+	const width = grid.getBoundingClientRect().width;
+	return tileMetrics(width, spec, spec.sizing === "scale" ? renderedRowHeight(grid) : undefined);
+}
+
+
+/** The height of a grid's first row, from its resolved `grid-template-rows`
+ * (e.g. "77.5px 77.5px"). Zero when it can't be read, which leaves
+ * `tileMetrics` on its fallback. */
+function renderedRowHeight(grid: HTMLElement): number {
+	const rows = activeWindow.getComputedStyle(grid).gridTemplateRows;
+	const first = parseFloat(rows);
+	return Number.isFinite(first) && first > 0 ? first : 0;
 }
 
 
@@ -1262,7 +1283,7 @@ function getTileCell(
 	const rect = tile.getBoundingClientRect();
 	const cRect = container.getBoundingClientRect();
 	if (cRect.width <= 0) return null;
-	const { colW, rowH } = tileMetrics(cRect.width, spec);
+	const { colW, rowH } = measureGrid(container, spec);
 	const relX = rect.left - cRect.left;
 	const relY = rect.top - cRect.top;
 	const col = Math.max(1, Math.round(relX / (colW + TILE_GAP)) + 1);
@@ -1305,10 +1326,10 @@ function pickGridCell(
 ): { col: number; row: number } | null {
 	const rect = container.getBoundingClientRect();
 	if (rect.width <= 0) return null;
-	// The column count and the real column width at the card's current size:
-	// the fixed style's columns auto-fill and then stretch past their minimum,
-	// the scaled style's are the card's own.
-	const { columns, colW, rowH } = tileMetrics(rect.width, spec);
+	// The column count and the real cell size at the card's current size: the
+	// fixed style's columns auto-fill and then stretch past their minimum, while
+	// the scaled style's are the card's own and its rows share the card's height.
+	const { columns, colW, rowH } = measureGrid(container, spec);
 	// The dragged tile's column span, so we keep its start within bounds.
 	const cs = parseInt(tile.style.getPropertyValue("--hearth-tile-cs"), 10) || 1;
 	// Pointer relative to the grid's content box, in cells (1-based lines).

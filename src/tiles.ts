@@ -9,11 +9,13 @@
  * - **fixed** — the original. A button is a fixed number of pixels, laid out on
  *   a fine 44px grid that auto-fills the card. Widening the card fits *more*
  *   buttons; it never makes them bigger.
- * - **scale** — the card is divided into a fixed number of columns
- *   ({@link TileSpec.cols}), so a button is a fraction of the card and grows
- *   with it, exactly as a card grows with the dashboard. Buttons are still tied
- *   to the grid — sized in whole cells, never freely in pixels — so a launchpad
- *   stays a launchpad rather than becoming a second free-form board.
+ * - **scale** — the buttons fill the card. Its columns are the card's own
+ *   ({@link TileSpec.cols}) and its rows divide the card's height between them,
+ *   so a button is a fraction of the card in both directions: it grows with the
+ *   card exactly as a card grows with the dashboard, every button stays visible
+ *   whatever size the card is, and the card never scrolls. Buttons are still
+ *   tied to the grid — sized in whole cells, never freely in pixels — so a
+ *   launchpad stays a launchpad rather than becoming a second free-form board.
  *
  * Both readings share one stored tile: pixel sizes and cell spans are separate
  * fields, so switching a card between the two styles never destroys the other
@@ -36,9 +38,9 @@ export const TILE_SNAP = 4;
  * rather than chunky. Half of the visual default so 2 cells ≈ one old tile. */
 export const TILE_CELL = 44;
 
-/** A cell's height as a fraction of its width. Shared by both styles: it is
- * what makes the fixed grid's 44px column a 34px row, and what gives a scaled
- * cell its shape as the card resizes. */
+/** A cell's height as a fraction of its width: what makes the fixed grid's 44px
+ * column a 34px row. A scaled grid's rows are shares of the card's height
+ * instead, and fall back to this shape only while they can't be measured. */
 export const TILE_ROW_RATIO = 0.78;
 
 /** Default span of a *fixed* tile with no explicit size: 2 columns × 2 rows on
@@ -174,21 +176,25 @@ export function fixedRowHeight(): number {
 
 
 /**
- * The grid's live metrics at a given content width, so a pointer gesture can be
- * mapped onto cells.
+ * The grid's live metrics, so a pointer gesture can be mapped onto cells.
  *
- * Fixed: the CSS is `repeat(auto-fill, minmax(44px, 1fr))`, so the column count
- * follows the width and the columns then stretch past their 44px minimum.
+ * Fixed: the CSS is `repeat(auto-fill, minmax(44px, 1fr))` over rows of a fixed
+ * height, so the column count follows the width, the columns then stretch past
+ * their 44px minimum, and the rows are always 34px.
  *
- * Scaled: the column count is the card's own, so the cell — and with it every
- * button — is a fraction of the card. Rows keep the cell's shape rather than a
- * fixed height, which is what makes a button grow in both directions at once.
+ * Scaled: the column count is the card's own, so a cell is a fraction of the
+ * card's width. The rows divide the card's *height* between them — as many as
+ * the buttons came to — which no formula here can know, so the caller measures
+ * the rendered row height and passes it in; `rowHeight` is ignored by the fixed
+ * style, and a scaled grid that can't be measured yet falls back to a cell-shaped
+ * row.
  */
-export function tileMetrics(width: number, spec: TileSpec): TileMetrics {
+export function tileMetrics(width: number, spec: TileSpec, rowHeight?: number): TileMetrics {
 	if (spec.sizing === "scale") {
 		const columns = spec.cols;
 		const colW = Math.max(1, (width - (columns - 1) * TILE_GAP) / columns);
-		return { columns, colW, rowH: colW * TILE_ROW_RATIO };
+		const rowH = rowHeight != null && rowHeight > 0 ? rowHeight : colW * TILE_ROW_RATIO;
+		return { columns, colW, rowH };
 	}
 	const columns = Math.max(1, Math.floor((width + TILE_GAP) / (TILE_CELL + TILE_GAP)));
 	const colW = Math.max(1, (width - (columns - 1) * TILE_GAP) / columns);

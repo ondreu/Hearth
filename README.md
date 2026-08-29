@@ -195,7 +195,7 @@ feeds, reads **TaskNotes** (scheduled, due, recurrences, timeblocks) and
 
 | Card | What it shows | Needs |
 | --- | --- | --- |
-| **Links / launchpad** | A grid of buttons opening notes, URLs or commands, each with its own column and row span, scaling with the card or fixed in pixels | — |
+| **Links / launchpad** | A grid of buttons opening notes, URLs or commands, each with its own column and row span, filling the card or fixed in pixels | — |
 | **Commands** | Buttons that run any command-palette command | — |
 | **Text / jot-down** | A quick Markdown scratchpad saved with the card | — |
 | **Calculator** | Math, unit conversions, number bases (`FF hex to decimal`), live currency and plain-language queries (`20% of 150`), with an optional keypad | Network for rates |
