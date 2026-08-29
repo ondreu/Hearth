@@ -8,6 +8,7 @@ import {
 	type CommandItem,
 	type Dashboard,
 	type DashboardCard,
+	type MobileCardOptions,
 	type DatacoreConfig,
 	type DataviewConfig,
 	type EmbedImageFit,
@@ -321,6 +322,28 @@ function sanitizeLink(raw: unknown): LinkItem | null {
 	return link;
 }
 
+/** The card's narrow-layout overrides, if it carries any readable ones.
+ *
+ * Every field is optional and every default is *absence*, so a value that
+ * doesn't survive its type check is dropped rather than defaulted — an
+ * unreadable `order` must leave the card following the derived reading order,
+ * not pin it to position 0. Returns undefined when nothing readable is left, so
+ * an imported card carries no empty block. */
+function sanitizeMobileOptions(raw: unknown): MobileCardOptions | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const mobile: MobileCardOptions = {};
+	if (r.hidden === true) mobile.hidden = true;
+	if (r.collapsed === true) mobile.collapsed = true;
+	if (typeof r.order === "number" && Number.isFinite(r.order)) {
+		mobile.order = Math.round(r.order);
+	}
+	if (typeof r.height === "number" && Number.isFinite(r.height)) {
+		mobile.height = Math.max(0, Math.round(r.height));
+	}
+	return Object.keys(mobile).length > 0 ? mobile : undefined;
+}
+
 function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
@@ -356,6 +379,13 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.fh === "number" && Number.isFinite(r.fh)) {
 		card.fh = Math.max(0, r.fh);
 	}
+
+	// The stacked layout's per-card overrides ride along with the geometry above:
+	// they are part of how a board is laid out, so a layout shared between
+	// devices that dropped them would arrive stacked in the wrong order with the
+	// cards its author had hidden showing again.
+	const mobile = sanitizeMobileOptions(r.mobile);
+	if (mobile) card.mobile = mobile;
 
 	const title = str(r.title);
 	if (title !== undefined) card.title = title;

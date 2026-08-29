@@ -21,6 +21,7 @@ import {
 	type CardKind,
 	type DashboardCard,
 	type HomeSettings,
+	type MobileCardOptions,
 } from "./types";
 import { confirmAction } from "./ui";
 
@@ -122,6 +123,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 				break;
 			case "layout":
 				this.sizeSection(body);
+				this.mobileSection(body);
 				this.buttonsSection(body);
 				this.pinSection(body);
 				this.copySection(body);
@@ -349,6 +351,99 @@ export class CardSettingsModal extends HearthTabbedModal {
 			card.fw = undefined;
 			card.fh = undefined;
 		});
+	}
+
+	/**
+	 * Write one of the card's mobile options, pruning the block back to nothing
+	 * once every option is at its default.
+	 *
+	 * Absent means "derive it", so an option at its default must be *absent*
+	 * rather than present-and-falsy: otherwise every card ever opened in this
+	 * tab would carry a `mobile: {}` into data.json, and a later change to how
+	 * an option is derived would have to tell a stored default apart from a
+	 * chosen one.
+	 */
+	private setMobile(patch: Partial<MobileCardOptions>): void {
+		const next: MobileCardOptions = { ...this.card.mobile, ...patch };
+		for (const key of Object.keys(next) as (keyof MobileCardOptions)[]) {
+			if (next[key] === undefined || next[key] === false) delete next[key];
+		}
+		this.card.mobile = Object.keys(next).length > 0 ? next : undefined;
+		this.opts.save();
+	}
+
+	/**
+	 * What this card does on a narrow board, where the free-form layout is
+	 * replaced by a single stacked column (see src/narrow.ts).
+	 *
+	 * It sits under the card's size because it answers the same question for
+	 * the other layout: how big this card is, and where it comes, when the board
+	 * is a column. Every field here is an override — left alone, the card is
+	 * shown at its stored height in the order the desktop board reads in — so
+	 * the section is a set of exceptions rather than a second layout to keep up
+	 * to date.
+	 */
+	private mobileSection(containerEl: HTMLElement): void {
+		const strings = t().editors.mobile;
+		const card = this.card;
+		new Setting(containerEl).setName(strings.heading).setHeading();
+
+		new Setting(containerEl)
+			.setName(strings.hidden)
+			.setDesc(strings.hiddenDesc)
+			.addToggle((tg) => {
+				tg.setValue(card.mobile?.hidden ?? false).onChange((v) => {
+					this.setMobile({ hidden: v });
+					this.opts.rerender();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName(strings.collapsed)
+			.setDesc(strings.collapsedDesc)
+			.addToggle((tg) => {
+				tg.setValue(card.mobile?.collapsed ?? false).onChange((v) => {
+					this.setMobile({ collapsed: v });
+					this.opts.rerender();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName(strings.height)
+			.setDesc(strings.heightDesc)
+			.addText((txt) => {
+				txt
+					.setPlaceholder(strings.autoPlaceholder)
+					.setValue(card.mobile?.height != null ? String(card.mobile.height) : "")
+					.onChange((v) => {
+						const raw = v.trim();
+						// An emptied field is "derive it again", not "zero pixels".
+						const n = raw === "" ? undefined : parseInt(raw, 10);
+						if (n !== undefined && Number.isNaN(n)) return;
+						this.setMobile({ height: n === undefined ? undefined : Math.max(56, n) });
+						this.opts.rerender();
+					});
+				txt.inputEl.type = "number";
+				txt.inputEl.addClass("hearth-count-input");
+			});
+
+		new Setting(containerEl)
+			.setName(strings.order)
+			.setDesc(strings.orderDesc)
+			.addText((txt) => {
+				txt
+					.setPlaceholder(strings.autoPlaceholder)
+					.setValue(card.mobile?.order != null ? String(card.mobile.order) : "")
+					.onChange((v) => {
+						const raw = v.trim();
+						const n = raw === "" ? undefined : parseInt(raw, 10);
+						if (n !== undefined && Number.isNaN(n)) return;
+						this.setMobile({ order: n });
+						this.opts.rerender();
+					});
+				txt.inputEl.type = "number";
+				txt.inputEl.addClass("hearth-count-input");
+			});
 	}
 
 	/**

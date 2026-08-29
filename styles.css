@@ -5633,6 +5633,175 @@
 	width: 100%;
 }
 
+/* ---- Narrow boards (the stacked layout) ------------------------------
+ *
+ * Everything here hangs off `.hearth-narrow`, which view.ts sets from the
+ * MEASURED board width rather than from the platform — so a phone, a narrow
+ * desktop pane and the Arrange phone preview all get the same layout, and the
+ * whole thing can be seen on a desktop by dragging a pane narrow. See
+ * src/narrow.ts for why the board cannot simply scale into this width.
+ */
+
+/* Edge to edge. The horizontal padding is a variable precisely so it can be
+   cancelled (the full-bleed banner does the same), and 24px a side is 12% of a
+   phone's width spent on nothing. The safe-area insets stay: they are not
+   decoration, they are the rounded corner and the camera cut-out. */
+.hearth-view.hearth-narrow .hearth-scroll {
+	--hearth-scroll-pad-x: 0px;
+	--hearth-scroll-pad-top: 8px;
+	padding: var(--hearth-scroll-pad-top) var(--hearth-scroll-pad-x)
+		calc(env(safe-area-inset-bottom, 0px) + 24px);
+	padding-left: max(var(--hearth-scroll-pad-x), env(safe-area-inset-left, 0px));
+	padding-right: max(var(--hearth-scroll-pad-x), env(safe-area-inset-right, 0px));
+}
+
+/* Tighter vertical rhythm: the gap between the header and the board is spacing
+   for a wide board's sake, and on a phone it is a fifth of the first screen. */
+.hearth-view.hearth-narrow .hearth-inner {
+	--hearth-inner-gap: 14px;
+}
+
+.hearth-view.hearth-narrow .hearth-header {
+	gap: 10px;
+}
+
+/* ---- The stacked column --------------------------------------------- */
+
+/* The board stops being a positioned plane and becomes ordinary flow. Cards
+   carry no inline left/top/width in this mode (renderDashboard skips
+   applyCardPosition), only the height the stacked layout gives them, so there
+   is nothing to override — `position: static` is enough to hand them back to
+   the flex column. */
+.hearth-grid.is-stacked {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	/* The free-form board carries an inline min-height for its tallest card;
+	   a column is exactly as tall as its contents. */
+	min-height: 0;
+}
+
+.hearth-grid.is-stacked .hearth-card {
+	position: static;
+	width: 100%;
+	/* Cards are sized by the height renderDashboard sets, never stretched or
+	   squeezed to fill the column. */
+	flex: 0 0 auto;
+}
+
+/* A collapsed card is as tall as its own header, whatever height it would have
+   had open. Its body is not merely hidden — it has never been built (see
+   enableCollapseToggle) — so there is nothing here to lay out. */
+.hearth-grid.is-stacked .hearth-card.is-collapsed {
+	height: auto;
+}
+
+.hearth-card.is-collapsed .hearth-card-body {
+	display: none;
+}
+
+/* The whole header is the tap target outside arrange mode, where it holds no
+   controls of its own. */
+.hearth-card-head.is-collapsible {
+	cursor: pointer;
+}
+
+.hearth-card-expand {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	/* A thumb-sized target that doesn't take a thumb-sized bite out of the
+	   header: the box is 44px, the icon inside it is the usual size. */
+	width: 44px;
+	height: 44px;
+	margin: -6px -8px -6px 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-card-expand .svg-icon {
+	transition: transform 140ms ease;
+}
+
+/* Chevron down when open, pointing right when there is something to open. */
+.hearth-card.is-collapsed .hearth-card-expand .svg-icon {
+	transform: rotate(-90deg);
+}
+
+/* ---- Header: search, button and chips at narrow widths ---------------- */
+
+/* On a wide board the chips and the results hang off the search COLUMN, so
+   they line up with the bar and the button sits flush beside them. At phone
+   width that column is only part of the row — the button takes a real bite out
+   of ~390px — and everything inherited the bite: a half-width chip row and a
+   half-width results list with empty space beside them. Here they hang off the
+   wrap instead (header.ts moves them) and the row simply wraps. */
+.hearth-view.hearth-narrow .hearth-search-wrap {
+	flex-wrap: wrap;
+	max-width: none;
+	gap: 10px;
+}
+
+.hearth-view.hearth-narrow .hearth-search {
+	max-width: none;
+}
+
+/* The chip row is a full-width line of its own below the bar and the button. */
+.hearth-view.hearth-narrow .hearth-search-wrap > .hearth-filters {
+	flex: 1 0 100%;
+}
+
+/* The button keeps its icon and loses its words — it still has its aria-label
+   and tooltip, and the field is what the width is for. */
+.hearth-view.hearth-narrow .hearth-newnote-label {
+	display: none;
+}
+
+.hearth-view.hearth-narrow .hearth-newnote {
+	padding: 0 14px;
+}
+
+/* ---- Touch targets ---------------------------------------------------- */
+
+/* 38px is comfortable for a mouse and under the ~44px a fingertip actually
+   covers. These two are the most-touched controls Hearth has, so they get the
+   room on a narrow board and keep the tighter size everywhere else.
+   The chips' gap divides the leftover space by the chip width, so it has to be
+   told the new one or the row spaces itself for a size it no longer uses. */
+.hearth-view.hearth-narrow .hearth-filter {
+	width: 44px;
+	height: 44px;
+}
+
+.hearth-view.hearth-narrow .hearth-filters {
+	gap: 8px clamp(8px, calc((100% - var(--n) * 44px) / max(var(--n) - 1, 1)), 48px);
+}
+
+.hearth-view.hearth-narrow .hearth-result {
+	min-height: 44px;
+	padding: 11px 12px;
+}
+
+/* ---- Arrange: the phone-width preview --------------------------------- */
+
+/* A dashed frame around the clamped column, so it reads as a device being
+   previewed rather than as a board that has mysteriously gone narrow. */
+.hearth-view.hearth-phone-preview .hearth-inner {
+	outline: 1px dashed var(--background-modifier-border);
+	outline-offset: 8px;
+	border-radius: 4px;
+}
+
+/* Give the outline somewhere to sit rather than running under the pane's edge. */
+.hearth-view.hearth-phone-preview .hearth-scroll {
+	padding-left: 12px;
+	padding-right: 12px;
+}
+
 /* ---- Mobile-only mode (search-only launcher) ------------------------ */
 
 .hearth-view.hearth-mobile-only .hearth-scroll {

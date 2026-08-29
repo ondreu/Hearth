@@ -64,6 +64,19 @@ type StringSettingKey =
 	| "taskNotesDoneValue"
 	| "iconizeIconProperty";
 
+/** The performance ladder's names, in the reader's language. Shared by the
+ * desktop tier dropdown and the mobile one so the two can never drift into
+ * describing the same ladder differently. */
+function tierLabels(): Record<PerformanceTier, string> {
+	const strings = t().settings.performance;
+	return {
+		full: strings.tierFull,
+		balanced: strings.tierBalanced,
+		reduced: strings.tierReduced,
+		minimal: strings.tierMinimal,
+	};
+}
+
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
 const GITHUB_ISSUES_URL = "https://github.com/ondreu/hearth/issues/new";
@@ -931,12 +944,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		const strings = t().settings.performance;
 		const tier = performanceTier(s);
 
-		const label: Record<PerformanceTier, string> = {
-			full: strings.tierFull,
-			balanced: strings.tierBalanced,
-			reduced: strings.tierReduced,
-			minimal: strings.tierMinimal,
-		};
+		const label = tierLabels();
 
 		new Setting(containerEl)
 			.setName(strings.tier)
@@ -1371,6 +1379,42 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.stackOnNarrow)
+			.setDesc(t().settings.behaviour.stackOnNarrowDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.stackOnNarrow).onChange(async (v) => {
+					s.stackOnNarrow = v;
+					this.save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.swipeDashboards)
+			.setDesc(t().settings.behaviour.swipeDashboardsDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.swipeDashboards).onChange(async (v) => {
+					s.swipeDashboards = v;
+					this.save();
+				}),
+			);
+
+		// The mobile performance tier lives here rather than beside the desktop
+		// one: it is a mobile setting that happens to be about performance, and
+		// this is the page someone opens when they are thinking about their phone.
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.mobilePerformanceTier)
+			.setDesc(t().settings.behaviour.mobilePerformanceTierDesc)
+			.addDropdown((d) => {
+				d.addOption("match", t().settings.behaviour.mobileTierMatch);
+				const label = tierLabels();
+				for (const tier of PERFORMANCE_TIERS) d.addOption(tier, label[tier]);
+				d.setValue(s.mobilePerformanceTier).onChange(async (v) => {
+					s.mobilePerformanceTier = v as HomeSettings["mobilePerformanceTier"];
+					this.save();
+				});
+			});
 	}
 
 	// ---- Mobile action bar ----------------------------------------------

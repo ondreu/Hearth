@@ -482,6 +482,12 @@ export const en = {
 		removeCardMessage: (name: string) => `Remove "${name}" from the dashboard?`,
 		removeCardConfirm: "Remove",
 		thisCard: "this card",
+		expandCard: "Expand card",
+		collapseCard: "Collapse card",
+		phonePreview: "Preview at phone width",
+		phonePreviewOff: "Leave phone preview",
+		moveCardUp: "Move card up",
+		moveCardDown: "Move card down",
 	},
 
 	// ---- Dashboard switcher & per-dashboard settings -------------------
@@ -971,6 +977,24 @@ export const en = {
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
 				"field. No effect on desktop.",
+			stackOnNarrow: "Stack cards on narrow screens",
+			stackOnNarrowDesc:
+				"When the board is too narrow for its layout — a phone, or a narrow " +
+				"pane on the desktop — show the cards as one full-width column " +
+				"instead. Your layout is untouched and comes back at full width. " +
+				"Each card can be hidden, reordered, resized or collapsed for this " +
+				"column from its own settings.",
+			swipeDashboards: "Swipe between dashboards",
+			swipeDashboardsDesc:
+				"On a touch screen, swipe left or right across a narrow board to move " +
+				"to the next or previous dashboard. Swipes starting at the very edge " +
+				"of the screen are left to Obsidian's own sidebar gestures.",
+			mobilePerformanceTier: "Performance tier on mobile",
+			mobilePerformanceTierDesc:
+				"The tier to use on phones and tablets, where the animated sky and " +
+				"frosted glass are drawn on the smallest screen and paid for out of a " +
+				"battery. Your desktop tier is kept separately and is not changed.",
+			mobileTierMatch: "Match desktop",
 			disableExternalCalls: "Disable external calls",
 			disableExternalCallsDesc:
 				"Block all outbound network requests Hearth makes, including Jira, " +
@@ -1436,6 +1460,22 @@ export const en = {
 		cardTitleDesc:
 			"Shown in the card's header. Leave empty for a headerless card.",
 		cardTitlePlaceholder: "Title",
+		mobile: {
+			heading: "On a narrow board",
+			hidden: "Hide",
+			hiddenDesc:
+				"Leave this card out when the board stacks into one column. For cards that need width to make sense — a wide table, a board view — hiding beats squeezing.",
+			collapsed: "Start collapsed",
+			collapsedDesc:
+				"Show only the card's title row, and build the card when it is tapped open. A card nobody opens costs one row and runs nothing.",
+			height: "Height",
+			heightDesc:
+				"Height in pixels when stacked. Left empty, the card keeps its own height, capped so a tall card can't fill the screen on its own.",
+			order: "Position",
+			orderDesc:
+				"Where this card comes in the stack, counting from 0. Left empty, it follows the order the board reads in — top to bottom, left to right.",
+			autoPlaceholder: "Auto",
+		},
 		resetSize: "Reset to default size",
 		removeCard: "Remove card",
 		removeCardTitle: "Remove card?",

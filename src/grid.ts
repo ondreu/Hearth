@@ -238,7 +238,20 @@ export function applyCardPositionFitted(
 	const top = Math.round(fy * scale);
 	const bottom = Math.round((fy + fh) * scale);
 	el.style.top = `${top}px`;
-	el.style.height = `${Math.max(MIN_H_PX, bottom - top)}px`;
+	// The floor is scaled with everything else, and that is not cosmetic: an
+	// unscaled floor is applied with Math.max, so it can only ever make a card
+	// TALLER than the linear map placed it — pushing its bottom edge past where
+	// the next card's top edge was scaled to, which is an overlap. Once the
+	// squeeze is hard enough that ordinary cards scale below 56px, every one of
+	// them clamps to 56px and the whole board piles up. That is the normal case
+	// on a phone-shaped viewport, not an extreme one, so fit-to-page was
+	// reliably broken there.
+	//
+	// Scaling the floor keeps it inert for any card that is at least MIN_H_PX
+	// tall to begin with (which resizing and placement both guarantee), so it
+	// goes back to being what it was meant to be: a guard against a degenerate
+	// stored height, not a second placement rule fighting the first.
+	el.style.height = `${Math.max(Math.round(MIN_H_PX * scale), bottom - top)}px`;
 }
 
 /** The proportional vertical scale (0..1] that fits every card's stored layout

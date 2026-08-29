@@ -15,6 +15,76 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Hearth works on a phone.** Mobile used to have exactly two settings: the
+  full desktop board, laid out for a screen ten times wider, or **Mobile mode**
+  — the search field and nothing else. That was not a gap in the features, it
+  was a gap in the *layout*: cards are placed as fractions of the board's width,
+  so a quarter-width card on a 390px phone is 90px across, and their heights are
+  fixed pixels that never compress. There was no width at which the board became
+  readable, so the only honest answer was to hide it.
+
+  A board narrower than **600px** now reflows into **a single full-width
+  column**, top to bottom, in the order the desktop board reads in. Your layout
+  is untouched — the stacked view is worked out fresh on every render and never
+  written back — so the same board is a phone launcher in your pocket and a wall
+  of cards on your monitor, and neither reshapes the other. It can be turned off
+  under **Settings → Hearth → Mobile mode** (#205).
+
+  The threshold is the **measured width of the board**, not the platform. A
+  narrow desktop sidebar had exactly the same problem and gets exactly the same
+  fix; an iPad in landscape has neither and keeps the real board. It also means
+  the phone layout can be seen without a phone: drag a pane narrow, or use the
+  preview below.
+
+- **Build your phone board from your desk.** Arrange mode has a new **Preview at
+  phone width** button that clamps the board to a phone's width. It is not a
+  simulation — the narrow layout is chosen by width, so the preview *is* the
+  phone layout, at the width that triggers it. While a board is stacked, each
+  card's header grows **move up** and **move down** buttons, since a column's
+  only layout question is what comes before what.
+
+- **Per-card mobile behaviour.** Every card's settings (Layout tab) gained a
+  short **On a narrow board** section, for the cases where stacking the desktop
+  layout guesses wrong:
+
+  - **Hide** — leave the card out of the column entirely. For a wide table or a
+    board view, hiding beats squeezing.
+  - **Start collapsed** — show only the card's title row, and build the card
+    when it is tapped open. A collapsed card that nobody opens costs one row and
+    runs *nothing*: no query, no iframe, no timer.
+  - **Height** — a height for the stacked column. Left empty, the card keeps its
+    own, capped so one tall card can't take the whole screen.
+  - **Position** — where the card comes in the stack. Left empty, it follows the
+    board's reading order.
+
+  Every one of them is an override that defaults to absent, so a board you never
+  touch carries nothing new, and all four travel with an exported layout.
+
+- **Edge to edge, and sized for a thumb.** A narrow board drops the 24px gutter
+  down each side — 12% of a phone's width spent on nothing — while keeping the
+  safe-area insets, which are the rounded corner and the camera cut-out rather
+  than decoration. The **filter chips** and **search results** grow to 44px tap
+  targets at that width.
+
+- **The search row uses the whole screen.** With a button beside it, the search
+  bar took about half a phone's width — and the filter chips and the results
+  list, which hang off the bar's column, inherited that half and left the rest
+  empty. On a narrow board the chips and the results now span the **full width**
+  on their own line, and the button keeps its icon and drops its label to a
+  tooltip.
+
+- **Swipe between dashboards.** On a touch screen, swipe left or right across a
+  narrow board to move to the next or previous board. Swipes that start at the
+  very edge of the screen are left alone, so Obsidian's own sidebar gestures
+  still work, as are swipes inside anything that scrolls sideways itself.
+
+- **A separate performance tier for mobile.** **Settings → Hearth → Mobile
+  mode** now carries its own tier, defaulting to **Balanced** — the animated sky
+  is the most expensive thing Hearth draws, and on a phone it is drawn on the
+  smallest screen there is and paid for out of a battery. Your desktop tier is
+  stored separately and is not touched; set the mobile one to **Match desktop**
+  for the previous behaviour.
+
 - **A card for your weekly, monthly, quarterly or yearly note.** The new
   **Periodic note** card shows whichever periodic note covers *right now* —
   this week's by default, or the month, quarter or year, picked in the card's
@@ -183,6 +253,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   README has a Chinese translation too ([README.zh-CN.md](README.zh-CN.md)).
 
 ### Fixed
+
+- **Fit-to-page no longer piles cards on top of each other on a short screen.**
+  A fitted board scales every card's top and bottom by one shared factor, which
+  is what guarantees that cards which didn't overlap still don't. The final
+  height was then floored at 56px with a `Math.max` — and since that can only
+  make a card *taller* than the scale placed it, any card squeezed below 56px
+  grew past its neighbour's top edge. Squeeze hard enough that ordinary cards
+  fall under the floor and every one of them clamps to the same height and the
+  board collapses into a heap. That is the ordinary case on a phone-shaped
+  viewport, not an extreme one. The floor is now scaled along with everything
+  else, which makes it inert for any card that was at least 56px to begin with
+  and puts it back to being what it was for: a guard against a nonsense stored
+  height, not a second placement rule fighting the first.
 
 - **A card that redraws itself is properly reset first.** Cards redraw
   constantly — when a file they show is edited, when the vault changes at all,
