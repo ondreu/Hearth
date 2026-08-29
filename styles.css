@@ -5666,6 +5666,16 @@
 	padding-right: max(var(--hearth-scroll-pad-x), env(safe-area-inset-right, 0px));
 }
 
+/* The rule above is more specific than `.is-mobile .hearth-scroll`, so on a
+   phone it was overriding the mobile hard stop — the reserve that keeps the
+   bottom of the board clear of Obsidian's own control bar, which overlays the
+   view and which env(safe-area-inset-bottom) knows nothing about. Give it back
+   at a specificity that wins, or the last card in the column ends underneath
+   the control bar and its resize grip cannot be reached at all. */
+.is-mobile .hearth-view.hearth-narrow .hearth-scroll {
+	padding-bottom: var(--hearth-mobile-safe-bottom);
+}
+
 /* Tighter vertical rhythm: the gap between the header and the board is spacing
    for a wide board's sake, and on a phone it is a fifth of the first screen. */
 .hearth-view.hearth-narrow .hearth-inner {
@@ -5690,6 +5700,15 @@
 	/* The free-form board carries an inline min-height for its tallest card;
 	   a column is exactly as tall as its contents. */
 	min-height: 0;
+	/* A run-off at the end of the column, so the last card can be scrolled up
+	   into the middle of the screen instead of stopping at the very bottom of
+	   it. Clearing the control bar (above) is not enough on its own: a card
+	   whose bottom edge is the last thing on the page still ends up in the
+	   worst place on the screen to touch, which is exactly where its resize
+	   grip lives. Capped in pixels as well as screen-relative so the phone
+	   preview — where `vh` is the desktop window, not the phone — reserves the
+	   same run-off it would on the device. */
+	padding-bottom: min(22vh, 180px);
 }
 
 .hearth-grid.is-stacked .hearth-card {
