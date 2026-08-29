@@ -171,15 +171,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the field's own corner radius, not the bar's — appeared inset inside the bar.
   The bar keeps drawing its own hover and focus affordance; only the stray
   rectangle is gone.
-- **The tab strip in a card's or a board's settings takes the colour of the
-  dialog it sits in.** The strip is pinned to the top of the dialog so the tabs
-  stay reachable while a long tab scrolls past, which means it has to paint over
-  whatever passes underneath — and it painted with the *note* background. On
-  every theme that gives its dialogs a colour of their own, the tabs ended up on
-  a pale slab in the wrong shade. Hearth now measures the colour the dialog is
-  actually painted with as it opens — however the theme sets it — and where
-  there is nothing to measure it falls back to Obsidian's own modal colour
-  before the note background.
+- **No more pale slab behind the tabs in a card's or a board's settings.** The
+  tab strip was pinned to the top of the dialog so the tabs stay reachable while
+  a long tab scrolls past, and a pinned strip has to paint over whatever passes
+  underneath it. It painted with the *note* background — a colour plenty of
+  themes reserve for notes alone — so on those themes the tabs sat on a
+  rectangle in the wrong shade. Hearth now measures the colour the dialog is
+  actually painted with as it opens, however the theme sets it, and pins the
+  strip only when there is a colour it can match exactly. A dialog wearing no
+  such colour — a glass or translucent theme, where painting even the dialog's
+  own colour a second time would double the tint — keeps a strip that simply
+  scrolls with the rest of the dialog. The tabs go by as you scroll on those
+  themes; nothing is ever painted in the wrong shade on any of them.
 - **The setup wizard no longer changes your vault-wide settings.** Running setup
   — or re-running it later from **Settings → Hearth → About → Build a
   dashboard** — used to write its answers straight into the global settings: the

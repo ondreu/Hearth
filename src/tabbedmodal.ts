@@ -61,7 +61,7 @@ export abstract class HearthTabbedModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("hearth-tabbed-modal");
 
-		this.hearthSyncModalSurface();
+		this.hearthSyncModalSurface(true);
 
 		const tabs = this.hearthTabs();
 		const active = this.hearthActiveTab(tabs);
@@ -86,37 +86,57 @@ export abstract class HearthTabbedModal extends Modal {
 	}
 
 	/**
-	 * Publish the modal's own background colour as `--hearth-modal-surface`, for
-	 * the sticky ribbon to paint itself with.
+	 * Decide whether the tab ribbon may pin itself to the top of the modal, and
+	 * on what colour.
 	 *
-	 * The ribbon has to hide the rows scrolling beneath it, and any hard-coded
-	 * colour is a guess about the theme: with `--background-primary` (the note
-	 * background) the strip showed up as a slab in a different shade to the
-	 * modal on every theme that styles the two differently. Measuring beats
-	 * guessing — a theme can dress its modals through `--modal-background`, a
-	 * rule on `.modal`, or one on `.modal-content`, and all three end up in the
-	 * computed colour of some element between the content and the frame.
+	 * Pinning means rows scroll underneath the ribbon, so a pinned ribbon has to
+	 * be filled with something — and the only fill that can't betray the theme
+	 * is the modal's own surface. Guessing at it went wrong twice over: the note
+	 * background (`--background-primary`) is a colour a theme may reserve for
+	 * notes alone, and even the modal's *declared* colour is wrong when that
+	 * colour is translucent, because painting it a second time over a surface
+	 * already wearing it doubles the tint. Either way the strip showed up as a
+	 * slab in the wrong shade behind the tabs.
 	 *
-	 * Walks content → frame and takes the first background solid enough to cover
-	 * what slides under it; faint tints layered over the frame are skipped so
-	 * the strip doesn't take a 3%-white wash for the whole surface. Nothing
-	 * usable (a gradient, a translucent frame) leaves the property unset, and
-	 * the stylesheet's fallback chain takes over.
+	 * So the ribbon only pins when there is a colour it can match exactly. This
+	 * walks content → frame and takes the first background solid enough to hide
+	 * what slides under it — which catches a theme dressing its modals through
+	 * `--modal-background`, a rule on `.modal` or one on `.modal-content` alike,
+	 * and skips the faint washes layered over a frame, whose colour says nothing
+	 * about what shows through them. Find one and the ribbon pins, painted with
+	 * that exact colour. Find none — a glass modal, a gradient, a translucent
+	 * frame — and it stays unpainted and scrolls away with the content, which
+	 * costs the tabs their pinning but can never leave a slab behind them.
+	 *
+	 * `retry` covers the modal being measured a frame too early: styles resolve
+	 * to nothing until the frame is in the document, and a theme may still be
+	 * transitioning it in. One more look on the next frame settles it, and the
+	 * ribbon is unpinned in the meantime rather than wrongly painted.
 	 */
-	private hearthSyncModalSurface(): void {
+	private hearthSyncModalSurface(retry: boolean): void {
 		const { contentEl } = this;
-		contentEl.style.removeProperty("--hearth-modal-surface");
-		const frame = this.modalEl ?? contentEl;
-		let el: HTMLElement | null = contentEl;
+		const surface = this.hearthMeasureSurface();
+		contentEl.toggleClass("hearth-surface-solid", surface !== null);
+		if (surface === null) contentEl.style.removeProperty("--hearth-modal-surface");
+		else contentEl.style.setProperty("--hearth-modal-surface", surface);
+		if (surface !== null || !retry) return;
+		window.requestAnimationFrame(() => {
+			if (contentEl.isConnected) this.hearthSyncModalSurface(false);
+		});
+	}
+
+	/** The first background between the modal's content and its frame solid
+	 * enough to sit a pinned bar on, or null if the modal wears none. */
+	private hearthMeasureSurface(): string | null {
+		const frame = this.modalEl ?? this.contentEl;
+		let el: HTMLElement | null = this.contentEl;
 		while (el) {
 			const color = window.getComputedStyle(el).backgroundColor;
-			if (isOpaqueSurfaceColor(color)) {
-				contentEl.style.setProperty("--hearth-modal-surface", color);
-				return;
-			}
-			if (el === frame) return;
+			if (isOpaqueSurfaceColor(color)) return color;
+			if (el === frame) return null;
 			el = el.parentElement;
 		}
+		return null;
 	}
 
 	/** Draw the tab ribbon. Clicking a tab persists the choice and rebuilds. */
