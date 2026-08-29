@@ -2643,13 +2643,15 @@
 	 * keeps the card free of scrollbars: the grid is no bigger than the card it
 	 * is in.
 	 *
-	 * Down to a floor, on both axes. A cell never shrinks below
-	 * `--hearth-tile-min` (a comfortable target, and about a line of text with
-	 * its icon), because a button too small to read or hit isn't "visible" in any
-	 * useful sense. A card too small for its buttons at that size scrolls, as the
-	 * fixed style always did — the fallback, not the intent. */
+	 * Down to a floor, on both axes: a cell never shrinks below
+	 * `--hearth-tile-min`, about the smallest an icon button can be and still be
+	 * aimed at, because a button smaller than that isn't "visible" in any useful
+	 * sense. The floor is deliberately low — it exists to stop a card drawing
+	 * slivers, not to decide how big a button ought to be — and a card too small
+	 * for its buttons even at that size scrolls, as the fixed style always did:
+	 * the fallback, not the intent. */
 	height: 100%;
-	--hearth-tile-min: 48px;
+	--hearth-tile-min: 28px;
 	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(var(--hearth-tile-min), 1fr));
 	grid-auto-rows: minmax(var(--hearth-tile-min), 1fr);
 	gap: var(--hearth-tile-gap);
@@ -2665,9 +2667,13 @@
 .hearth-links.is-tile-scaled .hearth-link-tile {
 	container-type: size;
 	container-name: hearth-tile;
-	padding: 4px 6px;
+	/* No padding of its own: at the floor a fixed inset would be a third of the
+	 * button, starving the icon. The contents keep themselves off the edges
+	 * instead — the icon by taking a share of the box, the label by its own
+	 * padding, both of which shrink with the button. */
+	padding: 0;
 	gap: 4px;
-	border-radius: clamp(8px, calc(var(--hearth-tile-cell) * 0.1), 18px);
+	border-radius: clamp(6px, calc(var(--hearth-tile-cell) * 0.1), 18px);
 }
 
 /* Icon and label are shares of the button's own box, so they fit whatever shape
@@ -2688,6 +2694,7 @@
 .hearth-links.is-tile-scaled .hearth-link-label {
 	font-size: clamp(0.6rem, min(28cqh, 26cqw), var(--font-ui-small, 0.8rem));
 	line-height: 1.25;
+	padding: 0 min(6px, 8cqw);
 }
 
 /* The resize grip follows the button's own corner radius, which scales. */
