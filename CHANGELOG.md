@@ -152,12 +152,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   to, and the rows share the card's height between them. So a button is a
   fraction of the card in both directions — it grows and shrinks with the card
   the way a card grows with the dashboard, every button stays visible whatever
-  size the card is, and the card never needs a scrollbar. Each button's icon and
-  label scale to the button, and a button too small to carry its label shows just
-  its icon. Buttons stay tied to the grid, sized in whole cells rather than
-  freely in pixels, so a launchpad still reads as a launchpad rather than a
-  second free-form board — a button can still be dragged to a spot, and dragged
-  two or three cells wide (or tall) by its bottom-right corner in arrange mode.
+  size the card is, and the card needs no scrollbar. Buttons stop shrinking at a
+  minimum size, rather than dwindling to something you can't read or hit; a card
+  too short for them all at that size scrolls, as the old style always did.
+  Each button's icon and label scale to the button — up to the size Obsidian uses
+  for small UI text, so a big button carries more air rather than a headline —
+  and a button too small to carry its label shows just its icon. Buttons stay
+  tied to the grid, sized in whole cells rather than freely in pixels, so a
+  launchpad still reads as a launchpad rather than a second free-form board — a
+  button can still be dragged to a spot, and dragged two or three cells wide (or
+  tall) by its bottom-right corner in arrange mode.
 
   Every launchpad you already have keeps the **Fixed size (legacy)** style, down
   to the pixel: buttons that stay the size they are, so a wider card fits more of

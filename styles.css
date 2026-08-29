@@ -2640,10 +2640,17 @@
 	);
 	/* Fill the card's height, and let every row take an equal share of it —
 	 * however many rows the buttons need. That is what keeps the card free of
-	 * scrollbars: the grid is never taller than the card it is in. */
+	 * scrollbars: the grid is no taller than the card it is in.
+	 *
+	 * Down to a floor. A row never shrinks below `--hearth-tile-min-row` (a
+	 * comfortable target, and about a line of text with its icon), because a
+	 * button too small to read or hit isn't "visible" in any useful sense. A card
+	 * too short for its buttons at that size scrolls, as the fixed style always
+	 * did — the fallback, not the intent. */
 	height: 100%;
+	--hearth-tile-min-row: 48px;
 	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(0, 1fr));
-	grid-auto-rows: minmax(0, 1fr);
+	grid-auto-rows: minmax(var(--hearth-tile-min-row), 1fr);
 	gap: var(--hearth-tile-gap);
 }
 
@@ -2658,21 +2665,27 @@
 	container-type: size;
 	container-name: hearth-tile;
 	padding: 4px 6px;
-	gap: 6px;
+	gap: 4px;
 	border-radius: clamp(8px, calc(var(--hearth-tile-cell) * 0.1), 18px);
 }
 
 /* Icon and label are shares of the button's own box, so they fit whatever shape
  * the card left it — mostly of its height, which is what a stacked icon and line
  * of text actually compete for, and of its width too so a narrow button doesn't
- * overflow. Both are capped, so a very large button doesn't become a billboard. */
+ * overflow.
+ *
+ * Both stop growing early. The label is capped at the size Obsidian sets for
+ * small UI text — which is what a launchpad label has always been — so a big
+ * button is a big button rather than a headline, and the icon is capped a little
+ * above its fixed-style size. Between them a button that has room to spare
+ * simply carries more air, which is what makes a wall of them read as one set. */
 .hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
-	width: min(46cqh, 55cqw, 42px);
-	height: min(46cqh, 55cqw, 42px);
+	width: min(46cqh, 55cqw, 32px);
+	height: min(46cqh, 55cqw, 32px);
 }
 
 .hearth-links.is-tile-scaled .hearth-link-label {
-	font-size: clamp(0.6rem, min(24cqh, 26cqw), 1.05rem);
+	font-size: clamp(0.6rem, min(28cqh, 26cqw), var(--font-ui-small, 0.8rem));
 	line-height: 1.25;
 }
 
@@ -2685,15 +2698,15 @@
  * this from the tile's span in JS (`applyTileIconOnly`); a scaled button's span
  * says nothing about its pixels, so it is measured here instead. The flex gap
  * disappears with the label, leaving the icon dead-centre. */
-@container hearth-tile (max-height: 44px) {
+@container hearth-tile (max-height: 34px) {
 	.hearth-links.is-tile-scaled .hearth-link-label {
 		display: none;
 	}
 
 	/* With the label gone, the icon can have the height it was sharing. */
 	.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
-		width: min(62cqh, 62cqw, 42px);
-		height: min(62cqh, 62cqw, 42px);
+		width: min(62cqh, 62cqw, 32px);
+		height: min(62cqh, 62cqw, 32px);
 	}
 }
 
@@ -2703,8 +2716,8 @@
 	}
 
 	.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
-		width: min(62cqh, 62cqw, 42px);
-		height: min(62cqh, 62cqw, 42px);
+		width: min(62cqh, 62cqw, 32px);
+		height: min(62cqh, 62cqw, 32px);
 	}
 }
 

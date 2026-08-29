@@ -12,10 +12,12 @@
  * - **scale** — the buttons fill the card. Its columns are the card's own
  *   ({@link TileSpec.cols}) and its rows divide the card's height between them,
  *   so a button is a fraction of the card in both directions: it grows with the
- *   card exactly as a card grows with the dashboard, every button stays visible
- *   whatever size the card is, and the card never scrolls. Buttons are still
- *   tied to the grid — sized in whole cells, never freely in pixels — so a
- *   launchpad stays a launchpad rather than becoming a second free-form board.
+ *   card exactly as a card grows with the dashboard, and every button stays
+ *   visible whatever size the card is — down to a floor, below which a button
+ *   would be too small to read or hit, and past which the card scrolls like the
+ *   fixed style always did. Buttons are still tied to the grid — sized in whole
+ *   cells, never freely in pixels — so a launchpad stays a launchpad rather than
+ *   becoming a second free-form board.
  *
  * Both readings share one stored tile: pixel sizes and cell spans are separate
  * fields, so switching a card between the two styles never destroys the other
@@ -184,10 +186,10 @@ export function fixedRowHeight(): number {
  *
  * Scaled: the column count is the card's own, so a cell is a fraction of the
  * card's width. The rows divide the card's *height* between them — as many as
- * the buttons came to — which no formula here can know, so the caller measures
- * the rendered row height and passes it in; `rowHeight` is ignored by the fixed
- * style, and a scaled grid that can't be measured yet falls back to a cell-shaped
- * row.
+ * the buttons came to, and never below the floor the stylesheet sets — which no
+ * formula here can know, so the caller measures the rendered row height and
+ * passes it in; `rowHeight` is ignored by the fixed style, and a scaled grid that
+ * can't be measured yet falls back to a cell-shaped row.
  */
 export function tileMetrics(width: number, spec: TileSpec, rowHeight?: number): TileMetrics {
 	if (spec.sizing === "scale") {

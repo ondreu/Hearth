@@ -1960,11 +1960,12 @@ export const en = {
 			sizing: "Button sizing",
 			sizingDesc:
 				"Whether the buttons fill the card — every one of them visible however " +
-				"big the card is, growing and shrinking with it, and no scrollbar — or " +
-				"keep a fixed pixel size, so a card too small for them all scrolls. " +
-				"Cards made before this setting existed stay on the fixed style until " +
-				"you switch them; each style keeps its own sizes, so switching back " +
-				"restores what you had.",
+				"big the card is, growing and shrinking with it — or keep a fixed pixel " +
+				"size, so a card too small for them all scrolls. Filled buttons stop " +
+				"shrinking once they'd be too small to use, and a card too short for " +
+				"them at that size scrolls too. Cards made before this setting existed " +
+				"stay on the fixed style until you switch them; each style keeps its own " +
+				"sizes, so switching back restores what you had.",
 			sizingScale: "Fill the card",
 			sizingFixed: "Fixed size (legacy)",
 			across: "Buttons across",
