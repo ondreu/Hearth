@@ -1,5 +1,6 @@
 import type { DatacoreLanguage } from "./datacore";
 import type { EventNoteConfig } from "./eventnote";
+import type { Granularity } from "./periodic";
 import type {
 	GitAction,
 	GitActionStyle,
@@ -12,6 +13,7 @@ export type CardKind =
 	| "embed"
 	| "slideshow"
 	| "daily"
+	| "periodic"
 	| "web"
 	| "bookmarks"
 	| "favorites"
@@ -1245,6 +1247,15 @@ export type SlideshowFit = "cover" | "contain";
 /** Per-card configuration for a "slideshow" card — a picture embed that
  * rotates. All fields are optional; the defaults noted below are the ones a
  * freshly added card runs with. */
+/** What a Periodic note card shows: always the *current* note of one period,
+ * resolved through the Periodic Notes plugin (issue #116). Which folder, name
+ * and template that note has is Periodic Notes' business, not Hearth's. */
+export interface PeriodicCardConfig {
+	/** The period the card tracks. Omitted means weekly — the daily note has a
+	 * card of its own. */
+	granularity?: Granularity;
+}
+
 export interface SlideshowConfig {
 	/** Where the pictures come from. Default "list". */
 	source?: SlideshowSource;
@@ -1321,6 +1332,8 @@ export interface DashboardCard {
 	/** kind === "slideshow": the pictures, where they come from, and how they
 	 * rotate. */
 	slideshow?: SlideshowConfig;
+	/** kind === "periodic": which period's note the card follows. */
+	periodic?: PeriodicCardConfig;
 	/** kind === "web": the web page URL to embed in an iframe. */
 	url?: string;
 	/** kind === "web": allow the framed page same-origin access. Off by default
@@ -1398,7 +1411,7 @@ export interface DashboardCard {
 	 * rendering it read-only. Only applies to Markdown notes. */
 	editable?: boolean;
 
-	/** kind === "embed" / "daily": when editing in place, use Obsidian's own
+	/** kind === "embed" / "daily" / "periodic": when editing in place, use Obsidian's own
 	 * Live Preview editor (hosted in the card) instead of Hearth's plain
 	 * raw-Markdown box. Only meaningful together with `editable`. */
 	livePreview?: boolean;
@@ -1437,9 +1450,10 @@ export interface DashboardCard {
 	/** Show a button that opens the card's file in the editor.
 	 *
 	 * The two cards that offer it default differently, because one of them
-	 * predates the other: on `kind === "daily"` the button is shown unless this
-	 * is `false`, while on `kind === "embed"` (added for #144) it is hidden
-	 * unless this is `true`, so no existing embed card sprouts a new control. */
+	 * predates the other: on `kind === "daily"` and `kind === "periodic"` the
+	 * button is shown unless this is `false`, while on `kind === "embed"` (added
+	 * for #144) it is hidden unless this is `true`, so no existing embed card
+	 * sprouts a new control. */
 	showOpenButton?: boolean;
 
 	/** Show this card on every dashboard, sharing one definition and position

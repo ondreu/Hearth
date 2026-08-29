@@ -140,6 +140,7 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
 | --- | --- | --- |
 | **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom, optional in-place editing (raw or Live Preview) and a second view you can flip to | — |
 | **Daily note** | Always today's note, created on first click | Daily notes (core) |
+| **Periodic note** | Always the current week's, month's, quarter's or year's note, created on first click from your own template | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) |
 | **Embedded image** | A picture from the vault — fill and crop, fit, stretch or scroll, anchored to any of nine points | — |
 | **Slideshow** | Pictures from a list or a folder: on a timer, one a day (or every few days, worked out from the date) or only by hand, with captions, sort order, transition and length, slow zoom and hover controls | — |
 | **Embedded canvas** | A canvas you can pan around in place | Canvas (core) |
@@ -254,6 +255,7 @@ full list, with live status and where each one's settings live, is under
 | [Dataview](https://github.com/blacksmithgu/obsidian-dataview) | The Dataview card: DQL and DataviewJS, rendered live | The card |
 | [Datacore](https://github.com/blacksmithgu/datacore) | The Datacore card: queries and JS/JSX/TS/TSX scripts | The card |
 | [Templater](https://github.com/SilentVoid13/Templater) | The "New note from template" launchpad | The card |
+| [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) | The Periodic note card: this week's, month's, quarter's or year's note, resolved and created by the plugin itself | The card |
 | [Git](https://github.com/Vinzent03/obsidian-git) | The Git card, acting through the plugin's own task queue | The card |
 | [Operon](https://github.com/hasanyilmaz/operon) | Four cards on Operon's Developer API — [details below](#operon) | Integrations tab |
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | Your per-file icons show wherever Hearth lists a file | Integrations tab |

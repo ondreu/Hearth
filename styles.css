@@ -1486,8 +1486,9 @@
 	height: 100%;
 }
 
-/* Daily-note card: the "create today's note" prompt button. */
-.hearth-daily-create {
+/* Daily note and Periodic note cards: the "create this note" prompt button. */
+.hearth-daily-create,
+.hearth-periodic-create {
 	margin-top: 10px;
 	padding: 6px 14px;
 	border-radius: 8px;
@@ -1498,7 +1499,8 @@
 	font-size: 0.85rem;
 }
 
-.hearth-daily-create:hover {
+.hearth-daily-create:hover,
+.hearth-periodic-create:hover {
 	opacity: 0.9;
 }
 

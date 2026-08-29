@@ -48,6 +48,7 @@ export const zh: Translations = {
 		couldNotRecordVoice: "Hearth：无法开始录音。",
 		enableDailyNotes: "Hearth：请启用核心插件“日记”。",
 		couldNotOpenDaily: "Hearth：无法打开今天的日记。",
+		couldNotOpenPeriodic: "Hearth：Periodic Notes 无法创建该笔记。",
 		commandNotFound: (id: string) => `Hearth：找不到命令：${id}`,
 		couldNotCreateNoteForDay: (day: string) => `Hearth：无法为 ${day} 创建笔记。`,
 		couldNotCreateEventNote: "Hearth：无法为该事件创建笔记。",
@@ -1033,6 +1034,12 @@ export const zh: Translations = {
 						"模板处理由 Templater 完成 — 您的用户脚本、tp.system.prompt() 对话框" +
 						"和光标定位的行为都与从它自己的命令调用时一致。",
 				},
+				periodicNotes: {
+					name: "Periodic Notes",
+					desc:
+						"“周期笔记”卡片显示本周、本月、本季度或本年的笔记 — " +
+						"定位由 Periodic Notes 完成，缺失的笔记也由它按您自己的模板创建。",
+				},
 				git: {
 					name: "Git",
 					desc:
@@ -1321,6 +1328,7 @@ export const zh: Translations = {
 			embed: "嵌入（笔记 / 图片 / base）",
 			slideshow: "幻灯片",
 			daily: "日记（今天）",
+			periodic: "周期笔记（周 / 月 / 年）",
 			web: "网页（iframe）",
 			bookmarks: "书签",
 			favorites: "收藏",
@@ -1500,6 +1508,28 @@ export const zh: Translations = {
 			info: "日记",
 			infoDesc:
 				"今天的笔记依据核心插件“日记”的日期格式和文件夹定位。卡片会随您的编辑实时更新。",
+		},
+		periodic: {
+			granularity: "周期",
+			granularityDesc:
+				"此卡片显示哪一种周期笔记。始终是当前的那一篇，因此周期结束后卡片会自动切换。",
+			granularities: {
+				day: "每日",
+				week: "每周",
+				month: "每月",
+				quarter: "每季度",
+				year: "每年",
+			},
+			editable: "可编辑",
+			editableDesc: "就地编辑该笔记，而非只读。更改会保存到仓库。",
+			openButton: "打开按钮",
+			openButtonDesc: "显示一个按钮，在编辑器中打开该笔记。",
+			info: "Periodic Notes",
+			infoDesc:
+				"该笔记依据 Periodic Notes 插件自身的文件夹、日期格式和模板定位，" +
+				"缺失时也由 Periodic Notes 创建。卡片会随您的编辑实时更新。",
+			missingDesc:
+				"此卡片需要社区插件 Periodic Notes。请安装并启用它，然后在其中开启您想要的笔记类型。",
 		},
 		web: {
 			url: "网址",
@@ -2503,6 +2533,7 @@ export const zh: Translations = {
 			embedEnableCanvas: "请启用核心插件“白板”以嵌入白板",
 			embedInstallExcalidraw: "请安装 Excalidraw 插件以嵌入绘图",
 			dailyEnable: "请启用核心插件“日记”",
+			periodicInstall: "请安装 Periodic Notes 插件",
 			scheduleNoSources:
 				"请启用核心插件“日记”，或在此卡片的设置中订阅一个日历",
 			webNoUrl: "请在设置中设定网址",
@@ -2761,6 +2792,21 @@ export const zh: Translations = {
 			createToday: "创建今天的笔记",
 			openToday: "打开今天的笔记",
 			noNoteYet: "今天还没有笔记",
+		},
+		periodic: {
+			/** 当前周期，用于下面的句子。 */
+			period: {
+				day: "今天",
+				week: "本周",
+				month: "本月",
+				quarter: "本季度",
+				year: "今年",
+			},
+			noNoteYet: (period: string) => `${period}还没有笔记`,
+			create: (period: string) => `创建${period}的笔记`,
+			open: (period: string) => `打开${period}的笔记`,
+			notEnabled: (granularity: string) =>
+				`请在 Periodic Notes 中开启${granularity}笔记`,
 		},
 		heatmap: {
 			less: "少",
@@ -3025,6 +3071,7 @@ export const zh: Translations = {
 		excalidraw: "Excalidraw 绘图",
 		canvas: "嵌入白板",
 		daily: "日记（今天）",
+		periodic: "周期笔记",
 		web: "网页（iframe）",
 		bookmarks: "书签",
 		favorites: "收藏",
@@ -3067,6 +3114,7 @@ export const zh: Translations = {
 		excalidraw: "一幅 Excalidraw 绘图，支持原生平移与缩放",
 		canvas: "一块可以就地平移的白板",
 		daily: "始终是今天的笔记，首次点击时创建",
+		periodic: "来自 Periodic Notes 的本周、本月或本年笔记",
 		web: "iframe 中的网页，按计时器刷新",
 		bookmarks: "您的 Obsidian 书签，一键可达",
 		favorites: "您在 Hearth 中标星的笔记",

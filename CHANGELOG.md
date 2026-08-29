@@ -15,6 +15,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A card for your weekly, monthly, quarterly or yearly note.** The new
+  **Periodic note** card shows whichever periodic note covers *right now* —
+  this week's by default, or the month, quarter or year, picked in the card's
+  settings — and rolls over to the next one on its own when the period ends.
+  Like the Daily note card it can be read-only, edited in place (raw or Live
+  Preview), and carry a button that opens the note in the editor. Where the
+  note lives, what it is called and what a new one contains stays entirely
+  [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes)'
+  business: the card asks the plugin where the note is, and a note that doesn't
+  exist yet is created by Periodic Notes from your own template — so it is the
+  same note its own command would open. Both generations of the plugin are
+  supported, the released 0.x and the 1.0 beta. The Daily note card is
+  untouched (#116).
+
 - **The board can be as wide as your monitor.** **Content width** used to stop
   at 1600px, which on a large display left the board marooned in the middle of
   an empty pane. The slider now runs to **3840px** — the full width of a 4K
