@@ -6,7 +6,27 @@ import { localDayKey } from "./dates";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
 import { internalLinkText, openLink } from "./opener";
-import { type DashboardCard, type EmbedView } from "./types";
+import {
+	TILE_COLS_DEFAULT,
+	TILE_COLS_MAX,
+	TILE_COLS_MIN,
+	TILE_GAP,
+	isTilePinned,
+	pinTile,
+	resizeTile,
+	tileCols,
+	tileMetrics,
+	tilePlacement,
+	tileSizing,
+	tileSpans,
+	tileSpec,
+	tileStartSize,
+	unpinTile,
+	type TileMetrics,
+	type TileSpans,
+	type TileSpec,
+} from "./tiles";
+import { type DashboardCard, type EmbedView, type TileGeometry } from "./types";
 import { type HomeView } from "./view";
 
 /**
@@ -744,82 +764,139 @@ export function activityByDay(app: HomeView["app"], metric: "modified" | "create
 }
 
 
-/** Apply a per-tile size: converts pixel width/height into grid column/row
- * spans (relative to the fine cell size). Each tile is placed on the grid
- * spanning N columns × M rows, so it can independently span multiple rows
- * without its row's height being governed by the tallest tile. When the tile
- * has an explicit free-form position (col/row), it's pinned to that grid line
- * instead of auto-flowing. */
-export function applyTileSize(
-	tile: HTMLElement,
-	sizeW: number | undefined,
-	sizeH: number | undefined,
-	legacySize: number | undefined,
-	baseTile: number,
-	col?: number,
-	row?: number,
-): void {
-	// Migrate a legacy single `size` into independent width/height on read.
-	const w = sizeW ?? legacySize;
-	const h = sizeH ?? legacySize;
-	// Use the fine cell size for span calculation so sizing is granular.
-	const cell = TILE_CELL;
-	const rowH = Math.round(TILE_CELL * 0.78);
-	const cs = w && w > 0 ? Math.max(1, Math.round(w / cell)) : DEFAULT_TILE_CS;
-	const rs = h && h > 0 ? Math.max(1, Math.round(h / rowH)) : DEFAULT_TILE_RS;
-	tile.style.setProperty("--hearth-tile-cs", String(cs));
-	tile.style.setProperty("--hearth-tile-rs", String(rs));
-	applyTileIconOnly(tile, cs, rs);
+/**
+ * Create the tile grid a launchpad-like card draws its buttons into — the
+ * Links, Commands and Templater cards, which run the same grid, the same drag
+ * and the same resize.
+ *
+ * The card's sizing style decides what the grid is: the fixed style hands CSS a
+ * base tile size and lets the columns auto-fill the card, while the scaled style
+ * hands it a column count and lets each cell — and so each button — be a
+ * fraction of the card. See `src/tiles.ts` for the arithmetic both share.
+ */
+export function createTileGrid(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+): { grid: HTMLElement; spec: TileSpec } {
+	const spec = tileSpec(card);
+	const grid = body.createDiv("hearth-links hearth-tiles-sized");
+	if (spec.sizing === "scale") {
+		grid.addClass("is-tile-scaled");
+		grid.style.setProperty("--hearth-tile-cols", String(spec.cols));
+		// The cell size is a fraction of the body's width, which CSS can only
+		// read from a container — so the body becomes one. (Set here rather than
+		// in the stylesheet so no other card pays for the containment.)
+		body.addClass("hearth-tiles-scaled");
+	} else {
+		grid.style.setProperty("--hearth-tile", `${spec.baseTile}px`);
+	}
+	// Flag the card body so CSS can disable the card drag overlay over tiles in
+	// arrange mode (tiles are self-contained widgets with their own resize).
+	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
+	return { grid, spec };
+}
+
+
+/**
+ * The settings every launchpad-like card's editor offers for its buttons: which
+ * of the two sizing styles the card is on and, for the scaled one, how many
+ * buttons wide its grid is (which is what decides how big a button is, since a
+ * button is a fraction of the card).
+ *
+ * Shared by the Links, Commands and Templater editors — the three cards draw
+ * the same grid, so they answer the same two questions.
+ */
+export function tileSizingSettings(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	const strings = t().editors.tiles;
+	const card = ctx.card;
+	new Setting(containerEl)
+		.setName(strings.sizing)
+		.setDesc(strings.sizingDesc)
+		.addDropdown((d) => {
+			d.addOption("scale", strings.sizingScale);
+			d.addOption("fixed", strings.sizingFixed);
+			d.setValue(tileSizing(card)).onChange((v) => {
+				card.tileSizing = v === "scale" ? "scale" : "fixed";
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// What sits under this differs by style — a column count for one,
+				// a pixel size for the other — so rebuild the editor around it.
+				ctx.requestRender();
+			});
+		});
+	if (tileSizing(card) !== "scale") return;
+	const across = new Setting(containerEl)
+		.setName(strings.across)
+		.setDesc(strings.acrossDesc);
+	across.addSlider((s) => {
+		s.setLimits(TILE_COLS_MIN, TILE_COLS_MAX, 1)
+			.setValue(tileCols(card.tileCols))
+			.onChange((v) => {
+				card.tileCols = v === TILE_COLS_DEFAULT ? undefined : v;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+	});
+	across.addExtraButton((b) =>
+		b
+			.setIcon("rotate-ccw")
+			.setTooltip(t().settings.resetSlider)
+			.onClick(() => {
+				card.tileCols = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
+}
+
+
+/** Apply a tile's size and position: both are converted into grid column/row
+ * spans (and, when the tile is pinned, grid lines) by `src/tiles.ts`, so a tile
+ * spans N columns × M rows and can grow vertically without its row's height
+ * being governed by the tallest tile. */
+export function applyTileSize(tile: HTMLElement, item: TileGeometry, spec: TileSpec): void {
+	const spans = tileSpans(item, spec);
+	tile.style.setProperty("--hearth-tile-cs", String(spans.cs));
+	tile.style.setProperty("--hearth-tile-rs", String(spans.rs));
+	applyTileIconOnly(tile, spans, spec);
 	// Free-form position: pin to a grid line (1-based). When either is missing
 	// the tile auto-flows into the next available cell.
-	if (col != null && col > 0) tile.style.setProperty("--hearth-tile-col", String(col));
+	const { col, row } = tilePlacement(item, spans, spec);
+	if (col != null) tile.style.setProperty("--hearth-tile-col", String(col));
 	else tile.style.removeProperty("--hearth-tile-col");
-	if (row != null && row > 0) tile.style.setProperty("--hearth-tile-row", String(row));
+	if (row != null) tile.style.setProperty("--hearth-tile-row", String(row));
 	else tile.style.removeProperty("--hearth-tile-row");
 }
 
 
-/** Toggle icon-only mode when a tile is too small to show its label. Below two
- * fine rows there's no vertical room for text, and at a single column there's
- * no horizontal room; in both cases the label ellipsises away to nothing while
- * still reserving its line + gap, which pushes the icon off-centre. Dropping
- * the label (and its gap) then lets the icon sit dead-centre. */
-function applyTileIconOnly(tile: HTMLElement, cs: number, rs: number): void {
-	tile.toggleClass("is-icon-only", rs <= 1 || cs <= 1);
+/** Toggle icon-only mode when a fixed-size tile is too small to show its label.
+ * Below two fine rows there's no vertical room for text, and at a single column
+ * there's no horizontal room; in both cases the label ellipsises away to nothing
+ * while still reserving its line + gap, which pushes the icon off-centre.
+ * Dropping the label (and its gap) then lets the icon sit dead-centre.
+ *
+ * A scaled tile's span says nothing about how many pixels it got — that's the
+ * point of it — so there the same call is made in CSS, by a container query on
+ * the tile's own measured size. */
+function applyTileIconOnly(tile: HTMLElement, spans: TileSpans, spec: TileSpec): void {
+	if (spec.sizing === "scale") return;
+	tile.toggleClass("is-icon-only", spans.rs <= 1 || spans.cs <= 1);
 }
 
 
-/** Default span for a tile with no explicit size: 2 columns × 2 rows on the
- * fine grid (≈88×68px), matching the visual size of the old 90px default. */
-const DEFAULT_TILE_CS = 2;
-
-const DEFAULT_TILE_RS = 2;
-
-
-/** Fine grid (px) that tile sizes snap to, so tiles align like Android widgets. */
-const TILE_GRID = 4;
-
-
-/** Base cell size (px) for the tile grid. Smaller = finer granularity: a tile
- * can span more columns/rows in smaller steps, so sizing feels precise rather
- * than chunky. Half of the visual default so 2 cells ≈ one old tile. */
-const TILE_CELL = 44;
-
-
 /** Attach a widget-style resize handle to a tile. The handle is a clear,
- * grabbable corner grip (bottom-right) that resizes width and height together
- * on a fine grid. Fully self-contained: stops propagation so the card's drag
- * engine never interferes. */
+ * grabbable corner grip (bottom-right) that resizes width and height together:
+ * on a fine pixel grid in the fixed style, and in whole cells of the card's own
+ * grid in the scaled one, where a button is a fraction of the card rather than a
+ * pixel size. Fully self-contained: stops propagation so the card's drag engine
+ * never interferes. */
 export function makeTileResizable(
 	view: HomeView,
 	tile: HTMLElement,
-	baseTile: number,
-	getW: () => number | undefined,
-	setW: (size: number | undefined) => void,
-	getH: () => number | undefined,
-	setH: (size: number | undefined) => void,
-	getLegacy: () => number | undefined,
-	setLegacy: (size: number | undefined) => void,
+	item: TileGeometry,
+	spec: TileSpec,
 ): void {
 	const handle = tile.createDiv("hearth-tile-resize");
 	handle.setAttribute("aria-hidden", "true");
@@ -834,17 +911,17 @@ export function makeTileResizable(
 	let startH = 0;
 	let startX = 0;
 	let startY = 0;
+	let metrics = tileMetrics(0, spec);
 
 	handle.addEventListener("pointerdown", (e) => {
 		stop(e);
 		resizing = true;
-		// Seed from legacy `size` (which used to drive both axes) so a tile
-		// resized before this split still starts from its stored footprint.
-		const legacy = getLegacy();
-		startW = getW() ?? legacy ?? baseTile;
-		if (legacy != null && getW() == null) setW(legacy);
-		startH = getH() ?? legacy ?? Math.round(baseTile * 0.78);
-		if (legacy != null && getH() == null) setH(legacy);
+		// Measure the grid the gesture is happening on, so a scaled tile can be
+		// mapped between pixels and cells at the card's current size.
+		metrics = gridMetrics(tile, spec);
+		const start = tileStartSize(item, spec, metrics);
+		startW = start.width;
+		startH = start.height;
 		startX = e.clientX;
 		startY = e.clientY;
 		handle.setPointerCapture(e.pointerId);
@@ -856,23 +933,18 @@ export function makeTileResizable(
 		if (!resizing) return;
 		e.preventDefault();
 		e.stopPropagation();
-		const dx = e.clientX - startX;
-		const dy = e.clientY - startY;
-		// Snap to the fine grid so tiles stay aligned like widgets.
-		const w = Math.max(TILE_CELL, Math.min(480, snap(startW + dx, TILE_GRID)));
-		const h = Math.max(34, Math.min(480, snap(startH + dy, TILE_GRID)));
-		setW(w === baseTile ? undefined : w);
-		setH(h === Math.round(baseTile * 0.78) ? undefined : h);
-		setLegacy(undefined);
-		// Convert live pixel size to grid spans using the fine cell size so
-		// the tile grows in small, precise steps.
-		const cell = TILE_CELL;
-		const rowH = Math.round(TILE_CELL * 0.78);
-		const cs = Math.max(1, Math.round(w / cell));
-		const rs = Math.max(1, Math.round(h / rowH));
-		tile.style.setProperty("--hearth-tile-cs", String(cs));
-		tile.style.setProperty("--hearth-tile-rs", String(rs));
-		applyTileIconOnly(tile, cs, rs);
+		const spans = resizeTile(
+			item,
+			spec,
+			startW + (e.clientX - startX),
+			startH + (e.clientY - startY),
+			metrics,
+		);
+		// Convert the live size to grid spans so the tile grows in the steps its
+		// style allows — small and precise, or whole cells.
+		tile.style.setProperty("--hearth-tile-cs", String(spans.cs));
+		tile.style.setProperty("--hearth-tile-rs", String(spans.rs));
+		applyTileIconOnly(tile, spans, spec);
 	});
 
 	const end = (e: PointerEvent) => {
@@ -892,9 +964,11 @@ export function makeTileResizable(
 }
 
 
-/** Snap a value to the nearest multiple of `grid`. */
-function snap(value: number, grid: number): number {
-	return Math.round(value / grid) * grid;
+/** The metrics of the grid a tile sits in, measured from the DOM. */
+function gridMetrics(tile: HTMLElement, spec: TileSpec): TileMetrics {
+	const grid = tile.closest<HTMLElement>(".hearth-links");
+	const width = grid?.getBoundingClientRect().width ?? 0;
+	return tileMetrics(width, spec);
 }
 
 
@@ -910,26 +984,25 @@ function snap(value: number, grid: number): number {
  *  - Auto-shift (beta, `autoFlow = true`): a dashed placeholder occupies the
  *    target slot and siblings swap aside live (phone-widget style). See
  *    `makeTileAutoFlowDrag`. */
-export function makeTileDraggable<T extends { id: string; col?: number; row?: number }>(
+export function makeTileDraggable<T extends TileGeometry & { id: string }>(
 	view: HomeView,
 	container: HTMLElement,
 	tile: HTMLElement,
-	items: T[],
 	item: T,
 	autoFlow: boolean,
+	spec: TileSpec,
 ): void {
 	if (autoFlow) {
-		makeTileAutoFlowDrag(view, container, tile, item);
+		makeTileAutoFlowDrag(view, container, tile, item, spec);
 	} else {
-		makeTileFreeFormDrag(view, container, tile, item);
+		makeTileFreeFormDrag(view, container, tile, item, spec);
 	}
 	tile.setAttribute("data-tile-id", item.id);
 	// Double-click a pinned tile to clear its position and let it auto-flow.
-	if (item.col != null || item.row != null) {
+	if (isTilePinned(item, spec)) {
 		tile.addEventListener("dblclick", (e) => {
 			e.stopPropagation();
-			delete item.col;
-			delete item.row;
+			unpinTile(item, spec);
 			void view.plugin.saveData(view.plugin.settings);
 			view.render();
 		});
@@ -944,11 +1017,12 @@ export function makeTileDraggable<T extends { id: string; col?: number; row?: nu
  *  so a hidden tile stays visible (an undesirable state worth flagging).
  *  Using a transform (not absolute positioning) avoids any offset/jump —
  *  the tile simply translates by the pointer delta from its grid slot. */
-function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number }>(
+function makeTileFreeFormDrag<T extends TileGeometry & { id: string }>(
 	view: HomeView,
 	container: HTMLElement,
 	tile: HTMLElement,
 	item: T,
+	spec: TileSpec,
 ): void {
 	let dragging = false;
 	let startX = 0;
@@ -983,8 +1057,8 @@ function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number
 			tile.closest(".hearth-card")?.addClass("has-tile-gesture");
 			// Insert a dashed ghost outline that will follow the pointer.
 			ghost = container.createDiv("hearth-tile-ghost");
-			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS);
-			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || String(DEFAULT_TILE_RS);
+			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || "1";
+			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || "1";
 			ghost.style.setProperty("--hearth-tile-cs", cs);
 			ghost.style.setProperty("--hearth-tile-rs", rs);
 		}
@@ -993,7 +1067,7 @@ function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number
 		tile.setCssStyles({ transform: `translate(${dx}px, ${dy}px)` });
 		// Move the ghost outline to the cell under the pointer.
 		if (ghost) {
-			const cell = pickGridCell(container, e.clientX, e.clientY, tile);
+			const cell = pickGridCell(container, e.clientX, e.clientY, tile, spec);
 			if (cell) {
 				ghost.style.setProperty("--hearth-tile-col", String(cell.col));
 				ghost.style.setProperty("--hearth-tile-row", String(cell.row));
@@ -1023,11 +1097,8 @@ function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number
 		}
 		if (!wasMoved) return;
 		// Drop on the cell under the pointer (free-form; may overlap others).
-		const cell = pickGridCell(container, e.clientX, e.clientY, tile);
-		if (cell) {
-			item.col = cell.col;
-			item.row = cell.row;
-		}
+		const cell = pickGridCell(container, e.clientX, e.clientY, tile, spec);
+		if (cell) pinTile(item, spec, cell.col, cell.row);
 		void view.plugin.saveData(view.plugin.settings);
 		view.render();
 	};
@@ -1041,11 +1112,12 @@ function makeTileFreeFormDrag<T extends { id: string; col?: number; row?: number
  *  only the dragged tile's `col`/`row` is persisted; siblings revert to
  *  their stored positions (a full re-render follows), so a tile that was
  *  shoved aside comes back if its slot wasn't taken. */
-function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number }>(
+function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 	view: HomeView,
 	container: HTMLElement,
 	tile: HTMLElement,
 	item: T,
+	spec: TileSpec,
 ): void {
 	let dragging = false;
 	let startX = 0;
@@ -1095,13 +1167,14 @@ function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number
 			baseTop = rect.top - containerRect.top;
 			baseWidth = rect.width;
 			baseHeight = rect.height;
-			placeholderPos = getTileCell(tile, container) ?? {
-				col: item.col ?? 1,
-				row: item.row ?? 1,
+			const pinned = tilePlacement(item, tileSpans(item, spec), spec);
+			placeholderPos = getTileCell(tile, container, spec) ?? {
+				col: pinned.col ?? 1,
+				row: pinned.row ?? 1,
 			};
 			placeholder = container.createDiv("hearth-tile-placeholder");
-			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS);
-			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || String(DEFAULT_TILE_RS);
+			const cs = tile.style.getPropertyValue("--hearth-tile-cs") || "1";
+			const rs = tile.style.getPropertyValue("--hearth-tile-rs") || "1";
 			placeholder.style.setProperty("--hearth-tile-cs", cs);
 			placeholder.style.setProperty("--hearth-tile-rs", rs);
 			placeholder.style.setProperty("--hearth-tile-col", String(placeholderPos.col));
@@ -1113,7 +1186,7 @@ function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number
 			);
 			for (const sib of siblings) {
 				if (sib === tile) continue;
-				const cell = getTileCell(sib, container);
+				const cell = getTileCell(sib, container, spec);
 				if (cell) {
 					sib.style.setProperty("--hearth-tile-col", String(cell.col));
 					sib.style.setProperty("--hearth-tile-row", String(cell.row));
@@ -1140,7 +1213,7 @@ function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number
 		if (!placeholder || !placeholderPos) return;
 		const other = findTileUnderPointer(container, e.clientX, e.clientY, tile);
 		if (other) {
-			const otherPos = getTileCell(other, container);
+			const otherPos = getTileCell(other, container, spec);
 			if (otherPos) {
 				other.style.setProperty("--hearth-tile-col", String(placeholderPos.col));
 				other.style.setProperty("--hearth-tile-row", String(placeholderPos.row));
@@ -1149,7 +1222,7 @@ function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number
 				placeholderPos = otherPos;
 			}
 		} else {
-			const cell = pickGridCell(container, e.clientX, e.clientY, tile);
+			const cell = pickGridCell(container, e.clientX, e.clientY, tile, spec);
 			if (cell) {
 				placeholder.style.setProperty("--hearth-tile-col", String(cell.col));
 				placeholder.style.setProperty("--hearth-tile-row", String(cell.row));
@@ -1185,10 +1258,7 @@ function makeTileAutoFlowDrag<T extends { id: string; col?: number; row?: number
 			// already released
 		}
 		if (!wasMoved) return;
-		if (dropPos) {
-			item.col = dropPos.col;
-			item.row = dropPos.row;
-		}
+		if (dropPos) pinTile(item, spec, dropPos.col, dropPos.row);
 		void view.plugin.saveData(view.plugin.settings);
 		view.render();
 	};
@@ -1239,6 +1309,7 @@ export function markOverlappingTiles(container: HTMLElement): void {
 function getTileCell(
 	tile: HTMLElement,
 	container: HTMLElement,
+	spec: TileSpec,
 ): { col: number; row: number } | null {
 	const colAttr = tile.style.getPropertyValue("--hearth-tile-col");
 	const rowAttr = tile.style.getPropertyValue("--hearth-tile-row");
@@ -1250,14 +1321,11 @@ function getTileCell(
 	const rect = tile.getBoundingClientRect();
 	const cRect = container.getBoundingClientRect();
 	if (cRect.width <= 0) return null;
-	const gap = 6;
-	const columns = Math.max(1, Math.floor((cRect.width + gap) / (TILE_CELL + gap)));
-	const colW = (cRect.width - (columns - 1) * gap) / columns;
-	const rowH = Math.round(TILE_CELL * 0.78);
+	const { colW, rowH } = tileMetrics(cRect.width, spec);
 	const relX = rect.left - cRect.left;
 	const relY = rect.top - cRect.top;
-	const col = Math.max(1, Math.round(relX / (colW + gap)) + 1);
-	const row = Math.max(1, Math.round(relY / (rowH + gap)) + 1);
+	const col = Math.max(1, Math.round(relX / (colW + TILE_GAP)) + 1);
+	const row = Math.max(1, Math.round(relY / (rowH + TILE_GAP)) + 1);
 	return { col, row };
 }
 
@@ -1292,27 +1360,21 @@ function pickGridCell(
 	clientX: number,
 	clientY: number,
 	tile: HTMLElement,
+	spec: TileSpec,
 ): { col: number; row: number } | null {
 	const rect = container.getBoundingClientRect();
 	if (rect.width <= 0) return null;
-	const gap = 6;
-	// auto-fill column count at the current card width (matches the CSS
-	// `repeat(auto-fill, minmax(44px, 1fr))` grid).
-	const columns = Math.max(1, Math.floor((rect.width + gap) / (TILE_CELL + gap)));
-	// Actual column width (the 1fr columns expand past the 44px minimum, so
-	// use the real width to map the pointer to a column line).
-	const colW = (rect.width - (columns - 1) * gap) / columns;
+	// The column count and the real column width at the card's current size:
+	// the fixed style's columns auto-fill and then stretch past their minimum,
+	// the scaled style's are the card's own.
+	const { columns, colW, rowH } = tileMetrics(rect.width, spec);
 	// The dragged tile's column span, so we keep its start within bounds.
-	const cs = parseInt(
-		tile.style.getPropertyValue("--hearth-tile-cs") || String(DEFAULT_TILE_CS),
-		10,
-	) || DEFAULT_TILE_CS;
-	const rowH = Math.round(TILE_CELL * 0.78);
+	const cs = parseInt(tile.style.getPropertyValue("--hearth-tile-cs"), 10) || 1;
 	// Pointer relative to the grid's content box, in cells (1-based lines).
 	const relX = clientX - rect.left;
 	const relY = clientY - rect.top;
-	let col = Math.round(relX / (colW + gap)) + 1;
-	let row = Math.round(relY / (rowH + gap)) + 1;
+	let col = Math.round(relX / (colW + TILE_GAP)) + 1;
+	let row = Math.round(relY / (rowH + TILE_GAP)) + 1;
 	col = Math.max(1, Math.min(col, Math.max(1, columns - cs + 1)));
 	row = Math.max(1, row);
 	return { col, row };

@@ -2604,6 +2604,90 @@
 	grid-row: var(--hearth-tile-row, auto) / span var(--hearth-tile-rs, 1);
 }
 
+/* ---- Scaled buttons (a card on tileSizing: "scale") ------------------
+ *
+ * The fixed grid above sizes a button in pixels: a wider card fits more
+ * buttons, never bigger ones. This one divides the card into a fixed number of
+ * columns instead, so one cell — and so one button — is a *fraction of the
+ * card* and grows with it, the way a card grows with the dashboard. Buttons
+ * stay tied to the grid (whole cells, never free pixels), so a launchpad
+ * doesn't turn into a second free-form board.
+ *
+ * A fraction of the card means CSS has to know the card's width, which only a
+ * query container can tell it — so the card body becomes one, and the cell is
+ * `100cqw` divided by the column count. `src/cardbodies.ts` puts the class on
+ * the body (and only for these cards, so nothing else pays for the
+ * containment); `src/tiles.ts` does the same arithmetic for the drag and
+ * resize gestures. */
+.hearth-card-body.hearth-tiles-scaled {
+	container-type: inline-size;
+}
+
+.hearth-links.is-tile-scaled {
+	--hearth-tile-gap: 6px;
+	/* One cell = one default button: the card's own width, split into columns. */
+	--hearth-tile-cell: calc(
+		(100cqw - (var(--hearth-tile-cols, 6) - 1) * var(--hearth-tile-gap)) /
+			var(--hearth-tile-cols, 6)
+	);
+	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(0, 1fr));
+	/* Rows keep the cell's shape rather than a fixed height, so a button grows
+	 * in both directions at once as the card is resized. */
+	grid-auto-rows: calc(var(--hearth-tile-cell) * 0.78);
+	gap: var(--hearth-tile-gap);
+}
+
+/* A scaled button's own metrics are fractions of the cell too — padding, corner
+ * radius and text all grow with it, so a big button reads as a big button
+ * rather than a small one with a lot of air around it. The type size is set on
+ * the tile so the label inherits it and the icon can size itself in `em`.
+ *
+ * `container-type: size` makes each button a query container of its own, which
+ * is what lets the label drop out when there is no room for it (below) — the
+ * span alone can't say how many pixels a button got, which is the whole point
+ * of scaling it. */
+.hearth-links.is-tile-scaled .hearth-link-tile {
+	container-type: size;
+	container-name: hearth-tile;
+	padding: clamp(4px, calc(var(--hearth-tile-cell) * 0.1), 16px)
+		clamp(4px, calc(var(--hearth-tile-cell) * 0.07), 12px);
+	gap: clamp(2px, calc(var(--hearth-tile-cell) * 0.08), 10px);
+	border-radius: clamp(8px, calc(var(--hearth-tile-cell) * 0.14), 22px);
+	font-size: clamp(0.6rem, calc(var(--hearth-tile-cell) * 0.135), 1.05rem);
+}
+
+.hearth-links.is-tile-scaled .hearth-link-label {
+	font-size: inherit;
+}
+
+/* The resize grip follows the button's own corner radius, which scales. */
+.hearth-links.is-tile-scaled .hearth-tile-resize {
+	border-bottom-right-radius: inherit;
+}
+
+/* The icon scales with the button's type size (`em`), capped by the button's
+ * own smaller side so a short button never overflows with it. */
+.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
+	width: min(2.2em, 60cqmin);
+	height: min(2.2em, 60cqmin);
+}
+
+/* Too small for its label: show the icon alone, centred. The fixed style does
+ * this from the tile's span in JS (`applyTileIconOnly`); a scaled button's span
+ * says nothing about its pixels, so it is measured here instead. The flex gap
+ * disappears with the label, leaving the icon dead-centre. */
+@container hearth-tile (max-height: 46px) {
+	.hearth-links.is-tile-scaled .hearth-link-label {
+		display: none;
+	}
+}
+
+@container hearth-tile (max-width: 54px) {
+	.hearth-links.is-tile-scaled .hearth-link-label {
+		display: none;
+	}
+}
+
 /* Fixed icon size: the icon does NOT scale with tile height. Icons stay a
  * constant, readable size regardless of tile dimensions. */
 .hearth-link-icon {

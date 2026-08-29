@@ -1,10 +1,12 @@
 import { Notice, setTooltip, Setting, TFile } from "obsidian";
 import {
 	applyTileSize,
+	createTileGrid,
 	emptyState,
 	makeTileDraggable,
 	makeTileResizable,
 	markOverlappingTiles,
+	tileSizingSettings,
 } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
@@ -24,6 +26,7 @@ import {
 	templateDisplayName,
 	templaterTemplatesFolder,
 } from "../templater";
+import { tileSizing } from "../tiles";
 import { type DashboardCard, type TemplaterItem } from "../types";
 import { makeClickable, promptForText } from "../ui";
 import { type HomeView } from "../view";
@@ -63,16 +66,11 @@ export function renderTemplater(view: HomeView, card: DashboardCard, body: HTMLE
 		return;
 	}
 
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = card.tileSize && card.tileSize > 0 ? card.tileSize : 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	// Flag the card body so CSS can disable the card drag overlay over tiles in
-	// arrange mode (tiles are self-contained widgets with their own resize).
-	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
+	const { grid, spec } = createTileGrid(view, card, body);
 
 	for (const item of items) {
 		const tile = grid.createDiv("hearth-link-tile");
-		applyTileSize(tile, item.sizeW, item.sizeH, item.size, baseTile, item.col, item.row);
+		applyTileSize(tile, item, spec);
 		applyTileVisual(view, tile, item.icon, "file-plus-2");
 		const label = tileLabel(item);
 		tile.createDiv({ cls: "hearth-link-label", text: label });
@@ -100,14 +98,8 @@ export function renderTemplater(view: HomeView, card: DashboardCard, body: HTMLE
 		}
 
 		if (view.arrangeMode) {
-			makeTileResizable(view, tile, baseTile, () => item.sizeW, (v) => {
-				item.sizeW = v;
-			}, () => item.sizeH, (v) => {
-				item.sizeH = v;
-			}, () => item.size, (v) => {
-				item.size = v;
-			});
-			makeTileDraggable(view, grid, tile, items, item, card.tileAutoFlow === true);
+			makeTileResizable(view, tile, item, spec);
+			makeTileDraggable(view, grid, tile, item, card.tileAutoFlow === true, spec);
 		}
 	}
 
@@ -205,6 +197,8 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		new Setting(containerEl).setName(strings.missing).setDesc(strings.missingDesc);
 	}
 
+	tileSizingSettings(ctx, containerEl);
+
 	new Setting(containerEl)
 		.setName(strings.autoShift)
 		.setDesc(strings.autoShiftDesc)
@@ -215,29 +209,33 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 			}),
 		);
 
-	const buttonSize = new Setting(containerEl)
-		.setName(strings.buttonSize)
-		.setDesc(strings.buttonSizeDesc);
-	buttonSize.addSlider((s) => {
-		s.setLimits(60, 180, 10)
-			.setValue(card.tileSize ?? 90)
-			.onChange((v) => {
-				card.tileSize = v === 90 ? undefined : v;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			});
-	});
-	buttonSize.addExtraButton((b) =>
-		b
-			.setIcon("rotate-ccw")
-			.setTooltip(t().settings.resetSlider)
-			.onClick(() => {
-				card.tileSize = undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-				ctx.requestRender();
-			}),
-	);
+	// Only the fixed style has a pixel size to set; the scaled one sizes its
+	// buttons from the card's column count (see tileSizingSettings).
+	if (tileSizing(card) === "fixed") {
+		const buttonSize = new Setting(containerEl)
+			.setName(strings.buttonSize)
+			.setDesc(strings.buttonSizeDesc);
+		buttonSize.addSlider((s) => {
+			s.setLimits(60, 180, 10)
+				.setValue(card.tileSize ?? 90)
+				.onChange((v) => {
+					card.tileSize = v === 90 ? undefined : v;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
+		});
+		buttonSize.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileSize = undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				}),
+		);
+	}
 
 	new Setting(containerEl).setName(strings.heading).setHeading();
 
@@ -408,10 +406,12 @@ export const templaterCard: CardDefinition<"templater"> = {
 			id: "templater",
 			name: "Templater",
 			icon: "file-plus-2",
+			// New cards scale their buttons with the card; see the Links template.
 			build: () => ({
 				kind: "templater",
 				title: "New note",
 				templater: { items: [] },
+				tileSizing: "scale",
 				w: 6,
 				h: 2,
 			}),

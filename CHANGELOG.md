@@ -142,6 +142,24 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plugin is installed. It is off by default, and says up front that Operon will
   ask you to approve Hearth the first time the card loads.
 
+- **Launchpad buttons can scale with their card.** The Links / launchpad,
+  Commands and "New note from template" cards have a **Button sizing** setting.
+  On its new **Scale with the card** style the card is divided into a set number
+  of columns — **Buttons across**, six by default — and a button is one cell of
+  that grid, so every button grows and shrinks with the card the way a card
+  grows with the dashboard: its padding, corner radius, icon and label scale
+  with it too. Buttons stay tied to the grid, sized in whole cells rather than
+  freely in pixels, so a launchpad still reads as a launchpad rather than a
+  second free-form board — a button can still be dragged to a spot and dragged
+  two or three cells wide (or tall) by its bottom-right corner in arrange mode.
+
+  Every launchpad you already have keeps the **Fixed size (legacy)** style, down
+  to the pixel: buttons that stay the size they are, so a wider card fits more
+  of them rather than bigger ones. Cards added from now on start on the scaled
+  style, and either card can be switched at any time from its own settings. The
+  two styles keep their sizes and their arrangements separately, so switching
+  over to look and switching back leaves a card exactly as it was.
+
 - **Hearth speaks Simplified Chinese.** A full `zh` locale joins English, so
   every string Hearth draws — commands, notices, the setup wizard, all of the
   plugin and card settings, card bodies and the add-card picker — comes out in

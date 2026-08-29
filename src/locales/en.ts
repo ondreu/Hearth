@@ -1955,6 +1955,23 @@ export const en = {
 				"The field is as thick as the card is tall — drag the card's edge in " +
 				"Arrange to make the bar chunkier or slimmer.",
 		},
+		tiles: {
+			sizing: "Button sizing",
+			sizingDesc:
+				"Whether the buttons scale with the card — the way a card scales with " +
+				"the dashboard — or keep a fixed pixel size however big the card is. " +
+				"Cards made before this setting existed stay on the fixed style until " +
+				"you switch them; each style keeps its own sizes, so switching back " +
+				"restores what you had.",
+			sizingScale: "Scale with the card",
+			sizingFixed: "Fixed size (legacy)",
+			across: "Buttons across",
+			acrossDesc:
+				"How many buttons wide the card is, and so how big one button is: a " +
+				"fraction of the card, whatever size the card ends up. A button can " +
+				"still be made two or three of those wide (or tall) by dragging its " +
+				"bottom-right corner in arrange mode — it stays on the grid.",
+		},
 		links: {
 			heading: "Links",
 			autoShift: "Auto-shift tiles (beta)",
