@@ -61,6 +61,8 @@ export abstract class HearthTabbedModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("hearth-tabbed-modal");
 
+		this.hearthSyncModalSurface();
+
 		const tabs = this.hearthTabs();
 		const active = this.hearthActiveTab(tabs);
 
@@ -80,6 +82,40 @@ export abstract class HearthTabbedModal extends Modal {
 
 		if (this.hearthRenderFooter) {
 			this.hearthRenderFooter(contentEl.createDiv("hearth-modal-footer"));
+		}
+	}
+
+	/**
+	 * Publish the modal's own background colour as `--hearth-modal-surface`, for
+	 * the sticky ribbon to paint itself with.
+	 *
+	 * The ribbon has to hide the rows scrolling beneath it, and any hard-coded
+	 * colour is a guess about the theme: with `--background-primary` (the note
+	 * background) the strip showed up as a slab in a different shade to the
+	 * modal on every theme that styles the two differently. Measuring beats
+	 * guessing — a theme can dress its modals through `--modal-background`, a
+	 * rule on `.modal`, or one on `.modal-content`, and all three end up in the
+	 * computed colour of some element between the content and the frame.
+	 *
+	 * Walks content → frame and takes the first background solid enough to cover
+	 * what slides under it; faint tints layered over the frame are skipped so
+	 * the strip doesn't take a 3%-white wash for the whole surface. Nothing
+	 * usable (a gradient, a translucent frame) leaves the property unset, and
+	 * the stylesheet's fallback chain takes over.
+	 */
+	private hearthSyncModalSurface(): void {
+		const { contentEl } = this;
+		contentEl.style.removeProperty("--hearth-modal-surface");
+		const frame = this.modalEl ?? contentEl;
+		let el: HTMLElement | null = contentEl;
+		while (el) {
+			const color = window.getComputedStyle(el).backgroundColor;
+			if (isOpaqueSurfaceColor(color)) {
+				contentEl.style.setProperty("--hearth-modal-surface", color);
+				return;
+			}
+			if (el === frame) return;
+			el = el.parentElement;
 		}
 	}
 
@@ -127,4 +163,29 @@ export abstract class HearthTabbedModal extends Modal {
 			text: t().settings.sectionErrorHint,
 		});
 	}
+}
+
+/**
+ * Is this computed `background-color` solid enough to sit a sticky bar on?
+ *
+ * `getComputedStyle` hands back `rgb()`/`rgba()` in either the legacy comma
+ * form or the modern `rgb(r g b / a)` one, so both separators are treated the
+ * same and the alpha is simply the fourth component when there is one.
+ * Anything else — `transparent`, a colour space this doesn't recognise, an
+ * element painted by a gradient — reads as "no surface here" and the walk
+ * carries on outwards.
+ *
+ * The 0.9 floor keeps the near-solid, so a theme that rounds its modal fill to
+ * 0.98 still counts, while rejecting the decorative washes themes lay over a
+ * frame: such a colour on its own says nothing about what shows through it.
+ */
+export function isOpaqueSurfaceColor(color: string): boolean {
+	const body = /^rgba?\(([^)]*)\)$/.exec(color.trim())?.[1];
+	if (body === undefined) return false;
+	const args = body.split(/[\s,/]+/).filter((arg) => arg.length > 0);
+	if (args.length < 3) return false;
+	if (args.length < 4) return true;
+	const raw = args[3];
+	const alpha = raw.endsWith("%") ? Number(raw.slice(0, -1)) / 100 : Number(raw);
+	return Number.isFinite(alpha) && alpha >= 0.9;
 }

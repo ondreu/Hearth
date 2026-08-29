@@ -1905,6 +1905,15 @@
    look (.hearth-ribbon-tab): a row of tabs pinned to the top, one group's
    controls shown at a time, and a persistent action footer below. */
 
+/* The ribbon is sticky, so it needs an opaque fill to hide the rows sliding
+   under it — and that fill has to be the modal's own surface, not a guess.
+   --background-primary is the note background, which a theme is free to make
+   nothing like its modals; where the two differ the strip read as a pale slab
+   behind the tabs. --hearth-modal-surface carries the colour the modal
+   is actually painted with, measured at open time (HearthTabbedModal
+   .hearthSyncModalSurface); the var chain behind it covers the cases that
+   measures to nothing — a themed modal falls back to Obsidian's own modal
+   token before the note background. */
 .hearth-modal-ribbon {
 	display: flex;
 	flex-wrap: wrap;
@@ -1914,7 +1923,10 @@
 	z-index: 5;
 	padding-bottom: 10px;
 	margin-bottom: 6px;
-	background: var(--background-primary);
+	background: var(
+		--hearth-modal-surface,
+		var(--modal-background, var(--background-primary))
+	);
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
