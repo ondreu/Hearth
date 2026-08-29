@@ -5,7 +5,6 @@ import { renderDashboard } from "./dashboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow";
-import { enableDashboardSwipe } from "./swipe";
 import { applyBackground, renderBanner } from "./background";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateMotionOnWindow } from "./motion";
@@ -268,18 +267,26 @@ export class HomeView extends ItemView {
 
 		if (banner) renderBanner(this, scroll, child);
 
-		const inner = scroll.createDiv("hearth-inner");
+		// The phone preview draws a device shell around the board. It is a wrapper
+		// rather than styling on `.hearth-inner` itself, because the bezel has to
+		// paint a surface and the screen has to keep showing the board's own
+		// background through it — one element cannot do both. The screen width is
+		// published as a variable so the shell can size itself around it and the
+		// preview's width stays the one number that decides the layout.
+		const frame = this.phonePreview ? scroll.createDiv("hearth-phone-frame") : null;
+		frame?.style.setProperty("--hearth-phone-screen", `${PHONE_PREVIEW_WIDTH}px`);
+
+		const inner = (frame ?? scroll).createDiv("hearth-inner");
 		// The column is fluid either way — it is `width: 100%` centred in the
 		// scroll area, so it already follows a narrow pane down. The setting only
 		// decides how far it may grow: to a pixel ceiling, or to the pane itself.
 		//
 		// A narrow board skips the ceiling entirely: it is already narrower than
 		// the smallest value the setting can hold (CONTENT_WIDTH_MIN is 700px),
-		// so the only thing a max-width could do there is nothing. The phone
-		// preview is the exception — it is a width ceiling, and it is the point.
-		if (this.phonePreview) {
-			inner.style.maxWidth = `${PHONE_PREVIEW_WIDTH}px`;
-		} else if (!narrow && !effectiveFullWidth(this.plugin.settings)) {
+		// so the only thing a max-width could do there is nothing.
+		// The phone preview needs no clause of its own: it forces `narrow`, and its
+		// ceiling is the device shell's width, not the board's.
+		if (!narrow && !effectiveFullWidth(this.plugin.settings)) {
 			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
 		}
 
@@ -299,11 +306,6 @@ export class HomeView extends ItemView {
 			const dashboard = inner.createDiv("hearth-dashboard");
 			renderDashboard(this, dashboard, child);
 		}
-
-		// Swipe between dashboards on a touch screen. Registered on the scroll
-		// area (the whole board, header included) and on the render component, so
-		// it is torn down with this render rather than stacking up listeners.
-		if (narrow) enableDashboardSwipe(this, scroll, child);
 
 		if (mobileOnly && this.plugin.settings.showMobileActionBar) {
 			// Pinned to the scroll area (not the flex flow shared with `inner`) so

@@ -94,6 +94,7 @@ const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 	{ id: "search", icon: "search" },
 	{ id: "dashboard", icon: "layout-dashboard" },
 	{ id: "behaviour", icon: "settings-2" },
+	{ id: "mobile", icon: "smartphone" },
 	{ id: "integrations", icon: "plug" },
 	{ id: "backup", icon: "archive" },
 	{ id: "about", icon: "info" },
@@ -111,7 +112,7 @@ type SettingsRoute = "index" | SettingsTabId;
  * cluster when you say out loud what each is for. */
 const SETTINGS_INDEX: { id: "lookFeel" | "howItWorks" | "data" | "etc"; tabs: SettingsTabId[] }[] = [
 	{ id: "lookFeel", tabs: ["appearance", "dashboard"] },
-	{ id: "howItWorks", tabs: ["search", "behaviour"] },
+	{ id: "howItWorks", tabs: ["search", "behaviour", "mobile"] },
 	{ id: "data", tabs: ["integrations", "backup"] },
 	{ id: "etc", tabs: ["about"] },
 ];
@@ -461,14 +462,20 @@ export class HomeSettingTab extends PluginSettingTab {
 				this.section(body, s.sections.opening, s.sections.openingDesc, (b) =>
 					this.openingSection(b),
 				);
+				this.section(body, s.sections.privacy, s.sections.privacyDesc, (b) =>
+					this.privacySection(b),
+				);
+				break;
+			// Mobile is a category of its own rather than two sections inside
+			// Behaviour. Hearth runs on a phone as a first-class board now, not as
+			// a reduced mode of the desktop one, and the settings pane is where
+			// that is either stated or quietly contradicted.
+			case "mobile":
 				this.section(body, s.sections.mobileMode, s.sections.mobileModeDesc, (b) =>
 					this.mobileModeSection(b),
 				);
 				this.section(body, s.mobileActions.heading, s.mobileActions.headingDesc, (b) =>
 					this.mobileActionsSection(b),
-				);
-				this.section(body, s.sections.privacy, s.sections.privacyDesc, (b) =>
-					this.privacySection(b),
 				);
 				break;
 			case "integrations":
@@ -1386,16 +1393,6 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addToggle((tg) =>
 				tg.setValue(s.stackOnNarrow).onChange(async (v) => {
 					s.stackOnNarrow = v;
-					this.save();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(t().settings.behaviour.swipeDashboards)
-			.setDesc(t().settings.behaviour.swipeDashboardsDesc)
-			.addToggle((tg) =>
-				tg.setValue(s.swipeDashboards).onChange(async (v) => {
-					s.swipeDashboards = v;
 					this.save();
 				}),
 			);

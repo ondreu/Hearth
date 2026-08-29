@@ -661,7 +661,8 @@ export const en = {
 			appearance: "Title, title icon, background, and low power mode.",
 			search: "The search bar and which results it offers.",
 			dashboard: "Grid, card surface, and the controls around the board.",
-			behaviour: "Startup, how notes open, mobile, and privacy.",
+			behaviour: "Startup, how notes open, and privacy.",
+			mobile: "The stacked layout on a phone, and the action bar.",
 			integrations: "TaskNotes, file icons, and every plugin Hearth reads.",
 			backup: "Export and import your layout and settings.",
 			about: "Version, what's new, and where to report things.",
@@ -677,6 +678,7 @@ export const en = {
 			search: "Search",
 			dashboard: "Dashboard",
 			behaviour: "Behaviour",
+			mobile: "Mobile",
 			integrations: "Integrations",
 			backup: "Backup",
 			about: "About",
@@ -702,8 +704,9 @@ export const en = {
 			startupDesc: "When and where the home view opens.",
 			opening: "Opening notes",
 			openingDesc: "Where a note opens when you click it in Hearth.",
-			mobileMode: "Mobile mode",
-			mobileModeDesc: "How Hearth behaves on phones and tablets.",
+			mobileMode: "Layout",
+			mobileModeDesc:
+				"How the board is laid out when the screen is too narrow for its own layout.",
 			privacy: "Privacy & network",
 			privacyDesc: "Control the outbound requests Hearth is allowed to make.",
 		},
@@ -984,11 +987,6 @@ export const en = {
 				"instead. Your layout is untouched and comes back at full width. " +
 				"Each card can be hidden, reordered, resized or collapsed for this " +
 				"column from its own settings.",
-			swipeDashboards: "Swipe between dashboards",
-			swipeDashboardsDesc:
-				"On a touch screen, swipe left or right across a narrow board to move " +
-				"to the next or previous dashboard. Swipes starting at the very edge " +
-				"of the screen are left to Obsidian's own sidebar gestures.",
 			mobilePerformanceTier: "Performance tier on mobile",
 			mobilePerformanceTierDesc:
 				"The tier to use on phones and tablets, where the animated sky and " +

@@ -28,7 +28,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   is untouched — the stacked view is worked out fresh on every render and never
   written back — so the same board is a phone launcher in your pocket and a wall
   of cards on your monitor, and neither reshapes the other. It can be turned off
-  under **Settings → Hearth → Mobile mode** (#205).
+  under **Settings → Hearth → Mobile** (#205).
 
   The threshold is the **measured width of the board**, not the platform. A
   narrow desktop sidebar had exactly the same problem and gets exactly the same
@@ -37,11 +37,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   preview below.
 
 - **Build your phone board from your desk.** Arrange mode has a new **Preview at
-  phone width** button that clamps the board to a phone's width. It is not a
-  simulation — the narrow layout is chosen by width, so the preview *is* the
-  phone layout, at the width that triggers it. While a board is stacked, each
-  card's header grows **move up** and **move down** buttons, since a column's
-  only layout question is what comes before what.
+  phone width** button that clamps the board to a phone's width and draws a
+  phone around it. It is not a simulation — the narrow layout is chosen by
+  width, so the preview *is* the phone layout, at the width that triggers it;
+  the shell is there because "is this card a comfortable third of a screen or
+  most of one" is a question about the device, and you answer it by seeing the
+  board sit in one.
+
+  Arranging a stacked board works on the two things a stacked card owns: **drag
+  its bottom edge** to set its height (which is stored as that card's mobile
+  height, so the desktop board's own height is untouched), and use the **move
+  up** / **move down** buttons in its header to reorder. Card contents are
+  shielded while arranging, exactly as they are on the free-form board, but the
+  column still scrolls under your finger.
 
 - **Per-card mobile behaviour.** Every card's settings (Layout tab) gained a
   short **On a narrow board** section, for the cases where stacking the desktop
@@ -73,17 +81,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   on their own line, and the button keeps its icon and drops its label to a
   tooltip.
 
-- **Swipe between dashboards.** On a touch screen, swipe left or right across a
-  narrow board to move to the next or previous board. Swipes that start at the
-  very edge of the screen are left alone, so Obsidian's own sidebar gestures
-  still work, as are swipes inside anything that scrolls sideways itself.
+- **A separate performance tier for mobile.** **Settings → Hearth → Mobile**
+  now carries its own tier, defaulting to **Balanced** — the animated sky is the
+  most expensive thing Hearth draws, and on a phone it is drawn on the smallest
+  screen there is and paid for out of a battery. Your desktop tier is stored
+  separately and is not touched; set the mobile one to **Match desktop** for the
+  previous behaviour.
 
-- **A separate performance tier for mobile.** **Settings → Hearth → Mobile
-  mode** now carries its own tier, defaulting to **Balanced** — the animated sky
-  is the most expensive thing Hearth draws, and on a phone it is drawn on the
-  smallest screen there is and paid for out of a battery. Your desktop tier is
-  stored separately and is not touched; set the mobile one to **Match desktop**
-  for the previous behaviour.
+- **Mobile is its own settings category.** The mobile settings moved out of
+  **Behaviour** into a **Mobile** category of their own, next to Search and
+  Behaviour on the settings index. Hearth runs on a phone as a first-class board
+  now rather than as a reduced mode of the desktop one, and the settings pane is
+  where that is either stated or quietly contradicted.
 
 - **A card for your weekly, monthly, quarterly or yearly note.** The new
   **Periodic note** card shows whichever periodic note covers *right now* —

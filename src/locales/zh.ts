@@ -623,7 +623,8 @@ export const zh: Translations = {
 			appearance: "标题、图标、背景与低功耗模式。",
 			search: "搜索栏及其提供的结果。",
 			dashboard: "网格、卡片表面与面板周围的控件。",
-			behaviour: "启动、笔记打开方式、移动端与隐私。",
+			behaviour: "启动、笔记打开方式与隐私。",
+			mobile: "手机上的堆叠布局，以及操作栏。",
 			integrations: "TaskNotes、文件图标，以及 Hearth 读取的每个插件。",
 			backup: "导出与导入您的布局和设置。",
 			about: "版本、更新内容，以及问题反馈渠道。",
@@ -639,6 +640,7 @@ export const zh: Translations = {
 			search: "搜索",
 			dashboard: "面板",
 			behaviour: "行为",
+			mobile: "移动端",
 			integrations: "集成",
 			backup: "备份",
 			about: "关于",
@@ -662,8 +664,8 @@ export const zh: Translations = {
 			startupDesc: "主页视图何时、在何处打开。",
 			opening: "打开笔记",
 			openingDesc: "在 Hearth 中点击笔记时它在哪里打开。",
-			mobileMode: "移动模式",
-			mobileModeDesc: "Hearth 在手机和平板上的行为。",
+			mobileMode: "布局",
+			mobileModeDesc: "当屏幕宽度不足以容纳面板自身布局时，面板如何排布。",
 			privacy: "隐私与网络",
 			privacyDesc: "控制 Hearth 允许发出的对外请求。",
 		},
@@ -909,10 +911,6 @@ export const zh: Translations = {
 				"当面板宽度不足以容纳其布局时——手机，或桌面端的窄窗格——改为将卡片显示为" +
 				"单列通栏。你的布局不会被修改，恢复宽度后即照旧。每张卡片都可以在自身设置" +
 				"中为该单列单独设置隐藏、排序、高度或折叠。",
-			swipeDashboards: "滑动切换面板",
-			swipeDashboardsDesc:
-				"在触摸屏上，于窄屏面板上左右滑动即可切换到上一个或下一个面板。从屏幕最边缘" +
-				"开始的滑动会留给 Obsidian 自身的侧边栏手势。",
 			mobilePerformanceTier: "移动端性能档位",
 			mobilePerformanceTierDesc:
 				"在手机和平板上使用的档位——那里动画天空与毛玻璃绘制在最小的屏幕上，却要由" +

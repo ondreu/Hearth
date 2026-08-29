@@ -5682,7 +5682,14 @@
 }
 
 .hearth-grid.is-stacked .hearth-card {
-	position: static;
+	/* `relative`, not `static`: in arrange mode the card's header is absolutely
+	   positioned across the top of its card, and it needs the CARD to be its
+	   containing block. A static card hands that job to the nearest positioned
+	   ancestor — which is .hearth-grid — so every header in the column piled up
+	   at the top of the board, on top of each other, and only the first card's
+	   was reachable. Relative keeps the card in normal flow and keeps it the
+	   containing block. */
+	position: relative;
 	width: 100%;
 	/* Cards are sized by the height renderDashboard sets, never stretched or
 	   squeezed to fill the column. */
@@ -5788,18 +5795,64 @@
 
 /* ---- Arrange: the phone-width preview --------------------------------- */
 
-/* A dashed frame around the clamped column, so it reads as a device being
-   previewed rather than as a board that has mysteriously gone narrow. */
-.hearth-view.hearth-phone-preview .hearth-inner {
-	outline: 1px dashed var(--background-modifier-border);
-	outline-offset: 8px;
-	border-radius: 4px;
+/* An actual phone drawn around the previewed board. A bare column clamped to
+   400px tells you the width and nothing else — whether a card is a comfortable
+   third of a screen or most of one is a question about the *device*, and it is
+   answered by seeing the board sit inside a device. The shell is deliberately
+   plain: a graphite body, a speaker slot and a home indicator, no branding and
+   no attempt at a specific handset.
+
+   Fixed dark in both themes, because a phone is an object rather than a piece
+   of the interface — a shell that went pale in the light theme would read as a
+   panel around the board instead of a thing holding it. */
+.hearth-phone-frame {
+	--hearth-phone-bezel: 12px;
+	position: relative;
+	width: 100%;
+	max-width: calc(var(--hearth-phone-screen, 400px) + var(--hearth-phone-bezel) * 2);
+	/* Auto side margins centre it in the scroll area, as a block and as a
+	   column flex item (fit-to-page makes .hearth-scroll the latter). */
+	margin: 10px auto 28px;
+	padding: 28px var(--hearth-phone-bezel) 30px;
+	border-radius: 48px;
+	background: linear-gradient(160deg, #23252b, #131418);
+	box-shadow:
+		0 20px 50px rgba(0, 0, 0, 0.38),
+		0 2px 6px rgba(0, 0, 0, 0.3),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.09);
 }
 
-/* Give the outline somewhere to sit rather than running under the pane's edge. */
-.hearth-view.hearth-phone-preview .hearth-scroll {
-	padding-left: 12px;
-	padding-right: 12px;
+/* The screen. No `overflow: hidden` — clipping here would also clip the search
+   results dropdown, which is an overlay that deliberately leaves the column. */
+.hearth-phone-frame .hearth-inner {
+	min-height: calc(var(--hearth-phone-screen, 400px) * 1.9);
+	border-radius: 34px;
+}
+
+/* Speaker slot. */
+.hearth-phone-frame::before {
+	content: "";
+	position: absolute;
+	top: 13px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 56px;
+	height: 5px;
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.2);
+}
+
+/* Home indicator. */
+.hearth-phone-frame::after {
+	content: "";
+	position: absolute;
+	bottom: 11px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 110px;
+	height: 5px;
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.3);
 }
 
 /* ---- Mobile-only mode (search-only launcher) ------------------------ */
@@ -6231,6 +6284,56 @@
 	.hearth-resize-handle.is-sw {
 		width: 26px;
 		height: 26px;
+	}
+}
+
+/* See the note in dashboard.ts: a click shield for arranging a stacked board,
+   which unlike .hearth-card-overlay must let a finger scroll the column
+   through it. `pan-y` allows exactly the vertical scroll and nothing else. */
+.hearth-card-shield {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	background: transparent;
+	touch-action: pan-y;
+}
+
+/* The stacked layout's one grip. A stacked card owns only its height — width
+   is the column's, position is the order — so instead of eight grips it gets a
+   single bar along the bottom edge, and unlike the free-form grips that bar is
+   VISIBLE. The free-form ones can afford to be invisible because a card you can
+   drag anywhere invites you to try its edges; a card locked to a column looks
+   like it has nothing to grab, and a resize nobody discovers may as well not
+   exist. Declared after the edge grips above so it wins the `is-s` geometry it
+   is replacing (same specificity, later wins). */
+.hearth-resize-handle.is-stacked-grip {
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 22px;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	padding-bottom: 5px;
+	cursor: ns-resize;
+}
+
+.hearth-resize-handle.is-stacked-grip::after {
+	content: "";
+	width: 40px;
+	height: 4px;
+	border-radius: 2px;
+	background: var(--background-modifier-border);
+	transition: background 120ms ease;
+}
+
+.hearth-card.is-resizing .hearth-resize-handle.is-stacked-grip::after {
+	background: var(--interactive-accent);
+}
+
+@media (hover: hover) {
+	.hearth-resize-handle.is-stacked-grip:hover::after {
+		background: var(--interactive-accent);
 	}
 }
 

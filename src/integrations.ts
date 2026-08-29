@@ -43,6 +43,7 @@ export type SettingsTabId =
 	| "search"
 	| "dashboard"
 	| "behaviour"
+	| "mobile"
 	| "integrations"
 	| "backup"
 	| "about";

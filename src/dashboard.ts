@@ -44,6 +44,7 @@ import {
 	applyEdgeMerging,
 	applyFitLayout,
 	enableDragResize,
+	enableStackedResize,
 	ensureFreeform,
 	ensureLayout,
 	type GridLayout,
@@ -208,12 +209,23 @@ export function renderDashboard(
 			mount();
 		}
 
-		// Dragging and resizing are how the free-form layout is edited. The
-		// stacked layout has no free geometry to edit — its order and heights are
-		// the card's own mobile options — so arranging a stacked board is done
-		// from the card header instead.
+		// Dragging and resizing are how the free-form layout is edited. A stacked
+		// card owns only its height — width is the column's and position is the
+		// order — so it gets a bottom-edge grip for that one dimension, and the
+		// order is moved from the card header. A collapsed card is as tall as its
+		// own title row and has no height to set.
 		if (view.arrangeMode && !stacked) {
 			enableDragResize(view, el, grid, card, gridLayout, component, commit);
+		} else if (view.arrangeMode) {
+			// A shield over the card body, so arranging a stacked board can't tick a
+			// task or follow a link by accident — the same protection the free-form
+			// board gets from its drag overlay. Deliberately NOT that overlay: it
+			// carries `touch-action: none` to claim the drag gesture, which on a
+			// column that has to be scrolled with a finger would make the board
+			// unscrollable. This one lets a vertical scroll through and swallows
+			// everything else.
+			el.createDiv("hearth-card-shield");
+			if (!collapsed) enableStackedResize(el, card, component, () => persistAndRender(view));
 		}
 	}
 

@@ -374,22 +374,23 @@ narrow desktop pane gets the same treatment, and you can see the phone layout
 by dragging a pane narrow.
 
 - **Stacked column** — cards full width, one per row. Turn it off in
-  **Settings → Hearth → Mobile mode** to keep the free-form layout.
+  **Settings → Hearth → Mobile** to keep the free-form layout.
 - **Per-card overrides** — in a card's settings (Layout → *On a narrow board*):
   **hide** it, give it a **position** in the column, set its **height**, or
   **start it collapsed** as a title row that builds the card only when tapped —
   so an expensive card costs one row until you open it.
 - **Phone preview** — hit **Arrange → Preview at phone width** to build and
-  check your phone board without a phone. While stacked, each card header gets
-  move up / move down buttons.
+  check your phone board without a phone, inside a drawn phone so the
+  proportions read properly. While stacked, drag a card's bottom edge to set
+  its height, and use the move up / move down buttons in its header to reorder.
 - **Edge to edge** — the side gutters go, the safe-area insets stay; filter
   chips and search results grow to 44px tap targets.
 - **Full-width search** — the chips and results span the screen instead of the
   search bar's share of it, and the button beside the field drops to an icon.
-- **Swipe between dashboards** — left/right on a touch screen. Swipes starting
-  at the screen edge are left to Obsidian's sidebar gestures.
 - **Its own performance tier** — defaults to *Balanced* on mobile; your desktop
   tier is stored separately and untouched.
+- **Its own settings category** — everything above lives under
+  **Settings → Hearth → Mobile**.
 - **Mobile mode** — still there: an optional search-only launcher, if that is
   all you want on a phone.
 - **Action bar** — a row of buttons under the search field (New note, New

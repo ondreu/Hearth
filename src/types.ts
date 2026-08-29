@@ -1945,10 +1945,6 @@ export interface HomeSettings {
 	 * (a quarter-width card is ~90px on a phone), so the alternative is a board
 	 * nobody can read. Turn it off to keep the scaled free-form layout. */
 	stackOnNarrow: boolean;
-	/** Let a horizontal swipe across a narrow board switch dashboards. Only
-	 * ever active on a coarse pointer, away from the screen edges Obsidian's
-	 * own sidebar gestures own (see src/swipe.ts). */
-	swipeDashboards: boolean;
 	/** Block all outbound network requests Hearth would otherwise make. The only
 	 * requests are configured live-content cards (including Jira) and the
 	 * calculator's key-less, ECB-backed currency-rate fetch. */
@@ -2173,7 +2169,6 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// and existing vaults aren't silently reset if the list is emptied.
 	mobileActionButtons: [],
 	stackOnNarrow: true,
-	swipeDashboards: true,
 	disableExternalCalls: false,
 
 	// A new tab is what Hearth has always done; existing vaults must not change
