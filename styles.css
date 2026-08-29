@@ -1902,20 +1902,36 @@
 
 /* ---- Tabbed modals: card & dashboard settings -----------------------
    The card- and dashboard-settings modals reuse the settings pane's ribbon
-   look (.hearth-ribbon-tab): a row of tabs pinned to the top, one group's
+   look (.hearth-ribbon-tab): a row of tabs across the top, one group's
    controls shown at a time, and a persistent action footer below. */
 
+/* The ribbon carries no fill of its own, and scrolls with the body. Pinning it
+   to the top is the nicer behaviour, but a pinned strip has rows passing under
+   it and so must be filled — and every fill that isn't exactly the modal's own
+   surface reads as a slab behind the tabs. Both guesses at that surface were
+   wrong on somebody's theme: --background-primary is the *note* background, and
+   a theme's declared modal colour is itself translucent on a glass modal, where
+   painting it again over a surface already wearing it doubles the tint.
+
+   So pinning is opt-in, granted below only once the modal is measured to wear a
+   colour the strip can match exactly (HearthTabbedModal.hearthSyncModalSurface).
+   Unmeasurable modals — glass, gradient, translucent — keep a ribbon that is
+   merely unpinned, which is a far smaller loss than a slab in the wrong shade. */
 .hearth-modal-ribbon {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px;
+	padding-bottom: 10px;
+	margin-bottom: 6px;
+	background: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-surface-solid .hearth-modal-ribbon {
 	position: sticky;
 	top: 0;
 	z-index: 5;
-	padding-bottom: 10px;
-	margin-bottom: 6px;
-	background: var(--background-primary);
-	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--hearth-modal-surface);
 }
 
 /* Give the body a floor so switching from a dense tab (tasks) to a sparse one
