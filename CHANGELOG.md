@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [2.2.0]
+## [3.0.0]
 
 ### Added
 
@@ -106,6 +106,125 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   fill an ultrawide while the rest stay comfortable to read, and both travel
   with an exported layout. Nothing changes for a board you leave alone: the
   ceiling stays where it was (#251).
+
+- **Launchpad buttons can fill their card.** A launchpad used to size its
+  buttons in pixels, so a card too small for them all simply scrolled — the
+  buttons past the edge weren't there until you scrolled to them. The Links /
+  launchpad, Commands and "New note from template" cards now have a **Button
+  sizing** setting, under **Buttons** in the card's own **Layout** settings, with
+  a new **Fill the card** style: the card is divided into as many columns as
+  **Buttons across** says (six by default) and as many rows as the buttons come
+  to, and the rows share the card's height between them. So a button is a
+  fraction of the card in both directions — it grows and shrinks with the card
+  the way a card grows with the dashboard, every button stays visible whatever
+  size the card is, and the card needs no scrollbar. Buttons stop shrinking at
+  **Minimum button size** — in either direction — rather than dwindling to
+  something you can't read or hit; a card too small for them all at that size
+  scrolls, as the old style always did. It sits at 28px, low enough that buttons
+  usually fit rather than a scrollbar appearing, and each card can raise it (to
+  96px) to keep its buttons comfortable and take the scrollbar instead.
+  Each button's icon and label scale to the button — up to the size Obsidian uses
+  for small UI text, so a big button carries more air rather than a headline —
+  and a button too small to carry its label shows just its icon. Buttons stay
+  tied to the grid, sized in whole cells rather than freely in pixels, so a
+  launchpad still reads as a launchpad rather than a second free-form board — a
+  button can still be dragged to a spot, and dragged two or three cells wide (or
+  tall) by its bottom-right corner in arrange mode.
+
+  Every launchpad you already have keeps the **Fixed size (legacy)** style, down
+  to the pixel: buttons that stay the size they are, so a wider card fits more of
+  them rather than bigger ones, and a card too small for them scrolls as before.
+  Cards added from now on start on the filled style, and either card can be
+  switched at any time. The two styles keep their sizes and their arrangements
+  separately, so switching over to look and switching back leaves a card exactly
+  as it was.
+
+### Fixed
+
+- **The dashboard switcher wraps instead of running off the side of the board.**
+  A row of boards is unbounded — you can keep adding them — but the switcher was
+  a non-wrapping flex row, and a flex row that outgrows its container does not
+  get clipped by it, it grows straight through the side. Past about a dozen
+  boards (far fewer on a phone) the buttons ran off the edge, which made the
+  whole board horizontally scrollable and dragged the cards sideways with it.
+  The button row now wraps onto a second line: the row gets taller, the board
+  stays the width of the pane.
+
+- **Fit-to-page no longer piles cards on top of each other on a short screen.**
+  A fitted board scales every card's top and bottom by one shared factor, which
+  is what guarantees that cards which didn't overlap still don't. The final
+  height was then floored at 56px with a `Math.max` — and since that can only
+  make a card *taller* than the scale placed it, any card squeezed below 56px
+  grew past its neighbour's top edge. Squeeze hard enough that ordinary cards
+  fall under the floor and every one of them clamps to the same height and the
+  board collapses into a heap. That is the ordinary case on a phone-shaped
+  viewport, not an extreme one. The floor is now scaled along with everything
+  else, which makes it inert for any card that was at least 56px to begin with
+  and puts it back to being what it was for: a guard against a nonsense stored
+  height, not a second placement rule fighting the first.
+
+- **A card that redraws itself is properly reset first.** Cards redraw
+  constantly — when a file they show is edited, when the vault changes at all,
+  when an embed card's view switcher is clicked — and each redraw emptied the
+  card's body without undoing two things the previous one had left outside it.
+  The floating **open button** (Daily note, Embed, Slideshow) lives on the card
+  rather than in its body, so it survived, and a fresh one was stacked on top
+  every time; being 70% opaque and pixel-aligned, the pile read as a single
+  button quietly darkening as you worked. And the marks a render leaves on the
+  body — which say whether it drew a picture, a Live Preview editor or plain
+  text, and control the card's padding — stayed behind too, so an embed card
+  switched from its picture view to a note kept the picture's edge-to-edge
+  padding and drew the note flush against the card's sides. A redraw now starts
+  from exactly the state the first one did.
+
+- **No more pale slab behind the tabs in a card's or a board's settings.** The
+  tab strip was pinned to the top of the dialog so the tabs stay reachable while
+  a long tab scrolls past, and a pinned strip has to paint over whatever passes
+  underneath it. It painted with the *note* background — a colour plenty of
+  themes reserve for notes alone — so on those themes the tabs sat on a
+  rectangle in the wrong shade. Hearth now measures the colour the dialog is
+  actually painted with as it opens, however the theme sets it, and pins the
+  strip only when there is a colour it can match exactly. A dialog wearing no
+  such colour — a glass or translucent theme, where painting even the dialog's
+  own colour a second time would double the tint — keeps a strip that simply
+  scrolls with the rest of the dialog. The tabs go by as you scroll on those
+  themes; nothing is ever painted in the wrong shade on any of them.
+
+### Changed
+
+- **One "Title icon" setting, and it takes a picture.** The mark beside a
+  board's heading was split across two fields — **Logo**, holding an emoji or a
+  couple of characters, and **Title icon**, holding a Lucide id that silently
+  won whenever both were set — in the vault-wide settings and again in every
+  board's own. They are now a single **Title icon**, in both places, that reads
+  whatever you give it:
+
+  - a **Lucide icon** id (`flame`), browsable from the 🔍 button as before;
+  - an **emoji or short text**, shown verbatim;
+  - the **vault path of an image** (`Assets/logo.png`), pickable from a new 📷
+    button — so a board can wear your own mark rather than a stock icon;
+  - the **URL of an image on the web**;
+  - or nothing at all, for the Hearth crystal.
+
+  A picture is sized off the same **Title icon size** slider (renamed from
+  "Logo size") that a Lucide icon uses, so it lines up with the title at any
+  scale, and a vault image that has been moved or deleted falls back to the
+  crystal rather than leaving a gap. The setup wizard asks once instead of
+  twice, and its field takes all of the above too.
+
+  **On upgrade, every board keeps the mark it was already showing.** The old
+  pair is folded into the new field by what it *drew*, not by which field held
+  it — so a board whose own logo text was being hidden by a vault-wide Lucide
+  icon keeps the icon, and one that had opted out of that icon keeps its text.
+  A board whose merged value matches the vault-wide one drops its override
+  entirely, so a later change to the global icon still reaches it. The fold is
+  one-way: downgrading below 3.0.0 afterwards shows the Hearth crystal again
+  until the old fields are set anew. A settings export taken before 3.0.0
+  imports through the same fold (#252).
+
+## [2.2.0]
+
+### Added
 
 - **A slideshow can change once a day, and it stays where you left it.** The
   slideshow card's **Change picture** setting now offers three ways to move on:
@@ -209,38 +328,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plugin is installed. It is off by default, and says up front that Operon will
   ask you to approve Hearth the first time the card loads.
 
-- **Launchpad buttons can fill their card.** A launchpad used to size its
-  buttons in pixels, so a card too small for them all simply scrolled — the
-  buttons past the edge weren't there until you scrolled to them. The Links /
-  launchpad, Commands and "New note from template" cards now have a **Button
-  sizing** setting, under **Buttons** in the card's own **Layout** settings, with
-  a new **Fill the card** style: the card is divided into as many columns as
-  **Buttons across** says (six by default) and as many rows as the buttons come
-  to, and the rows share the card's height between them. So a button is a
-  fraction of the card in both directions — it grows and shrinks with the card
-  the way a card grows with the dashboard, every button stays visible whatever
-  size the card is, and the card needs no scrollbar. Buttons stop shrinking at
-  **Minimum button size** — in either direction — rather than dwindling to
-  something you can't read or hit; a card too small for them all at that size
-  scrolls, as the old style always did. It sits at 28px, low enough that buttons
-  usually fit rather than a scrollbar appearing, and each card can raise it (to
-  96px) to keep its buttons comfortable and take the scrollbar instead.
-  Each button's icon and label scale to the button — up to the size Obsidian uses
-  for small UI text, so a big button carries more air rather than a headline —
-  and a button too small to carry its label shows just its icon. Buttons stay
-  tied to the grid, sized in whole cells rather than freely in pixels, so a
-  launchpad still reads as a launchpad rather than a second free-form board — a
-  button can still be dragged to a spot, and dragged two or three cells wide (or
-  tall) by its bottom-right corner in arrange mode.
-
-  Every launchpad you already have keeps the **Fixed size (legacy)** style, down
-  to the pixel: buttons that stay the size they are, so a wider card fits more of
-  them rather than bigger ones, and a card too small for them scrolls as before.
-  Cards added from now on start on the filled style, and either card can be
-  switched at any time. The two styles keep their sizes and their arrangements
-  separately, so switching over to look and switching back leaves a card exactly
-  as it was.
-
 - **Hearth speaks Simplified Chinese.** A full `zh` locale joins English, so
   every string Hearth draws — commands, notices, the setup wizard, all of the
   plugin and card settings, card bodies and the add-card picker — comes out in
@@ -251,59 +338,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- **The dashboard switcher wraps instead of running off the side of the board.**
-  A row of boards is unbounded — you can keep adding them — but the switcher was
-  a non-wrapping flex row, and a flex row that outgrows its container does not
-  get clipped by it, it grows straight through the side. Past about a dozen
-  boards (far fewer on a phone) the buttons ran off the edge, which made the
-  whole board horizontally scrollable and dragged the cards sideways with it.
-  The button row now wraps onto a second line: the row gets taller, the board
-  stays the width of the pane.
-
-- **Fit-to-page no longer piles cards on top of each other on a short screen.**
-  A fitted board scales every card's top and bottom by one shared factor, which
-  is what guarantees that cards which didn't overlap still don't. The final
-  height was then floored at 56px with a `Math.max` — and since that can only
-  make a card *taller* than the scale placed it, any card squeezed below 56px
-  grew past its neighbour's top edge. Squeeze hard enough that ordinary cards
-  fall under the floor and every one of them clamps to the same height and the
-  board collapses into a heap. That is the ordinary case on a phone-shaped
-  viewport, not an extreme one. The floor is now scaled along with everything
-  else, which makes it inert for any card that was at least 56px to begin with
-  and puts it back to being what it was for: a guard against a nonsense stored
-  height, not a second placement rule fighting the first.
-
-- **A card that redraws itself is properly reset first.** Cards redraw
-  constantly — when a file they show is edited, when the vault changes at all,
-  when an embed card's view switcher is clicked — and each redraw emptied the
-  card's body without undoing two things the previous one had left outside it.
-  The floating **open button** (Daily note, Embed, Slideshow) lives on the card
-  rather than in its body, so it survived, and a fresh one was stacked on top
-  every time; being 70% opaque and pixel-aligned, the pile read as a single
-  button quietly darkening as you worked. And the marks a render leaves on the
-  body — which say whether it drew a picture, a Live Preview editor or plain
-  text, and control the card's padding — stayed behind too, so an embed card
-  switched from its picture view to a note kept the picture's edge-to-edge
-  padding and drew the note flush against the card's sides. A redraw now starts
-  from exactly the state the first one did.
 - **Hovering the search bar no longer lights a grey slab inside it.** Obsidian
   paints every text input on hover, and that rule outranked the one that makes
   Hearth's search field transparent, so a second rounded rectangle — carrying
   the field's own corner radius, not the bar's — appeared inset inside the bar.
   The bar keeps drawing its own hover and focus affordance; only the stray
   rectangle is gone.
-- **No more pale slab behind the tabs in a card's or a board's settings.** The
-  tab strip was pinned to the top of the dialog so the tabs stay reachable while
-  a long tab scrolls past, and a pinned strip has to paint over whatever passes
-  underneath it. It painted with the *note* background — a colour plenty of
-  themes reserve for notes alone — so on those themes the tabs sat on a
-  rectangle in the wrong shade. Hearth now measures the colour the dialog is
-  actually painted with as it opens, however the theme sets it, and pins the
-  strip only when there is a colour it can match exactly. A dialog wearing no
-  such colour — a glass or translucent theme, where painting even the dialog's
-  own colour a second time would double the tint — keeps a strip that simply
-  scrolls with the rest of the dialog. The tabs go by as you scroll on those
-  themes; nothing is ever painted in the wrong shade on any of them.
 - **The setup wizard no longer changes your vault-wide settings.** Running setup
   — or re-running it later from **Settings → Hearth → About → Build a
   dashboard** — used to write its answers straight into the global settings: the
@@ -414,36 +454,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   detail. The issue a change closes sits beside it as a link to GitHub. It is
   the same `CHANGELOG.md` as before, and still the only source: nothing is
   rewritten or summarised, only folded.
-
-- **One "Title icon" setting, and it takes a picture.** The mark beside a
-  board's heading was split across two fields — **Logo**, holding an emoji or a
-  couple of characters, and **Title icon**, holding a Lucide id that silently
-  won whenever both were set — in the vault-wide settings and again in every
-  board's own. They are now a single **Title icon**, in both places, that reads
-  whatever you give it:
-
-  - a **Lucide icon** id (`flame`), browsable from the 🔍 button as before;
-  - an **emoji or short text**, shown verbatim;
-  - the **vault path of an image** (`Assets/logo.png`), pickable from a new 📷
-    button — so a board can wear your own mark rather than a stock icon;
-  - the **URL of an image on the web**;
-  - or nothing at all, for the Hearth crystal.
-
-  A picture is sized off the same **Title icon size** slider (renamed from
-  "Logo size") that a Lucide icon uses, so it lines up with the title at any
-  scale, and a vault image that has been moved or deleted falls back to the
-  crystal rather than leaving a gap. The setup wizard asks once instead of
-  twice, and its field takes all of the above too.
-
-  **On upgrade, every board keeps the mark it was already showing.** The old
-  pair is folded into the new field by what it *drew*, not by which field held
-  it — so a board whose own logo text was being hidden by a vault-wide Lucide
-  icon keeps the icon, and one that had opted out of that icon keeps its text.
-  A board whose merged value matches the vault-wide one drops its override
-  entirely, so a later change to the global icon still reaches it. The fold is
-  one-way: downgrading below 2.2.0 afterwards shows the Hearth crystal again
-  until the old fields are set anew. A settings export taken before 2.2.0
-  imports through the same fold (#252).
 
 ## [2.1.0]
 
