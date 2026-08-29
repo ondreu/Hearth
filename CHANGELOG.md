@@ -152,6 +152,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A card that redraws itself is properly reset first.** Cards redraw
+  constantly — when a file they show is edited, when the vault changes at all,
+  when an embed card's view switcher is clicked — and each redraw emptied the
+  card's body without undoing two things the previous one had left outside it.
+  The floating **open button** (Daily note, Embed, Slideshow) lives on the card
+  rather than in its body, so it survived, and a fresh one was stacked on top
+  every time; being 70% opaque and pixel-aligned, the pile read as a single
+  button quietly darkening as you worked. And the marks a render leaves on the
+  body — which say whether it drew a picture, a Live Preview editor or plain
+  text, and control the card's padding — stayed behind too, so an embed card
+  switched from its picture view to a note kept the picture's edge-to-edge
+  padding and drew the note flush against the card's sides. A redraw now starts
+  from exactly the state the first one did.
 - **Hovering the search bar no longer lights a grey slab inside it.** Obsidian
   paints every text input on hover, and that rule outranked the one that makes
   Hearth's search field transparent, so a second rounded rectangle — carrying
