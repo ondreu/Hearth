@@ -150,24 +150,31 @@ describe("tileMetrics", () => {
 		expect(m.rowH).toBe(34);
 	});
 
-	it("gives a scaled cell a fraction of the card's width, and takes its row height as measured", () => {
-		const m = tileMetrics(500, SCALED, 120);
+	it("takes a scaled cell as measured: neither axis can be worked out from the card alone", () => {
+		// A column is a share of the card's width until the floor catches it, and
+		// a row depends on how many rows the buttons came to as well — so only the
+		// laid-out grid knows either, and the caller passes both in.
+		const m = tileMetrics(500, SCALED, { colW: 48, rowH: 120 });
 		expect(m.columns).toBe(6);
-		expect(m.colW).toBeCloseTo((500 - 5 * TILE_GAP) / 6, 5);
-		// The rows are shares of the card's height, so only the rendered grid
-		// knows how tall one is — the caller measures it and passes it in.
+		expect(m.colW).toBe(48);
 		expect(m.rowH).toBe(120);
 	});
 
-	it("falls back to a cell-shaped row while a scaled grid can't be measured", () => {
-		for (const rowHeight of [undefined, 0, -20]) {
-			const m = tileMetrics(500, SCALED, rowHeight);
-			expect(m.rowH).toBeCloseTo(m.colW * 0.78, 5);
+	it("falls back to the share it would be without a floor, per axis, while a scaled grid can't be measured", () => {
+		const share = (500 - 5 * TILE_GAP) / 6;
+		for (const measured of [undefined, {}, { colW: 0 }, { colW: -20, rowH: -1 }]) {
+			const m = tileMetrics(500, SCALED, measured);
+			expect(m.colW).toBeCloseTo(share, 5);
+			expect(m.rowH).toBeCloseTo(share * 0.78, 5);
 		}
+		// A measured column with no measured row still shapes the row.
+		expect(tileMetrics(500, SCALED, { colW: 48 }).rowH).toBeCloseTo(48 * 0.78, 5);
 	});
 
-	it("ignores a measured row height in the fixed style, whose rows are always 34px", () => {
-		expect(tileMetrics(500, FIXED, 120).rowH).toBe(34);
+	it("ignores a measured cell in the fixed style, whose grid is what it always was", () => {
+		const m = tileMetrics(500, FIXED, { colW: 48, rowH: 120 });
+		expect(m.rowH).toBe(34);
+		expect(m.colW).toBeCloseTo((500 - 9 * TILE_GAP) / 10, 5);
 	});
 
 	it("makes a scaled cell grow with the card — the whole point of it", () => {

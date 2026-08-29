@@ -913,24 +913,29 @@ function gridMetrics(tile: HTMLElement, spec: TileSpec): TileMetrics {
 }
 
 
-/** Measure a tile grid: its content width, and — for a scaled grid, whose rows
- * are equal shares of the card's height — the height one row actually came out
- * at. Only the browser knows that: it depends on how many rows the buttons
- * needed, which is grid layout's business, so it's read back off the resolved
- * `grid-template-rows` rather than recomputed here. */
+/** Measure a tile grid: its content width, and — for a scaled grid, whose cells
+ * share out the card but never shrink past the stylesheet's floor — the size a
+ * cell actually came out at. Only the browser knows that: how wide a column ends
+ * up depends on whether the floor caught it, and how tall a row is depends on how
+ * many rows the buttons needed too. Both are read back off the resolved
+ * `grid-template-*` rather than recomputed here. */
 function measureGrid(grid: HTMLElement, spec: TileSpec): TileMetrics {
 	const width = grid.getBoundingClientRect().width;
-	return tileMetrics(width, spec, spec.sizing === "scale" ? renderedRowHeight(grid) : undefined);
+	if (spec.sizing !== "scale") return tileMetrics(width, spec);
+	const style = activeWindow.getComputedStyle(grid);
+	return tileMetrics(width, spec, {
+		colW: firstTrack(style.gridTemplateColumns),
+		rowH: firstTrack(style.gridTemplateRows),
+	});
 }
 
 
-/** The height of a grid's first row, from its resolved `grid-template-rows`
- * (e.g. "77.5px 77.5px"). Zero when it can't be read, which leaves
- * `tileMetrics` on its fallback. */
-function renderedRowHeight(grid: HTMLElement): number {
-	const rows = activeWindow.getComputedStyle(grid).gridTemplateRows;
-	const first = parseFloat(rows);
-	return Number.isFinite(first) && first > 0 ? first : 0;
+/** The size of a grid's first track, from a resolved `grid-template-columns` /
+ * `-rows` (e.g. "77.5px 77.5px"). Undefined when it can't be read — a grid that
+ * isn't laid out yet says "none" — which leaves `tileMetrics` on its fallback. */
+function firstTrack(template: string): number | undefined {
+	const first = parseFloat(template);
+	return Number.isFinite(first) && first > 0 ? first : undefined;
 }
 
 

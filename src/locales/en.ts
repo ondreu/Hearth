@@ -1962,8 +1962,9 @@ export const en = {
 				"Whether the buttons fill the card — every one of them visible however " +
 				"big the card is, growing and shrinking with it — or keep a fixed pixel " +
 				"size, so a card too small for them all scrolls. Filled buttons stop " +
-				"shrinking once they'd be too small to use, and a card too short for " +
-				"them at that size scrolls too. Cards made before this setting existed " +
+				"shrinking once they'd be too small to use, in either direction, and a " +
+				"card too small for them at that size scrolls too. Cards made before " +
+				"this setting existed " +
 				"stay on the fixed style until you switch them; each style keeps its own " +
 				"sizes, so switching back restores what you had.",
 			sizingScale: "Fill the card",
@@ -1971,9 +1972,10 @@ export const en = {
 			across: "Buttons across",
 			acrossDesc:
 				"How many buttons wide the card is, and so how wide one button is: a " +
-				"fraction of the card. Their height works the same way — the rows share " +
-				"whatever height the card has between them — so a shorter card means " +
-				"shorter buttons rather than hidden ones. A button can still be made " +
+				"fraction of the card, down to the minimum size a button keeps. Their " +
+				"height works the same way — the rows share whatever height the card " +
+				"has between them — so a shorter card means shorter buttons rather " +
+				"than hidden ones. A button can still be made " +
 				"two or three cells wide (or tall) by dragging its bottom-right corner " +
 				"in arrange mode.",
 		},

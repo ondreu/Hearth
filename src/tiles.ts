@@ -13,9 +13,9 @@
  *   ({@link TileSpec.cols}) and its rows divide the card's height between them,
  *   so a button is a fraction of the card in both directions: it grows with the
  *   card exactly as a card grows with the dashboard, and every button stays
- *   visible whatever size the card is — down to a floor, below which a button
- *   would be too small to read or hit, and past which the card scrolls like the
- *   fixed style always did. Buttons are still tied to the grid — sized in whole
+ *   visible whatever size the card is — down to a floor on either axis, below
+ *   which a button would be too small to read or hit, and past which the card
+ *   scrolls like the fixed style always did. Buttons are still tied to the grid — sized in whole
  *   cells, never freely in pixels — so a launchpad stays a launchpad rather than
  *   becoming a second free-form board.
  *
@@ -177,25 +177,37 @@ export function fixedRowHeight(): number {
 }
 
 
+/** A grid's cell size as the browser actually resolved it, for the scaled style
+ * — whose cells share out the card but never shrink below the stylesheet's
+ * floor, so neither axis can be worked out from the card's size alone. Both
+ * fields are optional: a grid that isn't laid out yet has neither. */
+export interface MeasuredCell {
+	colW?: number;
+	rowH?: number;
+}
+
+
 /**
  * The grid's live metrics, so a pointer gesture can be mapped onto cells.
  *
  * Fixed: the CSS is `repeat(auto-fill, minmax(44px, 1fr))` over rows of a fixed
  * height, so the column count follows the width, the columns then stretch past
- * their 44px minimum, and the rows are always 34px.
+ * their 44px minimum, and the rows are always 34px. Nothing to measure, and it
+ * stays on the arithmetic it has always used.
  *
- * Scaled: the column count is the card's own, so a cell is a fraction of the
- * card's width. The rows divide the card's *height* between them — as many as
- * the buttons came to, and never below the floor the stylesheet sets — which no
- * formula here can know, so the caller measures the rendered row height and
- * passes it in; `rowHeight` is ignored by the fixed style, and a scaled grid that
- * can't be measured yet falls back to a cell-shaped row.
+ * Scaled: the column count is the card's own, and a cell would be a fraction of
+ * the card — except that neither axis shrinks past the floor the stylesheet
+ * sets, and the rows also depend on how many of them the buttons came to. Only
+ * the laid-out grid knows, so the caller measures it and passes it in;
+ * `measured` is ignored by the fixed style, and whatever a scaled grid can't
+ * supply falls back to the fraction it would be without a floor.
  */
-export function tileMetrics(width: number, spec: TileSpec, rowHeight?: number): TileMetrics {
+export function tileMetrics(width: number, spec: TileSpec, measured?: MeasuredCell): TileMetrics {
 	if (spec.sizing === "scale") {
 		const columns = spec.cols;
-		const colW = Math.max(1, (width - (columns - 1) * TILE_GAP) / columns);
-		const rowH = rowHeight != null && rowHeight > 0 ? rowHeight : colW * TILE_ROW_RATIO;
+		const share = Math.max(1, (width - (columns - 1) * TILE_GAP) / columns);
+		const colW = positive(measured?.colW) ?? share;
+		const rowH = positive(measured?.rowH) ?? colW * TILE_ROW_RATIO;
 		return { columns, colW, rowH };
 	}
 	const columns = Math.max(1, Math.floor((width + TILE_GAP) / (TILE_CELL + TILE_GAP)));

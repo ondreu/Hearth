@@ -153,8 +153,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   fraction of the card in both directions — it grows and shrinks with the card
   the way a card grows with the dashboard, every button stays visible whatever
   size the card is, and the card needs no scrollbar. Buttons stop shrinking at a
-  minimum size, rather than dwindling to something you can't read or hit; a card
-  too short for them all at that size scrolls, as the old style always did.
+  minimum size — in either direction — rather than dwindling to something you
+  can't read or hit; a card too small for them all at that size scrolls, as the
+  old style always did.
   Each button's icon and label scale to the button — up to the size Obsidian uses
   for small UI text, so a big button carries more air rather than a headline —
   and a button too small to carry its label shows just its icon. Buttons stay

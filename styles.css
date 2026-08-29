@@ -2638,19 +2638,20 @@
 		(100cqw - (var(--hearth-tile-cols, 6) - 1) * var(--hearth-tile-gap)) /
 			var(--hearth-tile-cols, 6)
 	);
-	/* Fill the card's height, and let every row take an equal share of it —
-	 * however many rows the buttons need. That is what keeps the card free of
-	 * scrollbars: the grid is no taller than the card it is in.
+	/* Fill the card: the columns are the card's own, and the rows take an equal
+	 * share of its height — however many rows the buttons need. That is what
+	 * keeps the card free of scrollbars: the grid is no bigger than the card it
+	 * is in.
 	 *
-	 * Down to a floor. A row never shrinks below `--hearth-tile-min-row` (a
-	 * comfortable target, and about a line of text with its icon), because a
-	 * button too small to read or hit isn't "visible" in any useful sense. A card
-	 * too short for its buttons at that size scrolls, as the fixed style always
-	 * did — the fallback, not the intent. */
+	 * Down to a floor, on both axes. A cell never shrinks below
+	 * `--hearth-tile-min` (a comfortable target, and about a line of text with
+	 * its icon), because a button too small to read or hit isn't "visible" in any
+	 * useful sense. A card too small for its buttons at that size scrolls, as the
+	 * fixed style always did — the fallback, not the intent. */
 	height: 100%;
-	--hearth-tile-min-row: 48px;
-	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(0, 1fr));
-	grid-auto-rows: minmax(var(--hearth-tile-min-row), 1fr);
+	--hearth-tile-min: 48px;
+	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(var(--hearth-tile-min), 1fr));
+	grid-auto-rows: minmax(var(--hearth-tile-min), 1fr);
 	gap: var(--hearth-tile-gap);
 }
 
