@@ -5545,6 +5545,10 @@
 .hearth-dash-switcher-zone {
 	display: flex;
 	align-items: center;
+	/* A flex item's automatic minimum size is its content, so without this the
+	   zone refuses to shrink below the full width of the switcher inside it and
+	   the overflow is pushed out through the side of the board. */
+	min-width: 0;
 }
 
 /* No in-flow padding on the auto-hide zone (see .hearth-arrange-zone above): the
@@ -5553,6 +5557,13 @@
 .hearth-dash-switcher {
 	display: flex;
 	align-items: center;
+	/* Wrap onto a second row rather than running off the side. A row of boards
+	   is unbounded — someone can keep adding them — and a non-wrapping flex row
+	   grows past its container instead of being clipped by it, which made the
+	   whole board horizontally scrollable and dragged the cards sideways with
+	   it. The button row is the thing that should get taller, not the board that
+	   should get wider. */
+	flex-wrap: wrap;
 	gap: 6px;
 	margin-bottom: -16px;
 	transition:
@@ -5694,6 +5705,31 @@
 	/* Cards are sized by the height renderDashboard sets, never stretched or
 	   squeezed to fill the column. */
 	flex: 0 0 auto;
+}
+
+/* The arrange-mode header, in the stacked column, sits IN FLOW.
+ *
+ * On the free-form board it floats over the card's top edge (see
+ * `.hearth-grid.is-arranging .hearth-card-head.is-editing`) so the body keeps
+ * exactly the size it has outside arrange mode — a faithful preview while
+ * resizing. A floating header needs the CARD to be its containing block, and
+ * that is a fragile thing to depend on: get it wrong anywhere and every header
+ * in the column resolves against .hearth-grid instead, lands at the top of the
+ * board, and stacks on top of the others so only one card is reachable.
+ *
+ * A stacked card doesn't need the float. Its width is the column's and its
+ * height is set outright, so there is no live resize for a floating header to
+ * keep honest — and in flow it has nowhere else to go. This rule is written at
+ * a higher specificity than the floating one rather than relying on order, so
+ * it holds wherever it lands in the sheet.
+ *
+ * `relative` rather than `static` so the header keeps its z-index above the
+ * arrange shield; the inherited top/left/right offsets are all 0 and so are
+ * no-ops. */
+.hearth-grid.is-stacked.is-arranging .hearth-card-head.is-editing {
+	position: relative;
+	border-radius: var(--hearth-card-radius, 14px)
+		var(--hearth-card-radius, 14px) 0 0;
 }
 
 /* A collapsed card is as tall as its own header, whatever height it would have

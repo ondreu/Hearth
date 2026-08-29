@@ -263,6 +263,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The dashboard switcher wraps instead of running off the side of the board.**
+  A row of boards is unbounded — you can keep adding them — but the switcher was
+  a non-wrapping flex row, and a flex row that outgrows its container does not
+  get clipped by it, it grows straight through the side. Past about a dozen
+  boards (far fewer on a phone) the buttons ran off the edge, which made the
+  whole board horizontally scrollable and dragged the cards sideways with it.
+  The button row now wraps onto a second line: the row gets taller, the board
+  stays the width of the pane.
+
 - **Fit-to-page no longer piles cards on top of each other on a short screen.**
   A fitted board scales every card's top and bottom by one shared factor, which
   is what guarantees that cards which didn't overlap still don't. The final
