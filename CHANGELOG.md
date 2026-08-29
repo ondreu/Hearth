@@ -18,7 +18,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **Hearth works on a phone.** Mobile used to have exactly two settings: the
   full desktop board, laid out for a screen ten times wider, or **Mobile mode**
   — the search field and nothing else. That was not a gap in the features, it
-  was a gap in the *layout*: cards are placed as fractions of the board's width,
+  was a gap in the *layout*. Cards are placed as fractions of the board's width,
   so a quarter-width card on a 390px phone is 90px across, and their heights are
   fixed pixels that never compress. There was no width at which the board became
   readable, so the only honest answer was to hide it.
@@ -26,34 +26,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   A board narrower than **600px** now reflows into **a single full-width
   column**, top to bottom, in the order the desktop board reads in. Your layout
   is untouched — the stacked view is worked out fresh on every render and never
-  written back — so the same board is a phone launcher in your pocket and a wall
-  of cards on your monitor, and neither reshapes the other. It can be turned off
+  written back — so the same board is a launcher in your pocket and a wall of
+  cards on your monitor, and neither reshapes the other. It can be turned off
   under **Settings → Hearth → Mobile** (#205).
 
   The threshold is the **measured width of the board**, not the platform. A
-  narrow desktop sidebar had exactly the same problem and gets exactly the same
+  narrow desktop pane had exactly the same problem and gets exactly the same
   fix; an iPad in landscape has neither and keeps the real board. It also means
-  the phone layout can be seen without a phone: drag a pane narrow, or use the
-  preview below.
+  the phone layout can be seen without a phone, by dragging a pane narrow.
 
-- **Build your phone board from your desk.** Arrange mode has a new **Preview at
-  phone width** button that clamps the board to a phone's width and draws a
-  phone around it. It is not a simulation — the narrow layout is chosen by
-  width, so the preview *is* the phone layout, at the width that triggers it;
-  the shell is there because "is this card a comfortable third of a screen or
-  most of one" is a question about the device, and you answer it by seeing the
-  board sit in one.
-
-  Arranging a stacked board works on the two things a stacked card owns: **drag
-  its bottom edge** to set its height (which is stored as that card's mobile
-  height, so the desktop board's own height is untouched), and use the **move
-  up** / **move down** buttons in its header to reorder. Card contents are
-  shielded while arranging, exactly as they are on the free-form board, but the
-  column still scrolls under your finger.
-
-- **Per-card mobile behaviour.** Every card's settings (Layout tab) gained a
-  short **On a narrow board** section, for the cases where stacking the desktop
-  layout guesses wrong:
+  **Tuning a card for the column.** Every card's settings (Layout tab) gained an
+  **On a narrow board** section, for where stacking the desktop layout guesses
+  wrong. Each is an override that defaults to absent — a board you never touch
+  carries nothing new — and all four travel with an exported layout.
 
   - **Hide** — leave the card out of the column entirely. For a wide table or a
     board view, hiding beats squeezing.
@@ -65,34 +50,37 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   - **Position** — where the card comes in the stack. Left empty, it follows the
     board's reading order.
 
-  Every one of them is an override that defaults to absent, so a board you never
-  touch carries nothing new, and all four travel with an exported layout.
+  **Building it from your desk.** Arrange mode has a new **Preview at phone
+  width** button, which clamps the board to a phone's width and draws a phone
+  around it. It is not a simulation — the narrow layout is chosen by width, so
+  the preview *is* the phone layout, at the width that triggers it; the shell is
+  there because "is this card a comfortable third of a screen or most of one" is
+  a question about the device, and you answer it by seeing the board sit in one.
+  Arranging a stacked board then works the two things a stacked card owns: drag
+  its bottom edge to set its height, and use the **move up** / **move down**
+  buttons in its header to reorder. Card contents are shielded while arranging,
+  as they are on the free-form board, but the column still scrolls under your
+  finger.
 
-- **Edge to edge, and sized for a thumb.** A narrow board drops the 24px gutter
-  down each side — 12% of a phone's width spent on nothing — while keeping the
+  **Room to work in.** A narrow board goes edge to edge — the 24px gutter down
+  each side is 12% of a phone's width spent on nothing — while keeping the
   safe-area insets, which are the rounded corner and the camera cut-out rather
-  than decoration. The **filter chips** and **search results** grow to 44px tap
-  targets at that width.
+  than decoration. **Filter chips** and **search results** grow to 44px tap
+  targets. The search row uses the whole screen: with a button beside it the bar
+  took about half a phone's width, and the chips and results list, which hang
+  off the bar's column, inherited that half and left the rest empty — they now
+  span the full width on their own line, and the button keeps its icon and drops
+  its label to a tooltip.
 
-- **The search row uses the whole screen.** With a button beside it, the search
-  bar took about half a phone's width — and the filter chips and the results
-  list, which hang off the bar's column, inherited that half and left the rest
-  empty. On a narrow board the chips and the results now span the **full width**
-  on their own line, and the button keeps its icon and drops its label to a
-  tooltip.
-
-- **A separate performance tier for mobile.** **Settings → Hearth → Mobile**
-  now carries its own tier, defaulting to **Balanced** — the animated sky is the
-  most expensive thing Hearth draws, and on a phone it is drawn on the smallest
-  screen there is and paid for out of a battery. Your desktop tier is stored
-  separately and is not touched; set the mobile one to **Match desktop** for the
-  previous behaviour.
-
-- **Mobile is its own settings category.** The mobile settings moved out of
-  **Behaviour** into a **Mobile** category of their own, next to Search and
-  Behaviour on the settings index. Hearth runs on a phone as a first-class board
-  now rather than as a reduced mode of the desktop one, and the settings pane is
-  where that is either stated or quietly contradicted.
+  **Its own category, and its own performance tier.** The mobile settings moved
+  out of **Behaviour** into a **Mobile** category of their own: Hearth runs on a
+  phone as a first-class board now rather than as a reduced mode of the desktop
+  one, and the settings pane is where that is either stated or quietly
+  contradicted. It carries a performance tier of its own, defaulting to
+  **Balanced** — the animated sky is the most expensive thing Hearth draws, and
+  on a phone it is drawn on the smallest screen there is and paid for out of a
+  battery. Your desktop tier is stored separately and is not touched; set the
+  mobile one to **Match desktop** for the previous behaviour.
 
 - **A card for your weekly, monthly, quarterly or yearly note.** The new
   **Periodic note** card shows whichever periodic note covers *right now* —
