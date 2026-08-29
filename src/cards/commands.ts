@@ -1,5 +1,5 @@
 import { setTooltip, Setting } from "obsidian";
-import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles, tileSizingSettings } from "../cardbodies";
+import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
@@ -54,7 +54,6 @@ function runCommand(view: HomeView, cmd: CommandItem): void {
 
 export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
-	tileSizingSettings(ctx, containerEl);
 	new Setting(containerEl)
 		.setName(t().editors.commands.autoShift)
 		.setDesc(t().editors.commands.autoShiftDesc)
@@ -188,4 +187,5 @@ export const commandsCard: CardDefinition<"commands"> = {
 	},
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
+	tileButtons: true,
 };

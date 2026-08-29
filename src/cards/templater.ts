@@ -6,7 +6,6 @@ import {
 	makeTileDraggable,
 	makeTileResizable,
 	markOverlappingTiles,
-	tileSizingSettings,
 } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
@@ -196,8 +195,6 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 	if (!isTemplaterAvailable(ctx.app)) {
 		new Setting(containerEl).setName(strings.missing).setDesc(strings.missingDesc);
 	}
-
-	tileSizingSettings(ctx, containerEl);
 
 	new Setting(containerEl)
 		.setName(strings.autoShift)
@@ -433,4 +430,5 @@ export const templaterCard: CardDefinition<"templater"> = {
 	},
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
+	tileButtons: true,
 };

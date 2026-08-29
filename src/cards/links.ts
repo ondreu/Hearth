@@ -1,5 +1,5 @@
 import { setTooltip, Setting, TFile } from "obsidian";
-import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles, tileSizingSettings } from "../cardbodies";
+import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { openFile, openLink as openLinkTarget } from "../opener";
@@ -70,8 +70,6 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	new Setting(containerEl).setName(t().editors.links.heading).setHeading();
 	const card = ctx.card;
 	const links = (card.links ??= []);
-
-	tileSizingSettings(ctx, containerEl);
 
 	new Setting(containerEl)
 		.setName(t().editors.links.autoShift)
@@ -224,4 +222,5 @@ export const linksCard: CardDefinition<"links"> = {
 	},
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
+	tileButtons: true,
 };

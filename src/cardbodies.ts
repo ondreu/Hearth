@@ -7,17 +7,12 @@ import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
 import { internalLinkText, openLink } from "./opener";
 import {
-	TILE_COLS_DEFAULT,
-	TILE_COLS_MAX,
-	TILE_COLS_MIN,
 	TILE_GAP,
 	isTilePinned,
 	pinTile,
 	resizeTile,
-	tileCols,
 	tileMetrics,
 	tilePlacement,
-	tileSizing,
 	tileSpans,
 	tileSpec,
 	tileStartSize,
@@ -795,60 +790,6 @@ export function createTileGrid(
 	// arrange mode (tiles are self-contained widgets with their own resize).
 	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
 	return { grid, spec };
-}
-
-
-/**
- * The settings every launchpad-like card's editor offers for its buttons: which
- * of the two sizing styles the card is on and, for the scaled one, how many
- * buttons wide its grid is (which is what decides how big a button is, since a
- * button is a fraction of the card).
- *
- * Shared by the Links, Commands and Templater editors — the three cards draw
- * the same grid, so they answer the same two questions.
- */
-export function tileSizingSettings(ctx: CardEditorContext, containerEl: HTMLElement): void {
-	const strings = t().editors.tiles;
-	const card = ctx.card;
-	new Setting(containerEl)
-		.setName(strings.sizing)
-		.setDesc(strings.sizingDesc)
-		.addDropdown((d) => {
-			d.addOption("scale", strings.sizingScale);
-			d.addOption("fixed", strings.sizingFixed);
-			d.setValue(tileSizing(card)).onChange((v) => {
-				card.tileSizing = v === "scale" ? "scale" : "fixed";
-				ctx.opts.save();
-				ctx.opts.rerender();
-				// What sits under this differs by style — a column count for one,
-				// a pixel size for the other — so rebuild the editor around it.
-				ctx.requestRender();
-			});
-		});
-	if (tileSizing(card) !== "scale") return;
-	const across = new Setting(containerEl)
-		.setName(strings.across)
-		.setDesc(strings.acrossDesc);
-	across.addSlider((s) => {
-		s.setLimits(TILE_COLS_MIN, TILE_COLS_MAX, 1)
-			.setValue(tileCols(card.tileCols))
-			.onChange((v) => {
-				card.tileCols = v === TILE_COLS_DEFAULT ? undefined : v;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			});
-	});
-	across.addExtraButton((b) =>
-		b
-			.setIcon("rotate-ccw")
-			.setTooltip(t().settings.resetSlider)
-			.onClick(() => {
-				card.tileCols = undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-				ctx.requestRender();
-			}),
-	);
 }
 
 

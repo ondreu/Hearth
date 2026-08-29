@@ -143,9 +143,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   ask you to approve Hearth the first time the card loads.
 
 - **Launchpad buttons can scale with their card.** The Links / launchpad,
-  Commands and "New note from template" cards have a **Button sizing** setting.
-  On its new **Scale with the card** style the card is divided into a set number
-  of columns — **Buttons across**, six by default — and a button is one cell of
+  Commands and "New note from template" cards have a **Button sizing** setting,
+  under **Buttons** in the card's own **Layout** settings — where a button's
+  size belongs, since on the new style it is the card's own size that decides
+  it. On that style the card is divided into a set number of columns — **Buttons across**, six by default — and a button is one cell of
   that grid, so every button grows and shrinks with the card the way a card
   grows with the dashboard: its padding, corner radius, icon and label scale
   with it too. Buttons stay tied to the grid, sized in whole cells rather than

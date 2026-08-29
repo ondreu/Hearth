@@ -1956,6 +1956,7 @@ export const en = {
 				"Arrange to make the bar chunkier or slimmer.",
 		},
 		tiles: {
+			heading: "Buttons",
 			sizing: "Button sizing",
 			sizingDesc:
 				"Whether the buttons scale with the card — the way a card scales with " +
