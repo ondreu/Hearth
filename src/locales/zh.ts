@@ -449,6 +449,12 @@ export const zh: Translations = {
 		removeCardMessage: (name: string) => `要从面板中移除“${name}”吗？`,
 		removeCardConfirm: "移除",
 		thisCard: "此卡片",
+		expandCard: "展开卡片",
+		collapseCard: "折叠卡片",
+		phonePreview: "以手机宽度预览",
+		phonePreviewOff: "退出手机预览",
+		moveCardUp: "上移卡片",
+		moveCardDown: "下移卡片",
 	},
 
 	// ---- Dashboard switcher & per-dashboard settings -------------------
@@ -617,7 +623,8 @@ export const zh: Translations = {
 			appearance: "标题、图标、背景与低功耗模式。",
 			search: "搜索栏及其提供的结果。",
 			dashboard: "网格、卡片表面与面板周围的控件。",
-			behaviour: "启动、笔记打开方式、移动端与隐私。",
+			behaviour: "启动、笔记打开方式与隐私。",
+			mobile: "手机上的堆叠布局，以及操作栏。",
 			integrations: "TaskNotes、文件图标，以及 Hearth 读取的每个插件。",
 			backup: "导出与导入您的布局和设置。",
 			about: "版本、更新内容，以及问题反馈渠道。",
@@ -633,6 +640,7 @@ export const zh: Translations = {
 			search: "搜索",
 			dashboard: "面板",
 			behaviour: "行为",
+			mobile: "移动端",
 			integrations: "集成",
 			backup: "备份",
 			about: "关于",
@@ -656,8 +664,8 @@ export const zh: Translations = {
 			startupDesc: "主页视图何时、在何处打开。",
 			opening: "打开笔记",
 			openingDesc: "在 Hearth 中点击笔记时它在哪里打开。",
-			mobileMode: "移动模式",
-			mobileModeDesc: "Hearth 在手机和平板上的行为。",
+			mobileMode: "布局",
+			mobileModeDesc: "当屏幕宽度不足以容纳面板自身布局时，面板如何排布。",
 			privacy: "隐私与网络",
 			privacyDesc: "控制 Hearth 允许发出的对外请求。",
 		},
@@ -898,6 +906,16 @@ export const zh: Translations = {
 			mobileSearchOnly: "移动模式（仅搜索）",
 			mobileSearchOnlyDesc:
 				"在手机和平板上隐藏面板，仅显示搜索框。对桌面端无影响。",
+			stackOnNarrow: "窄屏时堆叠卡片",
+			stackOnNarrowDesc:
+				"当面板宽度不足以容纳其布局时——手机，或桌面端的窄窗格——改为将卡片显示为" +
+				"单列通栏。你的布局不会被修改，恢复宽度后即照旧。每张卡片都可以在自身设置" +
+				"中为该单列单独设置隐藏、排序、高度或折叠。",
+			mobilePerformanceTier: "移动端性能档位",
+			mobilePerformanceTierDesc:
+				"在手机和平板上使用的档位——那里动画天空与毛玻璃绘制在最小的屏幕上，却要由" +
+				"电池来买单。桌面端的档位单独保存，不会被改变。",
+			mobileTierMatch: "与桌面一致",
 			disableExternalCalls: "禁用对外调用",
 			disableExternalCallsDesc:
 				"阻止 Hearth 发出的所有对外网络请求，包括 Jira、外部日历、RSS 源" +
@@ -1317,6 +1335,22 @@ export const zh: Translations = {
 		cardTitle: "标题",
 		cardTitleDesc: "显示在卡片标题栏中。留空则卡片不带标题栏。",
 		cardTitlePlaceholder: "标题",
+		mobile: {
+			heading: "窄屏面板上",
+			hidden: "隐藏",
+			hiddenDesc:
+				"当面板堆叠为单列时不显示此卡片。对于需要宽度才有意义的卡片（宽表格、看板视图），隐藏比压缩更好。",
+			collapsed: "默认折叠",
+			collapsedDesc:
+				"只显示卡片的标题行，点击展开时才构建卡片。未被展开的卡片只占一行，且不会运行任何内容。",
+			height: "高度",
+			heightDesc:
+				"堆叠时的高度（像素）。留空则沿用卡片自身的高度，并加以限制，避免过高的卡片独占整屏。",
+			order: "位置",
+			orderDesc:
+				"此卡片在堆叠中的位置，从 0 开始。留空则按面板的阅读顺序排列——从上到下、从左到右。",
+			autoPlaceholder: "自动",
+		},
 		resetSize: "重置为默认尺寸",
 		removeCard: "移除卡片",
 		removeCardTitle: "移除卡片？",

@@ -19,6 +19,7 @@ import {
 import { cardClasses, cardDefinition, cardFromTemplate, cloneCard } from "./cards";
 import { openCardPicker } from "./cardpicker";
 import { openDashboardSettings } from "./dashboards";
+import { moveStacked, stackedCards, stackedHeight } from "./narrow";
 import { CardSettingsModal } from "./editors";
 import {
 	activeCards,
@@ -43,6 +44,7 @@ import {
 	applyEdgeMerging,
 	applyFitLayout,
 	enableDragResize,
+	enableStackedResize,
 	ensureFreeform,
 	ensureLayout,
 	type GridLayout,
@@ -62,6 +64,11 @@ export function renderDashboard(
 ): void {
 	const s = view.plugin.settings;
 	const cards = renderCards(s);
+	// A narrow board reflows into one full-width column (see src/narrow.ts).
+	// Everything the stacked layout does is render-only: `stackedCards` reads
+	// the free-form geometry to derive an order and never writes to it, so a
+	// board opened on a phone comes back to the desktop exactly as it was left.
+	const stacked = view.isStacked();
 	const columns = effectiveColumns(s);
 	const rowHeight = effectiveRowHeight(s);
 
@@ -81,6 +88,7 @@ export function renderDashboard(
 
 	const grid = container.createDiv("hearth-grid");
 	grid.toggleClass("is-arranging", view.arrangeMode);
+	grid.toggleClass("is-stacked", stacked);
 	// Board-level defaults; per-card overrides are set in the render loop below.
 	grid.style.setProperty("--card-opacity", String(effectiveCardOpacity(s)));
 	// Board-wide corner radius (px). Every card reads this via CSS; the frost
@@ -88,11 +96,15 @@ export function renderDashboard(
 	// matches. Merged-edge corners still flatten to 0 regardless (see styles.css).
 	grid.style.setProperty("--hearth-card-radius", `${effectiveCardRadius(s)}px`);
 	grid.style.setProperty("--card-border-width", `${effectiveCardBorderWidth(s)}px`);
-	const fit = effectiveFitToPage(s);
+	// Fit-to-page locks the board to one screen, which a stacked board — a list
+	// that is meant to run past the bottom — cannot be; the view drops the class
+	// for the same reason, so read it as off here too.
+	const fit = effectiveFitToPage(s) && !stacked;
 	// In fit-to-page mode the board is locked to one screen, so leave the
 	// min-height to CSS (which clips the overflow). Otherwise grow the board
-	// to fit its cards.
-	if (!fit) grid.style.minHeight = `${layoutHeight(cards) + GRID_GAP}px`;
+	// to fit its cards — except when stacked, where the cards are in normal flow
+	// and the column is already exactly as tall as they make it.
+	if (!fit && !stacked) grid.style.minHeight = `${layoutHeight(cards) + GRID_GAP}px`;
 
 	// An empty board is left blank — no placeholder text or icon. The Arrange
 	// toolbar (with "Add card") is still available above.
@@ -110,10 +122,22 @@ export function renderDashboard(
 		elements: new Map(),
 	};
 
-	for (const card of cards) {
+	for (const card of stacked ? stackedCards(cards) : cards) {
+		// A card asked to collapse gets a title row and nothing else until someone
+		// taps it — which is the whole point of the option: an expensive card
+		// costs one row on a phone instead of a screenful, and its body is never
+		// built at all unless it is opened. Only in the stacked layout, where
+		// vertical space is the scarce thing.
+		const collapsed = stacked && card.mobile?.collapsed === true;
+
 		const el = grid.createDiv("hearth-card");
 		gridLayout.elements.set(card, el);
-		applyCardPosition(el, card);
+		// Stacked cards are in normal flow: full width from CSS, and only as tall
+		// as the stacked layout says — bar a collapsed one, which is as tall as
+		// its own header until it is opened. Everywhere else they are placed
+		// absolutely from their stored geometry.
+		if (!stacked) applyCardPosition(el, card);
+		else if (!collapsed) el.style.height = `${stackedHeight(card)}px`;
 
 		if (card.pinned) el.addClass("is-pinned");
 		const kindClasses = cardClasses(card);
@@ -148,25 +172,60 @@ export function renderDashboard(
 
 		const head = el.createDiv("hearth-card-head");
 		if (view.arrangeMode) {
-			renderCardControls(view, card, head, commit);
+			renderCardControls(view, card, head, commit, stacked ? cards : null);
 		} else {
-			head.toggleClass("is-untitled", !(card.title ?? "").trim());
-			head.createDiv({ cls: "hearth-card-title", text: card.title ?? "" });
+			const named = (card.title ?? "").trim();
+			head.toggleClass("is-untitled", !named);
+			const titleEl = head.createDiv({ cls: "hearth-card-title", text: card.title ?? "" });
+			// An untitled card is headerless on a normal board, so collapsing one
+			// would leave a blank bar with nothing to tap and nothing to read.
+			// Fall back to the card kind's own name — "Tasks", "Calendar".
+			if (collapsed && !named) {
+				head.removeClass("is-untitled");
+				titleEl.setText(t().editors.kinds[card.kind]);
+			}
 		}
 
 		const body = el.createDiv("hearth-card-body");
 		if (card.background) body.addClass("has-bg");
-		const redraw = mountCardBody(view, card, body, component, events);
 
-		// Post-render header/floating extras (the embed card's second-view
-		// switcher). Not shown while arranging, where the header holds the title
-		// editor.
-		if (!view.arrangeMode) {
-			cardDefinition(card).mountExtras?.(view, card, el, head, redraw);
+		// One mount for both paths, so a card expanded on a phone is built exactly
+		// as it would have been had it never been collapsed — its header extras
+		// included.
+		const mount = () => {
+			const redraw = mountCardBody(view, card, body, component, events);
+			// Post-render header/floating extras (the embed card's second-view
+			// switcher). Not shown while arranging, where the header holds the title
+			// editor.
+			if (!view.arrangeMode) {
+				cardDefinition(card).mountExtras?.(view, card, el, head, redraw);
+			}
+		};
+
+		if (collapsed) {
+			el.addClass("is-collapsed");
+			enableCollapseToggle(view, card, el, head, mount);
+		} else {
+			mount();
 		}
 
-		if (view.arrangeMode) {
+		// Dragging and resizing are how the free-form layout is edited. A stacked
+		// card owns only its height — width is the column's and position is the
+		// order — so it gets a bottom-edge grip for that one dimension, and the
+		// order is moved from the card header. A collapsed card is as tall as its
+		// own title row and has no height to set.
+		if (view.arrangeMode && !stacked) {
 			enableDragResize(view, el, grid, card, gridLayout, component, commit);
+		} else if (view.arrangeMode) {
+			// A shield over the card body, so arranging a stacked board can't tick a
+			// task or follow a link by accident — the same protection the free-form
+			// board gets from its drag overlay. Deliberately NOT that overlay: it
+			// carries `touch-action: none` to claim the drag gesture, which on a
+			// column that has to be scrolled with a finger would make the board
+			// unscrollable. This one lets a vertical scroll through and swallows
+			// everything else.
+			el.createDiv("hearth-card-shield");
+			if (!collapsed) enableStackedResize(el, card, component, () => persistAndRender(view));
 		}
 	}
 
@@ -178,12 +237,17 @@ export function renderDashboard(
 	// Sharpen touching corners between neighbouring cards so adjacent cards
 	// read as one merged tile. Recomputed after every drag/resize commit and
 	// on viewport resize (handled below) since card positions reflow.
-	applyEdgeMerging(grid);
+	//
+	// Skipped when stacked: edge merging is about cards that share an edge, and
+	// a single spaced column has no two cards touching.
+	if (!stacked) {
+		applyEdgeMerging(grid);
 
-	// Recompute edge merging whenever the board reflows (pane resize, zoom,
-	// dashboard switch) — fractional widths shift which edges touch.
-	const remerge = () => applyEdgeMerging(grid);
-	component.registerDomEvent(window, "resize", debounce(remerge, 120, true));
+		// Recompute edge merging whenever the board reflows (pane resize, zoom,
+		// dashboard switch) — fractional widths shift which edges touch.
+		const remerge = () => applyEdgeMerging(grid);
+		component.registerDomEvent(window, "resize", debounce(remerge, 120, true));
+	}
 
 	// In fit-to-page mode the board is locked to one screen, so cards taller than
 	// the board would spill below the fold. Proportionally squeeze the vertical
@@ -359,6 +423,66 @@ function persistAndRender(view: HomeView): void {
 	view.render();
 }
 
+/**
+ * Wire a collapsed stacked card's header as the control that opens it.
+ *
+ * The body is mounted on the first expand and never before, so a card someone
+ * has collapsed genuinely costs nothing until they ask for it — no query runs,
+ * no iframe loads, no timer starts. Expanding is per-session and is deliberately
+ * not written back to the card: `mobile.collapsed` says how the card *starts*
+ * on a phone, and tapping one open shouldn't quietly re-author the board.
+ *
+ * The chevron is always a control of its own so the header still works while
+ * arranging, where the header is a text field that must keep its own clicks.
+ */
+function enableCollapseToggle(
+	view: HomeView,
+	card: DashboardCard,
+	el: HTMLElement,
+	head: HTMLElement,
+	mount: () => void,
+): void {
+	const chevron = head.createEl("button", {
+		cls: "hearth-card-expand",
+		attr: {
+			"aria-label": t().dashboard.expandCard,
+			"aria-expanded": "false",
+			type: "button",
+		},
+	});
+	setIcon(chevron, "chevron-down");
+	chevron.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+	let mounted = false;
+	const toggle = () => {
+		const opening = el.hasClass("is-collapsed");
+		el.toggleClass("is-collapsed", !opening);
+		chevron.setAttribute("aria-expanded", String(opening));
+		chevron.setAttribute(
+			"aria-label",
+			opening ? t().dashboard.collapseCard : t().dashboard.expandCard,
+		);
+		// The stacked height is only meaningful once the card is open; a collapsed
+		// card is as tall as its header, which CSS decides.
+		el.style.height = opening ? `${stackedHeight(card)}px` : "";
+		if (opening && !mounted) {
+			mounted = true;
+			mount();
+		}
+	};
+
+	chevron.addEventListener("click", (e) => {
+		e.stopPropagation();
+		toggle();
+	});
+	// Outside arrange mode the whole row is the target — a chevron-sized tap
+	// area is not what a thumb is aiming at.
+	if (!view.arrangeMode) {
+		head.addClass("is-collapsible");
+		head.addEventListener("click", toggle);
+	}
+}
+
 /** The editable card header shown in arrange mode: an inline title field plus
  * actions to open the card's settings and to remove the card. */
 function renderCardControls(
@@ -366,6 +490,10 @@ function renderCardControls(
 	card: DashboardCard,
 	head: HTMLElement,
 	commit: () => void,
+	/** The board's cards when it is stacked, which is what the reorder buttons
+	 * renumber; null on a free-form board, where a card is moved by dragging it
+	 * and there is nothing to reorder. */
+	stack: DashboardCard[] | null,
 ): void {
 	head.addClass("is-editing");
 
@@ -383,6 +511,28 @@ function renderCardControls(
 	title.addEventListener("blur", commit);
 
 	const actions = head.createDiv("hearth-card-actions");
+
+	// A stacked board has no free geometry to drag, so its one layout question
+	// — what comes before what — is answered here instead. The buttons write
+	// `mobile.order`, the same field the card's own Mobile settings expose.
+	if (stack) {
+		const move = (delta: -1 | 1) => {
+			if (!moveStacked(stack, card, delta)) return;
+			persistAndRender(view);
+		};
+		for (const [delta, icon, label] of [
+			[-1, "arrow-up", t().dashboard.moveCardUp],
+			[1, "arrow-down", t().dashboard.moveCardDown],
+		] as const) {
+			const btn = actions.createEl("button", {
+				cls: "hearth-card-action",
+				attr: { "aria-label": label, type: "button" },
+			});
+			setIcon(btn, icon);
+			btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+			btn.addEventListener("click", () => move(delta));
+		}
+	}
 
 	const settingsBtn = actions.createEl("button", {
 		cls: "hearth-card-action",
@@ -511,6 +661,37 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 			view.hideHeaderInArrange = !view.hideHeaderInArrange;
 			view.render();
 		});
+
+		// Constrain the board to phone width so the narrow layout can be built
+		// and checked from the desk it is being built at. Hearth's narrow layout
+		// is chosen by measured width rather than by platform precisely so this
+		// is possible: the preview is not a simulation of the phone layout, it is
+		// the phone layout, at the width that triggers it.
+		//
+		// Not offered on a board already narrow enough to be stacked, where
+		// clamping the width further would preview nothing new.
+		if (!view.isNarrow() || view.phonePreview) {
+			const phone = bar.createEl("button", { cls: "hearth-tool-btn" });
+			phone.toggleClass("is-active", view.phonePreview);
+			setIcon(phone.createSpan("hearth-tool-icon"), "smartphone");
+			phone.createSpan({
+				cls: "hearth-tool-label",
+				text: view.phonePreview
+					? t().dashboard.phonePreviewOff
+					: t().dashboard.phonePreview,
+			});
+			phone.setAttribute(
+				"aria-label",
+				view.phonePreview
+					? t().dashboard.phonePreviewOff
+					: t().dashboard.phonePreview,
+			);
+			phone.setAttribute("aria-pressed", String(view.phonePreview));
+			phone.addEventListener("click", () => {
+				view.phonePreview = !view.phonePreview;
+				view.render();
+			});
+		}
 	}
 
 	const arrangeZone = bar.createDiv("hearth-arrange-zone");
@@ -540,6 +721,11 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 	);
 	arrange.addEventListener("click", () => {
 		view.arrangeMode = !view.arrangeMode;
+		// The phone preview is a way of looking at a board while building it, and
+		// its only control lives in this toolbar. Leaving arrange mode with it
+		// still on would strand the board at phone width with nothing on screen
+		// to turn it off, so finishing puts the board back to its real width.
+		if (!view.arrangeMode) view.phonePreview = false;
 		view.render();
 	});
 }

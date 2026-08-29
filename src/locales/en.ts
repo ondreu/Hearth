@@ -482,6 +482,12 @@ export const en = {
 		removeCardMessage: (name: string) => `Remove "${name}" from the dashboard?`,
 		removeCardConfirm: "Remove",
 		thisCard: "this card",
+		expandCard: "Expand card",
+		collapseCard: "Collapse card",
+		phonePreview: "Preview at phone width",
+		phonePreviewOff: "Leave phone preview",
+		moveCardUp: "Move card up",
+		moveCardDown: "Move card down",
 	},
 
 	// ---- Dashboard switcher & per-dashboard settings -------------------
@@ -655,7 +661,8 @@ export const en = {
 			appearance: "Title, title icon, background, and low power mode.",
 			search: "The search bar and which results it offers.",
 			dashboard: "Grid, card surface, and the controls around the board.",
-			behaviour: "Startup, how notes open, mobile, and privacy.",
+			behaviour: "Startup, how notes open, and privacy.",
+			mobile: "The stacked layout on a phone, and the action bar.",
 			integrations: "TaskNotes, file icons, and every plugin Hearth reads.",
 			backup: "Export and import your layout and settings.",
 			about: "Version, what's new, and where to report things.",
@@ -671,6 +678,7 @@ export const en = {
 			search: "Search",
 			dashboard: "Dashboard",
 			behaviour: "Behaviour",
+			mobile: "Mobile",
 			integrations: "Integrations",
 			backup: "Backup",
 			about: "About",
@@ -696,8 +704,9 @@ export const en = {
 			startupDesc: "When and where the home view opens.",
 			opening: "Opening notes",
 			openingDesc: "Where a note opens when you click it in Hearth.",
-			mobileMode: "Mobile mode",
-			mobileModeDesc: "How Hearth behaves on phones and tablets.",
+			mobileMode: "Layout",
+			mobileModeDesc:
+				"How the board is laid out when the screen is too narrow for its own layout.",
 			privacy: "Privacy & network",
 			privacyDesc: "Control the outbound requests Hearth is allowed to make.",
 		},
@@ -971,6 +980,19 @@ export const en = {
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
 				"field. No effect on desktop.",
+			stackOnNarrow: "Stack cards on narrow screens",
+			stackOnNarrowDesc:
+				"When the board is too narrow for its layout — a phone, or a narrow " +
+				"pane on the desktop — show the cards as one full-width column " +
+				"instead. Your layout is untouched and comes back at full width. " +
+				"Each card can be hidden, reordered, resized or collapsed for this " +
+				"column from its own settings.",
+			mobilePerformanceTier: "Performance tier on mobile",
+			mobilePerformanceTierDesc:
+				"The tier to use on phones and tablets, where the animated sky and " +
+				"frosted glass are drawn on the smallest screen and paid for out of a " +
+				"battery. Your desktop tier is kept separately and is not changed.",
+			mobileTierMatch: "Match desktop",
 			disableExternalCalls: "Disable external calls",
 			disableExternalCallsDesc:
 				"Block all outbound network requests Hearth makes, including Jira, " +
@@ -1436,6 +1458,22 @@ export const en = {
 		cardTitleDesc:
 			"Shown in the card's header. Leave empty for a headerless card.",
 		cardTitlePlaceholder: "Title",
+		mobile: {
+			heading: "On a narrow board",
+			hidden: "Hide",
+			hiddenDesc:
+				"Leave this card out when the board stacks into one column. For cards that need width to make sense — a wide table, a board view — hiding beats squeezing.",
+			collapsed: "Start collapsed",
+			collapsedDesc:
+				"Show only the card's title row, and build the card when it is tapped open. A card nobody opens costs one row and runs nothing.",
+			height: "Height",
+			heightDesc:
+				"Height in pixels when stacked. Left empty, the card keeps its own height, capped so a tall card can't fill the screen on its own.",
+			order: "Position",
+			orderDesc:
+				"Where this card comes in the stack, counting from 0. Left empty, it follows the order the board reads in — top to bottom, left to right.",
+			autoPlaceholder: "Auto",
+		},
 		resetSize: "Reset to default size",
 		removeCard: "Remove card",
 		removeCardTitle: "Remove card?",

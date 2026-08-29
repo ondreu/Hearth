@@ -175,6 +175,53 @@ describe("fitted board round trip", () => {
 	});
 });
 
+describe("applyCardPositionFitted", () => {
+	/** Cards stacked flush against each other, which is what a squeeze has to
+	 * keep apart: any gap of its own would hide a small overlap. */
+	function column(count: number, height = 200): DashboardCard[] {
+		return Array.from({ length: count }, (_, i) =>
+			card({ id: `c${i}`, fy: i * height, fh: height }),
+		);
+	}
+
+	it("keeps stacked cards apart however hard the board is squeezed", () => {
+		// A tall board squeezed into a phone-shaped viewport. Every card's scaled
+		// height lands under MIN_H_PX, which is exactly where an unscaled floor
+		// used to take over: Math.max can only make a card taller than the linear
+		// map placed it, so each one grew past its neighbour's top edge and the
+		// whole board piled up.
+		const cards = column(6);
+		const scale = fitVerticalScale(cards, 240);
+		expect(scale).toBeLessThan(MIN_H_PX / 200);
+
+		const rects = cards.map((c) => {
+			const el = stub();
+			applyCardPositionFitted(asEl(el), c, scale, BOARD_W);
+			return rectOf(el);
+		});
+
+		for (let i = 1; i < rects.length; i++) {
+			const above = rects[i - 1];
+			const below = rects[i];
+			expect(above.top + above.height).toBeLessThanOrEqual(below.top);
+		}
+	});
+
+	it("still floors a degenerate stored height on an unscaled board", () => {
+		// The floor's actual job — a card whose stored height is nonsense should
+		// not be painted as an invisible sliver — is untouched by the fix.
+		const el = stub();
+		applyCardPositionFitted(asEl(el), card({ fh: 0 }), 1, BOARD_W);
+		expect(rectOf(el).height).toBe(MIN_H_PX);
+	});
+
+	it("leaves an unsqueezed board on its stored geometry", () => {
+		const el = stub();
+		applyCardPositionFitted(asEl(el), card({ fy: 120, fh: 300 }), 1, BOARD_W);
+		expect(rectOf(el)).toMatchObject({ top: 120, height: 300 });
+	});
+});
+
 describe("boardFitScale", () => {
 	const cards = [card({ fy: 0, fh: 600 })];
 

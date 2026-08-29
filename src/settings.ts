@@ -64,6 +64,19 @@ type StringSettingKey =
 	| "taskNotesDoneValue"
 	| "iconizeIconProperty";
 
+/** The performance ladder's names, in the reader's language. Shared by the
+ * desktop tier dropdown and the mobile one so the two can never drift into
+ * describing the same ladder differently. */
+function tierLabels(): Record<PerformanceTier, string> {
+	const strings = t().settings.performance;
+	return {
+		full: strings.tierFull,
+		balanced: strings.tierBalanced,
+		reduced: strings.tierReduced,
+		minimal: strings.tierMinimal,
+	};
+}
+
 /** The GitHub repository and support links surfaced in the About tab. */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
 const GITHUB_ISSUES_URL = "https://github.com/ondreu/hearth/issues/new";
@@ -81,6 +94,7 @@ const SETTINGS_TABS: { id: SettingsTabId; icon: string }[] = [
 	{ id: "search", icon: "search" },
 	{ id: "dashboard", icon: "layout-dashboard" },
 	{ id: "behaviour", icon: "settings-2" },
+	{ id: "mobile", icon: "smartphone" },
 	{ id: "integrations", icon: "plug" },
 	{ id: "backup", icon: "archive" },
 	{ id: "about", icon: "info" },
@@ -98,7 +112,7 @@ type SettingsRoute = "index" | SettingsTabId;
  * cluster when you say out loud what each is for. */
 const SETTINGS_INDEX: { id: "lookFeel" | "howItWorks" | "data" | "etc"; tabs: SettingsTabId[] }[] = [
 	{ id: "lookFeel", tabs: ["appearance", "dashboard"] },
-	{ id: "howItWorks", tabs: ["search", "behaviour"] },
+	{ id: "howItWorks", tabs: ["search", "behaviour", "mobile"] },
 	{ id: "data", tabs: ["integrations", "backup"] },
 	{ id: "etc", tabs: ["about"] },
 ];
@@ -448,14 +462,20 @@ export class HomeSettingTab extends PluginSettingTab {
 				this.section(body, s.sections.opening, s.sections.openingDesc, (b) =>
 					this.openingSection(b),
 				);
+				this.section(body, s.sections.privacy, s.sections.privacyDesc, (b) =>
+					this.privacySection(b),
+				);
+				break;
+			// Mobile is a category of its own rather than two sections inside
+			// Behaviour. Hearth runs on a phone as a first-class board now, not as
+			// a reduced mode of the desktop one, and the settings pane is where
+			// that is either stated or quietly contradicted.
+			case "mobile":
 				this.section(body, s.sections.mobileMode, s.sections.mobileModeDesc, (b) =>
 					this.mobileModeSection(b),
 				);
 				this.section(body, s.mobileActions.heading, s.mobileActions.headingDesc, (b) =>
 					this.mobileActionsSection(b),
-				);
-				this.section(body, s.sections.privacy, s.sections.privacyDesc, (b) =>
-					this.privacySection(b),
 				);
 				break;
 			case "integrations":
@@ -931,12 +951,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		const strings = t().settings.performance;
 		const tier = performanceTier(s);
 
-		const label: Record<PerformanceTier, string> = {
-			full: strings.tierFull,
-			balanced: strings.tierBalanced,
-			reduced: strings.tierReduced,
-			minimal: strings.tierMinimal,
-		};
+		const label = tierLabels();
 
 		new Setting(containerEl)
 			.setName(strings.tier)
@@ -1371,6 +1386,32 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.stackOnNarrow)
+			.setDesc(t().settings.behaviour.stackOnNarrowDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.stackOnNarrow).onChange(async (v) => {
+					s.stackOnNarrow = v;
+					this.save();
+				}),
+			);
+
+		// The mobile performance tier lives here rather than beside the desktop
+		// one: it is a mobile setting that happens to be about performance, and
+		// this is the page someone opens when they are thinking about their phone.
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.mobilePerformanceTier)
+			.setDesc(t().settings.behaviour.mobilePerformanceTierDesc)
+			.addDropdown((d) => {
+				d.addOption("match", t().settings.behaviour.mobileTierMatch);
+				const label = tierLabels();
+				for (const tier of PERFORMANCE_TIERS) d.addOption(tier, label[tier]);
+				d.setValue(s.mobilePerformanceTier).onChange(async (v) => {
+					s.mobilePerformanceTier = v as HomeSettings["mobilePerformanceTier"];
+					this.save();
+				});
+			});
 	}
 
 	// ---- Mobile action bar ----------------------------------------------

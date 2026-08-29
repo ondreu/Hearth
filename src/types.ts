@@ -1,3 +1,4 @@
+import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
@@ -1540,6 +1541,44 @@ export interface DashboardCard {
 	fy?: number;
 	fw?: number;
 	fh?: number;
+
+	// ---- Layout (stacked / narrow) ----
+	/** How this card behaves in the stacked layout a narrow board reflows to
+	 * (see src/narrow.ts). Every field is optional and absent means "derive it
+	 * from the free-form layout above", so no existing card changes behaviour
+	 * and a board only carries what someone actually tuned. */
+	mobile?: MobileCardOptions;
+}
+
+/**
+ * A card's overrides for the stacked layout used on a narrow board.
+ *
+ * The stacked layout derives everything it needs from the free-form geometry —
+ * cards run top-to-bottom in reading order at the height they already have —
+ * so this exists purely for the cases where the derivation is wrong. Deliberately
+ * four hints on the stacked layout rather than a second set of coordinates: a
+ * card has one layout to maintain, and a board that has never been opened on a
+ * phone still stacks sensibly.
+ */
+export interface MobileCardOptions {
+	/** Leave the card out of the stacked layout entirely. For the cards that
+	 * genuinely can't work at phone width (a wide Dataview table, a Jira board)
+	 * — hiding beats squeezing. The card is untouched on a wide board. */
+	hidden?: boolean;
+	/** Sort key overriding the derived reading order. Cards carrying one are
+	 * ordered by it and come first; the rest follow in reading order. Reading
+	 * order is a desktop *layout* fact, and it is rarely the same as what you
+	 * want first on a phone. */
+	order?: number;
+	/** Height in pixels in the stacked layout, instead of the height derived
+	 * from `fh`. A card is full-width when stacked, which is usually much wider
+	 * than it is on the board, so the desktop height can be far more than its
+	 * content now needs. */
+	height?: number;
+	/** Render as a tappable title row that expands on demand, rather than at
+	 * full height. What makes an expensive card worth keeping on a phone: it
+	 * costs one row until someone asks for it. */
+	collapsed?: boolean;
 }
 
 /** Background mode for the home view. "default" uses Hearth's bundled
@@ -1900,6 +1939,12 @@ export interface HomeSettings {
 	showMobileActionBar: boolean;
 	/** Buttons shown in the mobile action bar. */
 	mobileActionButtons: MobileActionButton[];
+	/** Reflow the board into a single full-width column once it is narrower
+	 * than {@link NARROW_MAX_WIDTH} — a phone, but equally a narrow desktop
+	 * pane. On by default: the free-form layout has no meaning at that width
+	 * (a quarter-width card is ~90px on a phone), so the alternative is a board
+	 * nobody can read. Turn it off to keep the scaled free-form layout. */
+	stackOnNarrow: boolean;
 	/** Block all outbound network requests Hearth would otherwise make. The only
 	 * requests are configured live-content cards (including Jira) and the
 	 * calculator's key-less, ECB-backed currency-rate fetch. */
@@ -1934,6 +1979,17 @@ export interface HomeSettings {
 	 * file is edited by hand while a lower tier is selected.
 	 */
 	performanceTier: PerformanceTier;
+	/**
+	 * The performance tier to use on mobile, where {@link performanceTier} is
+	 * ignored. `"match"` follows the desktop tier instead of overriding it.
+	 *
+	 * Separate because the trade-off genuinely differs by device rather than by
+	 * taste: the animated sky and the frosted glass are the two most expensive
+	 * things Hearth draws, and a phone pays for them out of a battery while
+	 * showing them on the smallest screen Hearth runs on. Defaults to
+	 * `"balanced"`, which thins the sky and changes nothing else.
+	 */
+	mobilePerformanceTier: PerformanceTier | "match";
 	/** The flat background colour used on the "minimal" tier. Any CSS colour;
 	 * defaults to {@link LOW_POWER_BACKGROUND}. */
 	lowPowerBackgroundColor: string;
@@ -2112,6 +2168,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
 	// and existing vaults aren't silently reset if the list is emptied.
 	mobileActionButtons: [],
+	stackOnNarrow: true,
 	disableExternalCalls: false,
 
 	// A new tab is what Hearth has always done; existing vaults must not change
@@ -2122,6 +2179,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	openFromOutside: "same",
 
 	performanceTier: "full",
+	mobilePerformanceTier: "balanced",
 	lowPowerBackgroundColor: LOW_POWER_BACKGROUND,
 	// On by default: it pauses animation nobody is looking at (see the field's
 	// own note for why a hidden tab is already free but an unfocused window is
@@ -2418,7 +2476,19 @@ export function effectiveFullWidth(s: HomeSettings): boolean {
  * something arbitrary.
  */
 export function performanceTier(s: HomeSettings): PerformanceTier {
-	return PERFORMANCE_TIERS.includes(s.performanceTier) ? s.performanceTier : "full";
+	// On a phone or tablet the mobile tier answers instead, unless it is set to
+	// follow the desktop one. Resolved here rather than at each call site so
+	// every predicate below (motion, frost, refresh timers) picks it up for
+	// free, and so the desktop tier is never overwritten to express a mobile
+	// preference — both are stored, and the device decides which is read.
+	//
+	// Repaired in two steps rather than one so an unreadable mobile value falls
+	// back to the desktop tier the user actually chose, not to `full`.
+	const mobile = Platform.isMobile ? s.mobilePerformanceTier : "match";
+	const tier = mobile !== "match" && PERFORMANCE_TIERS.includes(mobile)
+		? mobile
+		: s.performanceTier;
+	return PERFORMANCE_TIERS.includes(tier) ? tier : "full";
 }
 
 /** Rank on the ladder, so the predicates below can say "at least this frugal"

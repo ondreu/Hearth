@@ -15,6 +15,73 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Hearth works on a phone.** Mobile used to have exactly two settings: the
+  full desktop board, laid out for a screen ten times wider, or **Mobile mode**
+  — the search field and nothing else. That was not a gap in the features, it
+  was a gap in the *layout*. Cards are placed as fractions of the board's width,
+  so a quarter-width card on a 390px phone is 90px across, and their heights are
+  fixed pixels that never compress. There was no width at which the board became
+  readable, so the only honest answer was to hide it.
+
+  A board narrower than **600px** now reflows into **a single full-width
+  column**, top to bottom, in the order the desktop board reads in. Your layout
+  is untouched — the stacked view is worked out fresh on every render and never
+  written back — so the same board is a launcher in your pocket and a wall of
+  cards on your monitor, and neither reshapes the other. It can be turned off
+  under **Settings → Hearth → Mobile** (#205).
+
+  The threshold is the **measured width of the board**, not the platform. A
+  narrow desktop pane had exactly the same problem and gets exactly the same
+  fix; an iPad in landscape has neither and keeps the real board. It also means
+  the phone layout can be seen without a phone, by dragging a pane narrow.
+
+  **Tuning a card for the column.** Every card's settings (Layout tab) gained an
+  **On a narrow board** section, for where stacking the desktop layout guesses
+  wrong. Each is an override that defaults to absent — a board you never touch
+  carries nothing new — and all four travel with an exported layout.
+
+  - **Hide** — leave the card out of the column entirely. For a wide table or a
+    board view, hiding beats squeezing.
+  - **Start collapsed** — show only the card's title row, and build the card
+    when it is tapped open. A collapsed card that nobody opens costs one row and
+    runs *nothing*: no query, no iframe, no timer.
+  - **Height** — a height for the stacked column. Left empty, the card keeps its
+    own, capped so one tall card can't take the whole screen.
+  - **Position** — where the card comes in the stack. Left empty, it follows the
+    board's reading order.
+
+  **Building it from your desk.** Arrange mode has a new **Preview at phone
+  width** button, which clamps the board to a phone's width and draws a phone
+  around it. It is not a simulation — the narrow layout is chosen by width, so
+  the preview *is* the phone layout, at the width that triggers it; the shell is
+  there because "is this card a comfortable third of a screen or most of one" is
+  a question about the device, and you answer it by seeing the board sit in one.
+  Arranging a stacked board then works the two things a stacked card owns: drag
+  its bottom edge to set its height, and use the **move up** / **move down**
+  buttons in its header to reorder. Card contents are shielded while arranging,
+  as they are on the free-form board, but the column still scrolls under your
+  finger.
+
+  **Room to work in.** A narrow board goes edge to edge — the 24px gutter down
+  each side is 12% of a phone's width spent on nothing — while keeping the
+  safe-area insets, which are the rounded corner and the camera cut-out rather
+  than decoration. **Filter chips** and **search results** grow to 44px tap
+  targets. The search row uses the whole screen: with a button beside it the bar
+  took about half a phone's width, and the chips and results list, which hang
+  off the bar's column, inherited that half and left the rest empty — they now
+  span the full width on their own line, and the button keeps its icon and drops
+  its label to a tooltip.
+
+  **Its own category, and its own performance tier.** The mobile settings moved
+  out of **Behaviour** into a **Mobile** category of their own: Hearth runs on a
+  phone as a first-class board now rather than as a reduced mode of the desktop
+  one, and the settings pane is where that is either stated or quietly
+  contradicted. It carries a performance tier of its own, defaulting to
+  **Balanced** — the animated sky is the most expensive thing Hearth draws, and
+  on a phone it is drawn on the smallest screen there is and paid for out of a
+  battery. Your desktop tier is stored separately and is not touched; set the
+  mobile one to **Match desktop** for the previous behaviour.
+
 - **A card for your weekly, monthly, quarterly or yearly note.** The new
   **Periodic note** card shows whichever periodic note covers *right now* —
   this week's by default, or the month, quarter or year, picked in the card's
@@ -183,6 +250,28 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   README has a Chinese translation too ([README.zh-CN.md](README.zh-CN.md)).
 
 ### Fixed
+
+- **The dashboard switcher wraps instead of running off the side of the board.**
+  A row of boards is unbounded — you can keep adding them — but the switcher was
+  a non-wrapping flex row, and a flex row that outgrows its container does not
+  get clipped by it, it grows straight through the side. Past about a dozen
+  boards (far fewer on a phone) the buttons ran off the edge, which made the
+  whole board horizontally scrollable and dragged the cards sideways with it.
+  The button row now wraps onto a second line: the row gets taller, the board
+  stays the width of the pane.
+
+- **Fit-to-page no longer piles cards on top of each other on a short screen.**
+  A fitted board scales every card's top and bottom by one shared factor, which
+  is what guarantees that cards which didn't overlap still don't. The final
+  height was then floored at 56px with a `Math.max` — and since that can only
+  make a card *taller* than the scale placed it, any card squeezed below 56px
+  grew past its neighbour's top edge. Squeeze hard enough that ordinary cards
+  fall under the floor and every one of them clamps to the same height and the
+  board collapses into a heap. That is the ordinary case on a phone-shaped
+  viewport, not an extreme one. The floor is now scaled along with everything
+  else, which makes it inert for any card that was at least 56px to begin with
+  and puts it back to being what it was for: a guard against a nonsense stored
+  height, not a second placement rule fighting the first.
 
 - **A card that redraws itself is properly reset first.** Cards redraw
   constantly — when a file they show is edited, when the vault changes at all,

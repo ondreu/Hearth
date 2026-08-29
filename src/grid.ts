@@ -238,7 +238,20 @@ export function applyCardPositionFitted(
 	const top = Math.round(fy * scale);
 	const bottom = Math.round((fy + fh) * scale);
 	el.style.top = `${top}px`;
-	el.style.height = `${Math.max(MIN_H_PX, bottom - top)}px`;
+	// The floor is scaled with everything else, and that is not cosmetic: an
+	// unscaled floor is applied with Math.max, so it can only ever make a card
+	// TALLER than the linear map placed it — pushing its bottom edge past where
+	// the next card's top edge was scaled to, which is an overlap. Once the
+	// squeeze is hard enough that ordinary cards scale below 56px, every one of
+	// them clamps to 56px and the whole board piles up. That is the normal case
+	// on a phone-shaped viewport, not an extreme one, so fit-to-page was
+	// reliably broken there.
+	//
+	// Scaling the floor keeps it inert for any card that is at least MIN_H_PX
+	// tall to begin with (which resizing and placement both guarantee), so it
+	// goes back to being what it was meant to be: a guard against a degenerate
+	// stored height, not a second placement rule fighting the first.
+	el.style.height = `${Math.max(Math.round(MIN_H_PX * scale), bottom - top)}px`;
 }
 
 /** The proportional vertical scale (0..1] that fits every card's stored layout
@@ -424,6 +437,59 @@ function bestSnap(
 		}
 	}
 	return best;
+}
+
+/**
+ * Let a card in the stacked layout be resized by dragging its bottom edge.
+ *
+ * The stacked layout has exactly one dimension a card owns: its height. Width
+ * is the column's and position is the order, so the full drag engine has
+ * nothing to offer here — but height without a gesture meant typing a number
+ * into the card's settings, which is not how anyone resizes a card anywhere
+ * else in Hearth.
+ *
+ * The height is written to `mobile.height`, the card's own stacked-layout
+ * override, so resizing a card on a phone never touches the `fh` the desktop
+ * board is laid out with. That is the same separation the rest of the stacked
+ * layout keeps, and it is what lets the two layouts have different answers.
+ */
+export function enableStackedResize(
+	cardEl: HTMLElement,
+	card: DashboardCard,
+	component: Component,
+	onCommit: () => void,
+): void {
+	const handle = cardEl.createDiv("hearth-resize-handle is-s is-stacked-grip");
+	let start: { y: number; height: number; pointer: number } | null = null;
+
+	component.registerDomEvent(handle, "pointerdown", (e: PointerEvent) => {
+		// The card header sits above this in arrange mode and the board scrolls
+		// under it; neither should see the drag that starts here.
+		e.preventDefault();
+		e.stopPropagation();
+		start = { y: e.clientY, height: cardEl.offsetHeight, pointer: e.pointerId };
+		handle.setPointerCapture(e.pointerId);
+		cardEl.addClass("is-resizing");
+	});
+
+	component.registerDomEvent(handle, "pointermove", (e: PointerEvent) => {
+		if (start?.pointer !== e.pointerId) return;
+		const height = Math.max(MIN_H_PX, Math.round(start.height + (e.clientY - start.y)));
+		cardEl.style.height = `${height}px`;
+	});
+
+	const end = (e: PointerEvent) => {
+		if (start?.pointer !== e.pointerId) return;
+		start = null;
+		cardEl.removeClass("is-resizing");
+		// Dragging a card to a height is someone stating one, so it is stored as
+		// an explicit override rather than left to be derived again on the next
+		// render — which would snap the card straight back.
+		card.mobile = { ...card.mobile, height: cardEl.offsetHeight };
+		onCommit();
+	};
+	component.registerDomEvent(handle, "pointerup", end);
+	component.registerDomEvent(handle, "pointercancel", end);
 }
 
 /**

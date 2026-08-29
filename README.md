@@ -22,7 +22,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
-- 📱 **Mobile mode** — collapses to a search-only launcher
+- 📱 **Works on a phone** — the board stacks into one readable column
 
 ## Screenshots
 
@@ -362,8 +362,37 @@ Before you add one:
 
 ## Mobile
 
-- **Mobile mode** — an optional search-only launcher on phones and tablets;
-  desktop is unaffected.
+Hearth's board is laid out freely — cards sit where you drop them, at a
+fraction of the board's width. Below about **600px** that stops meaning
+anything, so the board **reflows into a single full-width column**, top to
+bottom, in the order the desktop board reads in. Your layout is never
+rewritten: the same board is a launcher on your phone and a wall of cards on
+your monitor.
+
+The threshold is the **measured width of the board**, not the platform — so a
+narrow desktop pane gets the same treatment, and you can see the phone layout
+by dragging a pane narrow.
+
+- **Stacked column** — cards full width, one per row. Turn it off in
+  **Settings → Hearth → Mobile** to keep the free-form layout.
+- **Per-card overrides** — in a card's settings (Layout → *On a narrow board*):
+  **hide** it, give it a **position** in the column, set its **height**, or
+  **start it collapsed** as a title row that builds the card only when tapped —
+  so an expensive card costs one row until you open it.
+- **Phone preview** — hit **Arrange → Preview at phone width** to build and
+  check your phone board without a phone, inside a drawn phone so the
+  proportions read properly. While stacked, drag a card's bottom edge to set
+  its height, and use the move up / move down buttons in its header to reorder.
+- **Edge to edge** — the side gutters go, the safe-area insets stay; filter
+  chips and search results grow to 44px tap targets.
+- **Full-width search** — the chips and results span the screen instead of the
+  search bar's share of it, and the button beside the field drops to an icon.
+- **Its own performance tier** — defaults to *Balanced* on mobile; your desktop
+  tier is stored separately and untouched.
+- **Its own settings category** — everything above lives under
+  **Settings → Hearth → Mobile**.
+- **Mobile mode** — still there: an optional search-only launcher, if that is
+  all you want on a phone.
 - **Action bar** — a row of buttons under the search field (New note, New
   drawing, Record voice, Open daily note by default), each swappable for any
   command.

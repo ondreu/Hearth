@@ -4,6 +4,7 @@ import { renderHeader } from "./header";
 import { renderDashboard } from "./dashboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
+import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow";
 import { applyBackground, renderBanner } from "./background";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateMotionOnWindow } from "./motion";
@@ -47,6 +48,17 @@ export class HomeView extends ItemView {
 	 * actions) so each card's full body is visible. Toggled from the Arrange
 	 * toolbar; resets when the view reopens. */
 	hideHeaderInArrange = false;
+	/**
+	 * In arrange mode, constrain the board to phone width so the narrow layout
+	 * can be built and checked without a phone in hand. Forces the narrow
+	 * layout on regardless of the real pane width — the point is to see what a
+	 * phone sees. Toggled from the Arrange toolbar; resets when the view
+	 * reopens, since it is a way of looking at a board, not a property of one.
+	 */
+	phonePreview = false;
+	/** The narrow state the current render was built for, so the width observer
+	 * can tell a real crossing from a resize that changes nothing. */
+	private narrowAtRender = false;
 	/** Per-render child component so embeds/markdown get cleaned up on re-render. */
 	private renderChild: Component | null = null;
 	/** {@link liveRender}'s focus-held re-render, built on first use (the
@@ -74,7 +86,36 @@ export class HomeView extends ItemView {
 	async onOpen(): Promise<void> {
 		this.render();
 		this.trackViewport();
+		this.trackWidth();
 		this.maybeFocusSearch();
+	}
+
+	/**
+	 * Rebuild the view when the board crosses the narrow threshold, in either
+	 * direction — the stacked and free-form layouts are different renders, not
+	 * a stylesheet apart. Only a crossing rebuilds: this observes an element
+	 * inside the view it rebuilds, so reacting to every resize would be a loop.
+	 */
+	private trackWidth(): void {
+		this.register(observeNarrowWidth(this.contentEl, (narrow) => {
+			// The phone preview pins the layout narrow, so a pane resize behind
+			// it changes nothing until it is switched off.
+			if (this.phonePreview || narrow === this.narrowAtRender) return;
+			this.render();
+		}));
+	}
+
+	/** Whether this render uses the narrow layout: the measured board width, or
+	 * the Arrange phone preview forcing it on. */
+	isNarrow(): boolean {
+		return this.phonePreview || isNarrowWidth(this.contentEl.clientWidth);
+	}
+
+	/** Whether the board reflows into a single stacked column — narrow, and the
+	 * setting left on. Narrow without stacking keeps the free-form layout,
+	 * scaled down as it always was. */
+	isStacked(): boolean {
+		return this.isNarrow() && this.plugin.settings.stackOnNarrow;
 	}
 
 	/**
@@ -186,6 +227,15 @@ export class HomeView extends ItemView {
 		const mobileOnly = Platform.isMobile && this.plugin.settings.mobileSearchOnly;
 		root.toggleClass("hearth-mobile-only", mobileOnly);
 
+		// The narrow layout, from the measured board width rather than the
+		// platform — see src/narrow.ts for why. Recorded on the view so the width
+		// observer can tell a threshold crossing (which needs a rebuild) from an
+		// ordinary resize (which the fractional layout already handles).
+		const narrow = this.isNarrow();
+		this.narrowAtRender = narrow;
+		root.toggleClass("hearth-narrow", narrow);
+		root.toggleClass("hearth-phone-preview", this.phonePreview);
+
 		// With no cards to show (and not arranging), centre the search field
 		// vertically so the page reads as a clean launcher.
 		const emptyBoard =
@@ -208,15 +258,35 @@ export class HomeView extends ItemView {
 		if (!banner) applyBackground(this, root, child);
 
 		const scroll = root.createDiv("hearth-scroll");
-		scroll.toggleClass("hearth-fit", effectiveFitToPage(this.plugin.settings));
+		// A stacked board is a list that runs off the bottom of the screen by
+		// design, so fit-to-page — which locks the board to exactly one screen and
+		// clips the rest — is not applied to it. The setting is untouched and
+		// comes back with the free-form layout.
+		const stacked = narrow && this.plugin.settings.stackOnNarrow;
+		scroll.toggleClass("hearth-fit", effectiveFitToPage(this.plugin.settings) && !stacked);
 
 		if (banner) renderBanner(this, scroll, child);
 
-		const inner = scroll.createDiv("hearth-inner");
+		// The phone preview draws a device shell around the board. It is a wrapper
+		// rather than styling on `.hearth-inner` itself, because the bezel has to
+		// paint a surface and the screen has to keep showing the board's own
+		// background through it — one element cannot do both. The screen width is
+		// published as a variable so the shell can size itself around it and the
+		// preview's width stays the one number that decides the layout.
+		const frame = this.phonePreview ? scroll.createDiv("hearth-phone-frame") : null;
+		frame?.style.setProperty("--hearth-phone-screen", `${PHONE_PREVIEW_WIDTH}px`);
+
+		const inner = (frame ?? scroll).createDiv("hearth-inner");
 		// The column is fluid either way — it is `width: 100%` centred in the
 		// scroll area, so it already follows a narrow pane down. The setting only
 		// decides how far it may grow: to a pixel ceiling, or to the pane itself.
-		if (!effectiveFullWidth(this.plugin.settings)) {
+		//
+		// A narrow board skips the ceiling entirely: it is already narrower than
+		// the smallest value the setting can hold (CONTENT_WIDTH_MIN is 700px),
+		// so the only thing a max-width could do there is nothing.
+		// The phone preview needs no clause of its own: it forces `narrow`, and its
+		// ceiling is the device shell's width, not the board's.
+		if (!narrow && !effectiveFullWidth(this.plugin.settings)) {
 			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
 		}
 
@@ -235,7 +305,9 @@ export class HomeView extends ItemView {
 		if (!mobileOnly) {
 			const dashboard = inner.createDiv("hearth-dashboard");
 			renderDashboard(this, dashboard, child);
-		} else if (this.plugin.settings.showMobileActionBar) {
+		}
+
+		if (mobileOnly && this.plugin.settings.showMobileActionBar) {
 			// Pinned to the scroll area (not the flex flow shared with `inner`) so
 			// it sits in the bottom quarter of the screen regardless of how the
 			// centred header above it is sized.

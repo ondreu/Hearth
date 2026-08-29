@@ -76,7 +76,19 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	// The button is a sibling of the column (not inside the bar's row) so the
 	// filters span only the bar's width; the button sits flush beside the bar,
 	// not pushed down among the filter chips.
+	//
+	// A narrow board hangs the chips and the results off the WRAP instead, so
+	// they span the whole width rather than the bar's share of it. On a phone
+	// the button takes a real bite out of a ~390px row, and everything below
+	// inherited that bite: a half-width chip row and a half-width results list,
+	// with the other half sitting empty next to them. The wrap is `position:
+	// relative` exactly as the column is, so the overlay still anchors correctly
+	// — it just anchors to the full width, below the chip row rather than beside
+	// it. The button loses its label to a tooltip at that width (see styles.css)
+	// so the field keeps the rest of the row.
+	const narrow = view.isNarrow();
 	const searchWrap = container.createDiv("hearth-search-wrap");
+	searchWrap.toggleClass("is-narrow", narrow);
 	const searchCol = searchWrap.createDiv("hearth-search-col");
 	const searchRow = searchCol.createDiv("hearth-search");
 	const bar = search.renderBar(searchRow);
@@ -85,7 +97,8 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 		searchWrap.append(createSearchBarButton(view, bar, s.newNoteButtonMode));
 	}
 
-	search.renderResultsAndFilters(searchCol, searchCol, component);
+	const below = narrow ? searchWrap : searchCol;
+	search.renderResultsAndFilters(below, below, component);
 }
 
 /** The button that sits beside a search bar, in either of its two modes. Shared
