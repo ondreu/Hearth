@@ -91,7 +91,9 @@ export interface JiraConfig {
  *   whatever the card's size, so widening the card only fits more buttons in.
  * - **Scaled.** `spanW`/`spanH` count cells of the card's own grid (see
  *   `DashboardCard.tileCols`), so a button is a *fraction of the card* and
- *   grows with it — the way a card grows with the dashboard.
+ *   grows with it — the way a card grows with the dashboard. They move in
+ *   halves, since the grid is drawn at half-cell resolution, so a button can be
+ *   half a cell wide, half a cell tall, or both.
  *
  * Which pair is read is decided by the card's `tileSizing`; the other is left
  * untouched, so turning the legacy style back on restores the old sizes
@@ -108,9 +110,11 @@ export interface TileGeometry {
 	/** Legacy single per-tile pixel size (drove width and height together).
 	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
 	size?: number;
-	/** Scaled sizing: per-tile width in grid cells. Default 1. */
+	/** Scaled sizing: per-tile width in grid cells, in steps of a half. Default
+	 * 1. */
 	spanW?: number;
-	/** Scaled sizing: per-tile height in grid cells. Default 1. */
+	/** Scaled sizing: per-tile height in grid cells, in steps of a half. Default
+	 * 1. */
 	spanH?: number;
 	/** Fixed sizing: free-form grid position (1-based grid line). When omitted
 	 * the tile auto-flows into the first available cell. Set explicitly when a
@@ -121,9 +125,12 @@ export interface TileGeometry {
 	/** Scaled sizing: free-form grid position (1-based grid line). Separate from
 	 * `col` because the two styles' cells are different sizes — one scaled cell
 	 * is a whole button, one fixed cell half of one — so the same number means
-	 * two different places and each style keeps its own arrangement. */
+	 * two different places and each style keeps its own arrangement. Halves are
+	 * allowed, like the spans: 2.5 is the half step between the second cell and
+	 * the third. */
 	scaleCol?: number;
-	/** Scaled sizing: free-form grid row (1-based). See `scaleCol`. */
+	/** Scaled sizing: free-form grid row (1-based, halves allowed). See
+	 * `scaleCol`. */
 	scaleRow?: number;
 }
 
@@ -1459,13 +1466,14 @@ export interface DashboardCard {
 	 *   than bigger ones.
 	 * - `"scale"` — the buttons fill the card: it is divided into `tileCols`
 	 *   columns and as many rows as the buttons need, the rows sharing the
-	 *   card's height between them, and a button spans whole cells of that grid.
+	 *   card's height between them, and a button spans cells of that grid —
+	 *   whole ones or halves.
 	 *   So every button grows and shrinks with the card the same way a card
 	 *   grows with the dashboard, and every one of them stays visible whatever
 	 *   size the card is — until a cell would fall below `tileMinSize` on either
 	 *   axis, where the card scrolls rather than drawing buttons too small to
-	 *   use. Buttons stay on the grid: they are sized in cells, not freely in
-	 *   pixels.
+	 *   use. Buttons stay on the grid: they are sized in cells (down to a half),
+	 *   not freely in pixels.
 	 *
 	 * Cards created before this existed carry no value and so keep the fixed
 	 * style; every card added since asks for `"scale"` in its template, and the

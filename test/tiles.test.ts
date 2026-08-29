@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { exportLayout, importLayout } from "../src/layout";
 import {
 	FIXED_TILE_BASE,
 	TILE_COLS_DEFAULT,
 	TILE_COLS_MAX,
 	TILE_COLS_MIN,
 	TILE_GAP,
+	TILE_SUBDIV,
 	fixedRowHeight,
+	gridTracks,
 	isTilePinned,
 	maxSpanW,
 	pinTile,
@@ -26,7 +29,7 @@ import {
 	unpinTile,
 	type TileSpec,
 } from "../src/tiles";
-import type { DashboardCard, TileGeometry } from "../src/types";
+import { DEFAULT_SETTINGS, type DashboardCard, type HomeSettings, type LinkItem, type TileGeometry } from "../src/types";
 
 /**
  * The two ways a launchpad-like card sizes its buttons.
@@ -37,9 +40,13 @@ import type { DashboardCard, TileGeometry } from "../src/types";
  *      existed carries no `tileSizing`, and every number it is drawn from is
  *      the one it was drawn from before (44px cells, 34px rows, the legacy
  *      single `size` standing in for a missing width/height);
- *   2. **the scaled style is a fraction of the card** — a button spans whole
- *      cells of the card's own grid, so its pixel size follows the card, and it
- *      can never leave the grid however odd the stored numbers are.
+ *   2. **the scaled style is a fraction of the card** — a button spans cells of
+ *      the card's own grid, so its pixel size follows the card, and it can never
+ *      leave the grid however odd the stored numbers are. The grid is drawn at
+ *      half-cell resolution, so "a cell" is two tracks and a button may take
+ *      just one of them: the half buttons the fixed style's fine grid always
+ *      allowed. Spans and pins are *stored* in cells throughout — halves and
+ *      all — so a card saved before the subdivision reads back unchanged.
  *
  * Plus the thing that makes switching between them safe: neither style writes
  * into the other's fields, so a card switched over and back is where it began.
@@ -137,32 +144,49 @@ describe("tileSpans — the fixed style", () => {
 
 
 describe("tileSpans — the scaled style", () => {
-	it("defaults to one cell, which is one button", () => {
-		expect(tileSpans({}, SCALED)).toEqual({ cs: 1, rs: 1 });
+	it("halves the card's columns into tracks, so a cell is two of them", () => {
+		expect(gridTracks(SCALED)).toBe(12);
+		expect(gridTracks({ ...SCALED, cols: 16 })).toBe(32);
+		expect(TILE_SUBDIV).toBe(2);
 	});
 
-	it("uses the stored spans", () => {
-		expect(tileSpans({ spanW: 2, spanH: 3 }, SCALED)).toEqual({ cs: 2, rs: 3 });
+	it("defaults to one cell, which is one button", () => {
+		expect(tileSpans({}, SCALED)).toEqual({ cs: 2, rs: 2 });
+	});
+
+	it("uses the stored spans, which are in cells", () => {
+		expect(tileSpans({ spanW: 2, spanH: 3 }, SCALED)).toEqual({ cs: 4, rs: 6 });
+		expect(tileSpans({ spanW: 1, spanH: 1 }, SCALED)).toEqual({ cs: 2, rs: 2 });
+	});
+
+	it("takes a half button, which is what the fixed style's fine grid always allowed", () => {
+		expect(tileSpans({ spanW: 0.5, spanH: 0.5 }, SCALED)).toEqual({ cs: 1, rs: 1 });
+		expect(tileSpans({ spanW: 1.5, spanH: 2.5 }, SCALED)).toEqual({ cs: 3, rs: 5 });
 	});
 
 	it("keeps a tile inside the card's columns", () => {
-		expect(tileSpans({ spanW: 20 }, SCALED).cs).toBe(6);
-		expect(tileSpans({ spanW: 20 }, { ...SCALED, cols: 12 }).cs).toBe(12);
+		expect(tileSpans({ spanW: 20 }, SCALED).cs).toBe(12);
+		expect(tileSpans({ spanW: 20 }, { ...SCALED, cols: 12 }).cs).toBe(24);
 	});
 
-	it("never collapses a tile below one cell", () => {
+	it("never collapses a tile below one track", () => {
 		expect(tileSpans({ spanW: 0, spanH: -3 }, SCALED)).toEqual({ cs: 1, rs: 1 });
+		expect(tileSpans({ spanW: 0.1, spanH: 0.2 }, SCALED)).toEqual({ cs: 1, rs: 1 });
 	});
 
-	it("reads a tile that has only ever been sized in pixels as whole buttons, so a switched card keeps its proportions", () => {
-		// One fixed default (88 × 68) is one scaled button; twice that is two.
-		expect(tileSpans({ sizeW: 88, sizeH: 68 }, SCALED)).toEqual({ cs: 1, rs: 1 });
-		expect(tileSpans({ sizeW: 176, sizeH: 136 }, SCALED)).toEqual({ cs: 2, rs: 2 });
-		expect(tileSpans({ size: 264 }, SCALED)).toEqual({ cs: 3, rs: 4 });
+	it("reads a tile that has only ever been sized in pixels as tracks, so a switched card keeps its proportions", () => {
+		// One track is one fine cell of the fixed grid, so the crossing keeps a
+		// button's size to the half: one fixed default (88 × 68) is one button.
+		expect(tileSpans({ sizeW: 88, sizeH: 68 }, SCALED)).toEqual({ cs: 2, rs: 2 });
+		expect(tileSpans({ sizeW: 176, sizeH: 136 }, SCALED)).toEqual({ cs: 4, rs: 4 });
+		expect(tileSpans({ size: 264 }, SCALED)).toEqual({ cs: 6, rs: 8 });
+		// A button and a half wide stays a button and a half, rather than
+		// rounding to one or two as it did before the grid was halved.
+		expect(tileSpans({ sizeW: 132, sizeH: 34 }, SCALED)).toEqual({ cs: 3, rs: 1 });
 	});
 
 	it("prefers a scaled span over the pixels it was derived from", () => {
-		expect(tileSpans({ sizeW: 264, spanW: 1 }, SCALED).cs).toBe(1);
+		expect(tileSpans({ sizeW: 264, spanW: 1 }, SCALED).cs).toBe(2);
 	});
 });
 
@@ -177,25 +201,40 @@ describe("tileMetrics", () => {
 		expect(m.rowH).toBe(34);
 	});
 
-	it("takes a scaled cell as measured: neither axis can be worked out from the card alone", () => {
+	it("takes a scaled track as measured: neither axis can be worked out from the card alone", () => {
 		// A column is a share of the card's width until the floor catches it, and
 		// a row depends on how many rows the buttons came to as well — so only the
 		// laid-out grid knows either, and the caller passes both in.
 		const m = tileMetrics(500, SCALED, { colW: 48, rowH: 120 });
-		expect(m.columns).toBe(6);
+		expect(m.columns).toBe(12);
 		expect(m.colW).toBe(48);
 		expect(m.rowH).toBe(120);
 	});
 
+	it("splits the card into tracks, two to a cell, and a whole cell is the size it always was", () => {
+		const m = tileMetrics(500, SCALED);
+		expect(m.columns).toBe(12);
+		// Two tracks and the gap between them come to the cell the card would
+		// have had without the subdivision — which is what makes halving the grid
+		// free for every button that doesn't use it.
+		expect(pixelsFromSpan(2, m.colW)).toBeCloseTo((500 - 5 * TILE_GAP) / 6, 5);
+	});
+
 	it("falls back to the share it would be without a floor, per axis, while a scaled grid can't be measured", () => {
-		const share = (500 - 5 * TILE_GAP) / 6;
+		const share = (500 - 11 * TILE_GAP) / 12;
+		// A row keeps a whole cell's shape, so the fallback is the cell's ratio
+		// worked out on the cell and halved back to a track.
+		const rowShare = (pixelsFromSpan(2, share) * 0.78 - TILE_GAP) / 2;
 		for (const measured of [undefined, {}, { colW: 0 }, { colW: -20, rowH: -1 }]) {
 			const m = tileMetrics(500, SCALED, measured);
 			expect(m.colW).toBeCloseTo(share, 5);
-			expect(m.rowH).toBeCloseTo(share * 0.78, 5);
+			expect(m.rowH).toBeCloseTo(rowShare, 5);
 		}
 		// A measured column with no measured row still shapes the row.
-		expect(tileMetrics(500, SCALED, { colW: 48 }).rowH).toBeCloseTo(48 * 0.78, 5);
+		expect(tileMetrics(500, SCALED, { colW: 48 }).rowH).toBeCloseTo(
+			(pixelsFromSpan(2, 48) * 0.78 - TILE_GAP) / 2,
+			5,
+		);
 	});
 
 	it("ignores a measured cell in the fixed style, whose grid is what it always was", () => {
@@ -232,7 +271,7 @@ describe("spans and pixels", () => {
 		expect(pixelsFromSpan(3, 70)).toBe(3 * 70 + 2 * TILE_GAP);
 	});
 
-	it("snaps to the nearest whole cell and stays on the grid", () => {
+	it("snaps to the nearest whole track and stays on the grid", () => {
 		expect(spanFromPixels(80, 70, 6)).toBe(1);
 		expect(spanFromPixels(120, 70, 6)).toBe(2);
 		expect(spanFromPixels(-40, 70, 6)).toBe(1);
@@ -242,6 +281,7 @@ describe("spans and pixels", () => {
 
 
 describe("tilePlacement", () => {
+	// One cell wide, half a cell tall — spans are in tracks.
 	const spans = { cs: 2, rs: 1 };
 
 	it("passes a fixed tile's pin straight through", () => {
@@ -256,10 +296,18 @@ describe("tilePlacement", () => {
 		});
 	});
 
-	it("uses the scaled pin when the tile has one", () => {
+	it("uses the scaled pin when the tile has one, as the track line it starts at", () => {
+		// Stored in cells: cell 2 begins at track 3, cell 3 at track 5.
 		expect(tilePlacement({ col: 9, row: 9, scaleCol: 2, scaleRow: 3 }, spans, SCALED)).toEqual({
-			col: 2,
-			row: 3,
+			col: 3,
+			row: 5,
+		});
+	});
+
+	it("places a tile pinned to a half step on the track between two cells", () => {
+		expect(tilePlacement({ scaleCol: 2.5, scaleRow: 1.5 }, spans, SCALED)).toEqual({
+			col: 4,
+			row: 2,
 		});
 	});
 
@@ -271,12 +319,16 @@ describe("tilePlacement", () => {
 	});
 
 	it("never lets a tile end outside the card's columns", () => {
-		expect(tilePlacement({ scaleCol: 6 }, spans, SCALED).col).toBe(5);
-		expect(tilePlacement({ scaleCol: 99 }, { cs: 6, rs: 1 }, SCALED).col).toBe(1);
+		// A two-cell button pinned to the last cell of six backs up to cell 5
+		// (track 9), so it still ends on the card's right edge.
+		expect(tilePlacement({ scaleCol: 6 }, { cs: 4, rs: 2 }, SCALED).col).toBe(9);
+		// And a half-cell one may sit on the very last track.
+		expect(tilePlacement({ scaleCol: 6.5 }, { cs: 1, rs: 1 }, SCALED).col).toBe(12);
+		expect(tilePlacement({ scaleCol: 99 }, { cs: 12, rs: 1 }, SCALED).col).toBe(1);
 	});
 
 	it("leaves rows alone — the grid grows downwards", () => {
-		expect(tilePlacement({ scaleRow: 40 }, spans, SCALED).row).toBe(40);
+		expect(tilePlacement({ scaleRow: 40 }, spans, SCALED).row).toBe(79);
 	});
 });
 
@@ -284,10 +336,18 @@ describe("tilePlacement", () => {
 describe("pinning", () => {
 	it("writes into the style's own fields and leaves the other style's alone", () => {
 		const tile: TileGeometry = { col: 5, row: 5 };
-		pinTile(tile, SCALED, 2, 3);
+		// Track lines in, cells out: track 3 is cell 2, track 5 is cell 3.
+		pinTile(tile, SCALED, 3, 5);
 		expect(tile).toEqual({ col: 5, row: 5, scaleCol: 2, scaleRow: 3 });
 		pinTile(tile, FIXED, 8, 9);
 		expect(tile).toEqual({ col: 8, row: 9, scaleCol: 2, scaleRow: 3 });
+	});
+
+	it("keeps a scaled tile dropped on a half step as one, and reads it back where it was put", () => {
+		const tile: TileGeometry = {};
+		pinTile(tile, SCALED, 4, 2);
+		expect(tile).toEqual({ scaleCol: 2.5, scaleRow: 1.5 });
+		expect(tilePlacement(tile, { cs: 1, rs: 1 }, SCALED)).toEqual({ col: 4, row: 2 });
 	});
 
 	it("clears only the style's own pin", () => {
@@ -332,11 +392,17 @@ describe("resizeTile", () => {
 		expect(tile.sizeH).toBe(480);
 	});
 
-	it("sizes a scaled tile in whole cells, and leaves its pixel size untouched", () => {
+	it("sizes a scaled tile in cells, and leaves its pixel size untouched", () => {
 		const metrics = tileMetrics(500, SCALED);
 		const tile: TileGeometry = { sizeW: 176, sizeH: 136 };
-		const spans = resizeTile(tile, SCALED, pixelsFromSpan(3, metrics.colW) - 4, metrics.rowH, metrics);
-		expect(spans).toEqual({ cs: 3, rs: 1 });
+		const spans = resizeTile(
+			tile,
+			SCALED,
+			pixelsFromSpan(6, metrics.colW) - 4,
+			pixelsFromSpan(2, metrics.rowH),
+			metrics,
+		);
+		expect(spans).toEqual({ cs: 6, rs: 2 });
 		expect(tile.spanW).toBe(3);
 		expect(tile.spanH).toBe(1);
 		// The fixed style's pixels are still there for when it is switched back.
@@ -344,17 +410,44 @@ describe("resizeTile", () => {
 		expect(tile.sizeH).toBe(136);
 	});
 
+	it("stores a half button as a half, which is what the grid can now draw", () => {
+		const metrics = tileMetrics(500, SCALED);
+		const tile: TileGeometry = {};
+		const spans = resizeTile(
+			tile,
+			SCALED,
+			metrics.colW,
+			pixelsFromSpan(3, metrics.rowH),
+			metrics,
+		);
+		expect(spans).toEqual({ cs: 1, rs: 3 });
+		expect(tile.spanW).toBe(0.5);
+		expect(tile.spanH).toBe(1.5);
+	});
+
+	it("never shrinks a scaled tile past half a cell", () => {
+		const tile: TileGeometry = {};
+		expect(resizeTile(tile, SCALED, -400, -400, tileMetrics(500, SCALED))).toEqual({
+			cs: 1,
+			rs: 1,
+		});
+		expect(tile.spanW).toBe(0.5);
+	});
+
 	it("never drags a scaled tile wider than its card", () => {
 		const tile: TileGeometry = {};
-		expect(resizeTile(tile, SCALED, 9000, 200, tileMetrics(500, SCALED)).cs).toBe(6);
+		expect(resizeTile(tile, SCALED, 9000, 200, tileMetrics(500, SCALED)).cs).toBe(12);
 		expect(tile.spanW).toBe(6);
 	});
 
 	it("never drags a pinned scaled tile past the card's right edge", () => {
 		const tile: TileGeometry = { scaleCol: 4, scaleRow: 1 };
-		expect(resizeTile(tile, SCALED, 9000, 200, tileMetrics(500, SCALED)).cs).toBe(3);
-		expect(maxSpanW({ scaleCol: 4 }, SCALED)).toBe(3);
-		expect(maxSpanW({}, SCALED)).toBe(6);
+		expect(resizeTile(tile, SCALED, 9000, 200, tileMetrics(500, SCALED)).cs).toBe(6);
+		expect(tile.spanW).toBe(3);
+		expect(maxSpanW({ scaleCol: 4 }, SCALED)).toBe(6);
+		// A tile pinned to a half step keeps the half cell it starts on.
+		expect(maxSpanW({ scaleCol: 4.5 }, SCALED)).toBe(5);
+		expect(maxSpanW({}, SCALED)).toBe(12);
 	});
 });
 
@@ -373,8 +466,60 @@ describe("tileStartSize", () => {
 	it("starts a scaled gesture from where the tile is actually drawn", () => {
 		const metrics = tileMetrics(500, SCALED);
 		expect(tileStartSize({ spanW: 2, spanH: 2 }, SCALED, metrics)).toEqual({
-			width: pixelsFromSpan(2, metrics.colW),
-			height: pixelsFromSpan(2, metrics.rowH),
+			width: pixelsFromSpan(4, metrics.colW),
+			height: pixelsFromSpan(4, metrics.rowH),
 		});
+		expect(tileStartSize({ spanW: 0.5, spanH: 1.5 }, SCALED, metrics)).toEqual({
+			width: pixelsFromSpan(1, metrics.colW),
+			height: pixelsFromSpan(3, metrics.rowH),
+		});
+	});
+});
+
+
+describe("a half button through an exported layout", () => {
+	/** A board with one links card holding one tile of the given geometry. */
+	function board(tile: Partial<LinkItem>): HomeSettings {
+		const s: HomeSettings = structuredClone(DEFAULT_SETTINGS);
+		s.dashboards = [
+			{
+				id: "d1",
+				name: "Dashboard 1",
+				cards: [
+					{
+						id: "c1",
+						kind: "links",
+						tileSizing: "scale",
+						links: [
+							{ id: "l1", label: "One", icon: "star", target: "Note.md", ...tile },
+						],
+					} as DashboardCard,
+				],
+			},
+		];
+		s.activeDashboardId = "d1";
+		return s;
+	}
+
+	function roundTrip(tile: Partial<LinkItem>): LinkItem {
+		const from = board(tile);
+		const into = structuredClone(DEFAULT_SETTINGS);
+		expect(importLayout(into, exportLayout(from))).toBeNull();
+		return (into.dashboards[0].cards[0].links ?? [])[0];
+	}
+
+	it("keeps a half-cell span a half rather than rounding it to a whole button", () => {
+		const link = roundTrip({ spanW: 1.5, spanH: 0.5, scaleCol: 2.5, scaleRow: 1.5 });
+		expect(link.spanW).toBe(1.5);
+		expect(link.spanH).toBe(0.5);
+		expect(link.scaleCol).toBe(2.5);
+		expect(link.scaleRow).toBe(1.5);
+		expect(tileSpans(link, SCALED)).toEqual({ cs: 3, rs: 1 });
+	});
+
+	it("snaps a hand-edited span onto the grid the buttons are drawn on", () => {
+		expect(roundTrip({ spanW: 1.3, spanH: 2.9 }).spanW).toBe(1.5);
+		expect(roundTrip({ spanW: 1.3, spanH: 2.9 }).spanH).toBe(3);
+		expect(roundTrip({ spanW: 0.1 }).spanW).toBe(0.5);
 	});
 });

@@ -8,6 +8,7 @@ import { mountMarkdownEditor } from "./leafview";
 import { internalLinkText, openLink } from "./opener";
 import {
 	TILE_GAP,
+	gridTracks,
 	isTilePinned,
 	pinTile,
 	resizeTile,
@@ -779,6 +780,10 @@ export function createTileGrid(
 	if (spec.sizing === "scale") {
 		grid.addClass("is-tile-scaled");
 		grid.style.setProperty("--hearth-tile-cols", String(spec.cols));
+		// The grid itself is drawn at half-cell resolution, so a button can be
+		// half a cell wide or tall (see TILE_SUBDIV): its tracks are the card's
+		// columns split in two, and a whole-cell button spans two of them.
+		grid.style.setProperty("--hearth-tile-tracks", String(gridTracks(spec)));
 		grid.style.setProperty("--hearth-tile-min", `${spec.min}px`);
 		// The cell size is a fraction of the body's width, which CSS can only
 		// read from a container — so the body becomes one. (Set here rather than
@@ -830,7 +835,7 @@ function applyTileIconOnly(tile: HTMLElement, spans: TileSpans, spec: TileSpec):
 
 /** Attach a widget-style resize handle to a tile. The handle is a clear,
  * grabbable corner grip (bottom-right) that resizes width and height together:
- * on a fine pixel grid in the fixed style, and in whole cells of the card's own
+ * on a fine pixel grid in the fixed style, and in half-cells of the card's own
  * grid in the scaled one, where a button is a fraction of the card rather than a
  * pixel size. Fully self-contained: stops propagation so the card's drag engine
  * never interferes. */
@@ -883,7 +888,7 @@ export function makeTileResizable(
 			metrics,
 		);
 		// Convert the live size to grid spans so the tile grows in the steps its
-		// style allows — small and precise, or whole cells.
+		// style allows — small and precise, or half a cell at a time.
 		tile.style.setProperty("--hearth-tile-cs", String(spans.cs));
 		tile.style.setProperty("--hearth-tile-rs", String(spans.rs));
 		applyTileIconOnly(tile, spans, spec);
@@ -914,11 +919,11 @@ function gridMetrics(tile: HTMLElement, spec: TileSpec): TileMetrics {
 }
 
 
-/** Measure a tile grid: its content width, and — for a scaled grid, whose cells
- * share out the card but never shrink past the card's own floor — the size a
- * cell actually came out at. Only the browser knows that: how wide a column ends
- * up depends on whether the floor caught it, and how tall a row is depends on how
- * many rows the buttons needed too. Both are read back off the resolved
+/** Measure a tile grid: its content width, and — for a scaled grid, whose
+ * tracks share out the card but never shrink past the card's own floor — the
+ * size a track actually came out at. Only the browser knows that: how wide a
+ * column ends up depends on whether the floor caught it, and how tall a row is
+ * depends on how many rows the buttons needed too. Both are read back off the resolved
  * `grid-template-*` rather than recomputed here. */
 function measureGrid(grid: HTMLElement, spec: TileSpec): TileMetrics {
 	const width = grid.getBoundingClientRect().width;

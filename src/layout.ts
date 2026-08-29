@@ -298,12 +298,20 @@ function readTileGeometry(tile: TileGeometry, r: Record<string, unknown>): void 
 	if (typeof r.size === "number") tile.size = r.size;
 	if (typeof r.sizeW === "number") tile.sizeW = r.sizeW;
 	if (typeof r.sizeH === "number") tile.sizeH = r.sizeH;
-	if (typeof r.spanW === "number" && r.spanW > 0) tile.spanW = Math.round(r.spanW);
-	if (typeof r.spanH === "number" && r.spanH > 0) tile.spanH = Math.round(r.spanH);
+	if (typeof r.spanW === "number" && r.spanW > 0) tile.spanW = halfCells(r.spanW);
+	if (typeof r.spanH === "number" && r.spanH > 0) tile.spanH = halfCells(r.spanH);
 	if (typeof r.col === "number" && r.col >= 0) tile.col = r.col;
 	if (typeof r.row === "number" && r.row >= 0) tile.row = r.row;
 	if (typeof r.scaleCol === "number" && r.scaleCol >= 0) tile.scaleCol = r.scaleCol;
 	if (typeof r.scaleRow === "number" && r.scaleRow >= 0) tile.scaleRow = r.scaleRow;
+}
+
+
+/** A scaled span, snapped to the half cells its grid is drawn in — so an
+ * imported half button stays half a button rather than being rounded up to a
+ * whole one. See `TILE_SUBDIV` in tiles.ts. */
+function halfCells(span: number): number {
+	return Math.max(0.5, Math.round(span * 2) / 2);
 }
 
 
