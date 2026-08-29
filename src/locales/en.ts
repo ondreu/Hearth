@@ -1955,6 +1955,36 @@ export const en = {
 				"The field is as thick as the card is tall — drag the card's edge in " +
 				"Arrange to make the bar chunkier or slimmer.",
 		},
+		tiles: {
+			heading: "Buttons",
+			sizing: "Button sizing",
+			sizingDesc:
+				"Whether the buttons fill the card — every one of them visible however " +
+				"big the card is, growing and shrinking with it — or keep a fixed pixel " +
+				"size, so a card too small for them all scrolls. Filled buttons stop " +
+				"shrinking once they'd be too small to use, in either direction, and a " +
+				"card too small for them at that size scrolls too. Cards made before " +
+				"this setting existed stay on the fixed style until you switch them; " +
+				"each style keeps its own sizes, so switching back restores what you " +
+				"had.",
+			sizingScale: "Fill the card",
+			sizingFixed: "Fixed size (legacy)",
+			across: "Buttons across",
+			acrossDesc:
+				"How many buttons wide the card is, and so how wide one button is: a " +
+				"fraction of the card, down to the minimum size a button keeps. Their " +
+				"height works the same way — the rows share whatever height the card " +
+				"has between them — so a shorter card means shorter buttons rather " +
+				"than hidden ones. A button can still be made two or three cells wide " +
+				"(or tall) by dragging its bottom-right corner in arrange mode.",
+			minSize: "Minimum button size",
+			minSizeDesc:
+				"How small a button may get, in pixels, before the card scrolls " +
+				"instead of shrinking them any further. Low by default, so that " +
+				"buttons fit rather than a scrollbar appearing; raise it to keep them " +
+				"comfortable on a card you often make small, and the card scrolls when " +
+				"they no longer fit.",
+		},
 		links: {
 			heading: "Links",
 			autoShift: "Auto-shift tiles (beta)",

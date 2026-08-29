@@ -76,8 +76,11 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "heatmap", icon: "activity", category: "vault", requires: null, build: { kind: "heatmap", title: "Activity", heatmap: {}, w: 6, h: 3 } },
 
 			// ---- Tools ----
-			{ id: "links", icon: "layout-grid", category: "tools", requires: null, build: { kind: "links", title: "Links", links: [], w: 6, h: 2 } },
-			{ id: "commands", icon: "terminal-square", category: "tools", requires: null, build: { kind: "commands", title: "Commands", commands: [], w: 6, h: 2 } },
+			// The three launchpad-like cards are built on the scaled button style:
+			// a card added today sizes its buttons as a fraction of itself. Cards
+			// stored before that carry no `tileSizing` and keep the fixed style.
+			{ id: "links", icon: "layout-grid", category: "tools", requires: null, build: { kind: "links", title: "Links", links: [], tileSizing: "scale", w: 6, h: 2 } },
+			{ id: "commands", icon: "terminal-square", category: "tools", requires: null, build: { kind: "commands", title: "Commands", commands: [], tileSizing: "scale", w: 6, h: 2 } },
 			{ id: "text", icon: "pencil", category: "tools", requires: null, build: { kind: "text", title: "Notes", text: "", w: 4, h: 2 } },
 			{ id: "calculator", icon: "calculator", category: "tools", requires: null, build: { kind: "calculator", title: "Calculator", calculator: {}, w: 4, h: 3 } },
 			{ id: "web", icon: "globe", category: "tools", requires: null, build: { kind: "web", title: "Web", url: "", w: 6, h: 4 } },
@@ -88,7 +91,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				icon: "file-plus-2",
 				category: "integrations",
 				requires: "Templater",
-				build: { kind: "templater", title: "New note", templater: { items: [] }, w: 6, h: 2 },
+				build: { kind: "templater", title: "New note", templater: { items: [] }, tileSizing: "scale", w: 6, h: 2 },
 			},
 			{ id: "dataview", icon: "database", category: "integrations", requires: "Dataview", build: { kind: "dataview", title: "Dataview", dataview: {}, w: 6, h: 4 } },
 			{ id: "datacore", icon: "database-zap", category: "integrations", requires: "Datacore", build: { kind: "datacore", title: "Datacore", datacore: {}, w: 6, h: 4 } },

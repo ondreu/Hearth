@@ -43,6 +43,7 @@ import {
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
+	type TileGeometry,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
 	CONTENT_WIDTH_MAX,
@@ -52,6 +53,7 @@ import {
 	type PerformanceTier,
 } from "./types";
 import { CARD_KINDS } from "./cards";
+import { tileCols, tileMinSize } from "./tiles";
 import { isEmbeddableBaseViewName } from "./bases";
 import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
@@ -288,6 +290,22 @@ function sanitizeEmbedView(
 	return view;
 }
 
+/** Copy a tile's size and position across: both styles' fields, so an imported
+ * layout keeps whichever the card is on — and the other one too, for when it is
+ * switched back. See `TileGeometry` in types.ts. */
+function readTileGeometry(tile: TileGeometry, r: Record<string, unknown>): void {
+	if (typeof r.size === "number") tile.size = r.size;
+	if (typeof r.sizeW === "number") tile.sizeW = r.sizeW;
+	if (typeof r.sizeH === "number") tile.sizeH = r.sizeH;
+	if (typeof r.spanW === "number" && r.spanW > 0) tile.spanW = Math.round(r.spanW);
+	if (typeof r.spanH === "number" && r.spanH > 0) tile.spanH = Math.round(r.spanH);
+	if (typeof r.col === "number" && r.col >= 0) tile.col = r.col;
+	if (typeof r.row === "number" && r.row >= 0) tile.row = r.row;
+	if (typeof r.scaleCol === "number" && r.scaleCol >= 0) tile.scaleCol = r.scaleCol;
+	if (typeof r.scaleRow === "number" && r.scaleRow >= 0) tile.scaleRow = r.scaleRow;
+}
+
+
 function sanitizeLink(raw: unknown): LinkItem | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
@@ -299,11 +317,7 @@ function sanitizeLink(raw: unknown): LinkItem | null {
 		target: str(r.target) ?? "",
 		type,
 	};
-	if (typeof r.size === "number") link.size = r.size;
-	if (typeof r.sizeW === "number") link.sizeW = r.sizeW;
-	if (typeof r.sizeH === "number") link.sizeH = r.sizeH;
-	if (typeof r.col === "number" && r.col >= 0) link.col = r.col;
-	if (typeof r.row === "number" && r.row >= 0) link.row = r.row;
+	readTileGeometry(link, r);
 	return link;
 }
 
@@ -372,6 +386,9 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.hideBaseHeader === "boolean")
 		card.hideBaseHeader = r.hideBaseHeader;
 	if (typeof r.tileSize === "number") card.tileSize = r.tileSize;
+	if (r.tileSizing === "scale" || r.tileSizing === "fixed") card.tileSizing = r.tileSizing;
+	if (typeof r.tileCols === "number") card.tileCols = tileCols(r.tileCols);
+	if (typeof r.tileMinSize === "number") card.tileMinSize = tileMinSize(r.tileMinSize);
 	if (typeof r.tileAutoFlow === "boolean") card.tileAutoFlow = r.tileAutoFlow;
 	if (typeof r.showOpenButton === "boolean")
 		card.showOpenButton = r.showOpenButton;
@@ -459,11 +476,7 @@ function sanitizeCommand(raw: unknown): CommandItem | null {
 	const id = str(r.id);
 	if (!id) return null;
 	const cmd: CommandItem = { id, name: str(r.name) ?? id, icon: str(r.icon) };
-	if (typeof r.size === "number") cmd.size = r.size;
-	if (typeof r.sizeW === "number") cmd.sizeW = r.sizeW;
-	if (typeof r.sizeH === "number") cmd.sizeH = r.sizeH;
-	if (typeof r.col === "number" && r.col >= 0) cmd.col = r.col;
-	if (typeof r.row === "number" && r.row >= 0) cmd.row = r.row;
+	readTileGeometry(cmd, r);
 	return cmd;
 }
 

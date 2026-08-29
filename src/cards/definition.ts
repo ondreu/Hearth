@@ -140,6 +140,11 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 		head: HTMLElement,
 		redraw: () => void,
 	): void;
+	/** The card's body is a launchpad — a grid of buttons the user arranges
+	 * (links, commands, templater). The Layout tab offers such a kind the
+	 * button-sizing settings (`tileSizingSettings`), since how big the buttons
+	 * are is a question about the card's layout rather than its content. */
+	tileButtons?: boolean;
 	/** A note shown under the type dropdown in the editor (leaf's perf warning).
 	 * Gets the global settings so a note can react to them — the leaf card's
 	 * warning says something extra while the performance tier is stepped down. */

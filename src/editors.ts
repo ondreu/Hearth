@@ -4,6 +4,18 @@ import { type CardEditorContext } from "./cards/definition";
 import { t } from "./i18n";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import {
+	TILE_COLS_DEFAULT,
+	TILE_COLS_MAX,
+	TILE_COLS_MIN,
+	TILE_MIN_DEFAULT,
+	TILE_MIN_MAX,
+	TILE_MIN_MIN,
+	TILE_MIN_STEP,
+	tileCols,
+	tileMinSize,
+	tileSizing,
+} from "./tiles";
+import {
 	CARD_BORDER_WIDTH_MAX,
 	effectiveCardBorderWidth,
 	type CardKind,
@@ -110,6 +122,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 				break;
 			case "layout":
 				this.sizeSection(body);
+				this.buttonsSection(body);
 				this.pinSection(body);
 				this.copySection(body);
 				break;
@@ -336,6 +349,90 @@ export class CardSettingsModal extends HearthTabbedModal {
 			card.fw = undefined;
 			card.fh = undefined;
 		});
+	}
+
+	/**
+	 * How big the buttons are on a launchpad-like card (links, commands,
+	 * templater): which of the two sizing styles the card is on and, when they
+	 * fill the card, how many buttons wide it is — which is what decides how big
+	 * a button is, since a filled button is a fraction of the card.
+	 *
+	 * It sits in the Layout tab, under the card's own size, because that is the
+	 * question it answers: how the card's buttons are laid out, not what is on
+	 * them. The three cards share it — they draw the same grid.
+	 */
+	private buttonsSection(containerEl: HTMLElement): void {
+		if (!cardDefinition(this.card).tileButtons) return;
+		const strings = t().editors.tiles;
+		const card = this.card;
+		new Setting(containerEl).setName(strings.heading).setHeading();
+		new Setting(containerEl)
+			.setName(strings.sizing)
+			.setDesc(strings.sizingDesc)
+			.addDropdown((d) => {
+				d.addOption("scale", strings.sizingScale);
+				d.addOption("fixed", strings.sizingFixed);
+				d.setValue(tileSizing(card)).onChange((v) => {
+					card.tileSizing = v === "scale" ? "scale" : "fixed";
+					this.opts.save();
+					this.opts.rerender();
+					// The column count below belongs to the filled style alone, and
+					// the fixed style's pixel size (in the Content tab) to the other,
+					// so rebuild the modal around the choice.
+					this.render();
+				});
+			});
+		if (tileSizing(card) !== "scale") return;
+		const across = new Setting(containerEl)
+			.setName(strings.across)
+			.setDesc(strings.acrossDesc);
+		across.addSlider((s) => {
+			s.setLimits(TILE_COLS_MIN, TILE_COLS_MAX, 1)
+				.setValue(tileCols(card.tileCols))
+				.onChange((v) => {
+					card.tileCols = v === TILE_COLS_DEFAULT ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		across.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileCols = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
+
+		// The floor: how small a button may get before the card gives up and
+		// scrolls instead. Sixteen small buttons and four big ones want different
+		// answers, so it is the card's to set rather than the stylesheet's.
+		const minSize = new Setting(containerEl)
+			.setName(strings.minSize)
+			.setDesc(strings.minSizeDesc);
+		minSize.addSlider((s) => {
+			s.setLimits(TILE_MIN_MIN, TILE_MIN_MAX, TILE_MIN_STEP)
+				.setValue(tileMinSize(card.tileMinSize))
+				.onChange((v) => {
+					card.tileMinSize = v === TILE_MIN_DEFAULT ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		minSize.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileMinSize = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
 	}
 
 	/** Pin/unpin this card so it appears on every dashboard. */

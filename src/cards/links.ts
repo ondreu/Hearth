@@ -1,5 +1,5 @@
 import { setTooltip, Setting, TFile } from "obsidian";
-import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
+import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { openFile, openLink as openLinkTarget } from "../opener";
@@ -20,15 +20,10 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 		return;
 	}
 
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = card.tileSize && card.tileSize > 0 ? card.tileSize : 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	// Flag the card body so CSS can disable the card drag overlay over tiles in
-	// arrange mode (tiles are self-contained widgets with their own resize).
-	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
+	const { grid, spec } = createTileGrid(view, card, body);
 	for (const link of links) {
 		const tile = grid.createDiv("hearth-link-tile");
-		applyTileSize(tile, link.sizeW, link.sizeH, link.size, baseTile, link.col, link.row);
+		applyTileSize(tile, link, spec);
 		applyTileVisual(view, tile, link.icon, "link");
 		tile.createDiv({ cls: "hearth-link-label", text: link.label || link.target });
 		const open = () => openLink(view, link);
@@ -42,14 +37,8 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 		// Tiles can only be resized/repositioned while the dashboard is in
 		// arrange mode.
 		if (view.arrangeMode) {
-			makeTileResizable(view, tile, baseTile, () => link.sizeW, (v) => {
-				link.sizeW = v;
-			}, () => link.sizeH, (v) => {
-				link.sizeH = v;
-			}, () => link.size, (v) => {
-				link.size = v;
-			});
-			makeTileDraggable(view, grid, tile, links, link, card.tileAutoFlow === true);
+			makeTileResizable(view, tile, link, spec);
+			makeTileDraggable(view, grid, tile, link, card.tileAutoFlow === true, spec);
 		}
 	}
 
@@ -217,7 +206,14 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 export const linksCard: CardDefinition<"links"> = {
 	kind: "links",
 	templates: [
-		{ id: "links", name: "Links / launchpad", icon: "layout-grid", build: () => ({ kind: "links", title: "Links", links: [], w: 6, h: 2 }) },
+		{
+			id: "links",
+			name: "Links / launchpad",
+			icon: "layout-grid",
+			// New launchpads scale their buttons with the card; a card made before
+			// that existed carries no `tileSizing` and so keeps the fixed style.
+			build: () => ({ kind: "links", title: "Links", links: [], tileSizing: "scale", w: 6, h: 2 }),
+		},
 	],
 	render: (view, card, body) => renderLinks(view, card, body),
 	renderEditor: (container, ctx) => linksEditor(ctx, container),
@@ -226,4 +222,5 @@ export const linksCard: CardDefinition<"links"> = {
 	},
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
+	tileButtons: true,
 };

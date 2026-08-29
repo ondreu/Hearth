@@ -2604,6 +2604,132 @@
 	grid-row: var(--hearth-tile-row, auto) / span var(--hearth-tile-rs, 1);
 }
 
+/* ---- Scaled buttons (a card on tileSizing: "scale") ------------------
+ *
+ * The fixed grid above sizes a button in pixels: a wider card fits more
+ * buttons, never bigger ones — and a card too small for them all scrolls, so
+ * some of the buttons aren't there until you scroll to them.
+ *
+ * This one fills the card instead. The columns are the card's own
+ * (`--hearth-tile-cols`) and the rows divide whatever height the card has
+ * between them, so a button is a *fraction of the card* in both directions: it
+ * grows and shrinks with the card the way a card grows with the dashboard,
+ * every button stays visible whatever size the card is, and the body never
+ * scrolls. Buttons stay tied to the grid (whole cells, never free pixels), so a
+ * launchpad doesn't turn into a second free-form board.
+ *
+ * Two things need measuring rather than declaring. The column cell is a
+ * fraction of the card's width, which only a query container can tell CSS — so
+ * the card body becomes one and the cell is `100cqw` split by the column count
+ * (`src/tiles.ts` does the same arithmetic for the drag and resize gestures,
+ * reading the row height back out of the grid, since only the browser knows how
+ * many rows the buttons came to). And a button's own contents scale to the
+ * button, not to the card: each button is a query container too, so its icon and
+ * label are sized in `cqmin` — a share of its shorter side, whatever shape the
+ * card left it. */
+.hearth-card-body.hearth-tiles-scaled {
+	container-type: inline-size;
+}
+
+.hearth-links.is-tile-scaled {
+	--hearth-tile-gap: 6px;
+	/* One cell across = one default button: the card's width, split into columns. */
+	--hearth-tile-cell: calc(
+		(100cqw - (var(--hearth-tile-cols, 6) - 1) * var(--hearth-tile-gap)) /
+			var(--hearth-tile-cols, 6)
+	);
+	/* Fill the card: the columns are the card's own, and the rows take an equal
+	 * share of its height — however many rows the buttons need. That is what
+	 * keeps the card free of scrollbars: the grid is no bigger than the card it
+	 * is in.
+	 *
+	 * Down to a floor, on both axes: a cell never shrinks below
+	 * `--hearth-tile-min`, which the card sets (see `createTileGrid`) and defaults
+	 * to about the smallest an icon button can be and still be aimed at. A button
+	 * smaller than that isn't "visible" in any useful sense — and a card too small
+	 * for its buttons even at that size scrolls, as the fixed style always did:
+	 * the fallback, not the intent. */
+	height: 100%;
+	grid-template-columns: repeat(
+		var(--hearth-tile-cols, 6),
+		minmax(var(--hearth-tile-min, 28px), 1fr)
+	);
+	grid-auto-rows: minmax(var(--hearth-tile-min, 28px), 1fr);
+	gap: var(--hearth-tile-gap);
+}
+
+/* `container-type: size` makes each button a query container of its own: its
+ * contents are sized from its own box (below), and its label drops out when
+ * there is no room for it — a span says nothing about how many pixels a button
+ * got, which is the whole point of scaling it.
+ *
+ * Padding stays small and flat, because the contents already scale to the box:
+ * a padding that grew with the card would crowd a button the card left short. */
+.hearth-links.is-tile-scaled .hearth-link-tile {
+	container-type: size;
+	container-name: hearth-tile;
+	/* No padding of its own: at the floor a fixed inset would be a third of the
+	 * button, starving the icon. The contents keep themselves off the edges
+	 * instead — the icon by taking a share of the box, the label by its own
+	 * padding, both of which shrink with the button. */
+	padding: 0;
+	gap: 4px;
+	border-radius: clamp(6px, calc(var(--hearth-tile-cell) * 0.1), 18px);
+}
+
+/* Icon and label are shares of the button's own box, so they fit whatever shape
+ * the card left it — mostly of its height, which is what a stacked icon and line
+ * of text actually compete for, and of its width too so a narrow button doesn't
+ * overflow.
+ *
+ * Both stop growing early. The label is capped at the size Obsidian sets for
+ * small UI text — which is what a launchpad label has always been — so a big
+ * button is a big button rather than a headline, and the icon is capped a little
+ * above its fixed-style size. Between them a button that has room to spare
+ * simply carries more air, which is what makes a wall of them read as one set. */
+.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
+	width: min(46cqh, 55cqw, 32px);
+	height: min(46cqh, 55cqw, 32px);
+}
+
+.hearth-links.is-tile-scaled .hearth-link-label {
+	font-size: clamp(0.6rem, min(28cqh, 26cqw), var(--font-ui-small, 0.8rem));
+	line-height: 1.25;
+	padding: 0 min(6px, 8cqw);
+}
+
+/* The resize grip follows the button's own corner radius, which scales. */
+.hearth-links.is-tile-scaled .hearth-tile-resize {
+	border-bottom-right-radius: inherit;
+}
+
+/* Too small for its label: show the icon alone, centred. The fixed style does
+ * this from the tile's span in JS (`applyTileIconOnly`); a scaled button's span
+ * says nothing about its pixels, so it is measured here instead. The flex gap
+ * disappears with the label, leaving the icon dead-centre. */
+@container hearth-tile (max-height: 34px) {
+	.hearth-links.is-tile-scaled .hearth-link-label {
+		display: none;
+	}
+
+	/* With the label gone, the icon can have the height it was sharing. */
+	.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
+		width: min(62cqh, 62cqw, 32px);
+		height: min(62cqh, 62cqw, 32px);
+	}
+}
+
+@container hearth-tile (max-width: 52px) {
+	.hearth-links.is-tile-scaled .hearth-link-label {
+		display: none;
+	}
+
+	.hearth-links.is-tile-scaled .hearth-link-icon .svg-icon {
+		width: min(62cqh, 62cqw, 32px);
+		height: min(62cqh, 62cqw, 32px);
+	}
+}
+
 /* Fixed icon size: the icon does NOT scale with tile height. Icons stay a
  * constant, readable size regardless of tile dimensions. */
 .hearth-link-icon {

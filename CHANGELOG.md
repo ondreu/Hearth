@@ -142,6 +142,38 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plugin is installed. It is off by default, and says up front that Operon will
   ask you to approve Hearth the first time the card loads.
 
+- **Launchpad buttons can fill their card.** A launchpad used to size its
+  buttons in pixels, so a card too small for them all simply scrolled — the
+  buttons past the edge weren't there until you scrolled to them. The Links /
+  launchpad, Commands and "New note from template" cards now have a **Button
+  sizing** setting, under **Buttons** in the card's own **Layout** settings, with
+  a new **Fill the card** style: the card is divided into as many columns as
+  **Buttons across** says (six by default) and as many rows as the buttons come
+  to, and the rows share the card's height between them. So a button is a
+  fraction of the card in both directions — it grows and shrinks with the card
+  the way a card grows with the dashboard, every button stays visible whatever
+  size the card is, and the card needs no scrollbar. Buttons stop shrinking at
+  **Minimum button size** — in either direction — rather than dwindling to
+  something you can't read or hit; a card too small for them all at that size
+  scrolls, as the old style always did. It sits at 28px, low enough that buttons
+  usually fit rather than a scrollbar appearing, and each card can raise it (to
+  96px) to keep its buttons comfortable and take the scrollbar instead.
+  Each button's icon and label scale to the button — up to the size Obsidian uses
+  for small UI text, so a big button carries more air rather than a headline —
+  and a button too small to carry its label shows just its icon. Buttons stay
+  tied to the grid, sized in whole cells rather than freely in pixels, so a
+  launchpad still reads as a launchpad rather than a second free-form board — a
+  button can still be dragged to a spot, and dragged two or three cells wide (or
+  tall) by its bottom-right corner in arrange mode.
+
+  Every launchpad you already have keeps the **Fixed size (legacy)** style, down
+  to the pixel: buttons that stay the size they are, so a wider card fits more of
+  them rather than bigger ones, and a card too small for them scrolls as before.
+  Cards added from now on start on the filled style, and either card can be
+  switched at any time. The two styles keep their sizes and their arrangements
+  separately, so switching over to look and switching back leaves a card exactly
+  as it was.
+
 - **Hearth speaks Simplified Chinese.** A full `zh` locale joins English, so
   every string Hearth draws — commands, notices, the setup wizard, all of the
   plugin and card settings, card bodies and the add-card picker — comes out in

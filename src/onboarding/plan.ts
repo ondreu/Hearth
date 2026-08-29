@@ -352,11 +352,23 @@ export function planCards(
 	}
 
 	if (wants(answers, "capture")) {
-		add("links", "capture", { kind: "links", title: "Links", links: [], x: -1, y: -1, w: 6, h: 2 });
+		// Both launchpads are new cards, so their buttons scale with the card
+		// (see `tileSizing` in types.ts).
+		add("links", "capture", {
+			kind: "links",
+			title: "Links",
+			links: [],
+			tileSizing: "scale",
+			x: -1,
+			y: -1,
+			w: 6,
+			h: 2,
+		});
 		add("commands", "capture", {
 			kind: "commands",
 			title: "Commands",
 			commands: [],
+			tileSizing: "scale",
 			x: -1,
 			y: -1,
 			w: 6,

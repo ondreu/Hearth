@@ -1,8 +1,9 @@
 import { setTooltip, Setting } from "obsidian";
-import { applyTileSize, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
+import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { CommandPickerModal } from "../pickers";
+import { tileSizing } from "../tiles";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type CommandItem, type DashboardCard } from "../types";
 import { makeClickable } from "../ui";
@@ -19,16 +20,12 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 		return;
 	}
 
-	const grid = body.createDiv("hearth-links hearth-tiles-sized");
-	const baseTile = card.tileSize && card.tileSize > 0 ? card.tileSize : 90;
-	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
-	if (view.arrangeMode) body.addClass("hearth-tiles-arrange");
+	const { grid, spec } = createTileGrid(view, card, body);
 	for (const cmd of commands) {
 		const tile = grid.createDiv("hearth-link-tile");
-		// A per-tile size overrides the card default: it drives the tile's own
-		// height/icon (via --hearth-tile) and, when larger than the base, makes
-		// the tile span proportionally more grid columns so it's wider too.
-		applyTileSize(tile, cmd.sizeW, cmd.sizeH, cmd.size, baseTile, cmd.col, cmd.row);
+		// A per-tile size overrides the card default: how many cells of the
+		// card's grid the tile spans, in either sizing style.
+		applyTileSize(tile, cmd, spec);
 		applyTileVisual(view, tile, cmd.icon, "terminal-square");
 		tile.createDiv({ cls: "hearth-link-label", text: cmd.name || cmd.id });
 		const run = () => runCommand(view, cmd);
@@ -39,14 +36,8 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 		}
 
 		if (view.arrangeMode) {
-			makeTileResizable(view, tile, baseTile, () => cmd.sizeW, (v) => {
-				cmd.sizeW = v;
-			}, () => cmd.sizeH, (v) => {
-				cmd.sizeH = v;
-			}, () => cmd.size, (v) => {
-				cmd.size = v;
-			});
-			makeTileDraggable(view, grid, tile, commands, cmd, card.tileAutoFlow === true);
+			makeTileResizable(view, tile, cmd, spec);
+			makeTileDraggable(view, grid, tile, cmd, card.tileAutoFlow === true, spec);
 		}
 	}
 
@@ -72,27 +63,31 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 				ctx.opts.save();
 			}),
 		);
-	const buttonSize = new Setting(containerEl)
-		.setName(t().editors.commands.buttonSize)
-		.setDesc(t().editors.commands.buttonSizeDesc);
-	buttonSize.addSlider((s) => {
-		s.setLimits(60, 180, 10)
-			.setValue(card.tileSize ?? 90)
-			.onChange((v) => {
-				card.tileSize = v === 90 ? undefined : v;
-				ctx.opts.save();
-			});
-	});
-	buttonSize.addExtraButton((b) =>
-		b
-			.setIcon("rotate-ccw")
-			.setTooltip(t().settings.resetSlider)
-			.onClick(() => {
-				card.tileSize = undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-			}),
-	);
+	// Only the fixed style has a pixel size to set; the scaled one sizes its
+	// buttons from the card's column count (see tileSizingSettings).
+	if (tileSizing(card) === "fixed") {
+		const buttonSize = new Setting(containerEl)
+			.setName(t().editors.commands.buttonSize)
+			.setDesc(t().editors.commands.buttonSizeDesc);
+		buttonSize.addSlider((s) => {
+			s.setLimits(60, 180, 10)
+				.setValue(card.tileSize ?? 90)
+				.onChange((v) => {
+					card.tileSize = v === 90 ? undefined : v;
+					ctx.opts.save();
+				});
+		});
+		buttonSize.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileSize = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	}
 
 	new Setting(containerEl).setName(t().editors.commands.heading).setHeading();
 	const commands = (ctx.card.commands ??= []);
@@ -112,22 +107,26 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			setTooltip(txt.inputEl, t().editors.iconHelp);
 		});
 		addIconHelp(row.controlEl);
-		row.addText((txt) => {
-			txt
-				.setPlaceholder(t().editors.commands.sizePlaceholder)
-				.setValue(cmd.size ? String(cmd.size) : "")
-				.onChange((v) => {
-					const n = parseInt(v, 10);
-					cmd.size = Number.isNaN(n) || n <= 0 ? undefined : n;
-					ctx.opts.save();
-				});
-			txt.inputEl.type = "number";
-			txt.inputEl.addClass("hearth-count-input");
-			txt.inputEl.setAttribute(
-				"aria-label",
-				t().editors.commands.tileSizeAria,
-			);
-		});
+		// A pixel size per tile only means something in the fixed style; a scaled
+		// button is sized in whole cells, by dragging its corner in arrange mode.
+		if (tileSizing(card) === "fixed") {
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(t().editors.commands.sizePlaceholder)
+					.setValue(cmd.size ? String(cmd.size) : "")
+					.onChange((v) => {
+						const n = parseInt(v, 10);
+						cmd.size = Number.isNaN(n) || n <= 0 ? undefined : n;
+						ctx.opts.save();
+					});
+				txt.inputEl.type = "number";
+				txt.inputEl.addClass("hearth-count-input");
+				txt.inputEl.setAttribute(
+					"aria-label",
+					t().editors.commands.tileSizeAria,
+				);
+			});
+		}
 		row.addExtraButton((b) =>
 			b
 				.setIcon("chevron-up")
@@ -173,7 +172,13 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 export const commandsCard: CardDefinition<"commands"> = {
 	kind: "commands",
 	templates: [
-		{ id: "commands", name: "Commands", icon: "terminal-square", build: () => ({ kind: "commands", title: "Commands", commands: [], w: 6, h: 2 }) },
+		{
+			id: "commands",
+			name: "Commands",
+			icon: "terminal-square",
+			// New cards scale their buttons with the card; see the Links template.
+			build: () => ({ kind: "commands", title: "Commands", commands: [], tileSizing: "scale", w: 6, h: 2 }),
+		},
 	],
 	render: (view, card, body) => renderCommands(view, card, body),
 	renderEditor: (container, ctx) => commandsEditor(ctx, container),
@@ -182,4 +187,5 @@ export const commandsCard: CardDefinition<"commands"> = {
 	},
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
+	tileButtons: true,
 };

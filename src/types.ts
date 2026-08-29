@@ -78,24 +78,61 @@ export interface JiraConfig {
 }
 
 /** A single command tile inside a "commands" card. */
-export interface CommandItem {
+/**
+ * The size and position a single button carries inside a launchpad-like card
+ * (Links, Commands, Templater). Shared by every tile item type, because the
+ * three cards run the same grid, the same drag and the same resize.
+ *
+ * There are two generations of sizing, kept side by side so a card can switch
+ * between them without losing either:
+ *
+ * - **Fixed (legacy).** `sizeW`/`sizeH` are pixels: the button is that big
+ *   whatever the card's size, so widening the card only fits more buttons in.
+ * - **Scaled.** `spanW`/`spanH` count cells of the card's own grid (see
+ *   `DashboardCard.tileCols`), so a button is a *fraction of the card* and
+ *   grows with it — the way a card grows with the dashboard.
+ *
+ * Which pair is read is decided by the card's `tileSizing`; the other is left
+ * untouched, so turning the legacy style back on restores the old sizes
+ * exactly. A tile with no `spanW`/`spanH` yet derives them from its pixel size
+ * on read, so a card flipped to the scaled style keeps its rough proportions;
+ * free-form positions, which mean different places on the two grids, start
+ * afresh instead (`col`/`row` vs `scaleCol`/`scaleRow`).
+ */
+export interface TileGeometry {
+	/** Fixed sizing: per-tile width in pixels, overriding the card's default. */
+	sizeW?: number;
+	/** Fixed sizing: per-tile height in pixels, overriding the card's default. */
+	sizeH?: number;
+	/** Legacy single per-tile pixel size (drove width and height together).
+	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
+	size?: number;
+	/** Scaled sizing: per-tile width in grid cells. Default 1. */
+	spanW?: number;
+	/** Scaled sizing: per-tile height in grid cells. Default 1. */
+	spanH?: number;
+	/** Fixed sizing: free-form grid position (1-based grid line). When omitted
+	 * the tile auto-flows into the first available cell. Set explicitly when a
+	 * tile is dragged to a spot so it stays there. */
+	col?: number;
+	/** Fixed sizing: free-form grid row (1-based). See `col`. */
+	row?: number;
+	/** Scaled sizing: free-form grid position (1-based grid line). Separate from
+	 * `col` because the two styles' cells are different sizes — one scaled cell
+	 * is a whole button, one fixed cell half of one — so the same number means
+	 * two different places and each style keeps its own arrangement. */
+	scaleCol?: number;
+	/** Scaled sizing: free-form grid row (1-based). See `scaleCol`. */
+	scaleRow?: number;
+}
+
+export interface CommandItem extends TileGeometry {
 	/** Obsidian command id, e.g. "editor:toggle-bold". */
 	id: string;
 	/** Display name (captured when the command was picked). */
 	name: string;
 	/** Optional Lucide icon id; falls back to a generic command icon. */
 	icon?: string;
-	/** Optional per-tile width in pixels, overriding the card's default. */
-	sizeW?: number;
-	/** Optional per-tile height in pixels, overriding the card's default. */
-	sizeH?: number;
-	/** Legacy single per-tile pixel size (drove width and height together).
-	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
-	size?: number;
-	/** Free-form grid position (1-based grid line). See LinkItem.col. */
-	col?: number;
-	/** Free-form grid row (1-based). See LinkItem.row. */
-	row?: number;
 }
 
 /**
@@ -106,7 +143,7 @@ export interface CommandItem {
  * tile machinery and share their arrange-mode drag and resize. What differs is
  * only what a click *does*.
  */
-export interface TemplaterItem {
+export interface TemplaterItem extends TileGeometry {
 	id: string;
 	label: string;
 	/** Lucide icon id, or the vault path of an image (see `applyTileVisual`). */
@@ -123,17 +160,6 @@ export interface TemplaterItem {
 	/** Open the new note after creating it. Default true; turn it off for tiles
 	 * that only file something away (a log entry, an inbox capture). */
 	open?: boolean;
-	/** Optional per-tile width in pixels, overriding the card's default. */
-	sizeW?: number;
-	/** Optional per-tile height in pixels, overriding the card's default. */
-	sizeH?: number;
-	/** Legacy single per-tile pixel size (drove width and height together).
-	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
-	size?: number;
-	/** Free-form grid position (1-based grid line). See LinkItem.col. */
-	col?: number;
-	/** Free-form grid row (1-based). See LinkItem.row. */
-	row?: number;
 }
 
 /** Per-card configuration for a "templater" card. */
@@ -1294,7 +1320,7 @@ export interface SlideshowConfig {
 }
 
 /** A single tile inside a "links" (launchpad) card. */
-export interface LinkItem {
+export interface LinkItem extends TileGeometry {
 	id: string;
 	label: string;
 	/** Lucide icon id. */
@@ -1302,19 +1328,6 @@ export interface LinkItem {
 	/** Vault path, URL, or command id depending on type. */
 	target: string;
 	type: "note" | "url" | "command";
-	/** Optional per-tile width in pixels, overriding the card's default. */
-	sizeW?: number;
-	/** Optional per-tile height in pixels, overriding the card's default. */
-	sizeH?: number;
-	/** Legacy single per-tile pixel size (drove width and height together).
-	 * Migrated to sizeW/sizeH on first read; new code writes those instead. */
-	size?: number;
-	/** Free-form grid position (1-based grid line). When omitted the tile
-	 * auto-flows into the first available cell. Set explicitly when a tile is
-	 * dragged to a spot so it stays there. */
-	col?: number;
-	/** Free-form grid row (1-based). See `col`. */
-	row?: number;
 }
 
 export interface DashboardCard {
@@ -1437,8 +1450,42 @@ export interface DashboardCard {
 	 * only the results show. No effect on non-base embeds. */
 	hideBaseHeader?: boolean;
 
+	/** kind === "links" / "commands" / "templater": how the card's buttons are
+	 * sized.
+	 *
+	 * - `"fixed"` (the default when absent) — the original behaviour: a button
+	 *   is a fixed number of pixels, so a wider card fits more buttons rather
+	 *   than bigger ones.
+	 * - `"scale"` — the buttons fill the card: it is divided into `tileCols`
+	 *   columns and as many rows as the buttons need, the rows sharing the
+	 *   card's height between them, and a button spans whole cells of that grid.
+	 *   So every button grows and shrinks with the card the same way a card
+	 *   grows with the dashboard, and every one of them stays visible whatever
+	 *   size the card is — until a cell would fall below `tileMinSize` on either
+	 *   axis, where the card scrolls rather than drawing buttons too small to
+	 *   use. Buttons stay on the grid: they are sized in cells, not freely in
+	 *   pixels.
+	 *
+	 * Cards created before this existed carry no value and so keep the fixed
+	 * style; every card added since asks for `"scale"` in its template, and the
+	 * card's own settings switch either way at any time. */
+	tileSizing?: "fixed" | "scale";
+
+	/** kind === "links" / "commands" / "templater": with `tileSizing: "scale"`,
+	 * how many cells wide the card's button grid is — so a one-cell button is
+	 * this fraction of the card. Omitted means TILE_COLS_DEFAULT. Ignored by the
+	 * fixed style. */
+	tileCols?: number;
+
+	/** kind === "links" / "commands" / "templater": with `tileSizing: "scale"`,
+	 * how small a cell may get (px) before the card scrolls instead of shrinking
+	 * its buttons any further. Omitted means TILE_MIN_DEFAULT; clamped to
+	 * [TILE_MIN_MIN, TILE_MIN_MAX] on read. Ignored by the fixed style. */
+	tileMinSize?: number;
+
 	/** kind === "commands" / "templater": pixel size of the tiles (min column
-	 * width). Omitted means the default tile size. */
+	 * width) in the fixed style. Omitted means the default tile size. Ignored by
+	 * the scaled style, which sizes buttons from `tileCols`. */
 	tileSize?: number;
 
 	/** kind === "links" / "commands" / "templater" (beta): when true, tiles auto-shift out
