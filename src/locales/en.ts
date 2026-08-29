@@ -2014,14 +2014,15 @@ export const en = {
 				"height works the same way — the rows share whatever height the card " +
 				"has between them — so a shorter card means shorter buttons rather " +
 				"than hidden ones. A button can still be made two or three cells wide " +
-				"(or tall) by dragging its bottom-right corner in arrange mode.",
+				"(or tall) by dragging its bottom-right corner in arrange mode — or " +
+				"half a cell, since the grid takes half steps in both directions.",
 			minSize: "Minimum button size",
 			minSizeDesc:
-				"How small a button may get, in pixels, before the card scrolls " +
-				"instead of shrinking them any further. Low by default, so that " +
-				"buttons fit rather than a scrollbar appearing; raise it to keep them " +
-				"comfortable on a card you often make small, and the card scrolls when " +
-				"they no longer fit.",
+				"How small a whole button may get, in pixels, before the card scrolls " +
+				"instead of shrinking them any further — a half-cell button stops at " +
+				"half of it. Low by default, so that buttons fit rather than a " +
+				"scrollbar appearing; raise it to keep them comfortable on a card you " +
+				"often make small, and the card scrolls when they no longer fit.",
 		},
 		links: {
 			heading: "Links",

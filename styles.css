@@ -2615,8 +2615,15 @@
  * between them, so a button is a *fraction of the card* in both directions: it
  * grows and shrinks with the card the way a card grows with the dashboard,
  * every button stays visible whatever size the card is, and the body never
- * scrolls. Buttons stay tied to the grid (whole cells, never free pixels), so a
- * launchpad doesn't turn into a second free-form board.
+ * scrolls. Buttons stay tied to the grid (its cells and halves of them, never
+ * free pixels), so a launchpad doesn't turn into a second free-form board.
+ *
+ * The grid is drawn at *half*-cell resolution (`--hearth-tile-tracks` is
+ * `--hearth-tile-cols` doubled; see TILE_SUBDIV in `src/tiles.ts`), so a button
+ * can be half a cell wide or tall the way the fixed grid's fine cell always
+ * allowed. A whole-cell button spans two tracks and comes out exactly the size
+ * it would have without the subdivision, since the gap it swallows is the gap
+ * the two tracks gave up.
  *
  * Two things need measuring rather than declaring. The column cell is a
  * fraction of the card's width, which only a query container can tell CSS — so
@@ -2638,6 +2645,13 @@
 		(100cqw - (var(--hearth-tile-cols, 6) - 1) * var(--hearth-tile-gap)) /
 			var(--hearth-tile-cols, 6)
 	);
+	/* The floor, per track: half a button's, less the gap the two tracks of a
+	 * whole button swallow between them — so a whole-cell button still stops
+	 * shrinking at exactly `--hearth-tile-min`, and a half one at half of it. */
+	--hearth-tile-track-min: max(
+		4px,
+		calc((var(--hearth-tile-min, 28px) - var(--hearth-tile-gap)) / 2)
+	);
 	/* Fill the card: the columns are the card's own, and the rows take an equal
 	 * share of its height — however many rows the buttons need. That is what
 	 * keeps the card free of scrollbars: the grid is no bigger than the card it
@@ -2651,10 +2665,10 @@
 	 * the fallback, not the intent. */
 	height: 100%;
 	grid-template-columns: repeat(
-		var(--hearth-tile-cols, 6),
-		minmax(var(--hearth-tile-min, 28px), 1fr)
+		var(--hearth-tile-tracks, 12),
+		minmax(var(--hearth-tile-track-min), 1fr)
 	);
-	grid-auto-rows: minmax(var(--hearth-tile-min, 28px), 1fr);
+	grid-auto-rows: minmax(var(--hearth-tile-track-min), 1fr);
 	gap: var(--hearth-tile-gap);
 }
 

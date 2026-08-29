@@ -190,6 +190,27 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   scrolls with the rest of the dialog. The tabs go by as you scroll on those
   themes; nothing is ever painted in the wrong shade on any of them.
 
+- **Half buttons are back on a launchpad that fills its card.** Sizing a
+  launchpad's buttons in pixels (2.2.0's "Fixed size (legacy)") laid them on a
+  *fine* grid — a 44px cell, half a default button — so a half-width or
+  half-height button was a size you could simply drag to, and plenty of boards
+  used one: a wall of full buttons with a couple of small ones tucked beside
+  them. **Fill the card** put its buttons on a grid of whole cells only, and a
+  gesture that could no longer land between two of them rounded a half button up
+  to a whole one. Filling the card cost you a size you had.
+
+  The filled grid is now drawn at *half*-cell resolution, so a button can be
+  half a cell wide, half a cell tall, or both, and the resize handle snaps to
+  each half step — the fine grid's granularity, on a grid that still scales with
+  the card. A button already on the grid is untouched: a whole cell is two of
+  the new tracks plus the gap they give up between them, so it comes out at
+  exactly the pixel it did before, and **Minimum button size** still floors a
+  whole button at what it says (a half one at half of that). Sizes and positions
+  are stored in cells as they always were, now in steps of a half, so a board
+  saved by 2.2.0 reads back unchanged — and a card switched over from the fixed
+  style now keeps its buttons' proportions to the half rather than rounding them
+  (#261).
+
 ### Changed
 
 - **One "Title icon" setting, and it takes a picture.** The mark beside a
