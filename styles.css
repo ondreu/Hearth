@@ -2644,16 +2644,17 @@
 	 * is in.
 	 *
 	 * Down to a floor, on both axes: a cell never shrinks below
-	 * `--hearth-tile-min`, about the smallest an icon button can be and still be
-	 * aimed at, because a button smaller than that isn't "visible" in any useful
-	 * sense. The floor is deliberately low — it exists to stop a card drawing
-	 * slivers, not to decide how big a button ought to be — and a card too small
+	 * `--hearth-tile-min`, which the card sets (see `createTileGrid`) and defaults
+	 * to about the smallest an icon button can be and still be aimed at. A button
+	 * smaller than that isn't "visible" in any useful sense — and a card too small
 	 * for its buttons even at that size scrolls, as the fixed style always did:
 	 * the fallback, not the intent. */
 	height: 100%;
-	--hearth-tile-min: 28px;
-	grid-template-columns: repeat(var(--hearth-tile-cols, 6), minmax(var(--hearth-tile-min), 1fr));
-	grid-auto-rows: minmax(var(--hearth-tile-min), 1fr);
+	grid-template-columns: repeat(
+		var(--hearth-tile-cols, 6),
+		minmax(var(--hearth-tile-min, 28px), 1fr)
+	);
+	grid-auto-rows: minmax(var(--hearth-tile-min, 28px), 1fr);
 	gap: var(--hearth-tile-gap);
 }
 

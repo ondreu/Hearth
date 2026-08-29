@@ -53,7 +53,7 @@ import {
 	type PerformanceTier,
 } from "./types";
 import { CARD_KINDS } from "./cards";
-import { tileCols } from "./tiles";
+import { tileCols, tileMinSize } from "./tiles";
 import { isEmbeddableBaseViewName } from "./bases";
 import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
@@ -388,6 +388,7 @@ function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (typeof r.tileSize === "number") card.tileSize = r.tileSize;
 	if (r.tileSizing === "scale" || r.tileSizing === "fixed") card.tileSizing = r.tileSizing;
 	if (typeof r.tileCols === "number") card.tileCols = tileCols(r.tileCols);
+	if (typeof r.tileMinSize === "number") card.tileMinSize = tileMinSize(r.tileMinSize);
 	if (typeof r.tileAutoFlow === "boolean") card.tileAutoFlow = r.tileAutoFlow;
 	if (typeof r.showOpenButton === "boolean")
 		card.showOpenButton = r.showOpenButton;

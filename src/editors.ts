@@ -7,7 +7,12 @@ import {
 	TILE_COLS_DEFAULT,
 	TILE_COLS_MAX,
 	TILE_COLS_MIN,
+	TILE_MIN_DEFAULT,
+	TILE_MIN_MAX,
+	TILE_MIN_MIN,
+	TILE_MIN_STEP,
 	tileCols,
+	tileMinSize,
 	tileSizing,
 } from "./tiles";
 import {
@@ -396,6 +401,33 @@ export class CardSettingsModal extends HearthTabbedModal {
 				.setTooltip(t().settings.resetSlider)
 				.onClick(() => {
 					card.tileCols = undefined;
+					this.opts.save();
+					this.opts.rerender();
+					this.render();
+				}),
+		);
+
+		// The floor: how small a button may get before the card gives up and
+		// scrolls instead. Sixteen small buttons and four big ones want different
+		// answers, so it is the card's to set rather than the stylesheet's.
+		const minSize = new Setting(containerEl)
+			.setName(strings.minSize)
+			.setDesc(strings.minSizeDesc);
+		minSize.addSlider((s) => {
+			s.setLimits(TILE_MIN_MIN, TILE_MIN_MAX, TILE_MIN_STEP)
+				.setValue(tileMinSize(card.tileMinSize))
+				.onChange((v) => {
+					card.tileMinSize = v === TILE_MIN_DEFAULT ? undefined : v;
+					this.opts.save();
+					this.opts.rerender();
+				});
+		});
+		minSize.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileMinSize = undefined;
 					this.opts.save();
 					this.opts.rerender();
 					this.render();

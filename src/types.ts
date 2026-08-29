@@ -1461,10 +1461,10 @@ export interface DashboardCard {
 	 *   card's height between them, and a button spans whole cells of that grid.
 	 *   So every button grows and shrinks with the card the same way a card
 	 *   grows with the dashboard, and every one of them stays visible whatever
-	 *   size the card is — until a cell would fall below the minimum size the
-	 *   stylesheet sets, on either axis, where the card scrolls rather than
-	 *   drawing buttons too small to use. Buttons stay on the grid: they are
-	 *   sized in cells, not freely in pixels.
+	 *   size the card is — until a cell would fall below `tileMinSize` on either
+	 *   axis, where the card scrolls rather than drawing buttons too small to
+	 *   use. Buttons stay on the grid: they are sized in cells, not freely in
+	 *   pixels.
 	 *
 	 * Cards created before this existed carry no value and so keep the fixed
 	 * style; every card added since asks for `"scale"` in its template, and the
@@ -1476,6 +1476,12 @@ export interface DashboardCard {
 	 * this fraction of the card. Omitted means TILE_COLS_DEFAULT. Ignored by the
 	 * fixed style. */
 	tileCols?: number;
+
+	/** kind === "links" / "commands" / "templater": with `tileSizing: "scale"`,
+	 * how small a cell may get (px) before the card scrolls instead of shrinking
+	 * its buttons any further. Omitted means TILE_MIN_DEFAULT; clamped to
+	 * [TILE_MIN_MIN, TILE_MIN_MAX] on read. Ignored by the fixed style. */
+	tileMinSize?: number;
 
 	/** kind === "commands" / "templater": pixel size of the tiles (min column
 	 * width) in the fixed style. Omitted means the default tile size. Ignored by

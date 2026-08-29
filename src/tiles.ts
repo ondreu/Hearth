@@ -13,9 +13,9 @@
  *   ({@link TileSpec.cols}) and its rows divide the card's height between them,
  *   so a button is a fraction of the card in both directions: it grows with the
  *   card exactly as a card grows with the dashboard, and every button stays
- *   visible whatever size the card is — down to a floor on either axis, below
- *   which a button would be too small to read or hit, and past which the card
- *   scrolls like the fixed style always did. Buttons are still tied to the grid — sized in whole
+ *   visible whatever size the card is — down to the floor the card sets
+ *   ({@link TileSpec.min}), below which a button would be too small to read or
+ *   hit, and past which the card scrolls like the fixed style always did. Buttons are still tied to the grid — sized in whole
  *   cells, never freely in pixels — so a launchpad stays a launchpad rather than
  *   becoming a second free-form board.
  *
@@ -72,6 +72,24 @@ export const TILE_COLS_MIN = 2;
 
 export const TILE_COLS_MAX = 16;
 
+/** How small a scaled cell may get, in px, before the card scrolls instead of
+ * shrinking its buttons further — the default for a card that doesn't say.
+ * About the smallest an icon button can be and still be aimed at: low on
+ * purpose, since the floor exists to stop a card drawing slivers rather than to
+ * decide how big a button ought to be. */
+export const TILE_MIN_DEFAULT = 28;
+
+/** The smallest floor a card may ask for. Below this a button is a dot, and the
+ * grid's own gap is a third of it. */
+export const TILE_MIN_MIN = 16;
+
+/** The largest floor a card may ask for. Past this a launchpad is mostly
+ * scrollbar on any card small enough to matter. */
+export const TILE_MIN_MAX = 96;
+
+/** Step the floor moves in, so the slider lands on round numbers. */
+export const TILE_MIN_STEP = 4;
+
 /** The largest span a button may carry, so a stored value can never blow the
  * grid open. Columns are additionally capped by the card's own column count. */
 const TILE_SPAN_MAX = 24;
@@ -88,6 +106,9 @@ export interface TileSpec {
 	baseTile: number;
 	/** Scaled style: how many cells wide the card's grid is. */
 	cols: number;
+	/** Scaled style: how small a cell may get, in px, before the card scrolls
+	 * rather than shrinking its buttons any further. */
+	min: number;
 }
 
 /** A tile's size in grid cells, as the CSS `span` values. */
@@ -117,6 +138,7 @@ export function tileSpec(card: DashboardCard): TileSpec {
 		sizing: tileSizing(card),
 		baseTile: card.tileSize && card.tileSize > 0 ? card.tileSize : FIXED_TILE_BASE,
 		cols: tileCols(card.tileCols),
+		min: tileMinSize(card.tileMinSize),
 	};
 }
 
@@ -125,6 +147,15 @@ export function tileSpec(card: DashboardCard): TileSpec {
 export function tileCols(cols: number | undefined): number {
 	if (typeof cols !== "number" || !Number.isFinite(cols)) return TILE_COLS_DEFAULT;
 	return Math.min(TILE_COLS_MAX, Math.max(TILE_COLS_MIN, Math.round(cols)));
+}
+
+
+/** A scaled card's floor: how small a cell may get before the card scrolls
+ * instead. Clamped to the range the slider offers, so a hand-edited layout can't
+ * ask for a launchpad of dots or one that is all scrollbar. */
+export function tileMinSize(min: number | undefined): number {
+	if (typeof min !== "number" || !Number.isFinite(min)) return TILE_MIN_DEFAULT;
+	return Math.min(TILE_MIN_MAX, Math.max(TILE_MIN_MIN, Math.round(min)));
 }
 
 
@@ -178,9 +209,9 @@ export function fixedRowHeight(): number {
 
 
 /** A grid's cell size as the browser actually resolved it, for the scaled style
- * — whose cells share out the card but never shrink below the stylesheet's
- * floor, so neither axis can be worked out from the card's size alone. Both
- * fields are optional: a grid that isn't laid out yet has neither. */
+ * — whose cells share out the card but never shrink below its floor, so neither
+ * axis can be worked out from the card's size alone. Both fields are optional: a
+ * grid that isn't laid out yet has neither. */
 export interface MeasuredCell {
 	colW?: number;
 	rowH?: number;
@@ -196,9 +227,10 @@ export interface MeasuredCell {
  * stays on the arithmetic it has always used.
  *
  * Scaled: the column count is the card's own, and a cell would be a fraction of
- * the card — except that neither axis shrinks past the floor the stylesheet
- * sets, and the rows also depend on how many of them the buttons came to. Only
- * the laid-out grid knows, so the caller measures it and passes it in;
+ * the card — except that neither axis shrinks past the card's own floor
+ * ({@link TileSpec.min}), and the rows also depend on how many of them the
+ * buttons came to. Only the laid-out grid knows, so the caller measures it and
+ * passes it in;
  * `measured` is ignored by the fixed style, and whatever a scaled grid can't
  * supply falls back to the fraction it would be without a floor.
  */

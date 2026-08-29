@@ -779,6 +779,7 @@ export function createTileGrid(
 	if (spec.sizing === "scale") {
 		grid.addClass("is-tile-scaled");
 		grid.style.setProperty("--hearth-tile-cols", String(spec.cols));
+		grid.style.setProperty("--hearth-tile-min", `${spec.min}px`);
 		// The cell size is a fraction of the body's width, which CSS can only
 		// read from a container — so the body becomes one. (Set here rather than
 		// in the stylesheet so no other card pays for the containment.)
@@ -914,7 +915,7 @@ function gridMetrics(tile: HTMLElement, spec: TileSpec): TileMetrics {
 
 
 /** Measure a tile grid: its content width, and — for a scaled grid, whose cells
- * share out the card but never shrink past the stylesheet's floor — the size a
+ * share out the card but never shrink past the card's own floor — the size a
  * cell actually came out at. Only the browser knows that: how wide a column ends
  * up depends on whether the floor caught it, and how tall a row is depends on how
  * many rows the buttons needed too. Both are read back off the resolved

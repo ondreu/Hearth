@@ -12,8 +12,12 @@ import {
 	pixelsFromSpan,
 	resizeTile,
 	spanFromPixels,
+	TILE_MIN_DEFAULT,
+	TILE_MIN_MAX,
+	TILE_MIN_MIN,
 	tileCols,
 	tileMetrics,
+	tileMinSize,
 	tilePlacement,
 	tileSizing,
 	tileSpans,
@@ -45,8 +49,18 @@ function card(over: Partial<DashboardCard> = {}): DashboardCard {
 	return { id: "c1", kind: "links", ...over } as DashboardCard;
 }
 
-const FIXED: TileSpec = { sizing: "fixed", baseTile: FIXED_TILE_BASE, cols: TILE_COLS_DEFAULT };
-const SCALED: TileSpec = { sizing: "scale", baseTile: FIXED_TILE_BASE, cols: 6 };
+const FIXED: TileSpec = {
+	sizing: "fixed",
+	baseTile: FIXED_TILE_BASE,
+	cols: TILE_COLS_DEFAULT,
+	min: TILE_MIN_DEFAULT,
+};
+const SCALED: TileSpec = {
+	sizing: "scale",
+	baseTile: FIXED_TILE_BASE,
+	cols: 6,
+	min: TILE_MIN_DEFAULT,
+};
 
 
 describe("tileSizing / tileSpec", () => {
@@ -61,11 +75,15 @@ describe("tileSizing / tileSpec", () => {
 			sizing: "fixed",
 			baseTile: 90,
 			cols: TILE_COLS_DEFAULT,
+			min: TILE_MIN_DEFAULT,
 		});
-		expect(tileSpec(card({ tileSizing: "scale", tileSize: 120, tileCols: 4 }))).toEqual({
+		expect(
+			tileSpec(card({ tileSizing: "scale", tileSize: 120, tileCols: 4, tileMinSize: 64 })),
+		).toEqual({
 			sizing: "scale",
 			baseTile: 120,
 			cols: 4,
+			min: 64,
 		});
 	});
 
@@ -80,6 +98,15 @@ describe("tileSizing / tileSpec", () => {
 		expect(tileCols(999)).toBe(TILE_COLS_MAX);
 		expect(tileCols(7.4)).toBe(7);
 		expect(tileCols(Number.NaN)).toBe(TILE_COLS_DEFAULT);
+	});
+
+	it("clamps the card's floor to the range the slider offers", () => {
+		expect(tileMinSize(undefined)).toBe(TILE_MIN_DEFAULT);
+		expect(tileMinSize(48)).toBe(48);
+		expect(tileMinSize(2)).toBe(TILE_MIN_MIN);
+		expect(tileMinSize(9999)).toBe(TILE_MIN_MAX);
+		expect(tileMinSize(40.6)).toBe(41);
+		expect(tileMinSize(Number.NaN)).toBe(TILE_MIN_DEFAULT);
 	});
 });
 
