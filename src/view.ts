@@ -2,6 +2,7 @@ import { Component, ItemView, Platform, type WorkspaceLeaf } from "obsidian";
 import type HearthPlugin from "./main";
 import { renderHeader } from "./header";
 import { renderDashboard } from "./dashboard";
+import { prunePluginBoards, releasePluginBoards, renderPluginBoard } from "./pluginboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow";
@@ -9,6 +10,7 @@ import { applyBackground, renderBanner } from "./background";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateMotionOnWindow } from "./motion";
 import {
+	activeIsPluginBoard,
 	bannerActive,
 	effectiveCompact,
 	effectiveFitToPage,
@@ -166,6 +168,11 @@ export class HomeView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
+		// Hosted plugin-board views deliberately outlive the render component, so
+		// they are released here rather than with it — this is the point at which
+		// a board kept alive for a fast switch back has nothing left to switch
+		// back to. See src/pluginboard.ts.
+		releasePluginBoards(this);
 		this.cleanupChild();
 	}
 
@@ -196,6 +203,15 @@ export class HomeView extends ItemView {
 		// the moment it looks for a leaf to open a file in, so the current value
 		// is the one that counts.
 		this.navigation = hearthLeafIsNavigable(this.plugin.settings);
+
+		// A plugin board has no cards to arrange and no reflow to preview, so both
+		// of those modes are dropped on the way in rather than hidden: switching to
+		// one while arranging must not leave the view in a mode with no controls.
+		const pluginBoard = activeIsPluginBoard(this.plugin.settings);
+		if (pluginBoard) {
+			this.arrangeMode = false;
+			this.phonePreview = false;
+		}
 
 		this.cleanupChild();
 		const child = new Component();
@@ -235,11 +251,17 @@ export class HomeView extends ItemView {
 		this.narrowAtRender = narrow;
 		root.toggleClass("hearth-narrow", narrow);
 		root.toggleClass("hearth-phone-preview", this.phonePreview);
+		// The whole board is one hosted view: it fills the pane and scrolls itself,
+		// on a single card surface instead of a grid of them.
+		root.toggleClass("hearth-plugin-view", pluginBoard);
 
 		// With no cards to show (and not arranging), centre the search field
 		// vertically so the page reads as a clean launcher.
+		// `renderCards` is empty on a plugin board by definition, which is not the
+		// "clean launcher" this centres the search for — that board is full.
 		const emptyBoard =
 			!mobileOnly &&
+			!pluginBoard &&
 			!this.arrangeMode &&
 			renderCards(this.plugin.settings).length === 0;
 		root.toggleClass("hearth-empty-board", emptyBoard);
@@ -263,7 +285,14 @@ export class HomeView extends ItemView {
 		// clips the rest — is not applied to it. The setting is untouched and
 		// comes back with the free-form layout.
 		const stacked = narrow && this.plugin.settings.stackOnNarrow;
-		scroll.toggleClass("hearth-fit", effectiveFitToPage(this.plugin.settings) && !stacked);
+		// A plugin board is always fitted, whatever the setting says and however
+		// narrow the pane is: the hosted view has to be given a definite height to
+		// fill and does its own scrolling inside it. Letting the page scroll
+		// instead would give the board no height at all to hand over.
+		scroll.toggleClass(
+			"hearth-fit",
+			pluginBoard || (effectiveFitToPage(this.plugin.settings) && !stacked),
+		);
 
 		if (banner) renderBanner(this, scroll, child);
 
@@ -304,8 +333,15 @@ export class HomeView extends ItemView {
 
 		if (!mobileOnly) {
 			const dashboard = inner.createDiv("hearth-dashboard");
-			renderDashboard(this, dashboard, child);
+			if (pluginBoard) renderPluginBoard(this, dashboard, child);
+			else renderDashboard(this, dashboard, child);
 		}
+
+		// Nothing on this render claimed a hosted view — a cards board, or
+		// mobile-only mode, which draws no board at all — so everything still
+		// alive is off screen, and only what a board asked to keep survives.
+		// (A plugin board prunes with its own view held; see pluginboard.ts.)
+		if (!pluginBoard || mobileOnly) prunePluginBoards(this, null);
 
 		if (mobileOnly && this.plugin.settings.showMobileActionBar) {
 			// Pinned to the scroll area (not the flex flow shared with `inner`) so

@@ -510,12 +510,42 @@ export const en = {
 			/** Tabs across the top of the dashboard settings modal. */
 			tabs: {
 				general: "General",
+				plugin: "Plugin view",
 				header: "Header",
 				layout: "Layout",
 				style: "Style",
 				background: "Background",
 			},
 			name: "Name",
+			mode: "Dashboard type",
+			modeDesc:
+				"A board of Hearth cards, or the whole board given over to one plugin's view. Switching to a plugin view keeps this board's cards — switch back and they return.",
+			modeOptions: {
+				cards: "Cards",
+				plugin: "Plugin view",
+			},
+			modePickViewHint:
+				"This board has no view yet — choose one on the Plugin view tab.",
+			pluginViewType: "View",
+			pluginViewTypeDesc:
+				"Which registered view fills this board. The list is every view the app has right now, so it follows which plugins are enabled.",
+			pluginViewTypeNone: "Choose a view…",
+			pluginViewFile: "File",
+			pluginViewFileDesc:
+				"Open the view on a specific file — a Canvas, an Excalidraw drawing. Leave empty to host the view on its own.",
+			pluginViewFileRequiredDesc:
+				"This view needs a file to show. Pick the note, PDF or image this board opens.",
+			pluginViewHideHeader: "Hide the view's own header",
+			pluginViewHideHeaderDesc:
+				"Drop the hosted view's breadcrumbs, back/forward arrows and kebab menu. Its own toolbars and tabs are untouched.",
+			pluginViewKeepMounted: "Keep running in the background",
+			pluginViewKeepMountedDesc:
+				"Stay loaded while another dashboard is showing, so coming back is instant instead of a reload. Turn off for a heavy plugin you'd rather not leave running. Only a few boards are ever kept loaded at once.",
+			pluginViewFocusable: "Let the view take focus (experimental)",
+			pluginViewFocusableDesc:
+				"Make this the active pane while you're working in it, so the plugin's own commands and hotkeys find it. Obsidian also opens notes into the active pane, so a link you click may replace the view until you switch boards.",
+			pluginViewPerfNote:
+				"A hosted view is the plugin doing its full job, not a preview of it — it costs what opening that plugin costs. Views that are slow in their own tab are slow here too.",
 			switcherIcon: "Switcher icon",
 			switcherIconDesc:
 				"An emoji or short text shown on the switcher button. Empty = number.",
@@ -536,9 +566,10 @@ export const en = {
 			searchVisibility: "Search visibility",
 			searchVisibilityDesc:
 				"Show or hide the search and command bar with its results and filter buttons on this dashboard. Overrides the global setting.",
-			searchVisibilityDefault: (state: string) => `Use global default (${state})`,
 			searchVisibilityShow: "Show search",
 			searchVisibilityHide: "Hide search",
+			visibilityDefaultPlugin: (state: string) =>
+				`Default on a plugin board (${state})`,
 			visibilityShown: "shown",
 			visibilityHidden: "hidden",
 			visibilityShow: "Show title",
@@ -574,6 +605,8 @@ export const en = {
 			fitStateScroll: "scroll",
 			fitOptionFit: "Fit to one page",
 			fitOptionScroll: "Allow scrolling",
+			fitToPagePluginNote:
+				"A plugin board always fits the pane — the hosted view fills it and scrolls itself.",
 			themeColorTarget: "Accent colour on the title",
 			themeColorTargetDesc:
 				"Which parts of this board's brand mark follow the theme's icon colour. Overrides the global setting for this board; Hearth's tab and ribbon icons keep following the global one.",
@@ -2832,6 +2865,8 @@ export const en = {
 			weatherNoLocation: "Pick a location in card settings",
 			renderFailed: "This card couldn't be drawn — see the console for details",
 			leafPickView: "Pick a plugin view in card settings",
+			boardPickView: "Pick a view for this board in dashboard settings",
+			boardNeedsFile: "Pick a file for this board in dashboard settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
 			operonEnable: "Enable the Operon plugin to show its tasks",

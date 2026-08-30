@@ -11556,3 +11556,72 @@ body.hearth-dv-resizing {
 	font-size: 0.8rem;
 	color: var(--text-muted);
 }
+
+/* ---- Plugin boards ---------------------------------------------------
+ *
+ * A dashboard whose whole board is one hosted view (Dashboard.mode ===
+ * "plugin"; see src/pluginboard.ts). The switcher, header, banner and
+ * background above it are the ordinary board chrome — only what would have
+ * been the card grid is replaced.
+ *
+ * The view is always given a definite height to fill and scrolls itself inside
+ * it, so the board is rendered fitted regardless of the fit-to-page setting
+ * (view.ts forces `.hearth-fit` on). Everything here is about keeping that
+ * height chain unbroken: a single `height: auto` anywhere between the scroll
+ * area and the hosted leaf collapses the view to nothing. */
+
+.hearth-plugin-board {
+	/* Take the height the toolbar above leaves, the same way the grid does —
+	 * not height:100%, which would ignore the toolbar row and overflow by it. */
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	box-sizing: border-box;
+	/* One big card, styled by the same four values the Style tab drives for the
+	 * cards on an ordinary board (set as variables in renderPluginBoard). */
+	border-radius: var(--hearth-card-radius, 14px);
+	border: var(--card-border-width, 1px) solid var(--background-modifier-border);
+	--hearth-card-surface: color-mix(
+		in srgb,
+		var(--background-primary) calc(var(--card-opacity, 1) * 100%),
+		transparent
+	);
+	background: var(--hearth-card-surface);
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+	/* Clip the hosted view to the rounded corners, and keep any overflow it
+	 * produces inside the board rather than over the header above it. */
+	overflow: hidden;
+}
+
+/* Frosted glass. Cards share one blur layer per grid because a per-card
+ * backdrop-filter seams where merged cards touch; a single surface has no
+ * seams, so it takes the filter directly. `effectiveCardBlur` already reports 0
+ * below the `reduced` performance tier, so no class is added there. */
+.hearth-plugin-board.has-blur {
+	backdrop-filter: blur(var(--hearth-plugin-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--hearth-plugin-blur, 0px));
+}
+
+/* The host inherits the leaf-card hosting rules (transparent pane surfaces, an
+ * optional hidden view header); all it adds is filling the board. */
+.hearth-plugin-board-host {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* The board's own toolbar is a single quiet icon button, so it must not reserve
+ * a labelled toolbar's worth of space above the view. It keeps the arrange
+ * button's own auto-hide behaviour (.is-auto-hide), which is why it reuses that
+ * zone rather than defining a second one. */
+.hearth-plugin-view .hearth-toolbar {
+	margin-bottom: 6px;
+}
+
+/* An empty state on a plugin board (no view chosen, its plugin disabled, a
+ * document view with no file) is the whole board rather than a card body, so
+ * centre it instead of letting it sit against the top edge. */
+.hearth-plugin-board > .hearth-card-empty {
+	flex: 1 1 auto;
+}

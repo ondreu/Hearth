@@ -57,6 +57,10 @@ export class Menu {}
 export class MarkdownRenderer {}
 export class MarkdownView {}
 export class WorkspaceLeaf {}
+// leafview.ts narrows a hosted view with `instanceof TextFileView` before
+// flushing its pending save. Nothing under test ever hosts a leaf, so an empty
+// class is enough to make the module graph resolve.
+export class TextFileView {}
 export class ButtonComponent {}
 
 // `opener.ts` imports Keymap for its runtime modifier check. The pure decision

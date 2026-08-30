@@ -1187,6 +1187,27 @@ function sanitizeDashboard(
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
 	if (typeof r.compact === "boolean") dash.compact = r.compact;
+	// Only "plugin" is carried: anything else — including a mode from a newer
+	// Hearth this build can't render — is left off, so the board imports as the
+	// cards board it also is. Its `cards` came through above either way.
+	if (r.mode === "plugin") dash.mode = "plugin";
+	const rawPluginView = r.pluginView;
+	if (rawPluginView && typeof rawPluginView === "object") {
+		const pv = rawPluginView as Record<string, unknown>;
+		const plugin: NonNullable<Dashboard["pluginView"]> = {};
+		const viewType = str(pv.viewType);
+		if (viewType !== undefined && viewType.trim()) plugin.viewType = viewType.trim();
+		// The view a board hosts is portable; the file it opens is a path into
+		// *this* vault, which may hold nothing of the sort. It is kept anyway
+		// (dropping it silently would be worse than a board that says which file
+		// it wants) — the board reports a missing file rather than breaking.
+		const file = str(pv.file);
+		if (file !== undefined && file.trim()) plugin.file = file.trim();
+		if (typeof pv.hideHeader === "boolean") plugin.hideHeader = pv.hideHeader;
+		if (typeof pv.keepMounted === "boolean") plugin.keepMounted = pv.keepMounted;
+		if (typeof pv.focusable === "boolean") plugin.focusable = pv.focusable;
+		if (Object.keys(plugin).length > 0) dash.pluginView = plugin;
+	}
 	const linkedWorkspace = str(r.linkedWorkspace);
 	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
 		dash.linkedWorkspace = linkedWorkspace;

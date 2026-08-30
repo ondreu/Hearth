@@ -14,21 +14,49 @@ export interface LeafViewType {
 }
 
 /**
- * View types the "leaf" card never offers. These are Obsidian's own document
- * surfaces — they need a concrete file and render blank (or misbehave) when
- * hosted detached from the workspace — plus Hearth's own view, which must not
- * host itself. Everything else a plugin registers (calendar, outline, kanban,
- * tag pane, …) is a fair game side-panel view.
+ * View types nothing may ever host: the placeholder empty view, and Hearth's
+ * own view, which must not host itself.
  */
-const EXCLUDED_VIEW_TYPES = new Set<string>([
-	"empty",
-	"markdown",
-	"image",
-	"audio",
-	"video",
-	"pdf",
-	VIEW_TYPE_HOME,
-]);
+const EXCLUDED_VIEW_TYPES = new Set<string>(["empty", VIEW_TYPE_HOME]);
+
+/**
+ * Obsidian's own document surfaces. They need a concrete file — hosted without
+ * one they render blank or misbehave — so they are hidden by default.
+ *
+ * A card is too small for them to be worth the footgun, but a *plugin board*
+ * gives a view the whole page, where opening a note, a PDF or a picture as the
+ * board is a real thing to want. Callers that can supply a file opt in with
+ * `{ documents: true }`.
+ */
+const DOCUMENT_VIEW_TYPES = new Set<string>(["markdown", "image", "audio", "video", "pdf"]);
+
+/** Options shared by the view-type listing and the hostable check. */
+export interface LeafViewScope {
+	/** Include Obsidian's document surfaces (Markdown, PDF, image, audio,
+	 * video). They only work pointed at a file — see {@link isDocumentViewType}
+	 * — so only a caller that offers a file picker should ask for them. */
+	documents?: boolean;
+}
+
+/**
+ * The scope a *full-view* host asks for: everything, document surfaces
+ * included. A plugin board has a file picker beside its type picker and gives
+ * the view the whole page, so opening a note, a PDF or a picture as the board
+ * is a real thing to want. (A card, with room for neither, keeps the default.)
+ */
+export const FULL_VIEW_SCOPE: LeafViewScope = { documents: true };
+
+/** Whether `type` is one of Obsidian's document surfaces, which render nothing
+ * useful without a file to open. */
+export function isDocumentViewType(type: string): boolean {
+	return DOCUMENT_VIEW_TYPES.has(type);
+}
+
+/** Whether `type` is hidden from the pickers under `scope`. */
+function isHiddenType(type: string, scope: LeafViewScope | undefined): boolean {
+	if (EXCLUDED_VIEW_TYPES.has(type)) return true;
+	return !scope?.documents && DOCUMENT_VIEW_TYPES.has(type);
+}
 
 /** Reach the app's view registry, or null when the internal shape isn't there
  * (a future Obsidian could move it). Never throws. */
@@ -55,20 +83,22 @@ export function isLeafViewAvailable(app: App): boolean {
 }
 
 /** Every hostable view type, sorted by label. Empty when the registry can't be
- * read. Excludes core document surfaces and Hearth's own view. */
-export function listLeafViewTypes(app: App): LeafViewType[] {
+ * read. Always excludes the empty view and Hearth's own; excludes Obsidian's
+ * document surfaces too unless `scope.documents` asks for them. */
+export function listLeafViewTypes(app: App, scope?: LeafViewScope): LeafViewType[] {
 	const byType = viewByType(app);
 	if (!byType) return [];
 	return Object.keys(byType)
-		.filter((type) => !EXCLUDED_VIEW_TYPES.has(type))
+		.filter((type) => !isHiddenType(type, scope))
 		.map((type) => ({ type, name: labelForType(type) }))
 		.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Whether a specific view type is currently registered and hostable. */
-export function isViewTypeHostable(app: App, type: string): boolean {
+/** Whether a specific view type is currently registered and hostable under
+ * `scope` (see {@link listLeafViewTypes}). */
+export function isViewTypeHostable(app: App, type: string, scope?: LeafViewScope): boolean {
 	const byType = viewByType(app);
-	return !!byType && type in byType && !EXCLUDED_VIEW_TYPES.has(type);
+	return !!byType && type in byType && !isHiddenType(type, scope);
 }
 
 /** Resolve a vault path to a file, or null when it's blank or not a file. Used
@@ -83,7 +113,7 @@ function fileForPath(app: App, path: string | undefined): TFile | null {
 /** Build a detached leaf, mount it into `container`, and drive it to `viewType`
  * (opening `file` when one is given). Returns the leaf, or null if construction
  * failed. Best-effort: never throws. */
-function createHostedLeaf(
+export function createHostedLeaf(
 	app: App,
 	viewType: string,
 	container: HTMLElement,
@@ -151,7 +181,7 @@ function createEditorLeaf(app: App, file: TFile, container: HTMLElement): Worksp
  * autosave/animation loops, a canvas' renderer) actually release their memory
  * and timers instead of lingering — a bare `detach()` on a hand-made leaf does
  * not reliably unload them. */
-function teardownHostedLeaf(leaf: WorkspaceLeaf): void {
+export function teardownHostedLeaf(leaf: WorkspaceLeaf): void {
 	const detach = () => {
 		try {
 			leaf.detach();
