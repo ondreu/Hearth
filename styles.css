@@ -11556,3 +11556,115 @@ body.hearth-dv-resizing {
 	font-size: 0.8rem;
 	color: var(--text-muted);
 }
+
+/* ---- Plugin boards ---------------------------------------------------
+ *
+ * A dashboard whose whole board is one hosted view (Dashboard.mode ===
+ * "plugin"; see src/pluginboard.ts). The switcher, header, banner and
+ * background above it are the ordinary board chrome — only what would have
+ * been the card grid is replaced.
+ *
+ * The view is always given a definite height to fill and scrolls itself inside
+ * it, so the board is rendered fitted regardless of the fit-to-page setting
+ * (view.ts forces `.hearth-fit` on). Everything here is about keeping that
+ * height chain unbroken: a single `height: auto` anywhere between the scroll
+ * area and the hosted leaf collapses the view to nothing. */
+
+.hearth-plugin-board {
+	/* Take whatever height the switcher row above leaves — not height:100%,
+	 * which would ignore that row and overflow the board by exactly its
+	 * height. */
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	box-sizing: border-box;
+	/* One big card, styled by the same four values the Style tab drives for the
+	 * cards on an ordinary board (set as variables in renderPluginBoard). */
+	border-radius: var(--hearth-card-radius, 14px);
+	border: var(--card-border-width, 1px) solid var(--background-modifier-border);
+	--hearth-card-surface: color-mix(
+		in srgb,
+		var(--background-primary) calc(var(--card-opacity, 1) * 100%),
+		transparent
+	);
+	background: var(--hearth-card-surface);
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+	/* Clip the hosted view to the rounded corners, and keep any overflow it
+	 * produces inside the board rather than over the header above it. */
+	overflow: hidden;
+}
+
+/* Frosted glass. Cards share one blur layer per grid because a per-card
+ * backdrop-filter seams where merged cards touch; a single surface has no
+ * seams, so it takes the filter directly. `effectiveCardBlur` already reports 0
+ * below the `reduced` performance tier, so no class is added there. */
+.hearth-plugin-board.has-blur {
+	backdrop-filter: blur(var(--hearth-plugin-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--hearth-plugin-blur, 0px));
+}
+
+/* The host inherits the leaf-card hosting rules (transparent pane surfaces, an
+ * optional hidden view header); all it adds is filling the board. */
+.hearth-plugin-board-host {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* ---- Edge to edge ----
+ *
+ * A plugin board spends no space on itself. The hosted view is the board, so
+ * everything Hearth would normally put around a grid of cards — the page
+ * gutter, the column gap, the card frame — comes off, and the only chrome left
+ * is the switcher row with the board's settings gear on the end of it.
+ *
+ * Written against `.hearth-view.hearth-plugin-view` (two classes on the root)
+ * so it matches the specificity of the narrow-board padding rule above and wins
+ * on source order, rather than by reaching for !important. */
+.hearth-view.hearth-plugin-view .hearth-scroll {
+	--hearth-scroll-pad-x: 0px;
+	--hearth-scroll-pad-top: 0px;
+	padding: 0;
+}
+
+/* No column gap: the switcher row carries its own padding (below) and the board
+ * begins immediately under it. */
+.hearth-view.hearth-plugin-view .hearth-inner {
+	gap: 0;
+}
+
+/* The switcher row is the one piece of chrome left, so it pays for its own
+ * breathing room instead of borrowing the page gutter. The negative margin it
+ * normally carries exists to pull a *header* up under it; with no header on a
+ * plugin board it would pull the hosted view up under the buttons instead. */
+.hearth-view.hearth-plugin-view .hearth-dash-switcher-zone {
+	padding: 6px 8px;
+	gap: 8px;
+}
+
+.hearth-view.hearth-plugin-view .hearth-dash-switcher {
+	margin-bottom: 0;
+}
+
+/* The settings gear sits at the far end of the switcher row. */
+.hearth-plugin-actions {
+	margin-left: auto;
+}
+
+/* Edge to edge means edge to edge: no frame, no rounding, nothing for the
+ * wallpaper to show through at the corners. The surface tint (--card-opacity)
+ * and its blur stay — those are what the board is painted with, not space it
+ * is spending. */
+.hearth-view.hearth-plugin-view .hearth-plugin-board {
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+/* An empty state on a plugin board (no view chosen, its plugin disabled, a
+ * document view with no file) is the whole board rather than a card body, so
+ * centre it instead of letting it sit against the top edge. */
+.hearth-plugin-board > .hearth-card-empty {
+	flex: 1 1 auto;
+}

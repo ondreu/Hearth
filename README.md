@@ -22,6 +22,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
+- 🪄 **Plugin view dashboards** — give a whole board to one plugin's view
 - 📱 **Works on a phone** — the board stacks into one readable column
 
 ## Screenshots
@@ -274,7 +275,7 @@ full list, with live status and where each one's settings live, is under
 | **File explorer** | Powers "Reveal in file explorer" on search results |
 | **Workspaces** | A dashboard can switch to a saved workspace when you open it |
 | **Audio recorder** | The mobile "Record voice" action button |
-| **Any plugin with a side panel** | The Plugin view card hosts whatever views are registered |
+| **Any plugin with a side panel** | The Plugin view card hosts whatever views are registered, or a whole dashboard can be one |
 
 **External services** — all silenced at once by **Behaviour → Privacy &
 network → Disable external calls**.
@@ -327,6 +328,32 @@ Before you add one:
   the global width, columns, row height, background and title icon per board.
   Open a board's settings from **Dashboard settings** in the **Arrange**
   toolbar or by right-clicking its switcher button.
+- **Plugin view dashboards** — set a board's **Dashboard type** to **Plugin
+  view** and it stops being a grid of cards: the whole board becomes one
+  plugin's view — your RSS reader, a Kanban board, a Canvas, the outline — at
+  full size and fully working, with the switcher, header and background still
+  around it. So the reader you check twenty times a day is one click from your
+  task board rather than a tab you have to find your way back from.
+
+  Pick the view on the board's **Plugin view** tab. The list is every view the
+  app has registered right now, Obsidian's own document surfaces included
+  (Markdown, PDF, image, audio, video) — a full board has the room and a file
+  picker beside the type picker, so a specific note, drawing or PDF can *be* a
+  dashboard. You can also hide the hosted view's breadcrumb header, and let it
+  take focus so the plugin's own commands and hotkeys find it (experimental —
+  Obsidian may then open a clicked note into it).
+
+  **Edge to edge.** The hosted view gets the whole pane — no page gutter, no
+  card frame, no toolbar row — and the only chrome left is the switcher strip
+  across the top with the board's settings gear at the end of it. The title and
+  search start hidden for the same reason; all of it is an ordinary per-board
+  override you can switch back on.
+
+  **Switching is instant.** A plugin board stays loaded while another board is
+  showing instead of reloading from cold; up to three are kept warm at a time,
+  and a heavy plugin can opt out per board under **Keep running in the
+  background**. The board keeps its cards, so turning it back into a **Cards**
+  board brings them back untouched.
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
 - **Fit to page** — lock the board to one screen or let it scroll.

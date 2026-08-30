@@ -477,12 +477,41 @@ export const zh: Translations = {
 			/** Tabs across the top of the dashboard settings modal. */
 			tabs: {
 				general: "通用",
+				plugin: "插件视图",
 				header: "顶部",
 				layout: "布局",
 				style: "样式",
 				background: "背景",
 			},
 			name: "名称",
+			mode: "仪表板类型",
+			modeDesc:
+				"由 Hearth 卡片组成的面板，或将整个面板交给某个插件的视图。切换为插件视图时会保留本面板的卡片——切换回来即可恢复。",
+			modeOptions: {
+				cards: "卡片",
+				plugin: "插件视图",
+			},
+			modePickViewHint: "此面板尚未选择视图——请在“插件视图”标签页中选择。",
+			pluginViewType: "视图",
+			pluginViewTypeDesc:
+				"由哪个已注册的视图铺满本面板。列表为当前应用中的全部视图，因此取决于启用了哪些插件。",
+			pluginViewTypeNone: "选择一个视图…",
+			pluginViewFile: "文件",
+			pluginViewFileDesc:
+				"在指定文件上打开该视图——如 Canvas 白板、Excalidraw 绘图。留空则单独承载该视图。",
+			pluginViewFileRequiredDesc:
+				"此视图需要一个文件才能显示内容。请选择本面板要打开的笔记、PDF 或图片。",
+			pluginViewHideHeader: "隐藏视图自带的标题栏",
+			pluginViewHideHeaderDesc:
+				"去掉所承载视图的面包屑、前进/后退箭头和三点菜单。视图自身的工具栏与标签页不受影响。",
+			pluginViewKeepMounted: "在后台保持运行",
+			pluginViewKeepMountedDesc:
+				"显示其他仪表板时仍保持加载，切换回来即刻可用，无需重新加载。若插件较重、不想让它常驻，可关闭此项。同时保持加载的面板数量始终有限。",
+			pluginViewFocusable: "允许视图获得焦点（实验性）",
+			pluginViewFocusableDesc:
+				"在其中操作时将其设为活动面板，使插件自身的命令与快捷键能够找到它。Obsidian 也会把打开的笔记放入活动面板，因此点击链接可能会替换该视图，直到你切换面板为止。",
+			pluginViewPerfNote:
+				"所承载的视图是插件在完整运行，而非预览——开销与直接打开该插件相同。在自己标签页里慢的视图，在这里同样慢。",
 			switcherIcon: "切换器图标",
 			switcherIconDesc: "显示在切换按钮上的表情或短文本。留空则显示编号。",
 			switcherLucide: "切换器 Lucide 图标",
@@ -502,9 +531,9 @@ export const zh: Translations = {
 			searchVisibility: "搜索可见性",
 			searchVisibilityDesc:
 				"在此面板上显示或隐藏搜索与命令栏及其结果和筛选按钮。覆盖全局设置。",
-			searchVisibilityDefault: (state: string) => `使用全局默认（${state}）`,
 			searchVisibilityShow: "显示搜索",
 			searchVisibilityHide: "隐藏搜索",
+			visibilityDefaultPlugin: (state: string) => `插件视图面板的默认值（${state}）`,
 			visibilityShown: "显示",
 			visibilityHidden: "隐藏",
 			visibilityShow: "显示标题",
@@ -539,6 +568,7 @@ export const zh: Translations = {
 			fitStateScroll: "滚动",
 			fitOptionFit: "适应单页",
 			fitOptionScroll: "允许滚动",
+			fitToPagePluginNote: "插件视图面板始终铺满窗格——所承载的视图会填满它并自行滚动。",
 			themeColorTarget: "标题上的强调色",
 			themeColorTargetDesc:
 				"此面板品牌标识的哪些部分跟随主题的图标颜色。仅为此面板覆盖全局设置；Hearth 的标签页与侧边栏图标仍跟随全局设置。",
@@ -2619,6 +2649,8 @@ export const zh: Translations = {
 			weatherNoLocation: "请在卡片设置中选择一个位置",
 			renderFailed: "此卡片无法绘制 — 详情请查看控制台",
 			leafPickView: "请在卡片设置中选择一个插件视图",
+			boardPickView: "请在仪表板设置中为本面板选择一个视图",
+			boardNeedsFile: "请在仪表板设置中为本面板选择一个文件",
 			leafViewMissing: "此视图不可用 — 请启用提供它的插件",
 			operonEnable: "请启用 Operon 插件以显示其任务",
 			operonDisabled: "Operon 集成已关闭 — 请在 设置 → Hearth → 集成 中开启",

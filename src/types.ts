@@ -914,6 +914,57 @@ export interface LeafViewConfig {
 	hideHeader?: boolean;
 }
 
+/**
+ * What a dashboard *is*.
+ *
+ * `"cards"` is the board Hearth has always had: a grid of Hearth's own cards.
+ * `"plugin"` gives the whole board over to a single registered view — the RSS
+ * reader, a Kanban board, a Canvas — hosted the way the "leaf" card hosts one,
+ * but at full size. The dashboard switcher, the header and the background stay
+ * exactly where they are, so a plugin board is one click away from every other
+ * board rather than a tab of its own.
+ *
+ * Undefined means `"cards"`, so every board saved before this existed keeps
+ * rendering as it did.
+ */
+export type DashboardMode = "cards" | "plugin";
+
+/** Every {@link DashboardMode}, in the order the settings dropdown lists them. */
+export const DASHBOARD_MODES: readonly DashboardMode[] = ["cards", "plugin"];
+
+/**
+ * What a `"plugin"` dashboard hosts, and how.
+ *
+ * The first three keys mean exactly what they mean on a {@link LeafViewConfig}
+ * — the board is the same hosting mechanism at a different size — and the rest
+ * are the choices that only make sense when a hosted view *is* the board.
+ */
+export interface PluginBoardConfig extends LeafViewConfig {
+	/**
+	 * Keep the hosted view alive when another dashboard is showing, so coming
+	 * back to this board is instant instead of a cold start. On by default
+	 * (undefined reads as true): a board that reloads its plugin on every visit
+	 * defeats the point of switching between boards.
+	 *
+	 * The cost is that the view keeps running while it is off screen, so a
+	 * genuinely expensive plugin can be switched back to unmounting here. Only
+	 * a small number of boards are ever kept alive at once regardless — see
+	 * PLUGIN_BOARD_KEEP_ALIVE_MAX in `pluginboard.ts`.
+	 */
+	keepMounted?: boolean;
+	/**
+	 * Let the hosted view become Obsidian's active leaf while the pointer or
+	 * keyboard is inside it, so the plugin's own commands and hotkeys — "RSS:
+	 * refresh all feeds", a Kanban board's own shortcuts — find it.
+	 *
+	 * Off by default, and experimental: an active leaf is also where Obsidian
+	 * puts a note you open, so with this on a link click can replace the hosted
+	 * view with the note. Hearth hands the active leaf back to its own when the
+	 * board goes away, so the effect never outlives the board.
+	 */
+	focusable?: boolean;
+}
+
 /** A single feed a "rss" card can subscribe to. Each source becomes a tab in
  * the card header; `name` labels the tab (falling back to the feed's own title
  * when blank) and `url` is the RSS/Atom feed address. */
@@ -1758,6 +1809,14 @@ export interface DashboardHeaderConfig {
 export interface Dashboard extends BannerOverrides {
 	id: string;
 	name: string;
+	/** What this board is: a grid of Hearth cards (the default, and what
+	 * undefined means) or a single hosted plugin view filling the board. See
+	 * {@link DashboardMode}. */
+	mode?: DashboardMode;
+	/** Which view a `"plugin"` board hosts, and how. Ignored on a cards board,
+	 * and kept when the mode is switched back and forth so flipping the type
+	 * twice doesn't lose the choice. */
+	pluginView?: PluginBoardConfig;
 	/** Optional emoji/short text shown on the switcher button instead of its
 	 * 1-based number. */
 	icon?: string;
@@ -2342,9 +2401,39 @@ export function activeCards(s: HomeSettings): DashboardCard[] {
 	return activeDashboard(s).cards;
 }
 
-/** Cards to render on the active board: its own cards plus every pinned card. */
+/** Cards to render on the active board: its own cards plus every pinned card.
+ *
+ * A plugin board renders no cards at all — not even pinned ones, which have
+ * nowhere to sit on a board that is one full-size hosted view. */
 export function renderCards(s: HomeSettings): DashboardCard[] {
-	return [...activeDashboard(s).cards, ...s.pinnedCards];
+	const dash = activeDashboard(s);
+	if (isPluginBoard(dash)) return [];
+	return [...dash.cards, ...s.pinnedCards];
+}
+
+/** Whether `dash` gives its whole board to a hosted plugin view. Undefined
+ * `mode` — every board saved before plugin boards existed — is a cards board,
+ * and so is any unrecognised value synced back from a future version. */
+export function isPluginBoard(dash: Dashboard | undefined): boolean {
+	return dash?.mode === "plugin";
+}
+
+/** Whether the *active* board is a plugin board. */
+export function activeIsPluginBoard(s: HomeSettings): boolean {
+	return isPluginBoard(activeDashboard(s));
+}
+
+/** The view type a plugin board hosts, or "" when it hasn't been pointed at one
+ * yet (a board freshly switched to plugin mode). Trimmed, so a config holding
+ * only whitespace reads as unset. */
+export function pluginBoardViewType(dash: Dashboard): string {
+	return dash.pluginView?.viewType?.trim() ?? "";
+}
+
+/** Whether a plugin board keeps its hosted view alive while another board is
+ * showing. Undefined is on — see {@link PluginBoardConfig.keepMounted}. */
+export function pluginBoardKeepsMounted(dash: Dashboard): boolean {
+	return dash.pluginView?.keepMounted ?? true;
 }
 
 /** Effective grid columns for the active board (per-dashboard override or global). */
@@ -2365,7 +2454,11 @@ export function effectiveFitToPage(s: HomeSettings): boolean {
 /** Whether the active board should show the search/command section
  * (per-dashboard override or global). */
 export function effectiveShowSearch(s: HomeSettings): boolean {
-	return activeDashboard(s).showSearch ?? s.showSearch;
+	const dash = activeDashboard(s);
+	// A plugin board is given over to the hosted view, so the search section is
+	// off there unless the board asks for it back. The board's own override
+	// still wins either way — this only changes what "no override" means.
+	return dash.showSearch ?? (isPluginBoard(dash) ? false : s.showSearch);
 }
 
 export const HEADER_SCALE_MIN = 0.6;
@@ -2398,7 +2491,10 @@ function clampHeaderSpacingBelow(v: unknown): number | undefined {
 
 /** Whether the active board should show the title block. */
 export function effectiveShowTitle(s: HomeSettings): boolean {
-	return activeDashboard(s).header?.showTitle ?? s.showTitle;
+	const dash = activeDashboard(s);
+	// Same reasoning as effectiveShowSearch: the hosted view is the board, so
+	// the title block starts out of its way and can be switched back on.
+	return dash.header?.showTitle ?? (isPluginBoard(dash) ? false : s.showTitle);
 }
 
 /** Title text for the active board's title block. */
@@ -2472,7 +2568,11 @@ export function effectiveMaxWidth(s: HomeSettings): number {
 /** Whether the active board ignores its width ceiling and fills the pane
  * (per-dashboard override or global). */
 export function effectiveFullWidth(s: HomeSettings): boolean {
-	return activeDashboard(s).fullWidth ?? s.fullWidth;
+	const dash = activeDashboard(s);
+	// A hosted view is chrome of its own — a reader, a board, a canvas — and
+	// looks wrong boxed into a column of body text, so a plugin board fills the
+	// pane unless it says otherwise.
+	return dash.fullWidth ?? (isPluginBoard(dash) ? true : s.fullWidth);
 }
 
 /**

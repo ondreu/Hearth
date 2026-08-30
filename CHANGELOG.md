@@ -158,6 +158,37 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   be nothing to fetch. A card still loading, or one that never loaded, isn't
   clickable: there is nothing to open yet.
 
+- **Plugin view dashboards.** A dashboard no longer has to be a grid of cards.
+  Set one to **Plugin view** (Dashboard settings → General → **Dashboard type**)
+  and the whole board becomes a single plugin's view — your RSS reader, a Kanban
+  board, a Canvas, the outline — at full size, running for real rather than
+  previewed in a card.
+
+  The point is what stays around it: the **dashboard switcher, the header and
+  the background are still there**, so the reader you check twenty times a day is
+  one click from your task board instead of a tab you have to find your way back
+  from. Switching is instant, because a plugin board **stays loaded while another
+  board is showing** rather than reloading from cold each visit. Up to three
+  boards are kept warm at once, least-recently-used first out; a heavy plugin you
+  would rather not leave running can opt out per board.
+
+  Pick the view on the board's new **Plugin view** tab. Unlike the Plugin view
+  *card*, the list includes Obsidian's own document surfaces — Markdown, PDF,
+  image, audio, video — because a full board has room for them and a file picker
+  right beside the type picker, so a specific note, drawing or PDF can *be* a
+  dashboard. Also there: hiding the hosted view's own breadcrumb header, the
+  keep-loaded toggle, and an experimental **Let the view take focus**, which
+  makes the plugin's own commands and hotkeys target the board (at the cost of
+  Obsidian sometimes opening a clicked note into it).
+
+  **The board spends no space on itself.** The hosted view runs edge to edge —
+  no page gutter, no card frame, no toolbar row — and the only chrome left is
+  the switcher strip along the top, with the board's settings gear on the
+  right-hand end of it. The title and search start hidden for the same reason,
+  and each is still an ordinary per-board override you can switch back on. Its
+  cards are kept, not deleted: turn the board back into a **Cards** board and
+  they return exactly as they were.
+
 ### Fixed
 
 - **The dashboard switcher wraps instead of running off the side of the board.**
