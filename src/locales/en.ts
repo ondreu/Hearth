@@ -1960,6 +1960,67 @@ export const en = {
 			metric: "Metric",
 			weeks: "Weeks",
 			weeksDesc: "How many weeks of history to show.",
+			advanced: "Advanced",
+			advancedDesc:
+				"Build your own metric: take the day from a frontmatter date, add up a " +
+				"number instead of counting notes, and pick which notes count at all. " +
+				"Off counts every note by its file date.",
+			metricHeading: "What to count",
+			rangeHeading: "Range",
+			source: "Day comes from",
+			sourceDesc: "Which date decides the square a note lands on.",
+			sourceOptions: {
+				modified: "Date modified",
+				created: "Date created",
+				property: "A frontmatter date",
+			},
+			dateProperty: "Date property",
+			datePropertyDesc:
+				"The frontmatter key holding the date — date, due, published. Accepts a " +
+				"date, a date and time, or a [[daily note]] link; a list counts once per " +
+				"entry. Notes without it are skipped.",
+			datePropertyPlaceholder: "date",
+			value: "Each note adds",
+			valueDesc: "One per note, or the number in a property — minutes read, pages written, kilometres run.",
+			valueOptions: {
+				count: "1 (count the notes)",
+				sum: "A number from a property",
+			},
+			valueProperty: "Value property",
+			valuePropertyDesc:
+				"The frontmatter key holding the number to add. Notes whose value isn't a " +
+				"number are skipped rather than counted as one.",
+			valuePropertyPlaceholder: "minutes",
+			unit: "Unit",
+			unitDesc: 'What one unit is called when a day is described — "5 workouts". Blank follows the metric.',
+			unitPlaceholder: "notes edited",
+			rules: "Which notes count",
+			rulesDesc: "Conditions a note has to meet to be counted. With no rules, every note counts.",
+			match: "Match",
+			matchOptions: {
+				all: "All rules (AND)",
+				any: "Any rule (OR)",
+			},
+			fieldOptions: {
+				property: "Property",
+				tag: "Tag",
+				folder: "Folder",
+				path: "Path",
+			},
+			opOptions: {
+				is: "is",
+				isNot: "is not",
+				contains: "contains",
+				notContains: "does not contain",
+				gt: "is more than",
+				lt: "is less than",
+				exists: "is set",
+				missing: "is not set",
+			},
+			keyPlaceholder: "property",
+			valuePlaceholder: "value",
+			addRule: "Add rule",
+			removeRule: "Remove rule",
 		},
 		stats: {
 			advanced: "Advanced",
@@ -3145,6 +3206,10 @@ export const en = {
 		heatmap: {
 			less: "Less",
 			more: "More",
+			unitModified: "notes edited",
+			unitCreated: "notes created",
+			unitNotes: "notes",
+			dayValue: (date: string, value: string, unit: string) => `${date}: ${value} ${unit}`,
 		},
 		calendar: {
 			previousMonth: "Previous month",

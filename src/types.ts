@@ -721,12 +721,81 @@ export interface SearchBarConfig {
 	seamless?: boolean;
 }
 
+/** What a heatmap rule tests: a frontmatter property (the default), the note's
+ * tags, the folder it sits in, or its full path. */
+export type HeatmapRuleField = "property" | "tag" | "folder" | "path";
+
+/** How a heatmap rule compares. `exists`/`missing` ignore the value; `gt`/`lt`
+ * compare numerically (or by date when both sides parse as dates); the rest are
+ * case-insensitive text comparisons. */
+export type HeatmapRuleOp =
+	| "exists"
+	| "missing"
+	| "is"
+	| "isNot"
+	| "contains"
+	| "notContains"
+	| "gt"
+	| "lt";
+
+/** Every rule field, in editor order. */
+export const HEATMAP_RULE_FIELDS: HeatmapRuleField[] = ["property", "tag", "folder", "path"];
+
+/** Every rule operator, in editor order. */
+export const HEATMAP_RULE_OPS: HeatmapRuleOp[] = [
+	"is",
+	"isNot",
+	"contains",
+	"notContains",
+	"gt",
+	"lt",
+	"exists",
+	"missing",
+];
+
+/** One condition a note must meet to be counted by an advanced heatmap. */
+export interface HeatmapRule {
+	/** Stable id, so editor rows keep their identity across re-renders. */
+	id: string;
+	/** What to test. Default "property". */
+	field?: HeatmapRuleField;
+	/** The frontmatter key, when `field` is "property". Ignored otherwise. */
+	key?: string;
+	/** How to compare. Default "is". */
+	op?: HeatmapRuleOp;
+	/** What to compare against. Ignored by "exists" and "missing". */
+	value?: string;
+}
+
 /** Per-card configuration for a "heatmap" (activity) card. */
 export interface HeatmapConfig {
-	/** Which timestamp to count. Default "modified". */
+	/** Which timestamp to count. Default "modified". Basic mode only — advanced
+	 * mode reads `source` instead. */
 	metric?: "modified" | "created";
 	/** How many weeks back to show. Default 26. */
 	weeks?: number;
+	/** Opt into the advanced controls. Off (the default) counts every note by
+	 * `metric`, exactly as the card always has. */
+	advanced?: boolean;
+	/** Advanced mode: where a note's day comes from — a file timestamp, or a
+	 * date held in frontmatter (`dateProperty`). Default "modified". */
+	source?: "modified" | "created" | "property";
+	/** The frontmatter key holding the date, when `source` is "property". A
+	 * list-valued property counts once per parseable entry. */
+	dateProperty?: string;
+	/** Advanced mode: what a matching note adds to its day — 1 ("count", the
+	 * default) or the number in `valueProperty` ("sum"). */
+	value?: "count" | "sum";
+	/** The frontmatter key holding the number to add, when `value` is "sum". */
+	valueProperty?: string;
+	/** How `rules` combine: "all" (AND, the default) or "any" (OR). */
+	match?: "all" | "any";
+	/** Conditions a note must meet to be counted. Empty (the default) counts
+	 * every note. */
+	rules?: HeatmapRule[];
+	/** What one unit is called in the tooltip ("5 workouts"). Defaults to the
+	 * source's own wording ("notes edited"). */
+	unit?: string;
 }
 
 /** The built-in vault statistics a "stats" card can show. */
@@ -1444,7 +1513,8 @@ export interface DashboardCard {
 	savedSearch?: SavedSearchConfig;
 	/** kind === "searchbar": filter row and seamless (frameless) display. */
 	searchBar?: SearchBarConfig;
-	/** kind === "heatmap": metric and range. */
+	/** kind === "heatmap": metric, range and (in advanced mode) the custom
+	 * metric — date source, value, and the rules picking which notes count. */
 	heatmap?: HeatmapConfig;
 	/** kind === "stats": which stats to show, attachment breakdown and custom
 	 * query counts (all gated behind the config's `advanced` flag). */
