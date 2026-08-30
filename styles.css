@@ -11571,8 +11571,9 @@ body.hearth-dv-resizing {
  * area and the hosted leaf collapses the view to nothing. */
 
 .hearth-plugin-board {
-	/* Take the height the toolbar above leaves, the same way the grid does —
-	 * not height:100%, which would ignore the toolbar row and overflow by it. */
+	/* Take whatever height the switcher row above leaves — not height:100%,
+	 * which would ignore that row and overflow the board by exactly its
+	 * height. */
 	flex: 1 1 auto;
 	min-height: 0;
 	display: flex;
@@ -11611,12 +11612,54 @@ body.hearth-dv-resizing {
 	min-height: 0;
 }
 
-/* The board's own toolbar is a single quiet icon button, so it must not reserve
- * a labelled toolbar's worth of space above the view. It keeps the arrange
- * button's own auto-hide behaviour (.is-auto-hide), which is why it reuses that
- * zone rather than defining a second one. */
-.hearth-plugin-view .hearth-toolbar {
-	margin-bottom: 6px;
+/* ---- Edge to edge ----
+ *
+ * A plugin board spends no space on itself. The hosted view is the board, so
+ * everything Hearth would normally put around a grid of cards — the page
+ * gutter, the column gap, the card frame — comes off, and the only chrome left
+ * is the switcher row with the board's settings gear on the end of it.
+ *
+ * Written against `.hearth-view.hearth-plugin-view` (two classes on the root)
+ * so it matches the specificity of the narrow-board padding rule above and wins
+ * on source order, rather than by reaching for !important. */
+.hearth-view.hearth-plugin-view .hearth-scroll {
+	--hearth-scroll-pad-x: 0px;
+	--hearth-scroll-pad-top: 0px;
+	padding: 0;
+}
+
+/* No column gap: the switcher row carries its own padding (below) and the board
+ * begins immediately under it. */
+.hearth-view.hearth-plugin-view .hearth-inner {
+	gap: 0;
+}
+
+/* The switcher row is the one piece of chrome left, so it pays for its own
+ * breathing room instead of borrowing the page gutter. The negative margin it
+ * normally carries exists to pull a *header* up under it; with no header on a
+ * plugin board it would pull the hosted view up under the buttons instead. */
+.hearth-view.hearth-plugin-view .hearth-dash-switcher-zone {
+	padding: 6px 8px;
+	gap: 8px;
+}
+
+.hearth-view.hearth-plugin-view .hearth-dash-switcher {
+	margin-bottom: 0;
+}
+
+/* The settings gear sits at the far end of the switcher row. */
+.hearth-plugin-actions {
+	margin-left: auto;
+}
+
+/* Edge to edge means edge to edge: no frame, no rounding, nothing for the
+ * wallpaper to show through at the corners. The surface tint (--card-opacity)
+ * and its blur stay — those are what the board is painted with, not space it
+ * is spending. */
+.hearth-view.hearth-plugin-view .hearth-plugin-board {
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
 }
 
 /* An empty state on a plugin board (no view chosen, its plugin disabled, a

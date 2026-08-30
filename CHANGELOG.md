@@ -181,10 +181,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   makes the plugin's own commands and hotkeys target the board (at the cost of
   Obsidian sometimes opening a clicked note into it).
 
-  A plugin board defaults to filling the pane with the title and search hidden,
-  since the view is the board — each is still an ordinary per-board override you
-  can switch back on. Its cards are kept, not deleted: turn the board back into a
-  **Cards** board and they return exactly as they were.
+  **The board spends no space on itself.** The hosted view runs edge to edge —
+  no page gutter, no card frame, no toolbar row — and the only chrome left is
+  the switcher strip along the top, with the board's settings gear on the
+  right-hand end of it. The title and search start hidden for the same reason,
+  and each is still an ordinary per-board override you can switch back on. Its
+  cards are kept, not deleted: turn the board back into a **Cards** board and
+  they return exactly as they were.
 
 ### Fixed
 

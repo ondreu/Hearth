@@ -264,19 +264,22 @@ function trackFocus(view: HomeView, entry: HostedBoard, component: Component): v
 }
 
 /**
- * The plugin board's own toolbar: one quiet icon button onto the dashboard
- * settings.
+ * The plugin board's one action: a quiet gear onto the dashboard settings,
+ * placed at the right-hand end of the *switcher* row.
  *
  * A plugin board has nothing to arrange, so the cards toolbar (add card, phone
  * preview, hide titles, done arranging) has no meaning here — but the settings
  * modal it also carries is the only in-board way to re-point the board at
- * another view, so that one button stays. It reuses the arrange button's zone,
- * classes and auto-hide setting, so it sits in the same corner and fades in the
- * same way as the control it stands in for.
+ * another view, so that one button stays. It goes on the row that is already
+ * there rather than in a toolbar row of its own: the whole point of the board is
+ * that the hosted view gets the space, and a second row of chrome to hold one
+ * icon is exactly the space it should not be spending.
+ *
+ * It keeps the arrange button's zone, classes and auto-hide setting, so it fades
+ * on hover in the same way as the control it stands in for.
  */
-function renderPluginToolbar(view: HomeView, container: HTMLElement, dash: Dashboard): void {
-	const bar = container.createDiv("hearth-toolbar");
-	const zone = bar.createDiv("hearth-arrange-zone");
+export function renderPluginBoardActions(view: HomeView, switcherZone: HTMLElement): void {
+	const zone = switcherZone.createDiv("hearth-arrange-zone hearth-plugin-actions");
 	zone.toggleClass(
 		"is-auto-hide",
 		view.plugin.settings.arrangeButtonVisibility === "hover",
@@ -284,7 +287,9 @@ function renderPluginToolbar(view: HomeView, container: HTMLElement, dash: Dashb
 	const btn = zone.createEl("button", { cls: "hearth-tool-btn is-icon" });
 	setIcon(btn.createSpan("hearth-tool-icon"), "settings-2");
 	btn.setAttribute("aria-label", t().dashboard.dashboardSettingsAria);
-	btn.addEventListener("click", () => openDashboardSettings(view, dash));
+	btn.addEventListener("click", () =>
+		openDashboardSettings(view, activeDashboard(view.plugin.settings)),
+	);
 }
 
 /**
@@ -304,9 +309,8 @@ export function renderPluginBoard(
 	container: HTMLElement,
 	component: Component,
 ): void {
-	const dash = activeDashboard(view.plugin.settings);
-	renderPluginToolbar(view, container, dash);
-
+	const s = view.plugin.settings;
+	const dash = activeDashboard(s);
 	const stage = container.createDiv("hearth-plugin-board");
 	// The hosted view sits on one big card surface rather than a grid of small
 	// ones, so it reads as part of the board and the wallpaper still shows
@@ -319,7 +323,6 @@ export function renderPluginBoard(
 	// a single surface has none. `effectiveCardBlur` still reports 0 below the
 	// `reduced` performance tier, so the tier switches it off exactly as it does
 	// for cards.
-	const s = view.plugin.settings;
 	stage.style.setProperty("--card-opacity", String(effectiveCardOpacity(s)));
 	stage.style.setProperty("--hearth-card-radius", `${effectiveCardRadius(s)}px`);
 	stage.style.setProperty("--card-border-width", `${effectiveCardBorderWidth(s)}px`);

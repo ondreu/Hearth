@@ -62,7 +62,7 @@ const DEFAULT_HEADER_SPACING_BELOW = 28;
 export function renderDashboardSwitcher(
 	view: HomeView,
 	container: HTMLElement,
-): void {
+): HTMLElement {
 	const s = view.plugin.settings;
 	const zone = container.createDiv("hearth-dash-switcher-zone");
 	zone.toggleClass("is-auto-hide", s.dashboardSwitcherVisibility === "hover");
@@ -133,6 +133,11 @@ export function renderDashboardSwitcher(
 		void view.plugin.saveData(s);
 		view.render();
 	});
+
+	// Returned so a board with no toolbar of its own — a plugin board, which is
+	// edge-to-edge below this row — can put its one action on the same row
+	// instead of spending a second one on it.
+	return zone;
 }
 
 /** Open the per-dashboard settings editor for `dash`. Shared by the switcher's

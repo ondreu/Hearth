@@ -2,7 +2,12 @@ import { Component, ItemView, Platform, type WorkspaceLeaf } from "obsidian";
 import type HearthPlugin from "./main";
 import { renderHeader } from "./header";
 import { renderDashboard } from "./dashboard";
-import { prunePluginBoards, releasePluginBoards, renderPluginBoard } from "./pluginboard";
+import {
+	prunePluginBoards,
+	releasePluginBoards,
+	renderPluginBoard,
+	renderPluginBoardActions,
+} from "./pluginboard";
 import { renderDashboardSwitcher } from "./dashboards";
 import { renderMobileActionBar } from "./mobileactions";
 import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow";
@@ -319,7 +324,12 @@ export class HomeView extends ItemView {
 			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
 		}
 
-		if (!mobileOnly) renderDashboardSwitcher(this, inner);
+		if (!mobileOnly) {
+			const switcher = renderDashboardSwitcher(this, inner);
+			// A plugin board has no toolbar of its own — its one action rides on
+			// the switcher row, so the board below it starts at the next pixel.
+			if (pluginBoard) renderPluginBoardActions(this, switcher);
+		}
 
 		if (effectiveShowTitle(this.plugin.settings) || effectiveShowSearch(this.plugin.settings)) {
 			const header = inner.createDiv("hearth-header");

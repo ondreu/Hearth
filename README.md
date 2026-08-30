@@ -343,13 +343,17 @@ Before you add one:
   take focus so the plugin's own commands and hotkeys find it (experimental —
   Obsidian may then open a clicked note into it).
 
+  **Edge to edge.** The hosted view gets the whole pane — no page gutter, no
+  card frame, no toolbar row — and the only chrome left is the switcher strip
+  across the top with the board's settings gear at the end of it. The title and
+  search start hidden for the same reason; all of it is an ordinary per-board
+  override you can switch back on.
+
   **Switching is instant.** A plugin board stays loaded while another board is
   showing instead of reloading from cold; up to three are kept warm at a time,
   and a heavy plugin can opt out per board under **Keep running in the
-  background**. The board defaults to filling the pane with the title and search
-  hidden — all ordinary per-board overrides you can switch back on — and keeps
-  its cards, so turning it back into a **Cards** board brings them back
-  untouched.
+  background**. The board keeps its cards, so turning it back into a **Cards**
+  board brings them back untouched.
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
 - **Fit to page** — lock the board to one screen or let it scroll.
