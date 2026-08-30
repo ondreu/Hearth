@@ -213,7 +213,7 @@ Categorized as **Integrations** in the picker.
 | **Git** | Branch, staged and changed files, unpushed commits and recent log, with commit / sync / push / pull / stage / discard buttons and per-file diffs | [Git](https://github.com/Vinzent03/obsidian-git) |
 | **Jira filter** | Issues from a saved Jira filter or JQL search, filtered by status, assignee, priority, type, sprint and version | Jira over HTTPS |
 | **RSS feed** | Headlines from any RSS 2.0 or Atom feed you follow | Network |
-| **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in five styles, up to an edge-to-edge painted sky that follows real conditions and time of day | Network |
+| **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in five styles, up to an edge-to-edge painted sky that follows real conditions and time of day — click a card for the full forecast, hour by hour | Network |
 | **Operon tasks / board / agenda / timer** | Four cards on [Operon](https://github.com/hasanyilmaz/operon)'s own API — a task list, a pipeline board, a few days' agenda, and the running time tracker | Operon (desktop) |
 | **Plugin view** *(beta)* | Another plugin's side-panel view (calendar, outline, tag pane, Kanban…) hosted in a card, optionally pinned to one file | A plugin with a view |
 

@@ -1,4 +1,4 @@
-import { Component, setIcon, Setting } from "obsidian";
+import { type App, Component, Modal, setIcon, Setting } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import {
@@ -16,12 +16,14 @@ import { type HomeView } from "../view";
 import {
 	cachedWeather,
 	compassIndex,
+	formatDayDate,
 	formatHour,
 	formatPercent,
 	formatPrecip,
 	formatTemp,
 	formatWeekday,
 	formatWind,
+	hoursOn,
 	loadWeather,
 	today,
 	upcomingDays,
@@ -35,6 +37,7 @@ import {
 } from "../weather";
 import { configuredPlaces, renderPlacePicker } from "../placepicker";
 import { drawSky } from "../sky";
+import { makeClickable } from "../ui";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
@@ -419,18 +422,21 @@ function metricGrid(parent: HTMLElement, metrics: Metric[]): void {
 	}
 }
 
-/** "Updated 14:20", when the card is set to show it. */
-function updatedLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved): void {
-	if (!r.showUpdated) return;
+/** "Updated 14:20" — when this reading was fetched, on the reader's own clock
+ * rather than the location's. */
+function updatedText(snapshot: WeatherSnapshot, r: Resolved): string {
 	const stamp = new Date(snapshot.fetched);
 	// h23 rather than `hour12: false` — see formatHour in ../weather.ts.
 	const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
 	if (r.hour12 === true) opts.hour12 = true;
 	else if (r.hour12 === false) opts.hourCycle = "h23";
-	parent.createDiv({
-		cls: "hearth-weather-updated",
-		text: t().cards.weather.updated(stamp.toLocaleTimeString(undefined, opts)),
-	});
+	return t().cards.weather.updated(stamp.toLocaleTimeString(undefined, opts));
+}
+
+/** That line on the card, when the card is set to show it. */
+function updatedLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved): void {
+	if (!r.showUpdated) return;
+	parent.createDiv({ cls: "hearth-weather-updated", text: updatedText(snapshot, r) });
 }
 
 
@@ -664,10 +670,17 @@ export function renderWeather(
 	const paint = (): void => {
 		wrap.empty();
 		const snapshot = cachedWeather(req);
+		// Only a card with a reading on it opens the full forecast — a placeholder
+		// has nothing to open, and must not read as a button to anyone.
+		wrap.toggleClass("is-clickable", !!snapshot);
 		if (snapshot) {
+			wrap.setAttribute("role", "button");
+			wrap.setAttribute("tabindex", "0");
 			paintStyle(wrap, snapshot, cfg, r);
 			return;
 		}
+		wrap.removeAttribute("role");
+		wrap.removeAttribute("tabindex");
 		if (loading) emptyState(wrap, "cloud-sun", t().cards.weather.loading);
 		else if (disabled) emptyState(wrap, "wifi-off", t().cards.weather.disabled);
 		else emptyState(wrap, "cloud-off", t().cards.weather.error);
@@ -685,6 +698,31 @@ export function renderWeather(
 		});
 	};
 
+	/**
+	 * The whole snapshot in a dialog — every reading the response carries, not
+	 * the slice this card is configured to paint. Wired to the wrapper once:
+	 * `paint` empties the wrapper's children, never the wrapper itself.
+	 */
+	const openDetail = (): void => {
+		if (!cachedWeather(req)) return;
+		new WeatherDetailModal(view.app, {
+			cfg,
+			r,
+			// Read, not captured, so a refresh from inside the dialog shows.
+			snapshot: () => cachedWeather(req),
+			// With external calls off there is nothing a refresh could fetch, so
+			// the dialog leaves the button out rather than offering a dead one.
+			reload: disabled
+				? null
+				: async () => {
+					await loadWeather(req, { ttlMs, disabled, force: true });
+					if (!destroyed) paint();
+				},
+		}).open();
+	};
+	wrap.addEventListener("click", openDetail);
+	makeClickable(wrap, openDetail, t().cards.weather.detail.open);
+
 	load(false);
 
 	// The TTL above still uses the configured interval; only the timer is
@@ -695,6 +733,362 @@ export function renderWeather(
 		component.registerInterval(
 			window.setInterval(() => load(true), autoRefreshMin * 60_000),
 		);
+	}
+}
+
+
+// ---- The full forecast --------------------------------------------------
+//
+// The card is a glance; this is the whole snapshot. Clicking a weather card
+// opens it, and it deliberately ignores every "what to display" toggle the card
+// honours — those decide what the *card* is for, not what the reader is allowed
+// to look up. Units and clock format are the card's, because those are how this
+// reader reads a forecast.
+
+/** What the modal needs from the card that opened it. The snapshot is read
+ * through a getter rather than captured, so a refresh started inside the modal
+ * repaints it with the new data. */
+interface DetailOptions {
+	cfg: WeatherConfig;
+	r: Resolved;
+	snapshot: () => WeatherSnapshot | null;
+	/** Force a refetch, resolving once the card has it. Null when external calls
+	 * are switched off, which is also when the refresh button is left out. */
+	reload: (() => Promise<void>) | null;
+}
+
+/** A UV index as the forecast prints it: whole numbers, dash for a gap. */
+export function formatUv(value: number | null): string {
+	return value === null ? "—" : String(Math.round(value));
+}
+
+/** A wind speed with the compass point it blows from, when there is one. */
+function windText(speed: number | null, dir: number | null, r: Resolved): string {
+	const value = formatWind(speed, r.windUnit);
+	const compass = compassIndex(dir);
+	return compass === null ? value : `${value} ${t().cards.weather.compass[compass]}`;
+}
+
+/** An hour's precipitation: how likely, and how much of it — either alone when
+ * the other is missing. */
+export function precipText(hour: WeatherHour, r: Resolved): string {
+	const chance = hour.precipChance === null ? "" : formatPercent(hour.precipChance);
+	// A dry hour's "0.0 mm" is noise next to the chance; the chance carries it.
+	const amount = hour.precip === null || hour.precip <= 0 ? "" : formatPrecip(hour.precip, r.precipUnit);
+	if (chance && amount) return `${chance} · ${amount}`;
+	return chance || amount || "—";
+}
+
+/** Every current reading the snapshot carries, in the order the modal lists
+ * them — not the card's opt-in subset. */
+export function detailMetrics(snapshot: WeatherSnapshot, r: Resolved): Metric[] {
+	const strings = t().cards.weather;
+	const detail = strings.detail;
+	const now = snapshot.now;
+	const day = today(snapshot);
+	return [
+		{
+			icon: "thermometer",
+			label: detail.feelsLikeLabel,
+			value: formatTemp(now.apparent, r.tempUnit, true),
+		},
+		{ icon: "droplets", label: strings.humidity, value: formatPercent(now.humidity) },
+		{ icon: "wind", label: strings.wind, value: windText(now.windSpeed, now.windDir, r) },
+		{ icon: "wind", label: detail.gust, value: formatWind(now.gust, r.windUnit) },
+		{
+			icon: "umbrella",
+			label: detail.precipChance,
+			value: formatPercent(day?.precipChance ?? null),
+		},
+		{
+			icon: "cloud-rain",
+			label: detail.precipHour,
+			value: formatPrecip(now.precip, r.precipUnit),
+		},
+		{ icon: "cloudy", label: detail.cloudCover, value: formatPercent(now.cloudCover) },
+		{
+			icon: "gauge",
+			label: strings.pressure,
+			value: now.pressure === null ? "—" : `${Math.round(now.pressure)} hPa`,
+		},
+		{ icon: "sun-medium", label: strings.uv, value: formatUv(now.uv ?? day?.uvMax ?? null) },
+		{
+			icon: "sunrise",
+			label: strings.sunrise,
+			value: day ? formatHour(day.sunrise, r.hour12) || "—" : "—",
+		},
+		{
+			icon: "sunset",
+			label: strings.sunset,
+			value: day ? formatHour(day.sunset, r.hour12) || "—" : "—",
+		},
+	];
+}
+
+/** The one-line summary under a day's heading: what the whole day adds up to,
+ * which no single hour in the table below says. */
+export function daySummary(day: WeatherDay, r: Resolved): string[] {
+	const strings = t().cards.weather;
+	const detail = strings.detail;
+	const bits: string[] = [];
+	if (day.max !== null || day.min !== null) {
+		bits.push(strings.highLow(formatTemp(day.max, r.tempUnit), formatTemp(day.min, r.tempUnit)));
+	}
+	if (day.precipChance !== null) {
+		bits.push(`${detail.precipChance} ${formatPercent(day.precipChance)}`);
+	}
+	if (day.precipSum !== null && day.precipSum > 0) {
+		bits.push(`${detail.precipTotal} ${formatPrecip(day.precipSum, r.precipUnit)}`);
+	}
+	if (day.windMax !== null) {
+		bits.push(`${detail.windMax} ${formatWind(day.windMax, r.windUnit)}`);
+	}
+	if (day.uvMax !== null) bits.push(`${detail.uvMax} ${formatUv(day.uvMax)}`);
+	const sunrise = formatHour(day.sunrise, r.hour12);
+	const sunset = formatHour(day.sunset, r.hour12);
+	if (sunrise && sunset) bits.push(`${sunrise} – ${sunset}`);
+	return bits;
+}
+
+/**
+ * Every reading in the snapshot, in one dialog: the current conditions in full,
+ * the whole week as a pickable list, and the picked day hour by hour.
+ *
+ * The day list is the modal's only state — picking one repaints the body rather
+ * than patching it, which is cheap at this size and keeps one drawing path for
+ * the first open, a day change and a refresh alike.
+ */
+class WeatherDetailModal extends Modal {
+	/** The day the hourly table is showing, as a `YYYY-MM-DD`. Null until the
+	 * first draw picks today. */
+	private day: string | null = null;
+	private refreshing = false;
+	private host!: HTMLElement;
+
+	constructor(app: App, private readonly opts: DetailOptions) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.modalEl.addClass("hearth-weather-modal");
+		const place = this.opts.cfg.place;
+		this.titleEl.setText(place?.name?.trim() || t().cards.weather.detail.title);
+		if (place?.region) {
+			this.titleEl.createSpan({ cls: "hearth-weather-detail-region", text: place.region });
+		}
+		this.host = this.contentEl.createDiv("hearth-weather-detail");
+		this.draw();
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+
+	/** Redraw the whole body from whatever the card has cached now. */
+	private draw(): void {
+		this.host.empty();
+		const snapshot = this.opts.snapshot();
+		if (!snapshot) {
+			emptyState(this.host, "cloud-off", t().cards.weather.error);
+			return;
+		}
+
+		// FORECAST_DAYS is what the request asks for; the list shows all of it.
+		const days = upcomingDays(snapshot, snapshot.daily.length);
+		if (!days.some((d) => d.date === this.day)) this.day = days[0]?.date ?? null;
+
+		this.drawNow(snapshot);
+		this.drawMetrics(snapshot);
+		this.drawDays(days);
+		const picked = days.find((d) => d.date === this.day);
+		if (picked) this.drawHours(snapshot, picked, days[0]?.date === picked.date);
+		this.drawFoot(snapshot);
+	}
+
+	/** The headline: the glyph, the temperature with its scale, and the words
+	 * that belong beside them. */
+	private drawNow(snapshot: WeatherSnapshot): void {
+		const r = this.opts.r;
+		const strings = t().cards.weather;
+		const now = snapshot.now;
+
+		const head = this.host.createDiv("hearth-weather-detail-now");
+		glyph(head, weatherIcon(now.code, now.isDay), "hearth-weather-detail-glyph");
+		const text = head.createDiv("hearth-weather-detail-nowtext");
+		text.createDiv({
+			cls: "hearth-weather-detail-temp",
+			text: formatTemp(now.temp, r.tempUnit, true),
+		});
+		text.createDiv({
+			cls: "hearth-weather-detail-condition",
+			text: conditionText(now.code),
+		});
+		const bits: string[] = [];
+		if (now.apparent !== null) bits.push(strings.feelsLike(formatTemp(now.apparent, r.tempUnit)));
+		const day = today(snapshot);
+		if (day && (day.max !== null || day.min !== null)) {
+			bits.push(strings.highLow(formatTemp(day.max, r.tempUnit), formatTemp(day.min, r.tempUnit)));
+		}
+		metaLine(text, bits, "hearth-weather-detail-meta");
+	}
+
+	/** Every current reading, in the grid the card uses for the two or three it
+	 * was configured to show. */
+	private drawMetrics(snapshot: WeatherSnapshot): void {
+		const section = this.section(t().cards.weather.detail.now);
+		metricGrid(section, detailMetrics(snapshot, this.opts.r));
+	}
+
+	/** The week: one row per day, each a button that swaps the hourly table
+	 * below. The range bars share one scale, so a cold day reads as a bar that
+	 * has slid left rather than as two numbers to compare by eye. */
+	private drawDays(days: WeatherDay[]): void {
+		if (!days.length) return;
+		const r = this.opts.r;
+		const strings = t().cards.weather;
+		const section = this.section(strings.detail.days);
+
+		const lows = days.map((d) => d.min).filter((v): v is number => v !== null);
+		const highs = days.map((d) => d.max).filter((v): v is number => v !== null);
+		const floor = lows.length ? Math.min(...lows) : 0;
+		const ceiling = highs.length ? Math.max(...highs) : 1;
+		const span = ceiling - floor || 1;
+
+		const list = section.createDiv("hearth-weather-detail-days");
+		days.forEach((day, i) => {
+			const label = i === 0 ? strings.todayLabel : formatWeekday(day.date, "long");
+			const row = list.createDiv("hearth-weather-detail-day");
+			row.toggleClass("is-selected", day.date === this.day);
+			const pick = (): void => {
+				this.day = day.date;
+				this.draw();
+			};
+			row.addEventListener("click", pick);
+			makeClickable(row, pick, strings.detail.selectDay(label));
+
+			const name = row.createDiv("hearth-weather-detail-day-name");
+			name.createDiv({ cls: "hearth-weather-detail-day-weekday", text: label });
+			name.createDiv({ cls: "hearth-weather-detail-day-date", text: formatDayDate(day.date) });
+			glyph(row, weatherIcon(day.code, true), "hearth-weather-detail-day-icon");
+			row.createDiv({
+				cls: "hearth-weather-detail-day-condition",
+				text: conditionText(day.code),
+			});
+			row.createDiv({
+				cls: "hearth-weather-detail-day-precip",
+				text: day.precipChance === null ? "" : formatPercent(day.precipChance),
+			});
+			row.createDiv({
+				cls: "hearth-weather-detail-day-low",
+				text: formatTemp(day.min, r.tempUnit),
+			});
+			const bar = row.createDiv("hearth-weather-detail-day-track").createDiv(
+				"hearth-weather-detail-day-bar",
+			);
+			const from = day.min === null ? floor : day.min;
+			const to = day.max === null ? ceiling : day.max;
+			bar.style.insetInlineStart = `${((from - floor) / span) * 100}%`;
+			bar.style.width = `${Math.max(((to - from) / span) * 100, 6)}%`;
+			row.createDiv({
+				cls: "hearth-weather-detail-day-high",
+				text: formatTemp(day.max, r.tempUnit),
+			});
+		});
+	}
+
+	/** The picked day, hour by hour, with every series the response carries.
+	 * Today starts at the hour we are in — the hours already gone are not a
+	 * forecast any more. */
+	private drawHours(snapshot: WeatherSnapshot, day: WeatherDay, isToday: boolean): void {
+		const r = this.opts.r;
+		const strings = t().cards.weather;
+		const detail = strings.detail;
+		const label = isToday ? strings.todayLabel : formatWeekday(day.date, "long");
+		const section = this.section(detail.hoursFor(`${label}, ${formatDayDate(day.date)}`));
+		metaLine(section, daySummary(day, r), "hearth-weather-detail-summary");
+
+		const hours = hoursOn(snapshot, day.date);
+		if (!hours.length) {
+			section.createDiv({ cls: "hearth-weather-detail-empty", text: detail.noHours });
+			return;
+		}
+
+		const table = section
+			.createDiv("hearth-weather-detail-scroll")
+			.createEl("table", { cls: "hearth-weather-detail-table" });
+		const headRow = table.createEl("thead").createEl("tr");
+		const columns = [
+			detail.columnTime,
+			"",
+			detail.columnCondition,
+			detail.columnTemp,
+			detail.columnFeels,
+			detail.columnPrecip,
+			detail.columnWind,
+			detail.columnHumidity,
+			detail.columnUv,
+		];
+		for (const column of columns) headRow.createEl("th", { text: column });
+
+		const body = table.createEl("tbody");
+		const nowHour = snapshot.now.time.slice(0, 13);
+		for (const hour of hours) {
+			const isNow = hour.time.slice(0, 13) === nowHour;
+			const row = body.createEl("tr");
+			row.toggleClass("is-now", isNow);
+			row.createEl("td", {
+				cls: "hearth-weather-detail-cell-time",
+				text: isNow ? strings.now : formatHour(hour.time, r.hour12),
+			});
+			glyph(
+				row.createEl("td", { cls: "hearth-weather-detail-cell-icon" }),
+				weatherIcon(hour.code, hour.isDay),
+				"hearth-weather-detail-cellicon",
+			);
+			row.createEl("td", { text: conditionText(hour.code) });
+			row.createEl("td", { text: formatTemp(hour.temp, r.tempUnit) });
+			row.createEl("td", { text: formatTemp(hour.apparent, r.tempUnit) });
+			row.createEl("td", { text: precipText(hour, r) });
+			row.createEl("td", { text: windText(hour.windSpeed, hour.windDir, r) });
+			row.createEl("td", { text: formatPercent(hour.humidity) });
+			row.createEl("td", { text: formatUv(hour.uv) });
+		}
+	}
+
+	/** When this reading was fetched, where it came from, and the way to ask for
+	 * a newer one. */
+	private drawFoot(snapshot: WeatherSnapshot): void {
+		const detail = t().cards.weather.detail;
+		const foot = this.host.createDiv("hearth-weather-detail-foot");
+		metaLine(
+			foot,
+			[updatedText(snapshot, this.opts.r), detail.source],
+			"hearth-weather-detail-source",
+		);
+
+		const reload = this.opts.reload;
+		if (!reload) return;
+		const button = foot.createEl("button", { cls: "hearth-weather-detail-refresh" });
+		setIcon(button.createSpan("hearth-weather-detail-btnicon"), "refresh-cw");
+		button.createSpan({ text: detail.refresh });
+		button.disabled = this.refreshing;
+		button.addEventListener("click", () => {
+			if (this.refreshing) return;
+			this.refreshing = true;
+			button.disabled = true;
+			void reload().finally(() => {
+				this.refreshing = false;
+				// The dialog may have been closed while the request was in flight.
+				if (this.host.isConnected) this.draw();
+			});
+		});
+	}
+
+	/** A titled block of the body. */
+	private section(title: string): HTMLElement {
+		const section = this.host.createDiv("hearth-weather-detail-section");
+		section.createDiv({ cls: "hearth-weather-detail-heading", text: title });
+		return section;
 	}
 }
 

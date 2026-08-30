@@ -208,10 +208,21 @@ export interface WeatherHour {
 	/** Local wall clock, on the hour. */
 	time: string;
 	temp: number | null;
+	/** "Feels like" temperature. */
+	apparent: number | null;
 	code: number;
 	isDay: boolean;
 	/** Chance of precipitation, percent. */
 	precipChance: number | null;
+	/** Precipitation expected in this hour, in the configured unit. */
+	precip: number | null;
+	/** Relative humidity, percent. */
+	humidity: number | null;
+	windSpeed: number | null;
+	/** Direction the wind blows *from*, in degrees clockwise from north. */
+	windDir: number | null;
+	/** UV index for this hour. */
+	uv: number | null;
 }
 
 export interface WeatherDay {
@@ -224,7 +235,11 @@ export interface WeatherDay {
 	sunrise: string;
 	sunset: string;
 	precipChance: number | null;
+	/** Total precipitation expected over the day, in the configured unit. */
+	precipSum: number | null;
 	uvMax: number | null;
+	/** The day's strongest wind, in the configured unit. */
+	windMax: number | null;
 }
 
 /** A whole forecast, normalised. */
@@ -287,10 +302,16 @@ export function parseForecast(json: unknown, fetched: number): WeatherSnapshot |
 	const hourly: WeatherHour[] = hourTimes.map((time, i) => ({
 		time: str(time),
 		temp: num(at(hourlyRaw.temperature_2m, i)),
+		apparent: num(at(hourlyRaw.apparent_temperature, i)),
 		code: num(at(hourlyRaw.weather_code, i)) ?? code,
 		// The hourly `is_day` flag is 1/0, not a boolean.
 		isDay: num(at(hourlyRaw.is_day, i)) !== 0,
 		precipChance: num(at(hourlyRaw.precipitation_probability, i)),
+		precip: num(at(hourlyRaw.precipitation, i)),
+		humidity: num(at(hourlyRaw.relative_humidity_2m, i)),
+		windSpeed: num(at(hourlyRaw.wind_speed_10m, i)),
+		windDir: num(at(hourlyRaw.wind_direction_10m, i)),
+		uv: num(at(hourlyRaw.uv_index, i)),
 	}));
 
 	const dailyRaw = raw.daily ?? {};
@@ -303,7 +324,9 @@ export function parseForecast(json: unknown, fetched: number): WeatherSnapshot |
 		sunrise: str(at(dailyRaw.sunrise, i)),
 		sunset: str(at(dailyRaw.sunset, i)),
 		precipChance: num(at(dailyRaw.precipitation_probability_max, i)),
+		precipSum: num(at(dailyRaw.precipitation_sum, i)),
 		uvMax: num(at(dailyRaw.uv_index_max, i)),
+		windMax: num(at(dailyRaw.wind_speed_10m_max, i)),
 	}));
 
 	const time = str(current.time);
@@ -322,19 +345,18 @@ export function parseForecast(json: unknown, fetched: number): WeatherSnapshot |
 		isDay: num(current.is_day) !== 0,
 		// The current block carries no UV index, so it comes from the hourly
 		// series at the hour we are in.
-		uv: currentUv(hourlyRaw, time),
+		uv: hourAt(hourly, time)?.uv ?? null,
 	};
 
 	return { now, hourly, daily, timezone: str(raw.timezone) || "auto", fetched };
 }
 
-/** The UV index for the hour containing `time`, read off the hourly series. */
-function currentUv(hourly: Record<string, unknown>, time: string): number | null {
-	const times = Array.isArray(hourly.time) ? hourly.time : [];
+/** The hourly entry covering `time`, matched on the wall clock down to the
+ * hour. Undefined when the series doesn't reach it. */
+function hourAt(hourly: WeatherHour[], time: string): WeatherHour | undefined {
 	const hour = time.slice(0, 13);
-	if (!hour) return null;
-	const i = times.findIndex((t) => str(t).slice(0, 13) === hour);
-	return i < 0 ? null : num(at(hourly.uv_index, i));
+	if (!hour) return undefined;
+	return hourly.find((h) => h.time.slice(0, 13) === hour);
 }
 
 /**
@@ -359,6 +381,21 @@ export function upcomingDays(snapshot: WeatherSnapshot, count: number): WeatherD
 	const from = today ? snapshot.daily.findIndex((d) => d.date >= today) : 0;
 	if (from < 0) return [];
 	return snapshot.daily.slice(from, from + count);
+}
+
+/**
+ * Every hourly entry that falls on `date` (a `YYYY-MM-DD` as the daily series
+ * writes it). Today is trimmed to the hours still ahead, by the same wall-clock
+ * string comparison {@link upcomingHours} makes, so the full forecast never
+ * opens on hours that have already been and gone.
+ */
+export function hoursOn(snapshot: WeatherSnapshot, date: string): WeatherHour[] {
+	if (!date) return [];
+	// "" sorts below every wall clock, so a day that isn't today keeps all 24.
+	const from = date === snapshot.now.time.slice(0, 10) ? snapshot.now.time.slice(0, 13) : "";
+	return snapshot.hourly.filter(
+		(h) => h.time.slice(0, 10) === date && h.time.slice(0, 13) >= from,
+	);
 }
 
 /** Today's entry in the daily series, or null when it isn't in the response. */
@@ -456,6 +493,15 @@ export function formatWeekday(date: string, style: "short" | "long" = "short"): 
 	return stamp.toLocaleDateString(undefined, { weekday: style });
 }
 
+/** Print a `YYYY-MM-DD` local date as a day and month ("1 Sep"), for the day
+ * headings in the full forecast. */
+export function formatDayDate(date: string): string {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+	if (!match) return "";
+	const stamp = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+	return stamp.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 // ---- Fetching -----------------------------------------------------------
 
 /** Everything that decides which forecast a card wants. Units are part of it
@@ -503,8 +549,13 @@ export function forecastUrl(req: WeatherRequest): string {
 		].join(","),
 		hourly: [
 			"temperature_2m",
+			"apparent_temperature",
+			"relative_humidity_2m",
 			"weather_code",
+			"precipitation",
 			"precipitation_probability",
+			"wind_speed_10m",
+			"wind_direction_10m",
 			"uv_index",
 			"is_day",
 		].join(","),
@@ -514,7 +565,9 @@ export function forecastUrl(req: WeatherRequest): string {
 			"temperature_2m_min",
 			"sunrise",
 			"sunset",
+			"precipitation_sum",
 			"precipitation_probability_max",
+			"wind_speed_10m_max",
 			"uv_index_max",
 		].join(","),
 		timezone: "auto",

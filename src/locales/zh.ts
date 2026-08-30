@@ -2752,6 +2752,35 @@ export const zh: Translations = {
 			/** Compass points, clockwise from north. Indexed by the bearing's
 			 * eighth — keep all eight, in this order. */
 			compass: ["北", "东北", "东", "东南", "南", "西南", "西", "西北"],
+			/** The full-forecast dialog a weather card opens when it is clicked:
+			 * every reading the response carries, whatever the card shows. */
+			detail: {
+				title: "天气预报",
+				open: "打开完整预报",
+				now: "此刻",
+				days: "未来一周",
+				hoursFor: (day: string) => `逐小时 · ${day}`,
+				selectDay: (day: string) => `查看${day}的逐小时预报`,
+				noHours: "这一天已没有剩余的小时",
+				refresh: "刷新",
+				source: "Open-Meteo",
+				feelsLikeLabel: "体感温度",
+				gust: "阵风",
+				cloudCover: "云量",
+				precipChance: "降水概率",
+				precipHour: "本小时降水",
+				precipTotal: "降水总量",
+				windMax: "最大风速",
+				uvMax: "紫外线最高值",
+				columnTime: "时间",
+				columnCondition: "天气",
+				columnTemp: "气温",
+				columnFeels: "体感",
+				columnPrecip: "降水",
+				columnWind: "风",
+				columnHumidity: "湿度",
+				columnUv: "紫外线",
+			},
 			/** One per WMO weather code group; see `weatherLabelKey`. */
 			conditions: {
 				clear: "晴",

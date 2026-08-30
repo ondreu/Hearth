@@ -139,6 +139,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   separately, so switching over to look and switching back leaves a card exactly
   as it was.
 
+- **A weather card opens the whole forecast when you click it.** The card is a
+  glance, and every style is a choice about how much of the reading reaches the
+  surface — which left the rest of the response, already fetched and sitting in
+  memory, with nowhere to be read. **Clicking a weather card** now opens the
+  forecast in full: the current conditions with **every** reading the API
+  returned — feels like, humidity, wind and gusts, chance of rain and the rain
+  so far, cloud cover, pressure, UV, sunrise and sunset — then **the whole week**
+  as a list of days you can pick from, and the picked day **hour by hour**, with
+  its condition, temperature, feels like, rain, wind, humidity and UV. Today
+  starts at the hour you are in.
+
+  It ignores the card's **What to display** toggles on purpose: those decide what
+  the *card* is for, not what you are allowed to look up. Units and the 12/24-hour
+  clock stay the card's, because that is how you read a forecast. The dialog also
+  says when the reading was fetched and has a **Refresh** button that updates the
+  card behind it — left out when external calls are disabled, since there would
+  be nothing to fetch. A card still loading, or one that never loaded, isn't
+  clickable: there is nothing to open yet.
+
 ### Fixed
 
 - **The dashboard switcher wraps instead of running off the side of the board.**

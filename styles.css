@@ -4247,6 +4247,360 @@
 	min-width: 0;
 }
 
+/* ---- The full forecast ----
+ *
+ * A weather card is a glance at a snapshot the API sent in full, so clicking
+ * one opens the rest of it: every current reading, the whole week, and the
+ * picked day hour by hour. The card only advertises itself as clickable once it
+ * has a reading to open (`is-clickable`, set by the render). */
+.hearth-weather.is-clickable {
+	cursor: pointer;
+}
+
+/* No hover tint: a weather card is mostly whitespace — and, in the artistic
+ * style, a painted sky — so shading the whole of it reads as a selection.
+ * The focus ring is the affordance keyboard readers get instead. */
+.hearth-weather.is-clickable:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+	border-radius: 8px;
+}
+
+/* Wider than a default modal: the hourly table is nine columns and this is the
+ * one place in Hearth where a forecast is read rather than glanced at. */
+.hearth-weather-modal {
+	width: min(760px, 92vw);
+}
+
+.hearth-weather-modal .modal-content {
+	padding-top: 4px;
+}
+
+/* The region under the place name, on the title's own line. */
+.hearth-weather-detail-region {
+	margin-inline-start: 8px;
+	color: var(--text-muted);
+	font-size: 0.72em;
+	font-weight: 400;
+}
+
+.hearth-weather-detail {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+/* ---- The headline reading ---- */
+.hearth-weather-detail-now {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.hearth-weather-detail-glyph {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-normal);
+	font-size: 3rem;
+}
+
+.hearth-weather-detail-glyph .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.hearth-weather-detail-nowtext {
+	min-width: 0;
+}
+
+.hearth-weather-detail-temp {
+	font-size: 2.1rem;
+	font-weight: 600;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-weather-detail-condition {
+	color: var(--text-normal);
+	font-size: 0.95rem;
+}
+
+.hearth-weather-detail-meta {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	margin-top: 2px;
+}
+
+/* ---- Sections ---- */
+.hearth-weather-detail-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.hearth-weather-detail-heading {
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.hearth-weather-detail-summary {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	margin-top: -2px;
+}
+
+.hearth-weather-detail-empty {
+	color: var(--text-faint);
+	font-size: 0.82rem;
+}
+
+/* ---- The week ---- */
+.hearth-weather-detail-days {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+/* Each row is the button that swaps the hourly table below it. */
+.hearth-weather-detail-day {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: 8px;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.hearth-weather-detail-day:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-weather-detail-day:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.hearth-weather-detail-day.is-selected {
+	background: var(--background-modifier-hover);
+	box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.hearth-weather-detail-day-name {
+	flex: 0 0 7em;
+	min-width: 0;
+}
+
+.hearth-weather-detail-day-weekday {
+	color: var(--text-normal);
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-weather-detail-day-date {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+}
+
+.hearth-weather-detail-day-icon {
+	flex: 0 0 auto;
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-weather-detail-day-icon .svg-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.hearth-weather-detail-day-condition {
+	flex: 1 1 6em;
+	min-width: 0;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-weather-detail-day-precip {
+	flex: 0 0 2.8em;
+	color: var(--color-blue);
+	font-size: 0.72rem;
+	text-align: end;
+}
+
+.hearth-weather-detail-day-low,
+.hearth-weather-detail-day-high {
+	flex: 0 0 2.6em;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.hearth-weather-detail-day-low {
+	color: var(--text-faint);
+}
+
+.hearth-weather-detail-day-high {
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+/* The same shared-scale range bar the card draws, one size up. */
+.hearth-weather-detail-day-track {
+	position: relative;
+	flex: 1 1 4em;
+	height: 5px;
+	min-width: 32px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-weather-detail-day-bar {
+	position: absolute;
+	top: 0;
+	height: 100%;
+	border-radius: 999px;
+	background: linear-gradient(90deg, var(--color-blue), var(--color-orange));
+}
+
+/* ---- Hour by hour ---- */
+
+/* Nine columns don't fit a phone, and dropping any of them would defeat the
+ * point of the dialog — so the table scrolls sideways inside the section
+ * rather than squeezing. */
+.hearth-weather-detail-scroll {
+	overflow-x: auto;
+}
+
+.hearth-weather-detail-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.8rem;
+}
+
+.hearth-weather-detail-table th {
+	position: sticky;
+	top: 0;
+	padding: 4px 8px;
+	background: var(--background-primary);
+	color: var(--text-faint);
+	font-size: 0.66rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	text-align: end;
+	white-space: nowrap;
+}
+
+.hearth-weather-detail-table th:first-child,
+.hearth-weather-detail-table th:nth-child(3) {
+	text-align: start;
+}
+
+.hearth-weather-detail-table td {
+	padding: 4px 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+	white-space: nowrap;
+}
+
+.hearth-weather-detail-table td:nth-child(3) {
+	color: var(--text-muted);
+	text-align: start;
+}
+
+/* Overriding the row's own end-alignment, so both need the table's specificity. */
+.hearth-weather-detail-table td.hearth-weather-detail-cell-time {
+	color: var(--text-muted);
+	text-align: start;
+}
+
+/* `width: 1px` on a table cell means "as narrow as your content" — here, the
+ * glyph and nothing else. */
+.hearth-weather-detail-table td.hearth-weather-detail-cell-icon {
+	width: 1px;
+	padding-inline: 0 4px;
+}
+
+.hearth-weather-detail-cellicon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-weather-detail-cellicon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* The hour the reader is actually in, so the table has a "you are here". */
+.hearth-weather-detail-table tr.is-now td {
+	background: var(--background-modifier-hover);
+	font-weight: 600;
+}
+
+.hearth-weather-detail-table tr.is-now .hearth-weather-detail-cell-time {
+	color: var(--text-accent);
+}
+
+/* ---- Where the reading came from ---- */
+.hearth-weather-detail-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding-top: 4px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-weather-detail-source {
+	color: var(--text-faint);
+	font-size: 0.74rem;
+}
+
+.hearth-weather-detail-refresh {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-weather-detail-btnicon {
+	display: flex;
+}
+
+.hearth-weather-detail-btnicon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* On a phone the week's rows lose the condition text before they lose the
+ * numbers: the glyph says the same thing in a fifth of the width. */
+@media (max-width: 500px) {
+	.hearth-weather-detail-day-condition {
+		display: none;
+	}
+
+	.hearth-weather-detail-day-name {
+		flex: 0 0 5.5em;
+	}
+
+	.hearth-weather-detail-glyph {
+		font-size: 2.4rem;
+	}
+
+	.hearth-weather-detail-temp {
+		font-size: 1.8rem;
+	}
+}
+
 /* Mini calendar card */
 .hearth-calendar {
 	display: flex;
