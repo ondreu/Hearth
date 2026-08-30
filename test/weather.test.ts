@@ -6,8 +6,10 @@ import {
 	formatPercent,
 	formatPrecip,
 	formatTemp,
+	formatDayDate,
 	formatWeekday,
 	formatWind,
+	hoursOn,
 	parseForecast,
 	parsePlaces,
 	today,
@@ -54,8 +56,13 @@ function response(overrides: Record<string, unknown> = {}): unknown {
 				"2026-08-08T16:00",
 			],
 			temperature_2m: [20.1, 21.4, 22.0, 21.2],
+			apparent_temperature: [18.9, 19.8, 20.4, 19.6],
+			relative_humidity_2m: [65, 62, 71, 78],
 			weather_code: [2, 3, 61, 61],
+			precipitation: [0, 0.2, 1.4, 0.8],
 			precipitation_probability: [10, 20, 70, 65],
+			wind_speed_10m: [11.2, 12.6, 14.0, 13.1],
+			wind_direction_10m: [230, 240, 255, 260],
 			uv_index: [4.2, 3.8, 2.1, 1.4],
 			is_day: [1, 1, 1, 1],
 		},
@@ -76,7 +83,9 @@ function response(overrides: Record<string, unknown> = {}): unknown {
 				"2026-08-09T20:28",
 				"2026-08-10T20:27",
 			],
+			precipitation_sum: [0, 4.6, 1.2, 0],
 			precipitation_probability_max: [15, 75, 40, 5],
+			wind_speed_10m_max: [18.4, 22.1, 16.9, 12.0],
 			uv_index_max: [6.1, 4.4, 5.0, 7.2],
 		},
 		...overrides,
@@ -176,7 +185,27 @@ describe("parseForecast", () => {
 			sunrise: "2026-08-08T05:39",
 			sunset: "2026-08-08T20:30",
 			precipChance: 75,
+			precipSum: 4.6,
+			windMax: 22.1,
 			uvMax: 4.4,
+		});
+	});
+
+	it("keeps every hourly series the full forecast reads", () => {
+		// The card paints three of these; the forecast dialog shows them all, so
+		// a series quietly dropped here empties a column there.
+		expect(snapshot().hourly[1]).toEqual({
+			time: "2026-08-08T14:00",
+			temp: 21.4,
+			apparent: 19.8,
+			humidity: 62,
+			code: 3,
+			isDay: true,
+			precip: 0.2,
+			precipChance: 20,
+			windSpeed: 12.6,
+			windDir: 240,
+			uv: 3.8,
 		});
 	});
 
@@ -291,6 +320,49 @@ describe("today", () => {
 	it("is null when there is no daily series at all", () => {
 		const base = response() as { current: Record<string, unknown> };
 		expect(today(parseForecast({ current: base.current }, 1)!)).toBeNull();
+	});
+});
+
+describe("hoursOn", () => {
+	it("gives today only the hours still ahead", () => {
+		// The observation is 14:30, so 13:00 has been and gone.
+		expect(hoursOn(snapshot(), "2026-08-08").map((h) => h.time)).toEqual([
+			"2026-08-08T14:00",
+			"2026-08-08T15:00",
+			"2026-08-08T16:00",
+		]);
+	});
+
+	it("gives a later day every hour it has", () => {
+		const snap = snapshot({
+			hourly: {
+				time: ["2026-08-08T14:00", "2026-08-09T00:00", "2026-08-09T01:00"],
+				temperature_2m: [21.4, 15.0, 14.6],
+			},
+		});
+		expect(hoursOn(snap, "2026-08-09").map((h) => h.time)).toEqual([
+			"2026-08-09T00:00",
+			"2026-08-09T01:00",
+		]);
+	});
+
+	it("is empty for a day the series doesn't reach, or no day at all", () => {
+		expect(hoursOn(snapshot(), "2026-08-20")).toEqual([]);
+		expect(hoursOn(snapshot(), "")).toEqual([]);
+	});
+});
+
+describe("formatDayDate", () => {
+	it("prints the day and month a local date falls on", () => {
+		// Locale-formatted, so assert on the parts rather than the exact string.
+		const label = formatDayDate("2026-08-08");
+		expect(label).toMatch(/8/);
+		expect(label).toMatch(/aug/i);
+	});
+
+	it("is empty for anything that isn't a plain date", () => {
+		expect(formatDayDate("2026-08-08T14:00")).toBe("");
+		expect(formatDayDate("")).toBe("");
 	});
 });
 
@@ -461,6 +533,21 @@ describe("forecastUrl", () => {
 		expect(query.get("current")?.split(",")).toContain("is_day");
 		expect(query.get("hourly")?.split(",")).toContain("uv_index");
 		expect(query.get("daily")?.split(",")).toContain("sunrise");
+	});
+
+	it("requests the series only the full forecast reads", () => {
+		// The card never draws these; the dialog behind a click does, and it has
+		// no request of its own — it shows whatever this one brought back.
+		const query = new URLSearchParams(url.split("?")[1]);
+		const hourly = query.get("hourly")?.split(",");
+		expect(hourly).toContain("apparent_temperature");
+		expect(hourly).toContain("relative_humidity_2m");
+		expect(hourly).toContain("precipitation");
+		expect(hourly).toContain("wind_speed_10m");
+		expect(hourly).toContain("wind_direction_10m");
+		const daily = query.get("daily")?.split(",");
+		expect(daily).toContain("precipitation_sum");
+		expect(daily).toContain("wind_speed_10m_max");
 	});
 });
 

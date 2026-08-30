@@ -2967,6 +2967,35 @@ export const en = {
 			/** Compass points, clockwise from north. Indexed by the bearing's
 			 * eighth — keep all eight, in this order. */
 			compass: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+			/** The full-forecast dialog a weather card opens when it is clicked:
+			 * every reading the response carries, whatever the card shows. */
+			detail: {
+				title: "Forecast",
+				open: "Open the full forecast",
+				now: "Right now",
+				days: "The week ahead",
+				hoursFor: (day: string) => `Hour by hour · ${day}`,
+				selectDay: (day: string) => `Show ${day} hour by hour`,
+				noHours: "No hours left in this day",
+				refresh: "Refresh",
+				source: "Open-Meteo",
+				feelsLikeLabel: "Feels like",
+				gust: "Gusts",
+				cloudCover: "Cloud cover",
+				precipChance: "Chance of rain",
+				precipHour: "Rain this hour",
+				precipTotal: "Total rain",
+				windMax: "Strongest wind",
+				uvMax: "UV max",
+				columnTime: "Time",
+				columnCondition: "Condition",
+				columnTemp: "Temp",
+				columnFeels: "Feels",
+				columnPrecip: "Rain",
+				columnWind: "Wind",
+				columnHumidity: "Humidity",
+				columnUv: "UV",
+			},
 			/** One per WMO weather code group; see `weatherLabelKey`. */
 			conditions: {
 				clear: "Clear",
