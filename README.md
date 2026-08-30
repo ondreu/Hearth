@@ -190,7 +190,7 @@ feeds, reads **TaskNotes** (scheduled, due, recurrences, timeblocks) and
 | **Query** | A saved search, kept live | — |
 | **Search bar** | A search field on the board, framed or bare | — |
 | **Vault statistics** | Notes, attachments, folders, tags and daily-note streak | — |
-| **Activity heatmap** | A year of vault activity, day by day | — |
+| **Activity heatmap** | A year of vault activity, day by day — or, in advanced mode, any metric you define: a frontmatter date, a summed property, your own rules | — |
 
 ### Tools
 

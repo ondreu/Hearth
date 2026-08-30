@@ -181,6 +181,37 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   makes the plugin's own commands and hotkeys target the board (at the cost of
   Obsidian sometimes opening a clicked note into it).
 
+- **The heatmap can count whatever you actually track.** The activity heatmap
+  only ever knew two things: notes edited, notes created. That is a fine picture
+  of a vault and a poor picture of a habit — the run you logged on Sunday and
+  wrote up on Wednesday landed on Wednesday. The card's settings gained an
+  **Advanced** switch (off by default, and off changes nothing) that turns the
+  grid into a metric you define (#268).
+
+  **Where a day comes from.** *Day comes from* can now be **a frontmatter
+  date** instead of the file's own: name the property — `date`, `due`,
+  `published` — and each note lands on the day it says, not the day you touched
+  it. It reads a date, a date and time, or a `[[daily note]]` link, and a list
+  property counts once per entry, so `done: [2026-08-30, 2026-08-31]` marks both
+  squares. Notes without the property simply don't appear.
+
+  **What a square counts.** *Each note adds* is normally 1 — the note count.
+  Point it at a number in frontmatter instead and the day is a **sum**: minutes
+  read, pages written, kilometres run. A note whose value isn't a number is
+  skipped rather than quietly counted as one, so the two metrics never mix. The
+  **Unit** field names what you are counting, so a day reads "5 workouts"
+  instead of "5 notes edited".
+
+  **Which notes count.** Under **Which notes count** you can stack rules — a
+  property, a tag, a folder or a path, tested with *is*, *is not*, *contains*,
+  *does not contain*, *is more than*, *is less than*, *is set* or *is not set* —
+  and choose whether a note has to match **all** of them or **any** of them.
+  Numbers compare as numbers and dates as dates, tags match with or without
+  their `#` and cover their nested tags, and a rule you are still typing counts
+  as no rule rather than blanking the card. So: every note tagged `#health`
+  whose `type` is `run`, summed by `minutes`, on the day in `date` — one grid,
+  one year of running.
+
   **The board spends no space on itself.** The hosted view runs edge to edge —
   no page gutter, no card frame, no toolbar row — and the only chrome left is
   the switcher strip along the top, with the board's settings gear on the

@@ -1,8 +1,9 @@
-import { Component, debounce, MarkdownRenderer, moment as createMoment, setIcon, Setting, TFile } from "obsidian";
+import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, setIcon, Setting, TFile } from "obsidian";
 import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
 import { dailyNameMatcher } from "./dailyformat";
 import { localDayKey } from "./dates";
+import { heatmapByDay, needsMetadata, type HeatmapNote } from "./heatmapmetric";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
 import { internalLinkText, openLink } from "./opener";
@@ -22,7 +23,7 @@ import {
 	type TileSpans,
 	type TileSpec,
 } from "./tiles";
-import { type DashboardCard, type EmbedView, type TileGeometry } from "./types";
+import { type DashboardCard, type EmbedView, type HeatmapConfig, type TileGeometry } from "./types";
 import { type HomeView } from "./view";
 
 /**
@@ -757,6 +758,30 @@ export function activityByDay(app: HomeView["app"], metric: "modified" | "create
 		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return counts;
+}
+
+
+/** Bucket the vault into days by a heatmap card's custom metric — the advanced
+ * counterpart of {@link activityByDay}. The metadata cache is only consulted
+ * when the config actually reads frontmatter or tags, and tags only when a rule
+ * tests them, so a card that merely filters on a folder stays as cheap as the
+ * basic scan. */
+export function customActivityByDay(app: HomeView["app"], cfg: HeatmapConfig): Map<string, number> {
+	const wantsCache = needsMetadata(cfg);
+	const wantsTags = (cfg.rules ?? []).some((r) => r.field === "tag");
+	function* notes(): Generator<HeatmapNote> {
+		for (const file of app.vault.getMarkdownFiles()) {
+			const cache = wantsCache ? app.metadataCache.getFileCache(file) : null;
+			yield {
+				path: file.path,
+				ctime: file.stat.ctime,
+				mtime: file.stat.mtime,
+				frontmatter: cache?.frontmatter,
+				tags: wantsTags && cache ? (getAllTags(cache) ?? undefined) : undefined,
+			};
+		}
+	}
+	return heatmapByDay(notes(), cfg);
 }
 
 

@@ -1,8 +1,24 @@
 import { Setting } from "obsidian";
-import { activityByDay, createDailyNoteAt, dailyNotesOptions, heatLevel, moment } from "../cardbodies";
+import {
+	activityByDay,
+	createDailyNoteAt,
+	customActivityByDay,
+	dailyNotesOptions,
+	heatLevel,
+	moment,
+} from "../cardbodies";
+import { addResetButton, moveItem } from "../editors";
+import { formatHeatValue, heatmapSource } from "../heatmapmetric";
 import { t } from "../i18n";
 import { openFile } from "../opener";
-import { type DashboardCard } from "../types";
+import {
+	HEATMAP_RULE_FIELDS,
+	HEATMAP_RULE_OPS,
+	type DashboardCard,
+	type HeatmapConfig,
+	type HeatmapRuleField,
+	type HeatmapRuleOp,
+} from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -10,13 +26,35 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // ---- Activity heatmap (GitHub-style) ------------------------------------
 
+/** What one unit is called in a day's tooltip. Advanced cards may name it
+ * themselves ("workouts"); otherwise it follows the metric — the file date it
+ * counts, or, when the card sums a property, that property's own name. */
+function heatUnit(cfg: HeatmapConfig): string {
+	const custom = cfg.unit?.trim();
+	if (custom) return custom;
+	if ((cfg.value ?? "count") === "sum") {
+		const prop = cfg.valueProperty?.trim();
+		if (prop) return prop;
+	}
+	const source = heatmapSource(cfg);
+	if (source === "created") return t().cards.heatmap.unitCreated;
+	if (source === "property") return t().cards.heatmap.unitNotes;
+	return t().cards.heatmap.unitModified;
+}
+
 /** A contribution-style grid: one square per day for the last N weeks, tinted
- * by how many notes were edited (or created) that day. */
+ * by how many notes were edited (or created) that day.
+ *
+ * With `advanced` on, the same grid stands for whatever the vault tracks: the
+ * day comes from a frontmatter date, the value from a summed property, and
+ * rules pick which notes count at all (see `src/heatmapmetric.ts`). */
 export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.heatmap ?? {};
+	const advanced = cfg.advanced ?? false;
 	const metric = cfg.metric ?? "modified";
 	const weeks = cfg.weeks && cfg.weeks > 0 ? Math.min(cfg.weeks, 53) : 26;
-	const activity = activityByDay(view.app, metric);
+	const activity = advanced ? customActivityByDay(view.app, cfg) : activityByDay(view.app, metric);
+	const unit = advanced ? heatUnit(cfg) : metric;
 	const options = dailyNotesOptions(view);
 
 	const wrap = body.createDiv("hearth-heatmap");
@@ -50,8 +88,14 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 			const count = activity.get(key) ?? 0;
 			cellEl.style.setProperty("--heat", String(heatLevel(count, peak)));
 			cellEl.toggleClass("has-heat", count > 0);
-			cellEl.setAttribute("aria-label", t().cards.calendar.dayMetric(day.format("MMM D, YYYY"), count, metric));
-			cellEl.setAttribute("title", `${day.format("MMM D, YYYY")} · ${count} ${metric}`);
+			const date = day.format("MMM D, YYYY");
+			// A summed metric can land on a fraction, so advanced cards read
+			// their total through the formatter rather than as a bare number.
+			const label = advanced
+				? t().cards.heatmap.dayValue(date, formatHeatValue(count), unit)
+				: t().cards.calendar.dayMetric(date, count, unit);
+			cellEl.setAttribute("aria-label", label);
+			cellEl.setAttribute("title", `${date} · ${formatHeatValue(count)} ${unit}`);
 			if (options) {
 				const activate = () => {
 					void createDailyNoteAt(view, day, options).then((f) => {
@@ -76,21 +120,58 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 }
 
 
+/**
+ * The heatmap card is a vault-activity grid by default — one dropdown and a
+ * range. An "Advanced" toggle turns it into a custom metric: the day a note
+ * lands on can come from frontmatter, the value can be a summed property, and
+ * rules (all of them, or any) decide which notes count at all. Everything below
+ * the toggle is gated on it, so a basic card stays basic.
+ */
 export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.heatmap ??= {});
+	const strings = t().editors.heatmap;
+
 	new Setting(containerEl)
-		.setName(t().editors.heatmap.metric)
-		.addDropdown((d) => {
+		.setName(strings.advanced)
+		.setDesc(strings.advancedDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.advanced ?? false).onChange((v) => {
+				cfg.advanced = v || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// Show/hide the advanced controls below.
+				ctx.requestRender();
+			}),
+		);
+
+	if (!cfg.advanced) {
+		new Setting(containerEl).setName(strings.metric).addDropdown((d) => {
 			d.addOption("modified", t().editors.metricOptions.modified);
 			d.addOption("created", t().editors.metricOptions.created);
 			d.setValue(cfg.metric ?? "modified").onChange((v) => {
 				cfg.metric = v as NonNullable<typeof cfg.metric>;
 				ctx.opts.save();
+				ctx.opts.rerender();
 			});
 		});
-	const weeks = new Setting(containerEl)
-		.setName(t().editors.heatmap.weeks)
-		.setDesc(t().editors.heatmap.weeksDesc);
+		weeksSetting(ctx, containerEl, cfg);
+		return;
+	}
+
+	metricSection(ctx, containerEl, cfg);
+	rulesSection(ctx, containerEl, cfg);
+	// The range is about the grid rather than the metric, so with the advanced
+	// sections above it, it gets a heading of its own instead of floating
+	// between two of them.
+	new Setting(containerEl).setName(strings.rangeHeading).setHeading();
+	weeksSetting(ctx, containerEl, cfg);
+}
+
+
+/** How much history the grid shows — the one control both modes share. */
+function weeksSetting(ctx: CardEditorContext, containerEl: HTMLElement, cfg: HeatmapConfig): void {
+	const strings = t().editors.heatmap;
+	const weeks = new Setting(containerEl).setName(strings.weeks).setDesc(strings.weeksDesc);
 	weeks.addSlider((s) => {
 		s.setLimits(8, 53, 1)
 			.setValue(cfg.weeks ?? 26)
@@ -111,6 +192,198 @@ export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 	);
 }
 
+
+/** Advanced mode: where a day comes from, what each note adds, and what the
+ * total is called. */
+function metricSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: HeatmapConfig): void {
+	const strings = t().editors.heatmap;
+	new Setting(containerEl).setName(strings.metricHeading).setHeading();
+
+	new Setting(containerEl)
+		.setName(strings.source)
+		.setDesc(strings.sourceDesc)
+		.addDropdown((d) => {
+			d.addOption("modified", strings.sourceOptions.modified);
+			d.addOption("created", strings.sourceOptions.created);
+			d.addOption("property", strings.sourceOptions.property);
+			d.setValue(heatmapSource(cfg)).onChange((v) => {
+				cfg.source = v as NonNullable<HeatmapConfig["source"]>;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// The date-property field only applies to the property source.
+				ctx.requestRender();
+			});
+		});
+
+	if (heatmapSource(cfg) === "property") {
+		new Setting(containerEl)
+			.setName(strings.dateProperty)
+			.setDesc(strings.datePropertyDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(strings.datePropertyPlaceholder)
+					.setValue(cfg.dateProperty ?? "")
+					.onChange((v) => {
+						cfg.dateProperty = v.trim() || undefined;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+			);
+	}
+
+	new Setting(containerEl)
+		.setName(strings.value)
+		.setDesc(strings.valueDesc)
+		.addDropdown((d) => {
+			d.addOption("count", strings.valueOptions.count);
+			d.addOption("sum", strings.valueOptions.sum);
+			d.setValue(cfg.value ?? "count").onChange((v) => {
+				cfg.value = v === "count" ? undefined : "sum";
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// The value-property field only applies to a summed value.
+				ctx.requestRender();
+			});
+		});
+
+	if ((cfg.value ?? "count") === "sum") {
+		new Setting(containerEl)
+			.setName(strings.valueProperty)
+			.setDesc(strings.valuePropertyDesc)
+			.addText((txt) =>
+				txt
+					.setPlaceholder(strings.valuePropertyPlaceholder)
+					.setValue(cfg.valueProperty ?? "")
+					.onChange((v) => {
+						cfg.valueProperty = v.trim() || undefined;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+			);
+	}
+
+	new Setting(containerEl)
+		.setName(strings.unit)
+		.setDesc(strings.unitDesc)
+		.addText((txt) =>
+			txt
+				.setPlaceholder(strings.unitPlaceholder)
+				.setValue(cfg.unit ?? "")
+				.onChange((v) => {
+					cfg.unit = v.trim() || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+		);
+}
+
+
+/** Advanced mode: the rules deciding which notes are counted, and whether a
+ * note has to meet all of them or just one. */
+function rulesSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: HeatmapConfig): void {
+	const strings = t().editors.heatmap;
+	new Setting(containerEl).setName(strings.rules).setHeading();
+
+	const matchSetting = new Setting(containerEl).setName(strings.match).setDesc(strings.rulesDesc);
+	matchSetting.addDropdown((d) => {
+		d.addOption("all", strings.matchOptions.all);
+		d.addOption("any", strings.matchOptions.any);
+		d.setValue(cfg.match ?? "all").onChange((v) => {
+			cfg.match = v === "all" ? undefined : "any";
+			ctx.opts.save();
+			ctx.opts.rerender();
+		});
+	});
+	addResetButton(ctx, matchSetting, t().settings.resetField, () => {
+		cfg.match = undefined;
+		cfg.rules = undefined;
+	});
+
+	const rules = (cfg.rules ??= []);
+	rules.forEach((rule, index) => {
+		const field: HeatmapRuleField = rule.field ?? "property";
+		const op: HeatmapRuleOp = rule.op ?? "is";
+		const row = new Setting(containerEl).setClass("hearth-link-setting");
+		row.addDropdown((d) => {
+			for (const id of HEATMAP_RULE_FIELDS) d.addOption(id, strings.fieldOptions[id]);
+			d.setValue(field).onChange((v) => {
+				rule.field = v === "property" ? undefined : (v as HeatmapRuleField);
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// A property rule needs a key field; the others don't.
+				ctx.requestRender();
+			});
+		});
+		if (field === "property") {
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(strings.keyPlaceholder)
+					.setValue(rule.key ?? "")
+					.onChange((v) => {
+						rule.key = v.trim() || undefined;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+			);
+		}
+		row.addDropdown((d) => {
+			for (const id of HEATMAP_RULE_OPS) d.addOption(id, strings.opOptions[id]);
+			d.setValue(op).onChange((v) => {
+				rule.op = v === "is" ? undefined : (v as HeatmapRuleOp);
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// "exists"/"missing" take no value, so the field disappears.
+				ctx.requestRender();
+			});
+		});
+		if (op !== "exists" && op !== "missing") {
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(strings.valuePlaceholder)
+					.setValue(rule.value ?? "")
+					.onChange((v) => {
+						rule.value = v.trim() || undefined;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+			);
+		}
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-up")
+				.setTooltip(t().editors.links.moveUp)
+				.setDisabled(index === 0)
+				.onClick(() => moveItem(ctx, rules, index, index - 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("chevron-down")
+				.setTooltip(t().editors.links.moveDown)
+				.setDisabled(index === rules.length - 1)
+				.onClick(() => moveItem(ctx, rules, index, index + 1)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("trash-2")
+				.setTooltip(strings.removeRule)
+				.onClick(() => {
+					rules.splice(index, 1);
+					ctx.opts.save();
+					ctx.opts.rerender();
+					ctx.requestRender();
+				}),
+		);
+	});
+
+	new Setting(containerEl).addButton((b) =>
+		b.setButtonText(strings.addRule).onClick(() => {
+			rules.push({ id: `rule-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}` });
+			ctx.opts.save();
+			ctx.requestRender();
+		}),
+	);
+}
+
 /** A calendar-style activity heatmap over a vault metric. */
 export const heatmapCard: CardDefinition<"heatmap"> = {
 	kind: "heatmap",
@@ -120,7 +393,11 @@ export const heatmapCard: CardDefinition<"heatmap"> = {
 	render: (view, card, body) => renderHeatmap(view, card, body),
 	renderEditor: (container, ctx) => heatmapEditor(ctx, container),
 	cloneConfig: (source, copy) => {
-		if (source.heatmap) copy.heatmap = { ...source.heatmap };
+		if (source.heatmap)
+			copy.heatmap = {
+				...source.heatmap,
+				rules: source.heatmap.rules ? source.heatmap.rules.map((r) => ({ ...r })) : undefined,
+			};
 	},
 	liveness: { mode: "vault" },
 };
