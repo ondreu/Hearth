@@ -11,6 +11,72 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [3.1.0]
+
+### Added
+
+- **Plugin view dashboards.** A dashboard no longer has to be a grid of cards.
+  Set one to **Plugin view** (Dashboard settings → General → **Dashboard type**)
+  and the whole board becomes a single plugin's view — your RSS reader, a Kanban
+  board, a Canvas, the outline — at full size, running for real rather than
+  previewed in a card.
+
+  The point is what stays around it: the **dashboard switcher, the header and
+  the background are still there**, so the reader you check twenty times a day is
+  one click from your task board instead of a tab you have to find your way back
+  from. Switching is instant, because a plugin board **stays loaded while another
+  board is showing** rather than reloading from cold each visit. Up to three
+  boards are kept warm at once, least-recently-used first out; a heavy plugin you
+  would rather not leave running can opt out per board.
+
+  Pick the view on the board's new **Plugin view** tab. Unlike the Plugin view
+  *card*, the list includes Obsidian's own document surfaces — Markdown, PDF,
+  image, audio, video — because a full board has room for them and a file picker
+  right beside the type picker, so a specific note, drawing or PDF can *be* a
+  dashboard. Also there: hiding the hosted view's own breadcrumb header, the
+  keep-loaded toggle, and an experimental **Let the view take focus**, which
+  makes the plugin's own commands and hotkeys target the board (at the cost of
+  Obsidian sometimes opening a clicked note into it).
+
+  **The board spends no space on itself.** The hosted view runs edge to edge —
+  no page gutter, no card frame, no toolbar row — and the only chrome left is
+  the switcher strip along the top, with the board's settings gear on the
+  right-hand end of it. The title and search start hidden for the same reason,
+  and each is still an ordinary per-board override you can switch back on. Its
+  cards are kept, not deleted: turn the board back into a **Cards** board and
+  they return exactly as they were.
+
+- **The heatmap can count whatever you actually track.** The activity heatmap
+  only ever knew two things: notes edited, notes created. That is a fine picture
+  of a vault and a poor picture of a habit — the run you logged on Sunday and
+  wrote up on Wednesday landed on Wednesday. The card's settings gained an
+  **Advanced** switch (off by default, and off changes nothing) that turns the
+  grid into a metric you define (#268).
+
+  **Where a day comes from.** *Day comes from* can now be **a frontmatter
+  date** instead of the file's own: name the property — `date`, `due`,
+  `published` — and each note lands on the day it says, not the day you touched
+  it. It reads a date, a date and time, or a `[[daily note]]` link, and a list
+  property counts once per entry, so `done: [2026-08-30, 2026-08-31]` marks both
+  squares. Notes without the property simply don't appear.
+
+  **What a square counts.** *Each note adds* is normally 1 — the note count.
+  Point it at a number in frontmatter instead and the day is a **sum**: minutes
+  read, pages written, kilometres run. A note whose value isn't a number is
+  skipped rather than quietly counted as one, so the two metrics never mix. The
+  **Unit** field names what you are counting, so a day reads "5 workouts"
+  instead of "5 notes edited".
+
+  **Which notes count.** Under **Which notes count** you can stack rules — a
+  property, a tag, a folder or a path, tested with *is*, *is not*, *contains*,
+  *does not contain*, *is more than*, *is less than*, *is set* or *is not set* —
+  and choose whether a note has to match **all** of them or **any** of them.
+  Numbers compare as numbers and dates as dates, tags match with or without
+  their `#` and cover their nested tags, and a rule you are still typing counts
+  as no rule rather than blanking the card. So: every note tagged `#health`
+  whose `type` is `run`, summed by `minutes`, on the day in `date` — one grid,
+  one year of running.
+
 ## [3.0.0]
 
 ### Added
@@ -157,68 +223,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   card behind it — left out when external calls are disabled, since there would
   be nothing to fetch. A card still loading, or one that never loaded, isn't
   clickable: there is nothing to open yet.
-
-- **Plugin view dashboards.** A dashboard no longer has to be a grid of cards.
-  Set one to **Plugin view** (Dashboard settings → General → **Dashboard type**)
-  and the whole board becomes a single plugin's view — your RSS reader, a Kanban
-  board, a Canvas, the outline — at full size, running for real rather than
-  previewed in a card.
-
-  The point is what stays around it: the **dashboard switcher, the header and
-  the background are still there**, so the reader you check twenty times a day is
-  one click from your task board instead of a tab you have to find your way back
-  from. Switching is instant, because a plugin board **stays loaded while another
-  board is showing** rather than reloading from cold each visit. Up to three
-  boards are kept warm at once, least-recently-used first out; a heavy plugin you
-  would rather not leave running can opt out per board.
-
-  Pick the view on the board's new **Plugin view** tab. Unlike the Plugin view
-  *card*, the list includes Obsidian's own document surfaces — Markdown, PDF,
-  image, audio, video — because a full board has room for them and a file picker
-  right beside the type picker, so a specific note, drawing or PDF can *be* a
-  dashboard. Also there: hiding the hosted view's own breadcrumb header, the
-  keep-loaded toggle, and an experimental **Let the view take focus**, which
-  makes the plugin's own commands and hotkeys target the board (at the cost of
-  Obsidian sometimes opening a clicked note into it).
-
-- **The heatmap can count whatever you actually track.** The activity heatmap
-  only ever knew two things: notes edited, notes created. That is a fine picture
-  of a vault and a poor picture of a habit — the run you logged on Sunday and
-  wrote up on Wednesday landed on Wednesday. The card's settings gained an
-  **Advanced** switch (off by default, and off changes nothing) that turns the
-  grid into a metric you define (#268).
-
-  **Where a day comes from.** *Day comes from* can now be **a frontmatter
-  date** instead of the file's own: name the property — `date`, `due`,
-  `published` — and each note lands on the day it says, not the day you touched
-  it. It reads a date, a date and time, or a `[[daily note]]` link, and a list
-  property counts once per entry, so `done: [2026-08-30, 2026-08-31]` marks both
-  squares. Notes without the property simply don't appear.
-
-  **What a square counts.** *Each note adds* is normally 1 — the note count.
-  Point it at a number in frontmatter instead and the day is a **sum**: minutes
-  read, pages written, kilometres run. A note whose value isn't a number is
-  skipped rather than quietly counted as one, so the two metrics never mix. The
-  **Unit** field names what you are counting, so a day reads "5 workouts"
-  instead of "5 notes edited".
-
-  **Which notes count.** Under **Which notes count** you can stack rules — a
-  property, a tag, a folder or a path, tested with *is*, *is not*, *contains*,
-  *does not contain*, *is more than*, *is less than*, *is set* or *is not set* —
-  and choose whether a note has to match **all** of them or **any** of them.
-  Numbers compare as numbers and dates as dates, tags match with or without
-  their `#` and cover their nested tags, and a rule you are still typing counts
-  as no rule rather than blanking the card. So: every note tagged `#health`
-  whose `type` is `run`, summed by `minutes`, on the day in `date` — one grid,
-  one year of running.
-
-  **The board spends no space on itself.** The hosted view runs edge to edge —
-  no page gutter, no card frame, no toolbar row — and the only chrome left is
-  the switcher strip along the top, with the board's settings gear on the
-  right-hand end of it. The title and search start hidden for the same reason,
-  and each is still an ordinary per-board override you can switch back on. Its
-  cards are kept, not deleted: turn the board back into a **Cards** board and
-  they return exactly as they were.
 
 ### Fixed
 
