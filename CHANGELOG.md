@@ -87,6 +87,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   <https://ko-fi.com/ondru>. Entirely optional, as it has always been — nothing
   in Hearth is behind it.
 
+- **The board keeps your place.** Hearth rebuilds the whole board whenever you
+  come back to its tab, and that rebuild used to drop you at the top: follow a
+  link out of a card, switch back, and a board you had scrolled halfway down
+  started again from the beginning (#276). Each tab now remembers where it was
+  scrolled to and puts itself back there.
+
+  Per tab and per dashboard: two Hearth tabs keep their own places, and each
+  board comes back where you left it rather than at the depth of the board you
+  were on before. The memory rides along with the tab, so it survives a reload
+  of Obsidian — and a Hearth tab you *replace* by opening a note in it takes its
+  place with it, so opening Hearth fresh afterwards still starts at the top.
+
 ## [3.0.0]
 
 ### Added
