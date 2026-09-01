@@ -1961,9 +1961,13 @@
 	gap: 8px;
 }
 
-/* ---- Settings tab: About panel --------------------------------------
-   The Ko-fi tip button keeps the brand's white/dark look (from the official
-   widget) so it reads as a support button, not a stock accent button. */
+/* ---- Icon+label buttons and the Ko-fi tip button --------------------
+   `hearth-about-btn` is the icon-beside-label button layout the About rows
+   use; it is also worn by the Ko-fi tip button wherever that appears (About,
+   the "What's new" dialog footer, the card picker's request page — see
+   `src/kofi.ts`), so the three can't drift apart. The tip button keeps the
+   brand's white/dark look (from the official widget) so it reads as a support
+   button, not a stock accent button. */
 
 .hearth-about-btn {
 	display: inline-flex;
@@ -9290,6 +9294,14 @@ body.hearth-dv-resizing {
 	padding-bottom: 0;
 }
 
+/* That row holds the Ko-fi tip button as well as the close CTA: space the two,
+   and let the tip button drop to its own line rather than squeeze the CTA on a
+   narrow phone modal. */
+.hearth-whatsnew-modal .modal-content > .setting-item .setting-item-control {
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.hearth-whatsnew-release-chevron {
 		transition: none;
@@ -10528,6 +10540,18 @@ body.hearth-dv-resizing {
 	color: var(--text-accent);
 }
 
+/* The Ko-fi tip button as the rail's last entry, directly under "Request a
+   card". It keeps the brand's white/red look (see `src/kofi.ts`) rather than
+   the rail's flat transparent rows — it is a link out, not a scope you can
+   switch to — and takes the rail's own metrics so it lines up with them. */
+.hearth-picker-rail-kofi {
+	width: 100%;
+	margin-top: 10px;
+	padding: 6px 10px;
+	justify-content: center;
+	font-size: var(--font-ui-small);
+}
+
 .hearth-picker-results {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -10938,6 +10962,16 @@ body.hearth-dv-resizing {
 
 	.hearth-picker-rail-sep {
 		display: none;
+	}
+
+	/* One more chip in the scrolling row, at its end: no stretching, no
+	   wrapping, and no top margin now that the rail runs sideways. */
+	.hearth-picker-rail-kofi {
+		flex: none;
+		width: auto;
+		margin-top: 0;
+		border-radius: 999px;
+		white-space: nowrap;
 	}
 
 	.hearth-picker-grid {

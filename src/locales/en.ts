@@ -772,6 +772,8 @@ export const en = {
 			kofiDesc:
 				"Hearth is free and always will be. If it's earned a spot on your home " +
 				"screen, you can leave a tip — completely optional, no features are locked.",
+			/** Shared by every surface that shows the tip button: this row, the
+			 * "What's new" dialog and the card picker's request page. */
 			kofiButton: "Tip me on Ko-fi",
 			version: (v: string) => `Version ${v}`,
 			versionDesc: "The Hearth build you're running.",

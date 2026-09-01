@@ -77,6 +77,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   whose `type` is `run`, summed by `minutes`, on the day in `date` — one grid,
   one year of running.
 
+- **The Ko-fi tip button, where you actually meet it.** The tip button used to
+  live only in Settings → About, which is the one place nobody visits after the
+  first day. It now also sits at the foot of the **"What's new" dialog**, to the
+  left of *Got it*, and at the bottom of the **add-card picker's** rail, right
+  under *Request a card*.
+
+  Same button in all three, on purpose: white, with the Ko-fi red cup, opening
+  <https://ko-fi.com/ondru>. Entirely optional, as it has always been — nothing
+  in Hearth is behind it.
+
 ## [3.0.0]
 
 ### Added

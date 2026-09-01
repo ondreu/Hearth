@@ -19,6 +19,7 @@ import {
 } from "./cards";
 import { cardRequestGithubUrl, cardRequestMailtoUrl } from "./cardrequest";
 import { t } from "./i18n";
+import { createKofiTipButton } from "./kofi";
 
 /**
  * The "Add card" picker.
@@ -174,6 +175,11 @@ class CardPickerModal extends Modal {
 		}
 		rail.createDiv("hearth-picker-rail-sep");
 		this.railButton(rail, "request", strings.request.railLabel, "message-square-plus");
+
+		// Straight under "Request a card", and the only entry in the rail that
+		// isn't a scope: someone browsing the whole catalogue is exactly who
+		// might feel like leaving a tip, and nothing here is behind one.
+		createKofiTipButton(rail).addClass("hearth-picker-rail-kofi");
 	}
 
 	private railButton(rail: HTMLElement, scope: PickerScope, label: string, icon: string): void {

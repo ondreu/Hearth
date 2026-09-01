@@ -8,6 +8,7 @@ import {
 	type ChangelogItem,
 } from "./changelog";
 import { t } from "./i18n";
+import { kofiTipButton } from "./kofi";
 import { makeClickable } from "./ui";
 import type HearthPlugin from "./main";
 
@@ -133,12 +134,18 @@ export class WhatsNewModal extends Modal {
 			text: t().whatsNew.footer,
 		});
 
-		new Setting(contentEl).addButton((b) =>
-			b
-				.setButtonText(t().whatsNew.close)
-				.setCta()
-				.onClick(() => this.close()),
-		);
+		// The tip button sits to the *left* of the close button: a release the
+		// reader just found worth reading is the one moment asking is fair, and
+		// left of the CTA keeps it out of the path of the click that dismisses
+		// the dialog.
+		new Setting(contentEl)
+			.addButton((b) => kofiTipButton(b))
+			.addButton((b) =>
+				b
+					.setButtonText(t().whatsNew.close)
+					.setCta()
+					.onClick(() => this.close()),
+			);
 	}
 
 	/** The filter box and the expand/collapse-all control. */
