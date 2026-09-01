@@ -1,4 +1,10 @@
-import { Component, ItemView, Platform, type WorkspaceLeaf } from "obsidian";
+import {
+	Component,
+	ItemView,
+	Platform,
+	type ViewStateResult,
+	type WorkspaceLeaf,
+} from "obsidian";
 import type HearthPlugin from "./main";
 import { renderHeader } from "./header";
 import { renderDashboard } from "./dashboard";
@@ -14,6 +20,16 @@ import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow
 import { applyBackground, renderBanner } from "./background";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateMotionOnWindow } from "./motion";
+import {
+	createScrollRestore,
+	driveScrollRestore,
+	pruneScrollMemory,
+	readScrollMemory,
+	SCROLL_STATE_KEY,
+	type ScrollMemory,
+	type ScrollRestore,
+	writeScrollMemory,
+} from "./scrollmemory";
 import {
 	activeIsPluginBoard,
 	bannerActive,
@@ -71,6 +87,19 @@ export class HomeView extends ItemView {
 	/** {@link liveRender}'s focus-held re-render, built on first use (the
 	 * listener it registers lives on `contentEl`, which outlives every render). */
 	private heldLiveRender: (() => void) | null = null;
+	/**
+	 * Where this tab is scrolled to, per dashboard — the memory behind #276.
+	 * Held on the view (and persisted with the leaf, see {@link getState}) rather
+	 * than in settings, because it describes one tab and not the vault. See
+	 * src/scrollmemory.ts for why it is keyed and stored the way it is.
+	 */
+	private scrollMemory: ScrollMemory = {};
+	/** The current render's scroll area, so state arriving after the render has
+	 * something to act on. */
+	private scrollEl: HTMLElement | null = null;
+	/** The restore chasing the remembered offset while this render's content
+	 * fills in, if one is still running. */
+	private scrollRestore: ScrollRestore | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: HearthPlugin) {
 		super(leaf);
@@ -88,6 +117,42 @@ export class HomeView extends ItemView {
 	getIcon(): string {
 		const s = this.plugin.settings;
 		return tabIconIdFor(s.themeColorTarget, s.tabIcon);
+	}
+
+	/**
+	 * The state Obsidian persists with this tab: the remembered scroll offsets,
+	 * so a scrolled board comes back scrolled after a reload — per tab, because
+	 * this is the tab's own state.
+	 *
+	 * Pruned on the way out so offsets for deleted dashboards don't accumulate
+	 * in `workspace.json`, and omitted entirely when there is nothing to
+	 * remember, so a board sitting at the top adds no state at all.
+	 */
+	getState(): Record<string, unknown> {
+		const base = super.getState();
+		const memory = pruneScrollMemory(
+			this.scrollMemory,
+			this.plugin.settings.dashboards.map((d) => d.id),
+		);
+		if (Object.keys(memory).length === 0) return base;
+		return { ...base, [SCROLL_STATE_KEY]: memory };
+	}
+
+	/**
+	 * Take the offsets back from persisted state — a reloaded workspace, or a
+	 * step back through this tab's history.
+	 *
+	 * A `setViewState` that carries no offsets (Hearth taking over an empty tab,
+	 * the ribbon opening a new one) correctly clears the memory: that is a board
+	 * this tab has never scrolled, and it should open at the top.
+	 */
+	async setState(state: unknown, result: ViewStateResult): Promise<void> {
+		await super.setState(state, result);
+		this.scrollMemory = readScrollMemory(state);
+		// State can land either side of the first render, depending on how the
+		// leaf was created. If the board is already built, move it now; if it
+		// isn't, the render coming up will read the memory itself.
+		if (this.scrollEl?.isConnected) this.restoreScroll(this.scrollEl);
 	}
 
 	async onOpen(): Promise<void> {
@@ -172,12 +237,82 @@ export class HomeView extends ItemView {
 		update();
 	}
 
+	/**
+	 * Keep this render's scroll area in step with the tab's remembered offset:
+	 * record where the user scrolls to, and put the board back where it was.
+	 *
+	 * The listeners hang off the per-render component, so they go away with the
+	 * element they watch.
+	 */
+	private trackScroll(scroll: HTMLElement, child: Component): void {
+		this.scrollEl = scroll;
+
+		child.registerDomEvent(scroll, "scroll", () => {
+			// A restore is itself scrolling the board, and the offsets it moves
+			// through are not places the user chose — recording them would
+			// overwrite the very position being restored to. Its final write
+			// counts as its own too: the `scroll` event for it can arrive after
+			// the restore has finished, and a restore that had to settle short of
+			// its offset (content still loading) would otherwise erase the deeper
+			// position it was reaching for.
+			const restore = this.scrollRestore;
+			if (restore && (!restore.done() || restore.applied() === scroll.scrollTop)) return;
+			this.rememberScroll(scroll.scrollTop);
+		}, { passive: true });
+
+		// A restore reaches for its offset over a second or two while content
+		// arrives, so the user has to be able to win: any deliberate scroll ends
+		// it, and from then on their position is the one that gets remembered —
+		// dropping the restore entirely, so nothing filters their scrolling.
+		for (const event of ["wheel", "touchstart", "pointerdown", "keydown"] as const) {
+			child.registerDomEvent(scroll, event, () => this.dropScrollRestore(), {
+				passive: true,
+			});
+		}
+
+		this.restoreScroll(scroll);
+	}
+
+	/** Record an offset for the board on screen, and ask Obsidian to persist the
+	 * layout when it actually changed. `requestSaveLayout` is itself debounced,
+	 * so a scroll gesture costs one write after the user stops. */
+	private rememberScroll(top: number): void {
+		const next = writeScrollMemory(
+			this.scrollMemory,
+			this.plugin.settings.activeDashboardId,
+			top,
+		);
+		if (next === this.scrollMemory) return;
+		this.scrollMemory = next;
+		void this.app.workspace.requestSaveLayout();
+	}
+
+	/** Stop and forget any restore in flight — the scroller is the user's now. */
+	private dropScrollRestore(): void {
+		this.scrollRestore?.cancel();
+		this.scrollRestore = null;
+	}
+
+	/** Start a restore towards the offset remembered for the board on screen,
+	 * replacing any restore still running from an earlier render. */
+	private restoreScroll(scroll: HTMLElement): void {
+		this.dropScrollRestore();
+
+		const target = this.scrollMemory[this.plugin.settings.activeDashboardId] ?? 0;
+		if (target <= 0) return;
+
+		const restore = createScrollRestore(target);
+		this.scrollRestore = restore;
+		driveScrollRestore(scroll, restore);
+	}
+
 	async onClose(): Promise<void> {
 		// Hosted plugin-board views deliberately outlive the render component, so
 		// they are released here rather than with it — this is the point at which
 		// a board kept alive for a fast switch back has nothing left to switch
 		// back to. See src/pluginboard.ts.
 		releasePluginBoards(this);
+		this.dropScrollRestore();
 		this.cleanupChild();
 	}
 
@@ -359,5 +494,10 @@ export class HomeView extends ItemView {
 			// centred header above it is sized.
 			renderMobileActionBar(this, scroll);
 		}
+
+		// Last, once the board is built: hand this render's scroll area to the
+		// tab's scroll memory, which records where the user scrolls to and puts
+		// the board back where it was before this rebuild (#276).
+		this.trackScroll(scroll, child);
 	}
 }
