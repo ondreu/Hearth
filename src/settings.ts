@@ -3,6 +3,7 @@ import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
+import { kofiTipButton } from "./kofi";
 import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
@@ -77,10 +78,10 @@ function tierLabels(): Record<PerformanceTier, string> {
 	};
 }
 
-/** The GitHub repository and support links surfaced in the About tab. */
+/** The GitHub links surfaced in the About tab. (The Ko-fi URL lives in
+ * `kofi.ts` — the tip button is shown in three places now.) */
 const GITHUB_URL = "https://github.com/ondreu/hearth";
 const GITHUB_ISSUES_URL = "https://github.com/ondreu/hearth/issues/new";
-const KOFI_URL = "https://ko-fi.com/ondru";
 
 /** Download filenames for the JSON exports. */
 const LAYOUT_FILE = "hearth-layout.json";
@@ -2258,10 +2259,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			new Setting(body)
 				.setName(about.kofi)
 				.setDesc(about.kofiDesc)
-				.addButton((b) => {
-					this.linkButton(b, "coffee", about.kofiButton, KOFI_URL);
-					b.buttonEl.addClass("hearth-kofi-btn");
-				});
+				.addButton((b) => kofiTipButton(b));
 
 			new Setting(body)
 				.setName(about.version(this.plugin.manifest.version))
