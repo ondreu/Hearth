@@ -1323,6 +1323,26 @@
 	display: none;
 }
 
+/* The export and import dialogs. A short lead-in above the choices, and — on
+ * the import side — the package's own name and byline, so what you are about to
+ * import is the first thing you read. */
+.hearth-modal-intro {
+	margin: 0 0 12px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-import-name {
+	margin: 0 0 2px;
+	font-size: var(--font-ui-large);
+}
+
+.hearth-import-byline {
+	margin: 0 0 10px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
 /* A row that belongs to the row above it — the per-chip toggles a board's
  * filter-chip override reveals, for instance. Indented and borderless so the
  * group reads as one control rather than as a run of unrelated settings. */

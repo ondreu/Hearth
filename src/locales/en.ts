@@ -83,8 +83,6 @@ export const en = {
 		layoutExported: "Hearth: layout exported.",
 		layoutImported: "Hearth: layout imported.",
 		layoutImportError: (error: string) => `Hearth: ${error}`,
-		settingsExported: "Hearth: settings exported.",
-		settingsImported: "Hearth: settings imported.",
 		exportedToVault: (file: string) =>
 			`Hearth: saved ${file} to your vault's root folder.`,
 		exportFailed: "Hearth: couldn't save the export file.",
@@ -499,6 +497,8 @@ export const en = {
 		menu: {
 			settings: "Dashboard settings…",
 			duplicate: "Duplicate",
+			exportBoard: "Export dashboard…",
+			importBoard: "Import dashboard…",
 			delete: "Delete",
 		},
 		deleteTitle: "Delete dashboard?",
@@ -1503,31 +1503,25 @@ export const en = {
 		layout: {
 			heading: "Import / export",
 			headingDesc:
-				"Back up or share your dashboard layout (cards, grid, favorites) — or every " +
-				"Hearth setting — as a JSON file.",
+				"Share one dashboard, or back up your whole setup, as a JSON file.",
+			exportDashboard: "Export this dashboard",
+			exportDashboardDesc:
+				"Save the dashboard you're on as a file others can import. Everything about how it looks travels with it, and you can choose whether to include its wallpaper.",
+			exportDashboardButton: "Export dashboard…",
+			importAny: "Import",
+			importAnyDesc:
+				"Open a Hearth file — one dashboard, a layout, or a full backup. It tells you what's in it before anything changes, and a single dashboard is added alongside your own rather than replacing anything.",
 			export: "Export layout",
-			exportDesc: "Download the current dashboard layout as a JSON file.",
+			exportDesc:
+				"Download every dashboard plus the grid and layout settings as a JSON file.",
 			exportButton: "Export file",
 			exportMobileTooltip:
 				"On mobile the file is saved to your vault's root folder.",
-			import: "Import layout",
-			importDesc:
-				"Choose a previously exported layout file. This replaces your current dashboards.",
 			importButton: "Import file",
-			importTitle: "Import layout?",
-			importMessage:
-				"This replaces your current dashboards, pinned cards and layout settings. This can't be undone.",
 			exportSettings: "Export settings",
 			exportSettingsDesc:
 				"Download every Hearth setting — the full layout plus header, background, " +
 				"behaviour, appearance and TaskNotes options — as a JSON backup file.",
-			importSettings: "Import settings",
-			importSettingsDesc:
-				"Choose a previously exported settings file. This replaces all your Hearth settings.",
-			importSettingsTitle: "Import settings?",
-			importSettingsMessage:
-				"This replaces all your Hearth settings — dashboards, layout, header, " +
-				"background, behaviour and appearance. This can't be undone.",
 		},
 	},
 
@@ -3664,6 +3658,106 @@ export const en = {
 		presentations: "Slides",
 		threeD: "3D",
 		other: "Other",
+	},
+
+	// ---- Export / import (portable packages) ---------------------------
+	portable: {
+		exportModal: {
+			title: "Export dashboard",
+			intro:
+				"Saves this one dashboard as a file. Everything about how it looks travels with it, so it draws the same in another vault.",
+			name: "Name",
+			nameDesc: "What this dashboard is called in the file. Defaults to the board's own name.",
+			description: "Description",
+			descriptionDesc: "Optional. A line or two about what this dashboard is for.",
+			author: "Author",
+			authorDesc: "Optional. Your name or handle, if you're sharing this.",
+			tags: "Tags",
+			tagsDesc: "Optional, comma separated. Useful if the dashboard is going somewhere it can be browsed.",
+			tagsPlaceholder: "writing, minimal, dark",
+			contents: "What to include",
+			embedAssets: "Include the wallpaper and images",
+			embedAssetsDesc:
+				"Carries the board's background picture, any image icons and any explicit slideshow pictures inside the file, so it looks right in a vault that has never seen them. Makes the file bigger. Turn it off for a backup of your own vault, where the pictures are already in place.",
+			pinLook: "Fix the look",
+			pinLookDesc:
+				"Writes every setting that affects this board's appearance onto the board itself, so another vault's settings can't change it. Turn it off to let the board adapt to wherever it lands.",
+			includePinned: "Include pinned cards",
+			includePinnedDesc:
+				"Cards you've pinned to every board. They aren't part of this dashboard, so they're left out unless you want them.",
+			includeFavorites: "Include the favourites list",
+			includeFavoritesDesc:
+				"The note paths a Favourites card reads. Vault-wide, and a list of your own notes.",
+			exportButton: "Export",
+			referenceNote: (paths: number, feeds: number) => {
+				const parts: string[] = [];
+				if (paths > 0) {
+					parts.push(
+						paths === 1
+							? "1 path from this vault"
+							: `${paths} paths from this vault`,
+					);
+				}
+				if (feeds > 0) {
+					parts.push(feeds === 1 ? "1 calendar feed URL" : `${feeds} calendar feed URLs`);
+				}
+				return `This file will mention ${parts.join(" and ")}. That's what makes it work as your own backup — worth a look before you publish it anywhere.`;
+			},
+			assetsSkipped: (paths: string) =>
+				`Exported, but these pictures were left out (too large, or no longer in the vault): ${paths}`,
+		},
+		importModal: {
+			title: "Import",
+			kinds: {
+				dashboard: "One dashboard",
+				layout: "A dashboard layout",
+				settings: "A full settings backup",
+			},
+			by: (author: string) => `by ${author}`,
+			madeWith: (version: string) => `Hearth ${version}`,
+			cardCount: (n: number) => (n === 1 ? "1 kind of card" : `${n} kinds of card`),
+			assetCount: (n: number) =>
+				n === 1 ? "Brings 1 picture with it" : `Brings ${n} pictures with it`,
+			pathCount: (n: number) =>
+				n === 1 ? "Points at 1 path in a vault" : `Points at ${n} paths in a vault`,
+			needsPlugins: (plugins: string) => `Wants these plugins: ${plugins}`,
+			mode: "How to import it",
+			modeDesc: "Adding leaves every one of your own settings alone.",
+			modeAdd: "Add as a new dashboard",
+			modeAddBoards: "Add its dashboards to mine",
+			modeReplaceBoard: (name: string) => `Update “${name}” in place`,
+			modeReplaceAll: "Replace all my settings",
+			replaceAllWarning:
+				"This replaces your dashboards and every Hearth setting with the ones in this file. It can't be undone.",
+			applyPinned: "Also add its pinned cards",
+			applyPinnedDesc: (n: number) =>
+				`${n} card${n === 1 ? "" : "s"} pinned to every board. They'd show on your other dashboards too.`,
+			applyFavorites: "Also add its favourites",
+			applyFavoritesDesc: (n: number) =>
+				`${n} note path${n === 1 ? "" : "s"}, appended to your own list.`,
+			heads: "Worth knowing",
+			missingPlugins: (plugins: string) =>
+				`Not installed or not enabled here: ${plugins}. Those cards will be empty until they are.`,
+			missingPaths: (n: number, sample: string) =>
+				`${n} note${n === 1 ? "" : "s"} or folder${n === 1 ? "" : "s"} this board points at aren't in your vault (${sample}${n > 3 ? ", …" : ""}).`,
+			missingFine:
+				"None of this stops the import — the cards come through and you can point them at your own notes.",
+			importButton: "Import",
+			addedOne: (name: string) => `Added “${name}”.`,
+			addedMany: (n: number) => `Added ${n} dashboards.`,
+			replacedOne: (name: string) => `Updated “${name}”.`,
+			restored: "Settings restored.",
+			assetsWritten: (n: number) =>
+				n === 1 ? "1 picture saved to your vault." : `${n} pictures saved to your vault.`,
+			warnMissingPaths: (n: number) =>
+				`${n} referenced path${n === 1 ? "" : "s"} not found here.`,
+			warnMissingPlugins: (n: number) =>
+				`${n} plugin${n === 1 ? " it wants isn't" : "s it wants aren't"} enabled.`,
+			warnTaskFields:
+				"Its task cards use custom fields — turn on task field customization in Settings → Integrations to see them.",
+			warnUnknownCards: "Some cards need a newer Hearth and were left out.",
+			warnAssets: "Some of its pictures were missing from the file.",
+		},
 	},
 
 	// ---- Layout import errors ------------------------------------------

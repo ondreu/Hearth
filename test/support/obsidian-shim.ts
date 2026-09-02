@@ -16,6 +16,7 @@
  *     functions that would call them (vault queries, network fetches, DOM work)
  *     are intentionally left untested, per the "no Obsidian API mocks" rule.
  */
+import { Buffer } from "node:buffer";
 import moment from "moment";
 
 export { moment };

@@ -69,8 +69,6 @@ export const zh: Translations = {
 		layoutExported: "Hearth：布局已导出。",
 		layoutImported: "Hearth：布局已导入。",
 		layoutImportError: (error: string) => `Hearth：${error}`,
-		settingsExported: "Hearth：设置已导出。",
-		settingsImported: "Hearth：设置已导入。",
 		exportedToVault: (file: string) => `Hearth：已将 ${file} 保存到仓库根目录。`,
 		exportFailed: "Hearth：无法保存导出文件。",
 		cardCopied: "卡片已复制到面板。",
@@ -466,6 +464,8 @@ export const zh: Translations = {
 		menu: {
 			settings: "面板设置…",
 			duplicate: "复制",
+			exportBoard: "导出仪表板…",
+			importBoard: "导入仪表板…",
 			delete: "删除",
 		},
 		deleteTitle: "删除面板？",
@@ -1370,29 +1370,23 @@ export const zh: Translations = {
 		},
 		layout: {
 			heading: "导入 / 导出",
-			headingDesc:
-				"以 JSON 文件备份或分享您的面板布局（卡片、网格、收藏）— 或全部 Hearth 设置。",
+			headingDesc: "以 JSON 文件分享单个仪表板，或备份您的整套配置。",
+			exportDashboard: "导出当前仪表板",
+			exportDashboardDesc:
+				"把您正在使用的仪表板保存为他人可导入的文件。它的外观会一并带走，并可选择是否包含壁纸。",
+			exportDashboardButton: "导出仪表板…",
+			importAny: "导入",
+			importAnyDesc:
+				"打开一个 Hearth 文件——单个仪表板、一份布局或一份完整备份。在任何改动之前会先告诉您文件内容；单个仪表板会添加到您现有面板旁边，而不会替换任何内容。",
 			export: "导出布局",
-			exportDesc: "将当前面板布局下载为 JSON 文件。",
+			exportDesc: "将所有仪表板以及网格和布局设置下载为 JSON 文件。",
 			exportButton: "导出文件",
 			exportMobileTooltip: "在移动端，文件会保存到仓库的根目录。",
-			import: "导入布局",
-			importDesc: "选择一个之前导出的布局文件。这会替换您当前的所有面板。",
 			importButton: "导入文件",
-			importTitle: "导入布局？",
-			importMessage:
-				"这会替换您当前的面板、固定卡片和布局设置。此操作无法撤销。",
 			exportSettings: "导出设置",
 			exportSettingsDesc:
 				"将全部 Hearth 设置 — 完整布局加上顶部、背景、行为、外观和 TaskNotes 选项 — " +
 				"下载为 JSON 备份文件。",
-			importSettings: "导入设置",
-			importSettingsDesc:
-				"选择一个之前导出的设置文件。这会替换您所有的 Hearth 设置。",
-			importSettingsTitle: "导入设置？",
-			importSettingsMessage:
-				"这会替换您所有的 Hearth 设置 — 面板、布局、顶部、背景、行为和外观。" +
-				"此操作无法撤销。",
 		},
 	},
 
@@ -3428,6 +3422,86 @@ export const zh: Translations = {
 		presentations: "幻灯片",
 		threeD: "3D",
 		other: "其他",
+	},
+
+	// ---- 导出 / 导入（可移植包） ----------------------------------------
+	portable: {
+		exportModal: {
+			title: "导出仪表板",
+			intro: "将这一个仪表板保存为文件。它的外观会一并带走，因此在其他库中也会呈现相同的样子。",
+			name: "名称",
+			nameDesc: "文件中该仪表板的名称。默认使用面板自身的名称。",
+			description: "描述",
+			descriptionDesc: "可选。用一两句话说明这个仪表板的用途。",
+			author: "作者",
+			authorDesc: "可选。如果要分享，可以填写你的名字或昵称。",
+			tags: "标签",
+			tagsDesc: "可选，用逗号分隔。若仪表板会被公开浏览，标签会很有用。",
+			tagsPlaceholder: "写作, 极简, 深色",
+			contents: "包含哪些内容",
+			embedAssets: "包含壁纸与图片",
+			embedAssetsDesc:
+				"把面板的背景图片、图片图标以及幻灯片中明确指定的图片一起放进文件，这样在从未见过这些文件的库中也能正确显示。文件会变大。若只是备份自己的库，可以关闭——图片本来就在那里。",
+			pinLook: "固定外观",
+			pinLookDesc:
+				"把影响该面板外观的每一项设置写入面板自身，使其他库的设置无法改变它。关闭后，面板会适应它所在的库。",
+			includePinned: "包含固定卡片",
+			includePinnedDesc: "固定在所有面板上的卡片。它们不属于这个仪表板，因此默认不包含。",
+			includeFavorites: "包含收藏列表",
+			includeFavoritesDesc: "“收藏”卡片读取的笔记路径。这是全库范围的，也是你自己的笔记清单。",
+			exportButton: "导出",
+			referenceNote: (paths: number, feeds: number) => {
+				const parts: string[] = [];
+				if (paths > 0) parts.push(`${paths} 个本库路径`);
+				if (feeds > 0) parts.push(`${feeds} 个日历订阅地址`);
+				return `该文件将包含 ${parts.join(" 和 ")}。这正是它能作为你自己备份的原因——公开分享之前值得先看一眼。`;
+			},
+			assetsSkipped: (paths: string) =>
+				`已导出，但以下图片未包含（过大，或已不在库中）：${paths}`,
+		},
+		importModal: {
+			title: "导入",
+			kinds: {
+				dashboard: "一个仪表板",
+				layout: "一份仪表板布局",
+				settings: "一份完整设置备份",
+			},
+			by: (author: string) => `作者：${author}`,
+			madeWith: (version: string) => `Hearth ${version}`,
+			cardCount: (n: number) => `${n} 种卡片`,
+			assetCount: (n: number) => `随附 ${n} 张图片`,
+			pathCount: (n: number) => `指向 ${n} 个库内路径`,
+			needsPlugins: (plugins: string) => `需要这些插件：${plugins}`,
+			mode: "如何导入",
+			modeDesc: "选择“添加”不会改动你自己的任何设置。",
+			modeAdd: "作为新仪表板添加",
+			modeAddBoards: "把它的仪表板添加到我的库",
+			modeReplaceBoard: (name: string) => `就地更新“${name}”`,
+			modeReplaceAll: "替换我的全部设置",
+			replaceAllWarning: "这会用文件中的内容替换你的仪表板和每一项 Hearth 设置，且无法撤销。",
+			applyPinned: "同时添加它的固定卡片",
+			applyPinnedDesc: (n: number) => `${n} 张固定在所有面板上的卡片，也会出现在你的其他仪表板上。`,
+			applyFavorites: "同时添加它的收藏",
+			applyFavoritesDesc: (n: number) => `${n} 个笔记路径，追加到你自己的列表中。`,
+			heads: "需要留意",
+			missingPlugins: (plugins: string) =>
+				`此处未安装或未启用：${plugins}。在启用之前，这些卡片会是空的。`,
+			missingPaths: (n: number, sample: string) =>
+				`该面板指向的 ${n} 个笔记或文件夹不在你的库中（${sample}${n > 3 ? "，…" : ""}）。`,
+			missingFine: "这些都不会阻止导入——卡片会照常导入，你可以把它们指向自己的笔记。",
+			importButton: "导入",
+			addedOne: (name: string) => `已添加“${name}”。`,
+			addedMany: (n: number) => `已添加 ${n} 个仪表板。`,
+			replacedOne: (name: string) => `已更新“${name}”。`,
+			restored: "设置已恢复。",
+			assetsWritten: (n: number) => `已将 ${n} 张图片保存到你的库中。`,
+			warnMissingPaths: (n: number) => `有 ${n} 个引用路径在此处找不到。`,
+			warnMissingPlugins: (n: number) => `它需要的 ${n} 个插件未启用。`,
+			warnTaskFields:
+				"它的任务卡片使用了自定义字段——请在“设置 → 集成”中开启任务字段自定义才能看到。",
+			warnUnknownCards: "部分卡片需要更新版本的 Hearth，已被略过。",
+			warnAssets: "文件中缺少它的部分图片。",
+		},
 	},
 
 	// ---- Layout import errors ------------------------------------------

@@ -31,6 +31,7 @@ import {
 } from "./types";
 import { cloneCard } from "./cards";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
+import { openExportDashboard, pickAndImport } from "./exportimport";
 import {
 	FULL_VIEW_SCOPE,
 	isDocumentViewType,
@@ -208,6 +209,20 @@ function showDashboardMenu(
 				void view.plugin.saveData(s);
 				view.render();
 			}),
+	);
+
+	menu.addItem((item) =>
+		item
+			.setTitle(t().dashboards.menu.exportBoard)
+			.setIcon("upload")
+			.onClick(() => openExportDashboard(view.plugin, dash)),
+	);
+
+	menu.addItem((item) =>
+		item
+			.setTitle(t().dashboards.menu.importBoard)
+			.setIcon("download")
+			.onClick(() => void pickAndImport(view.plugin)),
 	);
 
 	menu.addItem((item) =>
