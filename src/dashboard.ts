@@ -33,6 +33,7 @@ import {
 	effectiveMaxWidth,
 	effectiveRowHeight,
 	timersAllowed,
+	perCardFrost,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
@@ -122,6 +123,11 @@ export function renderDashboard(
 		elements: new Map(),
 	};
 
+	// Which of the two frosted-glass shapes this tier gets. Resolved once for
+	// the board rather than per card: it is a tier decision, so it cannot differ
+	// between two cards of the same board.
+	const perCard = perCardFrost(s);
+
 	for (const card of stacked ? stackedCards(cards) : cards) {
 		// A card asked to collapse gets a title row and nothing else until someone
 		// taps it — which is the whole point of the option: an expensive card
@@ -157,17 +163,32 @@ export function renderDashboard(
 				`${resolveCardBorderWidth(s, card)}px`,
 			);
 		}
-		// Cards whose resolved blur is > 0 feed the shared frost layer (see
-		// updateFrostLayers / the .hearth-frost note in styles.css). The value is
+		// Frosted glass, in one of two shapes depending on the performance tier
+		// (see perCardFrost, and the .hearth-frost note in styles.css).
+		//
+		// `.has-card-blur` + --card-blur: the card carries its own
+		// backdrop-filter. `full` only — one filter pass per blurred card.
+		//
+		// `.has-blur` + data-blur: the card feeds the shared layer instead, which
+		// blurs once for the whole grid and is masked to its cards. The value is
 		// stashed on the element so the frost rebuild can group cards by blur
-		// without re-reading settings, and blur-off cards never enter a layer.
-		// A seamless card paints no surface of its own, so frosting the wallpaper
-		// behind it would leave a blurred rectangle floating on the board with no
-		// card on it. Such a card never joins a frost layer.
+		// without re-reading settings; blur-off cards never enter a layer.
+		//
+		// Only ever one of the two, so updateFrostLayers finds no .has-blur cards
+		// at `full` and drops the shared layer without needing to know the tier.
+		//
+		// Either way, a seamless card paints no surface of its own, so frosting
+		// the wallpaper behind it would leave a blurred rectangle floating on the
+		// board with no card on it. Such a card is never blurred.
 		const cardBlur = kindClasses.includes("is-seamless") ? 0 : resolveCardBlur(s, card);
 		if (cardBlur > 0) {
-			el.addClass("has-blur");
-			el.dataset.blur = String(cardBlur);
+			if (perCard) {
+				el.addClass("has-card-blur");
+				el.style.setProperty("--card-blur", `${cardBlur}px`);
+			} else {
+				el.addClass("has-blur");
+				el.dataset.blur = String(cardBlur);
+			}
 		}
 
 		const head = el.createDiv("hearth-card-head");

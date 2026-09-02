@@ -924,22 +924,64 @@
 		transform 120ms ease;
 }
 
-/* Frosted glass: a SINGLE shared blur layer per grid, not a backdrop-filter on
- * each card. A per-card backdrop-filter seams where merged cards meet: each card
- * is its own backdrop root, so the blur is computed and edge-clamped
- * independently on either side of a shared edge, leaving a visible line that no
- * border/shadow trick can hide (and oversizing a per-card blur only trades the
- * clamp seam for paint-order contamination from the neighbour). Instead one or
- * more .hearth-frost layers sit behind the cards (in .hearth-frost-root, the
- * grid's first child) and blur the wallpaper ONCE; an SVG mask — rebuilt from
- * live card geometry in updateFrostLayers() — reveals each layer only under its
- * cards, so gaps between cards stay sharp while a run of touching cards reads as
- * one seamless frosted tile. Cards keep their translucent tint (see the
- * .hearth-card background), which paints over the shared blur: blur-then-tint,
- * the correct frosted-glass order. One layer is created per distinct resolved
- * blur value (usually just the board default); the blur radius and mask are set
- * inline per layer by updateFrostLayers(). .has-blur simply marks which cards
- * feed the frost — cards without blur never enter a layer, so they pay nothing. */
+/* Frosted glass, in two shapes. Which one a board gets is the performance
+ * tier's call (perCardFrost in types.ts); dashboard.ts marks each blurred card
+ * for one or the other, never both.
+ *
+ * 1. PER CARD — `full` only. Each blurred card carries its own backdrop-filter
+ *    at its own radius (.hearth-card.has-card-blur, below). Every blurred card
+ *    is then its own backdrop root, which is both the appeal and the cost: the
+ *    blur tracks the card exactly — through a drag, a resize, its own corner
+ *    rounding — with no layer to size and no mask to rebuild, but the
+ *    compositor runs one filter pass per card and re-runs all of them whenever
+ *    anything behind the board changes. It also seams where merged cards meet:
+ *    the blur is computed and edge-clamped independently either side of a shared
+ *    edge, leaving a line that no border/shadow trick can hide (and oversizing a
+ *    per-card blur only trades the clamp seam for paint-order contamination from
+ *    the neighbour). At `full` that is the accepted trade.
+ *
+ * 2. SHARED — every tier below `full` that still allows frost. One or more
+ *    .hearth-frost layers sit behind the cards (in .hearth-frost-root, the
+ *    grid's first child) and blur the wallpaper ONCE; an SVG mask — rebuilt from
+ *    live card geometry in updateFrostLayers() — reveals each layer only under
+ *    its cards, so gaps between cards stay sharp while a run of touching cards
+ *    reads as one seamless frosted tile, with no seam anywhere because there is
+ *    only one surface. One layer per distinct resolved blur value (usually just
+ *    the board default); radius and mask are set inline per layer.
+ *
+ * Both keep the card's translucent tint (see the .hearth-card background)
+ * painting over the blur: blur-then-tint, the correct frosted-glass order.
+ * .has-blur / .has-card-blur simply mark which cards are frosted and how —
+ * cards without blur carry neither and pay nothing. */
+
+/* Per-card frost (shape 1). --card-blur is set inline per card by
+ * dashboard.ts, so a per-card override lands here as well as the board default.
+ * The filter is priced by the card's border box and clipped by its own
+ * border-radius, so merged corners — flattened by the merge-* classes below —
+ * come out flat here too, and the border keeps its colour over the blur, with
+ * nothing extra to declare.
+ *
+ * On the card itself rather than on a layer inside it. A blur layer inside the
+ * card would have to be a negative-z-index child, which needs `isolation` on
+ * the card to stay put and then only reaches the padding box — a card with a
+ * thick translucent border shows a sharp ring of unblurred wallpaper around a
+ * blurred middle. Declared here the geometry is simply right.
+ *
+ * The cost of that: like `filter`, a backdrop-filter makes the card a
+ * containing block for `position: fixed` descendants, so a fixed child of a
+ * blurred card is positioned and clipped against the card instead of the
+ * window. One place in Hearth does that — the Jira card's filter menu, which
+ * docks itself to the bottom of a narrow window (see the max-width: 600px rule
+ * for .hearth-jira-filter-menu) and inside a blurred card docks to the bottom
+ * of the card instead. It stays scrollable and usable there; anything new that
+ * wants to escape a card should be mounted outside it rather than positioned
+ * fixed. */
+.hearth-card.has-card-blur {
+	backdrop-filter: blur(var(--card-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--card-blur, 0px));
+}
+
+/* Shared frost (shape 2). */
 .hearth-frost-root {
 	position: absolute;
 	inset: 0;

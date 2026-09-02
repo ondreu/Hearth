@@ -823,12 +823,13 @@ export const zh: Translations = {
 			tierMinimal: "最简 — 朴素静止",
 			/** One line per tier, shown under the dropdown for the selected one. */
 			tierFullDesc:
-				"所有效果全强度开启。绘制的天气天空是其中最耗资源的部分：" +
+				"所有效果全强度开启，每张卡片各自模糊自己背后的画面。" +
+				"绘制的天气天空是其中最耗资源的部分：" +
 				"如果面板让机器发热，就从这一项开始降档。",
 			tierBalancedDesc:
-				"绘制的天空以一半密度呈现 — 更少的雨滴、星星、云与雾丝。" +
-				"没有任何效果被关闭，也没有任何东西停止运动；只是数量更少，" +
-				"工作量约减少三分之一。",
+				"绘制的天空以一半密度呈现 — 更少的雨滴、星星、云与雾丝 — " +
+				"卡片也改为共用一层毛玻璃，而不再逐张模糊。" +
+				"没有任何效果被关闭，也没有任何东西停止运动；只是要画的东西更少了。",
 			tierReducedDesc:
 				"面板上不再有任何动画，卡片背后的毛玻璃也已关闭。壁纸保留，" +
 				"卡片保持半透明，每张卡片仍按计时器刷新 — 只是面板静止了。",
@@ -850,6 +851,8 @@ export const zh: Translations = {
 			effectBackground: "背景为纯色 — 无图片、GIF、不透明层或模糊",
 			effectOpaque: "卡片不透明，而非半透明",
 			effectFrost: "卡片背后没有毛玻璃模糊",
+			effectSharedFrost:
+				"卡片共用一层毛玻璃，而不再逐张模糊各自背后的画面（互不相邻的卡片看起来完全一样；合并在一起的卡片会更连贯）",
 			effectMotion: "过渡、悬停浮起、阴影与动画均关闭",
 			effectRefresh:
 				"网页、RSS、日历订阅和 Jira 卡片不再按计时器刷新（手动刷新仍然可用）",

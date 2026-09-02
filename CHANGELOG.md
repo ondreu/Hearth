@@ -99,6 +99,26 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   of Obsidian — and a Hearth tab you *replace* by opening a note in it takes its
   place with it, so opening Hearth fresh afterwards still starts at the top.
 
+### Changed
+
+- **Each card frosts its own backdrop again, on the Full tier.** The
+  frosted-glass blur behind cards had become one shared layer per board, masked
+  to the card silhouettes so a run of touching cards read as a single seamless
+  tile. That is cheaper — one blur pass for the whole board instead of one per
+  card — and it is now what the **Balanced** tier does.
+
+  **Full** goes back to blurring each card separately. The blur belongs to the
+  card again: it tracks it exactly through a drag or a resize, rounds to the
+  card's own corners, and needs no layer to size or mask to rebuild. The
+  trade-off is the one the shared layer was built to avoid — two *merged* cards
+  blur independently either side of the edge they share, so a faint seam shows
+  there — and it costs the compositor one filter pass per blurred card. If you
+  merge cards, or would rather have the cheaper blur, **Balanced** keeps the
+  seamless version (and nothing else about the frost changes at either tier).
+
+  Nothing to set up: the tier picks the shape. Cards are unblurred out of the
+  box, so this only shows up on a board where you have turned the blur on.
+
 ## [3.0.0]
 
 ### Added

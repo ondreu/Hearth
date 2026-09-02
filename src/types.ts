@@ -2711,6 +2711,28 @@ export function frostAllowed(s: HomeSettings): boolean {
 	return tierRank(s) < PERFORMANCE_TIERS.indexOf("reduced");
 }
 
+/**
+ * Whether each card frosts its own backdrop, instead of feeding one shared
+ * layer per grid.
+ *
+ * `full` only, and it is the more expensive of the two by construction: a
+ * per-card `backdrop-filter` makes every blurred card its own backdrop root, so
+ * the compositor runs one filter pass per card and re-runs all of them whenever
+ * anything behind the board changes. The shared layer runs one pass for the
+ * whole grid (see updateFrostLayers) and is what every tier below `full` gets.
+ *
+ * The trade is not only cost. A per-card filter tracks its card exactly — it
+ * moves with a drag and rounds to the card's own corners with no mask to rebuild
+ * — but it is also clamped at each card's own edges, so two merged cards blur
+ * independently either side of the edge they share and a seam shows there. The
+ * shared layer has no seam because there is only one surface. `full` therefore
+ * means "the sharper, costlier blur, seams and all"; step down one rung for the
+ * seamless one.
+ */
+export function perCardFrost(s: HomeSettings): boolean {
+	return frostAllowed(s) && performanceTier(s) === "full";
+}
+
 /** Whether timer-driven work may run at all: card auto-refresh and the
  * vault-driven live rebuild. False only on `minimal`. */
 export function timersAllowed(s: HomeSettings): boolean {
@@ -2769,8 +2791,8 @@ export function resolveCardOpacity(s: HomeSettings, card: DashboardCard): number
 export function effectiveCardBlur(s: HomeSettings): number {
 	// From `reduced` down: no frosted glass. Reporting 0 here (and in
 	// resolveCardBlur) is enough to switch it off wholesale — no card is marked
-	// .has-blur, so updateFrostLayers never builds a backdrop-filter layer or its
-	// SVG mask.
+	// .has-blur or .has-card-blur, so neither shape is built: no per-card
+	// backdrop-filter, and no shared layer or its SVG mask.
 	if (!frostAllowed(s)) return 0;
 	const v = activeDashboard(s).cardBlur ?? s.cardBlur;
 	return typeof v === "number" && !Number.isNaN(v) ? Math.max(0, Math.min(40, v)) : 0;

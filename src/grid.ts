@@ -899,12 +899,16 @@ function cardSilhouettePath(
 }
 
 /** Rebuild the shared frosted-glass blur layers behind the cards. See the
- *  .hearth-frost note in styles.css for why the blur is shared rather than
- *  per-card. One .hearth-frost layer is created per distinct resolved blur value
- *  (stashed on each card as data-blur), each masked — via an inline SVG built
- *  from the cards' live silhouettes — to the union of its cards. The blur is
- *  therefore computed once per value and shows only under the cards, so touching
- *  cards blur as one seamless surface while gaps stay sharp. */
+ *  frosted-glass note in styles.css for the two shapes the blur can take and
+ *  which tier gets which. One .hearth-frost layer is created per distinct
+ *  resolved blur value (stashed on each card as data-blur), each masked — via an
+ *  inline SVG built from the cards' live silhouettes — to the union of its
+ *  cards. The blur is therefore computed once per value and shows only under the
+ *  cards, so touching cards blur as one seamless surface while gaps stay sharp.
+ *
+ *  On the `full` tier every blurred card carries its own backdrop-filter instead
+ *  (dashboard.ts marks those .has-card-blur, not .has-blur), so the scan below
+ *  finds nothing and the shared root is torn down — no tier check needed here. */
 export function updateFrostLayers(gridEl: HTMLElement): void {
 	let root = gridEl.querySelector<HTMLElement>(":scope > .hearth-frost-root");
 	const cards = Array.from(

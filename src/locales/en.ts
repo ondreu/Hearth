@@ -886,13 +886,15 @@ export const en = {
 			tierMinimal: "Minimal — plain and still",
 			/** One line per tier, shown under the dropdown for the selected one. */
 			tierFullDesc:
-				"Every effect at full strength. The painted weather sky is the most " +
-				"expensive thing here: if the board is warming up your machine, this " +
-				"is the setting to step down.",
+				"Every effect at full strength, and every card frosts its own " +
+				"backdrop. The painted weather sky is the most expensive thing here: " +
+				"if the board is warming up your machine, this is the setting to " +
+				"step down.",
 			tierBalancedDesc:
 				"The painted sky is drawn at half density — fewer raindrops, stars, " +
-				"clouds and wisps of fog. Nothing is switched off and nothing stops " +
-				"moving; there is simply less of it, for about a third less work.",
+				"clouds and wisps of fog — and the cards share one frosted-glass " +
+				"layer instead of blurring one by one. Nothing is switched off and " +
+				"nothing stops moving; there is simply less of it to draw.",
 			tierReducedDesc:
 				"Nothing on the board moves, and the frosted glass behind cards is " +
 				"off. Your wallpaper stays, cards stay translucent, and every card " +
@@ -917,6 +919,8 @@ export const en = {
 			effectBackground: "the background is a flat colour — no image, GIF, opacity layer or blur",
 			effectOpaque: "cards are opaque rather than translucent",
 			effectFrost: "no frosted-glass blur behind cards",
+			effectSharedFrost:
+				"cards share one frosted-glass layer instead of each blurring its own backdrop (touching cards look the same either way; a merged pair reads more seamlessly)",
 			effectMotion: "transitions, hover lifts, shadows and animations are off",
 			effectRefresh:
 				"web, RSS, calendar-subscription and Jira cards stop refreshing on a timer (manual refresh still works)",

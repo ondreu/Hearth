@@ -11,6 +11,7 @@ import {
 	lowPowerActive,
 	migrateSettings,
 	motionAllowed,
+	perCardFrost,
 	PERFORMANCE_TIERS,
 	type PerformanceTier,
 	performanceTier,
@@ -72,6 +73,7 @@ describe("performanceTier", () => {
 		expect(performanceTier(s)).toBe("full");
 		expect(motionAllowed(s)).toBe(true);
 		expect(frostAllowed(s)).toBe(true);
+		expect(perCardFrost(s)).toBe(true);
 		expect(timersAllowed(s)).toBe(true);
 	});
 });
@@ -85,12 +87,19 @@ describe("performanceTier", () => {
 describe("the tier ladder", () => {
 	const expected: Record<
 		PerformanceTier,
-		{ motion: boolean; frost: boolean; timers: boolean; minimal: boolean; density: number }
+		{
+			motion: boolean;
+			frost: boolean;
+			perCard: boolean;
+			timers: boolean;
+			minimal: boolean;
+			density: number;
+		}
 	> = {
-		full: { motion: true, frost: true, timers: true, minimal: false, density: 1 },
-		balanced: { motion: true, frost: true, timers: true, minimal: false, density: 0.5 },
-		reduced: { motion: false, frost: false, timers: true, minimal: false, density: 1 },
-		minimal: { motion: false, frost: false, timers: false, minimal: true, density: 1 },
+		full: { motion: true, frost: true, perCard: true, timers: true, minimal: false, density: 1 },
+		balanced: { motion: true, frost: true, perCard: false, timers: true, minimal: false, density: 0.5 },
+		reduced: { motion: false, frost: false, perCard: false, timers: true, minimal: false, density: 1 },
+		minimal: { motion: false, frost: false, perCard: false, timers: false, minimal: true, density: 1 },
 	};
 
 	for (const tier of PERFORMANCE_TIERS) {
@@ -100,6 +109,7 @@ describe("the tier ladder", () => {
 			const want = expected[tier];
 			expect(motionAllowed(s)).toBe(want.motion);
 			expect(frostAllowed(s)).toBe(want.frost);
+			expect(perCardFrost(s)).toBe(want.perCard);
 			expect(timersAllowed(s)).toBe(want.timers);
 			expect(lowPowerActive(s)).toBe(want.minimal);
 			expect(skyDensity(s)).toBe(want.density);
@@ -111,15 +121,18 @@ describe("the tier ladder", () => {
 	it("never gains a capability on the way down", () => {
 		let motion = true;
 		let frost = true;
+		let perCard = true;
 		let timers = true;
 		for (const tier of PERFORMANCE_TIERS) {
 			const s = settings();
 			s.performanceTier = tier;
 			expect(motionAllowed(s) && !motion).toBe(false);
 			expect(frostAllowed(s) && !frost).toBe(false);
+			expect(perCardFrost(s) && !perCard).toBe(false);
 			expect(timersAllowed(s) && !timers).toBe(false);
 			motion = motionAllowed(s);
 			frost = frostAllowed(s);
+			perCard = perCardFrost(s);
 			timers = timersAllowed(s);
 		}
 	});
@@ -216,6 +229,44 @@ describe("effectiveBackground under the tiers", () => {
 			bannerFade: true,
 			bannerFullWidth: false,
 		});
+	});
+});
+
+/**
+ * Which of the two frosted-glass shapes a tier gets (see perCardFrost). This is
+ * not a capability that switches off — the frost is on at both `full` and
+ * `balanced` — so the ladder table above cannot express the whole rule: the
+ * per-card shape is `full` and nothing else, in both directions.
+ */
+describe("perCardFrost", () => {
+	it("is the full tier alone, with the shared layer everywhere else", () => {
+		const s = settings();
+		expect(perCardFrost(s)).toBe(true);
+
+		// Frost still on, but as one shared layer rather than one filter per card.
+		s.performanceTier = "balanced";
+		expect(frostAllowed(s)).toBe(true);
+		expect(perCardFrost(s)).toBe(false);
+
+		// No frost at all below that, so no shape to choose.
+		for (const tier of ["reduced", "minimal"] as const) {
+			s.performanceTier = tier;
+			expect(frostAllowed(s)).toBe(false);
+			expect(perCardFrost(s)).toBe(false);
+		}
+
+		s.performanceTier = "full";
+		expect(perCardFrost(s)).toBe(true);
+	});
+
+	// The shape is the tier's call, not the blur radius': a board with the blur
+	// turned off is still "per-card" in the sense that matters here, because
+	// resolveCardBlur reports 0 and dashboard.ts marks no card either way.
+	it("does not depend on the configured blur radius", () => {
+		const s = settings();
+		s.cardBlur = 0;
+		expect(perCardFrost(s)).toBe(true);
+		expect(effectiveCardBlur(s)).toBe(0);
 	});
 });
 
