@@ -23,7 +23,6 @@
  */
 
 import {
-	activeDashboard,
 	type Dashboard,
 	type DashboardCard,
 	type HomeSettings,
@@ -51,7 +50,7 @@ import {
 	type PackageKind,
 	warn,
 } from "./schema";
-import { boardReferences, cardReferences } from "./refs";
+import { boardReferences } from "./refs";
 
 /** Parse failure reasons, as message keys the caller turns into words. */
 export type ReadError = "invalidJson" | "notAnObject" | "notHearth" | "emptyPayload";
@@ -205,6 +204,10 @@ function applyDashboardPackage(
 	// know about is reported rather than silently missing.
 	reportDroppedCards(payload.dashboard, board, result);
 
+	// A one-board package has two destinations, not three: it joins the vault or
+	// it updates one board. A `replaceAll` asked for here would mean throwing
+	// away every other board to install this one, which is not something a
+	// dashboard file should be able to do — so it lands as an add.
 	const mode = opts.mode ?? "add";
 	if (mode === "replaceBoard") {
 		const targetId = opts.targetBoardId ?? s.activeDashboardId;
@@ -222,7 +225,12 @@ function applyDashboardPackage(
 		s.dashboards[index] = board;
 		result.replaced.push({ id: board.id, name: board.name });
 	} else {
-		board.id = newDashboardId();
+		// The package's own board id is kept when this vault has nothing under
+		// it, and that is what makes re-importing the same package offer to
+		// *update* the board it created last time rather than pile up copies
+		// (see `existingBoardFor`). A collision means the board is already here,
+		// so a deliberate second copy gets an id of its own.
+		if (s.dashboards.some((d) => d.id === board.id)) board.id = newDashboardId();
 		board.name = uniqueBoardName(s, board.name);
 		// A board arriving in someone else's vault does not get to claim the
 		// mobile default or a workspace, whatever the file says.
@@ -449,27 +457,4 @@ export function existingBoardFor(
 	const id = (pkg.payload as DashboardPayload).dashboard?.id;
 	if (typeof id !== "string" || !id) return undefined;
 	return s.dashboards.find((d) => d.id === id);
-}
-
-/** Card-level references for a package's own cards, so a caller can preflight
- * a package's paths without applying it. */
-export function packageCardReferences(pkg: HearthPackage): ReturnType<typeof cardReferences> {
-	if (pkg.hearth.kind !== "dashboard") return [];
-	const payload = pkg.payload as DashboardPayload;
-	const refs = [...boardReferences(payload.dashboard ?? activeBoardFallback())];
-	payload.pinnedCards?.forEach((card, i) => {
-		refs.push(...cardReferences(card, `pinnedCards[${i}]`));
-	});
-	return refs;
-}
-
-/** An empty board, so `packageCardReferences` on a malformed package returns
- * nothing rather than throwing. */
-function activeBoardFallback(): Dashboard {
-	return { id: "", name: "", cards: [] };
-}
-
-/** The board a `replaceBoard` import would overwrite by default. */
-export function defaultReplaceTarget(s: HomeSettings): Dashboard {
-	return activeDashboard(s);
 }

@@ -207,16 +207,6 @@ export interface HearthPackage {
 	payload: PackagePayload;
 }
 
-/** A `dashboard` package, narrowed. */
-export interface DashboardPackage extends HearthPackage {
-	hearth: PackageHeader & { kind: "dashboard" };
-	payload: DashboardPayload;
-}
-
-/** Narrow a package to a dashboard one. */
-export function isDashboardPackage(pkg: HearthPackage): pkg is DashboardPackage {
-	return pkg.hearth.kind === "dashboard";
-}
 
 /** How an imported board joins the vault.
  *

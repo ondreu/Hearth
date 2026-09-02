@@ -28,7 +28,6 @@
 
 import { Platform } from "obsidian";
 import {
-	activeDashboard,
 	type Dashboard,
 	type DashboardCard,
 	effectiveArrangeButtonVisibility,
@@ -75,7 +74,6 @@ import {
 	type PackageMeta,
 	type PackageRequirements,
 } from "./schema";
-import { boardReferences, cardReferences } from "./refs";
 
 /** A deep copy through JSON — exact for settings, which are JSON by definition,
  * and it drops `undefined`-valued keys rather than persisting them. */
@@ -386,31 +384,4 @@ export function captureSettings(s: HomeSettings, opts: CaptureOptions = {}): Hea
  * a shared board can be read and diffed by hand. */
 export function serializePackage(pkg: HearthPackage): string {
 	return JSON.stringify(pkg, null, 2);
-}
-
-/** The board a `dashboard` capture would take, for a preview that needs the
- * flattened board without building a whole package. */
-export function captureActiveBoard(s: HomeSettings): Dashboard {
-	return flattenBoardLook(s, activeDashboard(s));
-}
-
-/** Every vault path a package points at, deduplicated — what the export UI
- * shows when it offers to embed pictures, and what a gallery lists. */
-export function packagePaths(pkg: HearthPackage): string[] {
-	const paths = new Set<string>();
-	const collect = (value: string | number): void => {
-		if (typeof value === "string" && value.trim()) paths.add(value);
-	};
-	if (pkg.hearth.kind === "dashboard") {
-		const payload = pkg.payload as DashboardPayload;
-		for (const ref of boardReferences(payload.dashboard)) {
-			if (ref.scope === "vaultPath" || ref.scope === "asset") collect(ref.value);
-		}
-		for (const card of payload.pinnedCards ?? []) {
-			for (const ref of cardReferences(card)) {
-				if (ref.scope === "vaultPath" || ref.scope === "asset") collect(ref.value);
-			}
-		}
-	}
-	return Array.from(paths);
 }

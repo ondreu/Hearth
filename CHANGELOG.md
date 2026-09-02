@@ -116,7 +116,83 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   alone until you are done. Off is available — Settings → Behaviour → **Pick up
   synced changes** — but on is the honest default.
 
+- **Share a dashboard.** Export one board — not the whole vault — as a file
+  someone else can import, and get back a board that looks like the one you
+  sent. **Dashboard settings → the switcher's right-click menu → Export
+  dashboard**, or Settings → Import / export.
+
+  The reason this needed building rather than tweaking is that a dashboard never
+  described itself completely. Half its look lived on the board and half in the
+  vault's global settings, which the board fell back to for anything it hadn't
+  overridden — so a board handed to someone else arrived wearing *their* grid,
+  card opacity, wallpaper and search placeholder. An export now resolves all of
+  it onto the board itself: it stops inheriting and states what it is.
+
+  **The wallpaper travels too, if you want it to.** A background picture is a
+  file in your vault, and a path to it means nothing in anyone else's — so the
+  export can carry the picture (and image icons, and a slideshow's explicit
+  pictures) inside the file, and the import writes them into the importing
+  vault. It is a toggle in the export dialog, on for a shared board and worth
+  turning off for a backup of your own vault, where the pictures are already
+  where they belong. Anything too large or no longer in the vault is left as a
+  path and reported rather than silently dropped.
+
+  Importing **adds** the board rather than replacing anything: a new board, a
+  name that doesn't collide, and not one of your own settings touched. Import
+  the same file again later and it offers to *update* the board it created the
+  first time instead of leaving you two. The dialog reads the file first and
+  says what is in it — who made it, what plugins it wants, which of its notes
+  your vault hasn't got, whether it brought its pictures — before anything
+  changes. None of those gaps stop an import; the cards come through and you
+  point them at your own notes.
+
+  The file also carries the paths it references, deliberately: that is what
+  makes your own export work as your own backup. The export dialog says how many
+  before you save, since a board you are about to publish somewhere is a
+  different matter from one you are filing away.
+
+- **A board can carry its own search row, chrome and sky.** Nine settings that
+  decide how a board looks were vault-wide only: the search placeholder, the
+  button beside the search field (whether it's there, what it does, what it
+  says), which filter chips show, whether the board stacks into one column when
+  narrow, whether the arrange button and the dashboard switcher stay visible or
+  fade in on hover, and whether the painted weather sky drifts. Each is now a
+  per-board override in Dashboard settings, following the vault until you say
+  otherwise — which is both a feature in its own right and what lets an exported
+  board describe its whole appearance.
+
+  The sky override can ask for motion but never insist on it: the performance
+  tier and your own reduced-motion setting still have the last word, so an
+  imported board can't start animating on a device that has opted out.
+
 ### Fixed
+
+- **A full settings backup no longer forgets eleven settings.** Export every
+  Hearth setting, restore it into a fresh vault, and eleven of them came back at
+  their defaults instead of yours: the theme-colour target, the mobile
+  performance tier, both chrome-visibility choices, focus-search-on-open, live
+  refresh, pick-up-synced-changes, stack-when-narrow, custom file icons, the
+  Iconize property name, and the Operon writes switch. They were never written
+  to the file, so nothing could restore them. All eleven now travel, and a test
+  checks the export against the settings list so the next one added can't slip
+  through the same gap.
+
+- **A restored backup keeps its painted sky.** A vault whose background was the
+  weather sky restored with no background at all: the importer's list of
+  background kinds had never been updated with `weather`, so the setting failed
+  its check and was dropped. The per-board background override was unaffected.
+
+- **Exporting a single dashboard no longer includes a Jira token.** The layout
+  and full-settings exports have always scrubbed a Jira card's personal access
+  token; the new single-dashboard export needed the same scrub, and there is now
+  one shared function doing it for all three so a future export path cannot
+  forget.
+
+- **Duplicating a dashboard copies all of it.** The duplicate action carried a
+  hand-written list of fields, which had fallen behind every override added
+  after it was written — a copy came out subtly unlike the board it came from.
+  It now clones the board and takes back only the two things a copy must not
+  share: a workspace link and the mobile-default flag.
 
 - **Frosted glass no longer smears across the gaps between cards.** With the
   card blur turned on, two cards sitting apart on a board could show a single

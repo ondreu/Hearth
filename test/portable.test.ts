@@ -43,6 +43,7 @@ import {
 	captureSettings,
 	describeReferences,
 	embedAssets,
+	existingBoardFor,
 	materializeAssets,
 	PACKAGE_FORMAT,
 	readPackage,
@@ -356,6 +357,32 @@ describe("importing a board into a vault", () => {
 		expect(names).toEqual(["Their board", "Home", "Home 2"]);
 		const ids = new Set(theirs.dashboards.map((d) => d.id));
 		expect(ids.size).toBe(3);
+	});
+
+	/**
+	 * What makes "I downloaded this board last month and there's a new version"
+	 * work. The package keeps the board id it was captured under, and an `add`
+	 * keeps it too when the vault has nothing under it — so the next import of
+	 * the same package can find what it created and offer to update it instead
+	 * of leaving two nearly-identical boards in the switcher.
+	 */
+	it("can find the board a previous import of the same package created", () => {
+		const mine = opinionatedVault();
+		const theirs = contraryVault();
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+
+		expect(existingBoardFor(theirs, pkg)).toBeUndefined();
+		applyPackage(theirs, pkg, { mode: "add" });
+
+		const found = existingBoardFor(theirs, pkg);
+		expect(found?.name).toBe("Home");
+
+		// And updating through that route leaves one board, not two.
+		applyPackage(theirs, captureDashboard(mine, mine.dashboards[0]), {
+			mode: "replaceBoard",
+			targetBoardId: found!.id,
+		});
+		expect(theirs.dashboards).toHaveLength(2);
 	});
 
 	it("keeps the target board's id when replacing one in place", () => {

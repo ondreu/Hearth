@@ -357,7 +357,9 @@ Before you add one:
 - **Pinned cards** — pin a card to appear on every dashboard, sharing one
   definition and position.
 - **Fit to page** — lock the board to one screen or let it scroll.
-- **Import / export** — back up or share a board's layout as JSON.
+- **Import / export** — share one dashboard as a file that looks the same in
+  someone else's vault (wallpaper optionally carried inside it), or back up
+  every board and setting as JSON.
 
 ## Appearance
 
@@ -380,6 +382,12 @@ Before you add one:
 - **Card corner radius** — from the default 14 px down to sharp 0 px.
 - **Per-card colors** — an accent and a background tint for any card.
 - **Title, title icon and compact spacing** for the dashboard header.
+- **Its own search row and chrome** — a dashboard can set its own search
+  placeholder, its own button beside the search field (or none), its own filter
+  chips, whether it stacks into one column when narrow, whether the arrange
+  button and the switcher stay visible or fade in on hover, and whether the
+  painted sky drifts. Each follows the vault until the board says otherwise, and
+  each travels with the board when you export it.
 - **One title icon, four ways to set it** — the mark beside the board's heading
   takes a **Lucide icon** (searched from a picker rather than typed from
   memory), an **emoji or a couple of characters**, the **vault path of an
