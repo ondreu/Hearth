@@ -2068,6 +2068,13 @@ export interface HomeSettings {
 	 * board is being arranged. Off by default; a home view already refreshes
 	 * whenever the user switches back to its tab regardless of this setting. */
 	liveRefresh: boolean;
+	/** Adopt settings written to Hearth's `data.json` by something other than
+	 * this window — Obsidian Sync landing another device's dashboards, a git
+	 * pull, an external editor — as they arrive, instead of only at the next
+	 * Obsidian restart. On by default: without it this window keeps showing the
+	 * copy it read at startup and writes that stale copy back on its next save.
+	 * See `src/settingssync.ts`. */
+	liveSettingsSync: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -2300,6 +2307,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	replaceNewTabs: true,
 	focusSearchOnOpen: false,
 	liveRefresh: false,
+	liveSettingsSync: true,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below
@@ -2900,6 +2908,30 @@ export function effectiveBackground(s: HomeSettings): ResolvedBackground {
 export function bannerActive(s: HomeSettings): boolean {
 	const bg = effectiveBackground(s);
 	return bg.layout === "banner" && bg.kind !== "none";
+}
+
+/**
+ * Turn the raw contents of `data.json` into usable settings: defaults for
+ * everything it doesn't carry (top-level and nested), then the one-way
+ * migrations.
+ *
+ * Shared by the load at startup and by the adoption of settings another device
+ * synced in (`src/settingssync.ts`), so a board arriving mid-session is
+ * hydrated exactly the way a restart would have hydrated it.
+ *
+ * `migrated` is true when a destructive migration ran and its result therefore
+ * needs flushing back to storage — see {@link migrateSettings}.
+ */
+export function hydrateSettings(raw: Record<string, unknown>): {
+	settings: HomeSettings;
+	migrated: boolean;
+} {
+	const settings = Object.assign({}, DEFAULT_SETTINGS, raw) as HomeSettings;
+	fillMissingDefaults(
+		settings as unknown as Record<string, unknown>,
+		DEFAULT_SETTINGS as unknown as Record<string, unknown>,
+	);
+	return { settings, migrated: migrateSettings(settings, raw) };
 }
 
 /**

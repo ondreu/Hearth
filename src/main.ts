@@ -1,6 +1,6 @@
 import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
-import { DEFAULT_SETTINGS, fillMissingDefaults, HomeSettings, migrateSettings, timersAllowed } from "./types";
+import { HomeSettings, hydrateSettings, timersAllowed } from "./types";
 import { HomeSettingTab } from "./settings";
 import {
 	HEARTH_ICON_ID,
@@ -18,6 +18,13 @@ import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
+import {
+	adoptSettings,
+	isPluginDataPath,
+	looksLikeSavedSettings,
+	pluginDataPath,
+	sameSettings,
+} from "./settingssync";
 
 /** Core "Audio recorder" plugin id, used by the "Record voice" mobile action. */
 const AUDIO_RECORDER_PLUGIN_ID = "audio-recorder";
@@ -67,6 +74,19 @@ export default class HearthPlugin extends Plugin {
 	 * resetTimer=true so a burst of writes (a sync, a bulk edit) coalesces into a
 	 * single re-render ~600ms after the last change. */
 	private liveRefreshDebounced = debounce(() => this.runLiveRefresh(), 600, true);
+
+	/** Vault-relative path of Hearth's own `data.json`, resolved once at load. */
+	private dataPath = "";
+
+	/** The exact text last written to (or read from) `data.json`, so a change on
+	 * disk can be dismissed with a string compare before anything is parsed. */
+	private lastSeenSettingsJson: string | null = null;
+
+	/** Debounced adoption of settings written by something other than this
+	 * window. resetTimer=true so a sync landing a config folder file by file
+	 * settles into one check, and so a check deferred while a board is being
+	 * arranged re-arms itself rather than stacking up. */
+	private externalSettingsDebounced = debounce(() => void this.adoptExternalSettings(), 400, true);
 
 	async onload() {
 		// Pick the locale from Obsidian's UI language before anything renders or
@@ -156,6 +176,18 @@ export default class HearthPlugin extends Plugin {
 		this.registerEvent(this.app.vault.on("rename", onVaultChange));
 		this.registerEvent(this.app.vault.on("modify", onVaultChange));
 
+		// Settings another device synced in. `data.json` lives in the config
+		// folder, which the create/modify/delete events above never report — they
+		// only cover vault files. The adapter's `raw` event does cover it, and is
+		// how a config file changing underneath Obsidian is noticed at all (the
+		// same event core Obsidian uses to pick up an edited CSS snippet).
+		this.dataPath = pluginDataPath(this.app.vault.configDir, this.manifest);
+		this.registerEvent(
+			this.app.vault.on("raw", (path) => {
+				if (isPluginDataPath(this.dataPath, path)) this.externalSettingsDebounced();
+			}),
+		);
+
 		// Hearth's own recent-file history (#228). Obsidian's getLastOpenFiles()
 		// stops at ten entries, so a Recent files card asking for more has to be
 		// told about opens as they happen; a rename is followed so a moved file
@@ -178,7 +210,7 @@ export default class HearthPlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
-			this.applyMobileDefaultDashboard();
+			if (this.applyMobileDefaultDashboard()) this.refreshViews();
 			if (this.settings.openOnStartup) void this.activateView();
 			// Pop the release-notes dialog after an update (but not on a fresh
 			// install). Runs once layout is ready so it doesn't fight startup.
@@ -190,6 +222,10 @@ export default class HearthPlugin extends Plugin {
 	}
 
 	onunload() {
+		// Debounced work outlives the events that scheduled it, and an unloaded
+		// plugin has no business re-rendering views or reading its own data file.
+		this.liveRefreshDebounced.cancel();
+		this.externalSettingsDebounced.cancel();
 		// Views are detached automatically by Obsidian on plugin unload.
 		// The content-search cache holds lower-cased note bodies, though, so
 		// drop it rather than leave a copy of the vault behind after unload.
@@ -227,14 +263,14 @@ export default class HearthPlugin extends Plugin {
 	 * a phone/tablet opens on the board tuned for a small screen (#120). Applied
 	 * in memory only, without saving: `activeDashboardId` is a single field shared
 	 * with desktop through synced settings, so persisting the mobile choice would
-	 * drag the desktop's active board along with it on the next sync. Any already
-	 * open home view is re-rendered to reflect the switch. */
-	private applyMobileDefaultDashboard() {
-		if (!Platform.isMobile) return;
+	 * drag the desktop's active board along with it on the next sync. Returns
+	 * true when the board changed, so the caller can re-render open home views. */
+	private applyMobileDefaultDashboard(): boolean {
+		if (!Platform.isMobile) return false;
 		const mobile = this.settings.dashboards.find((d) => d.mobileDefault);
-		if (!mobile || this.settings.activeDashboardId === mobile.id) return;
+		if (!mobile || this.settings.activeDashboardId === mobile.id) return false;
 		this.settings.activeDashboardId = mobile.id;
-		this.refreshViews();
+		return true;
 	}
 
 	/** Switch the active dashboard and refresh any open home views. */
@@ -375,19 +411,28 @@ export default class HearthPlugin extends Plugin {
 		// that merely lacks a newly-added field (like lastSeenVersion) still has
 		// its other settings here, so it is correctly treated as an upgrade.
 		this.isFirstRun = Object.keys(raw).length === 0;
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw);
-		// Backfill nested config defaults too, not just top-level keys, so an
-		// object persisted by an older version isn't missing a nested field.
-		fillMissingDefaults(
-			this.settings as unknown as Record<string, unknown>,
-			DEFAULT_SETTINGS as unknown as Record<string, unknown>,
-		);
-		// A one-way migration (e.g. the commandId → target fold) mutates settings
-		// in memory only; without flushing it here the legacy data would survive
-		// in storage and the migration would re-run every start, never actually
-		// retiring the deprecated field. Persist immediately when that happens.
-		const migrated = migrateSettings(this.settings, raw);
+		// Defaults (top-level and nested) plus the one-way migrations. A one-way
+		// migration (e.g. the commandId → target fold) mutates settings in memory
+		// only; without flushing it here the legacy data would survive in storage
+		// and the migration would re-run every start, never actually retiring the
+		// deprecated field. Persist immediately when that happens.
+		const { settings, migrated } = hydrateSettings(raw);
+		this.settings = settings;
 		if (migrated) await this.saveSettings();
+	}
+
+	/**
+	 * Every write to `data.json` goes through here, so this is where the copy of
+	 * it the sync watcher compares against is refreshed.
+	 *
+	 * Purely an optimisation: it lets a write this window just made be recognised
+	 * by a string compare instead of a parse and a full settings comparison.
+	 * Obsidian's exact serialisation isn't ours to depend on, so a mismatch
+	 * simply falls through to that comparison, which reaches the same answer.
+	 */
+	override async saveData(data: unknown): Promise<void> {
+		await super.saveData(data);
+		this.lastSeenSettingsJson = JSON.stringify(data, null, 2);
 	}
 
 	async saveSettings() {
@@ -438,12 +483,91 @@ export default class HearthPlugin extends Plugin {
 		if (!leaf) return;
 		const view = leaf.view;
 		if (!(view instanceof HomeView)) return;
+		// Belt and braces for the sync watcher: the `raw` event is what normally
+		// reports another device's settings landing, but a sync client Obsidian
+		// doesn't see the write from would leave the board stale until a restart —
+		// exactly the thing being fixed. Looking at the file when a Hearth tab is
+		// focused costs a string compare in the ordinary case, and means the board
+		// is current by the time it is looked at.
+		this.externalSettingsDebounced();
 		if (!this.seenActiveHomeLeaves.has(leaf)) {
 			this.seenActiveHomeLeaves.add(leaf);
 			return;
 		}
 		if (view.arrangeMode) return;
 		view.render();
+	}
+
+	/**
+	 * Adopt settings written to `data.json` by something other than this window.
+	 *
+	 * The whole point of the exercise (see `src/settingssync.ts`): a dashboard
+	 * edited on another machine arrives through sync while this one is still
+	 * holding the settings it read at startup, and until now the only way to see
+	 * it was to restart Obsidian. Worse, the first thing this window saved put
+	 * its stale copy back over the synced one.
+	 *
+	 * Deliberately conservative — it does nothing at all unless the file really
+	 * does hold a different configuration:
+	 *
+	 * - a half-written file (a sync client mid-write) fails to parse and is
+	 *   ignored; the write that completes it fires another event
+	 * - a file that doesn't carry boards is ignored, so a truncated one can never
+	 *   be hydrated into a fresh starter dashboard over the user's own
+	 * - settings identical to the ones in memory — every write this window makes
+	 *   — change nothing and re-render nothing
+	 * - a board being arranged is left alone, and the check re-arms until the
+	 *   drag is done, so a sync can't yank the grid out from under a card
+	 *
+	 * The adopted state isn't written back: it is already what is on disk, and
+	 * this window writing it again is one more chance to race the next device.
+	 * Any later save persists it in the ordinary way.
+	 */
+	private async adoptExternalSettings(): Promise<void> {
+		if (!this.settings.liveSettingsSync) return;
+		if (this.anyHomeViewArranging()) {
+			this.externalSettingsDebounced();
+			return;
+		}
+
+		let text: string;
+		try {
+			text = await this.app.vault.adapter.read(this.dataPath);
+		} catch {
+			return;
+		}
+		// Byte-identical to what this window last wrote or read: nothing to do,
+		// and nothing to parse.
+		if (text === this.lastSeenSettingsJson) return;
+		this.lastSeenSettingsJson = text;
+
+		let raw: unknown;
+		try {
+			raw = JSON.parse(text);
+		} catch {
+			// Caught mid-write. Forget the text so the completed write, which may
+			// well be a different length, is still examined.
+			this.lastSeenSettingsJson = null;
+			return;
+		}
+		if (!looksLikeSavedSettings(raw)) return;
+
+		const { settings: next } = hydrateSettings(raw);
+		if (sameSettings(this.settings, next)) return;
+
+		adoptSettings(this.settings, next);
+		// activeDashboardId is one field shared with every other device, so a
+		// synced board choice would otherwise drag a phone off its mobile board.
+		this.applyMobileDefaultDashboard();
+		this.refreshBrandIcons();
+		this.refreshViews();
+	}
+
+	/** Whether any open home view is mid-arrange, and so must not be rebuilt. */
+	private anyHomeViewArranging(): boolean {
+		return this.app.workspace
+			.getLeavesOfType(VIEW_TYPE_HOME)
+			.some((leaf) => leaf.view instanceof HomeView && leaf.view.arrangeMode);
 	}
 
 	/** Live-refresh handler behind {@link liveRefreshDebounced}. No-op unless the

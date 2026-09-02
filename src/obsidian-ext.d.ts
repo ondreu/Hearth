@@ -61,6 +61,21 @@ declare module "obsidian" {
 		on(name: "obsidian-git:loading-status", callback: () => unknown, ctx?: unknown): EventRef;
 	}
 
+	/**
+	 * The adapter-level file event. `Vault.on` declares one overload per public
+	 * event (create/modify/delete/rename), which hides the inherited
+	 * `on(name: string, …)` — so listening to `raw` needs its own overload.
+	 *
+	 * Unlike the public events, `raw` reports every path the adapter sees change,
+	 * the config folder included. That makes it the only way to notice Hearth's
+	 * own `data.json` being rewritten by sync (see `src/settingssync.ts`). It's
+	 * an internal, but a long-standing one: it is how core Obsidian picks up an
+	 * edited CSS snippet, and community plugins have listened to it for years.
+	 */
+	interface Vault {
+		on(name: "raw", callback: (path: string) => unknown, ctx?: unknown): EventRef;
+	}
+
 	/** WorkspaceLeaf's constructor isn't part of the public typings, but a
 	 * detached leaf (`new WorkspaceLeaf(app)`) is the documented-by-practice way
 	 * community plugins host a view outside the workspace layout. */

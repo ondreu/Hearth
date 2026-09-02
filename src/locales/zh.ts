@@ -933,6 +933,10 @@ export const zh: Translations = {
 			liveRefreshDesc:
 				"仓库变化时保持已打开的主页视图为最新 — 最近、书签和已保存查询卡片" +
 				"无需重新打开标签页即会更新。无论此设置如何，切回 Hearth 标签页时总会刷新。",
+			liveSettingsSync: "接收同步的更改",
+			liveSettingsSyncDesc:
+				"同步送达其他设备上所做的面板更改后立即应用，而不必等到下次重启 " +
+				"Obsidian。除非面板在使用过程中重新加载会造成困扰，否则请保持开启。",
 			mobileSearchOnly: "移动模式（仅搜索）",
 			mobileSearchOnlyDesc:
 				"在手机和平板上隐藏面板，仅显示搜索框。对桌面端无影响。",

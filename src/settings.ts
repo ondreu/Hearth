@@ -1292,6 +1292,16 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.liveSettingsSync)
+			.setDesc(t().settings.behaviour.liveSettingsSyncDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.liveSettingsSync).onChange(async (v) => {
+					s.liveSettingsSync = v;
+					this.save();
+				}),
+			);
 	}
 
 	// ---- Opening notes ---------------------------------------------------
