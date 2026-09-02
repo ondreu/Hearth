@@ -954,8 +954,13 @@
  * .has-blur / .has-card-blur simply mark which cards are frosted and how —
  * cards without blur carry neither and pay nothing. */
 
-/* Per-card frost (shape 1). --card-blur is set inline per card by
- * dashboard.ts, so a per-card override lands here as well as the board default.
+/* Per-card frost (shape 1) — the shape Hearth had before 1.7.1.14 moved the
+ * blur onto a shared layer, restored verbatim: --card-blur is a unitless px
+ * number set on the grid (the board/global default) and, when a card overrides
+ * it, on the card. Only shows when the surface is translucent (card opacity <
+ * 100%); card content stays sharp, as backdrop-filter blurs only what is behind
+ * the element.
+ *
  * The filter is priced by the card's border box and clipped by its own
  * border-radius, so merged corners — flattened by the merge-* classes below —
  * come out flat here too, and the border keeps its colour over the blur, with
@@ -977,8 +982,8 @@
  * wants to escape a card should be mounted outside it rather than positioned
  * fixed. */
 .hearth-card.has-card-blur {
-	backdrop-filter: blur(var(--card-blur, 0px));
-	-webkit-backdrop-filter: blur(var(--card-blur, 0px));
+	-webkit-backdrop-filter: blur(calc(var(--card-blur, 0) * 1px));
+	backdrop-filter: blur(calc(var(--card-blur, 0) * 1px));
 }
 
 /* Shared frost (shape 2). */
