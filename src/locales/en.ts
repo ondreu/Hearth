@@ -568,6 +568,59 @@ export const en = {
 				"Show or hide the search and command bar with its results and filter buttons on this dashboard. Overrides the global setting.",
 			searchVisibilityShow: "Show search",
 			searchVisibilityHide: "Hide search",
+			searchPlaceholder: "Search placeholder",
+			searchPlaceholderDesc:
+				"The greyed-out text in this board's search field. Leave the field empty for the built-in wording.",
+			newNoteButton: "Button beside search",
+			newNoteButtonDesc:
+				"Show or hide the button next to this board's search field.",
+			newNoteButtonStateOn: "shown",
+			newNoteButtonStateOff: "hidden",
+			newNoteButtonMode: "What that button does",
+			newNoteButtonModeDesc:
+				"Make a new note, or web-search whatever is typed in the search field.",
+			newNoteButtonModeOptions: {
+				newNote: "New note",
+				searchOnline: "Search online",
+			},
+			newNoteButtonLabel: "Button label",
+			newNoteButtonLabelDesc:
+				"The text on that button on this board. Leave it empty for the built-in wording.",
+			hiddenFilters: "Filter chips",
+			hiddenFiltersDesc:
+				"Choose which file-type chips this board shows under the search bar, instead of following the vault-wide choice.",
+			hiddenFiltersFollowing: (count: number) =>
+				count === 0
+					? "Following the vault, which hides none."
+					: `Following the vault, which hides ${count}.`,
+			stackOnNarrow: "Stack when narrow",
+			stackOnNarrowDesc:
+				"Reflow this board into one full-width column once the pane is too narrow for the free-form layout — a phone, or a narrow split.",
+			stackOnNarrowStateOn: "stack",
+			stackOnNarrowStateOff: "keep the layout",
+			stackOnNarrowOptionOn: "Stack into one column",
+			stackOnNarrowOptionOff: "Keep the scaled layout",
+			arrangeVisibility: "Arrange button",
+			arrangeVisibilityDesc:
+				"Whether the Arrange button stays visible on this board or fades in on hover.",
+			switcherVisibility: "Dashboard switcher",
+			switcherVisibilityDesc:
+				"Whether the dashboard switcher stays visible while this board is showing, or fades in on hover.",
+			chromeOptions: {
+				always: "Always visible",
+				hover: "Show on hover",
+			},
+			chromeStates: {
+				always: "always visible",
+				hover: "on hover",
+			},
+			skyAnimate: "Animate the sky",
+			skyAnimateDesc:
+				"Let this board's painted weather drift, fall and twinkle. The performance tier and the reader's reduced-motion setting can still hold it still.",
+			skyAnimateStateOn: "animated",
+			skyAnimateStateOff: "still",
+			skyAnimateOptionOn: "Animate",
+			skyAnimateOptionOff: "Hold still",
 			visibilityDefaultPlugin: (state: string) =>
 				`Default on a plugin board (${state})`,
 			visibilityShown: "shown",

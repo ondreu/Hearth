@@ -1187,6 +1187,33 @@ function sanitizeDashboard(
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
 	if (typeof r.compact === "boolean") dash.compact = r.compact;
+	// The chrome/search overrides. Each is read only when it type-checks, so a
+	// board that carries none keeps following the importing vault — the same
+	// contract the sliders above have. See the resolver block in types.ts.
+	const searchPlaceholder = str(r.searchPlaceholder);
+	if (searchPlaceholder !== undefined) dash.searchPlaceholder = searchPlaceholder;
+	if (typeof r.showNewNoteButton === "boolean")
+		dash.showNewNoteButton = r.showNewNoteButton;
+	if (r.newNoteButtonMode === "newNote" || r.newNoteButtonMode === "searchOnline")
+		dash.newNoteButtonMode = r.newNoteButtonMode;
+	const newNoteButtonLabel = str(r.newNoteButtonLabel);
+	if (newNoteButtonLabel !== undefined) dash.newNoteButtonLabel = newNoteButtonLabel;
+	if (Array.isArray(r.hiddenFilters)) {
+		dash.hiddenFilters = r.hiddenFilters.filter(
+			(id): id is string => typeof id === "string",
+		);
+	}
+	if (typeof r.stackOnNarrow === "boolean") dash.stackOnNarrow = r.stackOnNarrow;
+	if (r.arrangeButtonVisibility === "always" || r.arrangeButtonVisibility === "hover")
+		dash.arrangeButtonVisibility = r.arrangeButtonVisibility;
+	if (
+		r.dashboardSwitcherVisibility === "always" ||
+		r.dashboardSwitcherVisibility === "hover"
+	) {
+		dash.dashboardSwitcherVisibility = r.dashboardSwitcherVisibility;
+	}
+	if (typeof r.backgroundSkyAnimate === "boolean")
+		dash.backgroundSkyAnimate = r.backgroundSkyAnimate;
 	// Only "plugin" is carried: anything else — including a mode from a newer
 	// Hearth this build can't render — is left off, so the board imports as the
 	// cards board it also is. Its `cards` came through above either way.

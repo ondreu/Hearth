@@ -39,6 +39,7 @@ import {
 	effectiveMaxWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	effectiveStackOnNarrow,
 	frostAllowed,
 	motionAllowed,
 	renderCards,
@@ -187,7 +188,7 @@ export class HomeView extends ItemView {
 	 * setting left on. Narrow without stacking keeps the free-form layout,
 	 * scaled down as it always was. */
 	isStacked(): boolean {
-		return this.isNarrow() && this.plugin.settings.stackOnNarrow;
+		return this.isNarrow() && effectiveStackOnNarrow(this.plugin.settings);
 	}
 
 	/**
@@ -424,7 +425,7 @@ export class HomeView extends ItemView {
 		// design, so fit-to-page — which locks the board to exactly one screen and
 		// clips the rest — is not applied to it. The setting is untouched and
 		// comes back with the free-form layout.
-		const stacked = narrow && this.plugin.settings.stackOnNarrow;
+		const stacked = narrow && effectiveStackOnNarrow(this.plugin.settings);
 		// A plugin board is always fitted, whatever the setting says and however
 		// narrow the pane is: the hosted view has to be given a definite height to
 		// fill and does its own scrolling inside it. Letting the page scroll

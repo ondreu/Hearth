@@ -14,6 +14,7 @@ import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { openFile as openInLeaf } from "./opener";
 import { renderHighlighted } from "./ui";
 import { t } from "./i18n";
+import { effectiveHiddenFilters, effectiveSearchPlaceholder } from "./types";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
  * in settings/data.json) so it stays out of the settings UI and layout
@@ -73,7 +74,7 @@ export class SearchSection {
 				type: "text",
 				placeholder:
 					opts.placeholder?.trim() ||
-					this.view.plugin.settings.searchPlaceholder ||
+					effectiveSearchPlaceholder(this.view.plugin.settings) ||
 					t().search.placeholder,
 				spellcheck: "false",
 				role: "combobox",
@@ -197,7 +198,10 @@ export class SearchSection {
 		}
 		// Vault-wide hides come first and always win: a chip switched off in
 		// Settings → Filters stays off everywhere, a card can only hide more.
-		const hidden = new Set([...this.view.plugin.settings.hiddenFilters, ...this.hiddenFilters]);
+		const hidden = new Set([
+			...effectiveHiddenFilters(this.view.plugin.settings),
+			...this.hiddenFilters,
+		]);
 		return FILE_TYPE_GROUPS.filter((g) => {
 			if (hidden.has(g.id)) return false;
 			if (g.id === "folders") return hasFolders;

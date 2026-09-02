@@ -9,6 +9,9 @@ import {
 	effectiveHeaderMarginTop,
 	effectiveHeaderSpacingBelow,
 	effectiveHeaderTitleScale,
+	effectiveNewNoteButtonLabel,
+	effectiveNewNoteButtonMode,
+	effectiveShowNewNoteButton,
 	effectiveShowSearch,
 	effectiveShowTitle,
 	effectiveThemeColorTarget,
@@ -93,8 +96,8 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	const searchRow = searchCol.createDiv("hearth-search");
 	const bar = search.renderBar(searchRow);
 
-	if (s.showNewNoteButton && !mobileOnly) {
-		searchWrap.append(createSearchBarButton(view, bar, s.newNoteButtonMode));
+	if (effectiveShowNewNoteButton(s) && !mobileOnly) {
+		searchWrap.append(createSearchBarButton(view, bar, effectiveNewNoteButtonMode(s)));
 	}
 
 	const below = narrow ? searchWrap : searchCol;
@@ -142,7 +145,11 @@ function createNewNoteButton(view: HomeView): HTMLElement {
 		cls: "hearth-newnote",
 		// A renamed button describes itself; the generic aria label is only
 		// right for the default one.
-		attr: { "aria-label": view.plugin.settings.newNoteButtonLabel.trim() || t().header.newNoteAria },
+		attr: {
+			"aria-label":
+				effectiveNewNoteButtonLabel(view.plugin.settings).trim() ||
+				t().header.newNoteAria,
+		},
 	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
 	btn.createSpan({ cls: "hearth-newnote-label", text: label });

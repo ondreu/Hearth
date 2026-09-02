@@ -4,31 +4,33 @@ import {
 	type BackgroundConfig,
 	type BackgroundKind,
 	type BackgroundLayout,
-	type Dashboard,
-	type DashboardHeaderConfig,
-	type DashboardMode,
-	type HeaderAlign,
-	type HomeSettings,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
+	CARD_BORDER_WIDTH_MAX,
 	CARD_RADIUS_MAX,
 	clampBannerHeight,
-	CARD_BORDER_WIDTH_MAX,
 	CONTENT_WIDTH_MAX,
 	CONTENT_WIDTH_MIN,
 	CONTENT_WIDTH_STEP,
+	type Dashboard,
+	DASHBOARD_MODES,
+	type DashboardHeaderConfig,
+	type DashboardMode,
+	DEFAULT_SETTINGS,
+	effectiveSwitcherVisibility,
 	HEADER_MARGIN_TOP_MAX,
 	HEADER_MARGIN_TOP_MIN,
 	HEADER_SCALE_MAX,
 	HEADER_SCALE_MIN,
 	HEADER_SPACING_BELOW_MAX,
 	HEADER_SPACING_BELOW_MIN,
-	DASHBOARD_MODES,
-	DEFAULT_SETTINGS,
+	type HeaderAlign,
+	type HomeSettings,
 	isPluginBoard,
 	newDashboardId,
 } from "./types";
 import { cloneCard } from "./cards";
+import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import {
 	FULL_VIEW_SCOPE,
 	isDocumentViewType,
@@ -44,6 +46,37 @@ import { confirmAction } from "./ui";
 import type { WorkspacesInstance } from "./obsidian-ext";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
+
+/**
+ * Copy a board under a new name: same cards, same every override, its own
+ * identity.
+ *
+ * Written as "clone the whole thing, then take back the few fields a copy must
+ * not share" rather than as a list of fields to carry across. The list-of-fields
+ * version silently dropped every override added after it was written — the copy
+ * looked subtly unlike the board it came from — and a board now has enough
+ * overrides that the list would be the more likely of the two to go stale.
+ *
+ * The clone is a JSON round trip rather than `structuredClone`: settings are
+ * JSON by definition (they are persisted to `data.json`), so the trip is exact,
+ * and it drops `undefined`-valued keys instead of persisting them.
+ */
+export function cloneDashboard(dash: Dashboard, name: string): Dashboard {
+	const copy: Dashboard = JSON.parse(JSON.stringify(dash)) as Dashboard;
+	copy.id = newDashboardId();
+	copy.name = name;
+	// A copied plugin board hosts its own view rather than sharing one: the
+	// hosted-view cache is keyed by board id, so the two boards keep separate
+	// state (scroll position, open item) as you'd expect of two boards.
+	copy.cards = dash.cards.map((c) => cloneCard(c));
+	// Not copied: a workspace link, because two boards linked to the same
+	// workspace would race on auto-switch; and the mobile-default flag, because
+	// two boards claiming it would make which one a phone opens depend on array
+	// order. Both are things the copy can be given deliberately afterwards.
+	delete copy.linkedWorkspace;
+	delete copy.mobileDefault;
+	return copy;
+}
 
 /** A per-dashboard background's opacity and blur default to — and reset to —
  * the global background defaults, so a dashboard override starts from the same
@@ -65,7 +98,7 @@ export function renderDashboardSwitcher(
 ): HTMLElement {
 	const s = view.plugin.settings;
 	const zone = container.createDiv("hearth-dash-switcher-zone");
-	zone.toggleClass("is-auto-hide", s.dashboardSwitcherVisibility === "hover");
+	zone.toggleClass("is-auto-hide", effectiveSwitcherVisibility(s) === "hover");
 	const bar = zone.createDiv("hearth-dash-switcher");
 
 	s.dashboards.forEach((d, i) => {
@@ -168,41 +201,7 @@ function showDashboardMenu(
 			.setTitle(t().dashboards.menu.duplicate)
 			.setIcon("copy")
 			.onClick(() => {
-				const copy: Dashboard = {
-					id: newDashboardId(),
-					name: t().dashboards.copySuffix(dash.name),
-					cards: dash.cards.map((c) => cloneCard(c)),
-				};
-				if (dash.icon) copy.icon = dash.icon;
-				if (dash.iconLucide) copy.iconLucide = dash.iconLucide;
-				if (dash.mode) copy.mode = dash.mode;
-				// A copied plugin board hosts its own view rather than sharing one:
-				// the hosted-view cache is keyed by board id, so the two boards keep
-				// separate state (scroll position, open item) as you'd expect of two
-				// boards.
-				if (dash.pluginView) copy.pluginView = { ...dash.pluginView };
-				if (dash.gridColumns != null) copy.gridColumns = dash.gridColumns;
-				if (dash.rowHeight != null) copy.rowHeight = dash.rowHeight;
-				if (dash.fitToPage != null) copy.fitToPage = dash.fitToPage;
-				if (dash.maxWidth != null) copy.maxWidth = dash.maxWidth;
-				if (dash.fullWidth != null) copy.fullWidth = dash.fullWidth;
-				if (dash.showSearch != null) copy.showSearch = dash.showSearch;
-				if (dash.compact != null) copy.compact = dash.compact;
-				if (dash.cardOpacity != null) copy.cardOpacity = dash.cardOpacity;
-				if (dash.cardBlur != null) copy.cardBlur = dash.cardBlur;
-				if (dash.cardRadius != null) copy.cardRadius = dash.cardRadius;
-				if (dash.cardBorderWidth != null)
-					copy.cardBorderWidth = dash.cardBorderWidth;
-				if (dash.header) copy.header = { ...dash.header };
-				if (dash.background) copy.background = { ...dash.background };
-				if (dash.backgroundLayout != null)
-					copy.backgroundLayout = dash.backgroundLayout;
-				if (dash.bannerHeight != null) copy.bannerHeight = dash.bannerHeight;
-				if (dash.bannerFade != null) copy.bannerFade = dash.bannerFade;
-				if (dash.bannerFullWidth != null)
-					copy.bannerFullWidth = dash.bannerFullWidth;
-				// linkedWorkspace is intentionally not copied: two dashboards
-				// linked to the same workspace would race on auto-switch.
+				const copy = cloneDashboard(dash, t().dashboards.copySuffix(dash.name));
 				const i = s.dashboards.findIndex((d) => d.id === dash.id);
 				s.dashboards.splice(i + 1, 0, copy);
 				s.activeDashboardId = copy.id;
@@ -661,7 +660,70 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				});
 			});
 
-		this.overrideHeaderText(
+		// The rest of the search row: its placeholder, the button beside it, and
+		// the filter chips under it. All four were vault-wide until the portable
+		// package needed a board to be able to carry its own header — see the
+		// resolver block in types.ts.
+		this.overrideText(
+			containerEl,
+			t().dashboards.modal.searchPlaceholder,
+			t().dashboards.modal.searchPlaceholderDesc,
+			dash.searchPlaceholder,
+			s.searchPlaceholder,
+			(v) => {
+				dash.searchPlaceholder = v;
+				this.commit();
+			},
+		);
+
+		this.overrideBool(
+			containerEl,
+			t().dashboards.modal.newNoteButton,
+			t().dashboards.modal.newNoteButtonDesc,
+			dash.showNewNoteButton,
+			s.showNewNoteButton,
+			{
+				on: t().dashboards.modal.newNoteButtonStateOn,
+				off: t().dashboards.modal.newNoteButtonStateOff,
+				stateOn: t().dashboards.modal.newNoteButtonStateOn,
+				stateOff: t().dashboards.modal.newNoteButtonStateOff,
+			},
+			(v) => {
+				dash.showNewNoteButton = v;
+			},
+			// The two rows below only describe a button that is drawn.
+			true,
+		);
+
+		if (dash.showNewNoteButton ?? s.showNewNoteButton) {
+			this.overrideChoice(
+				containerEl,
+				t().dashboards.modal.newNoteButtonMode,
+				t().dashboards.modal.newNoteButtonModeDesc,
+				dash.newNoteButtonMode,
+				t().dashboards.modal.newNoteButtonModeOptions,
+				t().dashboards.modal.newNoteButtonModeOptions[s.newNoteButtonMode],
+				(v) => {
+					dash.newNoteButtonMode = v;
+				},
+			);
+
+			this.overrideText(
+				containerEl,
+				t().dashboards.modal.newNoteButtonLabel,
+				t().dashboards.modal.newNoteButtonLabelDesc,
+				dash.newNoteButtonLabel,
+				s.newNoteButtonLabel,
+				(v) => {
+					dash.newNoteButtonLabel = v;
+					this.commit();
+				},
+			);
+		}
+
+		this.filterChipsOverride(containerEl);
+
+		this.overrideText(
 			containerEl,
 			t().dashboards.modal.titleText,
 			t().dashboards.modal.titleTextDesc,
@@ -786,7 +848,113 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		);
 	}
 
-	private overrideHeaderText(
+	/**
+	 * The filter chips this board shows under the search bar.
+	 *
+	 * A list rather than a dropdown, because the override is the whole list: a
+	 * board either follows the vault's choice or states its own. The stored value
+	 * is the *hidden* ids (matching the vault-wide setting), so an empty array is
+	 * a real override meaning "show every chip on this board" and is kept.
+	 */
+	private filterChipsOverride(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
+		const overriding = dash.hiddenFilters !== undefined;
+		new Setting(containerEl)
+			.setName(t().dashboards.modal.hiddenFilters)
+			.setDesc(
+				overriding
+					? t().dashboards.modal.hiddenFiltersDesc
+					: t().dashboards.modal.hiddenFiltersFollowing(s.hiddenFilters.length),
+			)
+			.addToggle((tg) =>
+				tg.setValue(overriding).onChange((v) => {
+					// Seeded from the vault's own list so the board starts out looking
+					// exactly as it already does.
+					dash.hiddenFilters = v ? [...s.hiddenFilters] : undefined;
+					this.commit();
+					this.render();
+				}),
+			);
+		if (!overriding) return;
+		const hidden = new Set(dash.hiddenFilters);
+		for (const group of FILE_TYPE_GROUPS) {
+			new Setting(containerEl)
+				.setName(fileTypeLabel(group))
+				.setClass("hearth-setting-sub")
+				.addToggle((tg) =>
+					tg.setValue(!hidden.has(group.id)).onChange((v) => {
+						if (v) hidden.delete(group.id);
+						else hidden.add(group.id);
+						dash.hiddenFilters = Array.from(hidden);
+						this.commit();
+					}),
+				);
+		}
+	}
+
+	/**
+	 * A board-level choice, with "follow the vault" as its first option.
+	 *
+	 * Every per-board override in this modal is a three-state control — follow
+	 * the vault, or one of the explicit values — and the vault's current answer
+	 * is named in the first option so the reader can see what following it means
+	 * without leaving the modal. This is that control, once, for the overrides
+	 * added with the portable-package work; the older rows above still spell it
+	 * out inline.
+	 */
+	private overrideChoice<T extends string>(
+		containerEl: HTMLElement,
+		name: string,
+		desc: string,
+		current: T | undefined,
+		options: Record<T, string>,
+		globalState: string,
+		set: (value: T | undefined) => void,
+		rerender = false,
+	): void {
+		new Setting(containerEl)
+			.setName(name)
+			.setDesc(desc)
+			.addDropdown((d) => {
+				d.addOption("default", t().dashboards.modal.titleVisibilityDefault(globalState));
+				for (const [value, label] of Object.entries(options)) {
+					d.addOption(value, label as string);
+				}
+				d.setValue(current ?? "default");
+				d.onChange((v) => {
+					set(v === "default" ? undefined : (v as T));
+					this.commit();
+					if (rerender) this.render();
+				});
+			});
+	}
+
+	/** {@link overrideChoice} for a boolean override: follow the vault, or say
+	 * yes or no on this board. */
+	private overrideBool(
+		containerEl: HTMLElement,
+		name: string,
+		desc: string,
+		current: boolean | undefined,
+		globalOn: boolean,
+		labels: { on: string; off: string; stateOn: string; stateOff: string },
+		set: (value: boolean | undefined) => void,
+		rerender = false,
+	): void {
+		this.overrideChoice(
+			containerEl,
+			name,
+			desc,
+			current === undefined ? undefined : current ? "on" : "off",
+			{ on: labels.on, off: labels.off },
+			globalOn ? labels.stateOn : labels.stateOff,
+			(v) => set(v === undefined ? undefined : v === "on"),
+			rerender,
+		);
+	}
+
+	private overrideText(
 		containerEl: HTMLElement,
 		name: string,
 		desc: string,
@@ -818,7 +986,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 	}
 
 	/**
-	 * The icon counterpart of {@link overrideHeaderText}: a toggle that takes the
+	 * The icon counterpart of {@link overrideText}: a toggle that takes the
 	 * board off the vault-wide title icon, and — once it has — the same
 	 * title-icon field the settings tab offers (icon, emoji/text, vault picture
 	 * or URL).
@@ -936,6 +1104,50 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				},
 			);
 		}
+
+		// Stacking and the two pieces of chrome sit above the plugin-board early
+		// return below, because all three apply to a hosted view just as much as
+		// to a grid of cards.
+		this.overrideBool(
+			containerEl,
+			t().dashboards.modal.stackOnNarrow,
+			t().dashboards.modal.stackOnNarrowDesc,
+			dash.stackOnNarrow,
+			s.stackOnNarrow,
+			{
+				on: t().dashboards.modal.stackOnNarrowOptionOn,
+				off: t().dashboards.modal.stackOnNarrowOptionOff,
+				stateOn: t().dashboards.modal.stackOnNarrowStateOn,
+				stateOff: t().dashboards.modal.stackOnNarrowStateOff,
+			},
+			(v) => {
+				dash.stackOnNarrow = v;
+			},
+		);
+
+		this.overrideChoice(
+			containerEl,
+			t().dashboards.modal.arrangeVisibility,
+			t().dashboards.modal.arrangeVisibilityDesc,
+			dash.arrangeButtonVisibility,
+			t().dashboards.modal.chromeOptions,
+			t().dashboards.modal.chromeStates[s.arrangeButtonVisibility],
+			(v) => {
+				dash.arrangeButtonVisibility = v;
+			},
+		);
+
+		this.overrideChoice(
+			containerEl,
+			t().dashboards.modal.switcherVisibility,
+			t().dashboards.modal.switcherVisibilityDesc,
+			dash.dashboardSwitcherVisibility,
+			t().dashboards.modal.chromeOptions,
+			t().dashboards.modal.chromeStates[s.dashboardSwitcherVisibility],
+			(v) => {
+				dash.dashboardSwitcherVisibility = v;
+			},
+		);
 
 		// A plugin board is always fitted — the hosted view needs a definite
 		// height to fill and scrolls itself inside it — so the choice isn't
@@ -1134,6 +1346,30 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		// this comes before the early return below and a board using the vault's
 		// background can still choose to show it as a banner.
 		this.bannerControls(containerEl);
+
+		// Offered whenever the backdrop this board actually shows is a painted
+		// sky — including one it inherits from the vault, which is why the guard
+		// resolves the kind instead of testing the override. It sits with the
+		// banner controls for the same reason those do: it says how the board
+		// wears its backdrop, not what the backdrop is.
+		if ((bg?.kind ?? this.view.plugin.settings.backgroundKind) === "weather") {
+			this.overrideBool(
+				containerEl,
+				t().dashboards.modal.skyAnimate,
+				t().dashboards.modal.skyAnimateDesc,
+				dash.backgroundSkyAnimate,
+				this.view.plugin.settings.backgroundSkyAnimate !== false,
+				{
+					on: t().dashboards.modal.skyAnimateOptionOn,
+					off: t().dashboards.modal.skyAnimateOptionOff,
+					stateOn: t().dashboards.modal.skyAnimateStateOn,
+					stateOff: t().dashboards.modal.skyAnimateStateOff,
+				},
+				(v) => {
+					dash.backgroundSkyAnimate = v;
+				},
+			);
+		}
 
 		if (!bg || bg.kind === "none") return;
 

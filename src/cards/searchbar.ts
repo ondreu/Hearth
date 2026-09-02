@@ -3,7 +3,12 @@ import { FILE_TYPE_GROUPS, fileTypeLabel } from "../filetypes";
 import { createSearchBarButton } from "../header";
 import { t } from "../i18n";
 import { SearchSection } from "../search";
-import { type DashboardCard, type SearchBarConfig } from "../types";
+import {
+	type DashboardCard,
+	effectiveHiddenFilters,
+	effectiveSearchPlaceholder,
+	type SearchBarConfig,
+} from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -59,7 +64,7 @@ function renderFilterTypes(
 	containerEl: HTMLElement,
 	cfg: SearchBarConfig,
 ): void {
-	const globallyHidden = new Set(ctx.opts.settings.hiddenFilters);
+	const globallyHidden = new Set(effectiveHiddenFilters(ctx.opts.settings));
 	const hidden = new Set(cfg.hiddenFilters ?? []);
 	new Setting(containerEl)
 		.setName(t().editors.searchBar.filterTypes)
@@ -91,7 +96,7 @@ export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		.setDesc(t().editors.searchBar.placeholderDesc)
 		.addText((txt) =>
 			txt
-				.setPlaceholder(ctx.opts.settings.searchPlaceholder || t().search.placeholder)
+				.setPlaceholder(effectiveSearchPlaceholder(ctx.opts.settings) || t().search.placeholder)
 				.setValue(cfg.placeholder ?? "")
 				.onChange((v) => {
 					cfg.placeholder = v.trim() ? v : undefined;

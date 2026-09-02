@@ -1323,6 +1323,21 @@
 	display: none;
 }
 
+/* A row that belongs to the row above it — the per-chip toggles a board's
+ * filter-chip override reveals, for instance. Indented and borderless so the
+ * group reads as one control rather than as a run of unrelated settings. */
+.hearth-setting-sub {
+	border-top: none;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-inline-start: 24px;
+}
+
+.hearth-setting-sub .setting-item-name {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
 /* A quiet inline note in the card editor (e.g. the plugin-view performance
  * hint): muted, borderless, with a small leading icon. */
 .hearth-setting-note {
