@@ -66,10 +66,24 @@ export function countByName(events, name) {
 }
 
 /** Launch Chromium the way every script here wants it: a Retina-like backing
- * store, so raster area matches what a Mac actually pushes. */
+ * store, so raster area matches what a Mac actually pushes.
+ *
+ * `CHROMIUM_PATH` names a browser binary to use instead of the one Playwright
+ * would resolve from its `chromium` channel. Needed wherever the Playwright
+ * install and the browser install are versioned apart — a container with a
+ * pre-baked browser under PLAYWRIGHT_BROWSERS_PATH and a globally installed
+ * Playwright that pins a different build, which is what CI images and coding
+ * sandboxes tend to look like. Such a container usually has no user namespaces
+ * either, hence --no-sandbox on that path only: unset, the launch is exactly
+ * what it always was. */
 export async function launch(playwright) {
+	const explicit = process.env.CHROMIUM_PATH;
 	return playwright.chromium.launch({
-		channel: "chromium",
-		args: ["--force-device-scale-factor=2", "--hide-scrollbars"],
+		...(explicit ? { executablePath: explicit } : { channel: "chromium" }),
+		args: [
+			"--force-device-scale-factor=2",
+			"--hide-scrollbars",
+			...(explicit ? ["--no-sandbox"] : []),
+		],
 	});
 }
