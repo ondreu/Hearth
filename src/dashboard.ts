@@ -25,7 +25,6 @@ import {
 	activeCards,
 	activeDashboard,
 	type DashboardCard,
-	effectiveCardBlur,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
 	effectiveCardRadius,
@@ -34,7 +33,6 @@ import {
 	effectiveMaxWidth,
 	effectiveRowHeight,
 	timersAllowed,
-	perCardFrost,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
@@ -93,18 +91,6 @@ export function renderDashboard(
 	grid.toggleClass("is-stacked", stacked);
 	// Board-level defaults; per-card overrides are set in the render loop below.
 	grid.style.setProperty("--card-opacity", String(effectiveCardOpacity(s)));
-	// Which of the two frosted-glass shapes this tier gets (see perCardFrost).
-	// Resolved once for the board: it is a tier decision, so it cannot differ
-	// between two cards of the same board.
-	const perCard = perCardFrost(s);
-	// The per-card shape reads the blur off the cascade, so the board default
-	// lives on the grid and only an overriding card carries its own. Set only in
-	// that shape: below `full` nothing reads --card-blur, and leaving a live
-	// value there would let a theme snippet blur a card that is already being
-	// blurred by the shared layer.
-	if (perCard) {
-		grid.style.setProperty("--card-blur", String(effectiveCardBlur(s)));
-	}
 	// Board-wide corner radius (px). Every card reads this via CSS; the frost
 	// mask in grid.ts reads the resolved value back off the grid so its rounding
 	// matches. Merged-edge corners still flatten to 0 regardless (see styles.css).
@@ -171,37 +157,17 @@ export function renderDashboard(
 				`${resolveCardBorderWidth(s, card)}px`,
 			);
 		}
-		// Frosted glass, in one of two shapes depending on the performance tier
-		// (see perCardFrost, and the frosted-glass note in styles.css).
-		//
-		// `.has-card-blur`: the card carries its own backdrop-filter, reading
-		// --card-blur off the cascade — the board default from the grid, or its
-		// own override set just below. `full` only, one filter pass per card.
-		//
-		// `.has-blur` + data-blur: the card feeds the shared layer instead, which
-		// blurs once for the whole grid and is masked to its cards. The value is
+		// Cards whose resolved blur is > 0 feed the shared frost layer (see
+		// updateFrostLayers / the .hearth-frost note in styles.css). The value is
 		// stashed on the element so the frost rebuild can group cards by blur
-		// without re-reading settings; blur-off cards never enter a layer.
-		//
-		// Only ever one of the two, so updateFrostLayers finds no .has-blur cards
-		// at `full` and drops the shared layer without needing to know the tier.
-		//
-		// Either way, a seamless card paints no surface of its own, so frosting
-		// the wallpaper behind it would leave a blurred rectangle floating on the
-		// board with no card on it. Such a card is never blurred.
+		// without re-reading settings, and blur-off cards never enter a layer.
+		// A seamless card paints no surface of its own, so frosting the wallpaper
+		// behind it would leave a blurred rectangle floating on the board with no
+		// card on it. Such a card never joins a frost layer.
 		const cardBlur = kindClasses.includes("is-seamless") ? 0 : resolveCardBlur(s, card);
 		if (cardBlur > 0) {
-			if (perCard) {
-				el.addClass("has-card-blur");
-				// Clamped, unlike the raw write this used to do, so a hand-edited
-				// data.json cannot ask the compositor for a 400px blur.
-				if (card.cardBlur != null) {
-					el.style.setProperty("--card-blur", String(cardBlur));
-				}
-			} else {
-				el.addClass("has-blur");
-				el.dataset.blur = String(cardBlur);
-			}
+			el.addClass("has-blur");
+			el.dataset.blur = String(cardBlur);
 		}
 
 		const head = el.createDiv("hearth-card-head");

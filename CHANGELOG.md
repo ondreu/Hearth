@@ -99,25 +99,34 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   of Obsidian — and a Hearth tab you *replace* by opening a note in it takes its
   place with it, so opening Hearth fresh afterwards still starts at the top.
 
-### Changed
+### Fixed
 
-- **Each card frosts its own backdrop again, on the Full tier.** The
-  frosted-glass blur behind cards had become one shared layer per board, masked
-  to the card silhouettes so a run of touching cards read as a single seamless
-  tile. That is cheaper — one blur pass for the whole board instead of one per
-  card — and it is now what the **Balanced** tier does.
+- **Frosted glass no longer smears across the gaps between cards.** With the
+  card blur turned on, two cards sitting apart on a board could show a single
+  frosted sheet stretched between them — the wallpaper in the empty space
+  blurred as if a pane of glass were floating there, with the cards resting on
+  it. On a board whose cards touch it looked right; the further apart they were,
+  the more obviously wrong it got.
 
-  **Full** goes back to blurring each card separately. The blur belongs to the
-  card again: it tracks it exactly through a drag or a resize, rounds to the
-  card's own corners, and needs no layer to size or mask to rebuild. The
-  trade-off is the one the shared layer was built to avoid — two *merged* cards
-  blur independently either side of the edge they share, so a faint seam shows
-  there — and it costs the compositor one filter pass per blurred card. If you
-  merge cards, or would rather have the cheaper blur, **Balanced** keeps the
-  seamless version (and nothing else about the frost changes at either tier).
+  The blur behind cards is drawn on a shared layer rather than on each card,
+  because one continuous surface is what lets a run of touching cards read as a
+  single frosted tile instead of showing a bright seam where they meet. But that
+  layer was sized to hold *every* blurred card on the board at once, so it had to
+  span the gaps between them, and only a mask cut to the card silhouettes kept
+  the blur out of those gaps. Where that mask wasn't honoured, the whole
+  rectangle came through frosted.
 
-  Nothing to set up: the tier picks the shape. Cards are unblurred out of the
-  box, so this only shows up on a board where you have turned the blur on.
+  Each run of touching cards now gets its own layer, sized to just those cards.
+  A card standing on its own gets a layer no bigger than itself, so there is
+  nothing stretched over a gap to go wrong in the first place — and touching
+  cards still share one surface, so they stay seamless. Boards with cards spread
+  out also do a little less compositing work than before, since each blur pass
+  now covers a card instead of the whole board.
+
+- **A board with a single card gets its frosted glass.** The blur behind cards
+  is rebuilt by the same pass that decides which cards touch, and that pass bailed
+  out early when there was nothing that *could* touch — so a board holding exactly
+  one card came out with no frosted glass at all, however high its blur was set.
 
 ## [3.0.0]
 
