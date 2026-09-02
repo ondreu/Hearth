@@ -163,6 +163,37 @@ export interface ApplyOptions {
 }
 
 /**
+ * Whether this package could be applied at all, without applying any of it.
+ *
+ * Exists so an import can be refused *before* its pictures are written into the
+ * vault: materializing has to happen first (the payload's references are
+ * rewritten to the paths they land at), which would otherwise leave orphaned
+ * image files behind whenever the payload turned out to be unusable.
+ *
+ * Runs the same sanitizers the apply does, on a throwaway copy, and answers
+ * with the message the apply would have failed with.
+ */
+export function validatePackage(s: HomeSettings, pkg: HearthPackage): string | null {
+	if (pkg.hearth.kind === "dashboard") {
+		const board = (pkg.payload as DashboardPayload).dashboard;
+		return sanitizeDashboard(board, s, 0) ? null : t().layout.noValidDashboards;
+	}
+	const payload = pkg.payload as Record<string, unknown>;
+	const boards = Array.isArray(payload.dashboards)
+		? payload.dashboards
+		: Array.isArray(payload.cards)
+			? [{ cards: payload.cards }]
+			: null;
+	if (!boards) {
+		// A settings package may legitimately carry no boards at all — it is a
+		// projection of every setting, and the layout half is optional.
+		return pkg.hearth.kind === "settings" ? null : t().layout.notAHearthLayout;
+	}
+	const usable = boards.some((entry, i) => sanitizeDashboard(entry, s, i, payload) !== null);
+	return usable ? null : t().layout.noValidDashboards;
+}
+
+/**
  * Apply a package to a settings object, in place.
  *
  * Returns a result rather than throwing: a package with problems is usually

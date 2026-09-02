@@ -231,6 +231,14 @@ export interface FoundReference {
 	folder: boolean;
 	/** Replace the value, or drop the field entirely with `undefined`. */
 	set: (value: string | number | undefined) => void;
+	/** The array this value sits in, when it sits in one.
+	 *
+	 * Dropping an array element has to happen in two steps — blank it during the
+	 * pass, close the gap afterwards, because every reference is collected
+	 * before any is applied — and this is how the second step knows *which*
+	 * arrays to close without sweeping the whole payload for holes that were
+	 * never ours. See {@link compactTouched}. */
+	container?: unknown[];
 }
 
 type Bag = Record<string, unknown>;
@@ -305,6 +313,7 @@ function walkRule(
 			value,
 			pointer: pointer.replace(/^\./, ""),
 			folder: rule.folder === true,
+			container: Array.isArray(owner) ? owner : undefined,
 			set: (next) => {
 				if (Array.isArray(owner)) {
 					// Blanked, not spliced. References are collected before any of
@@ -540,16 +549,17 @@ export function stripReferences(
 ): StripReport {
 	const scopes = scopesToStrip(opts);
 	const removed: Partial<Record<ReferenceScope, number>> = {};
+	const blanked: FoundReference[] = [];
 
 	for (const ref of packageReferences(pkg)) {
 		if (!scopes.has(ref.scope)) continue;
 		ref.set(undefined);
+		blanked.push(ref);
 		removed[ref.scope] = (removed[ref.scope] ?? 0) + 1;
 	}
 
-	// Blanked array slots become holes; close them before anything sees the
-	// payload again. See the array branch of the setter above.
-	compactArrays(pkg.payload);
+	// Blanked array slots are holes until this closes them.
+	compactTouched(blanked);
 
 	if (opts.paths) {
 		// The asset's own provenance: the picture stays, the folder it lived in
@@ -566,26 +576,24 @@ export function stripReferences(
 }
 
 /**
- * Remove the holes a blanking `set(undefined)` leaves in arrays.
+ * Close the holes a blanking `set(undefined)` left, in exactly the arrays it
+ * touched.
  *
- * Every reference is collected before any is applied, so an array element can
- * only be removed in two steps: blank it during the pass, close the gap after.
- * Both the strip and the asset passes end here.
+ * Every reference is collected before any is applied, so removing an array
+ * element takes two steps: blank it during the pass, close the gap after. Only
+ * the arrays a reference actually reported are visited — sweeping the whole
+ * payload for empty slots would also strip holes that were already there and
+ * are none of this pass's business.
  */
-export function compactArrays(node: unknown, seen = new Set<unknown>()): void {
-	if (typeof node !== "object" || node === null) return;
-	if (seen.has(node)) return;
-	seen.add(node);
-	if (Array.isArray(node)) {
-		const list = node as unknown[];
+export function compactTouched(refs: Iterable<FoundReference>): void {
+	const arrays = new Set<unknown[]>();
+	for (const ref of refs) if (ref.container) arrays.add(ref.container);
+	for (const list of arrays) {
 		for (let i = list.length - 1; i >= 0; i--) {
 			const item: unknown = list[i];
 			if (item === undefined || item === null) list.splice(i, 1);
-			else compactArrays(item, seen);
 		}
-		return;
 	}
-	for (const value of Object.values(node)) compactArrays(value, seen);
 }
 
 /** File extensions Obsidian stores in a vault, for the residual sweep. */

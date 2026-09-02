@@ -66,6 +66,7 @@ export const zh: Translations = {
 		newNoteTemplaterMissing:
 			"Hearth：“新建笔记”按钮指向一个 Templater 模板，但 Templater 未启用 — " +
 			"改为创建空白笔记。",
+		exported: "Hearth：已导出。",
 		layoutExported: "Hearth：布局已导出。",
 		layoutImported: "Hearth：布局已导入。",
 		layoutImportError: (error: string) => `Hearth：${error}`,

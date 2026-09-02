@@ -32,7 +32,7 @@ import {
 	MAX_TOTAL_ASSET_BYTES,
 	type PackageAsset,
 } from "./schema";
-import { compactArrays, packageReferences } from "./refs";
+import { compactTouched, type FoundReference, packageReferences } from "./refs";
 
 /** The vault operations embedding and materializing need. */
 export interface AssetStore {
@@ -260,6 +260,7 @@ export async function materializeAssets(
 	// `includeAssetRefs` because these are exactly the references this pass
 	// exists to rewrite — every other caller is asking about the outside world
 	// and is right to have them filtered out.
+	const blanked: FoundReference[] = [];
 	for (const ref of packageReferences(pkg, { includeAssetRefs: true })) {
 		if (typeof ref.value !== "string") continue;
 		const id = assetRefId(ref.value);
@@ -268,11 +269,12 @@ export async function materializeAssets(
 		if (path) ref.set(path);
 		else {
 			ref.set(undefined);
+			blanked.push(ref);
 			report.missingRefs.push(id);
 		}
 	}
 	// A cleared slideshow slide leaves a hole in its array.
-	compactArrays(pkg.payload);
+	compactTouched(blanked);
 
 	// The references now name real files; the base64 has done its job and would
 	// otherwise be written into `data.json` by the settings save that follows.

@@ -34,6 +34,7 @@ import {
 	type ApplyOptions,
 	type ImportEnvironment,
 	readPackage,
+	validatePackage,
 } from "./apply";
 import {
 	clearAssetRefs,
@@ -142,6 +143,13 @@ export async function importPackageFile(
 	const outcome = readPackage(json);
 	if (!outcome.pkg) return failure(readErrorMessage(outcome.error));
 	const pkg = outcome.pkg;
+
+	// Checked before anything is written. Materializing the pictures has to come
+	// before applying (it is what turns the package's asset references back into
+	// vault paths), so a package that turns out to be unusable would otherwise
+	// leave its images behind in the vault with nothing pointing at them.
+	const invalid = validatePackage(s, pkg);
+	if (invalid) return failure(invalid);
 
 	// Gathered before the payload is applied, and folded into the result after —
 	// an asset that couldn't be written is something to say about an import that

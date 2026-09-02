@@ -50,6 +50,7 @@ import {
 	residualPaths,
 	serializePackage,
 	stripReferences,
+	validatePackage,
 } from "../src/portable";
 
 /**
@@ -673,6 +674,25 @@ describe("reading every export Hearth has ever written", () => {
 		);
 	});
 
+	/**
+	 * An import writes the package's pictures into the vault before it applies
+	 * the payload — that is what turns their in-package references back into
+	 * vault paths — so a payload that turns out to be unusable has to be caught
+	 * *before* the writing, or its images are left in the vault with nothing
+	 * pointing at them.
+	 */
+	it("knows an unusable package is unusable before anything is written", () => {
+		const s = vault();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		(pkg.payload as { dashboard: unknown }).dashboard = "not a board";
+		expect(validatePackage(s, pkg)).not.toBeNull();
+
+		const good = captureDashboard(s, s.dashboards[0]);
+		expect(validatePackage(s, good)).toBeNull();
+		// A settings backup may legitimately carry no boards at all.
+		expect(validatePackage(s, { hearth: { format: 3, kind: "settings" }, payload: {} })).toBeNull();
+	});
+
 	it("rejects what isn't a Hearth file, without touching the vault", () => {
 		expect(readPackage("not json").error).toBe("invalidJson");
 		expect(readPackage("[]").error).toBe("notAnObject");
@@ -812,6 +832,25 @@ describe("what a package points at outside itself", () => {
 			"payload.dashboard.cards[0].somethingNew: Private/Diary.md",
 			expect.stringContaining("abc123.ics"),
 		]);
+	});
+
+	it("closes the holes it made and leaves alone the ones it didn't", () => {
+		const s = boardWithReferences();
+		// A pre-existing empty slot somewhere the strip never touches. Compacting
+		// the whole payload would quietly remove it too.
+		const untouched = ["a", null, "b"];
+		(s.dashboards[0].cards[0] as unknown as Record<string, unknown>).untouched =
+			untouched;
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
+
+		stripReferences(pkg, { paths: true });
+
+		// The stripped folder list is closed up, with no holes left behind.
+		expect(board.cards[3].tasks?.folders).toEqual([]);
+		expect(
+			(board.cards[0] as unknown as Record<string, unknown>).untouched,
+		).toEqual(["a", null, "b"]);
 	});
 
 	it("sees nothing path-shaped in a board that has been fully stripped", () => {

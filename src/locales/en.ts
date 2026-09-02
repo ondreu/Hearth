@@ -80,6 +80,7 @@ export const en = {
 		newNoteTemplaterMissing:
 			"Hearth: the “New note” button is set to a Templater template, but " +
 			"Templater isn’t enabled — making a blank note instead.",
+		exported: "Hearth: exported.",
 		layoutExported: "Hearth: layout exported.",
 		layoutImported: "Hearth: layout imported.",
 		layoutImportError: (error: string) => `Hearth: ${error}`,

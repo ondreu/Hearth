@@ -46,10 +46,11 @@ export async function saveExport(
 	app: App,
 	filename: string,
 	content: string,
+	notice: string = t().notices.exported,
 ): Promise<void> {
 	if (!Platform.isMobile) {
 		downloadTextFile(filename, content);
-		new Notice(t().notices.layoutExported);
+		new Notice(notice);
 		return;
 	}
 	try {
@@ -70,7 +71,7 @@ function commonOptions(plugin: HearthPlugin): { pluginVersion: string; locale: s
 /** Export the whole dashboard setup (every board plus the layout globals). */
 export async function exportLayout(plugin: HearthPlugin): Promise<void> {
 	const outcome = exportLayoutFile(plugin.settings, commonOptions(plugin));
-	await saveExport(plugin.app, PACKAGE_FILENAMES.layout, outcome.json);
+	await saveExport(plugin.app, PACKAGE_FILENAMES.layout, outcome.json, t().notices.layoutExported);
 }
 
 /** Export every setting: the full backup. */
@@ -326,8 +327,14 @@ class ImportModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.titleEl.setText(t().portable.importModal.title);
+		this.render();
+	}
+
+	/** Drawn from scratch whenever the mode changes, since the warning list and
+	 * the confirm button's emphasis both depend on it. */
+	private render(): void {
 		const strings = t().portable.importModal;
-		this.titleEl.setText(strings.title);
 		const body = this.contentEl;
 		body.empty();
 
@@ -398,8 +405,7 @@ class ImportModal extends Modal {
 				d.setValue(this.mode);
 				d.onChange((v) => {
 					this.mode = v as typeof this.mode;
-					// The warning list and the button's emphasis both depend on it.
-					this.onOpen();
+					this.render();
 				});
 			});
 
