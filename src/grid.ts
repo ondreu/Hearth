@@ -1053,7 +1053,7 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 			layer.style.setProperty("backdrop-filter", filter);
 			layer.style.setProperty("-webkit-backdrop-filter", filter);
 
-			// Size the layer to its own run rather than to the whole board.
+			// Size the layer to its own run, and to EXACTLY that run — no padding.
 			//
 			// A backdrop-filter is priced by the element's box, not by how much of it
 			// the mask lets through: a layer spanning the grid makes the compositor
@@ -1061,15 +1061,27 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 			// Retina display that is the full board area at 2x, re-evaluated whenever
 			// anything behind it changes.
 			//
-			// Padded by twice the blur radius, the same convention the banner uses
-			// (see background.ts): a blurred layer goes soft at its own edges, so the
-			// box has to reach past the cards for the blur under a card's border to
-			// sample real backdrop rather than a clamped edge. The mask is emitted in
-			// the layer's own coordinates, hence the origin passed to
-			// cardSilhouettePath.
-			// …and clamped to the grid, so the padded box can never come out larger
-			// than the area the layer used to span.
-			const pad = Math.ceil((Number(blur) || 0) * 2);
+			// This box used to be padded by twice the blur radius, on the theory that a
+			// blurred layer goes soft at its own edges and so the box has to reach past
+			// the cards for the blur under a card's border to sample real backdrop
+			// rather than a clamped edge. The padding was a bad trade:
+			//
+			// - What it cost is a visible blur FRAME. The padding is only invisible
+			//   while the mask is trimming it away, and a backdrop-filter is not
+			//   reliably clipped by its element's own mask — Chromium has shipped
+			//   versions that ignore it. Where it is ignored, every card wears a band
+			//   of blurred wallpaper twice the blur radius wide.
+			// - What it bought is nothing you can see. Compared side by side at 2x, the
+			//   padded and unpadded boxes are indistinguishable over a photographic
+			//   wallpaper, which is what Hearth's backgrounds are. The clamping only
+			//   shows against contrived high-frequency content (hard 4px stripes).
+			//
+			// So the box is the run's own bounding box, rounded off by border-radius
+			// below. Nothing extends past the cards, so there is nothing for the mask
+			// to have to hide, and the layer is correct whether or not it is honoured.
+			// Padding cannot be recovered by clipping the overflow of a wrapper either:
+			// any clip also becomes the filter's sampling region, so the clamped edge
+			// comes straight back (which is likewise why the mask is not a clip-path).
 			let minX = Infinity;
 			let minY = Infinity;
 			let maxX = -Infinity;
@@ -1080,14 +1092,21 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 				maxX = Math.max(maxX, c.right);
 				maxY = Math.max(maxY, c.bottom);
 			}
-			const x = Math.max(0, Math.floor(minX) - pad);
-			const y = Math.max(0, Math.floor(minY) - pad);
-			const w = Math.min(gridW, Math.ceil(maxX) + pad) - x;
-			const h = Math.min(gridH, Math.ceil(maxY) + pad) - y;
+			const x = Math.max(0, Math.floor(minX));
+			const y = Math.max(0, Math.floor(minY));
+			const w = Math.min(gridW, Math.ceil(maxX)) - x;
+			const h = Math.min(gridH, Math.ceil(maxY)) - y;
 			layer.style.left = `${x}px`;
 			layer.style.top = `${y}px`;
 			layer.style.width = `${w}px`;
 			layer.style.height = `${h}px`;
+			// Round the box the way the cards round. border-radius is the element's own
+			// clip rather than a mask, and is honoured where the mask is not, so a run
+			// whose outline is a rounded rectangle — a lone card, a row, a column, a
+			// block of equal cards — comes out exact with no help from the mask at all.
+			// A run with a notch in it (cards of unequal size along a shared edge) still
+			// needs the mask to carve the notch, and reads as its bounding box without.
+			layer.style.borderRadius = `${radius}px`;
 
 			const paths = run
 				.map((c) => `<path d="${cardSilhouettePath(c.el, radius, x, y)}" fill="#fff"/>`)

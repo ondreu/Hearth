@@ -946,11 +946,18 @@
  * grid's first child) and blur the wallpaper ONCE per run; an SVG mask — rebuilt
  * from live card geometry in updateFrostLayers() — reveals each layer only under
  * that run's cards, so a run of touching cards reads as one seamless frosted tile
- * while the gaps stay sharp. The mask is what rounds the corners and follows the
- * merged-edge flattening; the layer's box is what keeps the cost and the spill
- * down. Both matter, and the mask is deliberately NOT clip-path: clip-path also
- * becomes the filter's sampling region, so the blur clamps at the clip edge and
- * the fringing comes back.
+ * while the gaps stay sharp.
+ *
+ * The layer's box is sized to its run exactly, with no padding, and rounded with
+ * an inline border-radius. That is deliberate and it is the second half of the
+ * same lesson: a mask is the only way to trim a backdrop-filter without also
+ * shrinking what it samples (clip-path and an ancestor's overflow clip both
+ * become the sampling region, so the blur clamps at the edge and fringes), but a
+ * mask is also the one thing that may be ignored. So nothing is allowed to extend
+ * past the cards for a mask to have to hide: no padding, and border-radius —
+ * an ordinary element clip, always honoured — for the corners. The mask is then
+ * what carves a notch out of a run of unequal cards, and a refinement rather
+ * than the thing holding the effect together.
  *
  * Cards keep their translucent tint (see the .hearth-card background), which
  * paints over the shared blur: blur-then-tint, the correct frosted-glass order.
@@ -963,12 +970,15 @@
 	inset: 0;
 	pointer-events: none;
 }
-/* Position and size are set inline per layer by updateFrostLayers(), to the
- * bounding box of that layer's own RUN of cards — NOT `inset: 0`, and not the
- * bounding box of every blurred card on the board. A backdrop-filter is priced by
- * its element's box rather than by how much of it the mask reveals, so a
- * board-sized layer blurs the whole board's backdrop and then masks the result
- * away — and shows that blur in the gaps wherever the mask is not honoured. */
+/* Position, size and corner radius are set inline per layer by
+ * updateFrostLayers(), to the bounding box of that layer's own RUN of cards —
+ * NOT `inset: 0`, not the bounding box of every blurred card on the board, and
+ * with no padding around it. A backdrop-filter is priced by its element's box
+ * rather than by how much of it the mask reveals, so a board-sized layer blurs
+ * the whole board's backdrop and then masks the result away — and shows that
+ * blur wherever the mask is not honoured. The inline border-radius is what makes
+ * the common outlines exact without the mask: it is the element's own clip, so it
+ * is honoured where a mask is not. */
 .hearth-frost {
 	position: absolute;
 	pointer-events: none;

@@ -123,6 +123,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   out also do a little less compositing work than before, since each blur pass
   now covers a card instead of the whole board.
 
+- **No more blurred frame around a frosted card.** A card with the blur on could
+  wear a band of blurred wallpaper around its outside, a couple of dozen pixels
+  wide, as though the glass were larger than the card sitting on it. The blur
+  layer was deliberately drawn bigger than its cards — the theory being that a
+  blurred layer goes soft at its own edges, so it should reach past the card and
+  let the mask trim the overhang back. Wherever that mask wasn't honoured, the
+  overhang was simply visible.
+
+  The layer is now exactly the size of its cards and rounds its corners the way
+  they do, so there is no overhang for a mask to have to hide. Measured side by
+  side at 2×, the old padding bought nothing you could see against a photographic
+  wallpaper anyway — it only ever showed up against hard, contrived patterns.
+
 - **A board with a single card gets its frosted glass.** The blur behind cards
   is rebuilt by the same pass that decides which cards touch, and that pass bailed
   out early when there was nothing that *could* touch — so a board holding exactly
