@@ -1011,6 +1011,11 @@ export const en = {
 				"Keep an open home view current as the vault changes — Recent, Bookmarks " +
 				"and saved-query cards update without reopening the tab. Switching back to " +
 				"the Hearth tab always refreshes it regardless of this setting.",
+			liveSettingsSync: "Pick up synced changes",
+			liveSettingsSyncDesc:
+				"Apply dashboard changes made on another device as soon as sync brings " +
+				"them in, instead of at the next Obsidian restart. Leave this on unless " +
+				"a board reloading mid-session gets in your way.",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +

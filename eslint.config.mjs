@@ -48,6 +48,11 @@ export default tseslint.config(
 			// them read repository files (test/cardrequest.test.ts checks the
 			// picker's prefilled issue URL against the real issue-form template).
 			"obsidianmd/no-nodejs-modules": "off",
+			// The rule is right about the plugin: the config folder is read from
+			// Vault#configDir, never assumed. A test of the code that builds a
+			// path *out of* that value has to write a folder name down somewhere,
+			// and test/settingssync.test.ts covers a renamed one explicitly.
+			"obsidianmd/hardcoded-config-path": "off",
 		},
 	},
 );

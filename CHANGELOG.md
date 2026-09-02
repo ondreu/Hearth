@@ -99,6 +99,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   of Obsidian — and a Hearth tab you *replace* by opening a note in it takes its
   place with it, so opening Hearth fresh afterwards still starts at the top.
 
+- **Sync arrives without a restart.** Edit a dashboard on the desktop, walk over
+  to the laptop, and the board you get is the one that machine read when
+  Obsidian started — the synced version only appeared after quitting and
+  reopening the app. Hearth now watches its own settings file and adopts another
+  device's changes as they land, boards, cards and card contents alike.
+
+  It also closes the worse half of that problem. The window holding the stale
+  copy used to write it straight back on its next save, so the edit you made on
+  the other machine could be *undone* by moving a card here. That copy is now
+  brought up to date instead, in place, so what gets saved is the synced state.
+
+  Deliberately careful about it: a file caught half-written by a sync client is
+  ignored rather than acted on, settings identical to the ones already loaded
+  re-render nothing, and a board you are in the middle of arranging is left
+  alone until you are done. Off is available — Settings → Behaviour → **Pick up
+  synced changes** — but on is the honest default.
+
 ### Fixed
 
 - **Frosted glass no longer smears across the gaps between cards.** With the

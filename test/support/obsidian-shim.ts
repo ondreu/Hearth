@@ -74,6 +74,17 @@ export class Keymap {
 export class SliderComponent {}
 export class TextComponent {}
 
+// Real behaviour, not a placeholder: this is a pure string function (collapse
+// separators, trim the ends, NFC), and the sync watcher's path matching is
+// tested against it rather than against a guess at what it does.
+export function normalizePath(path: string): string {
+	const cleaned = path
+		.replace(/([\\/])+/g, "/")
+		.replace(/(^\/+|\/+$)/g, "")
+		.normalize("NFC");
+	return cleaned === "" ? "/" : cleaned;
+}
+
 export function setIcon(): void {}
 export function addIcon(): void {}
 // lucide.ts imports this for its icon-registry lookup (fileicons.ts and the
