@@ -757,6 +757,93 @@ export function updateBoardHeight(gridEl: HTMLElement): void {
 	gridEl.style.minHeight = `${bottom + GRID_GAP}px`;
 }
 
+/** Touch threshold: cards snap edges to a 0-gap line, so a couple of px of
+ *  slack covers sub-pixel rendering without merging cards that merely sit near
+ *  each other. The perpendicular overlap floor avoids joining cards that only
+ *  brush at a corner. Shared by the corner/border merging below and by the
+ *  frost's run grouping, so the blur groups exactly the cards the eye reads as
+ *  joined — see mergedRuns. */
+const TOUCH = 2;
+const OVERLAP = 6;
+
+/** The rectangle the merge and frost geometry works in: a card's border box in
+ *  the grid's own pixel space. */
+export interface CardBox {
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+}
+
+/** Whether two cards touch along an edge closely enough to read as one merged
+ *  tile — the same test applyEdgeMerging uses before it sharpens corners and
+ *  drops shared borders. Pure geometry, so the frost grouping cannot drift from
+ *  what the cards actually look like. */
+export function cardsMerge(a: CardBox, b: CardBox): boolean {
+	// Side by side: the right edge of one meets the left edge of the other, with
+	// real vertical overlap.
+	if (Math.abs(a.right - b.left) <= TOUCH || Math.abs(b.right - a.left) <= TOUCH) {
+		if (Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > OVERLAP) return true;
+	}
+	// Stacked: bottom edge meets top edge, with real horizontal overlap.
+	if (Math.abs(a.bottom - b.top) <= TOUCH || Math.abs(b.bottom - a.top) <= TOUCH) {
+		if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > OVERLAP) return true;
+	}
+	return false;
+}
+
+/**
+ * Partition cards into runs of touching cards — the connected components of the
+ * `cardsMerge` graph.
+ *
+ * This is what keeps one card's frost off another's patch of wallpaper. A single
+ * layer covering every blurred card on the board has to span the gaps between
+ * them, and then leans entirely on its mask to hide the blur in those gaps; where
+ * the mask is not honoured, the whole bounding box reads as one frosted sheet with
+ * the cards floating on it. One layer per run makes each layer's *box* hug its own
+ * cards, so there is nothing over a gap to hide in the first place — and a run of
+ * one card is just that card.
+ *
+ * Runs come back ordered by position (top-left first) so a layer keeps its
+ * identity across rebuilds and is not torn down and recreated on every reflow.
+ */
+export function mergedRuns<T extends CardBox>(boxes: readonly T[]): T[][] {
+	// Union-find over the touching pairs. n is the number of blurred cards on one
+	// board, so the O(n^2) pair scan is the same shape (and cost) as the merge scan.
+	const parent = boxes.map((_, i) => i);
+	const find = (i: number): number => {
+		while (parent[i] !== i) {
+			parent[i] = parent[parent[i]];
+			i = parent[i];
+		}
+		return i;
+	};
+	for (let i = 0; i < boxes.length; i++) {
+		for (let j = i + 1; j < boxes.length; j++) {
+			if (!cardsMerge(boxes[i], boxes[j])) continue;
+			const ri = find(i);
+			const rj = find(j);
+			if (ri !== rj) parent[ri] = rj;
+		}
+	}
+
+	const runs = new Map<number, T[]>();
+	for (let i = 0; i < boxes.length; i++) {
+		const root = find(i);
+		const run = runs.get(root);
+		if (run) run.push(boxes[i]);
+		else runs.set(root, [boxes[i]]);
+	}
+
+	// Order by the run's own top-left so the nth run is the same run next reflow.
+	return Array.from(runs.values()).sort((a, b) => {
+		const ay = Math.min(...a.map((c) => c.top));
+		const by = Math.min(...b.map((c) => c.top));
+		if (ay !== by) return ay - by;
+		return Math.min(...a.map((c) => c.left)) - Math.min(...b.map((c) => c.left));
+	});
+}
+
 /** Detect pairs of cards whose edges touch and flag them so CSS can sharpen
  *  the touching corners (and drop the double border between them) — making two
  *  adjacent cards read as a single merged tile, like grouped Android
@@ -771,14 +858,15 @@ export function applyEdgeMerging(gridEl: HTMLElement): void {
 	for (const c of cards) {
 		c.classList.remove(...MERGE_CLASSES);
 	}
-	if (cards.length < 2) return;
+	// One card has nothing to merge with — but it still needs its frost rebuilt,
+	// so this cannot just return. The frost is driven from here (see the call at
+	// the end) and this is its only entry point, so returning early left a
+	// one-card board with no frosted glass at all however high its blur.
+	if (cards.length < 2) {
+		updateFrostLayers(gridEl);
+		return;
+	}
 
-	// Touch threshold: cards snap edges to a 0-gap line, so a couple of px of
-	// slack covers sub-pixel rendering without merging cards that merely sit
-	// near each other. The perpendicular overlap floor avoids joining cards
-	// that only brush at a corner.
-	const TOUCH = 2;
-	const OVERLAP = 6;
 	// Per-card corner-end coverage. Each flag records whether the given end of
 	// the given edge is reached by a touching neighbour, e.g. `rT` = the top end
 	// of the right edge is covered. A corner sharpens when either edge meeting
@@ -898,13 +986,14 @@ function cardSilhouettePath(
 	);
 }
 
-/** Rebuild the shared frosted-glass blur layers behind the cards. See the
- *  .hearth-frost note in styles.css for why the blur is shared rather than
- *  per-card. One .hearth-frost layer is created per distinct resolved blur value
- *  (stashed on each card as data-blur), each masked — via an inline SVG built
- *  from the cards' live silhouettes — to the union of its cards. The blur is
- *  therefore computed once per value and shows only under the cards, so touching
- *  cards blur as one seamless surface while gaps stay sharp. */
+/** Rebuild the frosted-glass blur layers behind the cards. See the .hearth-frost
+ *  note in styles.css for why the blur is shared across touching cards rather
+ *  than run per card. One .hearth-frost layer is created per distinct resolved
+ *  blur value (stashed on each card as data-blur) *per run of touching cards*
+ *  (see mergedRuns), each masked — via an inline SVG built from the cards' live
+ *  silhouettes — to the union of that run's cards. So a run of touching cards
+ *  blurs as one seamless surface, and a card standing on its own gets a layer no
+ *  bigger than itself. */
 export function updateFrostLayers(gridEl: HTMLElement): void {
 	let root = gridEl.querySelector<HTMLElement>(":scope > .hearth-frost-root");
 	const cards = Array.from(
@@ -932,77 +1021,108 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 	}
 
 	const radius = resolveGridRadius(gridEl);
+	const gridW = gridEl.clientWidth;
+	const gridH = gridEl.clientHeight;
 	const seen = new Set<string>();
 	for (const [blur, group] of byBlur) {
-		seen.add(blur);
-		let layer = root.querySelector<HTMLElement>(
-			`:scope > .hearth-frost[data-blur="${blur}"]`,
-		);
-		if (!layer) {
-			layer = root.createDiv("hearth-frost");
-			layer.dataset.blur = blur;
-		}
-		const filter = `blur(${blur}px)`;
-		layer.style.setProperty("backdrop-filter", filter);
-		layer.style.setProperty("-webkit-backdrop-filter", filter);
+		// …then split each blur group into runs of touching cards, one layer each.
+		// Grouping by blur alone would put every card of that blur under a single
+		// layer spanning them all, which then has to span the gaps between them too.
+		const boxes = group.map((el) => ({
+			el,
+			left: el.offsetLeft,
+			top: el.offsetTop,
+			right: el.offsetLeft + el.offsetWidth,
+			bottom: el.offsetTop + el.offsetHeight,
+		}));
+		const runs = mergedRuns(boxes);
+		for (let i = 0; i < runs.length; i++) {
+			const run = runs[i];
+			// Keyed by blur *and* run index (runs are position-ordered) so a layer is
+			// reused across reflows rather than rebuilt from scratch each time.
+			const key = `${blur}:${i}`;
+			seen.add(key);
+			let layer = root.querySelector<HTMLElement>(
+				`:scope > .hearth-frost[data-frost="${key}"]`,
+			);
+			if (!layer) {
+				layer = root.createDiv("hearth-frost");
+				layer.dataset.frost = key;
+			}
+			const filter = `blur(${blur}px)`;
+			layer.style.setProperty("backdrop-filter", filter);
+			layer.style.setProperty("-webkit-backdrop-filter", filter);
 
-		// Size the layer to its own cards rather than to the whole board.
-		//
-		// A backdrop-filter is priced by the element's box, not by how much of it
-		// the mask lets through: a layer spanning the grid makes the compositor
-		// blur the entire board's backdrop and *then* mask the result away. On a
-		// Retina display that is the full board area at 2x, re-evaluated whenever
-		// anything behind it changes.
-		//
-		// Padded by twice the blur radius, the same convention the banner uses
-		// (see background.ts): a blurred layer goes soft at its own edges, so the
-		// box has to reach past the cards for the blur under a card's border to
-		// sample real backdrop rather than a clamped edge. The mask is emitted in
-		// the layer's own coordinates, hence the origin passed to
-		// cardSilhouettePath.
-		// …and clamped to the grid, which is what the layer used to span. That
-		// makes this strictly an improvement rather than a trade: on a board whose
-		// cards fill it, the padded box would otherwise come out *larger* than the
-		// grid and cost more than it saved. Clamped, the layer is at worst exactly
-		// the old full-grid box, and smaller by however much of the board the
-		// cards leave empty — which is also why the saving is a big one on a
-		// sparse board and nothing at all on a packed one.
-		const pad = Math.ceil((Number(blur) || 0) * 2);
-		let minX = Infinity;
-		let minY = Infinity;
-		let maxX = -Infinity;
-		let maxY = -Infinity;
-		for (const c of group) {
-			minX = Math.min(minX, c.offsetLeft);
-			minY = Math.min(minY, c.offsetTop);
-			maxX = Math.max(maxX, c.offsetLeft + c.offsetWidth);
-			maxY = Math.max(maxY, c.offsetTop + c.offsetHeight);
-		}
-		const gridW = gridEl.clientWidth;
-		const gridH = gridEl.clientHeight;
-		const x = Math.max(0, Math.floor(minX) - pad);
-		const y = Math.max(0, Math.floor(minY) - pad);
-		const w = Math.min(gridW, Math.ceil(maxX) + pad) - x;
-		const h = Math.min(gridH, Math.ceil(maxY) + pad) - y;
-		layer.style.left = `${x}px`;
-		layer.style.top = `${y}px`;
-		layer.style.width = `${w}px`;
-		layer.style.height = `${h}px`;
+			// Size the layer to its own run, and to EXACTLY that run — no padding.
+			//
+			// A backdrop-filter is priced by the element's box, not by how much of it
+			// the mask lets through: a layer spanning the grid makes the compositor
+			// blur the entire board's backdrop and *then* mask the result away. On a
+			// Retina display that is the full board area at 2x, re-evaluated whenever
+			// anything behind it changes.
+			//
+			// This box used to be padded by twice the blur radius, on the theory that a
+			// blurred layer goes soft at its own edges and so the box has to reach past
+			// the cards for the blur under a card's border to sample real backdrop
+			// rather than a clamped edge. The padding was a bad trade:
+			//
+			// - What it cost is a visible blur FRAME. The padding is only invisible
+			//   while the mask is trimming it away, and a backdrop-filter is not
+			//   reliably clipped by its element's own mask — Chromium has shipped
+			//   versions that ignore it. Where it is ignored, every card wears a band
+			//   of blurred wallpaper twice the blur radius wide.
+			// - What it bought is nothing you can see. Compared side by side at 2x, the
+			//   padded and unpadded boxes are indistinguishable over a photographic
+			//   wallpaper, which is what Hearth's backgrounds are. The clamping only
+			//   shows against contrived high-frequency content (hard 4px stripes).
+			//
+			// So the box is the run's own bounding box, rounded off by border-radius
+			// below. Nothing extends past the cards, so there is nothing for the mask
+			// to have to hide, and the layer is correct whether or not it is honoured.
+			// Padding cannot be recovered by clipping the overflow of a wrapper either:
+			// any clip also becomes the filter's sampling region, so the clamped edge
+			// comes straight back (which is likewise why the mask is not a clip-path).
+			let minX = Infinity;
+			let minY = Infinity;
+			let maxX = -Infinity;
+			let maxY = -Infinity;
+			for (const c of run) {
+				minX = Math.min(minX, c.left);
+				minY = Math.min(minY, c.top);
+				maxX = Math.max(maxX, c.right);
+				maxY = Math.max(maxY, c.bottom);
+			}
+			const x = Math.max(0, Math.floor(minX));
+			const y = Math.max(0, Math.floor(minY));
+			const w = Math.min(gridW, Math.ceil(maxX)) - x;
+			const h = Math.min(gridH, Math.ceil(maxY)) - y;
+			layer.style.left = `${x}px`;
+			layer.style.top = `${y}px`;
+			layer.style.width = `${w}px`;
+			layer.style.height = `${h}px`;
+			// Round the box the way the cards round. border-radius is the element's own
+			// clip rather than a mask, and is honoured where the mask is not, so a run
+			// whose outline is a rounded rectangle — a lone card, a row, a column, a
+			// block of equal cards — comes out exact with no help from the mask at all.
+			// A run with a notch in it (cards of unequal size along a shared edge) still
+			// needs the mask to carve the notch, and reads as its bounding box without.
+			layer.style.borderRadius = `${radius}px`;
 
-		const paths = group
-			.map((c) => `<path d="${cardSilhouettePath(c, radius, x, y)}" fill="#fff"/>`)
-			.join("");
-		const svg =
-			`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
-			`viewBox="0 0 ${w} ${h}">${paths}</svg>`;
-		const mask = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-		layer.style.setProperty("mask-image", mask);
-		layer.style.setProperty("-webkit-mask-image", mask);
+			const paths = run
+				.map((c) => `<path d="${cardSilhouettePath(c.el, radius, x, y)}" fill="#fff"/>`)
+				.join("");
+			const svg =
+				`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
+				`viewBox="0 0 ${w} ${h}">${paths}</svg>`;
+			const mask = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+			layer.style.setProperty("mask-image", mask);
+			layer.style.setProperty("-webkit-mask-image", mask);
+		}
 	}
-	// Drop layers for blur values that no longer have any cards.
+	// Drop layers whose blur value or run no longer exists.
 	for (const layer of Array.from(
 		root.querySelectorAll<HTMLElement>(":scope > .hearth-frost"),
 	)) {
-		if (!seen.has(layer.dataset.blur ?? "")) layer.remove();
+		if (!seen.has(layer.dataset.frost ?? "")) layer.remove();
 	}
 }

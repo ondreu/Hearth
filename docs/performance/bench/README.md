@@ -10,7 +10,14 @@ numbers there can be re-checked after a change.
 
 Needs Chromium via Playwright. It is normally a global install in CI images
 rather than a devDependency here; `harness.mjs` looks in the usual places and
-says so if it can't find one.
+says so if it can't find one. Where the Playwright install and the browser
+install are versioned apart — a container with a browser pre-baked under
+`PLAYWRIGHT_BROWSERS_PATH` and a global Playwright pinning a different build —
+point `CHROMIUM_PATH` at the binary:
+
+```sh
+CHROMIUM_PATH=/opt/pw-browsers/chromium node docs/performance/bench/bench.mjs
+```
 
 ```sh
 node docs/performance/bench/build.mjs      # bundle entry.ts (styles.css is linked directly)

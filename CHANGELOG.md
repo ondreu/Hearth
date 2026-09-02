@@ -99,6 +99,48 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   of Obsidian — and a Hearth tab you *replace* by opening a note in it takes its
   place with it, so opening Hearth fresh afterwards still starts at the top.
 
+### Fixed
+
+- **Frosted glass no longer smears across the gaps between cards.** With the
+  card blur turned on, two cards sitting apart on a board could show a single
+  frosted sheet stretched between them — the wallpaper in the empty space
+  blurred as if a pane of glass were floating there, with the cards resting on
+  it. On a board whose cards touch it looked right; the further apart they were,
+  the more obviously wrong it got.
+
+  The blur behind cards is drawn on a shared layer rather than on each card,
+  because one continuous surface is what lets a run of touching cards read as a
+  single frosted tile instead of showing a bright seam where they meet. But that
+  layer was sized to hold *every* blurred card on the board at once, so it had to
+  span the gaps between them, and only a mask cut to the card silhouettes kept
+  the blur out of those gaps. Where that mask wasn't honoured, the whole
+  rectangle came through frosted.
+
+  Each run of touching cards now gets its own layer, sized to just those cards.
+  A card standing on its own gets a layer no bigger than itself, so there is
+  nothing stretched over a gap to go wrong in the first place — and touching
+  cards still share one surface, so they stay seamless. Boards with cards spread
+  out also do a little less compositing work than before, since each blur pass
+  now covers a card instead of the whole board.
+
+- **No more blurred frame around a frosted card.** A card with the blur on could
+  wear a band of blurred wallpaper around its outside, a couple of dozen pixels
+  wide, as though the glass were larger than the card sitting on it. The blur
+  layer was deliberately drawn bigger than its cards — the theory being that a
+  blurred layer goes soft at its own edges, so it should reach past the card and
+  let the mask trim the overhang back. Wherever that mask wasn't honoured, the
+  overhang was simply visible.
+
+  The layer is now exactly the size of its cards and rounds its corners the way
+  they do, so there is no overhang for a mask to have to hide. Measured side by
+  side at 2×, the old padding bought nothing you could see against a photographic
+  wallpaper anyway — it only ever showed up against hard, contrived patterns.
+
+- **A board with a single card gets its frosted glass.** The blur behind cards
+  is rebuilt by the same pass that decides which cards touch, and that pass bailed
+  out early when there was nothing that *could* touch — so a board holding exactly
+  one card came out with no frosted glass at all, however high its blur was set.
+
 ## [3.0.0]
 
 ### Added
