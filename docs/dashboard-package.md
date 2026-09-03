@@ -30,6 +30,7 @@ a board without touching a single global setting.
     "createdAt": "2026-09-02T18:00:00.000Z"
   },
   "meta": {                   // all optional; a gallery listing's fields
+    "id": "hd-8f2k1x9qa03b",  // this dashboard as a published work — see Identity
     "name": "Reading room",
     "description": "…",
     "author": "…",
@@ -136,19 +137,48 @@ itself could produce.
 
 | Mode | What it does |
 | --- | --- |
-| `add` (default) | A new board: keeps the package's board id when free, a name that doesn't collide, **no global setting touched**. |
+| `add` (default) | A new board: a fresh board id, a name that doesn't collide, **no global setting touched**. |
 | `replaceBoard` | Overwrites one board **in place, keeping its id**, so its workspace link, hosted-view cache and scroll memory survive an update. |
 | `replaceAll` | The restore path. `layout` and `settings` packages only. |
 
-Because `add` keeps the package's board id when the vault has nothing under it,
-`existingBoardFor()` can find the board a previous import created — which is how
-"there's a new version of that board" updates one board instead of leaving two.
-
 Three things a board is never allowed to claim in someone else's vault: the
-mobile-default flag, a linked workspace, and (on `add`) an id that is already
-taken. Pinned cards and the favourites list are *carried* but not applied unless
-the importer asks, because both are vault-wide and would change boards they
-never looked at.
+mobile-default flag, a linked workspace, and its own board id — `add` always
+mints a fresh one, so a package cannot pick which of the importer's boards it
+lands on. Pinned cards and the favourites list are *carried* but not applied
+unless the importer asks, because both are vault-wide and would change boards
+they never looked at.
+
+## Identity
+
+Two different questions, and conflating them was the first version's mistake:
+
+| Field | Answers | Scope |
+| --- | --- | --- |
+| `Dashboard.id` | which board is this **in this vault**? | one vault; minted fresh on every import |
+| `meta.id` ⇄ `Dashboard.sourceId` | which **published dashboard** is this a copy of? | stable across vaults and across versions |
+
+`existingBoardFor()` matches on the second, which is what makes "here's the
+updated version of that board" update the board it created instead of landing
+beside it. Matching on the *board* id gets the interesting case wrong: in a
+gallery, someone downloading a board, changing it and republishing it is normal,
+and their board still carries the original's id — so their variant would have
+been offered as an update to the original.
+
+Where the value comes from:
+
+- **Hearth mints one when a board is first exported**, and records it on the
+  board, so the author's next export of that board carries the same value.
+- **On import** it is recorded on the board that is created, as `sourceId`.
+- **A duplicated board does not inherit it** — a copy is a new board, not
+  another instance of the same published work.
+- **A package with no `meta.id` always reads as new.** That is the safe way
+  round, and it is what a hand-written package gets.
+
+**A gallery should overwrite `meta.id` with its own entry id when it publishes.**
+It owns that namespace, and it is the only party that can tell a new *version*
+of a dashboard from someone's *fork* of it — an import carries whatever identity
+it is given, faithfully and without judgement. A fork republished without a new
+id will be offered to readers as an update to the original.
 
 An import returns an `ImportResult`, not a pass/fail. Warning codes:
 `missingPath`, `missingPlugin`, `unknownCardKind`, `unknownViewType`,
@@ -235,7 +265,9 @@ want to strip or proxy `publicUrl` itself.
 4. Hold for review if `report.residual` is non-empty.
 5. Re-check `assets`: type against the allowlist, `bytes` against the decoded
    length, and the total against your own budget.
-6. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
+6. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
+   same entry is updated, and mint a new one for a fork.
+7. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
    `capture.performanceTier` is worth showing as "captured on a low-power
    device".
 

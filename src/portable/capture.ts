@@ -325,7 +325,10 @@ export function captureDashboard(
 			plugin: opts.pluginVersion,
 			createdAt: new Date().toISOString(),
 		},
-		meta: { name: dash.name, ...opts.meta },
+		// `id` before the caller's meta, so a gallery publishing this can name the
+		// work itself; `name` after nothing, so the board's own name is only a
+		// default. See PackageMeta.id.
+		meta: { id: dash.sourceId, name: dash.name, ...opts.meta },
 		capture: captureInfo(s, opts.locale ?? "en"),
 		requires: requirementsFor(cards, [board], needsTaskFields),
 		payload,
@@ -378,6 +381,19 @@ export function captureSettings(s: HomeSettings, opts: CaptureOptions = {}): Hea
 		requires: requirementsFor(cards, dashboards, s.taskFieldsEnabled),
 		payload,
 	};
+}
+
+/**
+ * A fresh shared-work identity.
+ *
+ * Random rather than derived: it identifies a *dashboard someone published*,
+ * which has nothing to do with when or where the board was made, and two
+ * authors exporting at the same moment must not collide. Kept to the character
+ * set the importer validates.
+ */
+export function newSourceId(): string {
+	const random = (): string => Math.random().toString(36).slice(2, 10);
+	return `hd-${random()}${random()}`;
 }
 
 /** Serialize a package the way every Hearth export is written: pretty JSON, so

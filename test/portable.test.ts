@@ -35,6 +35,7 @@ import {
 	type HomeSettings,
 } from "../src/types";
 import { exportSettingsPayload } from "../src/layout";
+import { cloneDashboard } from "../src/dashboards";
 import {
 	applyPackage,
 	type AssetStore,
@@ -362,29 +363,100 @@ describe("importing a board into a vault", () => {
 	});
 
 	/**
-	 * What makes "I downloaded this board last month and there's a new version"
-	 * work. The package keeps the board id it was captured under, and an `add`
-	 * keeps it too when the vault has nothing under it — so the next import of
-	 * the same package can find what it created and offer to update it instead
-	 * of leaving two nearly-identical boards in the switcher.
+	 * "I downloaded this board last month and there's a new version."
+	 *
+	 * The identity that answers it is `meta.id` — the dashboard as a *published
+	 * work* — recorded on the board it creates. Not the board's own id, which
+	 * only ever meant "which board is this in this vault".
 	 */
-	it("can find the board a previous import of the same package created", () => {
+	it("finds the board a previous import of the same dashboard created", () => {
+		const mine = opinionatedVault();
+		// What exporting does: the board becomes a shared work and keeps the
+		// identity, so the author's next export of it agrees with this one.
+		mine.dashboards[0].sourceId = "hd-reading-room";
+		const theirs = contraryVault();
+
+		const first = captureDashboard(mine, mine.dashboards[0]);
+		expect(first.meta?.id).toBe("hd-reading-room");
+		expect(existingBoardFor(theirs, first)).toBeUndefined();
+		applyPackage(theirs, first, { mode: "add" });
+
+		// A later version of the same dashboard finds what the first one made.
+		mine.dashboards[0].cards = [card({ id: "new", kind: "clock" })];
+		const second = captureDashboard(mine, mine.dashboards[0]);
+		const found = existingBoardFor(theirs, second);
+		expect(found?.name).toBe("Home");
+
+		applyPackage(theirs, second, { mode: "replaceBoard", targetBoardId: found!.id });
+		expect(theirs.dashboards).toHaveLength(2);
+		expect(theirs.dashboards[1].cards).toHaveLength(1);
+	});
+
+	/**
+	 * The case that made board-id matching the wrong mechanism, and the reason
+	 * this is worth a field of its own. In a gallery, someone downloading a
+	 * board, changing it and republishing is normal — and their board still
+	 * carries the original's board id. Matching on that would have offered
+	 * their variant as an update to the original.
+	 */
+	it("treats a differently-identified dashboard as new, board id or not", () => {
+		const author = opinionatedVault();
+		author.dashboards[0].sourceId = "hd-original";
+		const reader = contraryVault();
+		applyPackage(reader, captureDashboard(author, author.dashboards[0]), {
+			mode: "add",
+		});
+
+		// A fork: same board, republished under its own identity.
+		const forker = opinionatedVault();
+		forker.dashboards[0].id = author.dashboards[0].id;
+		forker.dashboards[0].sourceId = "hd-a-variant";
+		const fork = captureDashboard(forker, forker.dashboards[0]);
+
+		expect(existingBoardFor(reader, fork)).toBeUndefined();
+		applyPackage(reader, fork, { mode: "add" });
+		expect(reader.dashboards).toHaveLength(3);
+	});
+
+	it("reads a dashboard that claims no identity as new every time", () => {
 		const mine = opinionatedVault();
 		const theirs = contraryVault();
 		const pkg = captureDashboard(mine, mine.dashboards[0]);
 
-		expect(existingBoardFor(theirs, pkg)).toBeUndefined();
+		expect(pkg.meta?.id).toBeUndefined();
 		applyPackage(theirs, pkg, { mode: "add" });
+		expect(existingBoardFor(theirs, pkg)).toBeUndefined();
+		expect(theirs.dashboards[1].sourceId).toBeUndefined();
+	});
 
-		const found = existingBoardFor(theirs, pkg);
-		expect(found?.name).toBe("Home");
+	it("refuses an identity that isn't the shape an export writes", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].sourceId = "hd-fine";
+		const theirs = contraryVault();
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		pkg.meta!.id = "../../../etc/passwd";
 
-		// And updating through that route leaves one board, not two.
-		applyPackage(theirs, captureDashboard(mine, mine.dashboards[0]), {
-			mode: "replaceBoard",
-			targetBoardId: found!.id,
-		});
+		applyPackage(theirs, pkg, { mode: "add" });
+		expect(theirs.dashboards[1].sourceId).toBeUndefined();
+	});
+
+	it("never lets a package pick which of the importer's boards it collides with", () => {
+		const mine = opinionatedVault();
+		const theirs = contraryVault();
+		// A package naming a board id the importer already uses.
+		mine.dashboards[0].id = "their-board";
+		applyPackage(theirs, captureDashboard(mine, mine.dashboards[0]), { mode: "add" });
+
 		expect(theirs.dashboards).toHaveLength(2);
+		expect(theirs.dashboards[0].id).toBe("their-board");
+		expect(theirs.dashboards[1].id).not.toBe("their-board");
+	});
+
+	it("does not pass a duplicated board off as the dashboard it was copied from", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].sourceId = "hd-original";
+		const copy = cloneDashboard(mine.dashboards[0], "Home copy");
+		expect(copy.sourceId).toBeUndefined();
 	});
 
 	it("keeps the target board's id when replacing one in place", () => {

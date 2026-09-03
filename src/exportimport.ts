@@ -35,6 +35,7 @@ import {
 	type ImportResult,
 	type ImportWarning,
 	importPackageFile,
+	newSourceId,
 	PACKAGE_FILENAMES,
 	readPackage,
 	vaultEnvironment,
@@ -231,6 +232,15 @@ class ExportDashboardModal extends Modal {
 		this.busy = true;
 		const strings = t().portable.exportModal;
 		try {
+			// Exporting is the moment a board becomes a shared work, so it is
+			// given an identity here and keeps it. Without that, every export of
+			// the same board would be a different dashboard as far as an importer
+			// could tell, and "here's the updated version" could only ever land
+			// beside the old one. Saved, so the next export agrees with this one.
+			if (!this.dash.sourceId) {
+				this.dash.sourceId = newSourceId();
+				await this.plugin.saveData(this.plugin.settings);
+			}
 			const tags = this.meta.tags
 				.split(",")
 				.map((tag) => tag.trim().toLowerCase())

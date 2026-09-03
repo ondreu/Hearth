@@ -65,6 +65,23 @@ export interface PackageHeader {
  * another. Every field is optional: a package is still valid with none of it,
  * and a plain local backup fills in almost none. */
 export interface PackageMeta {
+	/**
+	 * Identity of this dashboard as a published work — stable across vaults and
+	 * across versions of it, and the only thing an import uses to decide whether
+	 * it already holds this dashboard.
+	 *
+	 * Deliberately *not* the board's id, which means "which board is this in
+	 * this vault" and says nothing about which published dashboard it is. An
+	 * export mints one when the board has none and remembers it on the board, so
+	 * the author's next export of the same board carries the same value and
+	 * lands as an update.
+	 *
+	 * A gallery owns its own entry namespace and should overwrite this when it
+	 * publishes: an import carries whatever identity it is given faithfully, and
+	 * cannot tell a new version of a dashboard from someone's fork of it — only
+	 * the thing doing the publishing knows which it is.
+	 */
+	id?: string;
 	name?: string;
 	description?: string;
 	author?: string;

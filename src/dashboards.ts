@@ -76,6 +76,10 @@ export function cloneDashboard(dash: Dashboard, name: string): Dashboard {
 	// order. Both are things the copy can be given deliberately afterwards.
 	delete copy.linkedWorkspace;
 	delete copy.mobileDefault;
+	// Nor is a duplicate another instance of whatever published dashboard the
+	// original came from — otherwise importing an update to that dashboard
+	// would have two boards claiming to be it.
+	delete copy.sourceId;
 	return copy;
 }
 

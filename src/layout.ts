@@ -1277,6 +1277,10 @@ export function sanitizeDashboard(
 		if (typeof pv.focusable === "boolean") plugin.focusable = pv.focusable;
 		if (Object.keys(plugin).length > 0) dash.pluginView = plugin;
 	}
+	// Held to the shape an export writes, since it is matched against boards
+	// already in this vault. See `Dashboard.sourceId`.
+	const sourceId = str(r.sourceId)?.trim();
+	if (sourceId && /^[A-Za-z0-9_-]{1,64}$/.test(sourceId)) dash.sourceId = sourceId;
 	const linkedWorkspace = str(r.linkedWorkspace);
 	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
 		dash.linkedWorkspace = linkedWorkspace;

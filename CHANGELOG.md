@@ -138,9 +138,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   path and reported rather than silently dropped.
 
   Importing **adds** the board rather than replacing anything: a new board, a
-  name that doesn't collide, and not one of your own settings touched. Import
-  the same file again later and it offers to *update* the board it created the
-  first time instead of leaving you two. The dialog reads the file first and
+  name that doesn't collide, and not one of your own settings touched. A shared
+  dashboard carries an identity of its own — separate from which board it is in
+  any one vault — so when the author publishes a newer version of it, importing
+  that offers to *update* the board you already have instead of leaving you two
+  near-identical ones in the switcher. The dialog reads the file first and
   says what is in it — who made it, what plugins it wants, which of its notes
   your vault hasn't got, whether it brought its pictures — before anything
   changes. None of those gaps stop an import; the cards come through and you

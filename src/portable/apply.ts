@@ -269,6 +269,13 @@ function applyDashboardPackage(
 	// it updates one board. A `replaceAll` asked for here would mean throwing
 	// away every other board to install this one, which is not something a
 	// dashboard file should be able to do — so it lands as an add.
+	// Whatever identity the package declares becomes this board's, so a later
+	// version of the same dashboard can find it. A package without one leaves
+	// the board unattributed, and a re-import of it reads as new.
+	const sourceId = packageSourceId(pkg);
+	if (sourceId) board.sourceId = sourceId;
+	else delete board.sourceId;
+
 	const mode = opts.mode ?? "add";
 	if (mode === "replaceBoard") {
 		const targetId = opts.targetBoardId ?? s.activeDashboardId;
@@ -286,12 +293,11 @@ function applyDashboardPackage(
 		s.dashboards[index] = board;
 		result.replaced.push({ id: board.id, name: board.name });
 	} else {
-		// The package's own board id is kept when this vault has nothing under
-		// it, and that is what makes re-importing the same package offer to
-		// *update* the board it created last time rather than pile up copies
-		// (see `existingBoardFor`). A collision means the board is already here,
-		// so a deliberate second copy gets an id of its own.
-		if (s.dashboards.some((d) => d.id === board.id)) board.id = newDashboardId();
+		// Always a fresh board id. Identity across vaults is `sourceId`'s job
+		// (see `existingBoardFor`), so the id in the file means nothing here —
+		// and keeping it would let a package pick which of the importer's boards
+		// it collides with.
+		board.id = newDashboardId();
 		board.name = uniqueBoardName(s, board.name);
 		// A board arriving in someone else's vault does not get to claim the
 		// mobile default or a workspace, whatever the file says.
@@ -502,20 +508,39 @@ export function uniqueBoardName(s: HomeSettings, name: string): string {
 }
 
 /**
- * Whether this vault already holds the board a package describes.
+ * Whether this vault already holds the dashboard a package describes.
  *
- * Matched on the *stored* board id, which a `dashboard` package carries
- * verbatim: importing the same package twice therefore offers to update the
- * board it created the first time instead of piling up copies. A board whose id
- * has been changed since, or one imported before this shipped, reads as new —
- * which is the safe way round.
+ * Matched on `meta.id` — the identity of the dashboard *as a published work* —
+ * against the `sourceId` recorded on each board when it was imported. So
+ * importing a later version of a dashboard offers to update the board it
+ * created the first time, instead of piling up near-duplicates.
+ *
+ * Deliberately not the board's own id, which was the first thing this tried.
+ * A board id answers "which board is this in this vault"; it says nothing about
+ * which published dashboard the board is a copy of, and using it as if it did
+ * gets the interesting case wrong — in a gallery, a board someone downloaded,
+ * tweaked and republished is a *different work* that still carries the original
+ * id, and would have been offered as an update to it.
+ *
+ * A package with no `meta.id` — one hand-written, or stripped of it — always
+ * reads as new, which is the safe way round.
  */
 export function existingBoardFor(
 	s: HomeSettings,
 	pkg: HearthPackage,
 ): Dashboard | undefined {
 	if (pkg.hearth.kind !== "dashboard") return undefined;
-	const id = (pkg.payload as DashboardPayload).dashboard?.id;
-	if (typeof id !== "string" || !id) return undefined;
-	return s.dashboards.find((d) => d.id === id);
+	const sourceId = packageSourceId(pkg);
+	if (!sourceId) return undefined;
+	return s.dashboards.find((d) => d.sourceId === sourceId);
+}
+
+/** The package's shared-work identity, if it carries a usable one. Validated
+ * here rather than trusted: it is written onto a board and matched against
+ * boards already in the vault. */
+export function packageSourceId(pkg: HearthPackage): string | undefined {
+	const id = pkg.meta?.id;
+	if (typeof id !== "string") return undefined;
+	const trimmed = id.trim();
+	return /^[A-Za-z0-9_-]{1,64}$/.test(trimmed) ? trimmed : undefined;
 }

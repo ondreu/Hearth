@@ -1960,6 +1960,22 @@ export interface Dashboard extends BannerOverrides {
 	 * performance tier and the reader's reduced-motion preference both still
 	 * override it downwards; this can ask for motion, never insist on it. */
 	backgroundSkyAnimate?: boolean;
+	/**
+	 * Identity of the *shared work* this board is a copy of, if it is one.
+	 *
+	 * Distinct from {@link id}, which answers "which board is this in this
+	 * vault" and is minted fresh per vault. This answers "which published
+	 * dashboard is this", is stable across vaults, and is what lets a later
+	 * version of the same dashboard update this board instead of landing beside
+	 * it as a near-duplicate.
+	 *
+	 * Written when a package carrying one is imported, and when a board is
+	 * exported (an export mints one if the board has none, so the file and the
+	 * board it came from agree from then on). A *duplicated* board deliberately
+	 * does not inherit it: a copy is a new board, not another instance of the
+	 * same published work. See `src/portable/`.
+	 */
+	sourceId?: string;
 	/** Name of a core-Workspace; loading that workspace auto-switches to this
 	 * dashboard (one-way, workspace → dashboard). Undefined = not linked. */
 	linkedWorkspace?: string;
