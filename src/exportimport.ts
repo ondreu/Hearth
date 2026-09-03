@@ -33,12 +33,7 @@ import type HearthPlugin from "./main";
 import type { Dashboard } from "./types";
 import { detectLanguage, t } from "./i18n";
 import { downloadTextFile, pickTextFile, promptForText } from "./ui";
-import {
-	type AuthorIdentity,
-	identityFromKey,
-	newAuthorKey,
-	verifiedAuthorName,
-} from "./identity";
+import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
 import {
 	captureDashboard,
 	describeReferences,
@@ -53,11 +48,14 @@ import {
 	importPackageFile,
 	newSourceId,
 	PACKAGE_FILENAMES,
+	packageAuthor,
 	previewStrip,
 	readPackage,
 	type ReferenceScope,
+	type SignatureState,
 	type StripOptions,
 	vaultEnvironment,
+	verifyPackageSignature,
 } from "./portable";
 
 /** Save an export: download it (desktop) or write it to the vault root (mobile,
@@ -174,7 +172,7 @@ export function identitySetting(
 	const identity = vaultIdentity(plugin, mint);
 	const row = new Setting(containerEl)
 		.setName(strings.identity)
-		.setDesc(identity ? strings.identityDesc(identity.name, identity.id) : strings.identityNew);
+		.setDesc(identity ? strings.identityDesc(identity.handle) : strings.identityNew);
 	decorate?.(row);
 	row.addExtraButton((b) =>
 		b
@@ -228,7 +226,7 @@ async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Pro
 	}
 	plugin.settings.authorKey = identity.key;
 	await plugin.saveData(plugin.settings);
-	new Notice(strings.identityRestored(identity.name));
+	new Notice(strings.identityRestored(identity.handle));
 	onChanged();
 }
 
@@ -506,18 +504,19 @@ class ExportDashboardModal extends Modal {
 				.split(",")
 				.map((tag) => tag.trim().toLowerCase())
 				.filter((tag) => tag !== "");
-			const identity = this.includeIdentity ? vaultIdentity(this.plugin, true) : null;
 			const outcome = await exportDashboardFile(this.app, this.plugin.settings, this.dash, {
 				...this.opts,
 				strip: this.stripPrivate ? this.strip : undefined,
+				// The signing key, not the handle: `exportDashboardFile` signs the
+				// finished file (see `signature.ts`), and the handle it prints is
+				// computed from the key rather than passed in beside it.
+				signWith: this.includeIdentity
+					? (vaultIdentity(this.plugin, true)?.key ?? undefined)
+					: undefined,
 				...commonOptions(this.plugin),
 				meta: {
 					name: this.meta.name.trim() || this.dash.name,
 					description: this.meta.description.trim() || undefined,
-					// Both or neither: a name without the id it derives from is
-					// the free-text field this design removed.
-					authorId: identity?.id,
-					author: identity?.name,
 					tags: tags.length ? tags : undefined,
 				},
 			});
@@ -598,6 +597,9 @@ class ImportModal extends Modal {
 	private pkg: HearthPackage;
 	private existing?: Dashboard;
 	private mode: "add" | "replaceBoard" | "replaceAll" = "add";
+	/** Checked once, before anything mutates the package: applying it rewrites
+	 * asset references, which would invalidate a signature that was fine. */
+	private signature: SignatureState;
 	private busy = false;
 
 	constructor(plugin: HearthPlugin, json: string, pkg: HearthPackage) {
@@ -605,6 +607,7 @@ class ImportModal extends Modal {
 		this.plugin = plugin;
 		this.json = json;
 		this.pkg = pkg;
+		this.signature = verifyPackageSignature(pkg);
 		this.existing = existingBoardFor(plugin.settings, pkg);
 		// A whole-vault file defaults to what it is: a restore.
 		if (pkg.hearth.kind !== "dashboard") this.mode = "replaceAll";
@@ -648,16 +651,26 @@ class ImportModal extends Modal {
 		const kindLabel = strings.kinds[this.pkg.hearth.kind];
 		const name = meta?.name?.trim();
 		body.createEl("h3", { text: name || kindLabel, cls: "hearth-import-name" });
-		// Recomputed from the id rather than read from the file: a package can
-		// write any name it likes in `author`, and none of them are believed.
-		// No id, no author — see `verifiedAuthorName`.
-		const author = verifiedAuthorName(meta?.authorId);
+		// An author is shown only when the file's signature checks out. The name
+		// in `meta.author` is never read: it is recomputed from the public key,
+		// and then only believed if the signature proves the holder of that key
+		// made this file. See `portable/signature.ts`.
+		const author = packageAuthor(this.pkg);
 		const byline = [
 			kindLabel,
 			author ? strings.by(author) : "",
 			this.pkg.hearth.plugin ? strings.madeWith(this.pkg.hearth.plugin) : "",
 		].filter((part) => part !== "");
 		body.createEl("p", { text: byline.join(" · "), cls: "hearth-import-byline" });
+		// A broken signature is worth saying out loud, because it means one of
+		// two specific things — the file was edited after it was signed, or
+		// somebody copied an author's handle without being able to sign for it.
+		if (this.signature === "invalid") {
+			body.createEl("p", {
+				text: strings.signatureInvalid,
+				cls: "hearth-setting-warning hearth-import-warning",
+			});
+		}
 		if (meta?.description?.trim()) {
 			body.createEl("p", { text: meta.description.trim() });
 		}

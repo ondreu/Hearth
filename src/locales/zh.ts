@@ -3443,10 +3443,10 @@ export const zh: Translations = {
 
 			// ---- 身份 ----
 			identity: "发布身份",
-			identityDesc: (name: string, id: string) =>
-				`${name}（${id}）。Hearth 用一把始终留在本库中的密钥为你生成了这个代号：` +
-				"你导出的所有文件都会使用它，它不会透露你是谁，别人也无法冒用。" +
-				"复制密钥即可把它带到另一处安装。",
+			identityDesc: (handle: string) =>
+				`${handle} —— 由一把始终留在本库中的密钥生成。你导出的所有文件都使用同一个代号，` +
+				"它不会透露你是谁；而且每次导出都用该密钥签名，因此别人无法冒用。" +
+				"复制密钥即可把这个代号带到另一处安装。",
 			identityNew: "首次导出时，Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
 			identityCopy: "复制我的恢复密钥",
 			identityCopied: "恢复密钥已复制。请妥善保存——这是找回该代号的唯一方式。",
@@ -3512,6 +3512,9 @@ export const zh: Translations = {
 				settings: "一份完整设置备份",
 			},
 			by: (author: string) => `作者：${author}`,
+			signatureInvalid:
+				"该文件声明了作者，但签名校验不通过——可能是签名之后被修改过，" +
+				"也可能是有人把别人的代号放在了上面。因此它以“无作者”显示。导入的其他部分不受影响。",
 			madeWith: (version: string) => `Hearth ${version}`,
 			cardCount: (n: number) => `${n} 种卡片`,
 			assetCount: (n: number) => `随附 ${n} 张图片`,

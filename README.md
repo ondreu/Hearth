@@ -359,9 +359,9 @@ Before you add one:
 - **Fit to page** — lock the board to one screen or let it scroll.
 - **Import / export** — share one dashboard as a file that looks the same in
   someone else's vault (wallpaper optionally carried inside it), signed with an
-  anonymous handle Hearth makes for you, with one switch to leave your note
-  paths, calendar links and location out of it — or back up every board and
-  setting as JSON.
+  anonymous handle Hearth makes for you that nobody else can publish under, with
+  one switch to leave your note paths, calendar links and location out of it —
+  or back up every board and setting as JSON.
 
 ## Appearance
 

@@ -155,18 +155,29 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   changes. None of those gaps stop an import; the cards come through and you
   point them at your own notes.
 
-- **An anonymous handle, instead of typing your name.** The export dialog used
-  to ask for an author name. That is a bad question twice over: it is personal
-  information Hearth has no reason to hold, and it is a label anybody can type —
-  the first person to publish a board as somebody else's name is the last one
-  anyone trusts a name from.
+- **A signed, anonymous handle, instead of typing your name.** The export dialog
+  used to ask for an author name. That is a bad question twice over: it is
+  personal information Hearth has no reason to hold, and it is a label anybody
+  can type — the first person to publish a board as somebody else's name is the
+  last one anyone trusts a name from.
 
   So nothing is asked. Hearth makes you one **recovery key** the first time you
-  export something, keeps it in your vault, and derives everything public from
-  it: a stable author id, and a handle like `quiet-lantern-4821` computed from
-  that id. It says nothing about who you are, it is the same on everything you
-  export, and nobody can publish under it by typing it — a reader works the name
-  out from the id rather than believing the name in the file.
+  export something, keeps it in your vault, and everything public follows from
+  it: a handle like `quiet-lantern-4kj2m8`, and a signature on every file you
+  export. It says nothing about who you are, and it is the same on everything
+  you export.
+
+  **Nobody else can publish under it.** Your handle appears in every board you
+  share, so anyone can copy it — which is exactly why the file is signed. A
+  reader recomputes the handle from the key in the file and then checks that the
+  holder of that key really made this file. A board carrying somebody else's
+  handle fails that check and is shown with no author at all, and the import
+  dialog says why. This is the part that hashing alone could never do: a file is
+  static, so any proof it carries, its reader has too — only a signature works.
+
+  What it doesn't do is tell you *who* somebody is. It tells you that the same
+  person made two boards, which is what a gallery needs to build reputation on
+  and about as far as a file format can honestly go on its own.
 
   **Reinstalling doesn't lose it.** The key is the only thing worth keeping:
   paste it into a new vault (Settings → Import / export → **Published as**, or

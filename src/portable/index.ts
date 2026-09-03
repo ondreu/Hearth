@@ -37,6 +37,7 @@ import {
 	validatePackage,
 } from "./apply";
 import { stripReferences, type StripOptions, type StripReport } from "./refs";
+import { signPackage } from "./signature";
 import {
 	clearAssetRefs,
 	DEFAULT_ASSET_FOLDER,
@@ -58,6 +59,7 @@ export * from "./refs";
 export * from "./capture";
 export * from "./apply";
 export * from "./assets";
+export * from "./signature";
 
 /** Options for {@link exportDashboardFile}. */
 export interface ExportDashboardOptions extends CaptureDashboardOptions {
@@ -89,6 +91,16 @@ export interface ExportDashboardOptions extends CaptureDashboardOptions {
 	 * downloading it has to fill in anyway.
 	 */
 	strip?: StripOptions;
+	/**
+	 * Sign the finished file with this recovery key, so its author can be
+	 * proved rather than merely claimed.
+	 *
+	 * Omitted leaves the package unsigned, which is right for a backup of your
+	 * own vault — there is nobody to prove anything to — and which an importer
+	 * reads as "no author" rather than as a problem. See `signature.ts` for why
+	 * signing has to be the last thing that happens to the file.
+	 */
+	signWith?: string;
 }
 
 export interface ExportOutcome {
@@ -100,6 +112,9 @@ export interface ExportOutcome {
 	/** Present when a strip was asked for: what came out, and anything
 	 * path-shaped still visible afterwards. */
 	strip?: StripReport;
+	/** Whether the file carries a signature. False when none was asked for, and
+	 * also when the key given wasn't a usable one. */
+	signed: boolean;
 }
 
 /**
@@ -125,19 +140,22 @@ export async function exportDashboardFile(
 	// rewritten to `hearth:asset/…` by this point, so stripping the vault paths
 	// takes the author's folder structure without taking their wallpaper.
 	const strip = opts.strip ? stripReferences(pkg, opts.strip) : undefined;
-	return { json: serializePackage(pkg), pkg, assets, strip };
+	// And signing after both, because a signature covers the whole document:
+	// embed or strip anything afterwards and it stops verifying.
+	const signed = opts.signWith ? signPackage(pkg, opts.signWith) : false;
+	return { json: serializePackage(pkg), pkg, assets, strip, signed };
 }
 
 /** Export every board plus the layout globals. */
 export function exportLayoutFile(s: HomeSettings, opts: CaptureOptions = {}): ExportOutcome {
 	const pkg = captureLayout(s, opts);
-	return { json: serializePackage(pkg), pkg };
+	return { json: serializePackage(pkg), pkg, signed: false };
 }
 
 /** Export every setting: the full backup. */
 export function exportSettingsFile(s: HomeSettings, opts: CaptureOptions = {}): ExportOutcome {
 	const pkg = captureSettings(s, opts);
-	return { json: serializePackage(pkg), pkg };
+	return { json: serializePackage(pkg), pkg, signed: false };
 }
 
 /** Options for {@link importPackageFile}. */

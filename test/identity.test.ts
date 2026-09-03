@@ -1,51 +1,32 @@
 import { describe, expect, it } from "vitest";
 import {
-	authorIdFromKey,
+	handleFromPublicKey,
 	identityFromKey,
-	isAuthorId,
 	isAuthorKey,
+	isPublicKey,
 	newAuthorKey,
 	normalizeAuthorKey,
-	sha256Hex,
-	usernameFromAuthorId,
+	publicKeyFromAuthorKey,
+	signMessage,
 	verifiedAuthorName,
+	verifyMessage,
 } from "../src/identity";
 
 /**
  * The export identity.
  *
- * Two properties are the whole design, and both are tested here rather than
- * assumed: an identity comes back from its key alone (so a reinstall is a
- * paste, not a loss), and a display name is computed from the id rather than
- * read from the file (so nobody publishes under someone else's handle by
- * typing it).
+ * Three separate properties, and the tests are grouped by which one they
+ * protect, because they are easy to conflate and only the first comes free from
+ * deriving a handle out of a key:
+ *
+ * - **stable** — the same key gives the same handle, in any vault, forever;
+ * - **unique** — two different keys do not land on the same handle, which is a
+ *   question about how many bits the handle has, not about how it is derived;
+ * - **unforgeable** — nobody can publish under a handle they do not hold the
+ *   key for, which needs the signature and cannot be had by hashing at all.
  */
 
-describe("the hash the identity is built on", () => {
-	// Not decoration: everything public is derived by hashing, so a wrong hash
-	// would mint handles that no other Hearth agrees with — and the bug would
-	// only show up between two installs.
-	it("agrees with SHA-256", () => {
-		expect(sha256Hex("")).toBe(
-			"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		);
-		expect(sha256Hex("abc")).toBe(
-			"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-		);
-		// Long enough to need more than one block, so the padding is exercised.
-		expect(sha256Hex("a".repeat(1000))).toBe(
-			"41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3",
-		);
-	});
-
-	it("handles text outside ASCII", () => {
-		expect(sha256Hex("héllo wörld")).toBe(
-			sha256Hex("héllo wörld"),
-		);
-		expect(sha256Hex("naïve")).toHaveLength(64);
-		expect(sha256Hex("🔥")).toHaveLength(64);
-	});
-});
+const KEY = "HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ";
 
 describe("the recovery key", () => {
 	it("mints keys in the documented shape", () => {
@@ -62,15 +43,14 @@ describe("the recovery key", () => {
 	});
 
 	it("reads a key back however it was written down", () => {
-		const key = "HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ";
 		for (const typed of [
-			key,
-			key.toLowerCase(),
+			KEY,
+			KEY.toLowerCase(),
 			"  hearth-4kj2m-8xqp7-r3twd-n6vbz  ",
 			"4KJ2M 8XQP7 R3TWD N6VBZ",
 			"4KJ2M8XQP7R3TWDN6VBZ",
 		]) {
-			expect(normalizeAuthorKey(typed)).toBe(key);
+			expect(normalizeAuthorKey(typed)).toBe(KEY);
 		}
 	});
 
@@ -86,66 +66,163 @@ describe("the recovery key", () => {
 	});
 
 	it("refuses anything that isn't a key", () => {
-		for (const bad of ["", "ondreu", "HEARTH-4KJ2M", "HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ-EXTRA"]) {
+		for (const bad of ["", "ondreu", "HEARTH-4KJ2M", `${KEY}-EXTRA`]) {
 			expect(normalizeAuthorKey(bad)).toBeNull();
 			expect(identityFromKey(bad)).toBeNull();
+			expect(publicKeyFromAuthorKey(bad)).toBeNull();
+			expect(signMessage(bad, "hello")).toBeNull();
 		}
 	});
 });
 
-describe("what a key resolves to", () => {
-	const key = "HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ";
-
-	it("gives the same id and name in any vault, forever", () => {
-		const first = identityFromKey(key);
-		const again = identityFromKey(key.toLowerCase());
+describe("stable: a handle comes back from its key alone", () => {
+	it("gives the same key, handle and public key however it was typed", () => {
+		const first = identityFromKey(KEY);
+		const again = identityFromKey("  4kj2m 8xqp7 r3twd n6vbz ");
 		expect(first).not.toBeNull();
 		expect(again).toEqual(first);
-		// The point of the whole scheme: a reinstall is a paste of these twenty
-		// characters, not a lost account.
-		expect(first?.id).toBe(authorIdFromKey(key));
-		expect(first?.name).toBe(usernameFromAuthorId(first?.id ?? ""));
 	});
 
-	it("gives a different id to a different key", () => {
-		const ids = new Set(
-			Array.from({ length: 50 }, () => identityFromKey(newAuthorKey())?.id),
-		);
-		expect(ids.size).toBe(50);
-	});
-
-	it("mints an id of the shape a package validates", () => {
-		const identity = identityFromKey(key);
-		expect(identity?.id).toMatch(/^[0-9a-f]{12}$/);
-		expect(isAuthorId(identity?.id ?? "")).toBe(true);
-		expect(isAuthorId("ondreu")).toBe(false);
-		expect(isAuthorId("")).toBe(false);
+	it("derives the handle from the public key, not from anything else", () => {
+		const identity = identityFromKey(KEY);
+		expect(identity?.publicKey).toBe(publicKeyFromAuthorKey(KEY));
+		expect(identity?.handle).toBe(handleFromPublicKey(identity?.publicKey ?? ""));
 	});
 
 	it("reads as a handle rather than as a hash", () => {
-		expect(identityFromKey(key)?.name).toMatch(/^[a-z]+-[a-z]+-\d{4}$/);
+		// two words and six symbols of entropy: `quiet-lantern-4kj2m8`
+		expect(identityFromKey(KEY)?.handle).toMatch(/^[a-z]+-[a-z]+-[0-9a-hjkmnp-tv-z]{6}$/);
+	});
+
+	it("mints a public key of the shape a package validates", () => {
+		expect(identityFromKey(KEY)?.publicKey).toMatch(/^[0-9a-f]{64}$/);
+		expect(isPublicKey(identityFromKey(KEY)?.publicKey ?? "")).toBe(true);
+		expect(isPublicKey("ondreu")).toBe(false);
+		expect(isPublicKey("")).toBe(false);
+	});
+});
+
+describe("unique: two keys do not become one handle", () => {
+	/**
+	 * The property deriving-from-the-key does *not* give you on its own.
+	 *
+	 * A handle smaller than the key it comes from must collide eventually, so
+	 * the handle carries its own entropy — 256 adjectives, 256 nouns and six
+	 * base32 symbols, 46 bits. This checks the width is really there: a
+	 * thousand keys through the derivation, no two the same, and every symbol
+	 * position actually varying (a suffix accidentally derived from one byte
+	 * would pass a smaller sample).
+	 */
+	it("gives a thousand keys a thousand handles", () => {
+		const handles = new Set<string>();
+		for (let i = 0; i < 1000; i++) {
+			const identity = identityFromKey(newAuthorKey());
+			expect(identity).not.toBeNull();
+			handles.add(identity?.handle ?? "");
+		}
+		expect(handles.size).toBe(1000);
+	});
+
+	it("varies every part of the handle", () => {
+		const parts = Array.from({ length: 200 }, () => {
+			const handle = identityFromKey(newAuthorKey())?.handle ?? "";
+			const [adjective, noun, suffix] = handle.split("-");
+			return { adjective, noun, suffix };
+		});
+		// Word lists of 256 should show well over a hundred distinct values in
+		// 200 draws; a list accidentally truncated to a handful would not.
+		expect(new Set(parts.map((p) => p.adjective)).size).toBeGreaterThan(100);
+		expect(new Set(parts.map((p) => p.noun)).size).toBeGreaterThan(100);
+		for (let i = 0; i < 6; i++) {
+			expect(new Set(parts.map((p) => p.suffix[i])).size).toBeGreaterThan(10);
+		}
+	});
+
+	it("keeps every word list at the width the derivation assumes", () => {
+		// One byte of the hash per word, so a list that is not exactly 256 long
+		// either wastes entropy or renames handles. Read back off the handles
+		// themselves rather than by exporting the lists, so the check is of
+		// what the derivation actually reaches.
+		const seen = { adjective: new Set<string>(), noun: new Set<string>() };
+		for (let i = 0; i < 4000; i++) {
+			const [adjective, noun] = (identityFromKey(newAuthorKey())?.handle ?? "").split("-");
+			seen.adjective.add(adjective);
+			seen.noun.add(noun);
+		}
+		expect(seen.adjective.size).toBe(256);
+		expect(seen.noun.size).toBe(256);
+	});
+});
+
+describe("unforgeable: a handle needs the key behind it", () => {
+	it("verifies a signature made with the matching key", () => {
+		const identity = identityFromKey(KEY);
+		const signature = signMessage(KEY, "the package bytes");
+		expect(signature).toMatch(/^[0-9a-f]{128}$/);
+		expect(verifyMessage(identity?.publicKey ?? "", "the package bytes", signature ?? "")).toBe(
+			true,
+		);
+	});
+
+	it("refuses a signature over different bytes", () => {
+		const identity = identityFromKey(KEY);
+		const signature = signMessage(KEY, "the package bytes") ?? "";
+		expect(verifyMessage(identity?.publicKey ?? "", "the package byteS", signature)).toBe(false);
+	});
+
+	/**
+	 * The attack the whole keypair exists to stop: the handle and the public key
+	 * are both printed in every package their owner publishes, so copying them
+	 * is trivial. What cannot be copied is the ability to sign.
+	 */
+	it("refuses a signature from somebody who only copied the handle", () => {
+		const victim = identityFromKey(KEY);
+		const forger = identityFromKey(newAuthorKey());
+		const message = "a board the forger made";
+		const signature = signMessage(forger?.key ?? "", message) ?? "";
+
+		// The forger writes the victim's public key into their file, which also
+		// makes it display the victim's handle — and the signature they can
+		// actually produce does not verify against it.
+		expect(handleFromPublicKey(victim?.publicKey ?? "")).toBe(victim?.handle);
+		expect(verifyMessage(victim?.publicKey ?? "", message, signature)).toBe(false);
+	});
+
+	it("treats malformed keys and signatures as a failed check, not a crash", () => {
+		const identity = identityFromKey(KEY);
+		const good = signMessage(KEY, "x") ?? "";
+		expect(verifyMessage("", "x", good)).toBe(false);
+		expect(verifyMessage("not-a-key", "x", good)).toBe(false);
+		expect(verifyMessage(identity?.publicKey ?? "", "x", "")).toBe(false);
+		expect(verifyMessage(identity?.publicKey ?? "", "x", "zz")).toBe(false);
+		expect(verifyMessage(identity?.publicKey ?? "", "x", "f".repeat(128))).toBe(false);
+	});
+
+	it("signs text outside ASCII the same way twice", () => {
+		const message = "Ondřej's board — 面板 🔥";
+		const identity = identityFromKey(KEY);
+		expect(signMessage(KEY, message)).toBe(signMessage(KEY, message));
+		expect(verifyMessage(identity?.publicKey ?? "", message, signMessage(KEY, message) ?? "")).toBe(
+			true,
+		);
 	});
 });
 
 describe("the name a reader shows", () => {
-	it("is computed from the id, never taken from the file", () => {
+	it("is computed from the public key, never taken from the file", () => {
 		const mine = identityFromKey(newAuthorKey());
-		expect(mine).not.toBeNull();
-		// A package claiming somebody else's name while carrying its own id
-		// displays as its own id's name. Typing a name you like is not a move.
-		expect(verifiedAuthorName(mine?.id)).toBe(mine?.name);
+		expect(verifiedAuthorName(mine?.publicKey)).toBe(mine?.handle);
 	});
 
-	it("is nothing at all when the package carries no id", () => {
+	it("is nothing at all when the package carries no key", () => {
 		expect(verifiedAuthorName(undefined)).toBeNull();
 		expect(verifiedAuthorName("")).toBeNull();
-		// Not an id this scheme could have minted, so not an author.
 		expect(verifiedAuthorName("ondreu")).toBeNull();
-		expect(verifiedAuthorName("ZZZZZZZZZZZZ")).toBeNull();
+		expect(verifiedAuthorName("z".repeat(64))).toBeNull();
 	});
 
-	it("ignores the casing and spacing of an id", () => {
-		const id = identityFromKey(newAuthorKey())?.id ?? "";
-		expect(verifiedAuthorName(` ${id.toUpperCase()} `)).toBe(usernameFromAuthorId(id));
+	it("ignores the casing and spacing of a key", () => {
+		const key = identityFromKey(newAuthorKey())?.publicKey ?? "";
+		expect(verifiedAuthorName(` ${key.toUpperCase()} `)).toBe(handleFromPublicKey(key));
 	});
 });

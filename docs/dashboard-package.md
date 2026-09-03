@@ -33,10 +33,15 @@ a board without touching a single global setting.
     "id": "hd-8f2k1x9qa03b",  // this dashboard as a published work — see Identity
     "name": "Reading room",
     "description": "…",
-    "authorId": "a91c3f0d7e42",   // the author's public id — see Who made it
-    "author": "quiet-lantern-4821", // derived from authorId; recompute, don't trust
     "tags": ["reading", "minimal"],
-    "version": "2"
+    "version": "2",
+
+    // Authorship — see Who made it. The handle is derived from the key and the
+    // signature proves the key's holder made this file; neither the name nor
+    // the key is taken on trust.
+    "authorPublicKey": "ae4429fc…3ae7",   // ed25519 public key, hex
+    "author": "quiet-lantern-4kj2m8",     // derived; recompute, don't read
+    "signature": "9f31…c0a2"              // ed25519 over the canonical package
   },
   "capture": {                // recorded, never applied
     "platform": "desktop",
@@ -216,43 +221,85 @@ flipped on their behalf.
 
 ## Who made it
 
-`meta.author` is **not** a name somebody typed, and a reader must not treat it as
-one. Hearth mints one secret per vault — a **recovery key**, which never leaves
-it — and derives everything public from it by hashing (`src/identity.ts`):
+`meta.author` is **not** a name somebody typed, and a reader must not treat it
+as one. Hearth mints one secret per vault — a **recovery key**, which never
+leaves it — and everything else follows from it (`src/identity.ts`):
 
 ```
   recovery key   HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ   private, never exported
-         │  sha-256
+         │  sha-256 → a 32-byte seed
          ▼
-  meta.authorId  a91c3f0d7e42                     public, travels
-         │  sha-256, again
+  signing key    (ed25519 private)                private, never exported
+         │
          ▼
-  meta.author    quiet-lantern-4821               public, and computed
+  meta.authorPublicKey                            travels, as machinery
+         │  sha-256 → two words and a suffix
+         ▼
+  meta.author    quiet-lantern-4kj2m8             the one public identity
 ```
 
-Two properties follow, and they are why there is no name field:
+Three properties, and they are worth keeping apart because they are easy to
+conflate — deriving a handle from a key gives you only the first of them:
 
-- **The handle cannot be claimed.** It is a function of the id, so a reader
-  recomputes it (`verifiedAuthorName(meta.authorId)`) rather than reading
-  `meta.author`. A file claiming `"author": "ondreu"` while carrying somebody
-  else's id displays as whoever that id is; a file with no `authorId` has no
-  author, and its `author` string is not shown at all.
-- **An identity survives a reinstall.** Everything public is derived, so the key
-  is the only thing worth keeping. Pasted into a fresh vault, the same id and
-  the same handle come back — there is no account, and nothing is held anywhere
-  else.
+| Property | Means | Comes from |
+| --- | --- | --- |
+| **Stable** | the same key always gives the same handle, in any vault | the derivation |
+| **Unique** | two people do not end up sharing a handle | the handle's width |
+| **Unforgeable** | nobody can publish under a handle they don't hold | the signature |
 
-What this does **not** do is prove possession: anyone who has seen a published
-package has seen its author id and can copy it into a file of their own. The id
-identifies, it does not authenticate. Closing that needs a signature and
-something to verify it against — a gallery, a challenge, a round trip — none of
-which exists yet; when it does, the recovery key is already the right secret to
-sign with and no published id has to change. Until then, a gallery that wants
-authenticated authorship must establish it its own way and should treat
-`authorId` as a self-asserted handle.
+**Stable.** Everything public is derived, so the key is the only thing worth
+keeping. Pasted into a fresh vault, the same handle comes back — no account, and
+nothing held anywhere else. `authorKey` is excluded from every export, backups
+included: a settings backup is a thing people hand each other, and a key in one
+is an identity given away.
 
-`authorKey` is excluded from every export, backups included — a settings backup
-is a thing people hand each other, and a key in one is an identity given away.
+**Unique.** Determinism does *not* give this. A handle smaller than the key it
+comes from must collide eventually, and two words drawn from lists of 64 would
+have meant a better-than-even chance of some pair of users colliding at about
+7,500 of them. So the handle carries its own entropy: 256 adjectives, 256 nouns
+and a six-symbol Crockford-base32 suffix — 46 bits, which puts a collision past
+nine million users. It is the whole public identity; there is no separate id
+beside it. **Never reorder or remove a word from either list** — a word's index
+is part of somebody's handle.
+
+**Unforgeable.** This is what the keypair is for, and hashing cannot substitute.
+A package is a static file, so any proof it carries its reader now has: "prove
+you know the secret" has no answer that consists of writing the secret down. A
+signature does have one. `verifyPackageSignature(pkg)` returns `valid`,
+`unsigned` or `invalid`, and `packageAuthor(pkg)` returns a handle **only** for
+`valid` — an unsigned package and one whose signature fails are equally not
+evidence of who made it.
+
+### What the signature covers
+
+Everything except two fields: `meta.signature`, which cannot sign itself, and
+`meta.author`, which a reader derives rather than reads. The subject is built
+field by field in `signedBytes()` rather than by copying the package, so it
+matches exactly what `readPackage()` reconstructs — otherwise a package from a
+newer Hearth carrying an envelope field this build discards would fail
+verification and be reported as a forgery. **Add a field to the format, add it
+there too, or it travels unsigned.**
+
+Bytes are canonicalised (keys in code-unit order, no whitespace, arrays left
+alone, `undefined` dropped) so a package that has been parsed and rebuilt hashes
+the same as the one that was signed.
+
+`signPackage()` must therefore be the **last** step of an export — after
+embedding pictures and after any strip.
+
+### What it does not give you
+
+- **Not an introduction.** A verifier learns "the same hand made this and that",
+  not "this is Ondřej". That is trust on first use, like an SSH key. Binding a
+  handle to a person needs someone to vouch, which is a gallery's job.
+- **Not permanence through a gallery.** A strip is an edit and a republish
+  overwrites `meta.id`, so both invalidate the signature they just checked.
+  Verification is an **upload-time** proof: the gallery verifies, then
+  republishes under its own attestation. End-to-end verification survives only a
+  file passed along untouched.
+- **Not a bar on redistribution.** Copying a signed file unchanged verifies, and
+  must — the file really was made by the author it names. What is prevented is
+  putting an author's name on a board they did not make.
 
 ## The gallery hand-off
 
@@ -330,16 +377,21 @@ want to strip or proxy `publicUrl` itself.
 ### A suggested upload pipeline
 
 1. `readPackage(json)` — reject anything that isn't a package.
-2. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
-3. `stripReferences(pkg)` — the default takes paths, private references and
+2. `verifyPackageSignature(pkg)` — **before** anything mutates it. `valid` means
+   the uploader holds the key behind `meta.authorPublicKey`; `invalid` should be
+   rejected outright. Record the public key as the entry's author, and note that
+   step 3 invalidates the signature, so the listing carries your attestation from
+   here on, not the author's.
+3. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
+4. `stripReferences(pkg)` — the default takes paths, private references and
    the author's own prose. Pass `{ content: false }` only for a board whose text
    really is part of the design.
-4. Hold for review if `report.residual` is non-empty.
-5. Re-check `assets`: type against the allowlist, `bytes` against the decoded
+5. Hold for review if `report.residual` is non-empty.
+6. Re-check `assets`: type against the allowlist, `bytes` against the decoded
    length, and the total against your own budget.
-6. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
+7. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
    same entry is updated, and mint a new one for a fork.
-7. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
+8. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
    `capture.performanceTier` is worth showing as "captured on a low-power
    device".
 

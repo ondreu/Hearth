@@ -1397,6 +1397,13 @@
 	overflow-wrap: anywhere;
 }
 
+/* The import dialog's broken-signature notice: the warning box, as a plain
+ * paragraph rather than a settings row. */
+.hearth-import-warning {
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+}
+
 /* A note row that only applies while a switch above it is off — the export
  * dialog's reference count, which stops being true once those references are
  * being stripped. */

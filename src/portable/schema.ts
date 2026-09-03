@@ -85,22 +85,40 @@ export interface PackageMeta {
 	name?: string;
 	description?: string;
 	/**
-	 * The author's public id — a hash of a secret their vault holds and never
-	 * sends (see `src/identity.ts`). This is the field that means something:
-	 * it is stable across their exports and across their vaults, and it is what
-	 * a gallery groups a maker's work by.
-	 */
-	authorId?: string;
-	/**
-	 * The author's display handle.
+	 * The author's ed25519 public key, lower-case hex — machinery rather than an
+	 * identity, and nobody is ever asked to read it.
 	 *
-	 * Written for the benefit of anything reading the file without Hearth, and
-	 * *not* to be believed: it is derived from {@link authorId}, so a reader
-	 * recomputes it rather than trusting it (`verifiedAuthorName`). A package
-	 * claiming a name it cannot derive from its id displays as whoever the id
-	 * really is; a package with no id has no author at all.
+	 * Two things are computed from it, and between them they are the whole of
+	 * authorship in this format: the handle a reader displays
+	 * (`handleFromPublicKey`), and the check that {@link signature} was made by
+	 * the holder of its private half. It is stable across an author's exports
+	 * and across their vaults, so it is also what a gallery groups a maker's
+	 * work by.
+	 */
+	authorPublicKey?: string;
+	/**
+	 * The author's handle, as `quiet-lantern-4kj2m8`.
+	 *
+	 * Written for anything reading the file without Hearth's derivation, and
+	 * *not* to be believed: a reader recomputes it from
+	 * {@link authorPublicKey} rather than reading it, so a package claiming a
+	 * name that does not follow from its key displays as whoever that key
+	 * really is. Being derived, it is deliberately **not covered by the
+	 * signature** — see `signature.ts`.
 	 */
 	author?: string;
+	/**
+	 * An ed25519 signature over the package, lower-case hex.
+	 *
+	 * What makes an author more than a label: a handle can be copied out of any
+	 * package that carries it, and only the holder of the matching private key
+	 * can produce a signature that verifies. Covers everything except itself and
+	 * {@link author}, so any edit to the file invalidates it — including a
+	 * gallery's own strip-and-republish, which makes this an upload-time proof
+	 * rather than a permanent one. See `signature.ts` for what follows from
+	 * that.
+	 */
+	signature?: string;
 	/** Free-form, lower-cased by convention. A gallery's facets. */
 	tags?: string[];
 	/** The author's own version string for this board, if they keep one. */

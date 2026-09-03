@@ -3682,10 +3682,11 @@ export const en = {
 
 			// ---- Identity ----
 			identity: "Published as",
-			identityDesc: (name: string, id: string) =>
-				`${name} (${id}). Hearth made this handle for you from a key that stays in this vault — ` +
-				"it's the same on everything you export, it says nothing about who you are, and nobody " +
-				"else can publish under it. Copy the key to carry it to another install.",
+			identityDesc: (handle: string) =>
+				`${handle} — made for you from a key that stays in this vault. It's the same handle on ` +
+				"everything you export, it says nothing about who you are, and because each export is " +
+				"signed with that key, nobody else can publish under it. Copy the key to carry the " +
+				"handle to another install.",
 			identityNew:
 				"Hearth will make you an anonymous handle the first time you export something, from a " +
 				"key that never leaves this vault.",
@@ -3763,6 +3764,10 @@ export const en = {
 				settings: "A full settings backup",
 			},
 			by: (author: string) => `by ${author}`,
+			signatureInvalid:
+				"This file claims an author, but its signature doesn't check out — it was either edited " +
+				"after it was signed, or somebody put another maker's handle on it. It's shown without " +
+				"an author. Everything else about the import is unaffected.",
 			madeWith: (version: string) => `Hearth ${version}`,
 			cardCount: (n: number) => (n === 1 ? "1 kind of card" : `${n} kinds of card`),
 			assetCount: (n: number) =>
