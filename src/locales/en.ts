@@ -3741,6 +3741,10 @@ export const en = {
 				`Not installed or not enabled here: ${plugins}. Those cards will be empty until they are.`,
 			missingPaths: (n: number, sample: string) =>
 				`${n} note${n === 1 ? "" : "s"} or folder${n === 1 ? "" : "s"} this board points at aren't in your vault (${sample}${n > 3 ? ", …" : ""}).`,
+			remoteContent: (n: number) =>
+				n === 1
+					? "It loads 1 thing from the internet when you open it."
+					: `It loads ${n} things from the internet when you open it.`,
 			missingFine:
 				"None of this stops the import — the cards come through and you can point them at your own notes.",
 			importButton: "Import",

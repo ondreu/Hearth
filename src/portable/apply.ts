@@ -102,9 +102,7 @@ export function readPackage(json: string): ReadOutcome {
 			meta: isBag(parsed.meta) ? parsed.meta : undefined,
 			capture: isBag(parsed.capture) ? parsed.capture : undefined,
 			requires: isBag(parsed.requires) ? parsed.requires : undefined,
-			assets: Array.isArray(parsed.assets)
-				? (parsed.assets as HearthPackage["assets"])
-				: undefined,
+			assets: sanitizeAssets(parsed.assets),
 			payload: parsed.payload,
 		};
 		return { pkg, newerFormat: format > PACKAGE_FORMAT };
@@ -122,6 +120,38 @@ export function readPackage(json: string): ReadOutcome {
 		return { pkg: legacy("layout", 1, parsed) };
 	}
 	return { error: "notHearth" };
+}
+
+/**
+ * Read the package's embedded files, field by field.
+ *
+ * Everything else about a package is validated on the way in; this used to be
+ * the one part cast straight through, and an asset's `id` reaches a filename
+ * (see `safeAssetName` in assets.ts), so an unchecked one was a path a package
+ * could choose. Ids are therefore held to the shape this engine generates —
+ * letters, digits, dash, underscore — and an asset that fails any check is
+ * dropped rather than repaired, because nothing here can tell a typo from an
+ * attempt.
+ *
+ * The size caps are enforced later, at the point of writing, where the encoded
+ * length can be checked against what the file claims.
+ */
+function sanitizeAssets(raw: unknown): HearthPackage["assets"] {
+	if (!Array.isArray(raw)) return undefined;
+	const seen = new Set<string>();
+	const assets = raw.filter((entry): entry is NonNullable<HearthPackage["assets"]>[number] => {
+		if (!isBag(entry)) return false;
+		const { id, name, mime, bytes, data, from } = entry;
+		if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) return false;
+		if (seen.has(id)) return false;
+		if (typeof name !== "string" || typeof mime !== "string") return false;
+		if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) return false;
+		if (typeof data !== "string") return false;
+		if (from !== undefined && typeof from !== "string") return false;
+		seen.add(id);
+		return true;
+	});
+	return assets.length ? assets : undefined;
 }
 
 function legacy(

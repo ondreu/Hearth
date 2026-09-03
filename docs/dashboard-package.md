@@ -172,7 +172,7 @@ when the package is *published*:
 ```ts
 import { stripReferences, residualPaths } from "src/portable";
 
-const report = stripReferences(pkg, { paths: true, private: true });
+const report = stripReferences(pkg);   // paths + private + content
 // report.removed  → counts per scope
 // report.residual → anything still path-shaped. Non-empty = hold for review.
 ```
@@ -189,7 +189,7 @@ the package, classified by scope:
 | `place` | the author's location, from a weather card or sky background | `private` |
 | `publicUrl` | a public page or feed the board embeds | *kept* |
 | `commandId`, `viewType` | names a plugin, not the author | `plugins` (off) |
-| `userQuery` | a search/Dataview/Datacore query | `queries` (off) |
+| `userQuery` | a search/Dataview/Datacore query, or a frontmatter property a card reads | `queries` (off) |
 | `userContent` | the author's own prose or working state | `content` |
 
 `paths` also drops each embedded asset's `from`: the picture stays, the folder
@@ -208,13 +208,30 @@ reports where it found them. It is a heuristic — treat a non-empty result as
 publishes someone's folder tree.
 
 **When you add a card kind whose config names a note, folder, attachment,
-private URL, command or view type, add a rule for it to that table.**
+private URL, command or view type, add a rule for it to that table.** A gap
+there is a value published that perhaps shouldn't be — and the backstop cannot
+see every shape. A heatmap rule comparing against a bare folder name
+(`Private/Therapy`, no extension) is the case that proves it: no rule matched it
+and `residualPaths()` could not recognise it either.
+
+### One thing the strip does not cover
+
+A board can name things on the web — an embedded page, an RSS feed, a wallpaper
+given as a URL. Those are `publicUrl` and travel by design, because they are
+what the board *is*. But a board opened from a stranger will fetch them, and
+Hearth's **Disable external calls** setting does not currently cover a
+background image or a title icon given by URL (it covers live-content cards and
+the currency fetch — see its own documentation). Hearth's import dialog says how
+many remote things a package loads; a gallery should surface the same, and may
+want to strip or proxy `publicUrl` itself.
 
 ### A suggested upload pipeline
 
 1. `readPackage(json)` — reject anything that isn't a package.
 2. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
-3. `stripReferences(pkg, { paths: true, private: true })`.
+3. `stripReferences(pkg)` — the default takes paths, private references and
+   the author's own prose. Pass `{ content: false }` only for a board whose text
+   really is part of the design.
 4. Hold for review if `report.residual` is non-empty.
 5. Re-check `assets`: type against the allowlist, `bytes` against the decoded
    length, and the total against your own budget.

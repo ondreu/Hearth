@@ -167,6 +167,19 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "weather.place.lon", scope: "place" },
 	{ at: "weather.place.timezone", scope: "place" },
 
+	// heatmap — an advanced rule can test a note's folder or its full path, and
+	// then `value` holds a literal one. Everything else a rule names is a
+	// frontmatter property, which the card needs in order to work at all: kept,
+	// but reported, on the same footing as a query.
+	{
+		at: "heatmap.rules[].value",
+		scope: "vaultPath",
+		when: (o) => o.field === "folder" || o.field === "path",
+	},
+	{ at: "heatmap.rules[].key", scope: "userQuery" },
+	{ at: "heatmap.dateProperty", scope: "userQuery" },
+	{ at: "heatmap.valueProperty", scope: "userQuery" },
+
 	// operon
 	{ at: "operon.filePath", scope: "vaultPath" },
 
@@ -175,6 +188,7 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "leafView.file", scope: "vaultPath" },
 
 	// queries
+	{ at: "tasks.taskFilter.text", scope: "userQuery" },
 	{ at: "savedSearch.query", scope: "userQuery" },
 	{ at: "dataview.query", scope: "userQuery" },
 	{ at: "datacore.query", scope: "userQuery" },
@@ -488,7 +502,18 @@ export interface StripOptions {
 	paths?: boolean;
 	/** Private feed URLs, internal hosts, and the author's location. */
 	private?: boolean;
-	/** The author's own prose and working state. */
+	/**
+	 * The author's own prose and working state: a text card's body, the
+	 * calculator's last input.
+	 *
+	 * On by default alongside the paths, and for the same reason. There is no
+	 * functional argument for keeping it — a board whose text card is empty
+	 * works exactly as well as one whose embed card points at nothing, which is
+	 * what stripping the paths already leaves behind — while the downside is
+	 * publishing whatever the author happened to jot on their own dashboard.
+	 * Turn it off deliberately for a board whose text really is part of the
+	 * design.
+	 */
 	content?: boolean;
 	/** Search/Dataview/Datacore queries. Off by default: a board stripped of
 	 * its queries stops doing anything. Worth turning on only when a query is
@@ -545,7 +570,7 @@ export interface StripReport {
  */
 export function stripReferences(
 	pkg: HearthPackage,
-	opts: StripOptions = { paths: true, private: true },
+	opts: StripOptions = { paths: true, private: true, content: true },
 ): StripReport {
 	const scopes = scopesToStrip(opts);
 	const removed: Partial<Record<ReferenceScope, number>> = {};

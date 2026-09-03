@@ -458,7 +458,13 @@ class ImportModal extends Modal {
 		const missingPlugins = (this.pkg.requires?.plugins ?? []).filter(
 			(id) => !env.pluginEnabled?.(id),
 		);
-		if (missing.length === 0 && missingPlugins.length === 0) return;
+		// A board can name pages and pictures on the web — an embedded page, a
+		// feed, a wallpaper by URL. Worth saying plainly for a board that came
+		// from someone else, because opening it will fetch them.
+		const remote = report.byScope.publicUrl;
+		if (missing.length === 0 && missingPlugins.length === 0 && remote.length === 0) {
+			return;
+		}
 
 		const strings = t().portable.importModal;
 		const note = new Setting(body).setName(strings.heads).setHeading();
@@ -471,6 +477,9 @@ class ImportModal extends Modal {
 			list.createEl("li", {
 				text: strings.missingPaths(missing.length, missing.slice(0, 3).join(", ")),
 			});
+		}
+		if (remote.length) {
+			list.createEl("li", { text: strings.remoteContent(remote.length) });
 		}
 		list.createEl("li", { text: strings.missingFine });
 	}

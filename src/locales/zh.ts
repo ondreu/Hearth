@@ -3489,6 +3489,7 @@ export const zh: Translations = {
 				`此处未安装或未启用：${plugins}。在启用之前，这些卡片会是空的。`,
 			missingPaths: (n: number, sample: string) =>
 				`该面板指向的 ${n} 个笔记或文件夹不在你的库中（${sample}${n > 3 ? "，…" : ""}）。`,
+			remoteContent: (n: number) => `打开时它会从互联网加载 ${n} 项内容。`,
 			missingFine: "这些都不会阻止导入——卡片会照常导入，你可以把它们指向自己的笔记。",
 			importButton: "导入",
 			addedOne: (name: string) => `已添加“${name}”。`,

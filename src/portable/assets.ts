@@ -338,19 +338,35 @@ function encodedTooLarge(data: string): boolean {
 	return Math.floor((data.length * 3) / 4) > MAX_ASSET_BYTES;
 }
 
-/** A filename the vault will accept: the asset's own name if it is usable, else
- * one built from its id and type. Nothing from the author's folder structure
- * reaches this — an asset's `name` is a basename by construction. */
+/**
+ * A filename the vault will accept: the asset's own name if it is usable, else
+ * one built from its id and type.
+ *
+ * Both halves are attacker-controlled — a package can say whatever it likes —
+ * so both go through {@link plainFileName}. The fallback in particular: it used
+ * to interpolate the raw `id`, which a package could set to `../../../evil` and
+ * so choose where its file landed. `readPackage` now also holds ids to a strict
+ * shape, and `vaultAssetStore.write` refuses a name with a separator; this is
+ * the middle of the three, and each stands on its own.
+ */
 function safeAssetName(asset: PackageAsset): string {
-	const cleaned = basenameOf(asset.name)
-		.replace(/[\\/:*?"<>|]+/g, "-")
-		.replace(/^\.+/, "")
-		.trim();
+	const cleaned = plainFileName(basenameOf(asset.name));
 	const extension = extensionOf(cleaned);
 	if (cleaned && extension && MIME_BY_EXTENSION[extension] === asset.mime) {
 		return cleaned;
 	}
-	return `${asset.id}.${EXTENSION_BY_MIME[asset.mime] ?? "png"}`;
+	const stem = plainFileName(basenameOf(asset.id)) || "asset";
+	return `${stem}.${EXTENSION_BY_MIME[asset.mime] ?? "png"}`;
+}
+
+/** A single path segment with nothing in it that could name another folder:
+ * no separator, no drive colon, no leading dots, no shell-hostile characters. */
+function plainFileName(value: string): string {
+	return value
+		.replace(/[\\/:*?"<>|]+/g, "-")
+		.replace(/^[.\s]+/, "")
+		.trim()
+		.slice(0, 96);
 }
 
 /** An {@link AssetStore} backed by an Obsidian vault. The only part of the
@@ -379,6 +395,12 @@ export function vaultAssetStore(app: App): AssetStore {
 						/* already there */
 					}
 				}
+			}
+			// The last of the three checks on a package-chosen filename. Nothing
+			// should reach here with a separator in it; if something does, this
+			// is the point where it would become a path, so it stops here.
+			if (/[\\/]/.test(name) || name.startsWith(".")) {
+				throw new Error("unsafe asset filename");
 			}
 			let path = dir ? `${dir}/${name}` : name;
 			// Never overwrite: a second import of the same package should not

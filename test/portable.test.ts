@@ -799,16 +799,62 @@ describe("what a package points at outside itself", () => {
 		expect(board.cards).toHaveLength(6);
 	});
 
-	it("leaves a public URL and the plugin ids alone by default", () => {
+	/**
+	 * What the default strip does and doesn't take, since that default is what a
+	 * gallery will call. The author's own prose goes with the paths — a board
+	 * whose text card is empty works exactly as well as one whose embed card
+	 * points at nothing — while what the board needs in order to function stays.
+	 */
+	it("takes the author's prose by default, and leaves what the board needs", () => {
 		const s = boardWithReferences();
 		const pkg = captureDashboard(s, s.dashboards[0]);
 		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
 
 		stripReferences(pkg);
 
+		expect(board.cards[5].text).toBeUndefined();
 		expect(board.cards[1].links?.[1].target).toBe("https://obsidian.md");
 		expect(board.cards[1].links?.[2].target).toBe("app:reload");
+	});
+
+	it("keeps the author's prose when a caller deliberately asks to", () => {
+		const s = boardWithReferences();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
+
+		stripReferences(pkg, { paths: true, private: true, content: false });
+
 		expect(board.cards[5].text).toBe("my private notes");
+	});
+
+	/**
+	 * An advanced heatmap rule can test a note's folder or its full path, and
+	 * then holds a literal one. It had no rule, and the residual sweep can't see
+	 * it either: a bare folder name has no file extension to match on.
+	 */
+	it("strips a vault folder named by a heatmap rule", () => {
+		const s = boardWithReferences();
+		s.dashboards[0].cards.push(
+			card({
+				id: "c7",
+				kind: "heatmap",
+				heatmap: {
+					advanced: true,
+					rules: [
+						{ id: "r1", field: "folder", op: "is", value: "Private/Therapy" },
+						{ id: "r2", field: "property", op: "is", key: "mood", value: "good" },
+					],
+				},
+			}),
+		);
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
+
+		stripReferences(pkg, { paths: true });
+
+		expect(board.cards[6].heatmap?.rules?.[0].value).toBeUndefined();
+		// A property comparison is not a path and the card needs it to work.
+		expect(board.cards[6].heatmap?.rules?.[1].value).toBe("good");
 	});
 
 	/**
@@ -1040,6 +1086,12 @@ describe("carrying the wallpaper", () => {
 		expect(Object.keys(target.written)).toEqual([]);
 	});
 
+	/**
+	 * A package chooses both halves of the filename its picture is written
+	 * under, so both are checked here. The `id` case is the one that bit: the
+	 * fallback branch interpolated it raw, and the first version of this test
+	 * passed only because the id it happened to carry was `a1`.
+	 */
 	it("keeps a hostile asset name from escaping its folder", async () => {
 		const s = opinionatedVault();
 		const pkg = captureDashboard(s, s.dashboards[0]);
@@ -1049,9 +1101,41 @@ describe("carrying the wallpaper", () => {
 		const target = fakeStore({});
 		const report = await materializeAssets(pkg, target, "Hearth/imported");
 
-		// Whatever it is called, it lands inside the import folder under a name
-		// with no separators and an extension matching its declared type.
 		expect(report.written).toEqual(["Hearth/imported/a1.png"]);
+	});
+
+	it("keeps a hostile asset id from escaping its folder", async () => {
+		const s = opinionatedVault();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		await embedAssets(pkg, fakeStore({ "Attachments/wall.png": "PNGDATA" }));
+		// A name whose extension doesn't match the mime sends safeAssetName down
+		// its fallback branch, which is the one that reads the id.
+		pkg.assets![0].name = "x";
+		pkg.assets![0].id = "../../../.obsidian/plugins/hearth/evil";
+
+		const target = fakeStore({});
+		const report = await materializeAssets(pkg, target, "Hearth/imported");
+
+		// The directories are stripped before the name is built, so what is left
+		// is a plain segment inside the import folder.
+		expect(report.written).toEqual(["Hearth/imported/evil.png"]);
+		expect(Object.keys(target.written).every((path) => !path.includes(".."))).toBe(true);
+	});
+
+	it("drops an asset whose id isn't the shape this engine writes", () => {
+		const s = opinionatedVault();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		pkg.assets = [
+			{ id: "../evil", name: "a.png", mime: "image/png", bytes: 1, data: "AA==" },
+			{ id: "a1", name: "a.png", mime: "image/png", bytes: 1, data: "AA==" },
+			{ id: "a1", name: "duplicate.png", mime: "image/png", bytes: 1, data: "AA==" },
+			{ id: "a2", name: "b.png", mime: "image/png", bytes: "lots", data: "AA==" } as never,
+		];
+
+		// Parsed rather than trusted: the traversal id, the duplicate and the
+		// non-numeric size are all dropped before anything can act on them.
+		const reread = readPackage(serializePackage(pkg));
+		expect(reread.pkg?.assets?.map((a) => a.id)).toEqual(["a1"]);
 	});
 
 	it("clears a reference to a picture the package no longer carries", async () => {
