@@ -589,6 +589,7 @@ export function stripReferences(
 
 	// Blanked array slots are holes until this closes them.
 	compactTouched(blanked);
+	dropEmptiedOverrides(pkg);
 
 	if (opts.paths) {
 		// The asset's own provenance: the picture stays, the folder it lived in
@@ -640,6 +641,36 @@ export function previewStrip(pkg: HearthPackage, opts: StripOptions): StrippedVa
 		}
 	}
 	return found;
+}
+
+/**
+ * Remove a per-card list that the strip has just emptied.
+ *
+ * A favourites card carries its own list only to say "show these instead of the
+ * vault's" (see `DashboardCard.favorites`), so an *absent* list means "follow
+ * the vault" while an empty one means "show nothing, forever". Strip an
+ * author's paths and every entry goes, leaving `[]` behind — which would land
+ * in the importer's vault as a card pinned permanently blank, the exact outcome
+ * folding the list onto the card exists to avoid. An emptied list is not a
+ * choice anybody made, so it comes off with its contents.
+ */
+function dropEmptiedOverrides(pkg: HearthPackage): void {
+	const strip = (cards: DashboardCard[] | undefined): void => {
+		for (const card of cards ?? []) {
+			if (Array.isArray(card?.favorites) && card.favorites.length === 0) {
+				delete card.favorites;
+			}
+		}
+	};
+	const payload = pkg.payload as Bag;
+	if (pkg.hearth.kind === "dashboard") {
+		strip((pkg.payload as DashboardPayload).dashboard?.cards);
+		strip((pkg.payload as DashboardPayload).pinnedCards);
+		return;
+	}
+	for (const dash of (payload.dashboards as Dashboard[] | undefined) ?? []) strip(dash?.cards);
+	strip(payload.cards as DashboardCard[] | undefined);
+	strip(payload.pinnedCards as DashboardCard[] | undefined);
 }
 
 /**

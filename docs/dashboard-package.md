@@ -287,6 +287,43 @@ the same as the one that was signed.
 `signPackage()` must therefore be the **last** step of an export — after
 embedding pictures and after any strip.
 
+### Using the same key for a gallery account
+
+The recovery key signs packages, but nothing about it is package-specific: it is
+an ed25519 private key, so the same key answers "is this request from the holder
+of that handle?" through an ordinary challenge-response.
+
+```ts
+// Gallery → client: a random nonce, once per sign-in.
+// Client (inside Hearth):
+import { signMessage } from "src/identity";
+const proof = signMessage(settings.authorKey, nonce);
+// Gallery: verifyMessage(storedPublicKey, nonce, proof)
+```
+
+That gives accounts, comments and per-author pages with no passwords stored
+anywhere: a breach of the gallery leaks public keys, which are public. And a
+profile exists before anyone signs up — a public key appears the moment somebody
+uploads a board signed with it, and its owner claims the page later by answering
+a challenge. There is no registration step to build.
+
+Three constraints that come with it, all of them cheaper to honour now than to
+retrofit:
+
+- **Never ask for the key.** Signing happens inside Hearth and only the
+  signature crosses the wire. A gallery that accepts a pasted key in a web form
+  teaches users to hand their signing key to whatever page asks — and one
+  phishing page then publishes as anyone, permanently. The key has no reason to
+  leave the vault and no interface should offer it a way out.
+- **Reputation is not Sybil-resistant.** Keys are free to mint, so handles are
+  free to mint, so votes are free to mint. Nothing in this format can fix that;
+  it has to be priced elsewhere (an account that has published something, age,
+  rate limits) or designed around.
+- **Show the whole handle.** `polished-yarrow-n5tjd6` and
+  `polished-yarrow-n5tjd5` read identically to anyone skimming, and the suffix
+  is the part nobody reads. Truncating to the words makes impersonation a matter
+  of minting keys until two words match.
+
 ### What it does not give you
 
 - **Not an introduction.** A verifier learns "the same hand made this and that",

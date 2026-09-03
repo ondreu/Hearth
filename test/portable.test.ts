@@ -702,6 +702,7 @@ describe("importing a board into a vault", () => {
 
 	it("never pins a stranger's cards onto a plugin board", () => {
 		const mine = opinionatedVault();
+		mine.dashboards[0].mode = "plugin";
 		mine.dashboards[0].pluginView = { viewType: "kanban" };
 		mine.pinnedCards = [card({ id: "p1", kind: "clock" })];
 		const theirs = contraryVault();
@@ -710,6 +711,46 @@ describe("importing a board into a vault", () => {
 		applyPackage(theirs, pkg, { mode: "add" });
 
 		expect(theirs.dashboards[1].cards).toHaveLength(0);
+	});
+
+	/**
+	 * `mode` decides whether a board renders cards; `pluginView` is only the
+	 * configuration, and it is deliberately kept when a board is switched back
+	 * to cards so the setting survives a change of mind. Reading the wrong one
+	 * silently drops every pinned card from an ordinary board that had once
+	 * been a plugin board.
+	 */
+	it("still carries pinned cards for a board switched back from plugin view", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].mode = "cards";
+		mine.dashboards[0].pluginView = { viewType: "kanban" };
+		mine.pinnedCards = [card({ id: "p1", kind: "clock" })];
+		const theirs = contraryVault();
+
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		applyPackage(theirs, pkg, { mode: "add" });
+
+		expect(theirs.dashboards[1].cards.map((c) => c.kind)).toEqual(["clock"]);
+	});
+
+	/**
+	 * Import your own board and it comes back holding a folded copy of each
+	 * pinned card, while the vault still pins the originals — so the next
+	 * export folds a second copy whose suffixed id is already taken. Both
+	 * copies really are on the board, so both travel; they just cannot share an
+	 * id, which keys the slideshow's remembered position and the schedule
+	 * card's cursor.
+	 */
+	it("keeps card ids distinct when a board is exported, imported and exported again", () => {
+		const mine = opinionatedVault();
+		mine.pinnedCards = [card({ id: "p1", kind: "clock" })];
+
+		applyPackage(mine, captureDashboard(mine, mine.dashboards[0]), { mode: "add" });
+		const round2 = captureDashboard(mine, mine.dashboards[1]);
+		const cards = (round2.payload as { dashboard: Dashboard }).dashboard.cards;
+
+		expect(cards).toHaveLength(2);
+		expect(new Set(cards.map((c) => c.id)).size).toBe(2);
 	});
 
 	it("gives a favourites card its own list instead of touching the vault's", () => {
@@ -840,7 +881,7 @@ describe("the full settings backup carries every setting", () => {
 		// `authorKey` joins the two bookkeeping fields: it is the secret behind
 		// the export identity, and a backup file is a thing people send each
 		// other. See `src/identity.ts`.
-		const omitted = ["lastSeenVersion", "setupStatus", "authorKey"];
+		const omitted = ["lastSeenVersion", "setupStatus", "authorKey", "authorKeySaved"];
 		const missing = Object.keys(DEFAULT_SETTINGS).filter(
 			(key) => !omitted.includes(key) && !(key in payload),
 		);
@@ -1211,6 +1252,26 @@ describe("what a package points at outside itself", () => {
 		expect(
 			(board.cards[0] as unknown as Record<string, unknown>).untouched,
 		).toEqual(["a", null, "b"]);
+	});
+
+	/**
+	 * A favourites card's own list is only ever a way of saying "these instead
+	 * of the vault's". Strip the author's paths and every entry goes — and an
+	 * empty list left behind says "show nothing, forever", which is the one
+	 * outcome folding the list onto the card exists to avoid.
+	 */
+	it("takes an emptied favourites list off the card rather than leaving it blank", () => {
+		const s = opinionatedVault();
+		s.dashboards[0].cards = [card({ id: "f1", kind: "favorites" })];
+		s.favorites = ["Notes/A.md", "Notes/B.md"];
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
+		expect(board.cards[0].favorites).toEqual(["Notes/A.md", "Notes/B.md"]);
+
+		stripReferences(pkg, { paths: true, private: true, content: true });
+
+		// Undefined, not []: the card follows whatever vault it lands in.
+		expect(board.cards[0].favorites).toBeUndefined();
 	});
 
 	it("sees nothing path-shaped in a board that has been fully stripped", () => {

@@ -3691,10 +3691,18 @@ export const en = {
 				"Hearth will make you an anonymous handle the first time you export something, from a " +
 				"key that never leaves this vault.",
 			identityCopy: "Copy my recovery key",
+			identityUnsaved:
+				"Save your recovery key somewhere safe before you need it. It's held nowhere but this " +
+				"vault, so if you lose it there's no reset and nobody to ask — the handle, and everything " +
+				"you published under it, would be gone.",
 			identityCopied:
 				"Recovery key copied. Keep it somewhere safe — it's the only way to get this handle back.",
 			identityCopyFailed: (key: string) => `Your recovery key: ${key}`,
 			identityRestore: "Use a key from another install",
+			identityReplaceTitle: "Replace your handle?",
+			identityReplaceWarning:
+				"You haven't copied your current recovery key yet, and pasting another one over it can't be undone — this vault holds the only copy. Anything you've already published under the current handle would stay published, but you could never post as it again. Copy the key first if you might want it back.",
+			identityReplaceConfirm: "Replace it",
 			identityRestoreLabel: "Recovery key",
 			identityRestored: (name: string) => `You're now publishing as ${name}.`,
 			identityRestoreFailed: "That isn't a Hearth recovery key.",
@@ -3752,6 +3760,8 @@ export const en = {
 			stripResidual: (n: number) =>
 				`Exported, but ${n} value${n === 1 ? "" : "s"} still look like vault paths. Worth opening the file before you share it.`,
 
+			signFailed:
+				"Exported, but it couldn't be signed, so it will import without an author. Your recovery key may be damaged — try pasting it in again.",
 			exportButton: "Export",
 			assetsSkipped: (paths: string) =>
 				`Exported, but these pictures were left out (too large, or no longer in the vault): ${paths}`,

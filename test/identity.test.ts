@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_SETTINGS, type HomeSettings, migrateSettings } from "../src/types";
 import {
 	handleFromPublicKey,
 	identityFromKey,
@@ -224,5 +225,44 @@ describe("the name a reader shows", () => {
 	it("ignores the casing and spacing of a key", () => {
 		const key = identityFromKey(newAuthorKey())?.publicKey ?? "";
 		expect(verifiedAuthorName(` ${key.toUpperCase()} `)).toBe(handleFromPublicKey(key));
+	});
+});
+
+describe("the key as it is stored in a vault", () => {
+	/** What `migrateSettings` makes of a `data.json` holding `raw`. */
+	const loaded = (raw: Record<string, unknown>): HomeSettings => {
+		const s: HomeSettings = structuredClone(DEFAULT_SETTINGS);
+		Object.assign(s, raw);
+		migrateSettings(s, raw);
+		return s;
+	};
+
+	/**
+	 * A key is a secret with no reset behind it, so the two things that must not
+	 * happen on load are keeping one that cannot work and forgetting to warn
+	 * about one that has never been written down.
+	 */
+	it("normalises a key however it was written into data.json", () => {
+		const s = loaded({ authorKey: "4kj2m 8xqp7 r3twd n6vbz" });
+		expect(s.authorKey).toBe(KEY);
+		expect(identityFromKey(s.authorKey)).not.toBeNull();
+	});
+
+	it("drops a value that isn't a key rather than deriving from nonsense", () => {
+		for (const bad of ["ondreu", "HEARTH-4KJ2M", 42, null]) {
+			expect(loaded({ authorKey: bad }).authorKey).toBe("");
+		}
+		expect(loaded({}).authorKey).toBe("");
+	});
+
+	it("keeps the saved flag only alongside a key it belongs to", () => {
+		expect(loaded({ authorKey: KEY, authorKeySaved: true }).authorKeySaved).toBe(true);
+		expect(loaded({ authorKey: KEY }).authorKeySaved).toBe(false);
+		// A dropped key takes the flag with it: the next identity is a new one,
+		// and it has not been written down either.
+		expect(loaded({ authorKey: "junk", authorKeySaved: true }).authorKeySaved).toBe(
+			false,
+		);
+		expect(loaded({ authorKeySaved: true }).authorKeySaved).toBe(false);
 	});
 });

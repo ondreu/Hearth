@@ -182,9 +182,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   **Reinstalling doesn't lose it.** The key is the only thing worth keeping:
   paste it into a new vault (Settings → Import / export → **Published as**, or
   the same row in the export dialog) and the same handle comes back. There is no
-  account, and nothing is stored anywhere but your vault — which also means the
-  key is yours to keep safe, so copy it somewhere before you need it. It is
-  deliberately left out of every export file, backups included.
+  account and nothing is stored anywhere but your vault, which is also the catch
+  — there is no reset and nobody to ask, so the export dialog keeps asking you
+  to save the key until you have, and warns before letting you paste another one
+  over a key you never copied. It is left out of every export file, backups
+  included.
 
 - **One switch for everything private in the file.** A dashboard export
   deliberately carries the paths it points at — that is what makes it work as

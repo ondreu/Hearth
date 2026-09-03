@@ -61,6 +61,7 @@ import {
 	effectiveTitle,
 	effectiveTitleIcon,
 	type HomeSettings,
+	isPluginBoard,
 	performanceTier,
 } from "../types";
 import { exportSettingsPayload, layoutPayload, scrubCard } from "../layout";
@@ -194,11 +195,17 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
  * every board in the importer's vault. `pinned` is therefore cleared — the copy
  * is this board's card now, and it is free to be pinned or not on its own.
  *
- * A plugin board is the exception, and only because it renders no cards at all.
+ * A plugin board is the exception, and only because it renders no cards at all —
+ * asked through `isPluginBoard`, which is what the renderer asks. The board's
+ * `mode` is the answer; `pluginView` is kept when a board is switched back to
+ * cards (so switching to plugin view and back doesn't lose the configuration),
+ * so reading that instead would drop the pinned cards from an ordinary board
+ * that had once been a plugin board.
  */
 function withPinnedCards(board: Dashboard, s: HomeSettings): void {
-	if (board.pluginView?.viewType) return;
+	if (isPluginBoard(board)) return;
 	if (!s.pinnedCards.length) return;
+	const taken = new Set(board.cards.map((card) => card.id));
 	board.cards = [
 		...board.cards,
 		...clone(s.pinnedCards).map((card) => {
@@ -207,13 +214,30 @@ function withPinnedCards(board: Dashboard, s: HomeSettings): void {
 			// A suffix rather than a fresh random id: the copy must not collide
 			// with the pinned card it came from (importing your own board back
 			// into your own vault would otherwise put two cards with one id in
-			// it, and a card id keys the slideshow's remembered position), and a
-			// *stable* id means re-exporting the same board keeps that memory
-			// across an update-in-place.
-			copy.id = `${copy.id}-pinned`;
+			// it, and a card id keys the slideshow's remembered position and the
+			// schedule card's cursor), and a *stable* id means re-exporting the
+			// same board keeps that memory across an update-in-place.
+			//
+			// Stability has to give way to uniqueness in one case, though:
+			// import your own board back and it arrives holding a folded copy
+			// already, so the next export of it folds a second copy of a card
+			// whose suffixed id is now taken. Both copies are really on the
+			// board and both should travel — they just cannot share an id.
+			copy.id = uniqueCardId(`${copy.id}-pinned`, taken);
+			taken.add(copy.id);
 			return copy;
 		}),
 	];
+}
+
+/** `base`, or `base-2`, `base-3`… until it is one nothing else on the board
+ * answers to. */
+function uniqueCardId(base: string, taken: Set<string>): string {
+	if (!taken.has(base)) return base;
+	for (let n = 2; ; n++) {
+		const candidate = `${base}-${n}`;
+		if (!taken.has(candidate)) return candidate;
+	}
 }
 
 /**

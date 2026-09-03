@@ -2332,6 +2332,17 @@ export interface HomeSettings {
 	 * install is a separate, deliberate paste of the key itself.
 	 */
 	authorKey: string;
+	/**
+	 * Whether the user has been handed their recovery key.
+	 *
+	 * There is no reset: nothing but this vault holds the key, so losing it
+	 * loses the handle and everything published under it, permanently. That is
+	 * the price of having no accounts, and it is only a fair price if the moment
+	 * of being told is impossible to walk past — so the export dialog keeps
+	 * saying so until the key has actually been copied, and this is the flag
+	 * that stops it nagging afterwards.
+	 */
+	authorKeySaved: boolean;
 }
 
 /**
@@ -2472,6 +2483,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// Minted on first use, never before: a vault that has not shared anything
 	// has no identity to have.
 	authorKey: "",
+	authorKeySaved: false,
 };
 
 /** The cards a brand-new vault starts with. Coordinates and sizes are taken
@@ -3276,6 +3288,9 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// so it is cleared rather than kept. Normalised in place so a key pasted in
 	// any casing or spacing settles to one stored form.
 	s.authorKey = typeof raw.authorKey === "string" ? (normalizeAuthorKey(raw.authorKey) ?? "") : "";
+	// A vault with no key has nothing to have saved, so the prompt starts over
+	// with the identity rather than staying dismissed from a previous one.
+	s.authorKeySaved = s.authorKey !== "" && raw.authorKeySaved === true;
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";

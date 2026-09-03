@@ -3449,9 +3449,16 @@ export const zh: Translations = {
 				"复制密钥即可把这个代号带到另一处安装。",
 			identityNew: "首次导出时，Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
 			identityCopy: "复制我的恢复密钥",
+			identityUnsaved:
+				"请在需要之前就把恢复密钥保存到安全的地方。它只存在于本库中，一旦丢失就无法重置、也无处可问——" +
+				"这个代号以及你以它发布的一切都会随之消失。",
 			identityCopied: "恢复密钥已复制。请妥善保存——这是找回该代号的唯一方式。",
 			identityCopyFailed: (key: string) => `你的恢复密钥：${key}`,
 			identityRestore: "使用来自其他安装的密钥",
+			identityReplaceTitle: "要替换你的代号吗？",
+			identityReplaceWarning:
+				"你还没有复制当前的恢复密钥，而粘贴另一把密钥覆盖它的操作无法撤销——本库是唯一的保存处。你已用当前代号发布的内容会继续存在，但你将再也无法以它的身份发布。如果以后可能还需要，请先复制密钥。",
+			identityReplaceConfirm: "替换",
 			identityRestoreLabel: "恢复密钥",
 			identityRestored: (name: string) => `现在你的发布身份是 ${name}。`,
 			identityRestoreFailed: "这不是一把 Hearth 恢复密钥。",
@@ -3500,6 +3507,7 @@ export const zh: Translations = {
 			stripResidual: (n: number) =>
 				`已导出，但仍有 ${n} 项内容看起来像库路径。分享之前值得打开文件确认一下。`,
 
+			signFailed: "已导出，但未能签名，因此导入时不会显示作者。你的恢复密钥可能已损坏——请尝试重新粘贴。",
 			exportButton: "导出",
 			assetsSkipped: (paths: string) =>
 				`已导出，但以下图片未包含（过大，或已不在库中）：${paths}`,

@@ -32,7 +32,7 @@ import { type App, Modal, Notice, Platform, Setting, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import type { Dashboard } from "./types";
 import { detectLanguage, t } from "./i18n";
-import { downloadTextFile, pickTextFile, promptForText } from "./ui";
+import { confirmAction, downloadTextFile, pickTextFile, promptForText } from "./ui";
 import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
 import {
 	captureDashboard,
@@ -186,6 +186,23 @@ export function identitySetting(
 			.setTooltip(strings.identityRestore)
 			.onClick(() => void restoreIdentity(plugin, onChanged)),
 	);
+
+	// The one thing about this scheme that can go permanently wrong, said where
+	// it cannot be walked past. Nothing but this vault holds the key, so there
+	// is no reset and nobody to ask — which is a fine trade only if the user
+	// finds out before they need it rather than after. It stops appearing once
+	// the key has actually been copied.
+	if (identity && !plugin.settings.authorKeySaved) {
+		const warning = new Setting(containerEl)
+			.setDesc(strings.identityUnsaved)
+			.addButton((b) =>
+				b
+					.setButtonText(strings.identityCopy)
+					.setCta()
+					.onClick(() => void copyRecoveryKey(plugin, onChanged)),
+			);
+		warning.settingEl.addClass("hearth-setting-warning");
+	}
 	return row;
 }
 
@@ -194,7 +211,6 @@ export function identitySetting(
  * of the button. */
 async function copyRecoveryKey(plugin: HearthPlugin, onChanged: () => void): Promise<void> {
 	const strings = t().portable.exportModal;
-	const had = plugin.settings.authorKey !== "";
 	const identity = vaultIdentity(plugin, true);
 	if (!identity) return;
 	try {
@@ -202,17 +218,38 @@ async function copyRecoveryKey(plugin: HearthPlugin, onChanged: () => void): Pro
 		new Notice(strings.identityCopied);
 	} catch {
 		// A clipboard a plugin can't reach is not a reason to lose the key:
-		// show it instead, so it can be selected by hand.
+		// show it instead, so it can be selected by hand. Still counts as having
+		// been handed over — it is on screen, and repeating the warning would
+		// then be nagging about something the user has already been given.
 		new Notice(strings.identityCopyFailed(identity.key));
 	}
-	// The row said "you'll get one when you export"; now there is one to show.
-	if (!had) onChanged();
+	plugin.settings.authorKeySaved = true;
+	await plugin.saveData(plugin.settings);
+	// The row may have said "you'll get one when you export", and the warning
+	// below it has just earned its retirement.
+	onChanged();
 }
 
 /** Paste a key from another install. The handle comes back with it — that is
  * what carrying the key means. */
 async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Promise<void> {
 	const strings = t().portable.exportModal;
+	// Pasting a key over one the user has never been shown destroys a handle
+	// nothing can bring back — the one irreversible thing in this whole feature,
+	// reachable by a mis-click on the button beside it. A key they *have* copied
+	// is theirs to put back, so that case is not worth a dialog.
+	if (plugin.settings.authorKey !== "" && !plugin.settings.authorKeySaved) {
+		const proceed = await new Promise<boolean>((resolve) => {
+			confirmAction(plugin.app, {
+				title: strings.identityReplaceTitle,
+				message: strings.identityReplaceWarning,
+				confirmText: strings.identityReplaceConfirm,
+				onConfirm: () => resolve(true),
+				onDismiss: () => resolve(false),
+			});
+		});
+		if (!proceed) return;
+	}
 	const typed = await promptForText(plugin.app, {
 		title: strings.identityRestore,
 		label: strings.identityRestoreLabel,
@@ -225,6 +262,9 @@ async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Pro
 		return;
 	}
 	plugin.settings.authorKey = identity.key;
+	// Pasted in from somewhere else, so it is by definition already written
+	// down: warning the user to save what they just typed reads as a bug.
+	plugin.settings.authorKeySaved = true;
 	await plugin.saveData(plugin.settings);
 	new Notice(strings.identityRestored(identity.handle));
 	onChanged();
@@ -298,9 +338,16 @@ class ExportDashboardModal extends Modal {
 			.setName(strings.tags)
 			.setDesc(strings.tagsDesc)
 			.addText((tx) =>
-				tx.setPlaceholder(strings.tagsPlaceholder).onChange((v) => {
-					this.meta.tags = v;
-				}),
+				// `setValue` like the two fields above it: this dialog redraws
+				// itself when the identity row changes, and a field that forgets
+				// what was typed still exports it — so the file would carry tags
+				// the dialog had stopped showing.
+				tx
+					.setPlaceholder(strings.tagsPlaceholder)
+					.setValue(this.meta.tags)
+					.onChange((v) => {
+						this.meta.tags = v;
+					}),
 			);
 
 		identitySetting(this.plugin, body, () => this.render(), {
@@ -533,6 +580,12 @@ class ExportDashboardModal extends Modal {
 			const residual = outcome.strip?.residual ?? [];
 			if (residual.length) {
 				new Notice(strings.stripResidual(residual.length));
+			}
+			// Asked for a signature and didn't get one: the file is still a good
+			// board, but it will import as unattributed, and finding that out
+			// from the importer is worse than hearing it here.
+			if (this.includeIdentity && !outcome.signed) {
+				new Notice(strings.signFailed);
 			}
 		} catch {
 			new Notice(t().notices.exportFailed);
