@@ -187,6 +187,10 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "leafView.viewType", scope: "viewType" },
 	{ at: "leafView.file", scope: "vaultPath" },
 
+	// favourites — the note paths a favourites card shows, folded onto the card
+	// at capture so the board can state its own list (see `capture.ts`).
+	{ at: "favorites[]", scope: "vaultPath" },
+
 	// queries
 	{ at: "tasks.taskFilter.text", scope: "userQuery" },
 	{ at: "savedSearch.query", scope: "userQuery" },
@@ -598,6 +602,44 @@ export function stripReferences(
 	}
 
 	return { removed, residual: residualPaths(pkg) };
+}
+
+/** One value a strip would remove, named and located. */
+export interface StrippedValue {
+	scope: ReferenceScope;
+	/** Where it sits, e.g. `dashboard.cards[2].tasks.folders[0]`. */
+	pointer: string;
+	value: string;
+}
+
+/**
+ * Exactly what {@link stripReferences} would remove, without removing it.
+ *
+ * The export dialog's answer to "what does leaving out my private things
+ * actually leave out". A count is not an answer — the difference between
+ * "3 paths" and seeing `Journal/2019/Therapy.md` in the list is the difference
+ * between a toggle somebody flips blind and one they can check — so this
+ * returns the values themselves, in the order the walker finds them, from a
+ * copy that is then thrown away.
+ */
+export function previewStrip(pkg: HearthPackage, opts: StripOptions): StrippedValue[] {
+	const scopes = scopesToStrip(opts);
+	const found: StrippedValue[] = [];
+	for (const ref of packageReferences(pkg)) {
+		if (!scopes.has(ref.scope)) continue;
+		found.push({ scope: ref.scope, pointer: ref.pointer, value: String(ref.value) });
+	}
+	if (opts.paths) {
+		for (const asset of pkg.assets ?? []) {
+			if (asset.from === undefined) continue;
+			found.push({
+				scope: "vaultPath",
+				pointer: `assets.${asset.id}.from`,
+				value: asset.from,
+			});
+		}
+	}
+	return found;
 }
 
 /**

@@ -2471,6 +2471,11 @@ export const en = {
 		favorites: {
 			heading: "Favorites",
 			headingDesc: "Notes shown by every favorites card.",
+			ownList: "Give this card its own list",
+			ownListOn:
+				"This card shows its own notes and ignores the vault-wide list. Turn it off to follow the vault's favorites again — the list below is dropped.",
+			ownListOff:
+				"This card follows the vault-wide favorites, like every other favorites card. Turn it on to give it a list of its own, starting from the one it shows now.",
 			moveUp: "Move up",
 			moveDown: "Move down",
 			remove: "Remove",
@@ -3671,39 +3676,82 @@ export const en = {
 			nameDesc: "What this dashboard is called in the file. Defaults to the board's own name.",
 			description: "Description",
 			descriptionDesc: "Optional. A line or two about what this dashboard is for.",
-			author: "Author",
-			authorDesc: "Optional. Your name or handle, if you're sharing this.",
 			tags: "Tags",
 			tagsDesc: "Optional, comma separated. Useful if the dashboard is going somewhere it can be browsed.",
 			tagsPlaceholder: "writing, minimal, dark",
+
+			// ---- Identity ----
+			identity: "Published as",
+			identityDesc: (name: string, id: string) =>
+				`${name} (${id}). Hearth made this handle for you from a key that stays in this vault — ` +
+				"it's the same on everything you export, it says nothing about who you are, and nobody " +
+				"else can publish under it. Copy the key to carry it to another install.",
+			identityNew:
+				"Hearth will make you an anonymous handle the first time you export something, from a " +
+				"key that never leaves this vault.",
+			identityCopy: "Copy my recovery key",
+			identityCopied:
+				"Recovery key copied. Keep it somewhere safe — it's the only way to get this handle back.",
+			identityCopyFailed: (key: string) => `Your recovery key: ${key}`,
+			identityRestore: "Use a key from another install",
+			identityRestoreLabel: "Recovery key",
+			identityRestored: (name: string) => `You're now publishing as ${name}.`,
+			identityRestoreFailed: "That isn't a Hearth recovery key.",
+
+			// ---- What travels ----
 			contents: "What to include",
 			embedAssets: "Include the wallpaper and images",
 			embedAssetsDesc:
 				"Carries the board's background picture, any image icons and any explicit slideshow pictures inside the file, so it looks right in a vault that has never seen them. Makes the file bigger. Turn it off for a backup of your own vault, where the pictures are already in place.",
-			pinLook: "Fix the look",
-			pinLookDesc:
-				"Writes every setting that affects this board's appearance onto the board itself, so another vault's settings can't change it. Turn it off to let the board adapt to wherever it lands.",
-			includePinned: "Include pinned cards",
-			includePinnedDesc:
-				"Cards you've pinned to every board. They aren't part of this dashboard, so they're left out unless you want them.",
-			includeFavorites: "Include the favourites list",
-			includeFavoritesDesc:
-				"The note paths a Favourites card reads. Vault-wide, and a list of your own notes.",
-			exportButton: "Export",
 			referenceNote: (paths: number, feeds: number) => {
 				const parts: string[] = [];
 				if (paths > 0) {
-					parts.push(
-						paths === 1
-							? "1 path from this vault"
-							: `${paths} paths from this vault`,
-					);
+					parts.push(paths === 1 ? "1 path from this vault" : `${paths} paths from this vault`);
 				}
 				if (feeds > 0) {
 					parts.push(feeds === 1 ? "1 calendar feed URL" : `${feeds} calendar feed URLs`);
 				}
-				return `This file will mention ${parts.join(" and ")}. That's what makes it work as your own backup — worth a look before you publish it anywhere.`;
+				return `As it stands, this file will mention ${parts.join(" and ")}. That's what makes it work as your own backup — and what the switch above takes out for a board you're publishing.`;
 			},
+			stripPrivate: "Leave out my private information",
+			stripPrivateDesc:
+				"Removes the parts of this board that are about you rather than about the design: the note and folder paths it points at, calendar feed links, your location, and anything you typed on a text card. The board still looks exactly the same — the cards just arrive pointing at nothing, which whoever downloads it has to fill in anyway. Leave it off for a copy of your own board, which needs its paths to keep working.",
+
+			// ---- The details disclosure ----
+			detailsSummary: "See and tune exactly what travels",
+			flatten: "Copy this vault's appearance settings onto the dashboard",
+			flattenDesc:
+				"Most of what a board looks like — the grid, spacing, card surfaces, background, header — is a vault-wide setting, and the board only stores what it overrides. This writes the resolved values onto the dashboard itself, so it looks the same in someone else's vault instead of picking up theirs. Turn it off and the board carries only its own overrides and adapts to wherever it lands.",
+			stripIntro:
+				"Each group below comes out of the file. What it will remove is listed under it — that is the actual list, read from this board.",
+			carriedIntro:
+				"Nothing is being left out, so this is everything in the file that points outside it. Turn on “Leave out my private information” above to remove the first three groups.",
+			carriedNothing: "This board points at nothing outside itself.",
+			groups: {
+				paths: "Note and folder paths",
+				private: "Calendar feeds, private hosts and your location",
+				content: "Text you typed on the board",
+				queries: "Searches and Dataview queries",
+				plugins: "Command ids and view types",
+			},
+			groupDesc: {
+				paths: "Everything this board points at in your vault, and the folder each embedded picture came from. The pictures themselves still travel when the wallpaper switch above is on — it's the folder they lived in that goes.",
+				private: "ICS calendar links (anyone holding one can read that calendar), an internal Jira host, and the place a weather card is set to.",
+				content: "A text card's body and a calculator's last input — whatever you happened to jot on your own dashboard.",
+				queries: "Off by default: a board without its queries stops doing anything. Worth turning on if a query names a private folder.",
+				plugins: "Off by default: these name plugins, not you. Removing them leaves the buttons that ran them doing nothing.",
+			},
+			groupEmpty: "Nothing on this board.",
+			stripTotal: (n: number) =>
+				n === 0
+					? "Nothing would be removed from this board."
+					: n === 1
+						? "1 value will be removed."
+						: `${n} values will be removed.`,
+			stripResidual: (n: number) =>
+				`Exported, but ${n} value${n === 1 ? "" : "s"} still look like vault paths. Worth opening the file before you share it.`,
+
+			exportButton: "Export",
 			assetsSkipped: (paths: string) =>
 				`Exported, but these pictures were left out (too large, or no longer in the vault): ${paths}`,
 		},
@@ -3730,12 +3778,6 @@ export const en = {
 			modeReplaceAll: "Replace all my settings",
 			replaceAllWarning:
 				"This replaces your dashboards and every Hearth setting with the ones in this file. It can't be undone.",
-			applyPinned: "Also add its pinned cards",
-			applyPinnedDesc: (n: number) =>
-				`${n} card${n === 1 ? "" : "s"} pinned to every board. They'd show on your other dashboards too.`,
-			applyFavorites: "Also add its favourites",
-			applyFavoritesDesc: (n: number) =>
-				`${n} note path${n === 1 ? "" : "s"}, appended to your own list.`,
 			heads: "Worth knowing",
 			missingPlugins: (plugins: string) =>
 				`Not installed or not enabled here: ${plugins}. Those cards will be empty until they are.`,

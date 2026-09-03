@@ -84,6 +84,22 @@ export interface PackageMeta {
 	id?: string;
 	name?: string;
 	description?: string;
+	/**
+	 * The author's public id — a hash of a secret their vault holds and never
+	 * sends (see `src/identity.ts`). This is the field that means something:
+	 * it is stable across their exports and across their vaults, and it is what
+	 * a gallery groups a maker's work by.
+	 */
+	authorId?: string;
+	/**
+	 * The author's display handle.
+	 *
+	 * Written for the benefit of anything reading the file without Hearth, and
+	 * *not* to be believed: it is derived from {@link authorId}, so a reader
+	 * recomputes it rather than trusting it (`verifiedAuthorName`). A package
+	 * claiming a name it cannot derive from its id displays as whoever the id
+	 * really is; a package with no id has no author at all.
+	 */
 	author?: string;
 	/** Free-form, lower-cased by convention. A gallery's facets. */
 	tags?: string[];
@@ -193,13 +209,26 @@ export const MAX_TOTAL_ASSET_BYTES = 16 * 1024 * 1024;
 /** The payload of a `dashboard` package: one board, and the vault-scoped extras
  * it may need. */
 export interface DashboardPayload {
+	/**
+	 * The board, stating everything it needs in order to look like itself.
+	 *
+	 * That includes the cards its author had pinned to every board and the
+	 * favourites list a favourites card was reading: both are folded onto the
+	 * board at capture (see `capture.ts`), because neither is visible as a
+	 * separate thing on a dashboard and neither can be applied on the way in
+	 * without changing boards the importer never asked about.
+	 */
 	dashboard: Dashboard;
-	/** Cards pinned to every board in the author's vault. Carried because they
-	 * are part of what the author saw, and applied only when the importer asks
-	 * for them — they would otherwise appear on every board in *their* vault. */
+	/**
+	 * Pre-3.1 only. Cards the author had pinned to every board, carried beside
+	 * the board rather than on it.
+	 *
+	 * Still read — `adoptLegacyExtras` folds them into the board's own cards on
+	 * import — and no longer written.
+	 */
 	pinnedCards?: DashboardCard[];
-	/** The author's favourites list, when the board has a card that reads it.
-	 * Vault paths, and vault-wide: never applied unless the importer opts in. */
+	/** Pre-3.1 only, and read the same way: folded onto the board's favourites
+	 * cards instead of appended to the importer's vault-wide list. */
 	favorites?: string[];
 }
 
@@ -256,10 +285,6 @@ export type ImportWarningCode =
 	| "assetMissing"
 	/** The package needs a Hearth setting switched on to show everything. */
 	| "settingRequired"
-	/** Vault-wide extras (favourites, pinned cards) were carried but not
-	 * applied, because applying them would change boards the importer didn't
-	 * ask about. */
-	| "notApplied"
 	/** The package was written by a newer Hearth; unknown fields were ignored. */
 	| "formatNewer";
 

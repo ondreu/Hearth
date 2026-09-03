@@ -137,6 +137,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   where they belong. Anything too large or no longer in the vault is left as a
   path and reported rather than silently dropped.
 
+  **What you see is what travels.** The export carries the board exactly as it
+  is on screen — every card's own settings, the cards you had pinned to every
+  board (they arrive as ordinary cards on the imported board, so nothing gets
+  pinned across the importer's vault), and the notes a Favorites card was
+  showing. None of that is a question the dialog asks any more, because none of
+  it is a difference you can see on a dashboard.
+
   Importing **adds** the board rather than replacing anything: a new board, a
   name that doesn't collide, and not one of your own settings touched. A shared
   dashboard carries an identity of its own — separate from which board it is in
@@ -148,10 +155,41 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   changes. None of those gaps stop an import; the cards come through and you
   point them at your own notes.
 
-  The file also carries the paths it references, deliberately: that is what
-  makes your own export work as your own backup. The export dialog says how many
-  before you save, since a board you are about to publish somewhere is a
-  different matter from one you are filing away.
+- **An anonymous handle, instead of typing your name.** The export dialog used
+  to ask for an author name. That is a bad question twice over: it is personal
+  information Hearth has no reason to hold, and it is a label anybody can type —
+  the first person to publish a board as somebody else's name is the last one
+  anyone trusts a name from.
+
+  So nothing is asked. Hearth makes you one **recovery key** the first time you
+  export something, keeps it in your vault, and derives everything public from
+  it: a stable author id, and a handle like `quiet-lantern-4821` computed from
+  that id. It says nothing about who you are, it is the same on everything you
+  export, and nobody can publish under it by typing it — a reader works the name
+  out from the id rather than believing the name in the file.
+
+  **Reinstalling doesn't lose it.** The key is the only thing worth keeping:
+  paste it into a new vault (Settings → Import / export → **Published as**, or
+  the same row in the export dialog) and the same handle comes back. There is no
+  account, and nothing is stored anywhere but your vault — which also means the
+  key is yours to keep safe, so copy it somewhere before you need it. It is
+  deliberately left out of every export file, backups included.
+
+- **One switch for everything private in the file.** A dashboard export
+  deliberately carries the paths it points at — that is what makes it work as
+  your own backup — which is exactly wrong for a board you are about to publish.
+  **Leave out my private information** removes the note and folder paths,
+  calendar feed links, an internal Jira host, your location, and anything you
+  typed on a text card. The board still looks identical; the cards just arrive
+  pointing at nothing, which whoever downloads it has to fill in anyway.
+
+  And it can be checked rather than trusted. **See and tune exactly what
+  travels** opens a section that lists the actual values — read from this board,
+  not described in the abstract — for each group it removes, and lets each group
+  be turned on or off separately (queries and command ids are off by default,
+  since removing those stops the board doing anything). Left as it is, the same
+  section lists everything the file will mention. It is built only when you open
+  it, so an export you never expand costs nothing.
 
 - **A board can carry its own search row, chrome and sky.** Nine settings that
   decide how a board looks were vault-wide only: the search placeholder, the
@@ -183,6 +221,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   weather sky restored with no background at all: the importer's list of
   background kinds had never been updated with `weather`, so the setting failed
   its check and was dropped. The per-board background override was unaffected.
+
+- **Exports and backups no longer drop eight kinds of card setting.** A card's
+  configuration is what the card *is*, and the importer's allowlist had never
+  been told about eight blocks of it — so a Calendar card came back with no
+  feeds, a weather card pointing nowhere, and the Periodic, Templater, search
+  bar, Stats, pet and recent-file-type settings back at their defaults. It
+  looked like nothing was wrong, because an unconfigured card of the right kind
+  still renders. All of them now travel, in single-dashboard exports and in full
+  backups alike, and a test walks every kind's config block so the next one
+  added cannot slip through the same gap.
 
 - **Exporting a single dashboard no longer includes a Jira token.** The layout
   and full-settings exports have always scrubbed a Jira card's personal access

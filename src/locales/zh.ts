@@ -2265,6 +2265,9 @@ export const zh: Translations = {
 		favorites: {
 			heading: "收藏",
 			headingDesc: "每张收藏卡片显示的笔记。",
+			ownList: "为这张卡片单独设置列表",
+			ownListOn: "这张卡片显示自己的笔记，不再使用全库列表。关闭后将重新跟随全库收藏，下面的列表会被丢弃。",
+			ownListOff: "这张卡片跟随全库收藏，和其他收藏卡片一样。开启后可为它单独设置一份列表，初始内容就是它当前显示的。",
 			moveUp: "上移",
 			moveDown: "下移",
 			remove: "移除",
@@ -3434,29 +3437,70 @@ export const zh: Translations = {
 			nameDesc: "文件中该仪表板的名称。默认使用面板自身的名称。",
 			description: "描述",
 			descriptionDesc: "可选。用一两句话说明这个仪表板的用途。",
-			author: "作者",
-			authorDesc: "可选。如果要分享，可以填写你的名字或昵称。",
 			tags: "标签",
 			tagsDesc: "可选，用逗号分隔。若仪表板会被公开浏览，标签会很有用。",
 			tagsPlaceholder: "写作, 极简, 深色",
+
+			// ---- 身份 ----
+			identity: "发布身份",
+			identityDesc: (name: string, id: string) =>
+				`${name}（${id}）。Hearth 用一把始终留在本库中的密钥为你生成了这个代号：` +
+				"你导出的所有文件都会使用它，它不会透露你是谁，别人也无法冒用。" +
+				"复制密钥即可把它带到另一处安装。",
+			identityNew: "首次导出时，Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
+			identityCopy: "复制我的恢复密钥",
+			identityCopied: "恢复密钥已复制。请妥善保存——这是找回该代号的唯一方式。",
+			identityCopyFailed: (key: string) => `你的恢复密钥：${key}`,
+			identityRestore: "使用来自其他安装的密钥",
+			identityRestoreLabel: "恢复密钥",
+			identityRestored: (name: string) => `现在你的发布身份是 ${name}。`,
+			identityRestoreFailed: "这不是一把 Hearth 恢复密钥。",
+
+			// ---- 包含哪些内容 ----
 			contents: "包含哪些内容",
 			embedAssets: "包含壁纸与图片",
 			embedAssetsDesc:
 				"把面板的背景图片、图片图标以及幻灯片中明确指定的图片一起放进文件，这样在从未见过这些文件的库中也能正确显示。文件会变大。若只是备份自己的库，可以关闭——图片本来就在那里。",
-			pinLook: "固定外观",
-			pinLookDesc:
-				"把影响该面板外观的每一项设置写入面板自身，使其他库的设置无法改变它。关闭后，面板会适应它所在的库。",
-			includePinned: "包含固定卡片",
-			includePinnedDesc: "固定在所有面板上的卡片。它们不属于这个仪表板，因此默认不包含。",
-			includeFavorites: "包含收藏列表",
-			includeFavoritesDesc: "“收藏”卡片读取的笔记路径。这是全库范围的，也是你自己的笔记清单。",
-			exportButton: "导出",
 			referenceNote: (paths: number, feeds: number) => {
 				const parts: string[] = [];
 				if (paths > 0) parts.push(`${paths} 个本库路径`);
 				if (feeds > 0) parts.push(`${feeds} 个日历订阅地址`);
-				return `该文件将包含 ${parts.join(" 和 ")}。这正是它能作为你自己备份的原因——公开分享之前值得先看一眼。`;
+				return `按当前设置，该文件将包含 ${parts.join(" 和 ")}。这正是它能作为你自己备份的原因——若要公开分享，打开上面的开关即可移除它们。`;
 			},
+			stripPrivate: "不包含我的私人信息",
+			stripPrivateDesc:
+				"移除这个面板中关于你、而非关于设计的部分：它指向的笔记与文件夹路径、日历订阅链接、你的位置，以及你在文本卡片上写下的内容。面板的外观完全不变——只是这些卡片到达时不指向任何东西，而下载的人本来也要自己填。若是备份自己的面板，请保持关闭：它需要这些路径才能继续工作。",
+
+			// ---- 详情 ----
+			detailsSummary: "查看并调整具体带走哪些内容",
+			flatten: "把本库的外观设置写入该仪表板",
+			flattenDesc:
+				"面板外观的大部分——网格、间距、卡片表面、背景、标题——都是全库设置，面板只保存自己覆盖的部分。开启后会把解析出的实际数值写入仪表板自身，使它在别人的库中保持同样的样子，而不是套用对方的设置。关闭后，面板只带走自己的覆盖项，并适应它所落地的地方。",
+			stripIntro: "下列每一组都会从文件中移除。每组下面列出的就是将被移除的实际内容，直接读取自这个面板。",
+			carriedIntro:
+				"当前没有移除任何内容，以下是文件中所有指向外部的信息。开启上面的“不包含我的私人信息”即可移除前三组。",
+			carriedNothing: "这个面板没有指向任何外部内容。",
+			groups: {
+				paths: "笔记与文件夹路径",
+				private: "日历订阅、内部主机与你的位置",
+				content: "你在面板上写下的文字",
+				queries: "搜索与 Dataview 查询",
+				plugins: "命令 ID 与视图类型",
+			},
+			groupDesc: {
+				paths: "该面板在你库中指向的一切，以及每张内嵌图片的来源文件夹。若上面的壁纸开关是打开的，图片本身仍会随文件一起带走——被移除的只是它们所在的文件夹。",
+				private: "ICS 日历链接（拿到链接的人即可读取该日历）、内部 Jira 主机，以及天气卡片设定的地点。",
+				content: "文本卡片的正文与计算器最后一次输入——你随手写在自己仪表板上的内容。",
+				queries: "默认关闭：没有查询的面板将无事可做。若查询中出现私密文件夹名，值得开启。",
+				plugins: "默认关闭：它们指向插件而非你本人。移除后，运行它们的按钮将不起作用。",
+			},
+			groupEmpty: "该面板中没有这类内容。",
+			stripTotal: (n: number) =>
+				n === 0 ? "该面板不会移除任何内容。" : `将移除 ${n} 项内容。`,
+			stripResidual: (n: number) =>
+				`已导出，但仍有 ${n} 项内容看起来像库路径。分享之前值得打开文件确认一下。`,
+
+			exportButton: "导出",
 			assetsSkipped: (paths: string) =>
 				`已导出，但以下图片未包含（过大，或已不在库中）：${paths}`,
 		},
@@ -3480,10 +3524,6 @@ export const zh: Translations = {
 			modeReplaceBoard: (name: string) => `就地更新“${name}”`,
 			modeReplaceAll: "替换我的全部设置",
 			replaceAllWarning: "这会用文件中的内容替换你的仪表板和每一项 Hearth 设置，且无法撤销。",
-			applyPinned: "同时添加它的固定卡片",
-			applyPinnedDesc: (n: number) => `${n} 张固定在所有面板上的卡片，也会出现在你的其他仪表板上。`,
-			applyFavorites: "同时添加它的收藏",
-			applyFavoritesDesc: (n: number) => `${n} 个笔记路径，追加到你自己的列表中。`,
 			heads: "需要留意",
 			missingPlugins: (plugins: string) =>
 				`此处未安装或未启用：${plugins}。在启用之前，这些卡片会是空的。`,

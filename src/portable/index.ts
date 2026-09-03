@@ -36,6 +36,7 @@ import {
 	readPackage,
 	validatePackage,
 } from "./apply";
+import { stripReferences, type StripOptions, type StripReport } from "./refs";
 import {
 	clearAssetRefs,
 	DEFAULT_ASSET_FOLDER,
@@ -72,6 +73,22 @@ export interface ExportDashboardOptions extends CaptureDashboardOptions {
 	 * and reported in {@link ExportOutcome.assets}.
 	 */
 	embedAssets?: boolean;
+	/**
+	 * Leave the author's private things out of the file.
+	 *
+	 * Off by default, because the default use of a dashboard export is a copy of
+	 * your own board — one that has to keep working, which means keeping the
+	 * paths it points at. Turned on, the groups named in {@link StripOptions}
+	 * are removed after the pictures have been embedded (so the wallpaper
+	 * survives having its path stripped: by then it is carried inside the file,
+	 * not pointed at outside it).
+	 *
+	 * What comes out the other side is a board that still looks exactly like
+	 * itself — layout, styling, colours, pictures — with the cards that pointed
+	 * at the author's notes pointing at nothing, which is what the person
+	 * downloading it has to fill in anyway.
+	 */
+	strip?: StripOptions;
 }
 
 export interface ExportOutcome {
@@ -80,6 +97,9 @@ export interface ExportOutcome {
 	pkg: HearthPackage;
 	/** Present when embedding was asked for. */
 	assets?: EmbedReport;
+	/** Present when a strip was asked for: what came out, and anything
+	 * path-shaped still visible afterwards. */
+	strip?: StripReport;
 }
 
 /**
@@ -101,7 +121,11 @@ export async function exportDashboardFile(
 	if (opts.embedAssets) {
 		assets = await embedAssets(pkg, vaultAssetStore(app));
 	}
-	return { json: serializePackage(pkg), pkg, assets };
+	// After embedding, never before: an embedded picture's reference has been
+	// rewritten to `hearth:asset/…` by this point, so stripping the vault paths
+	// takes the author's folder structure without taking their wallpaper.
+	const strip = opts.strip ? stripReferences(pkg, opts.strip) : undefined;
+	return { json: serializePackage(pkg), pkg, assets, strip };
 }
 
 /** Export every board plus the layout globals. */

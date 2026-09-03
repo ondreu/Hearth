@@ -51,6 +51,7 @@ import {
 	readPackage,
 	residualPaths,
 	serializePackage,
+	previewStrip,
 	stripReferences,
 	validatePackage,
 } from "../src/portable";
@@ -208,6 +209,194 @@ function moveBoard(
 	expect(outcome.pkg).toBeDefined();
 	return applyPackage(into, outcome.pkg!, { mode: "add" });
 }
+
+/**
+ * Every card kind that keeps a nested config block, filled in with something a
+ * default would not produce.
+ *
+ * The list is the point: a card's settings are what the card *is*, and a
+ * sanitizer that forgets one silently drops it on the way in — which is how
+ * eight of these (periodic, templater, schedule, searchBar, stats, weather,
+ * pet, recentTypes) travelled as nothing at all until this test was written.
+ * Add a kind's config block here when you add one.
+ */
+function configuredCards(): DashboardCard[] {
+	return [
+		card({ id: "k1", kind: "periodic", periodic: { granularity: "month" } }),
+		card({
+			id: "k2",
+			kind: "templater",
+			templater: {
+				items: [
+					{
+						id: "t1",
+						label: "Meeting",
+						icon: "file-plus",
+						template: "Templates/Meeting.md",
+						folder: "Meetings",
+						filename: "{{date}} meeting",
+						open: false,
+					},
+				],
+			},
+		}),
+		card({ id: "k3", kind: "recent", recentTypes: ["markdown", "images"] }),
+		card({
+			id: "k4",
+			kind: "schedule",
+			schedule: {
+				view: "week",
+				views: ["week", "day"],
+				firstDay: 1,
+				dayStart: 7,
+				dayEnd: 21,
+				hourHeight: 60,
+				clock: "24",
+				monthStyle: "dots",
+				listDays: 30,
+				nowLine: false,
+				dailyNotes: false,
+				sources: [
+					{ id: "s1", name: "Work", url: "https://example.com/work.ics", color: "#f00" },
+				],
+				refreshMin: 15,
+				eventNote: {
+					enabled: true,
+					folder: "Events",
+					filename: "{{summary}}",
+					template: "Templates/Event.md",
+					fields: [{ field: "date", action: "frontmatter", key: "date", format: "YYYY-MM-DD" }],
+				},
+				taskNotes: { enabled: true, due: true, colorBy: "priority", color: "#0f0" },
+				chips: { time: false, status: true },
+			},
+		}),
+		card({
+			id: "k5",
+			kind: "searchbar",
+			searchBar: {
+				filters: true,
+				hiddenFilters: ["audio"],
+				placeholder: "Find a note",
+				button: "newNote",
+				seamless: true,
+			},
+		}),
+		card({
+			id: "k6",
+			kind: "stats",
+			stats: {
+				advanced: true,
+				builtins: ["notes", "tags"],
+				attachmentTypes: ["images", "pdf"],
+				queries: [{ id: "q1", label: "Projects", icon: "hash", query: "#project" }],
+			},
+		}),
+		card({
+			id: "k7",
+			kind: "weather",
+			weather: {
+				place: { name: "Prague", region: "Czechia", lat: 50.08, lon: 14.44, timezone: "Europe/Prague" },
+				style: "detailed",
+				tempUnit: "f",
+				windUnit: "mph",
+				precipUnit: "inch",
+				hourFormat: "12",
+				showSun: true,
+				showUv: false,
+				hourlyCount: 12,
+				dailyCount: 7,
+				animate: false,
+				refreshMin: 90,
+			},
+		}),
+		card({
+			id: "k8",
+			kind: "pet",
+			pet: {
+				species: "fox",
+				name: "Vix",
+				bodyColor: "#c46",
+				accentColor: "#fda",
+				metric: "created",
+				dailyGoal: 5,
+				excitedAt: 9,
+				contentAt: 2,
+				sleepyAfterMin: 90,
+				pettedForMin: 15,
+				eyesFollow: "board",
+				nightSleep: "always",
+				nightFrom: 22,
+				nightTo: 6,
+				size: "lg",
+				showName: false,
+				showMood: false,
+				showActivity: false,
+			},
+		}),
+		card({
+			id: "k9",
+			kind: "calendar",
+			calendar: {
+				view: "agenda",
+				agendaDays: 30,
+				showWeekNumbers: true,
+				sources: [{ id: "c1", name: "Home", url: "webcal://example.com/home.ics", enabled: false }],
+				eventNote: { enabled: true, folder: "Events" },
+			},
+		}),
+	];
+}
+
+describe("a dashboard package carries the cards' own settings", () => {
+	/**
+	 * The board arrives configured, not merely present.
+	 *
+	 * A card whose config was dropped still renders — as an unconfigured card of
+	 * the right kind — which is exactly why this needs a test rather than a
+	 * glance: an imported weather card pointing at nowhere and an imported
+	 * weather card pointing at Prague look identical in a screenshot of the
+	 * import dialog.
+	 */
+	it("round-trips every kind's config block untouched", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].cards = configuredCards();
+		const theirs = contraryVault();
+
+		moveBoard(mine, theirs);
+
+		const imported = theirs.dashboards[1];
+		expect(imported.cards).toHaveLength(mine.dashboards[0].cards.length);
+		for (const [i, original] of mine.dashboards[0].cards.entries()) {
+			const arrived = imported.cards[i];
+			expect(arrived.kind).toBe(original.kind);
+			for (const key of [
+				"periodic",
+				"templater",
+				"recentTypes",
+				"schedule",
+				"searchBar",
+				"stats",
+				"weather",
+				"pet",
+				"calendar",
+			] as const) {
+				expect({ [key]: arrived[key] }).toEqual({ [key]: original[key] });
+			}
+		}
+	});
+
+	it("survives the whole-vault backup too, which shares the sanitizer", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].cards = configuredCards();
+		const theirs = contraryVault();
+
+		const pkg = captureSettings(mine);
+		applyPackage(theirs, pkg, { mode: "replaceAll" });
+
+		expect(theirs.dashboards[0].cards).toEqual(mine.dashboards[0].cards);
+	});
+});
 
 describe("a dashboard package carries the board's whole look", () => {
 	it("draws the same in a vault whose every global differs", () => {
@@ -493,39 +682,87 @@ describe("importing a board into a vault", () => {
 		expect(theirs.dashboards[0].mobileDefault).toBe(true);
 	});
 
-	it("carries pinned cards and favourites but applies neither unasked", () => {
+	it("carries pinned cards as cards on the board, pinning nothing", () => {
 		const mine = opinionatedVault();
-		mine.pinnedCards = [card({ id: "p1", kind: "clock" })];
-		mine.favorites = ["Notes/Pinned.md"];
+		mine.dashboards[0].cards = [card({ id: "c1", kind: "text", text: "Mine" })];
+		mine.pinnedCards = [card({ id: "p1", kind: "clock", pinned: true })];
 		const theirs = contraryVault();
-		theirs.favorites = ["Theirs.md"];
 
-		const pkg = captureDashboard(mine, mine.dashboards[0], {
-			includePinnedCards: true,
-			includeFavorites: true,
-		});
-		const result = applyPackage(theirs, pkg, { mode: "add" });
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		applyPackage(theirs, pkg, { mode: "add" });
 
+		const imported = theirs.dashboards[1];
+		// Both cards are on the board, in the order they rendered in — and the
+		// importer's own pinned set is untouched, so no other board of theirs
+		// changed.
+		expect(imported.cards.map((c) => c.kind)).toEqual(["text", "clock"]);
+		expect(imported.cards[1].pinned).toBeUndefined();
 		expect(theirs.pinnedCards).toHaveLength(0);
-		expect(theirs.favorites).toEqual(["Theirs.md"]);
-		expect(result.warnings).toEqual(
-			expect.arrayContaining([
-				{ code: "notApplied", detail: "pinnedCards:1" },
-				{ code: "notApplied", detail: "favorites:1" },
-			]),
-		);
 	});
 
-	it("appends favourites without losing the vault's own when asked to", () => {
+	it("never pins a stranger's cards onto a plugin board", () => {
 		const mine = opinionatedVault();
-		mine.favorites = ["Shared.md", "Theirs.md"];
+		mine.dashboards[0].pluginView = { viewType: "kanban" };
+		mine.pinnedCards = [card({ id: "p1", kind: "clock" })];
+		const theirs = contraryVault();
+
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		applyPackage(theirs, pkg, { mode: "add" });
+
+		expect(theirs.dashboards[1].cards).toHaveLength(0);
+	});
+
+	it("gives a favourites card its own list instead of touching the vault's", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].cards = [card({ id: "f1", kind: "favorites" })];
+		mine.favorites = ["Notes/Pinned.md", "Notes/Other.md"];
 		const theirs = contraryVault();
 		theirs.favorites = ["Theirs.md"];
 
-		const pkg = captureDashboard(mine, mine.dashboards[0], { includeFavorites: true });
-		applyPackage(theirs, pkg, { mode: "add", applyFavorites: true });
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		applyPackage(theirs, pkg, { mode: "add" });
 
-		expect(theirs.favorites).toEqual(["Theirs.md", "Shared.md"]);
+		expect(theirs.dashboards[1].cards[0].favorites).toEqual([
+			"Notes/Pinned.md",
+			"Notes/Other.md",
+		]);
+		expect(theirs.favorites).toEqual(["Theirs.md"]);
+	});
+
+	it("leaves a favourites card following the vault when the author had none", () => {
+		const mine = opinionatedVault();
+		mine.dashboards[0].cards = [card({ id: "f1", kind: "favorites" })];
+		mine.favorites = [];
+		const theirs = contraryVault();
+
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		applyPackage(theirs, pkg, { mode: "add" });
+
+		expect(theirs.dashboards[1].cards[0].favorites).toBeUndefined();
+	});
+
+	it("folds a pre-3.1 package's pinned cards and favourites onto the board", () => {
+		const theirs = contraryVault();
+		const legacy = {
+			hearth: { format: 3, kind: "dashboard" as const },
+			payload: {
+				dashboard: {
+					id: "b",
+					name: "Old",
+					cards: [card({ id: "f1", kind: "favorites" })],
+				},
+				pinnedCards: [card({ id: "p1", kind: "clock", pinned: true })],
+				favorites: ["Notes/Theirs.md"],
+			},
+		};
+
+		applyPackage(theirs, legacy, { mode: "add" });
+
+		const imported = theirs.dashboards[1];
+		expect(imported.cards.map((c) => c.kind)).toEqual(["favorites", "clock"]);
+		expect(imported.cards[0].favorites).toEqual(["Notes/Theirs.md"]);
+		expect(theirs.pinnedCards).toHaveLength(0);
+		expect(theirs.favorites).not.toContain("Notes/Theirs.md");
 	});
 
 	it("reports missing notes, plugins and view types instead of hiding them", () => {
@@ -586,6 +823,7 @@ describe("what a package refuses to carry", () => {
 		const payload = exportSettingsPayload(mine);
 		expect(payload.lastSeenVersion).toBeUndefined();
 		expect(payload.setupStatus).toBeUndefined();
+		expect(payload.authorKey).toBeUndefined();
 	});
 });
 
@@ -597,9 +835,12 @@ describe("the full settings backup carries every setting", () => {
 	 * and the only way to keep that true as settings are added is to check the
 	 * two lists against each other.
 	 */
-	it("writes every HomeSettings key except the two deliberate omissions", () => {
+	it("writes every HomeSettings key except the deliberate omissions", () => {
 		const payload = exportSettingsPayload(opinionatedVault());
-		const omitted = ["lastSeenVersion", "setupStatus"];
+		// `authorKey` joins the two bookkeeping fields: it is the secret behind
+		// the export identity, and a backup file is a thing people send each
+		// other. See `src/identity.ts`.
+		const omitted = ["lastSeenVersion", "setupStatus", "authorKey"];
 		const missing = Object.keys(DEFAULT_SETTINGS).filter(
 			(key) => !omitted.includes(key) && !(key in payload),
 		);
@@ -978,6 +1219,50 @@ describe("what a package points at outside itself", () => {
 		const report = stripReferences(pkg, { paths: true, private: true, content: true });
 		expect(report.residual).toEqual([]);
 		expect(residualPaths(pkg)).toEqual([]);
+	});
+
+	/**
+	 * The export dialog's promise, checked.
+	 *
+	 * "Leave out my private information" is a claim, and the dialog backs it by
+	 * showing the values it will remove. That listing has to be the same walk the
+	 * strip runs — a preview that under-reports is worse than no preview, because
+	 * it is a list somebody read before publishing.
+	 */
+	it("previews exactly the values the strip would remove", () => {
+		const s = boardWithReferences();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const opts = { paths: true, private: true, content: true };
+
+		const preview = previewStrip(pkg, opts);
+		const report = stripReferences(pkg, opts);
+
+		const previewed = preview.reduce<Record<string, number>>((counts, value) => {
+			counts[value.scope] = (counts[value.scope] ?? 0) + 1;
+			return counts;
+		}, {});
+		expect(previewed).toEqual(report.removed);
+		// And it is the values, not a count: that is the whole reason it exists.
+		expect(preview.map((v) => v.value)).toContain("Journal/2026-09-02.md");
+	});
+
+	it("previews nothing for a group that isn't asked for", () => {
+		const s = boardWithReferences();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		expect(previewStrip(pkg, {})).toEqual([]);
+		expect(previewStrip(pkg, { plugins: true }).every((v) => v.scope !== "vaultPath")).toBe(
+			true,
+		);
+	});
+
+	it("changes nothing in the package it previews", () => {
+		const s = boardWithReferences();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		const before = JSON.stringify(pkg);
+
+		previewStrip(pkg, { paths: true, private: true, content: true, queries: true, plugins: true });
+
+		expect(JSON.stringify(pkg)).toBe(before);
 	});
 });
 

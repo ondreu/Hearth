@@ -32,7 +32,13 @@ import {
 	type OpenOutsideRule,
 	type RssConfig,
 	type RssSource,
+	type PetConfig,
+	type PetSpecies,
+	type PeriodicCardConfig,
 	type SavedSearchConfig,
+	type ScheduleConfig,
+	type ScheduleView,
+	type SearchBarConfig,
 	type SlideshowAdvance,
 	type SlideshowConfig,
 	type SlideshowOrder,
@@ -44,7 +50,20 @@ import {
 	type TaskFilterConfig,
 	type TaskSortRule,
 	type TasksConfig,
+	type TaskNotesSourceConfig,
+	type TemplaterConfig,
+	type TemplaterItem,
 	type TileGeometry,
+	type CalendarChipConfig,
+	type CalendarSourcesConfig,
+	type IcsSource,
+	type StatId,
+	type StatsConfig,
+	type StatsQuery,
+	type WeatherConfig,
+	type WeatherPlace,
+	type WeatherStyle,
+	ALL_STATS,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
 	CONTENT_WIDTH_MAX,
@@ -66,6 +85,15 @@ import {
 	SLIDESHOW_TRANSITIONS,
 } from "./slideshow";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
+import {
+	type EventField,
+	type EventFieldAction,
+	type EventNoteConfig,
+	type EventNoteFieldRule,
+} from "./eventnote";
+import { GRANULARITIES, type Granularity } from "./periodic";
+import { FILE_TYPE_GROUPS } from "./filetypes";
+import { PET_SPECIES } from "./cards/pet";
 import {
 	GIT_ACTION_STYLES,
 	GIT_COMMIT_SCOPES,
@@ -506,6 +534,35 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	if (r.calendar && typeof r.calendar === "object") {
 		card.calendar = sanitizeCalendar(r.calendar as Record<string, unknown>);
 	}
+	if (r.schedule && typeof r.schedule === "object") {
+		card.schedule = sanitizeSchedule(r.schedule as Record<string, unknown>);
+	}
+	if (r.periodic && typeof r.periodic === "object") {
+		card.periodic = sanitizePeriodic(r.periodic as Record<string, unknown>);
+	}
+	if (r.templater && typeof r.templater === "object") {
+		card.templater = sanitizeTemplater(r.templater as Record<string, unknown>);
+	}
+	if (r.searchBar && typeof r.searchBar === "object") {
+		card.searchBar = sanitizeSearchBar(r.searchBar as Record<string, unknown>);
+	}
+	if (r.stats && typeof r.stats === "object") {
+		card.stats = sanitizeStats(r.stats as Record<string, unknown>);
+	}
+	if (r.weather && typeof r.weather === "object") {
+		card.weather = sanitizeWeather(r.weather as Record<string, unknown>);
+	}
+	if (r.pet && typeof r.pet === "object") {
+		card.pet = sanitizePet(r.pet as Record<string, unknown>);
+	}
+	const recentTypes = sanitizeFileTypeGroups(r.recentTypes);
+	if (recentTypes) card.recentTypes = recentTypes;
+	// A favourites card's own list, which only an import writes (see
+	// `DashboardCard.favorites`). Undefined stays undefined, so a card that
+	// follows the vault keeps following it.
+	if (Array.isArray(r.favorites)) {
+		card.favorites = r.favorites.filter((v): v is string => typeof v === "string");
+	}
 	if (r.savedSearch && typeof r.savedSearch === "object") {
 		card.savedSearch = sanitizeSavedSearch(
 			r.savedSearch as Record<string, unknown>,
@@ -844,6 +901,9 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 
 function sanitizeCalendar(r: Record<string, unknown>): CalendarConfig {
 	const cfg: CalendarConfig = {};
+	sanitizeCalendarSources(cfg, r);
+	if (r.view === "month" || r.view === "agenda") cfg.view = r.view;
+	if (typeof r.agendaDays === "number") cfg.agendaDays = clampNum(r.agendaDays, 1, 365, 14);
 	if (typeof r.showWeekNumbers === "boolean")
 		cfg.showWeekNumbers = r.showWeekNumbers;
 	if (typeof r.heatmap === "boolean") cfg.heatmap = r.heatmap;
@@ -853,6 +913,381 @@ function sanitizeCalendar(r: Record<string, unknown>): CalendarConfig {
 	if (typeof r.operonTasks === "boolean") cfg.operonTasks = r.operonTasks;
 	const operonTaskColor = str(r.operonTaskColor);
 	if (operonTaskColor !== undefined) cfg.operonTaskColor = operonTaskColor;
+	return cfg;
+}
+
+/**
+ * Where a calendar-style card gets its events: the ICS feeds, the refresh, the
+ * TaskNotes overlay, the chip set and the event-note routing.
+ *
+ * Shared by the mini calendar and the full Calendar card because they share the
+ * config interface, and written out field by field like everything else here —
+ * a card that arrives without its feeds is a card that arrives empty, which is
+ * what an export is for.
+ */
+function sanitizeCalendarSources(
+	cfg: CalendarSourcesConfig,
+	r: Record<string, unknown>,
+): void {
+	if (Array.isArray(r.sources)) {
+		cfg.sources = r.sources
+			.map(sanitizeIcsSource)
+			.filter((s): s is IcsSource => s !== null);
+	}
+	if (typeof r.refreshMin === "number" && r.refreshMin >= 0) {
+		cfg.refreshMin = clampNum(r.refreshMin, 0, 24 * 60, 0);
+	}
+	const eventNote = sanitizeEventNote(r.eventNote);
+	if (eventNote) cfg.eventNote = eventNote;
+	const taskNotes = sanitizeTaskNotesSource(r.taskNotes);
+	if (taskNotes) cfg.taskNotes = taskNotes;
+	const chips = sanitizeCalendarChips(r.chips);
+	if (chips) cfg.chips = chips;
+}
+
+/** One subscribed ICS feed. A source with no URL is nothing, so it is dropped
+ * rather than imported as an empty row. */
+function sanitizeIcsSource(raw: unknown): IcsSource | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	const url = str(r.url);
+	if (url === undefined || url.trim() === "") return null;
+	const source: IcsSource = {
+		id: str(r.id) ?? `ics-${Math.random().toString(36).slice(2)}`,
+		name: str(r.name) ?? "",
+		url,
+	};
+	const color = str(r.color);
+	if (color !== undefined) source.color = color;
+	if (typeof r.enabled === "boolean") source.enabled = r.enabled;
+	return source;
+}
+
+const EVENT_FIELDS: readonly EventField[] = [
+	"summary",
+	"date",
+	"start",
+	"end",
+	"location",
+	"description",
+	"url",
+	"calendar",
+];
+const EVENT_FIELD_ACTIONS: readonly EventFieldAction[] = ["ignore", "frontmatter", "body"];
+
+function sanitizeEventNote(raw: unknown): EventNoteConfig | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const cfg: EventNoteConfig = {};
+	if (typeof r.enabled === "boolean") cfg.enabled = r.enabled;
+	const folder = str(r.folder);
+	if (folder !== undefined) cfg.folder = folder;
+	const filename = str(r.filename);
+	if (filename !== undefined) cfg.filename = filename;
+	const template = str(r.template);
+	if (template !== undefined) cfg.template = template;
+	const linkKey = str(r.linkKey);
+	if (linkKey !== undefined) cfg.linkKey = linkKey;
+	if (Array.isArray(r.fields)) {
+		cfg.fields = r.fields
+			.map(sanitizeEventNoteField)
+			.filter((f): f is EventNoteFieldRule => f !== null);
+	}
+	return cfg;
+}
+
+function sanitizeEventNoteField(raw: unknown): EventNoteFieldRule | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	if (!EVENT_FIELDS.includes(r.field as EventField)) return null;
+	if (!EVENT_FIELD_ACTIONS.includes(r.action as EventFieldAction)) return null;
+	const rule: EventNoteFieldRule = {
+		field: r.field as EventField,
+		action: r.action as EventFieldAction,
+	};
+	const key = str(r.key);
+	if (key !== undefined) rule.key = key;
+	const format = str(r.format);
+	if (format !== undefined) rule.format = format;
+	return rule;
+}
+
+function sanitizeTaskNotesSource(raw: unknown): TaskNotesSourceConfig | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const cfg: TaskNotesSourceConfig = {};
+	const flags = [
+		"enabled",
+		"scheduled",
+		"due",
+		"recurring",
+		"timeblocks",
+		"completed",
+		"archived",
+		"subscriptions",
+		"allowComplete",
+	] as const;
+	for (const flag of flags) {
+		if (typeof r[flag] === "boolean") cfg[flag] = r[flag];
+	}
+	if (r.colorBy === "status" || r.colorBy === "priority" || r.colorBy === "fixed") {
+		cfg.colorBy = r.colorBy;
+	}
+	for (const key of ["color", "dueColor", "timeblockColor"] as const) {
+		const value = str(r[key]);
+		if (value !== undefined) cfg[key] = value;
+	}
+	return cfg;
+}
+
+function sanitizeCalendarChips(raw: unknown): CalendarChipConfig | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const cfg: CalendarChipConfig = {};
+	const chips = [
+		"time",
+		"source",
+		"status",
+		"priority",
+		"due",
+		"timeblock",
+		"recurring",
+	] as const;
+	for (const chip of chips) {
+		if (typeof r[chip] === "boolean") cfg[chip] = r[chip];
+	}
+	return cfg;
+}
+
+const SCHEDULE_VIEWS: readonly ScheduleView[] = ["month", "week", "day", "list"];
+
+/** The full Calendar card: its views, its grid, and the sources it shares with
+ * the mini calendar. Hours and heights are clamped to what the editor allows so
+ * an imported card can't draw a grid nothing fits in. */
+function sanitizeSchedule(r: Record<string, unknown>): ScheduleConfig {
+	const cfg: ScheduleConfig = {};
+	sanitizeCalendarSources(cfg, r);
+	if (SCHEDULE_VIEWS.includes(r.view as ScheduleView)) cfg.view = r.view as ScheduleView;
+	if (Array.isArray(r.views)) {
+		const views = r.views.filter((v): v is ScheduleView =>
+			SCHEDULE_VIEWS.includes(v as ScheduleView),
+		);
+		if (views.length) cfg.views = views;
+	}
+	if (typeof r.hideToolbar === "boolean") cfg.hideToolbar = r.hideToolbar;
+	if (typeof r.firstDay === "number") cfg.firstDay = clampNum(r.firstDay, 0, 6, 0);
+	if (typeof r.hideWeekends === "boolean") cfg.hideWeekends = r.hideWeekends;
+	if (typeof r.weekNumbers === "boolean") cfg.weekNumbers = r.weekNumbers;
+	if (typeof r.dayStart === "number") cfg.dayStart = clampNum(r.dayStart, 0, 23, 0);
+	if (typeof r.dayEnd === "number") cfg.dayEnd = clampNum(r.dayEnd, 1, 24, 24);
+	if (typeof r.hourHeight === "number") cfg.hourHeight = clampNum(r.hourHeight, 12, 240, 44);
+	if (r.clock === "12" || r.clock === "24") cfg.clock = r.clock;
+	if (typeof r.maxPerDay === "number") cfg.maxPerDay = clampNum(r.maxPerDay, 0, 50, 3);
+	if (r.monthStyle === "chips" || r.monthStyle === "dots") cfg.monthStyle = r.monthStyle;
+	if (typeof r.listDays === "number") cfg.listDays = clampNum(r.listDays, 1, 365, 14);
+	if (typeof r.nowLine === "boolean") cfg.nowLine = r.nowLine;
+	if (typeof r.dailyNotes === "boolean") cfg.dailyNotes = r.dailyNotes;
+	return cfg;
+}
+
+/** Which period a "periodic" card follows. */
+function sanitizePeriodic(r: Record<string, unknown>): PeriodicCardConfig {
+	const cfg: PeriodicCardConfig = {};
+	if (GRANULARITIES.includes(r.granularity as Granularity)) {
+		cfg.granularity = r.granularity as Granularity;
+	}
+	return cfg;
+}
+
+/** A Templater tile: the template it runs and where the note it makes lands. */
+function sanitizeTemplaterItem(raw: unknown): TemplaterItem | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	const template = str(r.template);
+	if (template === undefined) return null;
+	const item: TemplaterItem = {
+		id: str(r.id) ?? `tpl-${Math.random().toString(36).slice(2)}`,
+		label: str(r.label) ?? "",
+		icon: str(r.icon) ?? "file-plus",
+		template,
+	};
+	const folder = str(r.folder);
+	if (folder !== undefined) item.folder = folder;
+	const filename = str(r.filename);
+	if (filename !== undefined) item.filename = filename;
+	if (typeof r.open === "boolean") item.open = r.open;
+	readTileGeometry(item, r);
+	return item;
+}
+
+function sanitizeTemplater(r: Record<string, unknown>): TemplaterConfig {
+	const cfg: TemplaterConfig = {};
+	if (Array.isArray(r.items)) {
+		cfg.items = r.items
+			.map(sanitizeTemplaterItem)
+			.filter((i): i is TemplaterItem => i !== null);
+	}
+	return cfg;
+}
+
+/** The in-card search field. `hiddenFilters` is checked against the real
+ * file-type groups so a stale or invented id can't hide a chip nothing can
+ * bring back. */
+function sanitizeSearchBar(r: Record<string, unknown>): SearchBarConfig {
+	const cfg: SearchBarConfig = {};
+	if (typeof r.filters === "boolean") cfg.filters = r.filters;
+	const hidden = sanitizeFileTypeGroups(r.hiddenFilters);
+	if (hidden) cfg.hiddenFilters = hidden;
+	const placeholder = str(r.placeholder);
+	if (placeholder !== undefined) cfg.placeholder = placeholder;
+	if (r.button === "none" || r.button === "newNote" || r.button === "searchOnline") {
+		cfg.button = r.button;
+	}
+	if (typeof r.seamless === "boolean") cfg.seamless = r.seamless;
+	return cfg;
+}
+
+/** File-type group ids that actually exist, in the order given. */
+function sanitizeFileTypeGroups(value: unknown): string[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	const known = new Set(FILE_TYPE_GROUPS.map((g) => g.id));
+	return value.filter((v): v is string => typeof v === "string" && known.has(v));
+}
+
+function sanitizeStatsQuery(raw: unknown): StatsQuery | null {
+	if (!raw || typeof raw !== "object") return null;
+	const r = raw as Record<string, unknown>;
+	const query = str(r.query);
+	if (query === undefined) return null;
+	const stat: StatsQuery = {
+		id: str(r.id) ?? `stat-${Math.random().toString(36).slice(2)}`,
+		query,
+	};
+	const label = str(r.label);
+	if (label !== undefined) stat.label = label;
+	const icon = str(r.icon);
+	if (icon !== undefined) stat.icon = icon;
+	return stat;
+}
+
+function sanitizeStats(r: Record<string, unknown>): StatsConfig {
+	const cfg: StatsConfig = {};
+	if (typeof r.advanced === "boolean") cfg.advanced = r.advanced;
+	if (Array.isArray(r.builtins)) {
+		cfg.builtins = r.builtins.filter((v): v is StatId =>
+			ALL_STATS.includes(v as StatId),
+		);
+	}
+	const attachmentTypes = sanitizeFileTypeGroups(r.attachmentTypes);
+	if (attachmentTypes) cfg.attachmentTypes = attachmentTypes;
+	if (Array.isArray(r.queries)) {
+		cfg.queries = r.queries
+			.map(sanitizeStatsQuery)
+			.filter((q): q is StatsQuery => q !== null);
+	}
+	return cfg;
+}
+
+const WEATHER_STYLES: readonly WeatherStyle[] = [
+	"minimal",
+	"compact",
+	"detailed",
+	"forecast",
+	"artistic",
+];
+
+/** The place a weather card is set to. Coordinates are the whole value here, so
+ * a place without a usable pair is no place at all. */
+function sanitizeWeatherPlace(raw: unknown): WeatherPlace | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	if (typeof r.lat !== "number" || !Number.isFinite(r.lat)) return undefined;
+	if (typeof r.lon !== "number" || !Number.isFinite(r.lon)) return undefined;
+	const place: WeatherPlace = {
+		name: str(r.name) ?? "",
+		lat: clampFloat(r.lat, -90, 90, 0),
+		lon: clampFloat(r.lon, -180, 180, 0),
+	};
+	const region = str(r.region);
+	if (region !== undefined) place.region = region;
+	const timezone = str(r.timezone);
+	if (timezone !== undefined) place.timezone = timezone;
+	return place;
+}
+
+function sanitizeWeather(r: Record<string, unknown>): WeatherConfig {
+	const cfg: WeatherConfig = {};
+	const place = sanitizeWeatherPlace(r.place);
+	if (place) cfg.place = place;
+	if (WEATHER_STYLES.includes(r.style as WeatherStyle)) cfg.style = r.style as WeatherStyle;
+	if (r.tempUnit === "c" || r.tempUnit === "f") cfg.tempUnit = r.tempUnit;
+	if (r.windUnit === "kmh" || r.windUnit === "ms" || r.windUnit === "mph" || r.windUnit === "kn") {
+		cfg.windUnit = r.windUnit;
+	}
+	if (r.precipUnit === "mm" || r.precipUnit === "inch") {
+		cfg.precipUnit = r.precipUnit;
+	}
+	if (r.hourFormat === "auto" || r.hourFormat === "12" || r.hourFormat === "24") {
+		cfg.hourFormat = r.hourFormat;
+	}
+	const flags = [
+		"showLocation",
+		"showCondition",
+		"showFeelsLike",
+		"showHighLow",
+		"showHumidity",
+		"showWind",
+		"showPrecip",
+		"showUv",
+		"showPressure",
+		"showSun",
+		"showUpdated",
+		"animate",
+	] as const;
+	for (const flag of flags) {
+		if (typeof r[flag] === "boolean") cfg[flag] = r[flag];
+	}
+	if (typeof r.hourlyCount === "number") cfg.hourlyCount = clampNum(r.hourlyCount, 0, 48, 6);
+	if (typeof r.dailyCount === "number") cfg.dailyCount = clampNum(r.dailyCount, 0, 16, 4);
+	if (typeof r.refreshMin === "number") cfg.refreshMin = clampNum(r.refreshMin, 0, 24 * 60, 30);
+	return cfg;
+}
+
+/** A pet card, its palette and the thresholds that decide its mood.
+ * `lastPlayedAt` is the card's own working state and is deliberately not
+ * carried: an imported pet starts from the vault it landed in, not from the
+ * last time someone else patted it. */
+function sanitizePet(r: Record<string, unknown>): PetConfig {
+	const cfg: PetConfig = {};
+	if (PET_SPECIES.includes(r.species as PetSpecies)) cfg.species = r.species as PetSpecies;
+	const name = str(r.name);
+	if (name !== undefined) cfg.name = name;
+	const bodyColor = str(r.bodyColor);
+	if (bodyColor !== undefined) cfg.bodyColor = bodyColor;
+	const accentColor = str(r.accentColor);
+	if (accentColor !== undefined) cfg.accentColor = accentColor;
+	if (r.metric === "modified" || r.metric === "created") cfg.metric = r.metric;
+	if (typeof r.dailyGoal === "number") cfg.dailyGoal = clampNum(r.dailyGoal, 1, 999, 3);
+	if (typeof r.excitedAt === "number") cfg.excitedAt = clampNum(r.excitedAt, 1, 999, 6);
+	if (typeof r.contentAt === "number") cfg.contentAt = clampNum(r.contentAt, 1, 999, 1);
+	if (typeof r.sleepyAfterMin === "number") {
+		cfg.sleepyAfterMin = clampNum(r.sleepyAfterMin, 1, 60 * 24 * 7, 360);
+	}
+	if (typeof r.pettedForMin === "number") {
+		cfg.pettedForMin = clampNum(r.pettedForMin, 1, 60 * 24, 30);
+	}
+	if (r.eyesFollow === "off" || r.eyesFollow === "card" || r.eyesFollow === "board") {
+		cfg.eyesFollow = r.eyesFollow;
+	}
+	if (r.nightSleep === "off" || r.nightSleep === "quiet" || r.nightSleep === "always") {
+		cfg.nightSleep = r.nightSleep;
+	}
+	if (typeof r.nightFrom === "number") cfg.nightFrom = clampNum(r.nightFrom, 0, 23, 23);
+	if (typeof r.nightTo === "number") cfg.nightTo = clampNum(r.nightTo, 0, 23, 7);
+	if (r.size === "sm" || r.size === "md" || r.size === "lg") cfg.size = r.size;
+	if (typeof r.showName === "boolean") cfg.showName = r.showName;
+	if (typeof r.showMood === "boolean") cfg.showMood = r.showMood;
+	if (typeof r.showActivity === "boolean") cfg.showActivity = r.showActivity;
 	return cfg;
 }
 

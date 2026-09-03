@@ -5,10 +5,20 @@
  * Everything about *what* travels lives in `src/portable/`; this file is the
  * two conversations that wrap it.
  *
- * On the way out the question is what to include — a shared board usually wants
- * its wallpaper carried and its look pinned, a backup of your own vault wants
- * neither — and none of it is guessed: the dialog asks, with the consequence of
- * each choice written next to it.
+ * On the way out there are only two questions worth asking, because everything
+ * else about a board is not a choice: the cards' settings, the cards pinned to
+ * every board, the notes a favourites card shows — all of it is part of what is
+ * on screen, and none of it is something a dashboard shows you a difference
+ * between, so all of it simply travels. What is left is whether the pictures
+ * ride along, and whether the author's private things are left out. A
+ * disclosure below them tunes each group of that separately and *lists the
+ * values*, so "leave out my private information" can be checked rather than
+ * trusted — and it is built only when it is opened.
+ *
+ * Who the file is by is not a question either. A typed name is personal data
+ * Hearth has no reason to hold and a label anybody can claim, so the dialog
+ * shows an anonymous handle derived from a key that never leaves the vault
+ * (`src/identity.ts`) and offers to copy or replace that key.
  *
  * On the way in the question is what you are about to get. A downloaded board
  * routinely mentions notes you haven't got and plugins you haven't installed,
@@ -22,7 +32,13 @@ import { type App, Modal, Notice, Platform, Setting, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import type { Dashboard } from "./types";
 import { detectLanguage, t } from "./i18n";
-import { downloadTextFile, pickTextFile } from "./ui";
+import { downloadTextFile, pickTextFile, promptForText } from "./ui";
+import {
+	type AuthorIdentity,
+	identityFromKey,
+	newAuthorKey,
+	verifiedAuthorName,
+} from "./identity";
 import {
 	captureDashboard,
 	describeReferences,
@@ -37,7 +53,10 @@ import {
 	importPackageFile,
 	newSourceId,
 	PACKAGE_FILENAMES,
+	previewStrip,
 	readPackage,
+	type ReferenceScope,
+	type StripOptions,
 	vaultEnvironment,
 } from "./portable";
 
@@ -87,23 +106,157 @@ export function openExportDashboard(plugin: HearthPlugin, dash: Dashboard): void
 }
 
 /**
- * Export one board, with the choices that change what the file is for.
+ * What "leave out my private information" leaves out.
  *
- * The defaults describe sharing, because that is what exporting a single board
- * is nearly always for: pin the look, carry the pictures, leave the vault-wide
- * extras behind. Every one of them can be turned around.
+ * Paths (the author's folder structure), private feeds and hosts and their
+ * town, and the prose they jotted on their own board. Not the queries — a board
+ * stripped of them stops doing anything — and not command ids or view types,
+ * which name plugins rather than people. Both of those can still be turned on
+ * by hand in the details section, which is the whole reason it exists.
+ */
+const DEFAULT_STRIP: StripOptions = { paths: true, private: true, content: true };
+
+/** The strip groups, in the order the details section lists them. */
+const STRIP_GROUPS = ["paths", "private", "content", "queries", "plugins"] as const;
+type StripGroup = (typeof STRIP_GROUPS)[number];
+
+/** Which reference scopes each group covers, for listing the values it removes
+ * and for saying what the file still carries when nothing is being removed. */
+const GROUP_SCOPES: Record<StripGroup, readonly ReferenceScope[]> = {
+	paths: ["vaultPath", "asset"],
+	private: ["privateUrl", "privateHost", "place"],
+	content: ["userContent"],
+	queries: ["userQuery"],
+	plugins: ["commandId", "viewType"],
+};
+
+/**
+ * This vault's export identity, and the only place its key is ever created.
+ *
+ * `mint` decides whether a vault that has none gets one now. The export dialog
+ * mints — it is about to publish, and the handle has to be on screen *before*
+ * anything is written, so nobody publishes under a name they have not seen. The
+ * settings tab does not: a vault that has never shared anything has no identity
+ * to have, and merely reading a settings page is not a reason to acquire one.
+ */
+export function vaultIdentity(plugin: HearthPlugin, mint = false): AuthorIdentity | null {
+	const s = plugin.settings;
+	if (!s.authorKey && mint) {
+		s.authorKey = newAuthorKey();
+		void plugin.saveData(s);
+	}
+	return s.authorKey ? identityFromKey(s.authorKey) : null;
+}
+
+/**
+ * The row that shows who this vault publishes as, and the two things you can do
+ * about it: copy the key that carries the handle elsewhere, or paste one in.
+ *
+ * There is deliberately no field to type a name into. A typed name is personal
+ * data Hearth has no reason to hold and a label anybody could claim; this
+ * handle is computed from a secret the vault never sends, so it is anonymous,
+ * the same on every export, and not something a stranger can publish under.
+ * See `src/identity.ts`.
+ *
+ * `decorate` adds a control ahead of the two buttons — the export dialog puts
+ * its "include this" switch there. `onChanged` is called after the key is
+ * replaced, since the handle on screen is then the wrong one. `mint` is for the
+ * dialog that is about to use the identity; see {@link vaultIdentity}.
+ */
+export function identitySetting(
+	plugin: HearthPlugin,
+	containerEl: HTMLElement,
+	onChanged: () => void,
+	opts: { mint?: boolean; decorate?: (row: Setting) => void } = {},
+): Setting {
+	const strings = t().portable.exportModal;
+	const { mint, decorate } = opts;
+	const identity = vaultIdentity(plugin, mint);
+	const row = new Setting(containerEl)
+		.setName(strings.identity)
+		.setDesc(identity ? strings.identityDesc(identity.name, identity.id) : strings.identityNew);
+	decorate?.(row);
+	row.addExtraButton((b) =>
+		b
+			.setIcon("clipboard-copy")
+			.setTooltip(strings.identityCopy)
+			.onClick(() => void copyRecoveryKey(plugin, onChanged)),
+	);
+	row.addExtraButton((b) =>
+		b
+			.setIcon("key-round")
+			.setTooltip(strings.identityRestore)
+			.onClick(() => void restoreIdentity(plugin, onChanged)),
+	);
+	return row;
+}
+
+/** Asking for the key is asking for an identity, so this mints one if the vault
+ * hasn't got one yet — writing it down before it is needed is the whole point
+ * of the button. */
+async function copyRecoveryKey(plugin: HearthPlugin, onChanged: () => void): Promise<void> {
+	const strings = t().portable.exportModal;
+	const had = plugin.settings.authorKey !== "";
+	const identity = vaultIdentity(plugin, true);
+	if (!identity) return;
+	try {
+		await navigator.clipboard.writeText(identity.key);
+		new Notice(strings.identityCopied);
+	} catch {
+		// A clipboard a plugin can't reach is not a reason to lose the key:
+		// show it instead, so it can be selected by hand.
+		new Notice(strings.identityCopyFailed(identity.key));
+	}
+	// The row said "you'll get one when you export"; now there is one to show.
+	if (!had) onChanged();
+}
+
+/** Paste a key from another install. The handle comes back with it — that is
+ * what carrying the key means. */
+async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Promise<void> {
+	const strings = t().portable.exportModal;
+	const typed = await promptForText(plugin.app, {
+		title: strings.identityRestore,
+		label: strings.identityRestoreLabel,
+		placeholder: "HEARTH-XXXXX-XXXXX-XXXXX-XXXXX",
+	});
+	if (typed === null) return;
+	const identity = identityFromKey(typed);
+	if (!identity) {
+		new Notice(strings.identityRestoreFailed);
+		return;
+	}
+	plugin.settings.authorKey = identity.key;
+	await plugin.saveData(plugin.settings);
+	new Notice(strings.identityRestored(identity.name));
+	onChanged();
+}
+
+/**
+ * Export one board.
+ *
+ * The dialog is two dialogs. The one everybody sees asks four things — what to
+ * call it, whether the pictures travel, and whether the author's private things
+ * are left out — because those are the only decisions most exports involve. The
+ * one behind the disclosure is for the export that isn't ordinary: it tunes
+ * each group of what-gets-left-out separately, and it *shows the values*, so
+ * "leave out my private information" is a claim that can be checked rather than
+ * trusted. It is built the first time it is opened and rebuilt when a choice
+ * above it changes, so an export nobody opens it for costs nothing.
  */
 class ExportDashboardModal extends Modal {
 	private plugin: HearthPlugin;
 	private dash: Dashboard;
-	private opts: ExportDashboardOptions = {
-		flatten: true,
-		embedAssets: true,
-		includePinnedCards: false,
-		includeFavorites: false,
-	};
-	private meta = { name: "", description: "", author: "", tags: "" };
+	private opts: ExportDashboardOptions = { flatten: true, embedAssets: true };
+	/** The one-switch summary of the section below. */
+	private stripPrivate = false;
+	/** What that switch means, tunable in the details section. */
+	private strip: StripOptions = { ...DEFAULT_STRIP };
+	private includeIdentity = true;
+	private meta = { name: "", description: "", tags: "" };
 	private busy = false;
+	/** The disclosure, so a choice above it can redraw its contents in place. */
+	private details?: HTMLDetailsElement;
 
 	constructor(plugin: HearthPlugin, dash: Dashboard) {
 		super(plugin.app);
@@ -113,6 +266,12 @@ class ExportDashboardModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.render();
+	}
+
+	/** Drawn from scratch, so replacing the vault's identity can redraw the row
+	 * that shows it. */
+	private render(): void {
 		const strings = t().portable.exportModal;
 		this.titleEl.setText(strings.title);
 		const body = this.contentEl;
@@ -138,15 +297,6 @@ class ExportDashboardModal extends Modal {
 			);
 
 		new Setting(body)
-			.setName(strings.author)
-			.setDesc(strings.authorDesc)
-			.addText((tx) =>
-				tx.setValue(this.meta.author).onChange((v) => {
-					this.meta.author = v;
-				}),
-			);
-
-		new Setting(body)
 			.setName(strings.tags)
 			.setDesc(strings.tagsDesc)
 			.addText((tx) =>
@@ -154,6 +304,18 @@ class ExportDashboardModal extends Modal {
 					this.meta.tags = v;
 				}),
 			);
+
+		identitySetting(this.plugin, body, () => this.render(), {
+			// About to publish: the handle has to exist so it can be shown.
+			mint: true,
+			decorate: (row) => {
+				row.addToggle((tg) =>
+					tg.setValue(this.includeIdentity).onChange((v) => {
+						this.includeIdentity = v;
+					}),
+				);
+			},
+		});
 
 		new Setting(body).setName(strings.contents).setHeading();
 
@@ -168,36 +330,24 @@ class ExportDashboardModal extends Modal {
 			);
 
 		new Setting(body)
-			.setName(strings.pinLook)
-			.setDesc(strings.pinLookDesc)
+			.setName(strings.stripPrivate)
+			.setDesc(strings.stripPrivateDesc)
 			.addToggle((tg) =>
-				tg.setValue(this.opts.flatten !== false).onChange((v) => {
-					this.opts.flatten = v;
+				tg.setValue(this.stripPrivate).onChange((v) => {
+					this.stripPrivate = v;
+					note?.settingEl.toggleClass("is-hidden", v);
+					this.redrawDetails();
 				}),
 			);
 
-		new Setting(body)
-			.setName(strings.includePinned)
-			.setDesc(strings.includePinnedDesc)
-			.addToggle((tg) =>
-				tg.setValue(this.opts.includePinnedCards === true).onChange((v) => {
-					this.opts.includePinnedCards = v;
-				}),
-			);
+		// A count of what the file will mention, up here where it is read
+		// without opening anything: an export carries paths on purpose, and
+		// anyone about to publish one should meet that fact before they scroll
+		// past it. It goes away when the switch above removes them.
+		const note = this.referenceNote(body);
+		note?.settingEl.toggleClass("is-hidden", this.stripPrivate);
 
-		new Setting(body)
-			.setName(strings.includeFavorites)
-			.setDesc(strings.includeFavoritesDesc)
-			.addToggle((tg) =>
-				tg.setValue(this.opts.includeFavorites === true).onChange((v) => {
-					this.opts.includeFavorites = v;
-				}),
-			);
-
-		// What the file will say about the author's vault. Shown rather than
-		// buried: an export carries paths on purpose (the author's own copy has
-		// to keep working), and anyone about to publish one should know that.
-		this.referenceNote(body);
+		this.detailsSection(body);
 
 		new Setting(body)
 			.addButton((b) => b.setButtonText(t().confirm.cancel).onClick(() => this.close()))
@@ -213,18 +363,129 @@ class ExportDashboardModal extends Modal {
 		}
 	}
 
-	/** A count of what this board points at in the vault, so "this file mentions
-	 * my folders" is never a surprise. */
-	private referenceNote(body: HTMLElement): void {
+	/** One line saying how much of this vault the file mentions, or nothing when
+	 * it mentions none of it. */
+	private referenceNote(body: HTMLElement): Setting | null {
 		const strings = t().portable.exportModal;
 		const preview = describeReferences(
 			exportPreviewPackage(this.plugin, this.dash, this.opts),
 		);
 		const paths = preview.byScope.vaultPath.length + preview.byScope.asset.length;
 		const feeds = preview.byScope.privateUrl.length;
-		if (paths === 0 && feeds === 0) return;
+		if (paths === 0 && feeds === 0) return null;
 		const note = new Setting(body).setDesc(strings.referenceNote(paths, feeds));
 		note.settingEl.addClass("hearth-setting-note");
+		return note;
+	}
+
+	// ---- The details section -------------------------------------------
+
+	/** The disclosure itself. Empty until it is opened — the contents walk the
+	 * whole package to list its references, and an export nobody expands should
+	 * not pay for that. */
+	private detailsSection(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
+		const details = body.createEl("details", { cls: "hearth-export-details" });
+		details.createEl("summary", { text: strings.detailsSummary });
+		const inner = details.createDiv("hearth-export-details-body");
+		this.details = details;
+		details.addEventListener("toggle", () => {
+			if (!details.open) return;
+			this.renderDetails(inner);
+		});
+	}
+
+	/** Rebuild the details in place, but only while they are on screen. */
+	private redrawDetails(): void {
+		const details = this.details;
+		if (!details?.open) return;
+		const inner = details.querySelector<HTMLElement>(".hearth-export-details-body");
+		if (inner) this.renderDetails(inner);
+	}
+
+	private renderDetails(inner: HTMLElement): void {
+		const strings = t().portable.exportModal;
+		inner.empty();
+
+		// The look, which is a question about *this* export rather than about
+		// privacy, so it leads.
+		new Setting(inner)
+			.setName(strings.flatten)
+			.setDesc(strings.flattenDesc)
+			.addToggle((tg) =>
+				tg.setValue(this.opts.flatten !== false).onChange((v) => {
+					this.opts.flatten = v;
+					// Flattening writes the vault's background onto the board, so
+					// it can add a picture path to the lists below. Redraw, or
+					// they stop being the truth.
+					this.redrawDetails();
+				}),
+			);
+
+		const pkg = exportPreviewPackage(this.plugin, this.dash, this.opts);
+
+		if (this.stripPrivate) this.renderStripGroups(inner, pkg);
+		else this.renderCarried(inner, pkg);
+	}
+
+	/** With the switch on: one row per group, each saying exactly what it takes
+	 * out, and the values themselves underneath. */
+	private renderStripGroups(inner: HTMLElement, pkg: HearthPackage): void {
+		const strings = t().portable.exportModal;
+		inner.createEl("p", { text: strings.stripIntro, cls: "hearth-modal-intro" });
+
+		for (const group of STRIP_GROUPS) {
+			const values = previewStrip(pkg, { [group]: true }).map((v) => v.value);
+			const setting = new Setting(inner)
+				.setName(strings.groups[group])
+				.setDesc(strings.groupDesc[group])
+				.addToggle((tg) =>
+					tg.setValue(this.strip[group] === true).onChange((v) => {
+						this.strip[group] = v;
+						this.redrawDetails();
+					}),
+				);
+			// Nothing in this board falls in this group: say so rather than
+			// offering a switch that would do nothing.
+			if (values.length === 0) {
+				setting.descEl.createDiv({
+					cls: "hearth-export-values-empty",
+					text: strings.groupEmpty,
+				});
+				continue;
+			}
+			if (this.strip[group] !== true) continue;
+			const list = setting.descEl.createEl("ul", { cls: "hearth-export-values" });
+			for (const value of unique(values)) list.createEl("li", { text: value });
+		}
+
+		const total = previewStrip(pkg, this.strip).length;
+		const note = new Setting(inner).setDesc(strings.stripTotal(total));
+		note.settingEl.addClass("hearth-setting-note");
+	}
+
+	/** With the switch off: everything the file will mention, listed by what
+	 * kind of thing it is. The same walk, read the other way round. */
+	private renderCarried(inner: HTMLElement, pkg: HearthPackage): void {
+		const strings = t().portable.exportModal;
+		inner.createEl("p", { text: strings.carriedIntro, cls: "hearth-modal-intro" });
+
+		const report = describeReferences(pkg);
+		let anything = false;
+		for (const group of STRIP_GROUPS) {
+			const values = unique(
+				GROUP_SCOPES[group].flatMap((scope) => report.byScope[scope]),
+			);
+			if (values.length === 0) continue;
+			anything = true;
+			const setting = new Setting(inner).setName(strings.groups[group]);
+			setting.settingEl.addClass("hearth-setting-note");
+			const list = setting.descEl.createEl("ul", { cls: "hearth-export-values" });
+			for (const value of values) list.createEl("li", { text: value });
+		}
+		if (!anything) {
+			inner.createEl("p", { text: strings.carriedNothing, cls: "hearth-modal-intro" });
+		}
 	}
 
 	private async run(): Promise<void> {
@@ -245,13 +506,18 @@ class ExportDashboardModal extends Modal {
 				.split(",")
 				.map((tag) => tag.trim().toLowerCase())
 				.filter((tag) => tag !== "");
+			const identity = this.includeIdentity ? vaultIdentity(this.plugin, true) : null;
 			const outcome = await exportDashboardFile(this.app, this.plugin.settings, this.dash, {
 				...this.opts,
+				strip: this.stripPrivate ? this.strip : undefined,
 				...commonOptions(this.plugin),
 				meta: {
 					name: this.meta.name.trim() || this.dash.name,
 					description: this.meta.description.trim() || undefined,
-					author: this.meta.author.trim() || undefined,
+					// Both or neither: a name without the id it derives from is
+					// the free-text field this design removed.
+					authorId: identity?.id,
+					author: identity?.name,
 					tags: tags.length ? tags : undefined,
 				},
 			});
@@ -263,12 +529,23 @@ class ExportDashboardModal extends Modal {
 			if (skipped.length) {
 				new Notice(strings.assetsSkipped(skipped.map((a) => a.path).join(", ")));
 			}
+			// A residual is the strip's own admission that the reference table
+			// missed something. Rare, and worth a look before the file is shared.
+			const residual = outcome.strip?.residual ?? [];
+			if (residual.length) {
+				new Notice(strings.stripResidual(residual.length));
+			}
 		} catch {
 			new Notice(t().notices.exportFailed);
 		} finally {
 			this.busy = false;
 		}
 	}
+}
+
+/** Distinct values, in the order first seen. */
+function unique(values: string[]): string[] {
+	return Array.from(new Set(values));
 }
 
 /** A package built for preview only: the same capture the export runs, so the
@@ -321,8 +598,6 @@ class ImportModal extends Modal {
 	private pkg: HearthPackage;
 	private existing?: Dashboard;
 	private mode: "add" | "replaceBoard" | "replaceAll" = "add";
-	private applyPinnedCards = false;
-	private applyFavorites = false;
 	private busy = false;
 
 	constructor(plugin: HearthPlugin, json: string, pkg: HearthPackage) {
@@ -350,7 +625,6 @@ class ImportModal extends Modal {
 
 		this.summary(body);
 		this.modeChoice(body);
-		this.extras(body);
 		this.warnings(body);
 
 		new Setting(body)
@@ -374,9 +648,13 @@ class ImportModal extends Modal {
 		const kindLabel = strings.kinds[this.pkg.hearth.kind];
 		const name = meta?.name?.trim();
 		body.createEl("h3", { text: name || kindLabel, cls: "hearth-import-name" });
+		// Recomputed from the id rather than read from the file: a package can
+		// write any name it likes in `author`, and none of them are believed.
+		// No id, no author — see `verifiedAuthorName`.
+		const author = verifiedAuthorName(meta?.authorId);
 		const byline = [
 			kindLabel,
-			meta?.author?.trim() ? strings.by(meta.author.trim()) : "",
+			author ? strings.by(author) : "",
 			this.pkg.hearth.plugin ? strings.madeWith(this.pkg.hearth.plugin) : "",
 		].filter((part) => part !== "");
 		body.createEl("p", { text: byline.join(" · "), cls: "hearth-import-byline" });
@@ -422,36 +700,6 @@ class ImportModal extends Modal {
 		if (this.mode === "replaceAll") {
 			const note = new Setting(body).setDesc(strings.replaceAllWarning);
 			note.settingEl.addClass("hearth-setting-warning");
-		}
-	}
-
-	/** The vault-wide extras a package may carry, each off until asked for. */
-	private extras(body: HTMLElement): void {
-		const strings = t().portable.importModal;
-		if (this.pkg.hearth.kind !== "dashboard" || this.mode === "replaceAll") return;
-		const payload = this.pkg.payload as {
-			pinnedCards?: unknown[];
-			favorites?: unknown[];
-		};
-		if (payload.pinnedCards?.length) {
-			new Setting(body)
-				.setName(strings.applyPinned)
-				.setDesc(strings.applyPinnedDesc(payload.pinnedCards.length))
-				.addToggle((tg) =>
-					tg.setValue(this.applyPinnedCards).onChange((v) => {
-						this.applyPinnedCards = v;
-					}),
-				);
-		}
-		if (payload.favorites?.length) {
-			new Setting(body)
-				.setName(strings.applyFavorites)
-				.setDesc(strings.applyFavoritesDesc(payload.favorites.length))
-				.addToggle((tg) =>
-					tg.setValue(this.applyFavorites).onChange((v) => {
-						this.applyFavorites = v;
-					}),
-				);
 		}
 	}
 
@@ -501,8 +749,6 @@ class ImportModal extends Modal {
 			const result = await importPackageFile(this.app, this.plugin.settings, this.json, {
 				mode: this.mode,
 				targetBoardId: this.existing?.id,
-				applyPinnedCards: this.applyPinnedCards,
-				applyFavorites: this.applyFavorites,
 				env: vaultEnvironment(this.app),
 			});
 			if (!result.ok) {

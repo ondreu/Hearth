@@ -33,7 +33,8 @@ a board without touching a single global setting.
     "id": "hd-8f2k1x9qa03b",  // this dashboard as a published work — see Identity
     "name": "Reading room",
     "description": "…",
-    "author": "…",
+    "authorId": "a91c3f0d7e42",   // the author's public id — see Who made it
+    "author": "quiet-lantern-4821", // derived from authorId; recompute, don't trust
     "tags": ["reading", "minimal"],
     "version": "2"
   },
@@ -61,10 +62,30 @@ a board without touching a single global setting.
 ```jsonc
 "payload": {
   "dashboard": { /* a Dashboard, with its look resolved onto it */ },
-  "pinnedCards": [ /* optional */ ],
-  "favorites":   [ /* optional */ ]
+
+  // Pre-3.1 only. Still read (folded onto the board on import), never written.
+  "pinnedCards": [ /* … */ ],
+  "favorites":   [ /* … */ ]
 }
 ```
+
+The board is the whole payload. Two things that used to sit beside it are now
+folded onto it at capture, because neither is a thing a dashboard shows
+separately:
+
+- **Pinned cards** are rendered in the same grid as the board's own, at their
+  own coordinates, and nothing on screen says which list a card came from. They
+  travel as ordinary cards on the board, with `pinned` cleared — so the board
+  looks like its author's without an import pinning a stranger's cards onto
+  every board in the importing vault.
+- **The favourites list** (the note paths a `favorites` card shows) is
+  vault-wide, so a favourites card exported alone arrives empty or showing the
+  importer's notes. Capture writes the resolved list onto each favourites card
+  as `DashboardCard.favorites`, the same move `taskFields` makes. An author with
+  no favourites folds nothing, leaving the card inheriting.
+
+A pre-3.1 package carrying either beside the board gets the same fold applied on
+the way in (`adoptLegacyExtras`).
 
 ### `kind: "layout"` and `kind: "settings"`
 
@@ -144,9 +165,9 @@ itself could produce.
 Three things a board is never allowed to claim in someone else's vault: the
 mobile-default flag, a linked workspace, and its own board id — `add` always
 mints a fresh one, so a package cannot pick which of the importer's boards it
-lands on. Pinned cards and the favourites list are *carried* but not applied
-unless the importer asks, because both are vault-wide and would change boards
-they never looked at.
+lands on. Nothing vault-wide is written either: what the author had pinned and
+what their favourites card was showing arrive **on the board**, so no other
+board in the importing vault changes.
 
 ## Identity
 
@@ -182,7 +203,7 @@ id will be offered to readers as an update to the original.
 
 An import returns an `ImportResult`, not a pass/fail. Warning codes:
 `missingPath`, `missingPlugin`, `unknownCardKind`, `unknownViewType`,
-`assetSkipped`, `assetMissing`, `settingRequired`, `notApplied`, `formatNewer`.
+`assetSkipped`, `assetMissing`, `settingRequired`, `formatNewer`.
 None of them stops an import: a downloaded board routinely mentions notes the
 importer hasn't got, and that is worth *saying* rather than showing as a card
 that renders nothing.
@@ -193,6 +214,46 @@ resolved field list onto each card and records the requirement in
 `requires.settings`; the importer is told to turn the switch on, and no global is
 flipped on their behalf.
 
+## Who made it
+
+`meta.author` is **not** a name somebody typed, and a reader must not treat it as
+one. Hearth mints one secret per vault — a **recovery key**, which never leaves
+it — and derives everything public from it by hashing (`src/identity.ts`):
+
+```
+  recovery key   HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ   private, never exported
+         │  sha-256
+         ▼
+  meta.authorId  a91c3f0d7e42                     public, travels
+         │  sha-256, again
+         ▼
+  meta.author    quiet-lantern-4821               public, and computed
+```
+
+Two properties follow, and they are why there is no name field:
+
+- **The handle cannot be claimed.** It is a function of the id, so a reader
+  recomputes it (`verifiedAuthorName(meta.authorId)`) rather than reading
+  `meta.author`. A file claiming `"author": "ondreu"` while carrying somebody
+  else's id displays as whoever that id is; a file with no `authorId` has no
+  author, and its `author` string is not shown at all.
+- **An identity survives a reinstall.** Everything public is derived, so the key
+  is the only thing worth keeping. Pasted into a fresh vault, the same id and
+  the same handle come back — there is no account, and nothing is held anywhere
+  else.
+
+What this does **not** do is prove possession: anyone who has seen a published
+package has seen its author id and can copy it into a file of their own. The id
+identifies, it does not authenticate. Closing that needs a signature and
+something to verify it against — a gallery, a challenge, a round trip — none of
+which exists yet; when it does, the recovery key is already the right secret to
+sign with and no published id has to change. Until then, a gallery that wants
+authenticated authorship must establish it its own way and should treat
+`authorId` as a self-asserted handle.
+
+`authorKey` is excluded from every export, backups included — a settings backup
+is a thing people hand each other, and a key in one is an identity given away.
+
 ## The gallery hand-off
 
 **A local export deliberately contains the author's vault paths.** That is not
@@ -200,12 +261,20 @@ an oversight — the author's own copy has to keep working. The paths come off
 when the package is *published*:
 
 ```ts
-import { stripReferences, residualPaths } from "src/portable";
+import { previewStrip, stripReferences, residualPaths } from "src/portable";
 
 const report = stripReferences(pkg);   // paths + private + content
 // report.removed  → counts per scope
 // report.residual → anything still path-shaped. Non-empty = hold for review.
+
+previewStrip(pkg, { paths: true });    // the same walk, listing the values and
+                                       // changing nothing
 ```
+
+The export dialog runs the same strip: **Leave out my private information** is
+`{ paths, private, content }`, and its details section lists what each group
+will remove — through `previewStrip()`, so what it shows is what the strip does
+rather than a second description of it.
 
 `src/portable/refs.ts` holds the one table of every field that points outside
 the package, classified by scope:
@@ -221,6 +290,9 @@ the package, classified by scope:
 | `commandId`, `viewType` | names a plugin, not the author | `plugins` (off) |
 | `userQuery` | a search/Dataview/Datacore query, or a frontmatter property a card reads | `queries` (off) |
 | `userContent` | the author's own prose or working state | `content` |
+
+`vaultPath` includes a favourites card's own list, which is a list of the
+author's notes.
 
 `paths` also drops each embedded asset's `from`: the picture stays, the folder
 it lived in does not.
@@ -278,7 +350,7 @@ card's personal access token. It is one exported function precisely so a new
 export path cannot forget it — if you add a field that holds a credential, add
 it there.
 
-`lastSeenVersion` and `setupStatus` are deliberately never exported, so a shared
+`lastSeenVersion`, `setupStatus` and `authorKey` are deliberately never exported, so a shared
 file cannot rewind another vault's "What's new" state or re-offer its setup
 wizard. Every other setting travels in a `settings` package, and a test checks
 the export against the settings list so the next one added cannot slip through.
