@@ -32,7 +32,7 @@ import {
 	normalizeFolderPath,
 	resolveTemplateFile,
 } from "./templater";
-import type { HomeSettings } from "./types";
+import { effectiveNewNoteButtonLabel, type HomeSettings } from "./types";
 import { promptForText } from "./ui";
 
 /** Obsidian's own name for a note created with no name of its own. Used when no
@@ -40,8 +40,8 @@ import { promptForText } from "./ui";
 export const UNTITLED_NOTE = "Untitled";
 
 /** The text on the New-note button: the user's own, or the built-in label. */
-export function newNoteButtonLabel(s: Pick<HomeSettings, "newNoteButtonLabel">): string {
-	return s.newNoteButtonLabel.trim() || t().header.newNote;
+export function newNoteButtonLabel(s: HomeSettings): string {
+	return effectiveNewNoteButtonLabel(s).trim() || t().header.newNote;
 }
 
 /** Whether the button has been pointed at a Templater template. Says nothing

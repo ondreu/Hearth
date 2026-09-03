@@ -12,6 +12,7 @@ import {
 	effectiveBackground,
 	effectiveFullWidth,
 	effectiveMaxWidth,
+	effectiveSkyAnimate,
 	motionAllowed,
 	skyDensity,
 } from "./types";
@@ -176,7 +177,7 @@ function applyWeatherSky(
 	const sky = parseSkyValue(bg.value);
 	if (!sky) return;
 	const settings = view.plugin.settings;
-	const animate = settings.backgroundSkyAnimate !== false && motionAllowed(settings);
+	const animate = effectiveSkyAnimate(settings) && motionAllowed(settings);
 	const density = skyDensity(settings);
 
 	// A fixed sky is the whole feature for anyone who wants one weather and

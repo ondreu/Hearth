@@ -11,6 +11,7 @@ import {
 import {
 	activeDashboard,
 	type Dashboard,
+	effectiveArrangeButtonVisibility,
 	effectiveCardBlur,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
@@ -282,7 +283,7 @@ export function renderPluginBoardActions(view: HomeView, switcherZone: HTMLEleme
 	const zone = switcherZone.createDiv("hearth-arrange-zone hearth-plugin-actions");
 	zone.toggleClass(
 		"is-auto-hide",
-		view.plugin.settings.arrangeButtonVisibility === "hover",
+		effectiveArrangeButtonVisibility(view.plugin.settings) === "hover",
 	);
 	const btn = zone.createEl("button", { cls: "hearth-tool-btn is-icon" });
 	setIcon(btn.createSpan("hearth-tool-icon"), "settings-2");

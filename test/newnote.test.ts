@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { blankNoteName, newNoteButtonLabel, newNoteUsesTemplate, UNTITLED_NOTE } from "../src/newnote";
+import { DEFAULT_SETTINGS, type HomeSettings } from "../src/types";
+
+/** A vault with one board, so the label resolver has an active dashboard to ask
+ * about before it falls back to the global setting. */
+function withLabel(label: string, board?: string): HomeSettings {
+	const s: HomeSettings = structuredClone(DEFAULT_SETTINGS);
+	s.dashboards = [{ id: "d1", name: "Board", cards: [] }];
+	s.activeDashboardId = "d1";
+	s.newNoteButtonLabel = label;
+	if (board !== undefined) s.dashboards[0].newNoteButtonLabel = board;
+	return s;
+}
 
 /**
  * The configurable "New note" button (#227). The calls *into* Obsidian and
@@ -10,19 +22,29 @@ import { blankNoteName, newNoteButtonLabel, newNoteUsesTemplate, UNTITLED_NOTE }
 
 describe("newNoteButtonLabel", () => {
 	it("falls back to the built-in label when nothing is set", () => {
-		expect(newNoteButtonLabel({ newNoteButtonLabel: "" })).toBe("New note");
+		expect(newNoteButtonLabel(withLabel(""))).toBe("New note");
 	});
 
 	it("uses the user's label", () => {
-		expect(newNoteButtonLabel({ newNoteButtonLabel: "Capture" })).toBe("Capture");
+		expect(newNoteButtonLabel(withLabel("Capture"))).toBe("Capture");
 	});
 
 	it("treats whitespace as unset, so the button is never blank", () => {
-		expect(newNoteButtonLabel({ newNoteButtonLabel: "   " })).toBe("New note");
+		expect(newNoteButtonLabel(withLabel("   "))).toBe("New note");
+	});
+
+	it("lets one board rename the button while the vault keeps its own", () => {
+		expect(newNoteButtonLabel(withLabel("Capture", "New meeting note"))).toBe(
+			"New meeting note",
+		);
+	});
+
+	it("treats a board's empty label as a real override back to the built-in", () => {
+		expect(newNoteButtonLabel(withLabel("Capture", ""))).toBe("New note");
 	});
 
 	it("keeps a label's own inner spacing", () => {
-		expect(newNoteButtonLabel({ newNoteButtonLabel: " New meeting note " })).toBe(
+		expect(newNoteButtonLabel(withLabel(" New meeting note "))).toBe(
 			"New meeting note",
 		);
 	});

@@ -116,15 +116,29 @@ const RANGE = {
 	headerSpacingBelow: { min: 0, max: 96 },
 };
 
-/** Build the portable layout payload (the dashboard setup and its globals). */
-function layoutPayload(s: HomeSettings): LayoutExport {
-	// SECURITY-REVIEW: Jira PATs authenticate outbound requests and must never be
-	// copied into portable layout/settings artifacts. Clone only the affected
-	// card/config objects so live settings retain their credentials unchanged.
-	const scrubCard = (card: DashboardCard): DashboardCard =>
-		card.jira?.pat === undefined
-			? card
-			: { ...card, jira: { ...card.jira, pat: undefined } };
+/**
+ * A card with its credentials taken out.
+ *
+ * SECURITY-REVIEW: Jira PATs authenticate outbound requests and must never be
+ * copied into a portable artifact. Only the affected card and config objects are
+ * cloned, so the live settings keep their credentials unchanged.
+ *
+ * Exported because every kind of export has to go through it: the layout and
+ * settings payloads below, and — since a board can be exported on its own — the
+ * dashboard capture in `src/portable/capture.ts` as well. One scrub, called from
+ * everywhere, rather than one per export path.
+ */
+export function scrubCard(card: DashboardCard): DashboardCard {
+	return card.jira?.pat === undefined
+		? card
+		: { ...card, jira: { ...card.jira, pat: undefined } };
+}
+
+/** Build the portable layout payload (the dashboard setup and its globals).
+ *
+ * Exported for `src/portable/`, which wraps it as the payload of a `layout`
+ * package rather than re-deriving it. */
+export function layoutPayload(s: HomeSettings): LayoutExport {
 	const dashboards = s.dashboards.map((dashboard) => ({
 		...dashboard,
 		cards: dashboard.cards.map(scrubCard),
@@ -153,7 +167,19 @@ export function exportLayout(s: HomeSettings): string {
  * pretty JSON string. Internal bookkeeping (e.g. `lastSeenVersion`) is omitted
  * so a shared backup can't rewind another vault's "What's new" state. */
 export function exportSettings(s: HomeSettings): string {
-	const data = {
+	return JSON.stringify(exportSettingsPayload(s), null, 2);
+}
+
+/**
+ * The full-settings payload as an object.
+ *
+ * Split out from {@link exportSettings} so `src/portable/` can embed it in a
+ * package without serializing and re-parsing it, and so `test/portable.test.ts`
+ * can check it against `DEFAULT_SETTINGS` key by key — which is how the eleven
+ * settings this function used to forget were found.
+ */
+export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> {
+	return {
 		hearthSettings: SETTINGS_SCHEMA,
 		...layoutPayload(s),
 
@@ -162,6 +188,7 @@ export function exportSettings(s: HomeSettings): string {
 		showTitle: s.showTitle,
 		titleIcon: s.titleIcon,
 		tabIcon: s.tabIcon,
+		themeColorTarget: s.themeColorTarget,
 		showSearch: s.showSearch,
 		searchPlaceholder: s.searchPlaceholder,
 		showNewNoteButton: s.showNewNoteButton,
@@ -186,13 +213,22 @@ export function exportSettings(s: HomeSettings): string {
 		// them, so it has to travel with them — otherwise an export taken on a
 		// lower tier would describe a look the importing vault doesn't show.
 		performanceTier: s.performanceTier,
+		// The mobile tier travels with the desktop one for the same reason: a
+		// backup that restored only half the pair would describe a look the
+		// restoring device doesn't show.
+		mobilePerformanceTier: s.mobilePerformanceTier,
 		lowPowerBackgroundColor: s.lowPowerBackgroundColor,
 		pauseWhenUnfocused: s.pauseWhenUnfocused,
+		backgroundSkyAnimate: s.backgroundSkyAnimate,
 
 		// Behaviour
 		openOnStartup: s.openOnStartup,
 		replaceNewTabs: s.replaceNewTabs,
+		focusSearchOnOpen: s.focusSearchOnOpen,
+		liveRefresh: s.liveRefresh,
+		liveSettingsSync: s.liveSettingsSync,
 		mobileSearchOnly: s.mobileSearchOnly,
+		stackOnNarrow: s.stackOnNarrow,
 		showMobileActionBar: s.showMobileActionBar,
 		mobileActionButtons: s.mobileActionButtons,
 		disableExternalCalls: s.disableExternalCalls,
@@ -202,6 +238,8 @@ export function exportSettings(s: HomeSettings): string {
 
 		// Appearance
 		compact: s.compact,
+		arrangeButtonVisibility: s.arrangeButtonVisibility,
+		dashboardSwitcherVisibility: s.dashboardSwitcherVisibility,
 		cardOpacity: s.cardOpacity,
 		cardBlur: s.cardBlur,
 		cardRadius: s.cardRadius,
@@ -218,10 +256,14 @@ export function exportSettings(s: HomeSettings): string {
 		taskFieldsEnabled: s.taskFieldsEnabled,
 		taskFields: s.taskFields,
 
+		// File icons (Iconic / Iconize)
+		customFileIcons: s.customFileIcons,
+		iconizeIconProperty: s.iconizeIconProperty,
+
 		// Operon
 		operonIntegration: s.operonIntegration,
+		operonWrites: s.operonWrites,
 	};
-	return JSON.stringify(data, null, 2);
 }
 
 function num(value: unknown, fallback: number): number {
@@ -352,7 +394,7 @@ function sanitizeMobileOptions(raw: unknown): MobileCardOptions | undefined {
 	return Object.keys(mobile).length > 0 ? mobile : undefined;
 }
 
-function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
+export function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
 	const kind = CARD_KINDS.includes(r.kind as CardKind)
@@ -1141,7 +1183,7 @@ function applyBannerOverrides(dash: Dashboard, r: Record<string, unknown>): void
 	}
 }
 
-function sanitizeDashboard(
+export function sanitizeDashboard(
 	raw: unknown,
 	s: HomeSettings,
 	index: number,
@@ -1187,6 +1229,33 @@ function sanitizeDashboard(
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
 	if (typeof r.compact === "boolean") dash.compact = r.compact;
+	// The chrome/search overrides. Each is read only when it type-checks, so a
+	// board that carries none keeps following the importing vault — the same
+	// contract the sliders above have. See the resolver block in types.ts.
+	const searchPlaceholder = str(r.searchPlaceholder);
+	if (searchPlaceholder !== undefined) dash.searchPlaceholder = searchPlaceholder;
+	if (typeof r.showNewNoteButton === "boolean")
+		dash.showNewNoteButton = r.showNewNoteButton;
+	if (r.newNoteButtonMode === "newNote" || r.newNoteButtonMode === "searchOnline")
+		dash.newNoteButtonMode = r.newNoteButtonMode;
+	const newNoteButtonLabel = str(r.newNoteButtonLabel);
+	if (newNoteButtonLabel !== undefined) dash.newNoteButtonLabel = newNoteButtonLabel;
+	if (Array.isArray(r.hiddenFilters)) {
+		dash.hiddenFilters = r.hiddenFilters.filter(
+			(id): id is string => typeof id === "string",
+		);
+	}
+	if (typeof r.stackOnNarrow === "boolean") dash.stackOnNarrow = r.stackOnNarrow;
+	if (r.arrangeButtonVisibility === "always" || r.arrangeButtonVisibility === "hover")
+		dash.arrangeButtonVisibility = r.arrangeButtonVisibility;
+	if (
+		r.dashboardSwitcherVisibility === "always" ||
+		r.dashboardSwitcherVisibility === "hover"
+	) {
+		dash.dashboardSwitcherVisibility = r.dashboardSwitcherVisibility;
+	}
+	if (typeof r.backgroundSkyAnimate === "boolean")
+		dash.backgroundSkyAnimate = r.backgroundSkyAnimate;
 	// Only "plugin" is carried: anything else — including a mode from a newer
 	// Hearth this build can't render — is left off, so the board imports as the
 	// cards board it also is. Its `cards` came through above either way.
@@ -1208,6 +1277,10 @@ function sanitizeDashboard(
 		if (typeof pv.focusable === "boolean") plugin.focusable = pv.focusable;
 		if (Object.keys(plugin).length > 0) dash.pluginView = plugin;
 	}
+	// Held to the shape an export writes, since it is matched against boards
+	// already in this vault. See `Dashboard.sourceId`.
+	const sourceId = str(r.sourceId)?.trim();
+	if (sourceId && /^[A-Za-z0-9_-]{1,64}$/.test(sourceId)) dash.sourceId = sourceId;
 	const linkedWorkspace = str(r.linkedWorkspace);
 	if (linkedWorkspace !== undefined && linkedWorkspace.trim())
 		dash.linkedWorkspace = linkedWorkspace;
@@ -1334,7 +1407,9 @@ export function importLayout(s: HomeSettings, json: string): string | null {
 /** Apply the dashboard/layout portion of a parsed export onto `s`. Returns an
  * error message on failure, or null on success. Supports the v2 multi-dashboard
  * format and the legacy v1 single-`cards` format. */
-function applyLayout(
+/** Exported for `src/portable/`, which applies a layout/settings package
+ * through exactly these sanitizers rather than a second set of its own. */
+export function applyLayout(
 	s: HomeSettings,
 	data: Record<string, unknown>,
 ): string | null {
@@ -1493,7 +1568,7 @@ function applyOpenIn(s: HomeSettings, data: Record<string, unknown>): void {
 }
 
 
-function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
+export function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	// Header
 	const title = str(data.title);
 	if (title !== undefined) s.title = title;
@@ -1506,6 +1581,14 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	if (titleIcon !== undefined) s.titleIcon = titleIcon.trim();
 	const tabIcon = str(data.tabIcon);
 	if (tabIcon !== undefined) s.tabIcon = tabIcon.trim();
+	if (
+		data.themeColorTarget === "none" ||
+		data.themeColorTarget === "icon" ||
+		data.themeColorTarget === "title" ||
+		data.themeColorTarget === "both"
+	) {
+		s.themeColorTarget = data.themeColorTarget;
+	}
 	if (typeof data.showSearch === "boolean") s.showSearch = data.showSearch;
 	const searchPlaceholder = str(data.searchPlaceholder);
 	if (searchPlaceholder !== undefined) s.searchPlaceholder = searchPlaceholder;
@@ -1532,12 +1615,16 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	}
 
 	// Background
+	// "weather" belongs here as much as anywhere: it is a background kind like
+	// the others, and leaving it out of this list meant a full-settings backup
+	// taken on a vault with a painted sky restored without one.
 	const bgKinds: BackgroundKind[] = [
 		"none",
 		"default",
 		"color",
 		"image",
 		"url",
+		"weather",
 	];
 	if (bgKinds.includes(data.backgroundKind as BackgroundKind)) {
 		s.backgroundKind = data.backgroundKind as BackgroundKind;
@@ -1568,6 +1655,16 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 	} else if (typeof data.lowPower === "boolean") {
 		s.performanceTier = data.lowPower ? "minimal" : "full";
 	}
+	const mobileTier = str(data.mobilePerformanceTier);
+	if (mobileTier === "match" || PERFORMANCE_TIERS.includes(mobileTier as PerformanceTier)) {
+		s.mobilePerformanceTier = mobileTier as HomeSettings["mobilePerformanceTier"];
+	}
+	// Three-state: absent leaves the vault's own choice alone, `false` is a
+	// deliberate "hold still", and `true` is stored as absence — which is how
+	// settings.ts writes "yes" (see HomeSettings.backgroundSkyAnimate).
+	if (typeof data.backgroundSkyAnimate === "boolean") {
+		s.backgroundSkyAnimate = data.backgroundSkyAnimate ? undefined : false;
+	}
 	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();
 	if (lowPowerColor) s.lowPowerBackgroundColor = lowPowerColor;
 	if (typeof data.pauseWhenUnfocused === "boolean") {
@@ -1579,8 +1676,15 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 		s.openOnStartup = data.openOnStartup;
 	if (typeof data.replaceNewTabs === "boolean")
 		s.replaceNewTabs = data.replaceNewTabs;
+	if (typeof data.focusSearchOnOpen === "boolean")
+		s.focusSearchOnOpen = data.focusSearchOnOpen;
+	if (typeof data.liveRefresh === "boolean") s.liveRefresh = data.liveRefresh;
+	if (typeof data.liveSettingsSync === "boolean")
+		s.liveSettingsSync = data.liveSettingsSync;
 	if (typeof data.mobileSearchOnly === "boolean")
 		s.mobileSearchOnly = data.mobileSearchOnly;
+	if (typeof data.stackOnNarrow === "boolean")
+		s.stackOnNarrow = data.stackOnNarrow;
 	if (typeof data.showMobileActionBar === "boolean")
 		s.showMobileActionBar = data.showMobileActionBar;
 	if (Array.isArray(data.mobileActionButtons)) {
@@ -1594,6 +1698,15 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 
 	// Appearance
 	if (typeof data.compact === "boolean") s.compact = data.compact;
+	if (data.arrangeButtonVisibility === "always" || data.arrangeButtonVisibility === "hover") {
+		s.arrangeButtonVisibility = data.arrangeButtonVisibility;
+	}
+	if (
+		data.dashboardSwitcherVisibility === "always" ||
+		data.dashboardSwitcherVisibility === "hover"
+	) {
+		s.dashboardSwitcherVisibility = data.dashboardSwitcherVisibility;
+	}
 	if (typeof data.cardOpacity === "number") {
 		s.cardOpacity = Math.max(0, Math.min(1, data.cardOpacity));
 	}
@@ -1644,8 +1757,19 @@ function applySettings(s: HomeSettings, data: Record<string, unknown>): void {
 		s.taskFieldsEnabled = data.taskFieldsEnabled;
 	const taskFields = sanitizeTaskFields(data.taskFields);
 	if (taskFields) s.taskFields = taskFields;
+	// File icons (Iconic / Iconize)
+	if (typeof data.customFileIcons === "boolean")
+		s.customFileIcons = data.customFileIcons;
+	const iconizeProperty = str(data.iconizeIconProperty)?.trim();
+	if (iconizeProperty) s.iconizeIconProperty = iconizeProperty;
+
 	// Operon
 	if (typeof data.operonIntegration === "boolean") {
 		s.operonIntegration = data.operonIntegration;
 	}
+	// Restored faithfully, both ways. The flag only decides what Hearth *asks*
+	// Operon for — the capability itself is granted or refused in Operon's own
+	// settings — so a restore cannot widen access on its own, and a backup that
+	// silently dropped the setting would be the worse failure.
+	if (typeof data.operonWrites === "boolean") s.operonWrites = data.operonWrites;
 }

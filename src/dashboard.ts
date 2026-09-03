@@ -25,6 +25,7 @@ import {
 	activeCards,
 	activeDashboard,
 	type DashboardCard,
+	effectiveArrangeButtonVisibility,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
 	effectiveCardRadius,
@@ -32,12 +33,12 @@ import {
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveRowHeight,
-	timersAllowed,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
 	resolveCardBorderWidth,
 	setCardPinned,
+	timersAllowed,
 } from "./types";
 import {
 	applyCardPosition,
@@ -698,7 +699,7 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 	arrangeZone.toggleClass(
 		"is-auto-hide",
 		!view.arrangeMode &&
-			view.plugin.settings.arrangeButtonVisibility === "hover",
+			effectiveArrangeButtonVisibility(view.plugin.settings) === "hover",
 	);
 	const arrange = arrangeZone.createEl("button", { cls: "hearth-tool-btn" });
 	arrange.toggleClass("is-active", view.arrangeMode);

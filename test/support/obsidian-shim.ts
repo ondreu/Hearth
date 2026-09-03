@@ -16,6 +16,7 @@
  *     functions that would call them (vault queries, network fetches, DOM work)
  *     are intentionally left untested, per the "no Obsidian API mocks" rule.
  */
+import { Buffer } from "node:buffer";
 import moment from "moment";
 
 export { moment };
@@ -34,6 +35,18 @@ export function prepareFuzzySearch(): unknown {
 }
 export function requestUrl(): unknown {
 	throw new Error("requestUrl is not implemented in tests (Obsidian API)");
+}
+
+// Obsidian's own base64 helpers. Real implementations rather than placeholders:
+// they are pure functions over an ArrayBuffer, the portable-package engine's
+// asset handling is pure logic built on them, and a test that embeds a picture
+// wants the actual bytes to come back out. Node's Buffer is the same base64.
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	return Buffer.from(buffer).toString("base64");
+}
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+	const bytes = Buffer.from(base64, "base64");
+	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 }
 
 export class TAbstractFile {}
