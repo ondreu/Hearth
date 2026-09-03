@@ -53,13 +53,24 @@ export interface AssetStore {
  * and everything one import brought in can be deleted in one go. */
 export const DEFAULT_ASSET_FOLDER = "Hearth/imported";
 
+/**
+ * The picture types a package may carry.
+ *
+ * SVG is deliberately not among them. It is a document rather than an image —
+ * it can carry script and can reference remote resources — and an imported
+ * package's files are written into someone else's vault, where a board might
+ * then point a title icon or a wallpaper at one. Hearth only ever renders vault
+ * images through `img.src`, which neither runs an SVG's script nor is meant to,
+ * but "safe because of how the consumer happens to work today" is not a
+ * property to bet a shared-file format on. An SVG wallpaper is left as a path
+ * and reported, exactly like one that is too large.
+ */
 const MIME_BY_EXTENSION: Record<string, string> = {
 	png: "image/png",
 	jpg: "image/jpeg",
 	jpeg: "image/jpeg",
 	gif: "image/gif",
 	webp: "image/webp",
-	svg: "image/svg+xml",
 	bmp: "image/bmp",
 	avif: "image/avif",
 };
@@ -69,7 +80,6 @@ const EXTENSION_BY_MIME: Record<string, string> = {
 	"image/jpeg": "jpg",
 	"image/gif": "gif",
 	"image/webp": "webp",
-	"image/svg+xml": "svg",
 	"image/bmp": "bmp",
 	"image/avif": "avif",
 };
@@ -230,7 +240,11 @@ export async function materializeAssets(
 	const writtenPath = new Map<string, string>();
 
 	for (const asset of assets) {
-		if (asset.bytes > MAX_ASSET_BYTES) {
+		// Both caps, and the base64 one first: `bytes` is a number the file
+		// supplies, so trusting it would let a package declare ten bytes and
+		// hand over a hundred megabytes — decoded into memory before anything
+		// checked. The encoded length is the only figure here that can't lie.
+		if (encodedTooLarge(asset.data) || asset.bytes > MAX_ASSET_BYTES) {
 			report.skipped.push({ id: asset.id, reason: "tooLarge" });
 			continue;
 		}
@@ -315,6 +329,13 @@ export function clearAssetRefs(pkg: HearthPackage): string[] {
 	};
 	sweep(pkg.payload);
 	return cleared;
+}
+
+/** Whether a base64 payload decodes to more than the per-asset cap allows.
+ * Four base64 characters carry three bytes, so the decoded size is known from
+ * the string's length without decoding it. */
+function encodedTooLarge(data: string): boolean {
+	return Math.floor((data.length * 3) / 4) > MAX_ASSET_BYTES;
 }
 
 /** A filename the vault will accept: the asset's own name if it is usable, else

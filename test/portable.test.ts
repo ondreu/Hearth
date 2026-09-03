@@ -45,6 +45,7 @@ import {
 	embedAssets,
 	existingBoardFor,
 	materializeAssets,
+	MAX_ASSET_BYTES,
 	PACKAGE_FORMAT,
 	readPackage,
 	residualPaths,
@@ -1005,6 +1006,52 @@ describe("carrying the wallpaper", () => {
 
 		expect(report.written).toEqual([]);
 		expect(report.skipped).toEqual([{ id: "a1", reason: "corrupt" }]);
+	});
+
+	/**
+	 * Two things a package must not be able to talk its way past, since one
+	 * arrives from strangers by design.
+	 */
+	it("leaves an SVG as a path rather than carrying a document as a picture", async () => {
+		const s = opinionatedVault();
+		s.backgroundValue = "Attachments/wall.svg";
+		const pkg = captureDashboard(s, s.dashboards[0]);
+
+		const report = await embedAssets(pkg, fakeStore({ "Attachments/wall.svg": "<svg/>" }));
+
+		expect(report.embedded).toEqual([]);
+		expect(report.skipped).toEqual([{ path: "Attachments/wall.svg", reason: "type" }]);
+		expect(pkg.assets).toBeUndefined();
+	});
+
+	it("caps an asset by the bytes it actually carries, not the number it claims", async () => {
+		const s = opinionatedVault();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		await embedAssets(pkg, fakeStore({ "Attachments/wall.png": "PNGDATA" }));
+		// A hand-built package: a modest declared size over a large payload.
+		pkg.assets![0].data = "A".repeat(MAX_ASSET_BYTES * 2);
+		pkg.assets![0].bytes = 10;
+
+		const target = fakeStore({});
+		const report = await materializeAssets(pkg, target, "Hearth/imported");
+
+		expect(report.skipped).toEqual([{ id: "a1", reason: "tooLarge" }]);
+		expect(report.written).toEqual([]);
+		expect(Object.keys(target.written)).toEqual([]);
+	});
+
+	it("keeps a hostile asset name from escaping its folder", async () => {
+		const s = opinionatedVault();
+		const pkg = captureDashboard(s, s.dashboards[0]);
+		await embedAssets(pkg, fakeStore({ "Attachments/wall.png": "PNGDATA" }));
+		pkg.assets![0].name = "../../../.obsidian/plugins/hearth/main.js";
+
+		const target = fakeStore({});
+		const report = await materializeAssets(pkg, target, "Hearth/imported");
+
+		// Whatever it is called, it lands inside the import folder under a name
+		// with no separators and an extension matching its declared type.
+		expect(report.written).toEqual(["Hearth/imported/a1.png"]);
 	});
 
 	it("clears a reference to a picture the package no longer carries", async () => {
