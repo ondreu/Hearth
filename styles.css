@@ -460,6 +460,41 @@
 	display: flex;
 }
 
+/* ---- The "Search online" split button ------------------------------- */
+
+/* Two real buttons that read as one control: the wide half runs the search,
+   the caret half opens the engine menu. The wrapper is what the search row
+   lays out, so it has to behave like a single .hearth-newnote would — hence
+   `align-items: stretch`, which hands both halves the row's height whether
+   that is the header's fixed 52px or a search-bar card's own. */
+.hearth-searchonline {
+	display: flex;
+	align-items: stretch;
+	flex: 0 0 auto;
+}
+
+/* The seam: only the outer corners are rounded, and the two halves share one
+   border rather than stacking two. */
+.hearth-searchonline .hearth-newnote-search {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	border-right: none;
+	padding-right: 12px;
+}
+
+.hearth-searchonline .hearth-newnote-search-caret {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	padding: 0 8px;
+}
+
+/* A hover on either half lights only that half, so it is visible which one
+   the click will hit — but the accent border must not be cut in two, so the
+   caret keeps its left edge in the base color. */
+.hearth-searchonline .hearth-newnote-search-caret:hover {
+	border-left-color: var(--background-modifier-border);
+}
+
 /* ---- Search results dropdown --------------------------------------- */
 
 .hearth-search-results {
@@ -6316,6 +6351,15 @@
    and tooltip, and the field is what the width is for. */
 .hearth-view.hearth-narrow .hearth-newnote-label {
 	display: none;
+}
+
+/* The caret is icon-only at every width, so it must not inherit the wider
+   padding the labelled half keeps on a narrow board. */
+.hearth-view.hearth-narrow .hearth-searchonline .hearth-newnote-search-caret {
+	padding: 0 6px;
+	/* …but it still has to be hittable with a fingertip. */
+	min-width: 40px;
+	justify-content: center;
 }
 
 .hearth-view.hearth-narrow .hearth-newnote {

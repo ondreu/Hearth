@@ -290,6 +290,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   tier and your own reduced-motion setting still have the last word, so an
   imported board can't start animating on a device that has opted out.
 
+- **The "Search online" button can search somewhere other than DuckDuckGo.**
+  The button used to be wired to DuckDuckGo and nothing else. It still opens
+  DuckDuckGo out of the box, but it now carries an arrow beside it: click that
+  and pick DuckDuckGo, DuckDuckGo with its AI features off (`noai.duckduckgo.com`),
+  Brave, Kagi, Google, Mojeek, Ecosia or Qwant for that one search, without
+  changing anything.
+
+  Which engine the button itself opens is **Settings → Appearance → Online
+  search engine**, and it travels in a full settings backup like every other
+  setting. Every engine on the list is a plain query URL — no key, no account,
+  nothing fetched in the background: the button opens a link in your browser
+  exactly as it always did.
+
 ### Changed
 
 - **"Export dashboard" is now "Share dashboard",** with a switch at the top for

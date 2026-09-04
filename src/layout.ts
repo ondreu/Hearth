@@ -103,6 +103,7 @@ import {
 	type GitCommitScope,
 } from "./git";
 import { t } from "./i18n";
+import { isWebSearchEngineId } from "./websearch";
 
 /** Current dashboard-layout export schema version. v2 carries every dashboard
  * (with per-board overrides and backgrounds) plus pinned cards and globals;
@@ -227,6 +228,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		newNoteFilename: s.newNoteFilename,
 		searchContents: s.searchContents,
 		searchEngine: s.searchEngine,
+		webSearchEngine: s.webSearchEngine,
 
 		// Background
 		backgroundKind: s.backgroundKind,
@@ -2048,6 +2050,7 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {
 		s.searchEngine = data.searchEngine;
 	}
+	if (isWebSearchEngineId(data.webSearchEngine)) s.webSearchEngine = data.webSearchEngine;
 
 	// Background
 	// "weather" belongs here as much as anywhere: it is a background kind like

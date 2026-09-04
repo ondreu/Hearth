@@ -86,6 +86,8 @@ export const zh: Translations = {
 		newNoteAria: "新建笔记",
 		searchOnline: "在线搜索",
 		searchOnlineAria: "用当前关键词搜索网络",
+		searchOnlinePickAria: "选择搜索引擎",
+		searchEngineDefault: (name: string) => `${name}（默认）`,
 	},
 	search: {
 		placeholder: "搜索仓库",
@@ -821,6 +823,10 @@ export const zh: Translations = {
 				"搜索栏旁的按钮做什么：新建笔记，或用搜索框中的内容搜索网络。",
 			newNoteButtonModeNewNote: "新建笔记",
 			newNoteButtonModeSearchOnline: "在线搜索",
+			webSearchEngine: "在线搜索引擎",
+			webSearchEngineDesc:
+				"“在线搜索”按钮打开哪个引擎。按钮旁的箭头可以用其他引擎搜索一次，" +
+				"而不会改变这里的选择。",
 			newNoteHeading: "“新建笔记”按钮",
 			newNoteHeadingDesc:
 				"它创建什么、创建在哪里。同一组设置同时驱动搜索栏旁的按钮、" +
