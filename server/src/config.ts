@@ -54,6 +54,8 @@ export const config = {
 	 */
 	uploadsPerDay: int("UPLOADS_PER_DAY", 10),
 	votesPerDay: int("VOTES_PER_DAY", 200),
+	commentsPerDay: int("COMMENTS_PER_DAY", 60),
+	commentsPerIpPerDay: int("COMMENTS_PER_IP_PER_DAY", 120),
 	votesPerIpPerDay: int("VOTES_PER_IP_PER_DAY", 400),
 	readsPerMinute: int("READS_PER_MINUTE", 300),
 	writesPerMinute: int("WRITES_PER_MINUTE", 30),

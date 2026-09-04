@@ -162,6 +162,62 @@ check("the reader sees their own vote", mine.json.myVote === 1, mine.json.myVote
 const anon = await call("GET", `/v1/entries/${id}`);
 check("a signed-out reader sees no vote of their own", anon.json.myVote === 0);
 
+// ---- Comments -------------------------------------------------------
+{
+	check("an empty gallery entry starts with no comments",
+		(await call("GET", `/v1/entries/${id}/comments`)).json.total === 0);
+	check("commenting needs a token",
+		(await call("POST", `/v1/entries/${id}/comments`, { body: "hi" })).status === 401);
+
+	const posted = await call("POST", `/v1/entries/${id}/comments`, {
+		body: "  Does this need Dataview 0.5?  ",
+	}, token);
+	check("a comment posts, trimmed",
+		posted.status === 200 && posted.json.body === "Does this need Dataview 0.5?", posted.json);
+	check("a comment is attributed to the derived handle",
+		posted.json.author?.handle === f.handle, posted.json.author);
+
+	check("an empty comment is refused",
+		(await call("POST", `/v1/entries/${id}/comments`, { body: "   " }, token)).status === 400);
+	check("a comment past the cap is refused",
+		(await call("POST", `/v1/entries/${id}/comments`, { body: "x".repeat(1001) }, token)).status === 400);
+	// A wall of blank lines is a way to make one comment fill a page.
+	const squashed = await call("POST", `/v1/entries/${id}/comments`, {
+		body: "one\n\n\n\n\n\ntwo",
+	}, token);
+	check("runs of blank lines are collapsed", squashed.json.body === "one\n\ntwo", squashed.json);
+
+	const listed = await call("GET", `/v1/entries/${id}/comments`);
+	check("comments come back newest first",
+		listed.json.total === 2 && listed.json.comments[0].id === squashed.json.id, listed.json);
+
+	// Somebody else's comment on somebody else's board is not yours to remove.
+	const ch = await call("POST", "/v1/auth/challenge", { publicKey: f.forkPublicKey });
+	const other = await call("POST", "/v1/auth/token", {
+		publicKey: f.forkPublicKey,
+		nonce: ch.json.nonce,
+		signature: signMessage(f.forkKey, ch.json.nonce)!,
+	});
+	check("a stranger cannot remove a comment",
+		(await call("DELETE", `/v1/comments/${posted.json.id}`, undefined, other.json.token)).status === 403);
+
+	check("its author can remove it",
+		(await call("DELETE", `/v1/comments/${posted.json.id}`, undefined, token)).status === 204);
+	check("a removed comment is gone from the list",
+		(await call("GET", `/v1/entries/${id}/comments`)).json.total === 1);
+
+	// The board's owner can clear a comment off their own board — the whole of
+	// moderation, in the hands of the person with the most reason to use it.
+	const theirs = await call("POST", `/v1/entries/${id}/comments`, {
+		body: "left by somebody else",
+	}, other.json.token);
+	check("the board's owner can remove somebody else's comment",
+		(await call("DELETE", `/v1/comments/${theirs.json.id}`, undefined, token)).status === 204);
+
+	check("comments on a missing entry are a 404",
+		(await call("GET", "/v1/entries/nope/comments")).status === 404);
+}
+
 // ---- Download -------------------------------------------------------
 const dl = await call("GET", `/v1/entries/${id}/package`);
 check("the package comes back byte for byte", dl.text === f.a, `${dl.text.length} vs ${f.a.length}`);

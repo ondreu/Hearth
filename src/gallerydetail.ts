@@ -32,6 +32,8 @@ import {
 import {
 	fetchEntryPackage,
 	type GalleryClient,
+	type GalleryComment,
+	MAX_COMMENT_LENGTH,
 	type GalleryEntryDetail,
 	type GalleryEntrySummary,
 	type GalleryProfile,
@@ -66,6 +68,10 @@ class GalleryEntryModal extends Modal {
 	private entry: GalleryEntryDetail | null = null;
 	private error: string | null = null;
 	private busy = false;
+	private comments: GalleryComment[] = [];
+	private commentTotal = 0;
+	private commentDraft = "";
+	private commentsLoaded = false;
 
 	constructor(
 		plugin: HearthPlugin,
@@ -99,6 +105,29 @@ class GalleryEntryModal extends Modal {
 			this.error = galleryErrorText(err);
 		}
 		this.render();
+		if (this.entry) void this.loadComments();
+	}
+
+	/**
+	 * The comments, fetched after the board itself.
+	 *
+	 * A second request rather than a field on the entry, so a listing does not
+	 * carry every remark on every board — and so the slower of the two does not
+	 * hold up the thing somebody actually opened the modal for. A gallery that
+	 * cannot answer it is not an error: the board is still there and installable,
+	 * so the section simply says nothing.
+	 */
+	private async loadComments(): Promise<void> {
+		try {
+			const page = await this.client.comments(this.id);
+			this.comments = page.comments;
+			this.commentTotal = page.total;
+		} catch {
+			this.comments = [];
+			this.commentTotal = 0;
+		}
+		this.commentsLoaded = true;
+		if (this.containerEl.isConnected) this.render();
 	}
 
 	private render(): void {
@@ -152,6 +181,7 @@ class GalleryEntryModal extends Modal {
 		this.renderRequires(body, entry);
 		this.renderTags(body, entry);
 		this.renderActions(body, entry);
+		this.renderComments(body, entry);
 	}
 
 	// ---- Votes ----------------------------------------------------------
@@ -341,6 +371,116 @@ class GalleryEntryModal extends Modal {
 		});
 		install.disabled = this.busy;
 		install.addEventListener("click", () => void this.install(entry));
+	}
+
+	// ---- Comments -------------------------------------------------------
+
+	/**
+	 * What people have said about this board, and a box to say something.
+	 *
+	 * Flat and newest first: a board's comments are "does this need Dataview
+	 * 0.5" and "the third card wants a folder set" — remarks, not a discussion,
+	 * and threading them would be building a forum inside a modal.
+	 *
+	 * Every body is a text node. It is the only free prose in this API that
+	 * somebody other than the board's own author wrote, and the one place where
+	 * treating a response as markup would matter.
+	 */
+	private renderComments(body: HTMLElement, entry: GalleryEntryDetail): void {
+		const strings = t().gallery.comments;
+		body.createDiv({
+			cls: "hearth-gallery-section",
+			text: this.commentTotal ? strings.heading(this.commentTotal) : strings.headingEmpty,
+		});
+
+		if (!this.commentsLoaded) {
+			body.createDiv({ cls: "hearth-gallery-note", text: t().gallery.browse.loading });
+			return;
+		}
+
+		const mine = vaultIdentity(this.plugin)?.publicKey;
+		const list = body.createDiv("hearth-gallery-comments");
+		for (const comment of this.comments) {
+			const row = list.createDiv("hearth-gallery-comment");
+			const head = row.createDiv("hearth-gallery-comment-head");
+			head.createSpan({
+				cls: "hearth-gallery-comment-author",
+				text: comment.author?.handle ?? t().gallery.browse.anonymous,
+			});
+			const when = galleryDate(comment.createdAt);
+			if (when) head.createSpan({ cls: "hearth-gallery-comment-date", text: when });
+			// The comment's author may remove it, and so may the owner of the
+			// board it is on — which is the whole of moderation here, in the
+			// hands of the person with the most reason to use it.
+			if (mine && (comment.author?.publicKey === mine || entry.author?.publicKey === mine)) {
+				const remove = head.createEl("button", {
+					cls: "hearth-gallery-comment-remove",
+					attr: { "aria-label": strings.remove },
+				});
+				setIcon(remove, "trash-2");
+				remove.addEventListener("click", () => void this.removeComment(comment));
+			}
+			// `text`, never markup: this is prose from a stranger.
+			row.createDiv({ cls: "hearth-gallery-comment-body", text: comment.body });
+		}
+		if (this.comments.length === 0) {
+			list.createDiv({ cls: "hearth-gallery-note", text: strings.none });
+		}
+
+		const compose = body.createDiv("hearth-gallery-compose");
+		const field = compose.createEl("textarea", {
+			cls: "hearth-gallery-compose-input",
+			attr: {
+				placeholder: strings.placeholder,
+				"aria-label": strings.placeholder,
+				maxlength: String(MAX_COMMENT_LENGTH),
+				rows: "3",
+			},
+		});
+		field.value = this.commentDraft;
+		field.addEventListener("input", () => {
+			// Kept on the modal, because posting a vote redraws it and a redraw
+			// that blanks a half-typed comment is the worst kind of small bug.
+			this.commentDraft = field.value;
+		});
+		const send = compose.createEl("button", { cls: "mod-cta", text: strings.post });
+		send.addEventListener("click", () => void this.postComment());
+	}
+
+	private async postComment(): Promise<void> {
+		const draft = this.commentDraft.trim();
+		if (!draft || this.busy) return;
+		const identity = vaultIdentity(this.plugin) ?? (await this.askForIdentity());
+		if (!identity) return;
+		this.busy = true;
+		try {
+			await this.client.signIn(identity.key, identity.publicKey);
+			const posted = await this.client.comment(this.id, draft);
+			// Newest first, and put in place rather than refetched: the page the
+			// reader is looking at is the one it belongs at the top of.
+			this.comments = [posted, ...this.comments];
+			this.commentTotal += 1;
+			this.commentDraft = "";
+			this.render();
+		} catch (err) {
+			new Notice(galleryErrorText(err));
+		} finally {
+			this.busy = false;
+		}
+	}
+
+	private async removeComment(comment: GalleryComment): Promise<void> {
+		const identity = vaultIdentity(this.plugin);
+		if (!identity) return;
+		try {
+			await this.client.signIn(identity.key, identity.publicKey);
+			await this.client.deleteComment(comment.id);
+			this.comments = this.comments.filter((c) => c.id !== comment.id);
+			this.commentTotal = Math.max(0, this.commentTotal - 1);
+			this.render();
+		} catch (err) {
+			new Notice(galleryErrorText(err));
+		}
 	}
 
 	private async install(entry: GalleryEntryDetail): Promise<void> {

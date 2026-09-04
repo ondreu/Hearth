@@ -36,6 +36,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   and the sanitizers, rather than a shortcut around them. As always, importing
   adds a board and touches no global setting.
 
+  Each board also carries **comments** — flat, newest first, a paragraph each.
+  Their author can delete their own, and a board's owner can delete any comment
+  on their board, which is moderation in the hands of the person with the most
+  reason to use it.
+
   Voting is Reddit-style — upvotes minus downvotes, and pressing the arrow you
   already chose takes it back. Worth being plain about: identities are free to
   mint, so votes are free to mint, and no amount of server-side mechanism fixes

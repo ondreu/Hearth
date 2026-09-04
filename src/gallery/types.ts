@@ -92,6 +92,41 @@ export interface GalleryEntryDetail extends GalleryEntrySummary {
 	sizeBytes: number;
 }
 
+/**
+ * The longest comment a gallery will take.
+ *
+ * The same figure the server enforces (`server/src/comments.ts`), applied on
+ * this side too so the compose box stops at it rather than letting somebody
+ * write four paragraphs and be told no afterwards. A comment is a remark; past
+ * this it is a document, and a document about somebody else's dashboard belongs
+ * in an issue tracker.
+ */
+export const MAX_COMMENT_LENGTH = 1000;
+
+/** One remark on an entry. */
+export interface GalleryComment {
+	id: string;
+	/**
+	 * What somebody typed.
+	 *
+	 * Prose from a stranger, and the only free text in this API that isn't a
+	 * field the uploader chose about their own board. It reaches the DOM as a
+	 * text node — never as markup — and arrives bounded, because a comment is a
+	 * paragraph and a megabyte of one is an attack rather than a remark.
+	 */
+	body: string;
+	author: GalleryAuthor | null;
+	createdAt?: string;
+}
+
+/** One page of comments. */
+export interface GalleryCommentPage {
+	comments: GalleryComment[];
+	total: number;
+	page: number;
+	perPage: number;
+}
+
 /** One page of a listing. */
 export interface GalleryListing {
 	entries: GalleryEntrySummary[];
@@ -273,6 +308,35 @@ export function readEntryDetail(raw: unknown): GalleryEntryDetail | null {
 		version: text(src.version, 32),
 		remoteRefs: num(src.remoteRefs, 0, 10000),
 		sizeBytes: num(src.sizeBytes, 0, 1e10),
+	};
+}
+
+export function readComment(raw: unknown): GalleryComment | null {
+	if (!raw || typeof raw !== "object") return null;
+	const src = raw as Record<string, unknown>;
+	const id = readId(src.id);
+	// The same bound the server applies on the way in, applied again on the way
+	// out: a host that has been persuaded to store more must not be able to make
+	// one comment fill a modal.
+	const body = text(src.body, MAX_COMMENT_LENGTH);
+	if (!id || !body) return null;
+	return { id, body, author: readAuthor(src.author), createdAt: readDate(src.createdAt) };
+}
+
+export function readCommentPage(raw: unknown): GalleryCommentPage {
+	const src = (raw ?? {}) as Record<string, unknown>;
+	const comments: GalleryComment[] = [];
+	if (Array.isArray(src.comments)) {
+		for (const item of src.comments.slice(0, 100)) {
+			const comment = readComment(item);
+			if (comment) comments.push(comment);
+		}
+	}
+	return {
+		comments,
+		total: num(src.total, 0, 1e9, comments.length),
+		page: num(src.page, 1, 1e6, 1),
+		perPage: num(src.perPage, 1, 200, comments.length || 50),
 	};
 }
 

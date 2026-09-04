@@ -51,7 +51,7 @@ GALLERY_URL=https://gallery.example.com \
 	npm --prefix server run smoke                  # against a deployed one
 ```
 
-Forty-four checks: signing in with a real key, publishing real signed packages,
+Fifty-seven checks: signing in with a real key, publishing real signed packages,
 refusing an unsigned one and an edited one, voting, downloading, withdrawing.
 It mints a fresh identity per run, so it is safe to run against a live gallery
 more than once — though it does publish two boards and leave one behind.
@@ -122,6 +122,7 @@ are actually decisions:
 | `MAX_ENTRIES_PER_AUTHOR` | 50. A gallery is not a backup service. |
 | `UPLOADS_PER_DAY` | 10 per identity. |
 | `VOTES_PER_DAY`, `VOTES_PER_IP_PER_DAY` | 200 and 400. |
+| `COMMENTS_PER_DAY`, `COMMENTS_PER_IP_PER_DAY` | 60 and 120. |
 | `READS_PER_MINUTE`, `WRITES_PER_MINUTE` | 300 and 30, per address. |
 | `VOTE_MIN_KEY_AGE_HOURS` | **0 — the dial to reach for first if you get a vote ring.** See below. |
 | `TERMS_URL` | optional; shown to people as text. |
@@ -155,7 +156,13 @@ The server refuses a package that isn't signed, one whose signature doesn't
 verify, one that isn't a single dashboard, one that still names its author's
 folders or private feeds, and one whose embedded pictures are the wrong type or
 over the caps. What it does **not** do — because nothing automated can — is
-judge what a board is *for*.
+judge what a board is *for*, or what somebody writes in a comment on it.
+
+Comments are the part most likely to need you. An entry has to be a signed,
+stripped dashboard package to exist at all; a comment is a thousand characters
+somebody typed. Their author can delete their own, and **a board's owner can
+delete any comment on their board** — which handles most of it without you — but
+the `comments` table is where to look when it doesn't.
 
 A dashboard can name public URLs on purpose: an embedded page, an RSS feed, a
 wallpaper given as a URL. Those are what the board *is*, so they travel, and
@@ -175,6 +182,10 @@ sqlite3 … "SELECT id, name, hold_reason FROM entries WHERE status='held';"
 
 # Take something down (keeps the id, so it can never be reused)
 sqlite3 … "UPDATE entries SET status='removed', package='', wallpaper=NULL WHERE id='…';"
+
+# Recent comments, which are the only prose in the database somebody else wrote
+sqlite3 … "SELECT c.id, c.created_at, c.body FROM comments c WHERE c.status='live' ORDER BY c.created_at DESC LIMIT 20;"
+sqlite3 … "UPDATE comments SET status='removed', body='' WHERE id='…';"
 
 # Release a held entry after looking at it
 sqlite3 … "UPDATE entries SET status='live', hold_reason=NULL WHERE id='…';"

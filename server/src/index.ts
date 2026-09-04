@@ -51,6 +51,7 @@ import {
 import { consume, DAY, MINUTE } from "./ratelimit.js";
 import { acceptUpload } from "./upload.js";
 import { castVote } from "./votes.js";
+import { deleteComment, listComments, postComment } from "./comments.js";
 
 const db = openDatabase(config.dbPath);
 
@@ -185,6 +186,29 @@ const routes = [
 	route("DELETE", "/v1/entries/:id", (ctx) => {
 		limitWrite(ctx);
 		withdrawEntry(db, ctx.params[0], requireKey(db, ctx));
+		return noContent;
+	}),
+
+	// ---- Comments ----------------------------------------------------
+	route("GET", "/v1/entries/:id/comments", (ctx) => {
+		limitRead(ctx);
+		return listComments(db, ctx.params[0], intParam(ctx.url, "page", 1, 1, 10_000));
+	}),
+
+	route("POST", "/v1/entries/:id/comments", async (ctx) => {
+		limitWrite(ctx);
+		const key = requireKey(db, ctx);
+		consume(db, `comment:${key}`, config.commentsPerDay, DAY);
+		consume(db, `comment-ip:${ctx.ip}`, config.commentsPerIpPerDay, DAY);
+		// A comment is a paragraph; the cap here is the outer bound on the
+		// request, and `postComment` holds the text itself to its own.
+		const body = (await readJson(ctx.req, 16 * 1024)) as { body?: unknown };
+		return postComment(db, ctx.params[0], key, body?.body);
+	}),
+
+	route("DELETE", "/v1/comments/:id", (ctx) => {
+		limitWrite(ctx);
+		deleteComment(db, ctx.params[0], requireKey(db, ctx));
 		return noContent;
 	}),
 

@@ -306,6 +306,51 @@ limits, since only the second costs an attacker anything — and, if it comes to
 it, refuse votes from keys younger than some age. Say this in your terms rather
 than implying a robustness the mechanism doesn't have.
 
+## Comments
+
+Flat, newest first, one body of text each, no threading and no editing. A
+board's comments are "does this need Dataview 0.5" and "the third card wants a
+folder set" — remarks, not a discussion, and threading them means building a
+forum.
+
+A comment body is the **only free prose in this API that somebody other than the
+board's own author wrote**. Store it as typed, serve it as typed, and never
+interpret it: Hearth renders it into a text node. Cap it on the way in — 1000
+characters, which is the figure both sides use — so a megabyte of it cannot be
+stored in the first place.
+
+### `GET /v1/entries/:id/comments`
+
+`?page=` — 50 per page.
+
+```jsonc
+{
+  "comments": [{
+    "id": "kAq2…",
+    "body": "Does this need Dataview 0.5?",
+    "createdAt": "2026-09-04T09:00:00.000Z",
+    "author": { "publicKey": "9e75…f18f", "handle": "quiet-lantern-4kj2m8" }
+  }],
+  "total": 12, "page": 1, "perPage": 50
+}
+```
+
+### `POST /v1/entries/:id/comments` (token required)
+
+`{ "body": "…" }` → the comment as stored. Trim it, collapse runs of three or
+more newlines to two (a wall of blank lines is how one comment fills a page),
+and refuse an empty one with `400`.
+
+### `DELETE /v1/comments/:id` (token required)
+
+Allowed for **the comment's author and for the owner of the entry it sits on**.
+That second one is the whole of moderation for a gallery with no admin
+interface, and it is in the right hands: somebody publishing a board can clear
+something off it without waiting for whoever runs the server.
+
+Mark it removed and clear the body rather than dropping the row, so an id is
+never reused.
+
 ## Rate limiting
 
 Applied per address and per key, and per address *first* — a limit that only

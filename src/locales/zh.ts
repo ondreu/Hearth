@@ -3644,6 +3644,14 @@ export const zh: Translations = {
 			firstSeen: (when: string) => `首次发布于 ${when}`,
 			empty: "这个 handle 下没有发布过内容。",
 		},
+		comments: {
+			heading: (n: number) => `${n} 条评论`,
+			headingEmpty: "评论",
+			none: "还没有评论。来说第一句吧。",
+			placeholder: "提个问题，或说说你的使用体验……",
+			post: "发布",
+			remove: "删除这条评论",
+		},
 		publish: {
 			title: "发布到画廊",
 			intro: "把这个仪表板放进画廊，任何使用这个 Hearth 画廊的人都能找到并安装它。",

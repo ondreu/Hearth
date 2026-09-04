@@ -21,6 +21,8 @@
 import { requestUrl, type RequestUrlResponse } from "obsidian";
 import { signMessage } from "../identity";
 import {
+	type GalleryComment,
+	type GalleryCommentPage,
 	type GalleryEntryDetail,
 	type GalleryInfo,
 	type GalleryListing,
@@ -28,6 +30,8 @@ import {
 	type GallerySort,
 	type VoteValue,
 	num,
+	readComment,
+	readCommentPage,
 	readEntryDetail,
 	readEntrySummary,
 	readInfo,
@@ -335,6 +339,31 @@ export class GalleryClient {
 			downvotes: entry.downvotes,
 			myVote: entry.myVote,
 		};
+	}
+
+	/** One page of an entry's comments, newest first. No token needed — a
+	 * gallery is readable by anyone. */
+	async comments(id: string, page = 1): Promise<GalleryCommentPage> {
+		const params = new URLSearchParams({ page: String(num(page, 1, 10000, 1)) });
+		return readCommentPage(
+			await this.get(`/v1/entries/${encodeURIComponent(id)}/comments?${params.toString()}`),
+		);
+	}
+
+	/** Leave a remark. Returns it as stored, since the server trims and bounds
+	 * what it took. */
+	async comment(id: string, body: string): Promise<GalleryComment> {
+		const posted = readComment(
+			await this.post(`/v1/entries/${encodeURIComponent(id)}/comments`, { body }, true),
+		);
+		if (!posted) throw new GalleryError("badResponse");
+		return posted;
+	}
+
+	/** Remove one. The server allows it for the comment's author and for the
+	 * owner of the entry it sits on. */
+	async deleteComment(commentId: string): Promise<void> {
+		await this.request("DELETE", `/v1/comments/${encodeURIComponent(commentId)}`, undefined, true);
 	}
 
 	// ---- Plumbing -------------------------------------------------------

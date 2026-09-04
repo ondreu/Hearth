@@ -3915,6 +3915,14 @@ export const en = {
 			firstSeen: (when: string) => `First published ${when}`,
 			empty: "Nothing published under this handle.",
 		},
+		comments: {
+			heading: (n: number) => (n === 1 ? "1 comment" : `${n} comments`),
+			headingEmpty: "Comments",
+			none: "Nothing yet. Say the first thing.",
+			placeholder: "Ask something, or say how it worked for you…",
+			post: "Post",
+			remove: "Remove this comment",
+		},
 		publish: {
 			title: "Publish to the gallery",
 			intro:

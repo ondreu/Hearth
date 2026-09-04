@@ -12572,6 +12572,81 @@ body.hearth-dv-resizing {
 	background: var(--background-modifier-error-hover);
 }
 
+/* ---- Comments ----
+   Prose from strangers, so the only thing worth saying here is that
+   `overflow-wrap` is load-bearing: a 1000-character word is a valid comment and
+   must not push the modal sideways. */
+.hearth-gallery-comments {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.hearth-gallery-comment {
+	padding: 8px 10px;
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+}
+
+.hearth-gallery-comment-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 3px;
+}
+
+.hearth-gallery-comment-author {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-accent);
+	overflow-wrap: anywhere;
+}
+
+.hearth-gallery-comment-date {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-comment-remove {
+	margin-left: auto;
+	display: flex;
+	padding: 2px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-faint);
+}
+
+.hearth-gallery-comment-remove:hover {
+	color: var(--text-error);
+	background: var(--background-modifier-hover);
+}
+
+.hearth-gallery-comment-remove svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-gallery-comment-body {
+	/* Newlines the commenter typed are newlines, and a very long unbroken run of
+	   characters wraps instead of widening the modal. */
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.hearth-gallery-compose {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.hearth-gallery-compose-input {
+	width: 100%;
+	resize: vertical;
+	min-height: 60px;
+}
+
 /* ---- Profile ---- */
 .hearth-gallery-profile-stats {
 	display: flex;

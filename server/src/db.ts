@@ -115,6 +115,29 @@ const MIGRATIONS: string[] = [
 		window_start INTEGER NOT NULL
 	);
 	`,
+
+	// 2 — comments.
+	//
+	// `body` is text somebody typed, and it is served to other people's vaults.
+	// Nothing here interprets it and nothing downstream renders it as markup:
+	// the client puts it in a text node. Length is capped on the way in, because
+	// a comment is a paragraph and a megabyte of one is an attack.
+	//
+	// Deleting is a status change, like an entry's, so a reply that answers a
+	// comment still has something to have answered. A removed comment keeps its
+	// row and loses its body.
+	`
+	CREATE TABLE comments (
+		id         TEXT PRIMARY KEY,
+		entry_id   TEXT NOT NULL REFERENCES entries (id) ON DELETE CASCADE,
+		author_key TEXT NOT NULL,
+		body       TEXT NOT NULL,
+		created_at TEXT NOT NULL,
+		status     TEXT NOT NULL DEFAULT 'live'
+	);
+	CREATE INDEX comments_entry ON comments (entry_id, status, created_at DESC);
+	CREATE INDEX comments_author ON comments (author_key);
+	`,
 ];
 
 export type Db = DatabaseSync;

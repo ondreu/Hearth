@@ -363,8 +363,8 @@ Before you add one:
   one switch to leave your note paths, calendar links and location out of it —
   or back up every board and setting as JSON.
 - **Dashboard gallery** — browse boards other people have published, by
-  category, search or rating, and install one in a click; publish your own from
-  the same dialog you export from, with your paths and private feeds removed and
+  category, search or rating, install one in a click and leave a comment;
+  publish your own from the same dialog you export from, with your paths and private feeds removed and
   the file signed so nobody can publish under your handle. Every upvote you get
   adds up on your profile. Nothing is fetched until you open the gallery and
   nothing is sent until you publish, and clearing the address in settings turns

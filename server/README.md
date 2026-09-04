@@ -22,11 +22,12 @@ curl http://localhost:8787/v1/info
 | `src/upload.ts` | what a gallery will accept, and why it never edits a package. |
 | `src/entries.ts` | listing, detail, publish, withdraw, download. |
 | `src/votes.ts` | voting, and an honest note about what it isn't. |
+| `src/comments.ts` | remarks on an entry, and who may remove one. |
 | `src/auth.ts` | challenge-response against an ed25519 key. No accounts. |
 | `src/db.ts` | the schema, as numbered migrations. |
 | `src/http.ts` | a router, and the body cap that is enforced while reading. |
 | `src/obsidian-stub.ts` | how the plugin's own code runs here. |
-| `test/smoke.ts` | forty-four checks against a running gallery. |
+| `test/smoke.ts` | fifty-seven checks against a running gallery. |
 
 ## Three things worth knowing before changing it
 
