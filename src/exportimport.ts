@@ -31,6 +31,7 @@
 import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";
+import { VIEW_TYPE_HOME } from "./view";
 import { detectLanguage, t } from "./i18n";
 import { confirmAction, downloadTextFile, pickTextFile, promptForText } from "./ui";
 import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
@@ -552,9 +553,22 @@ class ShareDashboardModal extends Modal {
 		return activeDashboard(this.plugin.settings).id === this.dash.id;
 	}
 
-	/** Find the rendered board to photograph, or null if it isn't on screen. */
+	/**
+	 * Find the rendered board to photograph, or null if it isn't on screen.
+	 *
+	 * Through the workspace rather than by CSS class: a class is a rendering
+	 * detail that can be renamed by a refactor with nothing to notice, and the
+	 * first version of this looked for one that has never existed — so the
+	 * toggle was offered and every capture failed. A view type is an identity.
+	 */
 	private boardEl(): HTMLElement | null {
-		return this.app.workspace.containerEl.querySelector<HTMLElement>(".hearth-home");
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME)) {
+			const el = leaf.view.containerEl.querySelector<HTMLElement>(".hearth-view");
+			// A leaf in a collapsed sidebar or a background tab has no size, and
+			// photographing the window where it isn't would capture whatever is.
+			if (el && el.offsetWidth > 0 && el.offsetHeight > 0) return el;
+		}
+		return null;
 	}
 
 	private async takeSnapshot(): Promise<void> {
@@ -1040,6 +1054,7 @@ class ShareDashboardModal extends Modal {
 					category: this.meta.category,
 					theme: this.theme,
 					snapshot: this.snapshot,
+					embedAssets: this.opts.embedAssets !== false,
 					tags: this.tagList(),
 					strip: this.effectiveStrip(),
 					flatten: this.opts.flatten !== false,

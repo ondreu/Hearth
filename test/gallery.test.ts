@@ -25,6 +25,7 @@ import {
 	readListing,
 	readPreview,
 	readProfile,
+	redactedText,
 } from "../src/gallery";
 import type { HearthPackage } from "../src/portable";
 import { DEFAULT_SETTINGS, migrateSettings } from "../src/types";
@@ -406,6 +407,36 @@ describe("the gallery host a vault ends up with", () => {
 
 	it("ships a default this build would actually talk to", () => {
 		expect(normalizeGalleryUrl(DEFAULT_GALLERY_URL)).toBe(DEFAULT_GALLERY_URL);
+	});
+});
+
+describe("redactedText", () => {
+	/**
+	 * The rule the snapshot applies before a board is photographed. Whatever
+	 * survives this is in the published JPEG permanently, in strangers' vaults,
+	 * so the only interesting property is that nothing readable does.
+	 *
+	 * The DOM traversal that applies it — text nodes *and* form-field values,
+	 * which is where a calculator card keeps its last sum — is not covered here:
+	 * this suite is deliberately DOM-free (see `vitest.config.ts`). The dialog
+	 * showing the captured picture before anything is uploaded is the check that
+	 * catches what a unit test here cannot.
+	 */
+	it("leaves nothing readable, and keeps the shape of the line", () => {
+		expect(redactedText("Therapy notes")).toBe("███████ █████");
+		expect(redactedText("1200*1.21")).toBe("█████████");
+	});
+
+	it("redacts every script, not just Latin letters", () => {
+		expect(redactedText("Ondřej 日本語")).toBe("██████ ███");
+	});
+
+	it("keeps whitespace, so a line still reads as a line of words", () => {
+		expect(redactedText("  a  b  ")).toBe("  █  █  ");
+	});
+
+	it("caps a very long run rather than painting an essay to photograph it", () => {
+		expect(redactedText("a".repeat(5000)).length).toBe(120);
 	});
 });
 

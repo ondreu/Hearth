@@ -332,7 +332,9 @@ export function withdrawEntry(db: Db, id: string, authorKey: string): void {
 	if (!row) throw notFound();
 	if (row.author_key !== authorKey) throw forbidden();
 	db.prepare(
-		"UPDATE entries SET status = 'removed', package = '', wallpaper = NULL, snapshot = NULL, updated_at = ? WHERE id = ?",
+		`UPDATE entries SET status = 'removed', package = '', wallpaper = NULL,
+		   wallpaper_mime = NULL, snapshot = NULL, snapshot_mime = NULL, updated_at = ?
+		 WHERE id = ?`,
 	).run(new Date().toISOString(), id);
 }
 

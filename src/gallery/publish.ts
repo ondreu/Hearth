@@ -9,21 +9,19 @@
  * function with three of its options pinned rather than a second pipeline that
  * has to be kept in step with it.
  *
- * The three pinned options are the difference between saving a board and
- * publishing one:
+ * Two options are the difference between saving a board and publishing one,
+ * and both are settled here rather than asked:
  *
- * - **the pictures travel**, because a wallpaper left as a path is a wallpaper
- *   that arrives missing in every vault but the author's;
  * - **the private references come out**, because the author's folder tree is
- *   not part of the board and a published file is permanent in a way a file on
- *   your own disk is not;
+ *   not part of the board and a stranger's copy has no reason to name it;
  * - **it is signed**, because an unsigned package has no author, and an entry
  *   with no author is one anybody can later claim to have written.
  *
- * None of the three is offered as a switch on the publish path. The details
- * section still tunes *which* groups the strip takes, since a board whose text
- * cards are part of the design is a real case — but the switch that turns the
- * strip off entirely is not there.
+ * Neither is offered as a switch. The details section still tunes *which*
+ * groups the strip takes, since a board whose text cards are part of the design
+ * is a real case — but the switch that turns the strip off entirely is not
+ * there. The pictures are a switch, on by default, because that one is a
+ * judgement about the board rather than about privacy.
  */
 
 import type { App } from "obsidian";
@@ -43,6 +41,15 @@ export interface PublishOptions {
 	theme: string;
 	/** A redacted photograph of the board, when the author took one. */
 	snapshot: BoardSnapshot | null;
+	/**
+	 * Carry the board's pictures inside the file.
+	 *
+	 * On by default and it should stay that way — a wallpaper left as a path
+	 * arrives missing in every vault but the author's — but it *is* the author's
+	 * choice, and a switch the dialog shows has to be a switch the upload
+	 * honours.
+	 */
+	embedAssets: boolean;
 	tags: string[];
 	/** Which reference groups the strip takes. Paths and private references are
 	 * always among them — see the module comment. */
@@ -94,8 +101,7 @@ export async function buildPublishPackage(
 	const outcome = await exportDashboardFile(app, settings, dash, {
 		...common,
 		flatten: opts.flatten,
-		// Pinned. See the module comment.
-		embedAssets: true,
+		embedAssets: opts.embedAssets,
 		strip: { ...opts.strip, paths: true, private: true },
 		signWith: opts.signWith,
 		meta: {

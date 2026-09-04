@@ -655,6 +655,14 @@ class GalleryProfileModal extends Modal {
 		stat(strings.totalDownloads, String(profile.totalDownloads));
 		stat(strings.published(profile.entries.length), String(profile.entries.length));
 
+		// A handle with nothing published is a real state — a key that has voted
+		// or commented but never uploaded — and an empty grid under three zeroes
+		// reads as a page that failed to load.
+		if (profile.entries.length === 0) {
+			renderEmpty(body, "inbox", strings.empty);
+			return;
+		}
+
 		const grid = body.createDiv("hearth-gallery-grid");
 		for (const entry of profile.entries) {
 			renderEntryCard(grid, entry, {

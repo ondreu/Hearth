@@ -243,9 +243,9 @@ function wallpaperOf(pkg: HearthPackage): {
  * measured in kilobytes rather than characters. */
 const MAX_SNAPSHOT_BYTES = 1024 * 1024;
 
-/** Only the two raster types a screenshot is written as. Never SVG, for the
- * reason no picture here is ever SVG: it is a document, and this one is served
- * back to clients. */
+/** The raster types a screenshot may be written as. Never SVG, for the reason
+ * no picture in this pipeline is ever SVG: it is a document that can carry
+ * script, and this one is served back to clients. */
 const SNAPSHOT_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
@@ -267,7 +267,12 @@ function snapshotOf(pkg: HearthPackage): {
 	}
 	if (typeof shot.data !== "string") return { snapshot: null, snapshotMime: null };
 	const decoded = Math.floor((shot.data.length * 3) / 4);
-	if (decoded === 0 || decoded > MAX_SNAPSHOT_BYTES) {
+	// An empty one is a malformed field, like every other shape this function
+	// declines: ignored, so the board publishes without a picture. Only an
+	// oversized one is refused, because that is a claim on the server rather
+	// than a missing value.
+	if (decoded === 0) return { snapshot: null, snapshotMime: null };
+	if (decoded > MAX_SNAPSHOT_BYTES) {
 		throw unprocessable("the picture of the board is too large");
 	}
 	const bytes = Buffer.from(shot.data, "base64");

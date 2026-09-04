@@ -40,9 +40,22 @@ const QUALITY = 70;
  * as "there is text here" rather than as a rendering fault. */
 const BLOCK = "█";
 
-/** Longest run of blocks one text node becomes. A card holding an essay should
- * not paint ten thousand glyphs to be photographed. */
+/** Longest run of blocks one string becomes. A card holding an essay should not
+ * paint ten thousand glyphs to be photographed. */
 const MAX_RUN = 120;
+
+/**
+ * What a piece of readable text becomes.
+ *
+ * Exported because it is the *rule* — everything else in this file is the DOM
+ * traversal that applies it — and it is worth being able to state exactly what
+ * survives: nothing but the whitespace. Length is kept up to the cap so lines
+ * keep their shape, and the spaces between words are kept so a redacted line
+ * still reads as a line of text rather than as one solid bar.
+ */
+export function redactedText(value: string): string {
+	return value.slice(0, MAX_RUN).replace(/\S/gu, BLOCK);
+}
 
 /** What a capture produced. */
 export interface BoardSnapshot {
@@ -116,6 +129,8 @@ export function canSnapshot(): boolean {
  */
 function redact(root: HTMLElement): () => void {
 	const originals: [Text, string][] = [];
+	const fields: [HTMLInputElement | HTMLTextAreaElement, string][] = [];
+
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
 	for (let node = walker.nextNode(); node; node = walker.nextNode()) {
 		const text = node as Text;
@@ -125,9 +140,23 @@ function redact(root: HTMLElement): () => void {
 		// Length preserved (up to the cap) so lines keep their shape, and
 		// whitespace preserved so words stay words — a solid bar across a card
 		// reads as a bar, while blocks with spaces read as text.
-		text.data = value
-			.slice(0, MAX_RUN)
-			.replace(/\S/gu, BLOCK);
+		text.data = redactedText(value);
+	}
+
+	// **A form field's value is not a text node**, so the walk above never sees
+	// it — and a board is full of them: a calculator card renders its last sum
+	// into an `<input>`, a search card its query, a text card its draft. Those
+	// are the author's own working state, which the publish path removes from
+	// the *package*; a picture that still showed them would put back exactly
+	// what the strip had just taken out. Placeholders stay: they are part of the
+	// board's look and travel in the package anyway.
+	for (const field of Array.from(
+		root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
+	)) {
+		if (field.value) {
+			fields.push([field, field.value]);
+			field.value = redactedText(field.value);
+		}
 	}
 	// Pictures inside cards are the other thing that can carry somebody's
 	// content. The wallpaper is behind the grid and survives, because it is
@@ -135,6 +164,7 @@ function redact(root: HTMLElement): () => void {
 	root.addClass("hearth-snapshot-redacted");
 	return () => {
 		for (const [node, value] of originals) node.data = value;
+		for (const [field, value] of fields) field.value = value;
 		root.removeClass("hearth-snapshot-redacted");
 	};
 }

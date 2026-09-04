@@ -160,7 +160,8 @@ export interface PackageMeta {
 	 * substitute a different picture without invalidating the file.
 	 */
 	snapshot?: {
-		/** base64 JPEG or PNG, no data-URI prefix. */
+		/** base64, no data-URI prefix. A raster type — JPEG, PNG or WebP; never
+		 * SVG, which is a document rather than a picture. */
 		data: string;
 		mime: string;
 		bytes: number;
