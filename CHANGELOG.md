@@ -3,9 +3,9 @@
 All notable changes to Hearth are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to a numeric-only versioning scheme
-(`MAJOR.MINOR.PATCH`) as required by Obsidian's plugin manifest. Beta builds
-carry a fourth `.N-beta` segment and are omitted here; each entry aggregates its
+and this project adheres to [semantic versioning](https://semver.org/)
+(`MAJOR.MINOR.PATCH`) as required by Obsidian's plugin manifest. Beta builds are
+tagged `MAJOR.MINOR.PATCH-beta.N` and are omitted here; each entry aggregates its
 preceding beta series.
 
 History begins at 1.5.0. For releases before 1.5.0, see the
