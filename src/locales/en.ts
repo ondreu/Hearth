@@ -3885,7 +3885,6 @@ export const en = {
 			contents: "What's on this board",
 			requires: "What it needs",
 			requiresPlugins: "Plugins",
-			requiresCards: "Card types",
 			requiresViews: "Hosted views",
 			requiresSettings: "Settings",
 			nothingRequired: "Nothing beyond Hearth itself.",

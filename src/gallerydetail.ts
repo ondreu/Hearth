@@ -340,7 +340,10 @@ class GalleryEntryModal extends Modal {
 			new Notice(galleryErrorText(err));
 		} finally {
 			this.busy = false;
-			if (this.entry) this.render();
+			// Only while the modal is still on screen: a successful install
+			// closed it, and drawing into a detached `contentEl` would refill
+			// the element `onClose` had just emptied.
+			if (this.entry && this.containerEl.isConnected) this.render();
 		}
 	}
 

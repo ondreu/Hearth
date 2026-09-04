@@ -3617,7 +3617,6 @@ export const zh: Translations = {
 			contents: "这个面板上有什么",
 			requires: "它需要什么",
 			requiresPlugins: "插件",
-			requiresCards: "卡片类型",
 			requiresViews: "承载的视图",
 			requiresSettings: "设置",
 			nothingRequired: "除 Hearth 本身外无需其他。",
