@@ -13,3 +13,8 @@ test-vault/
 
 # obsidian plugin runtime data (local install state, not source)
 data.json
+
+# gallery server build output and local database
+server/dist/
+server/data/
+server/.env

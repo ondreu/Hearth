@@ -25,6 +25,8 @@ import { configuredPlaces, renderSkySource } from "../placepicker";
 import { formatSkyValue, parseSkyValue } from "../sky";
 import { addTitleIconPicker } from "../titleicon";
 import { makeClickable } from "../ui";
+import { galleryConfigured } from "../gallery";
+import { openGallery } from "../gallerybrowse";
 import { detectSetup, type DetectedIntegration, type SetupDetection } from "./detect";
 import {
 	applySetup,
@@ -246,6 +248,19 @@ export class SetupWizardModal extends Modal {
 		}
 
 		const right = footer.createDiv("hearth-setup-foot-right");
+		// On the first step only, and beside Next rather than instead of it:
+		// somebody setting Hearth up for the first time is exactly who might
+		// rather start from a board somebody else built than answer five
+		// questions — and exactly who has nothing yet that installing one would
+		// overwrite, since importing adds a board and touches no global setting.
+		if (this.stepIndex === 0 && galleryConfigured(this.plugin)) {
+			const gallery = right.createEl("button", {
+				cls: "hearth-setup-gallery",
+				text: t().gallery.browse.openLabel,
+			});
+			gallery.setAttribute("aria-label", t().gallery.browse.openAria);
+			gallery.addEventListener("click", () => openGallery(this.plugin));
+		}
 		if (this.stepIndex > 0) {
 			const back = right.createEl("button", { text: strings.nav.back });
 			back.addEventListener("click", () => {

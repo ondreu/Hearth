@@ -52,6 +52,16 @@ export interface CardPickerOptions {
 	hearthVersion: string;
 	/** Add this template to the dashboard. */
 	onChoose: (template: CardTemplateDef) => void;
+	/**
+	 * Open the dashboard gallery, closing the picker first.
+	 *
+	 * Sits in the rail directly above "Request a card", which is where the two
+	 * of them belong together: both answer "the card I want isn't here", and a
+	 * whole board somebody has already arranged is the more likely of the two to
+	 * be what was actually wanted. Omitted when no gallery is configured, so the
+	 * rail never offers a door to nowhere.
+	 */
+	onGallery?: () => void;
 }
 
 /** Open the add-card picker. */
@@ -174,6 +184,22 @@ class CardPickerModal extends Modal {
 			this.railButton(rail, category, strings.categories[category], CATEGORY_ICONS[category]);
 		}
 		rail.createDiv("hearth-picker-rail-sep");
+		// Above "Request a card" and below the categories: the catalogue you can
+		// add from, then whole boards other people have arranged, then the way to
+		// ask for what neither has.
+		if (this.opts.onGallery) {
+			const gallery = rail.createEl("button", { cls: "hearth-picker-rail-btn is-gallery" });
+			setIcon(gallery.createSpan("hearth-picker-rail-icon"), "layout-template");
+			gallery.createSpan({
+				cls: "hearth-picker-rail-label",
+				text: t().gallery.browse.openLabel,
+			});
+			gallery.setAttribute("aria-label", t().gallery.browse.openAria);
+			gallery.addEventListener("click", () => {
+				this.close();
+				this.opts.onGallery?.();
+			});
+		}
 		this.railButton(rail, "request", strings.request.railLabel, "message-square-plus");
 
 		// Straight under "Request a card", and the only entry in the rail that
