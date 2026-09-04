@@ -7,6 +7,10 @@ unit a dashboard gallery would store, list and serve.
 This document is the contract. The implementation is `src/portable/`, and
 `test/portable.test.ts` is the executable version of everything below.
 
+For the gallery this format was shaped for: [`gallery-api.md`](gallery-api.md)
+is the wire contract, [`gallery-hosting.md`](gallery-hosting.md) is how to run
+one, and `server/` is a working implementation.
+
 ## Why the format exists
 
 A dashboard never described itself completely. Half its appearance lived on the
@@ -34,6 +38,7 @@ a board without touching a single global setting.
     "name": "Reading room",
     "description": "…",
     "tags": ["reading", "minimal"],
+    "category": "writing",    // one of src/gallery/categories.ts — see below
     "version": "2",
 
     // Authorship — see Who made it. The handle is derived from the key and the
@@ -200,11 +205,28 @@ Where the value comes from:
 - **A package with no `meta.id` always reads as new.** That is the safe way
   round, and it is what a hand-written package gets.
 
-**A gallery should overwrite `meta.id` with its own entry id when it publishes.**
-It owns that namespace, and it is the only party that can tell a new *version*
-of a dashboard from someone's *fork* of it — an import carries whatever identity
-it is given, faithfully and without judgement. A fork republished without a new
-id will be offered to readers as an update to the original.
+**A gallery must keep `meta.id` unique across itself**, refusing an id already
+held by a different author key. It cannot overwrite the id with one of its own —
+that would invalidate the signature it had just checked (see **The upload
+pipeline**) — and it cannot tell a new *version* of a dashboard from somebody's
+*fork* of it by looking at the file, because an import carries whatever identity
+it is given, faithfully and without judgement. Uniqueness turns the ambiguous
+case into a refusal the author can act on: duplicate the board, which mints a
+fresh `sourceId`, and publish that.
+
+### What it is for
+
+`meta.category` is the one thing about a published dashboard that cannot be
+derived from it. Its card kinds are already in `requires`, its tags are free
+text, and neither says whether this is a study board or a work one — only its
+author knows. So it is asked once, at publish, from the closed list in
+`src/gallery/categories.ts`.
+
+**That list is append-only.** An id is stored in a gallery's database and inside
+every published copy of the package, so renaming one orphans every entry filed
+under it. Add to the end; never reorder, never remove. A package with no
+category, or one this build has never heard of, reads as `other` rather than
+being guessed at.
 
 An import returns an `ImportResult`, not a pass/fail. Warning codes:
 `missingPath`, `missingPlugin`, `unknownCardKind`, `unknownViewType`,
@@ -329,11 +351,12 @@ retrofit:
 - **Not an introduction.** A verifier learns "the same hand made this and that",
   not "this is Ondřej". That is trust on first use, like an SSH key. Binding a
   handle to a person needs someone to vouch, which is a gallery's job.
-- **Not permanence through a gallery.** A strip is an edit and a republish
-  overwrites `meta.id`, so both invalidate the signature they just checked.
-  Verification is an **upload-time** proof: the gallery verifies, then
-  republishes under its own attestation. End-to-end verification survives only a
-  file passed along untouched.
+- **Not permanence through any gallery that edits the file.** A strip is an
+  edit, and so is rewriting `meta.id`; either invalidates the signature it just
+  checked. That is why the pipeline above does neither — a gallery that stores
+  and serves the uploaded bytes unchanged keeps end-to-end verification, which
+  is what lets the vault installing a board name its author rather than being
+  told the file is forged.
 - **Not a bar on redistribution.** Copying a signed file unchanged verifies, and
   must — the file really was made by the author it names. What is prevented is
   putting an author's name on a board they did not make.
@@ -411,26 +434,51 @@ the currency fetch — see its own documentation). Hearth's import dialog says h
 many remote things a package loads; a gallery should surface the same, and may
 want to strip or proxy `publicUrl` itself.
 
-### A suggested upload pipeline
+### The upload pipeline
+
+There is a working gallery in `server/`, and its pipeline is the reference
+version of this — `docs/gallery-api.md` is the contract, `server/src/upload.ts`
+is the implementation:
 
 1. `readPackage(json)` — reject anything that isn't a package.
-2. `verifyPackageSignature(pkg)` — **before** anything mutates it. `valid` means
-   the uploader holds the key behind `meta.authorPublicKey`; `invalid` should be
-   rejected outright. Record the public key as the entry's author, and note that
-   step 3 invalidates the signature, so the listing carries your attestation from
-   here on, not the author's.
+2. `verifyPackageSignature(pkg)` — **before anything else touches it.** `valid`
+   means the uploader holds the key behind `meta.authorPublicKey`; `unsigned`
+   and `invalid` are equally not evidence of who made it, and both should be
+   refused.
 3. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
-4. `stripReferences(pkg)` — the default takes paths, private references and
-   the author's own prose. Pass `{ content: false }` only for a board whose text
-   really is part of the design.
-5. Hold for review if `report.residual` is non-empty.
-6. Re-check `assets`: type against the allowlist, `bytes` against the decoded
-   length, and the total against your own budget.
-7. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
-   same entry is updated, and mint a new one for a fork.
-8. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
-   `capture.performanceTier` is worth showing as "captured on a low-power
-   device".
+4. **Check the strip; do not perform one.** `describeReferences(pkg)` must find
+   nothing under `vaultPath`, `asset`, `privateUrl`, `privateHost` or `place`.
+   Hearth's publish path strips before it signs, so a well-behaved client never
+   trips this.
+5. Hold for review if `residualPaths(pkg)` is non-empty — store the entry, keep
+   it out of the listing. It is a heuristic backstop, and a false positive costs
+   a look while a false negative publishes somebody's folder tree.
+6. Re-check `assets`: type against the allowlist, the *encoded* length before
+   decoding anything, and the total against your own budget.
+7. Derive the listing — `meta`, `requires`, `describeReferences(pkg)`,
+   `previewFromPackage(pkg)` — **from the package**, never from fields supplied
+   beside it. `capture.performanceTier` is worth showing as "captured on a
+   low-power device".
+8. Store the file **unchanged**, and serve it back unchanged.
+
+### Why steps 4 and 8 differ from the obvious version
+
+The obvious pipeline has the gallery strip the package itself and overwrite
+`meta.id` with its own entry id. Both are edits, and the signature covers the
+whole document — so a gallery that does either serves a file whose signature no
+longer verifies. The importing vault then reads every downloaded board as
+`invalid`, which is not "unattributed": it is the state a forged file produces,
+reported to the reader as an alarm, on every legitimate board in the gallery.
+Verification would become an upload-time proof that nobody downstream can ever
+repeat, which is most of the reason the keypair exists.
+
+Leaving `meta.id` alone leaves one hazard: somebody installs a board, changes
+it, republishes, and their fork still carries the original's id — so an importer
+holding the original would be offered the fork as an update to it. Close it by
+making **`meta.id` unique across the gallery** rather than per author: refuse an
+id already held by a different key, and say what to do about it. A duplicated
+board does not inherit `sourceId`, so duplicating is how a fork gets an identity
+of its own.
 
 ## Credentials
 
