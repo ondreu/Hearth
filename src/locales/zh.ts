@@ -18,6 +18,7 @@ export const zh: Translations = {
 		openDailyNote: "打开今天的日记",
 		runSetup: "设置 Hearth（首次运行向导）",
 		switchDashboard: (n: number) => `切换到面板 ${n}`,
+		openDashboard: (n: number) => `打开面板 ${n}`,
 		nextDashboard: "下一个面板",
 		previousDashboard: "上一个面板",
 	},

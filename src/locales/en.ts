@@ -23,6 +23,7 @@ export const en = {
 		openDailyNote: "Open today's daily note",
 		runSetup: "Set up Hearth (first-run wizard)",
 		switchDashboard: (n: number) => `Switch to dashboard ${n}`,
+		openDashboard: (n: number) => `Open dashboard ${n}`,
 		nextDashboard: "Next dashboard",
 		previousDashboard: "Previous dashboard",
 	},

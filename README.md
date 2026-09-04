@@ -460,7 +460,9 @@ Per-card settings are edited from the card itself in arrange mode.
 Bindable under **Settings → Hotkeys**:
 
 - **Open home dashboard**
-- **Switch to dashboard 1…9**
+- **Switch to dashboard 1…9** — changes the active board
+- **Open dashboard 1…9** — changes it *and* brings Hearth up, so jumping to a
+  particular board from anywhere in the vault is one shortcut
 - **Switch to next / previous dashboard**
 
 In the search field: `↑`/`↓` to move, `Enter` to open, `Esc` to dismiss.

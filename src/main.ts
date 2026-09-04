@@ -16,6 +16,7 @@ import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
 import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
+import { BoardRefreshTracker } from "./boardrefresh";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
 import {
@@ -63,12 +64,11 @@ export default class HearthPlugin extends Plugin {
 	 * settings readout) actually asks for it. */
 	operon = new OperonSession(this, () => this.settings.operonWrites);
 
-	/** Home-view leaves that have already been the active leaf at least once.
-	 * Their first activation was the fresh onOpen render, so the focus refresh
-	 * (#110) skips it and only re-renders on genuine re-focus (this also avoids
-	 * clobbering any search focus set on open). A WeakSet so closed leaves are
-	 * collected with no manual bookkeeping. */
-	private seenActiveHomeLeaves = new WeakSet<WorkspaceLeaf>();
+	/** Which open boards have been looked at, and which are owed a render because
+	 * a refresh passed over them while they were off screen. See
+	 * `src/boardrefresh.ts` — WeakSets, so closed leaves are collected with no
+	 * manual bookkeeping. */
+	private boards = new BoardRefreshTracker<WorkspaceLeaf>();
 
 	/** Debounced live-refresh of open home views on vault changes (#110).
 	 * resetTimer=true so a burst of writes (a sync, a bulk edit) coalesces into a
@@ -296,6 +296,12 @@ export default class HearthPlugin extends Plugin {
 	 * Commands to jump straight to a dashboard by position, plus next/previous.
 	 * No default hotkeys are bound (Mod+number is taken by core tab switching);
 	 * users can assign their own in Settings → Hotkeys.
+	 *
+	 * Each position gets two commands. "Switch to dashboard N" changes the active
+	 * board and leaves it at that, which is what a hotkey pressed while already
+	 * looking at Hearth wants. "Open dashboard N" also brings the board up, so
+	 * navigating to a specific dashboard from anywhere in the vault is one
+	 * command rather than a two-command macro (#286).
 	 */
 	private registerDashboardCommands() {
 		for (let i = 1; i <= 9; i++) {
@@ -306,6 +312,24 @@ export default class HearthPlugin extends Plugin {
 					const dash = this.settings.dashboards[i - 1];
 					if (!dash) return false;
 					if (!checking) this.setActiveDashboard(dash.id);
+					return true;
+				},
+			});
+
+			this.addCommand({
+				id: `open-dashboard-${i}`,
+				name: t().commands.openDashboard(i),
+				checkCallback: (checking) => {
+					const dash = this.settings.dashboards[i - 1];
+					if (!dash) return false;
+					if (!checking) {
+						// Order matters: settle the active board first so the view that
+						// opens renders it, rather than rendering the old one and being
+						// corrected a frame later. setActiveDashboard no-ops when the
+						// board is already active, which leaves this a plain "open".
+						this.setActiveDashboard(dash.id);
+						void this.activateView();
+					}
 					return true;
 				},
 			});
@@ -328,7 +352,14 @@ export default class HearthPlugin extends Plugin {
 
 		const existing = workspace.getLeavesOfType(VIEW_TYPE_HOME);
 		if (existing.length > 0) {
-			await workspace.revealLeaf(existing[0]);
+			const leaf = existing[0];
+			await workspace.revealLeaf(leaf);
+			// Revealing is not rendering, and `active-leaf-change` can't be relied
+			// on to follow (#286) — so a board that missed a refresh while it was
+			// off screen is brought up to date here, before it is looked at.
+			if (leaf.view instanceof HomeView && this.boards.reveal(leaf)) {
+				leaf.view.render();
+			}
 			return;
 		}
 
@@ -463,22 +494,27 @@ export default class HearthPlugin extends Plugin {
 	 * Only the ones actually on screen, though. A full rebuild tears down and
 	 * recreates the whole board — every card body, every embed, every hosted leaf
 	 * — and doing that for a leaf sitting behind another tab is work nobody can
-	 * see the result of. Nothing goes stale: `maybeRefreshOnFocus` re-renders a
-	 * home view when it becomes the active leaf again, so a board skipped here is
-	 * rebuilt from current settings before anyone looks at it.
+	 * see the result of. Nothing goes stale, because a board skipped here is
+	 * recorded as owing a render and every route back on screen — a reveal in
+	 * `activateView`, a focus in `maybeRefreshOnFocus` — pays it before anyone
+	 * looks at the board (see `src/boardrefresh.ts`).
 	 */
 	refreshViews() {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			const view = leaf.view;
-			if (view instanceof HomeView && leafIsVisible(leaf)) view.render();
+			if (!(view instanceof HomeView)) return;
+			// A board nobody is looking at is skipped, but not forgotten: the
+			// tracker records that it owes a render to whoever next shows it.
+			if (this.boards.refresh(leaf, leafIsVisible(leaf))) view.render();
 		});
 	}
 
 	/** Re-render a home view when it becomes the active leaf again, so content
 	 * that changed while it was backgrounded (recents, bookmarks, saved-query
-	 * results) is current (#110). The first activation of a leaf was its fresh
-	 * onOpen render, so that one is skipped; genuine re-focus re-renders. Skipped
-	 * while the board is being arranged so a drag/resize isn't interrupted. */
+	 * results) is current (#110). Which activations count is
+	 * {@link BoardRefreshTracker.focus}'s to decide: the first one was the fresh
+	 * onOpen render and is skipped unless a refresh was missed in the meantime,
+	 * and a board mid-arrange is left alone so a drag/resize isn't interrupted. */
 	private maybeRefreshOnFocus(leaf: WorkspaceLeaf | null) {
 		if (!leaf) return;
 		const view = leaf.view;
@@ -490,12 +526,7 @@ export default class HearthPlugin extends Plugin {
 		// focused costs a string compare in the ordinary case, and means the board
 		// is current by the time it is looked at.
 		this.externalSettingsDebounced();
-		if (!this.seenActiveHomeLeaves.has(leaf)) {
-			this.seenActiveHomeLeaves.add(leaf);
-			return;
-		}
-		if (view.arrangeMode) return;
-		view.render();
+		if (this.boards.focus(leaf, view.arrangeMode)) view.render();
 	}
 
 	/**
