@@ -457,6 +457,8 @@ export const zh: Translations = {
 		phonePreviewOff: "退出手机预览",
 		moveCardUp: "上移卡片",
 		moveCardDown: "下移卡片",
+		hideOnNarrow: "在窄屏布局中隐藏",
+		showOnNarrow: "在窄屏布局中显示",
 	},
 
 	// ---- Dashboard switcher & per-dashboard settings -------------------
