@@ -3112,14 +3112,42 @@ export function effectiveBackground(s: HomeSettings): ResolvedBackground {
 	};
 }
 
+/** Whether a background kind is fetched from the web. "weather" is not in the
+ * list: a live sky asks for a forecast, but the fetch is gated on its own and
+ * what it draws is drawn locally either way (see background.ts), so it still
+ * paints something. */
+export function backgroundIsRemote(kind: BackgroundKind): boolean {
+	return kind === "url" || kind === "default";
+}
+
+/**
+ * Whether a resolved background has anything to paint.
+ *
+ * "default" ships its own image so it needs no value; every other kind but
+ * "none" needs one. `externalCallsDisabled` — the vault's **Disable external
+ * calls** setting — takes the two remote kinds out: a wallpaper the switch will
+ * not let Hearth fetch is a wallpaper that isn't there, and saying so here is
+ * what keeps the banner strip from being reserved for a picture that never
+ * arrives.
+ */
+export function backgroundPaintable(
+	bg: BackgroundConfig,
+	externalCallsDisabled: boolean,
+): boolean {
+	if (bg.kind === "none") return false;
+	if (externalCallsDisabled && backgroundIsRemote(bg.kind)) return false;
+	return bg.kind === "default" || !!bg.value;
+}
+
 /** Whether the active board paints its backdrop as a banner rather than as a
- * full-view wallpaper. A "none" background has nothing to put in a banner, so
- * it reports false and the board is drawn without one. Low power mode does not
- * change the answer — it swaps what fills the banner, not whether there is one
- * (see {@link effectiveBackground}). */
+ * full-view wallpaper. A background with nothing to paint — "none", a kind with
+ * no value, or a remote picture the kill switch blocks — has nothing to put in a
+ * banner, so it reports false and the board is drawn without one. Low power mode
+ * does not change the answer — it swaps what fills the banner, not whether there
+ * is one (see {@link effectiveBackground}). */
 export function bannerActive(s: HomeSettings): boolean {
 	const bg = effectiveBackground(s);
-	return bg.layout === "banner" && bg.kind !== "none";
+	return bg.layout === "banner" && backgroundPaintable(bg, s.disableExternalCalls);
 }
 
 /**

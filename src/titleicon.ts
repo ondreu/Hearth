@@ -17,7 +17,8 @@ import { t } from "./i18n";
  *
  *   - empty            → the Hearth crystal (or whatever the caller passes as
  *                        the fallback icon)
- *   - `https://…`      → a picture fetched from the web
+ *   - `https://…`      → a picture fetched from the web (unless the vault has
+ *                        turned external calls off, which draws the fallback)
  *   - `Assets/me.png`  → a picture from the vault
  *   - `flame`          → a Lucide icon
  *   - anything else    → the text itself, emoji included
@@ -96,23 +97,49 @@ export function titleIconFile(app: App, value: string): TFile | null {
 	return file && isImageFile(file) ? file : null;
 }
 
+/** How a title icon is drawn. */
+export interface TitleIconOptions {
+	/** What an empty value — and a picture that has gone missing — falls back to.
+	 * The header passes the Hearth crystal in the variant the board's
+	 * theme-colour setting asks for. */
+	fallbackIconId?: string;
+	/** The vault's **Disable external calls** setting. A `https://` icon is a
+	 * request to a host somebody chose — and on an imported board, somebody
+	 * else — so when the switch is on it is not fetched and the fallback mark is
+	 * drawn instead. A vault picture is unaffected. */
+	externalCallsDisabled?: boolean;
+}
+
+/**
+ * Whether a classified title icon names a picture Hearth must not fetch.
+ *
+ * Only the `url` kind reaches the network: a vault picture is served by
+ * Obsidian, and an icon, an emoji or a word is drawn locally. Pure and tested
+ * so the one rule the kill switch turns on lives in a single place (#281).
+ */
+export function titleIconBlocked(icon: TitleIcon, externalCallsDisabled: boolean): boolean {
+	return externalCallsDisabled && icon.kind === "url";
+}
+
 /**
  * Draw a title icon into `parent` and return the element it created.
- *
- * `fallbackIconId` is what an empty value — and a picture that has gone missing
- * — falls back to; the header passes the Hearth crystal in the variant the
- * board's theme-colour setting asks for.
  */
 export function renderTitleIcon(
 	app: App,
 	parent: HTMLElement,
 	raw: string | undefined,
-	fallbackIconId: string = HEARTH_ICON_ID,
+	options: TitleIconOptions = {},
 ): HTMLElement {
+	const fallbackIconId = options.fallbackIconId ?? HEARTH_ICON_ID;
 	const icon = titleIconOf(raw);
 	if (icon.kind === "url" || icon.kind === "image") {
-		const file = icon.kind === "image" ? titleIconFile(app, icon.value) : null;
-		const src = icon.kind === "url" ? icon.value : file && app.vault.getResourcePath(file);
+		let src: string | null = null;
+		if (icon.kind === "url") {
+			if (!titleIconBlocked(icon, options.externalCallsDisabled === true)) src = icon.value;
+		} else {
+			const file = titleIconFile(app, icon.value);
+			if (file) src = app.vault.getResourcePath(file);
+		}
 		if (src) {
 			const el = parent.createSpan({ cls: "hearth-logo hearth-logo-image" });
 			// Decorative: the title text beside it already names the board.
@@ -141,13 +168,16 @@ export function renderTitleIcon(
  * something anyone types from memory; emoji, text and web URLs are pasted, so
  * the input takes those. The preview is the only feedback that says which of
  * the five readings a value got — type `flame` and the flame appears, type
- * `flames` and the word does.
+ * `flames` and the word does. It honours `externalCallsDisabled` too, so the
+ * preview shows what the header will actually draw rather than making the one
+ * request the setting is there to prevent.
  */
 export function addTitleIconPicker(
 	setting: Setting,
 	app: App,
 	value: string,
 	onChange: (value: string) => void,
+	externalCallsDisabled = false,
 ): Setting {
 	const preview = setting.controlEl.createSpan({ cls: "hearth-icon-preview" });
 	let text: TextComponent | undefined;
@@ -155,7 +185,7 @@ export function addTitleIconPicker(
 	const apply = (next: string) => {
 		const trimmed = next.trim();
 		preview.empty();
-		renderTitleIcon(app, preview, trimmed);
+		renderTitleIcon(app, preview, trimmed, { externalCallsDisabled });
 		preview.toggleClass("is-empty", trimmed === "");
 		onChange(trimmed);
 	};
@@ -197,7 +227,7 @@ export function addTitleIconPicker(
 			.onClick(() => set("")),
 	);
 
-	renderTitleIcon(app, preview, value);
+	renderTitleIcon(app, preview, value, { externalCallsDisabled });
 	preview.toggleClass("is-empty", value.trim() === "");
 	return setting;
 }

@@ -992,6 +992,10 @@ export const en = {
 			valueColorDesc: "A CSS color, e.g. #1e1e2e or rgb(30,30,46).",
 			valueImageDesc: "A vault image path, e.g. Attachments/bg.png.",
 			valueUrlDesc: "A direct image URL.",
+			externalCallsDisabled:
+				"Not shown while \u201cDisable external calls\u201d is on in Behaviour: " +
+				"this background is fetched from the web. Pick a vault image instead, " +
+				"or turn the setting off.",
 			opacity: "Opacity",
 			opacityDesc:
 				"How much the background shows through. Lower is more subtle.",
@@ -1090,7 +1094,9 @@ export const en = {
 			disableExternalCalls: "Disable external calls",
 			disableExternalCallsDesc:
 				"Block all outbound network requests Hearth makes, including Jira, " +
-				"external calendars, RSS feeds, and the calculator's currency-rate lookup.",
+				"external calendars, RSS feeds, the calculator's currency-rate lookup, " +
+				"and background images and title icons given as a web address — those " +
+				"fall back to no picture and the Hearth crystal.",
 			openIn: "Open notes in",
 			openInDesc:
 				"Where a note goes when you open one from Hearth. \"Current tab\" replaces " +

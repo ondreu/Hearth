@@ -916,6 +916,9 @@ export const zh: Translations = {
 			valueColorDesc: "一个 CSS 颜色值，例如 #1e1e2e 或 rgb(30,30,46)。",
 			valueImageDesc: "仓库内的图片路径，例如 Attachments/bg.png。",
 			valueUrlDesc: "图片的直链 URL。",
+			externalCallsDisabled:
+				"“行为”中的“禁用对外调用”已开启，因此不会显示：该背景需要从网络获取。" +
+				"请改用仓库内的图片，或关闭该设置。",
 			opacity: "不透明度",
 			opacityDesc: "背景透出的程度。数值越低越含蓄。",
 			blur: "模糊",
@@ -999,8 +1002,9 @@ export const zh: Translations = {
 			mobileTierMatch: "与桌面一致",
 			disableExternalCalls: "禁用对外调用",
 			disableExternalCallsDesc:
-				"阻止 Hearth 发出的所有对外网络请求，包括 Jira、外部日历、RSS 源" +
-				"以及计算器的汇率查询。",
+				"阻止 Hearth 发出的所有对外网络请求，包括 Jira、外部日历、RSS 源、" +
+				"计算器的汇率查询，以及以网址给出的背景图片和标题图标——它们会" +
+				"分别回退为不显示图片和 Hearth 水晶。",
 			openIn: "笔记打开位置",
 			openInDesc:
 				"从 Hearth 打开笔记时它去哪里。“当前标签页”会替换主页视图，" +

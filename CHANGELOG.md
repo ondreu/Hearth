@@ -308,6 +308,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **"Disable external calls" now also covers a background image and a title icon
+  given as a web address.** The switch promises to block every outbound request
+  Hearth makes, and every card kept that promise — but a wallpaper whose kind is
+  "Image URL", the bundled default wallpaper (which is served from GitHub rather
+  than from the plugin folder), and a title icon pointed at an `https://` address
+  were all set straight onto the page and fetched regardless. That was a footnote
+  while those strings were ones you typed yourself; with boards now shared and
+  installed from a gallery they are strings a stranger chose, and a board can be
+  authored so that merely opening it reports your IP to a host of the author's
+  choosing. All three are now blocked while the switch is on, and a blocked
+  wallpaper falls back to no picture — a bannered board loses the strip rather
+  than reserving an empty one — while a blocked icon falls back to the Hearth
+  crystal. Nothing is rewritten: turn the switch off and the wallpaper and the
+  icon come back. **If you have deliberately set a URL wallpaper or icon and have
+  the switch on, that picture will disappear on upgrade** — either point it at a
+  vault attachment, or turn the switch off.
+
 - **A full settings backup no longer forgets eleven settings.** Export every
   Hearth setting, restore it into a fresh vault, and eleven of them came back at
   their defaults instead of yours: the theme-colour target, the mobile

@@ -434,11 +434,13 @@ and `residualPaths()` could not recognise it either.
 A board can name things on the web — an embedded page, an RSS feed, a wallpaper
 given as a URL. Those are `publicUrl` and travel by design, because they are
 what the board *is*. But a board opened from a stranger will fetch them, and
-Hearth's **Disable external calls** setting does not currently cover a
-background image or a title icon given by URL (it covers live-content cards and
-the currency fetch — see its own documentation). Hearth's import dialog says how
-many remote things a package loads; a gallery should surface the same, and may
-want to strip or proxy `publicUrl` itself.
+what stops that is the reader's own **Disable external calls** setting: since
+#281 it covers a background image and a title icon given by URL as well as the
+live-content cards and the currency fetch, so a beacon wallpaper on an imported
+board is not fetched by a vault that has the switch on. With the switch off — the
+default — every `publicUrl` on the board is still fetched the moment it opens.
+Hearth's import dialog says how many remote things a package loads; a gallery
+should surface the same, and may want to strip or proxy `publicUrl` itself.
 
 ### The upload pipeline
 

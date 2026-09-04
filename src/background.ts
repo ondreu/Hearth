@@ -9,6 +9,7 @@ import {
 import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
+	backgroundPaintable,
 	effectiveBackground,
 	effectiveFullWidth,
 	effectiveMaxWidth,
@@ -44,7 +45,9 @@ export function applyBackground(
 	component: Component,
 ): void {
 	const bg = effectiveBackground(view.plugin.settings);
-	if (!paintable(bg)) return;
+	// Nothing to paint: no background, a kind with no value, or a picture from
+	// the web that "Disable external calls" won't let Hearth fetch (#281).
+	if (!backgroundPaintable(bg, view.plugin.settings.disableExternalCalls)) return;
 
 	paintBackground(view, root.createDiv("hearth-bg"), bg, component);
 }
@@ -69,7 +72,7 @@ export function renderBanner(
 ): HTMLElement | null {
 	const bg = effectiveBackground(view.plugin.settings);
 	if (bg.layout !== "banner") return null;
-	if (!paintable(bg)) return null;
+	if (!backgroundPaintable(bg, view.plugin.settings.disableExternalCalls)) return null;
 
 	const banner = parent.createDiv("hearth-banner");
 	banner.style.height = `${bg.bannerHeight}px`;
@@ -90,13 +93,6 @@ export function renderBanner(
 
 	paintBackground(view, layer, bg, component);
 	return banner;
-}
-
-/** Whether a background config has anything to paint. "default" ships its own
- * image so it needs no value; every other kind but "none" needs one. */
-function paintable(bg: BackgroundConfig): boolean {
-	if (bg.kind === "none") return false;
-	return bg.kind === "default" || !!bg.value;
 }
 
 /**
@@ -124,11 +120,17 @@ function paintBackground(
 		return;
 	}
 
+	// A picture from the web is an outbound request whoever it was configured by,
+	// so "Disable external calls" blocks both remote kinds — the bundled default
+	// included, which is served from GitHub rather than from the plugin folder.
+	// `paintable` normally means we are never called for one; this is the check
+	// at the point the request would actually be made.
+	const blocked = view.plugin.settings.disableExternalCalls;
 	let url: string | null = null;
 	if (bg.kind === "default") {
-		url = DEFAULT_BG_URL;
+		url = blocked ? null : DEFAULT_BG_URL;
 	} else if (bg.kind === "url") {
-		url = bg.value;
+		url = blocked ? null : bg.value;
 	} else if (bg.kind === "image") {
 		const file = view.app.vault.getAbstractFileByPath(bg.value);
 		if (file instanceof TFile) url = view.app.vault.getResourcePath(file);

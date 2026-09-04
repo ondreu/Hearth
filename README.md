@@ -238,8 +238,9 @@ from you.
 
 Everything is **live**: embeds and editable notes follow vault events without
 losing your cursor, data cards redraw on vault and metadata changes, and web
-cards refresh on a timer. Every card that reaches the network respects
-**Settings → Behaviour → Disable external calls**.
+cards refresh on a timer. Everything that reaches the network respects
+**Settings → Behaviour → Disable external calls** — every card, and a background
+image or title icon given as a web address.
 
 ## Integrations
 
@@ -288,6 +289,7 @@ network → Disable external calls**.
 | RSS / Atom feeds | RSS cards | None |
 | ICS / webcal feeds | Mini calendar subscriptions (Google, iCloud, Fastmail, Nextcloud…) | The feed URL |
 | DuckDuckGo | The search bar's optional web-search button | None |
+| Whatever host you name | A background image or title icon given as a web address; the bundled default wallpaper is one of these, served from `raw.githubusercontent.com` | None |
 
 ### Operon
 
