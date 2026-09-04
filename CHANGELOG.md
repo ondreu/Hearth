@@ -303,6 +303,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   nothing fetched in the background: the button opens a link in your browser
   exactly as it always did.
 
+- **"Open dashboard 1…9" — go to a particular board in one shortcut.** Hearth
+  could switch the active dashboard, and it could open Hearth, but going to a
+  named board from a note took both, which meant a macro plugin to chain them.
+  There is now a second command per position that does the two together, so a
+  hotkey or a note-toolbar button can land you on the board you want from
+  anywhere in the vault. "Switch to dashboard N" is unchanged and keeps its
+  hotkeys, for when Hearth is already in front of you.
+
 ### Changed
 
 - **"Export dashboard" is now "Share dashboard",** with a switch at the top for
@@ -414,6 +422,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   is rebuilt by the same pass that decides which cards touch, and that pass bailed
   out early when there was nothing that *could* touch — so a board holding exactly
   one card came out with no frosted glass at all, however high its blur was set.
+
+- **Chaining "switch dashboard" and "open Hearth" showed the old board.** Two
+  commands run back to back — by a Commander macro, a note-toolbar button,
+  anything that chains them — switched the dashboard in settings and then
+  revealed the previous one, while each command on its own behaved. A board that
+  is open but off screen is deliberately not re-rendered when settings change,
+  on the understanding that whatever next puts it on screen will render it.
+  Revealing a tab turned out not to be one of those things: Obsidian reports a
+  leaf becoming active, and a leaf that was already the active one in a hidden
+  tab group never becomes active again. A skipped render is now remembered
+  against the board rather than assumed away, and every route back on screen
+  pays it.
 
 ## [3.0.0]
 
