@@ -36,6 +36,8 @@ import {
 	readPackage,
 	validatePackage,
 } from "./apply";
+import { stripReferences, type StripOptions, type StripReport } from "./refs";
+import { signPackage } from "./signature";
 import {
 	clearAssetRefs,
 	DEFAULT_ASSET_FOLDER,
@@ -57,6 +59,7 @@ export * from "./refs";
 export * from "./capture";
 export * from "./apply";
 export * from "./assets";
+export * from "./signature";
 
 /** Options for {@link exportDashboardFile}. */
 export interface ExportDashboardOptions extends CaptureDashboardOptions {
@@ -72,6 +75,32 @@ export interface ExportDashboardOptions extends CaptureDashboardOptions {
 	 * and reported in {@link ExportOutcome.assets}.
 	 */
 	embedAssets?: boolean;
+	/**
+	 * Leave the author's private things out of the file.
+	 *
+	 * Off by default, because the default use of a dashboard export is a copy of
+	 * your own board — one that has to keep working, which means keeping the
+	 * paths it points at. Turned on, the groups named in {@link StripOptions}
+	 * are removed after the pictures have been embedded (so the wallpaper
+	 * survives having its path stripped: by then it is carried inside the file,
+	 * not pointed at outside it).
+	 *
+	 * What comes out the other side is a board that still looks exactly like
+	 * itself — layout, styling, colours, pictures — with the cards that pointed
+	 * at the author's notes pointing at nothing, which is what the person
+	 * downloading it has to fill in anyway.
+	 */
+	strip?: StripOptions;
+	/**
+	 * Sign the finished file with this recovery key, so its author can be
+	 * proved rather than merely claimed.
+	 *
+	 * Omitted leaves the package unsigned, which is right for a backup of your
+	 * own vault — there is nobody to prove anything to — and which an importer
+	 * reads as "no author" rather than as a problem. See `signature.ts` for why
+	 * signing has to be the last thing that happens to the file.
+	 */
+	signWith?: string;
 }
 
 export interface ExportOutcome {
@@ -80,6 +109,12 @@ export interface ExportOutcome {
 	pkg: HearthPackage;
 	/** Present when embedding was asked for. */
 	assets?: EmbedReport;
+	/** Present when a strip was asked for: what came out, and anything
+	 * path-shaped still visible afterwards. */
+	strip?: StripReport;
+	/** Whether the file carries a signature. False when none was asked for, and
+	 * also when the key given wasn't a usable one. */
+	signed: boolean;
 }
 
 /**
@@ -101,19 +136,26 @@ export async function exportDashboardFile(
 	if (opts.embedAssets) {
 		assets = await embedAssets(pkg, vaultAssetStore(app));
 	}
-	return { json: serializePackage(pkg), pkg, assets };
+	// After embedding, never before: an embedded picture's reference has been
+	// rewritten to `hearth:asset/…` by this point, so stripping the vault paths
+	// takes the author's folder structure without taking their wallpaper.
+	const strip = opts.strip ? stripReferences(pkg, opts.strip) : undefined;
+	// And signing after both, because a signature covers the whole document:
+	// embed or strip anything afterwards and it stops verifying.
+	const signed = opts.signWith ? signPackage(pkg, opts.signWith) : false;
+	return { json: serializePackage(pkg), pkg, assets, strip, signed };
 }
 
 /** Export every board plus the layout globals. */
 export function exportLayoutFile(s: HomeSettings, opts: CaptureOptions = {}): ExportOutcome {
 	const pkg = captureLayout(s, opts);
-	return { json: serializePackage(pkg), pkg };
+	return { json: serializePackage(pkg), pkg, signed: false };
 }
 
 /** Export every setting: the full backup. */
 export function exportSettingsFile(s: HomeSettings, opts: CaptureOptions = {}): ExportOutcome {
 	const pkg = captureSettings(s, opts);
-	return { json: serializePackage(pkg), pkg };
+	return { json: serializePackage(pkg), pkg, signed: false };
 }
 
 /** Options for {@link importPackageFile}. */

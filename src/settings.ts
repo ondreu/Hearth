@@ -12,6 +12,7 @@ import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundK
 import {
 	exportLayout,
 	exportSettings,
+	identitySetting,
 	openExportDashboard,
 	pickAndImport,
 } from "./exportimport";
@@ -2130,6 +2131,12 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addButton((b) =>
 				b.setButtonText(strings.importButton).onClick(() => void pickAndImport(this.plugin)),
 			);
+
+		// Who a shared dashboard says it is by. Here as well as in the export
+		// dialog because the recovery key is the one thing worth writing down
+		// before it is needed, and nobody goes looking for it inside a dialog
+		// they only open when they are already exporting.
+		identitySetting(this.plugin, containerEl, () => this.rerender());
 
 		// Export the whole dashboard setup as a JSON file.
 		new Setting(containerEl)

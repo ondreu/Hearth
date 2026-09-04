@@ -187,6 +187,10 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "leafView.viewType", scope: "viewType" },
 	{ at: "leafView.file", scope: "vaultPath" },
 
+	// favourites — the note paths a favourites card shows, folded onto the card
+	// at capture so the board can state its own list (see `capture.ts`).
+	{ at: "favorites[]", scope: "vaultPath" },
+
 	// queries
 	{ at: "tasks.taskFilter.text", scope: "userQuery" },
 	{ at: "savedSearch.query", scope: "userQuery" },
@@ -585,6 +589,7 @@ export function stripReferences(
 
 	// Blanked array slots are holes until this closes them.
 	compactTouched(blanked);
+	dropEmptiedOverrides(pkg);
 
 	if (opts.paths) {
 		// The asset's own provenance: the picture stays, the folder it lived in
@@ -598,6 +603,74 @@ export function stripReferences(
 	}
 
 	return { removed, residual: residualPaths(pkg) };
+}
+
+/** One value a strip would remove, named and located. */
+export interface StrippedValue {
+	scope: ReferenceScope;
+	/** Where it sits, e.g. `dashboard.cards[2].tasks.folders[0]`. */
+	pointer: string;
+	value: string;
+}
+
+/**
+ * Exactly what {@link stripReferences} would remove, without removing it.
+ *
+ * The export dialog's answer to "what does leaving out my private things
+ * actually leave out". A count is not an answer — the difference between
+ * "3 paths" and seeing `Journal/2019/Therapy.md` in the list is the difference
+ * between a toggle somebody flips blind and one they can check — so this
+ * returns the values themselves, in the order the walker finds them, from a
+ * copy that is then thrown away.
+ */
+export function previewStrip(pkg: HearthPackage, opts: StripOptions): StrippedValue[] {
+	const scopes = scopesToStrip(opts);
+	const found: StrippedValue[] = [];
+	for (const ref of packageReferences(pkg)) {
+		if (!scopes.has(ref.scope)) continue;
+		found.push({ scope: ref.scope, pointer: ref.pointer, value: String(ref.value) });
+	}
+	if (opts.paths) {
+		for (const asset of pkg.assets ?? []) {
+			if (asset.from === undefined) continue;
+			found.push({
+				scope: "vaultPath",
+				pointer: `assets.${asset.id}.from`,
+				value: asset.from,
+			});
+		}
+	}
+	return found;
+}
+
+/**
+ * Remove a per-card list that the strip has just emptied.
+ *
+ * A favourites card carries its own list only to say "show these instead of the
+ * vault's" (see `DashboardCard.favorites`), so an *absent* list means "follow
+ * the vault" while an empty one means "show nothing, forever". Strip an
+ * author's paths and every entry goes, leaving `[]` behind — which would land
+ * in the importer's vault as a card pinned permanently blank, the exact outcome
+ * folding the list onto the card exists to avoid. An emptied list is not a
+ * choice anybody made, so it comes off with its contents.
+ */
+function dropEmptiedOverrides(pkg: HearthPackage): void {
+	const strip = (cards: DashboardCard[] | undefined): void => {
+		for (const card of cards ?? []) {
+			if (Array.isArray(card?.favorites) && card.favorites.length === 0) {
+				delete card.favorites;
+			}
+		}
+	};
+	const payload = pkg.payload as Bag;
+	if (pkg.hearth.kind === "dashboard") {
+		strip((pkg.payload as DashboardPayload).dashboard?.cards);
+		strip((pkg.payload as DashboardPayload).pinnedCards);
+		return;
+	}
+	for (const dash of (payload.dashboards as Dashboard[] | undefined) ?? []) strip(dash?.cards);
+	strip(payload.cards as DashboardCard[] | undefined);
+	strip(payload.pinnedCards as DashboardCard[] | undefined);
 }
 
 /**

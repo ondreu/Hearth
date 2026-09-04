@@ -61,6 +61,7 @@ import {
 	effectiveTitle,
 	effectiveTitleIcon,
 	type HomeSettings,
+	isPluginBoard,
 	performanceTier,
 } from "../types";
 import { exportSettingsPayload, layoutPayload, scrubCard } from "../layout";
@@ -180,6 +181,94 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
 }
 
 /**
+ * Fold the vault's pinned cards into the board's own card list.
+ *
+ * A pinned card is a Hearth bookkeeping distinction, not a visible one: it is
+ * rendered in the same grid, at its own coordinates, alongside the board's
+ * cards (see `allCards`), and nothing on screen says which list a card came
+ * from. So a package that carried the board's half and left the other half
+ * behind — or worse, offered it as a checkbox — would describe a board nobody
+ * has ever seen. They travel, always, as ordinary cards.
+ *
+ * They arrive as ordinary cards too, which is the other half of the point: the
+ * board looks the way its author's did without an import pinning anything to
+ * every board in the importer's vault. `pinned` is therefore cleared — the copy
+ * is this board's card now, and it is free to be pinned or not on its own.
+ *
+ * A plugin board is the exception, and only because it renders no cards at all —
+ * asked through `isPluginBoard`, which is what the renderer asks. The board's
+ * `mode` is the answer; `pluginView` is kept when a board is switched back to
+ * cards (so switching to plugin view and back doesn't lose the configuration),
+ * so reading that instead would drop the pinned cards from an ordinary board
+ * that had once been a plugin board.
+ */
+function withPinnedCards(board: Dashboard, s: HomeSettings): void {
+	if (isPluginBoard(board)) return;
+	if (!s.pinnedCards.length) return;
+	const taken = new Set(board.cards.map((card) => card.id));
+	board.cards = [
+		...board.cards,
+		...clone(s.pinnedCards).map((card) => {
+			const copy = scrubCard(card);
+			delete copy.pinned;
+			// A suffix rather than a fresh random id: the copy must not collide
+			// with the pinned card it came from (importing your own board back
+			// into your own vault would otherwise put two cards with one id in
+			// it, and a card id keys the slideshow's remembered position and the
+			// schedule card's cursor), and a *stable* id means re-exporting the
+			// same board keeps that memory across an update-in-place.
+			//
+			// Stability has to give way to uniqueness in one case, though:
+			// import your own board back and it arrives holding a folded copy
+			// already, so the next export of it folds a second copy of a card
+			// whose suffixed id is now taken. Both copies are really on the
+			// board and both should travel — they just cannot share an id.
+			copy.id = uniqueCardId(`${copy.id}-pinned`, taken);
+			taken.add(copy.id);
+			return copy;
+		}),
+	];
+}
+
+/** `base`, or `base-2`, `base-3`… until it is one nothing else on the board
+ * answers to. */
+function uniqueCardId(base: string, taken: Set<string>): string {
+	if (!taken.has(base)) return base;
+	for (let n = 2; ; n++) {
+		const candidate = `${base}-${n}`;
+		if (!taken.has(candidate)) return candidate;
+	}
+}
+
+/**
+ * Give every favourites card its own copy of the list it was showing.
+ *
+ * The favourites list is Hearth's own — the note paths a "favourites" card
+ * renders — and it lives vault-wide, so a favourites card exported on its own
+ * arrives empty or, worse, showing the importer's notes. Neither is the board
+ * its author had.
+ *
+ * The fix is the one `foldTaskFields` uses and the one the whole module is
+ * built on: the card stops inheriting and starts stating. Nothing global is
+ * touched on the way in, no other board in the importing vault changes, and
+ * the card can be pointed back at the vault's list whenever its new owner
+ * wants (see `DashboardCard.favorites`).
+ *
+ * An author with no favourites at all folds nothing: an empty list would pin
+ * the card permanently empty, where leaving it inheriting shows the importer
+ * their own notes — the same empty-looking card for the author, a useful one
+ * for everybody else.
+ */
+function foldFavorites(cards: DashboardCard[], s: HomeSettings): void {
+	if (!s.favorites.length) return;
+	for (const card of cards) {
+		if (card.kind !== "favorites") continue;
+		if (card.favorites !== undefined) continue;
+		card.favorites = [...s.favorites];
+	}
+}
+
+/**
  * Give every tasks card its own copy of the field list it was showing.
  *
  * A tasks card can define the metadata it renders, but by default it follows a
@@ -278,13 +367,6 @@ export interface CaptureDashboardOptions extends CaptureOptions {
 	 * The board then arrives carrying only the overrides it really had.
 	 */
 	flatten?: boolean;
-	/** Carry the vault's pinned cards. Off by default: they are not part of this
-	 * board, they are part of every board, and adding them to someone else's
-	 * vault would change boards they didn't ask about. */
-	includePinnedCards?: boolean;
-	/** Carry the vault's favourites list, which a favourites card reads. Off by
-	 * default for the same reason, and it is a list of the author's note paths. */
-	includeFavorites?: boolean;
 }
 
 /**
@@ -306,17 +388,14 @@ export function captureDashboard(
 	// exported on its own, so it needs it on its own — this is the one path a
 	// credential could otherwise leave the vault by.
 	board.cards = board.cards.map(scrubCard);
-	const pinnedCards = opts.includePinnedCards
-		? clone(s.pinnedCards).map(scrubCard)
-		: undefined;
-	const cards = [...board.cards, ...(pinnedCards ?? [])];
-	const needsTaskFields = foldTaskFields(cards, s);
+	// Everything the author saw on this board, as cards: the pinned ones are
+	// part of the picture and the two vault-wide lists a card can read are
+	// folded onto the cards that read them.
+	withPinnedCards(board, s);
+	foldFavorites(board.cards, s);
+	const needsTaskFields = foldTaskFields(board.cards, s);
 
 	const payload: DashboardPayload = { dashboard: board };
-	if (pinnedCards?.length) payload.pinnedCards = pinnedCards;
-	if (opts.includeFavorites && s.favorites.length) {
-		payload.favorites = [...s.favorites];
-	}
 
 	return {
 		hearth: {
@@ -330,7 +409,7 @@ export function captureDashboard(
 		// default. See PackageMeta.id.
 		meta: { id: dash.sourceId, name: dash.name, ...opts.meta },
 		capture: captureInfo(s, opts.locale ?? "en"),
-		requires: requirementsFor(cards, [board], needsTaskFields),
+		requires: requirementsFor(board.cards, [board], needsTaskFields),
 		payload,
 	};
 }

@@ -33,9 +33,15 @@ a board without touching a single global setting.
     "id": "hd-8f2k1x9qa03b",  // this dashboard as a published work — see Identity
     "name": "Reading room",
     "description": "…",
-    "author": "…",
     "tags": ["reading", "minimal"],
-    "version": "2"
+    "version": "2",
+
+    // Authorship — see Who made it. The handle is derived from the key and the
+    // signature proves the key's holder made this file; neither the name nor
+    // the key is taken on trust.
+    "authorPublicKey": "ae4429fc…3ae7",   // ed25519 public key, hex
+    "author": "quiet-lantern-4kj2m8",     // derived; recompute, don't read
+    "signature": "9f31…c0a2"              // ed25519 over the canonical package
   },
   "capture": {                // recorded, never applied
     "platform": "desktop",
@@ -61,10 +67,30 @@ a board without touching a single global setting.
 ```jsonc
 "payload": {
   "dashboard": { /* a Dashboard, with its look resolved onto it */ },
-  "pinnedCards": [ /* optional */ ],
-  "favorites":   [ /* optional */ ]
+
+  // Pre-3.1 only. Still read (folded onto the board on import), never written.
+  "pinnedCards": [ /* … */ ],
+  "favorites":   [ /* … */ ]
 }
 ```
+
+The board is the whole payload. Two things that used to sit beside it are now
+folded onto it at capture, because neither is a thing a dashboard shows
+separately:
+
+- **Pinned cards** are rendered in the same grid as the board's own, at their
+  own coordinates, and nothing on screen says which list a card came from. They
+  travel as ordinary cards on the board, with `pinned` cleared — so the board
+  looks like its author's without an import pinning a stranger's cards onto
+  every board in the importing vault.
+- **The favourites list** (the note paths a `favorites` card shows) is
+  vault-wide, so a favourites card exported alone arrives empty or showing the
+  importer's notes. Capture writes the resolved list onto each favourites card
+  as `DashboardCard.favorites`, the same move `taskFields` makes. An author with
+  no favourites folds nothing, leaving the card inheriting.
+
+A pre-3.1 package carrying either beside the board gets the same fold applied on
+the way in (`adoptLegacyExtras`).
 
 ### `kind: "layout"` and `kind: "settings"`
 
@@ -144,9 +170,9 @@ itself could produce.
 Three things a board is never allowed to claim in someone else's vault: the
 mobile-default flag, a linked workspace, and its own board id — `add` always
 mints a fresh one, so a package cannot pick which of the importer's boards it
-lands on. Pinned cards and the favourites list are *carried* but not applied
-unless the importer asks, because both are vault-wide and would change boards
-they never looked at.
+lands on. Nothing vault-wide is written either: what the author had pinned and
+what their favourites card was showing arrive **on the board**, so no other
+board in the importing vault changes.
 
 ## Identity
 
@@ -182,7 +208,7 @@ id will be offered to readers as an update to the original.
 
 An import returns an `ImportResult`, not a pass/fail. Warning codes:
 `missingPath`, `missingPlugin`, `unknownCardKind`, `unknownViewType`,
-`assetSkipped`, `assetMissing`, `settingRequired`, `notApplied`, `formatNewer`.
+`assetSkipped`, `assetMissing`, `settingRequired`, `formatNewer`.
 None of them stops an import: a downloaded board routinely mentions notes the
 importer hasn't got, and that is worth *saying* rather than showing as a card
 that renders nothing.
@@ -193,6 +219,125 @@ resolved field list onto each card and records the requirement in
 `requires.settings`; the importer is told to turn the switch on, and no global is
 flipped on their behalf.
 
+## Who made it
+
+`meta.author` is **not** a name somebody typed, and a reader must not treat it
+as one. Hearth mints one secret per vault — a **recovery key**, which never
+leaves it — and everything else follows from it (`src/identity.ts`):
+
+```
+  recovery key   HEARTH-4KJ2M-8XQP7-R3TWD-N6VBZ   private, never exported
+         │  sha-256 → a 32-byte seed
+         ▼
+  signing key    (ed25519 private)                private, never exported
+         │
+         ▼
+  meta.authorPublicKey                            travels, as machinery
+         │  sha-256 → two words and a suffix
+         ▼
+  meta.author    quiet-lantern-4kj2m8             the one public identity
+```
+
+Three properties, and they are worth keeping apart because they are easy to
+conflate — deriving a handle from a key gives you only the first of them:
+
+| Property | Means | Comes from |
+| --- | --- | --- |
+| **Stable** | the same key always gives the same handle, in any vault | the derivation |
+| **Unique** | two people do not end up sharing a handle | the handle's width |
+| **Unforgeable** | nobody can publish under a handle they don't hold | the signature |
+
+**Stable.** Everything public is derived, so the key is the only thing worth
+keeping. Pasted into a fresh vault, the same handle comes back — no account, and
+nothing held anywhere else. `authorKey` is excluded from every export, backups
+included: a settings backup is a thing people hand each other, and a key in one
+is an identity given away.
+
+**Unique.** Determinism does *not* give this. A handle smaller than the key it
+comes from must collide eventually, and two words drawn from lists of 64 would
+have meant a better-than-even chance of some pair of users colliding at about
+7,500 of them. So the handle carries its own entropy: 256 adjectives, 256 nouns
+and a six-symbol Crockford-base32 suffix — 46 bits, which puts a collision past
+nine million users. It is the whole public identity; there is no separate id
+beside it. **Never reorder or remove a word from either list** — a word's index
+is part of somebody's handle.
+
+**Unforgeable.** This is what the keypair is for, and hashing cannot substitute.
+A package is a static file, so any proof it carries its reader now has: "prove
+you know the secret" has no answer that consists of writing the secret down. A
+signature does have one. `verifyPackageSignature(pkg)` returns `valid`,
+`unsigned` or `invalid`, and `packageAuthor(pkg)` returns a handle **only** for
+`valid` — an unsigned package and one whose signature fails are equally not
+evidence of who made it.
+
+### What the signature covers
+
+Everything except two fields: `meta.signature`, which cannot sign itself, and
+`meta.author`, which a reader derives rather than reads. The subject is built
+field by field in `signedBytes()` rather than by copying the package, so it
+matches exactly what `readPackage()` reconstructs — otherwise a package from a
+newer Hearth carrying an envelope field this build discards would fail
+verification and be reported as a forgery. **Add a field to the format, add it
+there too, or it travels unsigned.**
+
+Bytes are canonicalised (keys in code-unit order, no whitespace, arrays left
+alone, `undefined` dropped) so a package that has been parsed and rebuilt hashes
+the same as the one that was signed.
+
+`signPackage()` must therefore be the **last** step of an export — after
+embedding pictures and after any strip.
+
+### Using the same key for a gallery account
+
+The recovery key signs packages, but nothing about it is package-specific: it is
+an ed25519 private key, so the same key answers "is this request from the holder
+of that handle?" through an ordinary challenge-response.
+
+```ts
+// Gallery → client: a random nonce, once per sign-in.
+// Client (inside Hearth):
+import { signMessage } from "src/identity";
+const proof = signMessage(settings.authorKey, nonce);
+// Gallery: verifyMessage(storedPublicKey, nonce, proof)
+```
+
+That gives accounts, comments and per-author pages with no passwords stored
+anywhere: a breach of the gallery leaks public keys, which are public. And a
+profile exists before anyone signs up — a public key appears the moment somebody
+uploads a board signed with it, and its owner claims the page later by answering
+a challenge. There is no registration step to build.
+
+Three constraints that come with it, all of them cheaper to honour now than to
+retrofit:
+
+- **Never ask for the key.** Signing happens inside Hearth and only the
+  signature crosses the wire. A gallery that accepts a pasted key in a web form
+  teaches users to hand their signing key to whatever page asks — and one
+  phishing page then publishes as anyone, permanently. The key has no reason to
+  leave the vault and no interface should offer it a way out.
+- **Reputation is not Sybil-resistant.** Keys are free to mint, so handles are
+  free to mint, so votes are free to mint. Nothing in this format can fix that;
+  it has to be priced elsewhere (an account that has published something, age,
+  rate limits) or designed around.
+- **Show the whole handle.** `polished-yarrow-n5tjd6` and
+  `polished-yarrow-n5tjd5` read identically to anyone skimming, and the suffix
+  is the part nobody reads. Truncating to the words makes impersonation a matter
+  of minting keys until two words match.
+
+### What it does not give you
+
+- **Not an introduction.** A verifier learns "the same hand made this and that",
+  not "this is Ondřej". That is trust on first use, like an SSH key. Binding a
+  handle to a person needs someone to vouch, which is a gallery's job.
+- **Not permanence through a gallery.** A strip is an edit and a republish
+  overwrites `meta.id`, so both invalidate the signature they just checked.
+  Verification is an **upload-time** proof: the gallery verifies, then
+  republishes under its own attestation. End-to-end verification survives only a
+  file passed along untouched.
+- **Not a bar on redistribution.** Copying a signed file unchanged verifies, and
+  must — the file really was made by the author it names. What is prevented is
+  putting an author's name on a board they did not make.
+
 ## The gallery hand-off
 
 **A local export deliberately contains the author's vault paths.** That is not
@@ -200,12 +345,20 @@ an oversight — the author's own copy has to keep working. The paths come off
 when the package is *published*:
 
 ```ts
-import { stripReferences, residualPaths } from "src/portable";
+import { previewStrip, stripReferences, residualPaths } from "src/portable";
 
 const report = stripReferences(pkg);   // paths + private + content
 // report.removed  → counts per scope
 // report.residual → anything still path-shaped. Non-empty = hold for review.
+
+previewStrip(pkg, { paths: true });    // the same walk, listing the values and
+                                       // changing nothing
 ```
+
+The export dialog runs the same strip: **Leave out my private information** is
+`{ paths, private, content }`, and its details section lists what each group
+will remove — through `previewStrip()`, so what it shows is what the strip does
+rather than a second description of it.
 
 `src/portable/refs.ts` holds the one table of every field that points outside
 the package, classified by scope:
@@ -221,6 +374,9 @@ the package, classified by scope:
 | `commandId`, `viewType` | names a plugin, not the author | `plugins` (off) |
 | `userQuery` | a search/Dataview/Datacore query, or a frontmatter property a card reads | `queries` (off) |
 | `userContent` | the author's own prose or working state | `content` |
+
+`vaultPath` includes a favourites card's own list, which is a list of the
+author's notes.
 
 `paths` also drops each embedded asset's `from`: the picture stays, the folder
 it lived in does not.
@@ -258,16 +414,21 @@ want to strip or proxy `publicUrl` itself.
 ### A suggested upload pipeline
 
 1. `readPackage(json)` — reject anything that isn't a package.
-2. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
-3. `stripReferences(pkg)` — the default takes paths, private references and
+2. `verifyPackageSignature(pkg)` — **before** anything mutates it. `valid` means
+   the uploader holds the key behind `meta.authorPublicKey`; `invalid` should be
+   rejected outright. Record the public key as the entry's author, and note that
+   step 3 invalidates the signature, so the listing carries your attestation from
+   here on, not the author's.
+3. Reject `hearth.kind !== "dashboard"`: a gallery entry is one board.
+4. `stripReferences(pkg)` — the default takes paths, private references and
    the author's own prose. Pass `{ content: false }` only for a board whose text
    really is part of the design.
-4. Hold for review if `report.residual` is non-empty.
-5. Re-check `assets`: type against the allowlist, `bytes` against the decoded
+5. Hold for review if `report.residual` is non-empty.
+6. Re-check `assets`: type against the allowlist, `bytes` against the decoded
    length, and the total against your own budget.
-6. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
+7. Set `meta.id` to your own entry id — see **Identity**. Reuse it when the
    same entry is updated, and mint a new one for a fork.
-7. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
+8. Index `meta`, `requires` and `describeReferences(pkg)` for the listing;
    `capture.performanceTier` is worth showing as "captured on a low-power
    device".
 
@@ -278,7 +439,7 @@ card's personal access token. It is one exported function precisely so a new
 export path cannot forget it — if you add a field that holds a credential, add
 it there.
 
-`lastSeenVersion` and `setupStatus` are deliberately never exported, so a shared
+`lastSeenVersion`, `setupStatus` and `authorKey` are deliberately never exported, so a shared
 file cannot rewind another vault's "What's new" state or re-offer its setup
 wizard. Every other setting travels in a `settings` package, and a test checks
 the export against the settings list so the next one added cannot slip through.

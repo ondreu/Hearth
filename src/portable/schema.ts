@@ -84,7 +84,41 @@ export interface PackageMeta {
 	id?: string;
 	name?: string;
 	description?: string;
+	/**
+	 * The author's ed25519 public key, lower-case hex — machinery rather than an
+	 * identity, and nobody is ever asked to read it.
+	 *
+	 * Two things are computed from it, and between them they are the whole of
+	 * authorship in this format: the handle a reader displays
+	 * (`handleFromPublicKey`), and the check that {@link signature} was made by
+	 * the holder of its private half. It is stable across an author's exports
+	 * and across their vaults, so it is also what a gallery groups a maker's
+	 * work by.
+	 */
+	authorPublicKey?: string;
+	/**
+	 * The author's handle, as `quiet-lantern-4kj2m8`.
+	 *
+	 * Written for anything reading the file without Hearth's derivation, and
+	 * *not* to be believed: a reader recomputes it from
+	 * {@link authorPublicKey} rather than reading it, so a package claiming a
+	 * name that does not follow from its key displays as whoever that key
+	 * really is. Being derived, it is deliberately **not covered by the
+	 * signature** — see `signature.ts`.
+	 */
 	author?: string;
+	/**
+	 * An ed25519 signature over the package, lower-case hex.
+	 *
+	 * What makes an author more than a label: a handle can be copied out of any
+	 * package that carries it, and only the holder of the matching private key
+	 * can produce a signature that verifies. Covers everything except itself and
+	 * {@link author}, so any edit to the file invalidates it — including a
+	 * gallery's own strip-and-republish, which makes this an upload-time proof
+	 * rather than a permanent one. See `signature.ts` for what follows from
+	 * that.
+	 */
+	signature?: string;
 	/** Free-form, lower-cased by convention. A gallery's facets. */
 	tags?: string[];
 	/** The author's own version string for this board, if they keep one. */
@@ -193,13 +227,26 @@ export const MAX_TOTAL_ASSET_BYTES = 16 * 1024 * 1024;
 /** The payload of a `dashboard` package: one board, and the vault-scoped extras
  * it may need. */
 export interface DashboardPayload {
+	/**
+	 * The board, stating everything it needs in order to look like itself.
+	 *
+	 * That includes the cards its author had pinned to every board and the
+	 * favourites list a favourites card was reading: both are folded onto the
+	 * board at capture (see `capture.ts`), because neither is visible as a
+	 * separate thing on a dashboard and neither can be applied on the way in
+	 * without changing boards the importer never asked about.
+	 */
 	dashboard: Dashboard;
-	/** Cards pinned to every board in the author's vault. Carried because they
-	 * are part of what the author saw, and applied only when the importer asks
-	 * for them — they would otherwise appear on every board in *their* vault. */
+	/**
+	 * Pre-3.1 only. Cards the author had pinned to every board, carried beside
+	 * the board rather than on it.
+	 *
+	 * Still read — `adoptLegacyExtras` folds them into the board's own cards on
+	 * import — and no longer written.
+	 */
 	pinnedCards?: DashboardCard[];
-	/** The author's favourites list, when the board has a card that reads it.
-	 * Vault paths, and vault-wide: never applied unless the importer opts in. */
+	/** Pre-3.1 only, and read the same way: folded onto the board's favourites
+	 * cards instead of appended to the importer's vault-wide list. */
 	favorites?: string[];
 }
 
@@ -256,10 +303,6 @@ export type ImportWarningCode =
 	| "assetMissing"
 	/** The package needs a Hearth setting switched on to show everything. */
 	| "settingRequired"
-	/** Vault-wide extras (favourites, pinned cards) were carried but not
-	 * applied, because applying them would change boards the importer didn't
-	 * ask about. */
-	| "notApplied"
 	/** The package was written by a newer Hearth; unknown fields were ignored. */
 	| "formatNewer";
 

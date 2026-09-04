@@ -1,5 +1,6 @@
 import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
+import { normalizeAuthorKey } from "./identity";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
 import type {
@@ -1500,6 +1501,19 @@ export interface DashboardCard {
 	 * Any combination of the search filter's types; undefined or empty means all
 	 * types are shown. */
 	recentTypes?: string[];
+	/**
+	 * kind === "favorites": this card's own list of note paths, instead of the
+	 * vault-wide one in `settings.favorites`.
+	 *
+	 * Undefined is the normal case and means "follow the vault", which is what
+	 * every favourites card did before this field existed and what a card added
+	 * by hand still does. It is set by an import: a board arriving from another
+	 * vault carries the paths its author's card was showing, and folding them
+	 * onto the card is the only way that card can arrive looking like theirs
+	 * without an import quietly rewriting a list every *other* board in this
+	 * vault reads from.
+	 */
+	favorites?: string[];
 	/** kind === "clock": time/greeting/date display options. */
 	clock?: ClockConfig;
 	/** kind === "tasks": source, folder scope and display options. */
@@ -2306,6 +2320,29 @@ export interface HomeSettings {
 	lastSeenVersion: string;
 	/** How far the first-run setup wizard has got. See {@link SetupStatus}. */
 	setupStatus: SetupStatus;
+	/**
+	 * The secret behind this vault's export identity, minted the first time a
+	 * dashboard is exported. Empty until then.
+	 *
+	 * Private, and the only part of an identity that is stored: the public
+	 * author id and the username are derived from it on demand (see
+	 * `src/identity.ts`). Deliberately left out of every export file, backups
+	 * included — a settings backup is a thing people hand to each other, and a
+	 * key in one is an identity given away. Carrying an identity to a new
+	 * install is a separate, deliberate paste of the key itself.
+	 */
+	authorKey: string;
+	/**
+	 * Whether the user has been handed their recovery key.
+	 *
+	 * There is no reset: nothing but this vault holds the key, so losing it
+	 * loses the handle and everything published under it, permanently. That is
+	 * the price of having no accounts, and it is only a fair price if the moment
+	 * of being told is impossible to walk past — so the export dialog keeps
+	 * saying so until the key has actually been copied, and this is the flag
+	 * that stops it nagging afterwards.
+	 */
+	authorKeySaved: boolean;
 }
 
 /**
@@ -2443,6 +2480,10 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// every *existing* vault as done, so nobody is offered a rebuild of a
 	// dashboard they already have.
 	setupStatus: "pending",
+	// Minted on first use, never before: a vault that has not shared anything
+	// has no identity to have.
+	authorKey: "",
+	authorKeySaved: false,
 };
 
 /** The cards a brand-new vault starts with. Coordinates and sizes are taken
@@ -3242,6 +3283,14 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 		// treated as done, which is the outcome that never surprises anyone.
 		s.setupStatus = "done";
 	}
+	// An identity is a key or it is nothing: anything else in the field (a
+	// hand-edit, a half-synced data.json) would derive an id nobody can recover,
+	// so it is cleared rather than kept. Normalised in place so a key pasted in
+	// any casing or spacing settles to one stored form.
+	s.authorKey = typeof raw.authorKey === "string" ? (normalizeAuthorKey(raw.authorKey) ?? "") : "";
+	// A vault with no key has nothing to have saved, so the prompt starts over
+	// with the identity rather than staying dismissed from a previous one.
+	s.authorKeySaved = s.authorKey !== "" && raw.authorKeySaved === true;
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";

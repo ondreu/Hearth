@@ -1358,6 +1358,65 @@
 	font-size: var(--font-ui-smaller);
 }
 
+/* The export dialog's "see and tune exactly what travels" disclosure. Closed by
+ * default and empty until it is opened, because listing every reference a board
+ * holds is work nobody should pay for on an export they never expand. */
+.hearth-export-details {
+	margin: 6px 0 2px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-export-details > summary {
+	padding: 10px 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+	user-select: none;
+}
+
+.hearth-export-details > summary:hover,
+.hearth-export-details[open] > summary {
+	color: var(--text-normal);
+}
+
+.hearth-export-details-body {
+	padding-inline-start: 12px;
+	border-inline-start: 2px solid var(--background-modifier-border);
+}
+
+/* The values a group would remove, or the ones the file will carry. Monospaced
+ * and scrollable: these are paths and URLs, and a long one must be readable in
+ * full rather than wrapped into the next line's meaning. */
+.hearth-export-values {
+	margin: 6px 0 0;
+	padding-inline-start: 18px;
+	max-height: 180px;
+	overflow-y: auto;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+}
+
+/* The import dialog's broken-signature notice: the warning box, as a plain
+ * paragraph rather than a settings row. */
+.hearth-import-warning {
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+}
+
+/* A note row that only applies while a switch above it is off — the export
+ * dialog's reference count, which stops being true once those references are
+ * being stripped. */
+.hearth-setting-note.is-hidden {
+	display: none;
+}
+
+.hearth-export-values-empty {
+	margin-top: 4px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
 /* A quiet inline note in the card editor (e.g. the plugin-view performance
  * hint): muted, borderless, with a small leading icon. */
 .hearth-setting-note {

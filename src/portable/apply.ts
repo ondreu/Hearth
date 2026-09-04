@@ -180,13 +180,6 @@ export interface ApplyOptions {
 	 * anything keyed by board id — workspace link, hosted-view cache, scroll
 	 * memory — survives the update. */
 	targetBoardId?: string;
-	/** Apply the package's pinned cards. Off by default: they show on *every*
-	 * board, so adding a stranger's would change boards the importer never
-	 * looked at. */
-	applyPinnedCards?: boolean;
-	/** Append the package's favourites to the vault's list, keeping the
-	 * vault's own. Off by default, for the same reason. */
-	applyFavorites?: boolean;
 	/** Switch to the imported board afterwards. On by default. */
 	activate?: boolean;
 	env?: ImportEnvironment;
@@ -312,7 +305,7 @@ function applyDashboardPackage(
 		result.activeDashboardId = board.id;
 	}
 
-	applyExtras(s, payload, opts, result);
+	adoptLegacyExtras(board, payload);
 	checkEnvironment(s, board, pkg, opts.env, result);
 	return result;
 }
@@ -392,38 +385,42 @@ function applySettingsPayload(
 	return null;
 }
 
-/** Pinned cards and favourites: carried by the package, applied only on
- * request, and reported when they are carried and skipped. */
-function applyExtras(
-	s: HomeSettings,
-	payload: DashboardPayload,
-	opts: ApplyOptions,
-	result: ImportResult,
-): void {
+/**
+ * The two vault-wide extras a pre-3.1 dashboard package carried beside the
+ * board, folded onto the board itself.
+ *
+ * Those packages described a board in two halves — its own cards here, the
+ * author's pinned cards and favourites list over there — and an import could
+ * only take the second half by writing it into the importer's *vault*: pinning
+ * a stranger's cards onto every board they own, appending a stranger's note
+ * paths to their favourites. So it was offered as a pair of checkboxes, which
+ * is a question nobody could answer, since nothing on a dashboard tells a
+ * pinned card from a normal one.
+ *
+ * A package written now carries no such halves: `capture.ts` folds both onto
+ * the board before it is written. This is the same fold, applied on the way in
+ * to a file written before it existed — so an old package lands as the board it
+ * always described, and still without one global being touched.
+ */
+function adoptLegacyExtras(board: Dashboard, payload: DashboardPayload): void {
 	if (payload.pinnedCards?.length) {
-		if (opts.applyPinnedCards) {
-			const cards = payload.pinnedCards
-				.map((c, i) => sanitizeCard(c, i))
-				.filter((c): c is DashboardCard => c !== null)
-				// Fresh ids: the vault may already hold a pinned card from an
-				// earlier import of the same package.
-				.map((c) => cloneCard(c));
-			s.pinnedCards = [...s.pinnedCards, ...cards];
-		} else {
-			warn(result, "notApplied", `pinnedCards:${payload.pinnedCards.length}`);
-		}
+		const cards = payload.pinnedCards
+			.map((c, i) => sanitizeCard(c, i))
+			.filter((c): c is DashboardCard => c !== null)
+			// Fresh ids: the vault may already hold a copy from an earlier import
+			// of the same package.
+			.map((c) => cloneCard(c))
+			.map((c) => {
+				delete c.pinned;
+				return c;
+			});
+		board.cards = [...board.cards, ...cards];
 	}
-	if (payload.favorites?.length) {
-		if (opts.applyFavorites) {
-			const existing = new Set(s.favorites);
-			for (const path of payload.favorites) {
-				if (typeof path === "string" && !existing.has(path)) {
-					s.favorites.push(path);
-					existing.add(path);
-				}
-			}
-		} else {
-			warn(result, "notApplied", `favorites:${payload.favorites.length}`);
+	const favorites = payload.favorites?.filter((p): p is string => typeof p === "string");
+	if (favorites?.length) {
+		for (const card of board.cards) {
+			if (card.kind !== "favorites" || card.favorites !== undefined) continue;
+			card.favorites = [...favorites];
 		}
 	}
 }
