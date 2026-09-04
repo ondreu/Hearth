@@ -11,6 +11,28 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # typescript-eslint declares `typescript ">=4.8.4 <6.1.0"` as a peer, but
+      # it cannot actually type this project under TypeScript 6: every
+      # type-aware rule falls back to the `error` type and `npm run lint` comes
+      # back with ~51 "unsafe call / member access on a value of type error"
+      # failures in test/**. Reaching TS 6 also needs a tsconfig migration —
+      # `baseUrl` and `moduleResolution: node10` are both deprecated in 6 and
+      # removed in 7. Drop this entry once typescript-eslint supports TS 6, and
+      # do the tsconfig migration in a commit of its own.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # @types/node tracks the Node the CI workflows run on, so it is bumped
+      # alongside `node-version` rather than on its own schedule. Types that run
+      # majors ahead of the runtime describe APIs the build does not have.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # Pinned to the exact moment Obsidian bundles: `import { moment } from
+      # "obsidian"` resolves against this copy's types at build time but against
+      # Obsidian's at runtime, so the two have to agree. Only dev-time types are
+      # involved — the shipped plugin never bundles this package — so no
+      # advisory against it can reach a user's vault.
+      - dependency-name: "moment"
 
   # Keep GitHub Actions pinned versions current.
   - package-ecosystem: github-actions
