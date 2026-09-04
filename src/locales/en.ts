@@ -3669,7 +3669,10 @@ export const en = {
 	// ---- Export / import (portable packages) ---------------------------
 	portable: {
 		exportModal: {
-			title: "Export dashboard",
+			title: "Share dashboard",
+			saveFile: "Save a file",
+			publishPinned:
+				"Publishing carries the wallpaper, removes your vault's paths and private feeds, and signs the file with your handle. Those three aren't optional — open the details to see exactly what goes and what stays.",
 			intro:
 				"Saves this one dashboard as a file. Everything about how it looks travels with it, so it draws the same in another vault.",
 			name: "Name",

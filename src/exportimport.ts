@@ -28,12 +28,23 @@
  * stranger's dashboard a safe thing to do at all.
  */
 
-import { type App, Modal, Notice, Platform, Setting, TFile } from "obsidian";
+import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import type { Dashboard } from "./types";
 import { detectLanguage, t } from "./i18n";
 import { confirmAction, downloadTextFile, pickTextFile, promptForText } from "./ui";
 import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
+import {
+	asGalleryCategory,
+	DEFAULT_GALLERY_CATEGORY,
+	GALLERY_CATEGORIES,
+	GalleryError,
+	galleryClient,
+	galleryConfigured,
+	previewFromPackage,
+	publishDashboard,
+} from "./gallery";
+import { galleryErrorText, renderPreview } from "./galleryui";
 import {
 	captureDashboard,
 	describeReferences,
@@ -98,9 +109,39 @@ export async function exportSettings(plugin: HearthPlugin): Promise<void> {
 	await saveExport(plugin.app, PACKAGE_FILENAMES.settings, outcome.json);
 }
 
-/** Open the export dialog for one board. */
+/** Where a shared board is going. See {@link ShareDashboardModal}. */
+type ShareMode = "export" | "publish";
+
+/** Open the share dialog for one board, on the "save a file" side. */
 export function openExportDashboard(plugin: HearthPlugin, dash: Dashboard): void {
-	new ExportDashboardModal(plugin, dash).open();
+	new ShareDashboardModal(plugin, dash, "export").open();
+}
+
+/**
+ * Open the same dialog on the "publish" side.
+ *
+ * Falls back to the file side when no gallery is configured rather than opening
+ * a form whose button cannot do anything: the destination switch says why, and
+ * saving a file is the thing that still works.
+ */
+export function openPublishDashboard(plugin: HearthPlugin, dash: Dashboard): void {
+	new ShareDashboardModal(plugin, dash, galleryConfigured(plugin) ? "publish" : "export").open();
+}
+
+/**
+ * Open the import dialog for a package already in hand.
+ *
+ * The gallery's install path comes through here: the bytes it downloaded go to
+ * exactly the dialog a file picked off disk goes to, so a board from a stranger
+ * on the internet gets the signature check, the missing-note list and the
+ * sanitizers, not a shortcut around them.
+ */
+export function openImportPackage(
+	plugin: HearthPlugin,
+	json: string,
+	pkg: HearthPackage,
+): void {
+	new ImportModal(plugin, json, pkg).open();
 }
 
 /**
@@ -282,39 +323,159 @@ async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Pro
  * trusted. It is built the first time it is opened and rebuilt when a choice
  * above it changes, so an export nobody opens it for costs nothing.
  */
-class ExportDashboardModal extends Modal {
+/**
+ * Sharing a board: one dialog, two destinations.
+ *
+ * Saving a file and publishing to a gallery ask almost exactly the same
+ * questions — what is this board called, what is it for, what of your vault
+ * should travel with it — and the small number of places they differ are
+ * differences in *defaults*, not in the conversation. So they are one dialog
+ * with a switch at the top rather than two that drift apart, and the switch is
+ * the first thing on screen because it changes what the rest of it means.
+ *
+ * What publishing pins, and why each is not a switch:
+ *
+ * | | Save a file | Publish |
+ * | --- | --- | --- |
+ * | Pictures travel | your choice, on by default | always — a wallpaper left as a path arrives missing in every vault but yours |
+ * | Private things come out | your choice, **off** by default | always — your own copy has to keep working; a stranger's copy has no reason to name your folders |
+ * | Signed | your choice | always — an unsigned entry has no provable author, so anybody can later claim it |
+ *
+ * The details section still tunes *which* groups the strip takes, because a
+ * board whose text cards are part of the design is a real thing to publish.
+ * What is not there on the publish side is the switch that turns the strip off.
+ */
+class ShareDashboardModal extends Modal {
 	private plugin: HearthPlugin;
 	private dash: Dashboard;
+	private mode: ShareMode;
 	private opts: ExportDashboardOptions = { flatten: true, embedAssets: true };
-	/** The one-switch summary of the section below. */
+	/** The one-switch summary of the section below. Publishing pins it on. */
 	private stripPrivate = false;
 	/** What that switch means, tunable in the details section. */
 	private strip: StripOptions = { ...DEFAULT_STRIP };
 	private includeIdentity = true;
-	private meta = { name: "", description: "", tags: "" };
+	private meta = { name: "", description: "", tags: "", category: DEFAULT_GALLERY_CATEGORY };
 	private busy = false;
 	/** The disclosure, so a choice above it can redraw its contents in place. */
 	private details?: HTMLDetailsElement;
 
-	constructor(plugin: HearthPlugin, dash: Dashboard) {
+	constructor(plugin: HearthPlugin, dash: Dashboard, mode: ShareMode) {
 		super(plugin.app);
 		this.plugin = plugin;
 		this.dash = dash;
+		this.mode = mode;
 		this.meta.name = dash.name;
+		if (mode === "publish") this.stripPrivate = true;
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("hearth-share-modal");
 		this.render();
 	}
 
-	/** Drawn from scratch, so replacing the vault's identity can redraw the row
-	 * that shows it. */
+	private get publishing(): boolean {
+		return this.mode === "publish";
+	}
+
+	/** Drawn from scratch, so switching destination — or replacing the vault's
+	 * identity — redraws everything that depends on it. */
 	private render(): void {
 		const strings = t().portable.exportModal;
-		this.titleEl.setText(strings.title);
+		this.titleEl.setText(this.publishing ? t().gallery.publish.title : strings.title);
 		const body = this.contentEl;
 		body.empty();
-		body.createEl("p", { text: strings.intro, cls: "hearth-modal-intro" });
+
+		this.renderHero(body);
+		this.renderDestination(body);
+		body.createEl("p", {
+			text: this.publishing ? t().gallery.publish.intro : strings.intro,
+			cls: "hearth-modal-intro",
+		});
+		// The one thing about publishing that is not undoable, said before the
+		// fields rather than beside the button: copies stay installed after an
+		// entry is withdrawn, and that is worth knowing while you are still
+		// deciding whether to fill the form in.
+		if (this.publishing) {
+			body.createDiv({ cls: "hearth-share-warning", text: t().gallery.publish.warning });
+		}
+
+		this.renderListingFields(body);
+
+		identitySetting(this.plugin, body, () => this.render(), {
+			// About to publish: the handle has to exist so it can be shown.
+			mint: true,
+			decorate: (row) => {
+				// Publishing without an identity is publishing something nobody
+				// can prove they wrote, so there is nothing to switch off.
+				if (this.publishing) return;
+				row.addToggle((tg) =>
+					tg.setValue(this.includeIdentity).onChange((v) => {
+						this.includeIdentity = v;
+					}),
+				);
+			},
+		});
+
+		new Setting(body).setName(strings.contents).setHeading();
+		this.renderContentChoices(body);
+		this.detailsSection(body);
+		this.renderFooter(body);
+	}
+
+	/** The board itself, drawn the way the gallery will draw it. Sharing a
+	 * dashboard is the one export where what it *looks like* is the point, and
+	 * this is the same thumbnail a listing shows — so the preview is checked
+	 * here rather than discovered after the upload. */
+	private renderHero(body: HTMLElement): void {
+		const hero = body.createDiv("hearth-share-hero");
+		const preview = previewFromPackage(
+			exportPreviewPackage(this.plugin, this.dash, this.opts),
+		);
+		renderPreview(hero, preview);
+		const text = hero.createDiv("hearth-share-hero-text");
+		text.createDiv({ cls: "hearth-share-hero-name", text: this.meta.name || this.dash.name });
+		const count = this.dash.cards.length;
+		text.createDiv({
+			cls: "hearth-share-hero-sub",
+			text: t().gallery.browse.cardCount(count),
+		});
+	}
+
+	/** Save a file, or publish. The switch that decides what the rest means. */
+	private renderDestination(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
+		const row = body.createDiv("hearth-share-modes");
+		const configured = galleryConfigured(this.plugin);
+
+		const tab = (mode: ShareMode, label: string, icon: string, enabled: boolean): void => {
+			const btn = row.createEl("button", { cls: "hearth-share-mode" });
+			btn.toggleClass("is-active", this.mode === mode);
+			btn.setAttribute("aria-pressed", String(this.mode === mode));
+			btn.disabled = !enabled;
+			setIcon(btn.createSpan("hearth-share-mode-icon"), icon);
+			btn.createSpan({ cls: "hearth-share-mode-label", text: label });
+			btn.addEventListener("click", () => {
+				if (this.mode === mode) return;
+				this.mode = mode;
+				// Publishing pins the strip on; coming back from it leaves it on,
+				// which is the safe direction for a switch to be sticky in.
+				if (mode === "publish") this.stripPrivate = true;
+				this.render();
+			});
+		};
+
+		tab("export", strings.saveFile, "download", true);
+		tab("publish", t().gallery.browse.publish, "upload", configured);
+		if (!configured) {
+			row.createDiv({ cls: "hearth-share-modes-note", text: t().gallery.errors.noHost });
+		}
+	}
+
+	/** Name, description, category, tags — what a listing is made of, and what
+	 * a file carries so it can become one later. */
+	private renderListingFields(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
 
 		new Setting(body)
 			.setName(strings.name)
@@ -335,13 +496,25 @@ class ExportDashboardModal extends Modal {
 			);
 
 		new Setting(body)
+			.setName(t().gallery.publish.category)
+			.setDesc(t().gallery.publish.categoryDesc)
+			.addDropdown((dd) => {
+				for (const category of GALLERY_CATEGORIES) {
+					dd.addOption(category, t().gallery.categories[category]);
+				}
+				dd.setValue(this.meta.category).onChange((v) => {
+					this.meta.category = asGalleryCategory(v);
+				});
+			});
+
+		new Setting(body)
 			.setName(strings.tags)
 			.setDesc(strings.tagsDesc)
 			.addText((tx) =>
-				// `setValue` like the two fields above it: this dialog redraws
-				// itself when the identity row changes, and a field that forgets
-				// what was typed still exports it — so the file would carry tags
-				// the dialog had stopped showing.
+				// `setValue` like the fields above it: this dialog redraws itself
+				// when the identity row or the destination changes, and a field
+				// that forgets what was typed still exports it — so the file would
+				// carry tags the dialog had stopped showing.
 				tx
 					.setPlaceholder(strings.tagsPlaceholder)
 					.setValue(this.meta.tags)
@@ -349,20 +522,18 @@ class ExportDashboardModal extends Modal {
 						this.meta.tags = v;
 					}),
 			);
+	}
 
-		identitySetting(this.plugin, body, () => this.render(), {
-			// About to publish: the handle has to exist so it can be shown.
-			mint: true,
-			decorate: (row) => {
-				row.addToggle((tg) =>
-					tg.setValue(this.includeIdentity).onChange((v) => {
-						this.includeIdentity = v;
-					}),
-				);
-			},
-		});
+	/** The two content switches, and the count of what the file will mention.
+	 * Publishing pins both, so it gets the settled statement instead. */
+	private renderContentChoices(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
 
-		new Setting(body).setName(strings.contents).setHeading();
+		if (this.publishing) {
+			const note = new Setting(body).setDesc(strings.publishPinned);
+			note.settingEl.addClass("hearth-setting-note");
+			return;
+		}
 
 		// The wallpaper choice, which is the one people will look for.
 		new Setting(body)
@@ -371,6 +542,7 @@ class ExportDashboardModal extends Modal {
 			.addToggle((tg) =>
 				tg.setValue(this.opts.embedAssets !== false).onChange((v) => {
 					this.opts.embedAssets = v;
+					this.render();
 				}),
 			);
 
@@ -391,18 +563,26 @@ class ExportDashboardModal extends Modal {
 		// past it. It goes away when the switch above removes them.
 		const note = this.referenceNote(body);
 		note?.settingEl.toggleClass("is-hidden", this.stripPrivate);
+	}
 
-		this.detailsSection(body);
-
+	private renderFooter(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
 		new Setting(body)
 			.addButton((b) => b.setButtonText(t().confirm.cancel).onClick(() => this.close()))
 			.addButton((b) =>
 				b
-					.setButtonText(strings.exportButton)
+					.setButtonText(
+						this.publishing
+							? this.busy
+								? t().gallery.publish.publishing
+								: t().gallery.publish.button
+							: strings.exportButton,
+					)
 					.setCta()
-					.onClick(() => void this.run()),
+					.setDisabled(this.busy)
+					.onClick(() => void (this.publishing ? this.runPublish() : this.runExport())),
 			);
-		if (Platform.isMobile) {
+		if (Platform.isMobile && !this.publishing) {
 			const note = new Setting(body).setDesc(t().settings.layout.exportMobileTooltip);
 			note.settingEl.addClass("hearth-setting-note");
 		}
@@ -481,14 +661,20 @@ class ExportDashboardModal extends Modal {
 
 		for (const group of STRIP_GROUPS) {
 			const values = previewStrip(pkg, { [group]: true }).map((v) => v.value);
+			// Publishing pins these two on, so they are shown as facts about the
+			// upload rather than as choices that would be ignored.
+			const pinned = this.publishing && (group === "paths" || group === "private");
 			const setting = new Setting(inner)
 				.setName(strings.groups[group])
 				.setDesc(strings.groupDesc[group])
 				.addToggle((tg) =>
-					tg.setValue(this.strip[group] === true).onChange((v) => {
-						this.strip[group] = v;
-						this.redrawDetails();
-					}),
+					tg
+						.setValue(pinned || this.strip[group] === true)
+						.setDisabled(pinned)
+						.onChange((v) => {
+							this.strip[group] = v;
+							this.redrawDetails();
+						}),
 				);
 			// Nothing in this board falls in this group: say so rather than
 			// offering a switch that would do nothing.
@@ -499,12 +685,12 @@ class ExportDashboardModal extends Modal {
 				});
 				continue;
 			}
-			if (this.strip[group] !== true) continue;
+			if (!pinned && this.strip[group] !== true) continue;
 			const list = setting.descEl.createEl("ul", { cls: "hearth-export-values" });
 			for (const value of unique(values)) list.createEl("li", { text: value });
 		}
 
-		const total = previewStrip(pkg, this.strip).length;
+		const total = previewStrip(pkg, this.effectiveStrip()).length;
 		const note = new Setting(inner).setDesc(strings.stripTotal(total));
 		note.settingEl.addClass("hearth-setting-note");
 	}
@@ -533,27 +719,50 @@ class ExportDashboardModal extends Modal {
 		}
 	}
 
-	private async run(): Promise<void> {
+	// ---- Running --------------------------------------------------------
+
+	/** The strip as it will actually run: the tuned groups, with the two a
+	 * publish pins forced on. One function, so the total shown in the details
+	 * section is computed from the same thing the export uses. */
+	private effectiveStrip(): StripOptions {
+		return this.publishing
+			? { ...this.strip, paths: true, private: true }
+			: { ...this.strip };
+	}
+
+	/** Split from the tags field so both destinations lower-case and de-blank
+	 * them the same way. */
+	private tagList(): string[] {
+		return this.meta.tags
+			.split(",")
+			.map((tag) => tag.trim().toLowerCase())
+			.filter((tag) => tag !== "");
+	}
+
+	/**
+	 * Give the board its published identity, if it hasn't got one.
+	 *
+	 * Sharing is the moment a board becomes a shared work, so it is given an
+	 * identity here and keeps it. Without that, every export of the same board
+	 * would be a different dashboard as far as an importer could tell, and
+	 * "here's the updated version" could only ever land beside the old one.
+	 */
+	private async ensureSourceId(): Promise<void> {
+		if (this.dash.sourceId) return;
+		this.dash.sourceId = newSourceId();
+		await this.plugin.saveData(this.plugin.settings);
+	}
+
+	private async runExport(): Promise<void> {
 		if (this.busy) return;
 		this.busy = true;
 		const strings = t().portable.exportModal;
 		try {
-			// Exporting is the moment a board becomes a shared work, so it is
-			// given an identity here and keeps it. Without that, every export of
-			// the same board would be a different dashboard as far as an importer
-			// could tell, and "here's the updated version" could only ever land
-			// beside the old one. Saved, so the next export agrees with this one.
-			if (!this.dash.sourceId) {
-				this.dash.sourceId = newSourceId();
-				await this.plugin.saveData(this.plugin.settings);
-			}
-			const tags = this.meta.tags
-				.split(",")
-				.map((tag) => tag.trim().toLowerCase())
-				.filter((tag) => tag !== "");
+			await this.ensureSourceId();
+			const tags = this.tagList();
 			const outcome = await exportDashboardFile(this.app, this.plugin.settings, this.dash, {
 				...this.opts,
-				strip: this.stripPrivate ? this.strip : undefined,
+				strip: this.stripPrivate ? this.effectiveStrip() : undefined,
 				// The signing key, not the handle: `exportDashboardFile` signs the
 				// finished file (see `signature.ts`), and the handle it prints is
 				// computed from the key rather than passed in beside it.
@@ -564,6 +773,7 @@ class ExportDashboardModal extends Modal {
 				meta: {
 					name: this.meta.name.trim() || this.dash.name,
 					description: this.meta.description.trim() || undefined,
+					category: this.meta.category,
 					tags: tags.length ? tags : undefined,
 				},
 			});
@@ -591,6 +801,69 @@ class ExportDashboardModal extends Modal {
 			new Notice(t().notices.exportFailed);
 		} finally {
 			this.busy = false;
+		}
+	}
+
+	private async runPublish(): Promise<void> {
+		if (this.busy) return;
+		const strings = t().gallery.publish;
+		const client = galleryClient(this.plugin);
+		if (!client) {
+			new Notice(t().gallery.errors.noHost);
+			return;
+		}
+		if (!this.meta.name.trim() && !this.dash.name.trim()) {
+			new Notice(strings.needsName);
+			return;
+		}
+		const identity = vaultIdentity(this.plugin, true);
+		if (!identity) {
+			new Notice(t().gallery.errors.unsigned);
+			return;
+		}
+
+		this.busy = true;
+		this.render();
+		try {
+			await this.ensureSourceId();
+			const result = await publishDashboard(
+				client,
+				this.app,
+				this.plugin.settings,
+				this.dash,
+				{
+					name: this.meta.name,
+					description: this.meta.description,
+					category: this.meta.category,
+					tags: this.tagList(),
+					strip: this.effectiveStrip(),
+					flatten: this.opts.flatten !== false,
+					signWith: identity.key,
+				},
+				commonOptions(this.plugin),
+				identity.publicKey,
+			);
+			this.close();
+			const name = this.meta.name.trim() || this.dash.name;
+			new Notice(result.updated ? strings.doneUpdate(name) : strings.done(name));
+			// The two things a successful publish should still say out loud: a
+			// picture that couldn't be carried, and the strip's own admission
+			// that the reference table missed something.
+			if (result.skippedAssets.length) {
+				new Notice(
+					t().portable.exportModal.assetsSkipped(result.skippedAssets.join(", ")),
+				);
+			}
+			if (result.residual.length) new Notice(strings.residual(result.residual.length));
+		} catch (err) {
+			new Notice(
+				err instanceof GalleryError && err.code === "rejected" && err.detail === "unsigned"
+					? t().gallery.errors.unsigned
+					: galleryErrorText(err),
+			);
+		} finally {
+			this.busy = false;
+			if (this.containerEl.isConnected) this.render();
 		}
 	}
 }

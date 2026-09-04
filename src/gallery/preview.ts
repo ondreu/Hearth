@@ -157,7 +157,11 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 			truncated++;
 			continue;
 		}
-		const x = clamp(card.x, 0, columns, 0);
+		// `columns - 1`, not `columns`: these are 0-based column indices, and a
+		// tile starting *at* the column count sits one line past the grid, where
+		// the span below cannot pull it back — it would draw a column wide of
+		// every other tile on the board.
+		const x = clamp(card.x, 0, columns - 1, 0);
 		const y = clamp(card.y, 0, 4096, 0);
 		const w = clamp(card.w, 1, columns, 1);
 		const h = clamp(card.h, 1, 64, 1);
@@ -165,7 +169,7 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 			truncated++;
 			continue;
 		}
-		preview.tiles.push({ x, y, w: Math.min(w, columns - x) || 1, h, kind: safeKind(card.kind) });
+		preview.tiles.push({ x, y, w: Math.min(w, columns - x), h, kind: safeKind(card.kind) });
 		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
 	preview.rows = Math.max(1, rows);
@@ -215,11 +219,11 @@ export function readPreview(raw: unknown): GalleryPreview | null {
 	let rows = 0;
 	for (const tile of tiles as Record<string, unknown>[]) {
 		if (!tile || typeof tile !== "object") continue;
-		const x = clamp(tile.x, 0, columns, 0);
+		const x = clamp(tile.x, 0, columns - 1, 0);
 		const y = clamp(tile.y, 0, PREVIEW_MAX_ROWS, 0);
 		const w = clamp(tile.w, 1, columns, 1);
 		const h = clamp(tile.h, 1, PREVIEW_MAX_ROWS, 1);
-		preview.tiles.push({ x, y, w: Math.min(w, columns - x) || 1, h, kind: safeKind(tile.kind) });
+		preview.tiles.push({ x, y, w: Math.min(w, columns - x), h, kind: safeKind(tile.kind) });
 		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
 	preview.rows = clamp(src.rows, 1, PREVIEW_MAX_ROWS, Math.max(1, rows));

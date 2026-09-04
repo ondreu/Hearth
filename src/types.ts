@@ -2353,6 +2353,11 @@ export interface HomeSettings {
 	 * self-hosted gallery can be tried from `docker compose up` without a
 	 * certificate — see `normalizeGalleryUrl` in `src/gallery/client.ts`, which
 	 * is the one place this string is turned into a request.
+	 *
+	 * Deliberately left out of a settings backup, for the reason `authorKey` is,
+	 * one step removed: it is not a secret, but it is a server that receives this
+	 * vault's requests, and a backup is a thing people hand each other. Restoring
+	 * somebody else's must not quietly point your vault at their host.
 	 */
 	galleryUrl: string;
 }

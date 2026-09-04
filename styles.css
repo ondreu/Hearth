@@ -11825,3 +11825,680 @@ body.hearth-dv-resizing {
 .hearth-plugin-board > .hearth-card-empty {
 	flex: 1 1 auto;
 }
+
+/* ==========================================================================
+   Dashboard gallery
+   --------------------------------------------------------------------------
+   Three views share this block: the browse modal (a rail of categories beside
+   a grid of boards), the detail modal, and an author's profile.
+
+   The thumbnail is the part worth reading twice. A published board is drawn
+   from clamped numbers rather than from a picture — see the note at the top of
+   `src/gallery/preview.ts` — so what the CSS is laying out is a real grid whose
+   column and row counts arrive as custom properties, and whose tiles are
+   positioned by `grid-column` / `grid-row`. That is why the geometry lives in
+   inline styles and the *appearance* lives here: the numbers are data from a
+   server, and the colours are the reader's own theme.
+   ========================================================================== */
+
+.hearth-gallery-modal {
+	display: flex;
+	flex-direction: column;
+	width: min(1040px, 96vw);
+	max-width: min(1040px, 96vw);
+}
+
+.hearth-gallery.hearth-gallery {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex: 1 1 auto;
+	/* A fixed height rather than a max, for the reason the card picker's is
+	   fixed: a category with three boards would otherwise collapse the dialog
+	   and move the rail out from under the pointer. */
+	height: min(72vh, 720px);
+}
+
+/* ---- Top bar: search, sort, refresh ---- */
+.hearth-gallery-topbar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.hearth-gallery-search {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-modifier-form-field);
+}
+
+.hearth-gallery-search:focus-within {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-gallery-search-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-gallery-search-input {
+	flex: 1 1 auto;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	padding: 8px 0;
+}
+
+.hearth-gallery-search-input:focus {
+	box-shadow: none;
+}
+
+.hearth-gallery-sort {
+	flex: none;
+}
+
+.hearth-gallery-icon-btn {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 6px;
+	color: var(--text-muted);
+	background: transparent;
+	box-shadow: none;
+}
+
+.hearth-gallery-icon-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+/* ---- Body: rail + results ---- */
+.hearth-gallery-body {
+	display: flex;
+	gap: 16px;
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-gallery-rail {
+	flex: 0 0 190px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow-y: auto;
+	padding-right: 8px;
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+.hearth-gallery-rail-btn,
+.hearth-gallery-rail-publish {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 7px 10px;
+	text-align: left;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-gallery-rail-btn:hover,
+.hearth-gallery-rail-publish:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-gallery-rail-btn.is-active {
+	background: var(--background-modifier-active-hover, var(--background-modifier-hover));
+	color: var(--text-accent);
+	font-weight: var(--font-medium);
+}
+
+.hearth-gallery-rail-icon {
+	display: flex;
+	flex: none;
+}
+
+.hearth-gallery-rail-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-gallery-rail-sep {
+	height: 1px;
+	margin: 8px 4px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-gallery-rail-publish {
+	margin-top: auto;
+	color: var(--text-accent);
+}
+
+.hearth-gallery-results {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-y: auto;
+}
+
+.hearth-gallery-count {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: 8px;
+}
+
+.hearth-gallery-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 14px;
+}
+
+.hearth-gallery-more,
+.hearth-gallery-retry {
+	display: block;
+	margin: 16px auto 4px;
+}
+
+/* ---- One board in the grid ---- */
+.hearth-gallery-card {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+	background: var(--background-primary);
+	transition: border-color 120ms ease;
+}
+
+.hearth-gallery-card:hover {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-gallery-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 10px 12px 12px;
+}
+
+.hearth-gallery-card-name {
+	font-weight: var(--font-medium);
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-gallery-card-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	/* Two lines, then stop: the grid is a set of equal cards, and a board whose
+	   author wrote a paragraph must not make its neighbours taller. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.hearth-gallery-author {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-author.is-clickable {
+	cursor: pointer;
+	text-decoration-line: underline;
+	text-decoration-style: dotted;
+}
+
+.hearth-gallery-author.is-clickable:hover {
+	color: var(--text-accent);
+}
+
+.hearth-gallery-author.is-anonymous {
+	font-style: italic;
+}
+
+.hearth-gallery-stats {
+	display: flex;
+	gap: 12px;
+	margin-top: 4px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-stat {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.hearth-gallery-stat .hearth-gallery-stat-icon {
+	display: flex;
+}
+
+.hearth-gallery-stat .hearth-gallery-stat-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-gallery-stat.is-positive {
+	color: var(--color-green);
+}
+
+.hearth-gallery-stat.is-negative {
+	color: var(--text-error);
+}
+
+/* ---- The thumbnail ---- */
+.hearth-gallery-preview {
+	position: relative;
+	aspect-ratio: 16 / 10;
+	overflow: hidden;
+	background: var(--hearth-gallery-preview-bg, var(--background-secondary));
+	border-bottom: 1px solid var(--background-modifier-border);
+	cursor: pointer;
+}
+
+.hearth-gallery-preview.is-large {
+	aspect-ratio: 16 / 8;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: default;
+}
+
+.hearth-gallery-preview.has-wallpaper {
+	/* The board says it has a wallpaper but this view didn't ask for the
+	   picture: a suggestion of one beats a flat panel that reads as "no
+	   background". */
+	background-image: linear-gradient(
+		135deg,
+		var(--background-secondary),
+		var(--background-modifier-hover)
+	);
+}
+
+.hearth-gallery-preview-wall {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.hearth-gallery-preview-grid {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template-columns: repeat(var(--hearth-preview-cols, 12), 1fr);
+	grid-template-rows: repeat(var(--hearth-preview-rows, 8), 1fr);
+	gap: 3px;
+	padding: 6px;
+}
+
+.hearth-gallery-preview-tile {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--background-primary);
+	opacity: var(--hearth-preview-opacity, 0.88);
+	border-radius: var(--hearth-preview-radius, 4px);
+	/* The radius travels from the board, and a board can ask for 64px on a tile
+	   a few pixels tall — which reads as a circle rather than as that board. */
+	max-width: 100%;
+	overflow: hidden;
+}
+
+.hearth-gallery-preview-tile-icon {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.hearth-gallery-preview-tile-icon svg {
+	width: 13px;
+	height: 13px;
+}
+
+.hearth-gallery-preview.is-empty,
+.hearth-gallery-preview.is-plugin-board {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hearth-gallery-preview-icon {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.hearth-gallery-preview-icon svg {
+	width: 28px;
+	height: 28px;
+}
+
+/* ---- Empty and loading states ---- */
+.hearth-gallery-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 48px 16px;
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.hearth-gallery-empty-icon svg {
+	width: 32px;
+	height: 32px;
+	color: var(--text-faint);
+}
+
+/* ---- Detail modal ---- */
+.hearth-gallery-detail-modal {
+	width: min(720px, 94vw);
+	max-width: min(720px, 94vw);
+}
+
+.hearth-gallery-detail-hero {
+	margin-bottom: 14px;
+}
+
+.hearth-gallery-detail-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.hearth-gallery-detail-byline {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.hearth-gallery-detail-desc {
+	margin: 10px 0 4px;
+	color: var(--text-normal);
+}
+
+.hearth-gallery-chip {
+	padding: 2px 8px;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-vote {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.hearth-gallery-vote-btn {
+	display: flex;
+	padding: 4px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+
+.hearth-gallery-vote-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-gallery-vote-btn.is-active {
+	color: var(--text-accent);
+}
+
+.hearth-gallery-vote-score {
+	min-width: 2.5em;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--font-medium);
+}
+
+.hearth-gallery-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 6px 16px;
+	margin: 14px 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-fact {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-gallery-fact-icon {
+	display: flex;
+	flex: none;
+}
+
+.hearth-gallery-fact-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-gallery-section {
+	margin: 16px 0 8px;
+	font-weight: var(--font-medium);
+	color: var(--text-normal);
+}
+
+.hearth-gallery-note {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-kinds {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.hearth-gallery-kind {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 3px 9px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-kind-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-gallery-kind-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-gallery-kind-count {
+	color: var(--text-faint);
+}
+
+.hearth-gallery-requires-row {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 6px;
+	flex-wrap: wrap;
+}
+
+.hearth-gallery-requires-label {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-gallery-requires-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.hearth-gallery-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.hearth-gallery-remove {
+	margin-right: auto;
+	color: var(--text-error);
+	background: transparent;
+	box-shadow: none;
+}
+
+.hearth-gallery-remove:hover {
+	background: var(--background-modifier-error-hover);
+}
+
+/* ---- Profile ---- */
+.hearth-gallery-profile-stats {
+	display: flex;
+	gap: 24px;
+	margin: 12px 0 16px;
+	flex-wrap: wrap;
+}
+
+.hearth-gallery-profile-stat-value {
+	font-size: 1.5em;
+	font-weight: var(--font-medium);
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-gallery-profile-stat-label {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* ---- Share dialog (export / publish) ---- */
+.hearth-share-modal {
+	width: min(640px, 94vw);
+	max-width: min(640px, 94vw);
+}
+
+.hearth-share-hero {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.hearth-share-hero .hearth-gallery-preview {
+	flex: 0 0 168px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: default;
+}
+
+.hearth-share-hero-name {
+	font-size: 1.15em;
+	font-weight: var(--font-medium);
+}
+
+.hearth-share-hero-sub {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-share-modes {
+	display: flex;
+	gap: 6px;
+	padding: 3px;
+	margin-bottom: 12px;
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	flex-wrap: wrap;
+}
+
+.hearth-share-mode {
+	flex: 1 1 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 7px 10px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+
+.hearth-share-mode:hover:not(:disabled) {
+	color: var(--text-normal);
+}
+
+.hearth-share-mode.is-active {
+	background: var(--background-primary);
+	color: var(--text-normal);
+	box-shadow: var(--shadow-s);
+}
+
+.hearth-share-mode:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.hearth-share-mode-icon {
+	display: flex;
+}
+
+.hearth-share-modes-note {
+	flex: 1 1 100%;
+	padding: 4px 8px 6px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-share-warning {
+	padding: 10px 12px;
+	margin-bottom: 12px;
+	border-left: 3px solid var(--text-accent);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* The setup wizard's way into the gallery, beside Next on the first step. */
+.hearth-setup-gallery {
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-accent);
+}
+
+.hearth-setup-gallery:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* The gallery entry in the add-card picker's rail. */
+.hearth-picker-rail-btn.is-gallery {
+	color: var(--text-accent);
+}

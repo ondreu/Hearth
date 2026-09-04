@@ -18,6 +18,8 @@ import {
 } from "./cardevents";
 import { cardClasses, cardDefinition, cardFromTemplate, cloneCard } from "./cards";
 import { openCardPicker } from "./cardpicker";
+import { openGallery } from "./gallerybrowse";
+import { galleryConfigured } from "./gallery";
 import { openDashboardSettings } from "./dashboards";
 import { moveStacked, stackedCards, stackedHeight } from "./narrow";
 import { CardSettingsModal } from "./editors";
@@ -605,6 +607,9 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 		add.addEventListener("click", () => {
 			openCardPicker(view.app, {
 				hearthVersion: view.plugin.manifest.version,
+				onGallery: galleryConfigured(view.plugin)
+					? () => openGallery(view.plugin)
+					: undefined,
 				onChoose: (template) => {
 					const s = view.plugin.settings;
 					const card = cardFromTemplate(template);
@@ -623,6 +628,22 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 				},
 			});
 		});
+
+		// Beside "Add card", because they are the same question at two scales:
+		// one card you place yourself, or a whole board somebody has already
+		// arranged. Only shown when a gallery is configured — Hearth ships
+		// pointing at none, and a button that only ever says "no gallery is set
+		// up" is a button that has never done anything.
+		if (galleryConfigured(view.plugin)) {
+			const gallery = bar.createEl("button", { cls: "hearth-tool-btn" });
+			setIcon(gallery.createSpan("hearth-tool-icon"), "layout-template");
+			gallery.createSpan({
+				cls: "hearth-tool-label",
+				text: t().gallery.browse.openLabel,
+			});
+			gallery.setAttribute("aria-label", t().gallery.browse.openAria);
+			gallery.addEventListener("click", () => openGallery(view.plugin));
+		}
 
 		// Same editor the dashboard switcher's right-click menu opens, surfaced
 		// here so arrange mode is a self-contained way to configure the board.

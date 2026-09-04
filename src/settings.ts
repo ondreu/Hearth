@@ -16,6 +16,8 @@ import {
 	openExportDashboard,
 	pickAndImport,
 } from "./exportimport";
+import { forgetGallerySession, galleryConfigured, normalizeGalleryUrl } from "./gallery";
+import { openGallery } from "./gallerybrowse";
 import { makeClickable } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { formatSkyValue, parseSkyValue } from "./sky";
@@ -2108,6 +2110,57 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * whole-vault rows below it are the backups, and only those are destructive
 	 * — which is why only those wear the danger styling.
 	 */
+	/**
+	 * Where this vault browses and publishes dashboards.
+	 *
+	 * Under the export rows rather than in a tab of its own: a gallery is the
+	 * far end of the same pipe — a package that goes somewhere instead of into a
+	 * file — and the identity row it depends on is already here.
+	 *
+	 * The address field is the on switch. Hearth ships with none, so nothing is
+	 * fetched and nothing is sent until somebody puts a host in, and the gallery
+	 * buttons elsewhere in the plugin simply are not drawn until then.
+	 */
+	private gallerySection(containerEl: HTMLElement): void {
+		const strings = t().gallery.settings;
+		new Setting(containerEl).setName(strings.heading).setHeading();
+
+		new Setting(containerEl)
+			.setName(strings.host)
+			.setDesc(strings.hostDesc)
+			.addText((tx) =>
+				tx
+					.setPlaceholder(strings.hostPlaceholder)
+					.setValue(this.plugin.settings.galleryUrl)
+					.onChange((v) => {
+						const raw = v.trim();
+						if (!raw) {
+							this.plugin.settings.galleryUrl = "";
+							// A held token belongs to the host it was issued by.
+							forgetGallerySession();
+							void this.plugin.saveData(this.plugin.settings);
+							return;
+						}
+						const host = normalizeGalleryUrl(raw);
+						// Typing is not finished until it is: an invalid address
+						// mid-keystroke is normal, so it simply isn't stored and
+						// isn't complained about either.
+						if (!host) return;
+						this.plugin.settings.galleryUrl = host;
+						forgetGallerySession();
+						void this.plugin.saveData(this.plugin.settings);
+					}),
+			);
+
+		if (!galleryConfigured(this.plugin)) return;
+		new Setting(containerEl)
+			.setName(strings.browse)
+			.setDesc(strings.browseDesc)
+			.addButton((b) =>
+				b.setButtonText(strings.browseButton).onClick(() => openGallery(this.plugin)),
+			);
+	}
+
 	private layoutSection(containerEl: HTMLElement): void {
 		const strings = t().settings.layout;
 
@@ -2137,6 +2190,8 @@ export class HomeSettingTab extends PluginSettingTab {
 		// before it is needed, and nobody goes looking for it inside a dialog
 		// they only open when they are already exporting.
 		identitySetting(this.plugin, containerEl, () => this.rerender());
+
+		this.gallerySection(containerEl);
 
 		// Export the whole dashboard setup as a JSON file.
 		new Setting(containerEl)
