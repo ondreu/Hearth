@@ -15,6 +15,78 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A dashboard gallery, and a server to host one.** Boards other people have
+  published, browsable by category, search or rating, and installable in a
+  click — with the way to publish your own in the same dialog you already
+  export from.
+
+  Browsing is a large modal shaped like the add-card picker: categories down
+  the left, a search field across the top, and four orders to read them in —
+  trending, top rated, newest, most installed. Each board shows as a thumbnail
+  with its author, its score and its install count. Opening one shows what a
+  thumbnail can't: **what is actually on the board**, by card kind; what it
+  needs installed that you may not have; **how much of it is fetched from the
+  internet**; how large the file is; and whether its author can be proved at
+  all. Clicking an author opens their page — everything they have published,
+  and the sum of their votes across all of it.
+
+  **Installing has no separate path.** The package is downloaded and handed to
+  the same import dialog a file picked off disk goes to, so a board from a
+  stranger gets the signature check, the missing-note and missing-plugin list
+  and the sanitizers, rather than a shortcut around them. As always, importing
+  adds a board and touches no global setting.
+
+  A published board can carry **a picture of itself**: a screenshot taken at
+  publish with every word blanked out in the page and every embedded picture
+  blurred *before* the shutter, so the layout, colours, icons and wallpaper
+  survive and nothing readable does. You see the picture in the dialog before
+  anything is uploaded. Desktop only, opt-in, and where there isn't one a
+  wallpaper stands in, and an entry with neither says so.
+
+  The picture blanks out what is *inside* cards that hold something personal,
+  and nothing else: the header, the toolbar, the dashboard switcher, each card's
+  own title, a card with nothing of yours in it (a clock), and a calendar's own
+  dates and weekdays stay as they are. Blanked text is drawn as a soft bar in the theme's own ink rather
+  than as a hard block. A board taller than the window is scrolled through and
+  stitched, so the picture is the whole board; a listing shows its top and the
+  detail view shows all of it. Click it, in the dialog or in the gallery, to see
+  it full size.
+
+  Authors can also say **"recommended with Minimal"** — a toggle that fills in
+  the theme they are using. Advisory: nothing installs or changes a theme.
+
+  Each board also carries **comments** — flat, newest first, a paragraph each.
+  Their author can delete their own, and a board's owner can delete any comment
+  on their board, which is moderation in the hands of the person with the most
+  reason to use it.
+
+  Voting is Reddit-style — upvotes minus downvotes, and pressing the arrow you
+  already chose takes it back. Worth being plain about: identities are free to
+  mint, so votes are free to mint, and no amount of server-side mechanism fixes
+  that. A gallery can make it tedious, and the one this repository ships does,
+  but a vote count means "some number of people who have Hearth installed".
+
+  Three ways in, all of them absent until a gallery is configured: beside **Add
+  card** in arrange mode, above **Request a card** in the picker's rail, and
+  beside **Next** on the setup wizard's first step — where somebody has nothing
+  yet that installing a board could overwrite.
+
+  **Nothing is fetched until you open it, and nothing is sent until you
+  publish.** Hearth points at `gallery.o-uhnavy.com` out of the box; the
+  address lives in Settings → Import / export → Dashboard gallery, and clearing
+  it turns the gallery off entirely — no buttons, no requests — and keeps it off
+  across upgrades. Point it at a different one, or at your own, in the same
+  field.
+
+  **The server is in this repository** (`server/`), and
+  [`docs/gallery-hosting.md`](docs/gallery-hosting.md) is how to run one: one
+  Docker command for a local gallery, a reverse proxy and one environment
+  variable for a public one, and its whole state is a single SQLite file you
+  back up by copying. It has no runtime dependencies, no accounts and no
+  passwords — signing in is a challenge-response against the ed25519 key that
+  already signs your exports, so a breach of a gallery leaks public keys, which
+  are public.
+
 - **Plugin view dashboards.** A dashboard no longer has to be a grid of cards.
   Set one to **Plugin view** (Dashboard settings → General → **Dashboard type**)
   and the whole board becomes a single plugin's view — your RSS reader, a Kanban
@@ -217,6 +289,22 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   The sky override can ask for motion but never insist on it: the performance
   tier and your own reduced-motion setting still have the last word, so an
   imported board can't start animating on a device that has opted out.
+
+### Changed
+
+- **"Export dashboard" is now "Share dashboard",** with a switch at the top for
+  where it is going: a file, or the gallery. The two asked almost the same
+  questions and differed only in their defaults, so they are one dialog rather
+  than two that drift apart. It also gained the board's own thumbnail at the
+  top — the same one a gallery listing draws — and a **category**, which is the
+  one thing about a published dashboard that cannot be worked out from it.
+
+  Publishing names what it takes out — every note, folder and attachment path;
+  private calendar feeds, private hosts and your location; anything you typed on
+  a text card and a calculator's last sum; every credential a card can hold —
+  and what it keeps, which is the board itself. The details section lists the
+  actual values, so it can be checked rather than believed. The wallpaper is a
+  plain switch at the top, on by default, on both sides.
 
 ### Fixed
 

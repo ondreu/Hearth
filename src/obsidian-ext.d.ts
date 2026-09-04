@@ -31,6 +31,14 @@ declare module "obsidian" {
 			 * and verifies consumers against it, so integrations use it. */
 			getPlugin(id: string): unknown;
 		};
+		/** Obsidian's own CSS/theme manager. `theme` is the *name* of the active
+		 * community theme, and "" for Obsidian's default look — which is why the
+		 * empty string is meaningful rather than missing. Used by the share
+		 * dialog's "recommended with" toggle, which fills in the theme the
+		 * author actually built the board against. */
+		customCss?: {
+			theme?: string;
+		};
 		/** Registry of every view type registered via `registerView` (core and
 		 * community). `viewByType` is keyed by the view-type id. Used by the
 		 * "leaf" card to discover hostable side-panel views. */

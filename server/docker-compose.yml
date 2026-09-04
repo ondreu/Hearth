@@ -1,0 +1,39 @@
+# A gallery, from nothing, in one command:
+#
+#     docker compose -f server/docker-compose.yml up -d --build
+#
+# Run it from the repository root — the build context is `..` because the server
+# bundles the plugin's own package engine, which lives in `src/`.
+#
+# What you get: a gallery on http://localhost:8787 whose whole state is one
+# SQLite file in the `gallery-data` volume. Point Hearth at that address
+# (Settings → Dashboard gallery) and it works, with no certificate, because
+# Hearth allows plain http on loopback for exactly this.
+#
+# To put it on the internet, read docs/gallery-hosting.md first: it needs a
+# reverse proxy with TLS in front of it, and TRUST_PROXY=1 once it has one.
+
+services:
+  gallery:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: hearth-gallery
+    restart: unless-stopped
+    # Loopback only by default. Change to "8787:8787" when something in front
+    # of it is terminating TLS — not before.
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - gallery-data:/data
+    environment:
+      GALLERY_NAME: "A Hearth gallery"
+      DB_PATH: /data/gallery.db
+      # Everything else has a default. See server/.env.example for the dials
+      # and what each one is for.
+    env_file:
+      - path: ./.env
+        required: false
+
+volumes:
+  gallery-data:

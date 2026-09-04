@@ -865,6 +865,7 @@ describe("what a package refuses to carry", () => {
 		expect(payload.lastSeenVersion).toBeUndefined();
 		expect(payload.setupStatus).toBeUndefined();
 		expect(payload.authorKey).toBeUndefined();
+		expect(payload.galleryUrl).toBeUndefined();
 	});
 });
 
@@ -881,7 +882,20 @@ describe("the full settings backup carries every setting", () => {
 		// `authorKey` joins the two bookkeeping fields: it is the secret behind
 		// the export identity, and a backup file is a thing people send each
 		// other. See `src/identity.ts`.
-		const omitted = ["lastSeenVersion", "setupStatus", "authorKey", "authorKeySaved"];
+		//
+		// `galleryUrl` is left out for the same reason one step removed. It is
+		// not a secret, but it is a server that will receive this vault's
+		// requests — and a backup people hand each other must not quietly point
+		// somebody's vault at the host whose backup they restored. Losing it on a
+		// restore of your own backup costs one paste; acquiring a stranger's
+		// costs a vault that talks to a server nobody chose.
+		const omitted = [
+			"lastSeenVersion",
+			"setupStatus",
+			"authorKey",
+			"authorKeySaved",
+			"galleryUrl",
+		];
 		const missing = Object.keys(DEFAULT_SETTINGS).filter(
 			(key) => !omitted.includes(key) && !(key in payload),
 		);
@@ -1107,7 +1121,12 @@ describe("what a package points at outside itself", () => {
 		expect(report.byScope.privateUrl).toEqual([
 			"webcal://cal.example.com/private/abc123.ics",
 		]);
-		expect(report.byScope.publicUrl).toContain("https://obsidian.md");
+		// A launchpad tile *links* to a page; it does not load one. The two are
+		// separate scopes precisely so "how much of this board is fetched from
+		// the internet" — which the import dialog and a gallery both report —
+		// isn't inflated by a board full of bookmarks.
+		expect(report.byScope.linkUrl).toContain("https://obsidian.md");
+		expect(report.byScope.publicUrl).not.toContain("https://obsidian.md");
 		expect(report.byScope.commandId).toContain("app:reload");
 		// Reported as strings: the report is for listing and indexing, and a
 		// latitude is as much a value to show as a place name.

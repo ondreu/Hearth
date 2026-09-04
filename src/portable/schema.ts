@@ -119,6 +119,55 @@ export interface PackageMeta {
 	 * that.
 	 */
 	signature?: string;
+	/**
+	 * What the board is *for*, from the closed list in `src/gallery/categories.ts`.
+	 *
+	 * The one thing about a published dashboard that cannot be derived from it:
+	 * its card kinds are already in {@link PackageRequirements}, and its tags are
+	 * free text, but neither says whether this is a study board or a work one.
+	 * Only the author knows, so it is asked at publish and travels here.
+	 *
+	 * Absent on a local export and on every package written before 3.1 — a
+	 * gallery files those under `other` rather than guessing, and nothing in
+	 * Hearth branches on it.
+	 */
+	category?: string;
+	/**
+	 * The Obsidian theme the author built this board against, by name.
+	 *
+	 * Advisory and nothing more: a board is a layout and a set of card settings,
+	 * and it works under any theme. But a board tuned for a dark, low-contrast
+	 * theme can look wrong under Obsidian's default, and its author is the only
+	 * person who knows — so they can say "recommended with Minimal" and let the
+	 * reader decide what to do about it.
+	 *
+	 * A *name*, not an id or a URL: nothing in Hearth installs a theme, and this
+	 * is displayed rather than acted on. Absent means the author didn't say,
+	 * which includes every board published before this existed.
+	 */
+	theme?: string;
+	/**
+	 * A picture of the board, taken when it was published, with everything
+	 * readable redacted out of it first (`src/gallery/snapshot.ts`).
+	 *
+	 * In `meta` rather than in {@link PackageAsset}, on purpose: an asset is a
+	 * picture the *board* uses and import writes every one of them into the
+	 * importing vault. This one belongs to the listing, not to the board — it
+	 * would arrive as a stray file nothing references. Nothing on the import
+	 * path reads it.
+	 *
+	 * Covered by the signature, like the rest of `meta`, so a gallery cannot
+	 * substitute a different picture without invalidating the file.
+	 */
+	snapshot?: {
+		/** base64, no data-URI prefix. A raster type — JPEG, PNG or WebP; never
+		 * SVG, which is a document rather than a picture. */
+		data: string;
+		mime: string;
+		bytes: number;
+		width: number;
+		height: number;
+	};
 	/** Free-form, lower-cased by convention. A gallery's facets. */
 	tags?: string[];
 	/** The author's own version string for this board, if they keep one. */

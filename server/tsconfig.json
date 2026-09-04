@@ -1,0 +1,35 @@
+{
+	// The server's own project. It compiles nothing — esbuild does the build —
+	// so this exists for `tsc --noEmit` and for the editor.
+	//
+	// Deliberately mirrors the plugin's compiler options rather than tightening
+	// them, because it typechecks the plugin's own modules too: the server
+	// imports `src/portable/`, `src/identity.ts` and `src/gallery/` directly
+	// (see `esbuild.config.mjs`), and TypeScript follows those imports. `DOM` is
+	// in `lib` for exactly that reason — the modules it reaches are part of a
+	// plugin that has a document.
+	//
+	// Note that `obsidian` resolves to the real (types-only) package here, not
+	// to `src/obsidian-stub.ts`. The stub is a *build*-time substitution; type
+	// checking against the real declarations is what keeps it honest.
+	"compilerOptions": {
+		"baseUrl": "..",
+		"module": "ESNext",
+		"target": "ES2020",
+		"moduleResolution": "node",
+		"allowJs": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"isolatedModules": true,
+		"importHelpers": true,
+		"allowSyntheticDefaultImports": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"types": ["node"],
+		"lib": ["DOM", "ES2020"]
+	},
+	// Both trees, under one set of options, because the server's modules and the
+	// plugin's are one program here — and `test/`, because a test that doesn't
+	// compile is a test nobody finds out about until it runs.
+	"include": ["src/**/*.ts", "test/**/*.ts", "../src/**/*.ts"]
+}

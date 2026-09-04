@@ -16,6 +16,8 @@ import {
 	openExportDashboard,
 	pickAndImport,
 } from "./exportimport";
+import { forgetGallerySession, galleryConfigured, normalizeGalleryUrl } from "./gallery";
+import { openGallery } from "./gallerybrowse";
 import { makeClickable } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { formatSkyValue, parseSkyValue } from "./sky";
@@ -2108,6 +2110,70 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * whole-vault rows below it are the backups, and only those are destructive
 	 * — which is why only those wear the danger styling.
 	 */
+	/**
+	 * Where this vault browses and publishes dashboards.
+	 *
+	 * Under the export rows rather than in a tab of its own: a gallery is the
+	 * far end of the same pipe — a package that goes somewhere instead of into a
+	 * file — and the identity row it depends on is already here.
+	 *
+	 * The address field is the on switch, and it arrives with
+	 * `DEFAULT_GALLERY_URL` in it. Clearing it turns the gallery off — the
+	 * buttons elsewhere in the plugin are not drawn, nothing is fetched and
+	 * nothing is sent — and that stays cleared across upgrades, which is the
+	 * half of it `migrateSettings` handles.
+	 */
+	private gallerySection(containerEl: HTMLElement): void {
+		const strings = t().gallery.settings;
+		new Setting(containerEl).setName(strings.heading).setHeading();
+
+		new Setting(containerEl)
+			.setName(strings.host)
+			.setDesc(strings.hostDesc)
+			.addText((tx) => {
+				// Committed on the way out of the field rather than per
+				// keystroke. Half of `https://gallery.example.com` is not an
+				// address, and validating each keystroke means either
+				// complaining about every one of them or — worse — leaving the
+				// *previous* host stored behind a field that now shows something
+				// else, so the gallery buttons would keep talking to a server the
+				// settings page has stopped naming.
+				const commit = (raw: string): void => {
+					const trimmed = raw.trim();
+					const host = trimmed ? normalizeGalleryUrl(trimmed) : "";
+					if (trimmed && host === null) {
+						new Notice(strings.hostInvalid);
+						// Cleared, not left as it was: a field showing an address
+						// Hearth won't use must not sit over one it still would.
+						tx.setValue(this.plugin.settings.galleryUrl);
+						return;
+					}
+					const next = host ?? "";
+					if (next === this.plugin.settings.galleryUrl) return;
+					this.plugin.settings.galleryUrl = next;
+					// A held token belongs to the host that issued it.
+					forgetGallerySession();
+					void this.plugin.saveData(this.plugin.settings);
+					new Notice(next ? strings.hostSet(next) : strings.hostCleared);
+					// The browse row below appears and disappears with the host.
+					this.rerender();
+				};
+				tx.setPlaceholder(strings.hostPlaceholder).setValue(this.plugin.settings.galleryUrl);
+				tx.inputEl.addEventListener("blur", () => commit(tx.inputEl.value));
+				tx.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
+					if (evt.key === "Enter") commit(tx.inputEl.value);
+				});
+			});
+
+		if (!galleryConfigured(this.plugin)) return;
+		new Setting(containerEl)
+			.setName(strings.browse)
+			.setDesc(strings.browseDesc)
+			.addButton((b) =>
+				b.setButtonText(strings.browseButton).onClick(() => openGallery(this.plugin)),
+			);
+	}
+
 	private layoutSection(containerEl: HTMLElement): void {
 		const strings = t().settings.layout;
 
@@ -2137,6 +2203,8 @@ export class HomeSettingTab extends PluginSettingTab {
 		// before it is needed, and nobody goes looking for it inside a dialog
 		// they only open when they are already exporting.
 		identitySetting(this.plugin, containerEl, () => this.rerender());
+
+		this.gallerySection(containerEl);
 
 		// Export the whole dashboard setup as a JSON file.
 		new Setting(containerEl)

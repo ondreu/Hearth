@@ -1,6 +1,7 @@
 import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
+import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
 import type {
@@ -2343,6 +2344,27 @@ export interface HomeSettings {
 	 * that stops it nagging afterwards.
 	 */
 	authorKeySaved: boolean;
+	/**
+	 * The dashboard gallery this vault browses and publishes to.
+	 *
+	 * Seeded with {@link DEFAULT_GALLERY_URL}. **Empty means the gallery is off**
+	 * — no buttons, no requests — and clearing the field is how somebody turns it
+	 * off. That choice has to survive an upgrade, which is why the migration
+	 * below distinguishes a stored empty string from a key that was never there:
+	 * seeding the default over the first is overriding a decision, while seeding
+	 * it over the second is just a new setting arriving with its default.
+	 *
+	 * `https` only, except a loopback address so a self-hosted gallery can be
+	 * tried from `docker compose up` without a certificate — see
+	 * `normalizeGalleryUrl` in `src/gallery/client.ts`, which is the one place
+	 * this string is turned into a request.
+	 *
+	 * Deliberately left out of a settings backup, for the reason `authorKey` is,
+	 * one step removed: it is not a secret, but it is a server that receives this
+	 * vault's requests, and a backup is a thing people hand each other. Restoring
+	 * somebody else's must not quietly point your vault at their host.
+	 */
+	galleryUrl: string;
 }
 
 /**
@@ -2484,6 +2506,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// has no identity to have.
 	authorKey: "",
 	authorKeySaved: false,
+	// No host until the user names one: see the field's own note.
+	galleryUrl: DEFAULT_GALLERY_URL,
 };
 
 /** The cards a brand-new vault starts with. Coordinates and sizes are taken
@@ -3291,6 +3315,19 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// A vault with no key has nothing to have saved, so the prompt starts over
 	// with the identity rather than staying dismissed from a previous one.
 	s.authorKeySaved = s.authorKey !== "" && raw.authorKeySaved === true;
+	// A host is a URL this build would actually talk to, or it is nothing: a
+	// value that fails the check is cleared rather than stored, so a hand-edited
+	// `data.json` cannot leave a vault pointed at an `http:` host on the network
+	// and looking configured.
+	//
+	// A vault that has never seen this setting takes the default; one that stored
+	// an empty string chose to have no gallery, and re-seeding the default over
+	// that would switch a feature back on that somebody had switched off — every
+	// upgrade, silently.
+	s.galleryUrl =
+		typeof raw.galleryUrl === "string"
+			? (normalizeGalleryUrl(raw.galleryUrl) ?? "")
+			: DEFAULT_GALLERY_URL;
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
