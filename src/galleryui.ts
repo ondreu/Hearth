@@ -24,7 +24,6 @@ import {
 	GalleryError,
 	type GalleryPreview,
 	type PreviewTile,
-	PREVIEW_MAX_ROWS,
 } from "./gallery";
 
 /** What a card kind is called, and the icon it wears — taken from the card
@@ -198,8 +197,10 @@ function renderDrawn(
 	}
 
 	const grid = inner.createDiv("hearth-gallery-preview-grid");
-	grid.style.setProperty("--hearth-preview-cols", String(preview.columns));
-	grid.style.setProperty("--hearth-preview-rows", String(Math.min(preview.rows, PREVIEW_MAX_ROWS)));
+	// The board's own proportions, letterboxed inside the tile — a tall board
+	// drawn into a wide frame at the frame's ratio is a drawing of a board
+	// nobody has.
+	grid.style.setProperty("--hearth-preview-ratio", String(preview.ratio));
 	if (preview.radius !== undefined) {
 		grid.style.setProperty("--hearth-preview-radius", `${preview.radius}px`);
 	}
@@ -212,14 +213,17 @@ function renderDrawn(
 /** One card: its chrome, and a skeleton of what it holds. */
 function renderTile(grid: HTMLElement, tile: PreviewTile, large: boolean): void {
 	const el = grid.createDiv("hearth-gallery-preview-tile");
-	// Grid lines are 1-based, and every one of these numbers was clamped
-	// against the column count when the preview was read.
-	el.style.gridColumn = `${tile.x + 1} / span ${tile.w}`;
-	el.style.gridRow = `${tile.y + 1} / span ${tile.h}`;
+	// Percentages of the frame, which is what the board itself lays out in —
+	// see `PreviewTile`. Every one was clamped into 0–1 when the preview was
+	// read, so none of these can put a card outside its own board.
+	el.style.setProperty("--hearth-tile-x", `${tile.x * 100}%`);
+	el.style.setProperty("--hearth-tile-y", `${tile.y * 100}%`);
+	el.style.setProperty("--hearth-tile-w", `${tile.w * 100}%`);
+	el.style.setProperty("--hearth-tile-h", `${tile.h * 100}%`);
 
 	// Below this a card is a swatch: a header and a skeleton inside four square
 	// millimetres is noise, and noise at thumbnail size reads as a broken image.
-	const roomy = tile.w >= 2 && tile.h >= 2;
+	const roomy = tile.w >= 0.16 && tile.h >= 0.16;
 	if (!roomy) {
 		if (tile.kind) el.addClass("is-tiny");
 		return;
@@ -231,14 +235,16 @@ function renderTile(grid: HTMLElement, tile: PreviewTile, large: boolean): void 
 	}
 	// The title only where there is room to read one. A truncated word is worse
 	// than the icon on its own, and a small tile has the icon.
-	const wide = large ? tile.w >= 2 : tile.w >= 3;
+	const wide = large ? tile.w >= 0.16 : tile.w >= 0.25;
 	const label = tile.title ?? (tile.kind ? cardKindLabel(tile.kind).name : "");
 	if (wide && label) {
 		head.createSpan({ cls: "hearth-gallery-preview-tile-title", text: label });
 	}
 
 	const body = el.createDiv("hearth-gallery-preview-tile-body");
-	renderSkeleton(body, SKELETON[tile.kind] ?? "paragraph", tile.h);
+	// Rows scale with how tall the card is against the whole board: a card that
+	// fills half of it gets a long list, one that is a strip gets two lines.
+	renderSkeleton(body, SKELETON[tile.kind] ?? "paragraph", Math.round(tile.h * 12));
 }
 
 /** The shape of a card's contents, at thumbnail scale. */
@@ -392,6 +398,43 @@ export function renderEntryCard(
 	}
 	renderStats(body, entry);
 	return card;
+}
+
+/**
+ * Open a picture at the size it was taken.
+ *
+ * A thumbnail is a thumbnail — 220px of a board somebody spent an evening on —
+ * and the question "what does this actually look like" has no other answer.
+ * Deliberately not a `Modal`: this sits *over* the dialog that opened it, and a
+ * second Obsidian modal would close the first. It is a plain overlay that
+ * dismisses on click or Escape.
+ */
+export function openPictureViewer(src: string, label: string): void {
+	const overlay = document.body.createDiv("hearth-lightbox");
+	overlay.setAttribute("role", "dialog");
+	overlay.setAttribute("aria-label", label);
+	const img = overlay.createEl("img", { cls: "hearth-lightbox-img" });
+	img.src = src;
+	img.alt = label;
+
+	const close = (): void => {
+		overlay.remove();
+		document.removeEventListener("keydown", onKey, true);
+	};
+	function onKey(evt: KeyboardEvent): void {
+		if (evt.key !== "Escape") return;
+		// Captured, and stopped: Escape would otherwise also reach the dialog
+		// underneath and close the thing the reader was in the middle of.
+		evt.preventDefault();
+		evt.stopPropagation();
+		close();
+	}
+	overlay.addEventListener("click", close);
+	document.addEventListener("keydown", onKey, true);
+	// Focused so Escape works without a click first, and so a screen reader
+	// lands on the picture rather than behind it.
+	overlay.tabIndex = -1;
+	overlay.focus();
 }
 
 /**

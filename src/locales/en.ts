@@ -3693,6 +3693,7 @@ export const en = {
 			snapshotDesc:
 				"Takes a screenshot of the board as it looks right now, with every word blanked out and every embedded picture blurred first. Card layout, colours, icons and the wallpaper survive; nothing readable does. You'll see the picture here before anything is uploaded.",
 			snapshotWorking: "Taking the picture…",
+			snapshotEnlarge: "Open the picture full size",
 			snapshotTaken: (kb: number) =>
 				`This is exactly what gets published, at ${kb} KB. Check it before you go on — if anything readable survived, turn this off and tell me.`,
 			snapshotFailed:
@@ -3905,6 +3906,7 @@ export const en = {
 			install: "Install",
 			installing: "Downloading…",
 			installAria: (name: string) => `Install ${name}`,
+			enlarge: "Open the picture full size",
 			profile: (handle: string) => `See everything by ${handle}`,
 			upvoteAria: "Upvote",
 			downvoteAria: "Downvote",

@@ -174,16 +174,30 @@ about *what it may contain*:
 
 ```jsonc
 {
-  "columns": 12,
-  "rows": 5,
-  "tiles": [{ "x": 0, "y": 0, "w": 4, "h": 2, "kind": "clock" }],
+  "ratio": 2.2,                 // the board's own width divided by its height
+  "tiles": [
+    // Fractions of the frame, both axes, 0-1.
+    { "x": 0, "y": 0, "w": 0.33, "h": 0.4, "kind": "clock", "title": "Now" }
+  ],
   "background": { "kind": "color", "color": "#1e1e2e", "hasImage": false },
+  "header": true,               // the board shows its title block
+  "search": true,               // and its search row
   "radius": 8,
   "opacity": 0.9,
   "pluginBoard": false,
   "truncated": 0
 }
 ```
+
+**Fractions, not grid cells.** A Hearth board positions its cards continuously:
+horizontally as fractions of the board's width, vertically in pixels
+(`DashboardCard.fx/fy/fw/fh`). The grid units stored beside them are a legacy
+seed the renderer does not read, and a preview built from *those* draws a layout
+nobody has ever had on screen. `previewFromPackage` normalises both axes against
+the board's own size and reports the resulting `ratio`, which is what lets a
+client letterbox a tall board instead of squashing it into a wide tile. A card
+with no freeform geometry — from a package older than the field — is counted in
+`truncated` rather than drawn at an invented position.
 
 **Derive it from the package with `previewFromPackage()`; never accept one from
 the uploader.** A preview supplied alongside a file is a listing advertising a

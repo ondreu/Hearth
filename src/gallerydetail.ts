@@ -24,6 +24,7 @@ import { renderAvatar } from "./galleryavatar";
 import {
 	activate,
 	cardKindLabel,
+	openPictureViewer,
 	galleryDate,
 	galleryErrorText,
 	renderAuthor,
@@ -150,11 +151,18 @@ class GalleryEntryModal extends Modal {
 		this.titleEl.setText(entry.name);
 
 		const hero = body.createDiv("hearth-gallery-detail-hero");
-		renderPreview(hero, entry.preview, {
+		const shot = entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined;
+		const frame = renderPreview(hero, entry.preview, {
 			wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
-			snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
+			snapshot: shot,
 			large: true,
 		});
+		// Only the photograph is worth enlarging; the drawing is already as much
+		// detail as it has.
+		if (shot) {
+			frame.addClass("is-zoomable");
+			activate(frame, () => openPictureViewer(shot, entry.name), t().gallery.detail.enlarge);
+		}
 
 		const head = body.createDiv("hearth-gallery-detail-head");
 		const byline = head.createDiv("hearth-gallery-detail-byline");

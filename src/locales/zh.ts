@@ -3451,6 +3451,7 @@ export const zh: Translations = {
 			snapshotDesc:
 				"截取面板当前的样子，并在截图前把所有文字涂掉、把嵌入的图片模糊处理。卡片布局、配色、图标和壁纸会保留，可读的内容不会。上传之前你会先在这里看到这张图。",
 			snapshotWorking: "正在截图……",
+			snapshotEnlarge: "查看大图",
 			snapshotTaken: (kb: number) =>
 				`这就是将要发布的图片，${kb} KB。继续之前请先检查——如果还有可读内容，请关闭此项并告知。`,
 			snapshotFailed: "Hearth 无法截取面板图片，将改用绘制的预览。",
@@ -3634,6 +3635,7 @@ export const zh: Translations = {
 			install: "安装",
 			installing: "下载中……",
 			installAria: (name: string) => `安装 ${name}`,
+			enlarge: "查看大图",
 			profile: (handle: string) => `查看 ${handle} 的全部作品`,
 			upvoteAria: "赞成",
 			downvoteAria: "反对",

@@ -26,19 +26,37 @@
 
 import { Platform } from "obsidian";
 
-/** Widest a snapshot is stored at. A listing tile is ~220px and the detail view
- * ~680px, so this covers both at 2× without carrying a screenful of pixels into
- * every package. */
-const MAX_WIDTH = 900;
+/**
+ * Widest a snapshot is stored at.
+ *
+ * A listing tile is ~220px and the detail view ~680px, so this covers the
+ * larger of the two at a little over 1× — which is the right trade, because
+ * every byte here is downloaded by everyone who installs the board *and*
+ * carried inside the package forever. A redacted board is flat colour and soft
+ * bars, so it survives the compression better than a photograph would.
+ */
+const MAX_WIDTH = 760;
 
 /** JPEG rather than PNG: a screenshot of a dashboard is a photograph-shaped
  * thing (gradients, a wallpaper, soft shadows), and PNG would triple the size
  * of every package for no visible gain at this scale. */
-const QUALITY = 70;
+const QUALITY = 58;
 
-/** The character text is replaced with. A full block, so a redacted line reads
- * as "there is text here" rather than as a rendering fault. */
+/** The character text is replaced with. A full block, so the styled bar over it
+ * has something the width of the original words to cover. */
 const BLOCK = "█";
+
+/**
+ * What gets redacted: the inside of a card, and nothing else.
+ *
+ * The board's chrome is the thing being published — blanking the header, the
+ * toolbar, the switcher or a card's own title makes a picture of a board nobody
+ * could recognise, which defeats the point of taking one.
+ */
+const REDACT_INSIDE = ".hearth-card-body";
+
+/** Class the wrapper carries, so `styles.css` can draw the bars. */
+const REDACTED_CLASS = "hearth-snapshot-bar";
 
 /** Longest run of blocks one string becomes. A card holding an essay should not
  * paint ten thousand glyphs to be photographed. */
@@ -129,40 +147,56 @@ export function canSnapshot(): boolean {
  */
 function redact(root: HTMLElement): () => void {
 	const originals: [Text, string][] = [];
+	const wrapped: HTMLElement[] = [];
 	const fields: [HTMLInputElement | HTMLTextAreaElement, string][] = [];
 
-	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-	for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-		const text = node as Text;
-		const value = text.data;
-		if (!value.trim()) continue;
-		originals.push([text, value]);
-		// Length preserved (up to the cap) so lines keep their shape, and
-		// whitespace preserved so words stay words — a solid bar across a card
-		// reads as a bar, while blocks with spaces read as text.
-		text.data = redactedText(value);
-	}
+	// **Only the insides of cards.** The board's chrome — the vault name, the
+	// header, the toolbar, the dashboard switcher, and each card's own title —
+	// is not the author's content: it is the thing being published, and blanking
+	// it makes a picture of a board nobody could recognise. What a card *holds*
+	// is theirs: their notes, their tasks, their sums, their feed.
+	for (const body of Array.from(root.querySelectorAll<HTMLElement>(REDACT_INSIDE))) {
+		const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+		const texts: Text[] = [];
+		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+			const text = node as Text;
+			if (text.data.trim()) texts.push(text);
+		}
+		for (const text of texts) {
+			originals.push([text, text.data]);
+			text.data = redactedText(text.data);
+			// Wrapped so the blocks can be *styled* rather than merely drawn:
+			// a soft rounded bar in the theme's own ink reads as "text lives
+			// here", where a row of hard glyphs reads as a rendering fault.
+			const span = text.ownerDocument.createElement("span");
+			span.className = REDACTED_CLASS;
+			text.parentNode?.insertBefore(span, text);
+			span.appendChild(text);
+			wrapped.push(span);
+		}
 
-	// **A form field's value is not a text node**, so the walk above never sees
-	// it — and a board is full of them: a calculator card renders its last sum
-	// into an `<input>`, a search card its query, a text card its draft. Those
-	// are the author's own working state, which the publish path removes from
-	// the *package*; a picture that still showed them would put back exactly
-	// what the strip had just taken out. Placeholders stay: they are part of the
-	// board's look and travel in the package anyway.
-	for (const field of Array.from(
-		root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
-	)) {
-		if (field.value) {
+		// **A form field's value is not a text node**, so the walk above never
+		// sees it — and a calculator card renders its last sum into an
+		// `<input>`, a search card its query. Those are the author's own working
+		// state, which the publish path removes from the *package*; a picture
+		// that still showed them would put back exactly what the strip took out.
+		// Placeholders stay: they are part of the board's look and travel in the
+		// package anyway.
+		for (const field of Array.from(
+			body.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
+		)) {
+			if (!field.value) continue;
 			fields.push([field, field.value]);
 			field.value = redactedText(field.value);
 		}
 	}
-	// Pictures inside cards are the other thing that can carry somebody's
-	// content. The wallpaper is behind the grid and survives, because it is
-	// already published as an asset.
+
 	root.addClass("hearth-snapshot-redacted");
 	return () => {
+		for (const span of wrapped) {
+			const text = span.firstChild;
+			if (text && span.parentNode) span.parentNode.replaceChild(text, span);
+		}
 		for (const [node, value] of originals) node.data = value;
 		for (const [field, value] of fields) field.value = value;
 		root.removeClass("hearth-snapshot-redacted");
@@ -197,6 +231,12 @@ export async function captureBoard(
 
 	const restore = redact(board);
 	for (const el of hide) el.addClass("hearth-snapshot-hidden");
+	// Themes are entitled to do what they like while a modal is open, and
+	// several blur the workspace behind one — Velocity does. Capturing
+	// photographs the *window*, so that blur lands in the picture. This class
+	// turns filters off for the duration; it is on `body` because the rule has
+	// to outrank a theme's own selector, and off again in the `finally`.
+	document.body.addClass("hearth-snapshot-capturing");
 	try {
 		// Two frames: one for the redaction and the hidden dialog to be styled,
 		// one for them to have been painted.
@@ -229,5 +269,6 @@ export async function captureBoard(
 	} finally {
 		restore();
 		for (const el of hide) el.removeClass("hearth-snapshot-hidden");
+		document.body.removeClass("hearth-snapshot-capturing");
 	}
 }

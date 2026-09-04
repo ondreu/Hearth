@@ -138,6 +138,11 @@ const list = await call("GET", `/v1/entries?sort=new&${mineQuery}`);
 check("the listing has both boards", list.status === 200 && list.json.total === 2, list.json);
 const row = list.json.entries.find((e: Json) => e.id === id);
 check("a row carries a derived preview", row?.preview?.tiles?.length === 3, row?.preview);
+check(
+	"the preview carries the board's own proportions",
+	Math.abs((row?.preview?.ratio ?? 0) - 1100 / 500) < 0.01,
+	row?.preview?.ratio,
+);
 check("a row names the author by derived handle", row?.author?.handle === f.handle, row?.author);
 check("the score starts at zero", row?.score === 0);
 

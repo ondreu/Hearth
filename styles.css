@@ -10558,6 +10558,7 @@ body.hearth-dv-resizing {
 	box-sizing: border-box;
 	max-width: 100%;
 	min-width: 0;
+	overflow: hidden;
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -10583,7 +10584,6 @@ body.hearth-dv-resizing {
 .hearth-picker-search-input {
 	flex: 1 1 auto;
 	min-width: 0;
-	width: 100%;
 	box-sizing: border-box;
 	padding: 8px 0;
 	border: none;
@@ -10593,7 +10593,10 @@ body.hearth-dv-resizing {
 	color: var(--text-normal);
 }
 
-.hearth-picker-search-input:focus {
+.hearth-picker-search-input:focus,
+.hearth-picker-search-input:focus-visible {
+	outline: none;
+	border: none;
 	box-shadow: none;
 }
 
@@ -11885,9 +11888,13 @@ body.hearth-dv-resizing {
 	max-width: 100%;
 	/* A flex item will not shrink below its content's intrinsic width unless it
 	   is told it may, and an <input> is intrinsically about twenty characters
-	   wide. Without this the field — and its focus ring — hangs off the right of
-	   the modal at narrow widths. Same reason on the input inside it. */
+	   wide. Without this the field hangs off the right of the modal at narrow
+	   widths. Same reason on the input inside it. */
 	min-width: 0;
+	/* The backstop: whatever a theme draws on the field inside, it is clipped to
+	   this row. The row shows focus on its own border, so there is no ring here
+	   worth letting out. */
+	overflow: hidden;
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -11907,9 +11914,12 @@ body.hearth-dv-resizing {
 }
 
 .hearth-gallery-search-input {
+	/* No `width: 100%` beside `flex: 1 1 auto`. The two disagree: the width
+	   becomes the flex basis, so the field asks for the whole row *and* the
+	   icon and gap beside it, and the excess hangs out of the frame. Basis
+	   `auto` plus `min-width: 0` is what lets it fill exactly what is left. */
 	flex: 1 1 auto;
 	min-width: 0;
-	width: 100%;
 	box-sizing: border-box;
 	border: none;
 	background: transparent;
@@ -11917,8 +11927,14 @@ body.hearth-dv-resizing {
 	padding: 8px 0;
 }
 
-.hearth-gallery-search-input:focus {
+/* Obsidian and most themes draw a focus ring *outside* the field's box. The row
+   already shows focus on its own border, so the field's ring is turned off in
+   every form a theme might have written it. */
+.hearth-gallery-search-input:focus,
+.hearth-gallery-search-input:focus-visible {
 	box-shadow: none;
+	outline: none;
+	border: none;
 }
 
 .hearth-gallery-sort {
@@ -12185,8 +12201,10 @@ body.hearth-dv-resizing {
 	inset: 0;
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 	gap: 4px;
 	padding: 6px;
+	min-height: 0;
 }
 
 /* The chrome above the grid: a heading bar and a search row, drawn only when
@@ -12215,20 +12233,38 @@ body.hearth-dv-resizing {
 	opacity: 0.7;
 }
 
+/* The board, at its own proportions, letterboxed inside whatever frame it is
+   given. Cards are positioned absolutely as percentages, because that is how
+   the board itself lays them out — fractions of the width horizontally, and
+   `preview.ts` normalises the vertical pixels against the board's own height
+   so both axes are fractions of this box. */
 .hearth-gallery-preview-grid {
-	flex: 1 1 auto;
-	display: grid;
-	grid-template-columns: repeat(var(--hearth-preview-cols, 12), 1fr);
-	grid-template-rows: repeat(var(--hearth-preview-rows, 8), 1fr);
-	gap: 3px;
+	position: relative;
+	flex: 0 1 auto;
+	margin: auto;
+	width: 100%;
+	max-width: calc(var(--hearth-preview-h, 100%) * var(--hearth-preview-ratio, 1.6));
+	aspect-ratio: var(--hearth-preview-ratio, 1.6);
+	max-height: 100%;
 	min-height: 0;
 }
 
 .hearth-gallery-preview-tile {
+	position: absolute;
+	left: var(--hearth-tile-x, 0);
+	top: var(--hearth-tile-y, 0);
+	width: var(--hearth-tile-w, 10%);
+	height: var(--hearth-tile-h, 10%);
+	/* A transparent border, clipped out of the background, stands in for the
+	   grid gap this replaced: neighbouring cards read as two cards rather than
+	   as one shape, without a second element per tile to hold the inset. */
+	border: 2px solid transparent;
+	background-clip: padding-box;
+	padding: 3px;
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
-	padding: 4px;
 	overflow: hidden;
 	background: var(--background-primary);
 	opacity: var(--hearth-preview-opacity, 0.9);
@@ -12890,18 +12926,115 @@ body.hearth-dv-resizing {
 	font-size: var(--font-ui-smaller);
 }
 
-/* Applied for the moment of a capture. The dialog steps out of the frame and
-   every embedded picture is blurred; the text is not styled away but replaced
-   in the DOM, so there is nothing left to paint. See src/gallery/snapshot.ts. */
-.hearth-snapshot-hidden {
-	visibility: hidden !important;
+/* A picture at full size, over whatever opened it. Not an Obsidian modal: it
+   sits above a dialog, and a second modal would close the first. */
+.hearth-lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: var(--layer-modal, 100);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px;
+	background: rgba(0, 0, 0, 0.75);
+	cursor: zoom-out;
 }
 
-.hearth-snapshot-redacted img,
-.hearth-snapshot-redacted canvas,
-.hearth-snapshot-redacted video,
-.hearth-snapshot-redacted iframe {
+.hearth-lightbox-img {
+	max-width: 100%;
+	max-height: 100%;
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-l);
+}
+
+.hearth-share-snapshot-img,
+.hearth-gallery-preview.is-zoomable {
+	cursor: zoom-in;
+}
+
+/* ---- Taking the picture ----
+   Applied for the one moment of a capture. See src/gallery/snapshot.ts.
+
+   `display: none`, not `visibility: hidden`: a hidden element still
+   participates in a theme's `backdrop-filter`, and the point here is that the
+   dialog leaves no trace in the frame at all. */
+.hearth-snapshot-hidden {
+	display: none !important;
+}
+
+/* Themes are entitled to blur the workspace while a modal is open, and several
+   do. Capturing photographs the window, so that blur would land in the
+   published picture — of a board whose author never saw it blurred. Off for the
+   duration, and `!important` because it has to outrank whatever the theme
+   wrote. */
+body.hearth-snapshot-capturing .workspace,
+body.hearth-snapshot-capturing .workspace-leaf,
+body.hearth-snapshot-capturing .workspace-split,
+body.hearth-snapshot-capturing .view-content,
+body.hearth-snapshot-capturing .hearth-view {
+	filter: none !important;
+	backdrop-filter: none !important;
+	transform: none !important;
+	opacity: 1 !important;
+}
+
+/* A card's contents, replaced with blocks and then drawn as soft rounded bars
+   in the theme's own ink — "text lives here", rather than a row of hard glyphs
+   that reads as a rendering fault. The characters are gone from the DOM either
+   way; this is only how the gap looks. */
+.hearth-snapshot-bar {
+	color: transparent !important;
+	background-color: var(--text-normal);
+	opacity: 0.22;
+	border-radius: 3px;
+	/* So a bar that wraps gets a rounded end on each line rather than one long
+	   ribbon with two corners. */
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+/* Pictures inside cards are the other thing that can carry somebody's content.
+   The wallpaper is behind the grid and survives, because it is already
+   published as an asset. */
+.hearth-snapshot-redacted .hearth-card-body img,
+.hearth-snapshot-redacted .hearth-card-body canvas,
+.hearth-snapshot-redacted .hearth-card-body video,
+.hearth-snapshot-redacted .hearth-card-body iframe {
 	filter: blur(10px) !important;
+}
+
+/* What publishing takes out, and what it keeps. A block rather than a settings
+   row: a Setting lays its name and its description out as two columns, which
+   turned this list into a four-word-wide ribbon down the left. */
+.hearth-share-removes {
+	padding: 12px 14px;
+	margin-bottom: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+}
+
+.hearth-share-removes-title {
+	font-weight: var(--font-medium);
+	margin-bottom: 6px;
+}
+
+.hearth-share-removes-list {
+	margin: 0 0 10px;
+	padding-left: 20px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-share-removes-list li {
+	margin: 2px 0;
+}
+
+.hearth-share-removes-kept {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 8px;
 }
 
 .hearth-share-warning {

@@ -49,7 +49,7 @@ import {
 	previewFromPackage,
 	publishDashboard,
 } from "./gallery";
-import { galleryErrorText, renderPreview } from "./galleryui";
+import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
 import {
 	captureDashboard,
 	describeReferences,
@@ -538,10 +538,13 @@ class ShareDashboardModal extends Modal {
 
 		// Shown as an image element with a data URI this vault just produced —
 		// not a URL, not markup, and never anything that arrived from outside.
+		const src = `data:${this.snapshot.mime};base64,${this.snapshot.data}`;
 		const shot = body.createDiv("hearth-share-snapshot");
 		const img = shot.createEl("img", { cls: "hearth-share-snapshot-img" });
-		img.src = `data:${this.snapshot.mime};base64,${this.snapshot.data}`;
+		img.src = src;
 		img.alt = strings.snapshot;
+		// Checking a redaction on a 560px-wide thumbnail is not checking it.
+		activate(img, () => openPictureViewer(src, strings.snapshot), strings.snapshotEnlarge);
 		shot.createDiv({
 			cls: "hearth-share-snapshot-note",
 			text: strings.snapshotTaken(Math.max(1, Math.round(this.snapshot.bytes / 1024))),
@@ -746,18 +749,19 @@ class ShareDashboardModal extends Modal {
 			);
 
 		if (this.publishing) {
-			// Not a switch, and not one line of reassurance either: the four
-			// groups that come out, named, and the two that stay, named — so
-			// "what am I about to publish" is answered here rather than only
-			// inside a disclosure nobody opens.
-			const removed = new Setting(body).setName(strings.publishRemovesTitle);
-			removed.settingEl.addClass("hearth-setting-note");
-			const list = removed.descEl.createEl("ul", { cls: "hearth-export-values" });
-			for (const line of strings.publishRemoves) list.createEl("li", { text: line });
-			removed.descEl.createDiv({
-				cls: "hearth-export-values-empty",
-				text: strings.publishKeeps,
+			// A plain block rather than a `Setting`. A Setting is a *row* — a
+			// name on the left and a control on the right — and putting a list
+			// and a paragraph into its two halves squeezed the list into a
+			// column four words wide beside the paragraph. This is prose about
+			// the whole publish, so it is laid out as prose.
+			const block = body.createDiv("hearth-share-removes");
+			block.createDiv({
+				cls: "hearth-share-removes-title",
+				text: strings.publishRemovesTitle,
 			});
+			const list = block.createEl("ul", { cls: "hearth-share-removes-list" });
+			for (const line of strings.publishRemoves) list.createEl("li", { text: line });
+			block.createDiv({ cls: "hearth-share-removes-kept", text: strings.publishKeeps });
 			return;
 		}
 

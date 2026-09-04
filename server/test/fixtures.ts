@@ -46,10 +46,15 @@ function build(sourceId: string, name: string, category: string, extra: Record<s
 				id: "board-1",
 				name,
 				gridColumns: 12,
+				maxWidth: 1100,
+				// `fx`/`fw` as fractions of the width and `fy`/`fh` in pixels —
+				// the coordinates the board actually renders from, which is what
+				// a real export carries. The grid units beside them are the
+				// legacy seed nothing reads.
 				cards: [
-					{ id: "c1", kind: "clock", x: 0, y: 0, w: 4, h: 2 },
-					{ id: "c2", kind: "tasks", x: 4, y: 0, w: 8, h: 5 },
-					{ id: "c3", kind: "text", x: 0, y: 2, w: 4, h: 3 },
+					{ id: "c1", kind: "clock", x: 0, y: 0, w: 4, h: 2, fx: 0, fy: 0, fw: 0.33, fh: 200 },
+					{ id: "c2", kind: "tasks", x: 4, y: 0, w: 8, h: 5, fx: 0.34, fy: 0, fw: 0.66, fh: 500 },
+					{ id: "c3", kind: "text", x: 0, y: 2, w: 4, h: 3, fx: 0, fy: 210, fw: 0.33, fh: 290 },
 				],
 				background: { kind: "color", value: "#1e1e2e", opacity: 1, blur: 0 },
 			},

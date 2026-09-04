@@ -16,7 +16,6 @@ import {
 	GALLERY_CATEGORIES,
 	isGalleryCategory,
 	normalizeGalleryUrl,
-	PREVIEW_MAX_ROWS,
 	PREVIEW_MAX_TILES,
 	previewFromPackage,
 	readEntryDetail,
@@ -29,6 +28,21 @@ import {
 } from "../src/gallery";
 import type { HearthPackage } from "../src/portable";
 import { DEFAULT_SETTINGS, migrateSettings } from "../src/types";
+
+/**
+ * A card at the coordinates the board renders from: `fx`/`fw` as fractions of
+ * the width, `fy`/`fh` in pixels. The grid units beside them are the legacy
+ * seed the renderer ignores, and they are deliberately *wrong* here — a preview
+ * that reads them instead would fail these tests, which is how the first
+ * version's mistake would have been caught.
+ */
+function card(
+	kind: string,
+	geo: { fx: number; fy: number; fw: number; fh: number },
+	extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+	return { id: `c-${kind}-${geo.fy}`, kind, x: 99, y: 99, w: 99, h: 99, ...geo, ...extra };
+}
 
 /** A dashboard package with the cards given, and nothing else set. */
 function pkg(cards: unknown[], dash: Record<string, unknown> = {}): HearthPackage {
@@ -56,22 +70,32 @@ describe("categories", () => {
 });
 
 describe("previewFromPackage", () => {
-	it("turns a board into positioned tiles", () => {
+	it("reads the coordinates the board actually renders from", () => {
 		const preview = previewFromPackage(
 			pkg(
 				[
-					{ id: "a", kind: "tasks", x: 0, y: 0, w: 6, h: 4 },
-					{ id: "b", kind: "clock", x: 6, y: 0, w: 6, h: 2 },
+					card("tasks", { fx: 0, fy: 0, fw: 0.5, fh: 400 }),
+					card("clock", { fx: 0.5, fy: 0, fw: 0.5, fh: 200 }),
 				],
-				{ gridColumns: 12 },
+				{ maxWidth: 800 },
 			),
 		);
-		expect(preview?.columns).toBe(12);
-		expect(preview?.rows).toBe(4);
+		// 800 wide, 400 tall at its lowest card.
+		expect(preview?.ratio).toBeCloseTo(2, 3);
 		expect(preview?.tiles).toEqual([
-			{ x: 0, y: 0, w: 6, h: 4, kind: "tasks" },
-			{ x: 6, y: 0, w: 6, h: 2, kind: "clock" },
+			{ x: 0, y: 0, w: 0.5, h: 1, kind: "tasks", title: undefined },
+			{ x: 0.5, y: 0, w: 0.5, h: 0.5, kind: "clock", title: undefined },
 		]);
+	});
+
+	it("leaves out a card whose freeform geometry was never derived", () => {
+		// Its grid units say nothing about where it was on screen, so drawing it
+		// would be inventing a position.
+		const preview = previewFromPackage(
+			pkg([{ id: "a", kind: "text", x: 0, y: 0, w: 4, h: 3 }], { maxWidth: 800 }),
+		);
+		expect(preview?.tiles).toEqual([]);
+		expect(preview?.truncated).toBe(1);
 	});
 
 	it("refuses anything that isn't a dashboard package", () => {
@@ -80,43 +104,69 @@ describe("previewFromPackage", () => {
 		expect(cardCountsFromPackage(settings as unknown as HearthPackage)).toEqual([]);
 	});
 
-	it("clamps a card that claims to be somewhere impossible", () => {
+	it("holds every tile inside its own frame", () => {
 		const preview = previewFromPackage(
 			pkg(
 				[
-					{ kind: "text", x: -50, y: -3, w: 900, h: 9999 },
-					{ kind: "text", x: 1e12, y: Number.NaN, w: 0, h: -1 },
+					card("text", { fx: -3, fy: -100, fw: 40, fh: 1e6 }),
+					card("text", { fx: 0.9, fy: 300, fw: 5, fh: 5 }),
 				],
-				{ gridColumns: 8 },
+				{ maxWidth: 800 },
 			),
 		);
 		for (const tile of preview?.tiles ?? []) {
 			expect(tile.x).toBeGreaterThanOrEqual(0);
 			expect(tile.y).toBeGreaterThanOrEqual(0);
-			expect(tile.w).toBeGreaterThanOrEqual(1);
-			expect(tile.h).toBeGreaterThanOrEqual(1);
-			expect(tile.x + tile.w).toBeLessThanOrEqual(8);
+			expect(tile.x + tile.w).toBeLessThanOrEqual(1);
+			expect(tile.y + tile.h).toBeLessThanOrEqual(1);
 		}
+	});
+
+	it("keeps a board's proportions inside something a tile can draw", () => {
+		// One very tall card would otherwise ask a listing row to be a column.
+		const tall = previewFromPackage(
+			pkg([card("text", { fx: 0, fy: 0, fw: 1, fh: 40000 })], { maxWidth: 800 }),
+		);
+		expect(tall!.ratio).toBeGreaterThanOrEqual(0.3);
+		const wide = previewFromPackage(
+			pkg([card("text", { fx: 0, fy: 0, fw: 1, fh: 10 })], { maxWidth: 4000 }),
+		);
+		expect(wide!.ratio).toBeLessThanOrEqual(4);
 	});
 
 	it("drops a kind that isn't shaped like one, rather than passing it through", () => {
 		const preview = previewFromPackage(
-			pkg([{ kind: "<img onerror=x>", x: 0, y: 0, w: 2, h: 2 }]),
+			pkg([card("<img onerror=x>", { fx: 0, fy: 0, fw: 0.5, fh: 100 })]),
 		);
 		expect(preview?.tiles[0].kind).toBe("");
 	});
 
 	it("caps the tiles a listing has to draw, and says how many it left out", () => {
-		const many = Array.from({ length: PREVIEW_MAX_TILES + 5 }, (_, i) => ({
-			kind: "text",
-			x: 0,
-			y: i % PREVIEW_MAX_ROWS,
-			w: 1,
-			h: 1,
-		}));
+		const many = Array.from({ length: PREVIEW_MAX_TILES + 5 }, (_, i) =>
+			card("text", { fx: 0, fy: i * 10, fw: 0.2, fh: 10 }),
+		);
 		const preview = previewFromPackage(pkg(many));
 		expect(preview?.tiles.length).toBe(PREVIEW_MAX_TILES);
 		expect(preview?.truncated).toBe(5);
+	});
+
+	it("carries each card's title, which is most of what makes a thumbnail read", () => {
+		const preview = previewFromPackage(
+			pkg([
+				card("tasks", { fx: 0, fy: 0, fw: 0.4, fh: 300 }, { title: "  Today\n  " }),
+				card("clock", { fx: 0.5, fy: 0, fw: 0.2, fh: 200 }),
+			]),
+		);
+		// Whitespace collapsed, because it lands in a one-line label.
+		expect(preview?.tiles[0].title).toBe("Today");
+		expect(preview?.tiles[1].title).toBeUndefined();
+	});
+
+	it("bounds a card title somebody made enormous", () => {
+		const preview = previewFromPackage(
+			pkg([card("text", { fx: 0, fy: 0, fw: 0.4, fh: 300 }, { title: "x".repeat(500) })]),
+		);
+		expect(preview!.tiles[0].title!.length).toBeLessThanOrEqual(41);
 	});
 
 	it("carries a background colour but never a path, a URL or anything else", () => {
@@ -144,33 +194,12 @@ describe("previewFromPackage", () => {
 		expect(preview?.background?.hasImage).toBe(true);
 	});
 
-	it("carries each card's title, which is most of what makes a thumbnail read", () => {
-		const preview = previewFromPackage(
-			pkg([
-				{ kind: "tasks", x: 0, y: 0, w: 4, h: 3, title: "  Today\n  " },
-				{ kind: "clock", x: 4, y: 0, w: 2, h: 2 },
-			]),
-		);
-		// Whitespace collapsed, because it lands in a one-line label.
-		expect(preview?.tiles[0].title).toBe("Today");
-		expect(preview?.tiles[1].title).toBeUndefined();
-	});
-
-	it("bounds a card title somebody made enormous", () => {
-		const preview = previewFromPackage(
-			pkg([{ kind: "text", x: 0, y: 0, w: 4, h: 3, title: "x".repeat(500) }]),
-		);
-		expect(preview!.tiles[0].title!.length).toBeLessThanOrEqual(41);
-	});
-
 	it("records the chrome the board shows above its grid", () => {
 		const bare = previewFromPackage(pkg([]));
 		expect(bare?.header).toBeUndefined();
 		expect(bare?.search).toBeUndefined();
 
-		const dressed = previewFromPackage(
-			pkg([], { header: { show: true }, showSearch: true }),
-		);
+		const dressed = previewFromPackage(pkg([], { header: { show: true }, showSearch: true }));
 		expect(dressed?.header).toBe(true);
 		expect(dressed?.search).toBe(true);
 
@@ -187,9 +216,9 @@ describe("previewFromPackage", () => {
 		expect(
 			cardCountsFromPackage(
 				pkg([
-					{ kind: "text", x: 0, y: 0, w: 1, h: 1 },
-					{ kind: "tasks", x: 0, y: 0, w: 1, h: 1 },
-					{ kind: "text", x: 0, y: 0, w: 1, h: 1 },
+					card("text", { fx: 0, fy: 0, fw: 0.2, fh: 100 }),
+					card("tasks", { fx: 0, fy: 110, fw: 0.2, fh: 100 }),
+					card("text", { fx: 0, fy: 220, fw: 0.2, fh: 100 }),
 				]),
 			),
 		).toEqual([
@@ -200,54 +229,32 @@ describe("previewFromPackage", () => {
 });
 
 describe("readPreview re-clamps what arrives over the wire", () => {
-	it("holds every number inside its range", () => {
+	it("holds every tile inside the frame the preview declares", () => {
 		const preview = readPreview({
-			columns: 1e9,
-			rows: -4,
-			tiles: [{ x: "1", y: 1e9, w: Number.POSITIVE_INFINITY, h: 1e9, kind: 42 }],
+			ratio: 1e9,
+			tiles: [
+				{ x: "1", y: 1e9, w: Number.POSITIVE_INFINITY, h: 1e9, kind: 42 },
+				{ x: 0.9, y: 0.9, w: 0.9, h: 0.9, kind: "text" },
+			],
 			opacity: 12,
 			radius: 1e6,
 			background: { kind: "color", color: "url(x)" },
 		});
-		expect(preview?.columns).toBeLessThanOrEqual(48);
-		expect(preview?.rows).toBeGreaterThanOrEqual(1);
+		expect(preview!.ratio).toBeLessThanOrEqual(4);
+		for (const tile of preview?.tiles ?? []) {
+			expect(tile.x + tile.w).toBeLessThanOrEqual(1);
+			expect(tile.y + tile.h).toBeLessThanOrEqual(1);
+		}
 		expect(preview?.tiles[0].kind).toBe("");
 		expect(preview?.opacity).toBe(1);
 		expect(preview?.radius).toBeLessThanOrEqual(64);
 		expect(preview?.background?.color).toBeUndefined();
 	});
 
-	it("never places a tile outside the grid it declares", () => {
-		// A host that sends a short `rows` beside a tall tile would otherwise get
-		// the tile drawn outside the frame: the browser resolves a grid row past
-		// the declared count by adding an implicit one.
-		const preview = readPreview({
-			columns: 12,
-			rows: 2,
-			tiles: [
-				{ x: 0, y: 9, w: 4, h: 3, kind: "text" },
-				{ x: 11, y: 0, w: 8, h: 1, kind: "clock" },
-			],
-		});
-		for (const tile of preview?.tiles ?? []) {
-			expect(tile.x + tile.w).toBeLessThanOrEqual(preview!.columns);
-			expect(tile.y + tile.h).toBeLessThanOrEqual(preview!.rows);
-		}
-	});
-
-	it("keeps a tile's row index inside the row cap, as capture does", () => {
-		const preview = readPreview({
-			columns: 12,
-			tiles: [{ x: 0, y: PREVIEW_MAX_ROWS + 40, w: 1, h: 1, kind: "text" }],
-		});
-		expect(preview?.tiles[0].y).toBeLessThan(PREVIEW_MAX_ROWS);
-		expect(preview!.tiles[0].y + preview!.tiles[0].h).toBeLessThanOrEqual(preview!.rows);
-	});
-
 	it("re-reads a title and the chrome flags from the wire", () => {
 		const preview = readPreview({
-			columns: 12,
-			tiles: [{ x: 0, y: 0, w: 4, h: 2, kind: "tasks", title: "  Today  " }],
+			ratio: 1.6,
+			tiles: [{ x: 0, y: 0, w: 0.4, h: 0.3, kind: "tasks", title: "  Today  " }],
 			header: true,
 			search: true,
 		});

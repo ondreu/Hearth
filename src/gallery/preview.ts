@@ -23,23 +23,39 @@
 
 import type { HearthPackage } from "../portable/schema";
 
-/** How many columns a preview is normalised to when the board doesn't say. */
-export const PREVIEW_COLUMNS = 12;
+/** The width a board is laid out against when it doesn't say, in px. Only ever
+ * used to turn its pixel heights into a ratio. */
+const DEFAULT_BOARD_WIDTH = 1100;
+
+/** Ratios outside this are a board with one very tall card, or a broken one.
+ * Clamped so a listing tile stays a tile. */
+const MIN_RATIO = 0.3;
+const MAX_RATIO = 4;
 
 /** Ceiling on tiles in one preview. A board with more is drawn truncated: past
  * this the thumbnail is a grey mush anyway, and the cap is what stops a hostile
  * package from making every listing row expensive to draw. */
 export const PREVIEW_MAX_TILES = 60;
 
-/** Rows a preview is clipped to. Boards are taller than they are wide and a
- * listing tile is wider than it is tall, so a long board shows its top. */
-export const PREVIEW_MAX_ROWS = 24;
-
-/** One card, as a rectangle. */
+/**
+ * One card, as a rectangle in the board's own coordinate space.
+ *
+ * **Fractions of the frame, both axes.** The board itself positions cards
+ * horizontally as fractions of its width and vertically in pixels
+ * (`DashboardCard.fx/fy/fw/fh` — the grid units beside them are a legacy seed
+ * the renderer does not read). Normalising the vertical axis against the
+ * board's own height is what makes a thumbnail *proportional* to the board
+ * rather than merely reminiscent of it: the first version of this read the grid
+ * units, and drew a layout nobody had ever seen on screen.
+ */
 export interface PreviewTile {
+	/** Left edge, 0–1 of the board's width. */
 	x: number;
+	/** Top edge, 0–1 of the board's height. */
 	y: number;
+	/** Width, 0–1. */
 	w: number;
+	/** Height, 0–1. */
 	h: number;
 	/** The card's kind, for the icon and the body shape drawn in the tile. Free
 	 * text as far as this module is concerned — the renderer looks it up and
@@ -78,8 +94,14 @@ export interface PreviewBackground {
 
 /** A board, as a listing draws it. */
 export interface GalleryPreview {
-	columns: number;
-	rows: number;
+	/**
+	 * The board's own width-to-height ratio, so a thumbnail can letterbox it
+	 * instead of squashing a tall board into a wide tile.
+	 *
+	 * Derived from the content width the board is laid out against and the
+	 * height its cards actually reach.
+	 */
+	ratio: number;
 	tiles: PreviewTile[];
 	background?: PreviewBackground;
 	/** The board's card corner radius, in px, when it overrides the default. */
@@ -121,6 +143,20 @@ function clamp(value: unknown, min: number, max: number, fallback: number): numb
 	return Math.min(max, Math.max(min, n));
 }
 
+/** A finite number, or null. Distinct from {@link clamp}, which always answers
+ * — here "the board never derived this" has to be tellable from "it is zero". */
+function num(value: unknown): number | null {
+	return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** A fraction of the frame, held inside it. */
+function frac(value: number): number {
+	if (!Number.isFinite(value)) return 0;
+	// Three decimals is a third of a pixel on a 900px preview, and keeps the
+	// serialized package from carrying seventeen digits per coordinate.
+	return Math.round(Math.min(1, Math.max(0, value)) * 1000) / 1000;
+}
+
 /** A card title, bounded and stripped of anything that isn't text a label
  * shows. Rendered as a text node like every other string from a gallery, so the
  * cap is about layout rather than safety. */
@@ -150,8 +186,7 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 	const dash = payload?.dashboard;
 	if (!dash || typeof dash !== "object") return null;
 
-	const columns = clamp(dash.gridColumns, 1, 48, PREVIEW_COLUMNS);
-	const preview: GalleryPreview = { columns, rows: 1, tiles: [] };
+	const preview: GalleryPreview = { ratio: 16 / 10, tiles: [] };
 
 	if (dash.mode === "plugin") preview.pluginBoard = true;
 
@@ -184,37 +219,52 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 	if (dash.showSearch === true) preview.search = true;
 
 	const cards = Array.isArray(dash.cards) ? (dash.cards as Record<string, unknown>[]) : [];
+
+	// The board's own proportions: it is as wide as the content column it is
+	// laid out against, and as tall as its lowest card reaches.
+	const width = clamp(dash.maxWidth, 320, 4000, DEFAULT_BOARD_WIDTH);
+	let height = 0;
+	for (const card of cards) {
+		if (!card || typeof card !== "object") continue;
+		const fy = num(card.fy);
+		const fh = num(card.fh);
+		if (fy !== null && fh !== null) height = Math.max(height, fy + fh);
+	}
+	if (height <= 0) height = width / (16 / 10);
+	preview.ratio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, width / height));
+
 	let truncated = 0;
-	let rows = 0;
 	for (const card of cards) {
 		if (!card || typeof card !== "object") continue;
 		if (preview.tiles.length >= PREVIEW_MAX_TILES) {
 			truncated++;
 			continue;
 		}
-		// `columns - 1`, not `columns`: these are 0-based column indices, and a
-		// tile starting *at* the column count sits one line past the grid, where
-		// the span below cannot pull it back — it would draw a column wide of
-		// every other tile on the board.
-		const x = clamp(card.x, 0, columns - 1, 0);
-		const y = clamp(card.y, 0, 4096, 0);
-		const w = clamp(card.w, 1, columns, 1);
-		const h = clamp(card.h, 1, 64, 1);
-		if (y >= PREVIEW_MAX_ROWS) {
+		// The coordinates the renderer uses, normalised to the frame on both
+		// axes. `fx`/`fw` are already fractions of the width; `fy`/`fh` are
+		// pixels, so they are divided by the height computed above.
+		const fx = num(card.fx);
+		const fy = num(card.fy);
+		const fw = num(card.fw);
+		const fh = num(card.fh);
+		if (fx === null || fy === null || fw === null || fh === null) {
+			// A card whose freeform geometry has never been derived — a package
+			// from before it existed. It has no position anybody has seen, so it
+			// is left out rather than drawn somewhere invented.
 			truncated++;
 			continue;
 		}
+		const x = frac(fx);
+		const y = frac(fy / height);
 		preview.tiles.push({
 			x,
 			y,
-			w: Math.min(w, columns - x),
-			h,
+			w: Math.min(frac(fw), 1 - x) || 0.02,
+			h: Math.min(frac(fh / height), 1 - y) || 0.02,
 			kind: safeKind(card.kind),
 			title: safeTitle(card.title),
 		});
-		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
-	preview.rows = Math.max(1, rows);
 	if (truncated) preview.truncated = truncated;
 	return preview;
 }
@@ -254,34 +304,29 @@ export function cardCountsFromPackage(pkg: HearthPackage): PreviewCardCount[] {
 export function readPreview(raw: unknown): GalleryPreview | null {
 	if (!raw || typeof raw !== "object") return null;
 	const src = raw as Record<string, unknown>;
-	const columns = clamp(src.columns, 1, 48, PREVIEW_COLUMNS);
-	const preview: GalleryPreview = { columns, rows: 1, tiles: [] };
+	const ratio =
+		typeof src.ratio === "number" && Number.isFinite(src.ratio)
+			? Math.min(MAX_RATIO, Math.max(MIN_RATIO, src.ratio))
+			: 16 / 10;
+	const preview: GalleryPreview = { ratio, tiles: [] };
 
 	const tiles = Array.isArray(src.tiles) ? src.tiles.slice(0, PREVIEW_MAX_TILES) : [];
-	let rows = 0;
 	for (const tile of tiles as Record<string, unknown>[]) {
 		if (!tile || typeof tile !== "object") continue;
-		// `- 1` on both, for the reason the capture side does it: these are
-		// 0-based indices, and one equal to the count sits a line past the grid.
-		const x = clamp(tile.x, 0, columns - 1, 0);
-		const y = clamp(tile.y, 0, PREVIEW_MAX_ROWS - 1, 0);
-		const w = clamp(tile.w, 1, columns, 1);
-		const h = clamp(tile.h, 1, PREVIEW_MAX_ROWS, 1);
+		// Re-clamped on arrival exactly as on the way out, so a host that has
+		// been persuaded to serve nonsense produces a small odd thumbnail rather
+		// than tiles outside their own frame.
+		const x = frac(num(tile.x) ?? 0);
+		const y = frac(num(tile.y) ?? 0);
 		preview.tiles.push({
 			x,
 			y,
-			w: Math.min(w, columns - x),
-			h,
+			w: Math.min(frac(num(tile.w) ?? 0), 1 - x),
+			h: Math.min(frac(num(tile.h) ?? 0), 1 - y),
 			kind: safeKind(tile.kind),
 			title: safeTitle(tile.title),
 		});
-		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
-	// The tiles decide the height, and a `rows` the server sent can only make it
-	// taller. Taking the server's figure outright would let it declare a
-	// three-row grid holding a tile on row nine, which the browser resolves by
-	// drawing the tile outside the frame.
-	preview.rows = Math.max(rows, clamp(src.rows, 1, PREVIEW_MAX_ROWS, 1));
 
 	const bg = src.background as Record<string, unknown> | undefined;
 	if (bg && typeof bg === "object") {
