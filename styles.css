@@ -13060,6 +13060,38 @@ body.hearth-snapshot-capturing .hearth-view {
 	filter: blur(10px) !important;
 }
 
+/* What is blanked rather than rewritten: a hosted editor (a live-preview note
+   card) and every form field holding a value (a calculator's sum, a search
+   query, the raw-edit note card's textarea, which *is* the note).
+
+   The DOM of those is the user's data, not a rendering of it — CodeMirror reads
+   anything written into its contenteditable back as typing and saves it, and a
+   card's own save writes whatever its textarea holds at that moment. Replacing
+   their text with blocks edited the vault in order to take a photograph. So
+   they are made to paint nothing instead: children are hidden (layout kept, so
+   the card keeps its shape), text is drawn in nothing, and the region goes
+   through a blur as a backstop against anything a theme un-hides. See
+   src/gallery/snapshot.ts. */
+.hearth-snapshot-redacted .hearth-snapshot-blank > * {
+	visibility: hidden !important;
+}
+
+.hearth-snapshot-redacted .hearth-snapshot-blank,
+.hearth-snapshot-redacted .hearth-snapshot-blank * {
+	color: transparent !important;
+	-webkit-text-fill-color: transparent !important;
+	text-shadow: none !important;
+	caret-color: transparent !important;
+}
+
+.hearth-snapshot-redacted .hearth-snapshot-blank {
+	filter: blur(8px) !important;
+	/* So the region still reads as "content lives here" rather than as an empty
+	   card — the same soft ink the bars are drawn in. */
+	background-color: var(--text-normal);
+	opacity: 0.16;
+}
+
 /* A canvas is blurred a little less than a picture, because the graph view's
    *shape* is worth publishing and a heavy blur turns it to fog. Not much less:
    nothing inside a canvas is text to the redactor — it is pixels — so this blur

@@ -14,7 +14,10 @@
  *   This is a redaction rather than an obscuring: the characters are not in the
  *   DOM at the moment it is painted, so there is nothing in the image to
  *   recover. What survives is the layout, the card shapes, the colours, the
- *   icons and the wallpaper — which is what a look is.
+ *   icons and the wallpaper — which is what a look is. The one exception is an
+ *   editor hosted inside a card, whose DOM *is* a note and cannot be written to
+ *   without editing it: that is blanked by style instead — see
+ *   {@link EDITABLE_INSIDE}.
  * - **The author sees it before it goes.** The share dialog shows the captured
  *   image and will not upload one that hasn't been looked at. A promise about
  *   what a picture contains is worth much less than the picture.
@@ -104,6 +107,43 @@ const OPEN_KINDS = new Set(["clock"]);
 
 /** Class the wrapper carries, so `styles.css` can draw the bars. */
 const REDACTED_CLASS = "hearth-snapshot-bar";
+
+/**
+ * Regions the redaction must not touch the *text* of, because their DOM is a
+ * document rather than a rendering of one.
+ *
+ * A live-preview note card hosts Obsidian's own Markdown editor (see
+ * `leafview.ts`), and a CodeMirror editor watches its contenteditable for
+ * changes: anything written into that DOM is read back as the user having
+ * typed it, folded into the editor's state and saved to the vault. Replacing
+ * its text nodes with blocks therefore did not redact a picture — it rewrote
+ * the note, and the `restore()` afterwards put the characters back in a DOM
+ * CodeMirror had already moved on from, so the file kept the blocks. The same
+ * is true of any other editable surface a hosted view mounts.
+ *
+ * So these are blanked by *style* instead: {@link BLANKED_CLASS} hides what is
+ * inside them and paints no glyphs, and the walk skips everything within.
+ * Nothing readable is in the frame either way; the difference is that the vault
+ * is not written to in order to take a photograph. A form field's value is
+ * treated the same way and for the same reason — see the field pass in
+ * `redact`.
+ */
+const EDITABLE_INSIDE = '[contenteditable]:not([contenteditable="false"])';
+
+/**
+ * What is blanked instead of an editable region's text.
+ *
+ * The whole editor rather than the contenteditable alone, when there is one:
+ * CodeMirror paints gutters, the active-line highlight and its own widgets
+ * around the editable element, and half a blanked editor reads worse than a
+ * blank one.
+ */
+const EDITABLE_HOST = ".cm-editor";
+
+/** Class a region carries while the shutter is open, instead of having its text
+ * replaced: an editor, or a field holding a value. `styles.css` hides what is
+ * inside it, paints its text away and blurs the rest. */
+const BLANKED_CLASS = "hearth-snapshot-blank";
 
 /**
  * Parts of a card that stay readable, because they are the card's own
@@ -234,7 +274,7 @@ interface Redaction {
 function redact(root: HTMLElement): Redaction {
 	const originals: [Text, string][] = [];
 	const wrapped: HTMLElement[] = [];
-	const fields: [HTMLInputElement | HTMLTextAreaElement, string][] = [];
+	const blanked: HTMLElement[] = [];
 
 	const pass = (): void => {
 		// **Only the insides of cards.** The board's chrome — the vault name,
@@ -245,6 +285,16 @@ function redact(root: HTMLElement): Redaction {
 		for (const body of Array.from(root.querySelectorAll<HTMLElement>(REDACT_INSIDE))) {
 			if (isOpenCard(body)) continue;
 
+			// **An editor is blanked, never rewritten.** Its text nodes belong to
+			// a document CodeMirror is watching, so touching them edits the
+			// user's note — see EDITABLE_INSIDE.
+			for (const editable of Array.from(body.querySelectorAll<HTMLElement>(EDITABLE_INSIDE))) {
+				const region = editable.closest<HTMLElement>(EDITABLE_HOST) ?? editable;
+				if (region.classList.contains(BLANKED_CLASS)) continue;
+				region.classList.add(BLANKED_CLASS);
+				blanked.push(region);
+			}
+
 			const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
 			const texts: Text[] = [];
 			for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -254,6 +304,8 @@ function redact(root: HTMLElement): Redaction {
 				if (text.parentElement?.classList.contains(REDACTED_CLASS)) continue;
 				// A date, a weekday, a month name: the card's own furniture.
 				if (text.parentElement?.closest(KEEP_INSIDE)) continue;
+				// Inside an editor, which is blanked by style above.
+				if (text.parentElement?.closest(EDITABLE_INSIDE)) continue;
 				texts.push(text);
 			}
 			for (const text of texts) {
@@ -272,18 +324,28 @@ function redact(root: HTMLElement): Redaction {
 
 			// **A form field's value is not a text node**, so the walk above
 			// never sees it — and a calculator card renders its last sum into an
-			// `<input>`, a search card its query. Those are the author's own
-			// working state, which the publish path removes from the *package*;
-			// a picture that still showed them would put back exactly what the
-			// strip took out. Placeholders stay: they are part of the board's
-			// look and travel in the package anyway.
+			// `<input>`, a search card its query, and the raw-edit note card the
+			// whole note. Those are the author's own working state, which the
+			// publish path removes from the *package*; a picture that still
+			// showed them would put back exactly what the strip took out.
+			//
+			// Blanked by style rather than by writing over `value`, for the
+			// reason the editors are: a field's value can be what the card saves
+			// to the vault. `renderEditableEmbed`'s textarea *is* the note, and
+			// its debounced `flush()` writes whatever `value` holds at the
+			// moment it fires — so a save landing inside the second the shutter
+			// is open would write the blocks to the file. Nothing readable is
+			// painted either way; this way there is no window in which the
+			// author's own data has been replaced.
+			//
+			// Placeholders stay: they are part of the board's look and travel in
+			// the package anyway.
 			for (const field of Array.from(
 				body.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
 			)) {
-				if (!field.value || field.dataset.hearthRedacted === "1") continue;
-				fields.push([field, field.value]);
-				field.dataset.hearthRedacted = "1";
-				field.value = redactedText(field.value);
+				if (!field.value || field.classList.contains(BLANKED_CLASS)) continue;
+				field.classList.add(BLANKED_CLASS);
+				blanked.push(field);
 			}
 		}
 	};
@@ -299,10 +361,7 @@ function redact(root: HTMLElement): Redaction {
 				if (text && span.parentNode) span.parentNode.replaceChild(text, span);
 			}
 			for (const [node, value] of originals) node.data = value;
-			for (const [field, value] of fields) {
-				field.value = value;
-				delete field.dataset.hearthRedacted;
-			}
+			for (const region of blanked) region.classList.remove(BLANKED_CLASS);
 			root.removeClass("hearth-snapshot-redacted");
 		},
 	};

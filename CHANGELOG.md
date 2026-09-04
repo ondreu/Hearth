@@ -329,6 +329,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Publishing a board no longer edits the notes it photographs.** The picture
+  taken at publish blanked the board by writing block characters over the page
+  itself and putting the text back afterwards — which is harmless for something
+  merely rendered, and was not harmless for the three cards whose page *is* your
+  data. A live-preview note card hosts Obsidian's own editor, which read the
+  blocks back as typing and saved them, so publishing a board rewrote the note
+  on it and the restore came too late to help; the raw-edit note card and the
+  text card could do the same through a save landing in the second the shutter
+  was open. Those regions are now blanked by *style* — hidden, drawn in nothing,
+  and blurred — so nothing readable is in the frame and nothing is written to
+  the vault to get it there. **If you published a board carrying a live note
+  card before this, check that note**: Obsidian's own File recovery holds a
+  snapshot from before the damage.
+
 - **A card hidden from the narrow board can be brought back from a phone.**
   Hiding a card for the stacked layout took it off the board — including off the
   board its own settings are reached from — so the switch could only be turned
