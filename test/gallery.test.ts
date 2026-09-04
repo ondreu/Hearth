@@ -180,6 +180,33 @@ describe("readPreview re-clamps what arrives over the wire", () => {
 		expect(preview?.background?.color).toBeUndefined();
 	});
 
+	it("never places a tile outside the grid it declares", () => {
+		// A host that sends a short `rows` beside a tall tile would otherwise get
+		// the tile drawn outside the frame: the browser resolves a grid row past
+		// the declared count by adding an implicit one.
+		const preview = readPreview({
+			columns: 12,
+			rows: 2,
+			tiles: [
+				{ x: 0, y: 9, w: 4, h: 3, kind: "text" },
+				{ x: 11, y: 0, w: 8, h: 1, kind: "clock" },
+			],
+		});
+		for (const tile of preview?.tiles ?? []) {
+			expect(tile.x + tile.w).toBeLessThanOrEqual(preview!.columns);
+			expect(tile.y + tile.h).toBeLessThanOrEqual(preview!.rows);
+		}
+	});
+
+	it("keeps a tile's row index inside the row cap, as capture does", () => {
+		const preview = readPreview({
+			columns: 12,
+			tiles: [{ x: 0, y: PREVIEW_MAX_ROWS + 40, w: 1, h: 1, kind: "text" }],
+		});
+		expect(preview?.tiles[0].y).toBeLessThan(PREVIEW_MAX_ROWS);
+		expect(preview!.tiles[0].y + preview!.tiles[0].h).toBeLessThanOrEqual(preview!.rows);
+	});
+
 	it("reads nothing out of nothing", () => {
 		expect(readPreview(null)).toBeNull();
 		expect(readPreview("a preview")).toBeNull();

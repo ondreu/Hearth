@@ -51,7 +51,7 @@ GALLERY_URL=https://gallery.example.com \
 	npm --prefix server run smoke                  # against a deployed one
 ```
 
-Forty-one checks: signing in with a real key, publishing real signed packages,
+Forty-four checks: signing in with a real key, publishing real signed packages,
 refusing an unsigned one and an edited one, voting, downloading, withdrawing.
 It mints a fresh identity per run, so it is safe to run against a live gallery
 more than once — though it does publish two boards and leave one behind.

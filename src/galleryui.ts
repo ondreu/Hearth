@@ -79,8 +79,15 @@ export function renderPreview(
 	}
 
 	if (preview.pluginBoard) {
+		// A board that hosts one plugin's view has no grid to draw, and a blank
+		// tile would read as "an empty board" rather than as what it is.
 		frame.addClass("is-plugin-board");
+		frame.setAttribute("aria-label", t().gallery.browse.pluginBoard);
 		setIcon(frame.createSpan("hearth-gallery-preview-icon"), "layout-panel-top");
+		frame.createDiv({
+			cls: "hearth-gallery-preview-note",
+			text: t().gallery.browse.pluginBoard,
+		});
 		return frame;
 	}
 
@@ -198,6 +205,11 @@ export function galleryErrorText(err: unknown): string {
 			return strings.badResponse;
 		case "unauthorized":
 			return strings.unauthorized;
+		// The host's own sentence, like a 422: a refusal a signed-in caller got
+		// is about the request, and the commonest one — "that dashboard id
+		// belongs to another author" — carries the fix with it.
+		case "forbidden":
+			return err.detail ? strings.rejected(err.detail) : strings.forbidden;
 		case "rateLimited":
 			return strings.rateLimited;
 		case "tooLarge":

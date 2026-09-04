@@ -62,6 +62,18 @@ function leaky(): string {
 	return JSON.stringify(pkg);
 }
 
+const forkKey = newAuthorKey();
+
+/** The same dashboard id, signed by somebody else's key. */
+function fork(): string {
+	const other = identityFromKey(forkKey)!;
+	const pkg = JSON.parse(build(`hd-smoke-${run}-a`, `Fork ${run}`, "other")) as HearthPackage;
+	pkg.meta!.authorPublicKey = other.publicKey;
+	pkg.meta!.author = other.handle;
+	if (!signPackage(pkg, forkKey)) throw new Error("could not sign");
+	return JSON.stringify(pkg);
+}
+
 console.log(
 	JSON.stringify({
 		key,
@@ -71,6 +83,12 @@ console.log(
 		a: build(`hd-smoke-${run}-a`, `Reading room ${run}`, "writing"),
 		b: build(`hd-smoke-${run}-b`, `Sprint board ${run}`, "work"),
 		leaky: leaky(),
+		// A *second* identity publishing the same dashboard id — the shape of
+		// "installed a board, changed it, tried to publish it" — which the
+		// gallery has to refuse rather than let overwrite somebody's entry.
+		fork: fork(),
+		forkPublicKey: identityFromKey(forkKey)!.publicKey,
+		forkKey,
 		unsigned: JSON.stringify({
 			hearth: { format: 3, kind: "dashboard" },
 			meta: { id: "hd-smoke-0004", name: "Unsigned" },

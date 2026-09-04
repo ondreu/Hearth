@@ -845,7 +845,13 @@ class ShareDashboardModal extends Modal {
 			);
 			this.close();
 			const name = this.meta.name.trim() || this.dash.name;
-			new Notice(result.updated ? strings.doneUpdate(name) : strings.done(name));
+			new Notice(
+				result.held
+					? strings.doneHeld(name)
+					: result.updated
+						? strings.doneUpdate(name)
+						: strings.done(name),
+			);
 			// The two things a successful publish should still say out loud: a
 			// picture that couldn't be carried, and the strip's own admission
 			// that the reference table missed something.

@@ -97,6 +97,33 @@ check("an edited package fails its signature", forged.status === 422 && /signatu
 const leaky = await call("POST", "/v1/entries", { package: f.leaky }, token);
 check("a package still naming the author's vault is refused", leaky.status === 422 && /author's vault/.test(leaky.json.error), leaky.json);
 
+// Somebody else's dashboard id: the ordinary end of install → change →
+// publish, and the case that makes `meta.id` unique across a gallery rather
+// than per author. It must be a 403 whose message says what to do about it.
+{
+	const ch = await call("POST", "/v1/auth/challenge", { publicKey: f.forkPublicKey });
+	const other = await call("POST", "/v1/auth/token", {
+		publicKey: f.forkPublicKey,
+		nonce: ch.json.nonce,
+		signature: signMessage(f.forkKey, ch.json.nonce)!,
+	});
+	const clash = await call("POST", "/v1/entries", { package: f.fork }, other.json.token);
+	check(
+		"a second author cannot claim a dashboard id",
+		clash.status === 403 && /duplicate the board/.test(clash.json.error),
+		clash.json,
+	);
+	// And publishing under a key you are not signed in as is refused too.
+	const wrongKey = await call("POST", "/v1/entries", { package: f.a }, other.json.token);
+	check("a package signed by another key is refused", wrongKey.status === 403, wrongKey.json);
+}
+
+// A malformed percent escape is a path that names nothing, not a crash.
+check(
+	"a malformed path is a 404, not a 500",
+	(await call("GET", "/v1/entries/%E0%A4%A")).status === 404,
+);
+
 // ---- Listing --------------------------------------------------------
 const mineQuery = `author=${f.publicKey}`;
 const list = await call("GET", `/v1/entries?sort=new&${mineQuery}`);

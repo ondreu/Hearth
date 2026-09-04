@@ -3625,7 +3625,6 @@ export const zh: Translations = {
 			noRemote: "这个面板不会从互联网加载任何内容。",
 			unverified: "这个面板没有可校验的签名，无法确认由谁制作。",
 			tags: "标签",
-			missing: "画廊中已经没有这个仪表板了。",
 		},
 		profile: {
 			title: (handle: string) => handle,
@@ -3636,7 +3635,6 @@ export const zh: Translations = {
 			published: (n: number) => `${n} 个仪表板`,
 			firstSeen: (when: string) => `首次发布于 ${when}`,
 			empty: "这个 handle 下没有发布过内容。",
-			back: "返回画廊",
 		},
 		publish: {
 			title: "发布到画廊",
@@ -3645,15 +3643,14 @@ export const zh: Translations = {
 			categoryDesc: "这个面板是做什么用的。别人靠它找到你。",
 			button: "发布",
 			publishing: "发布中……",
-			update: "发布更新",
 			warning:
 				"发布是公开的，而且很难收回：任何人都可以安装这个面板，即使你之后撤下它，已经安装的副本仍然存在。你的笔记路径、私有订阅源和卡片文字会先被移除——展开详情可以看到具体带走什么、留下什么。",
-			signedAs: (handle: string) => `以 ${handle} 发布`,
 			needsName: "发布前请先给仪表板起个名字。",
-			needsCategory: "发布前请先选择分类。",
 			residual: (n: number) =>
 				`已暂缓：移除后仍有 ${n} 处值看起来像你库中的路径。发布前请查看详情部分。`,
 			done: (name: string) => `已将“${name}”发布到画廊。`,
+			doneHeld: (name: string) =>
+				`画廊已收到“${name}”，但先暂缓列出——其中仍有内容看起来像你库中的路径。等对方查看之后才会出现在列表中。`,
 			doneUpdate: (name: string) => `已更新画廊中的“${name}”。`,
 			unpublish: "从画廊移除",
 			unpublishConfirm: (name: string) =>
@@ -3678,6 +3675,7 @@ export const zh: Translations = {
 			offline: "无法连接画廊。它可能已下线，或此设备当前离线。",
 			badResponse: "该地址有响应，但不像是一个 Hearth 画廊。",
 			unauthorized: "画廊没有接受这个库的身份。",
+			forbidden: "画廊不允许这个库的身份执行该操作。",
 			rateLimited: "画廊请求你放慢速度。请几分钟后再试。",
 			tooLarge: "这个仪表板对该画廊来说太大了。请关闭壁纸，或将它缩小。",
 			rejected: (why: string) => `画廊拒绝了它：${why}`,

@@ -26,7 +26,7 @@ curl http://localhost:8787/v1/info
 | `src/db.ts` | the schema, as numbered migrations. |
 | `src/http.ts` | a router, and the body cap that is enforced while reading. |
 | `src/obsidian-stub.ts` | how the plugin's own code runs here. |
-| `test/smoke.ts` | forty-one checks against a running gallery. |
+| `test/smoke.ts` | forty-four checks against a running gallery. |
 
 ## Three things worth knowing before changing it
 

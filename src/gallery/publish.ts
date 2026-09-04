@@ -54,6 +54,15 @@ export interface PublishResult {
 	/** True when the host recognised `meta.id` and replaced an existing entry
 	 * rather than creating one. */
 	updated: boolean;
+	/**
+	 * The host took the board but is holding it out of its listing until
+	 * somebody has looked at it — its strip's own backstop saw something still
+	 * path-shaped.
+	 *
+	 * Passed on rather than swallowed: "published" about a board nobody can find
+	 * is a lie the author only discovers by going to look for it.
+	 */
+	held: boolean;
 	/** Pictures that could not be carried, by vault path. */
 	skippedAssets: string[];
 	/** Anything still path-shaped after the strip. A non-empty list is the
@@ -120,10 +129,11 @@ export async function publishDashboard(
 	const built = await buildPublishPackage(app, settings, dash, opts, common);
 	if (!built.signed) throw new GalleryError("rejected", "unsigned");
 	await client.signIn(opts.signWith, publicKey);
-	const { id, updated } = await client.publish(built.json);
+	const { id, updated, held } = await client.publish(built.json);
 	return {
 		id,
 		updated,
+		held,
 		skippedAssets: built.skippedAssets,
 		residual: built.residual,
 		bytes: built.json.length,

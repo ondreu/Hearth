@@ -158,7 +158,16 @@ async function handle(
 	// reader's token.
 	try {
 		const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-		const segments = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+		// `decodeURIComponent` throws on a malformed escape (`%E0%A4%A`), and an
+		// unhandled throw here would be a 500 with a stack in the log for what is
+		// simply a path that names nothing.
+		let segments: string[];
+		try {
+			segments = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+		} catch {
+			send(res, notFound());
+			return;
+		}
 		for (const candidate of routes) {
 			const params = match(candidate, req.method ?? "GET", segments);
 			if (!params) continue;

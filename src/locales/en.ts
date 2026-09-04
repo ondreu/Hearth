@@ -3897,7 +3897,6 @@ export const en = {
 			unverified:
 				"This board arrived without a checkable signature, so who made it can't be established.",
 			tags: "Tags",
-			missing: "That dashboard is no longer in the gallery.",
 		},
 		profile: {
 			title: (handle: string) => handle,
@@ -3908,7 +3907,6 @@ export const en = {
 			published: (n: number) => `${n} dashboard${n === 1 ? "" : "s"}`,
 			firstSeen: (when: string) => `First published ${when}`,
 			empty: "Nothing published under this handle.",
-			back: "Back to the gallery",
 		},
 		publish: {
 			title: "Publish to the gallery",
@@ -3918,17 +3916,18 @@ export const en = {
 			categoryDesc: "What this board is for. It's how people find it.",
 			button: "Publish",
 			publishing: "Publishing…",
-			update: "Publish update",
 			/** Said before the upload, not after: a published board is copied by
 			 * strangers, and neither an unpublish nor an edit reaches the copies. */
 			warning:
 				"Publishing is public and hard to take back: anyone can install this board, and the copies stay installed even if you withdraw it later. Your notes' paths, private feeds and card text are removed first — open the details to see exactly what goes and what stays.",
-			signedAs: (handle: string) => `Published as ${handle}`,
 			needsName: "Give the dashboard a name before publishing it.",
-			needsCategory: "Choose a category before publishing.",
 			residual: (n: number) =>
 				`Held back: ${n} value${n === 1 ? "" : "s"} still look like paths from your vault after the strip. Check the details section before publishing.`,
 			done: (name: string) => `Published “${name}” to the gallery.`,
+			/** The gallery took it but is holding it back — its own check saw
+			 * something that still looks like a path from your vault. */
+			doneHeld: (name: string) =>
+				`The gallery took “${name}” but is holding it for review — something in it still looks like a path from your vault. It won't be listed until somebody there has looked.`,
 			doneUpdate: (name: string) => `Updated “${name}” in the gallery.`,
 			unpublish: "Remove from the gallery",
 			unpublishConfirm: (name: string) =>
@@ -3954,6 +3953,7 @@ export const en = {
 			offline: "Couldn't reach the gallery. It may be down, or this device may be offline.",
 			badResponse: "That address answered, but not like a Hearth gallery.",
 			unauthorized: "The gallery didn't accept this vault's identity.",
+			forbidden: "The gallery wouldn't let this vault's identity do that.",
 			rateLimited: "The gallery is asking you to slow down. Try again in a few minutes.",
 			tooLarge: "That dashboard is too large for this gallery. Turn off the wallpaper, or shrink it.",
 			rejected: (why: string) => `The gallery refused it: ${why}`,

@@ -219,14 +219,20 @@ export function readPreview(raw: unknown): GalleryPreview | null {
 	let rows = 0;
 	for (const tile of tiles as Record<string, unknown>[]) {
 		if (!tile || typeof tile !== "object") continue;
+		// `- 1` on both, for the reason the capture side does it: these are
+		// 0-based indices, and one equal to the count sits a line past the grid.
 		const x = clamp(tile.x, 0, columns - 1, 0);
-		const y = clamp(tile.y, 0, PREVIEW_MAX_ROWS, 0);
+		const y = clamp(tile.y, 0, PREVIEW_MAX_ROWS - 1, 0);
 		const w = clamp(tile.w, 1, columns, 1);
 		const h = clamp(tile.h, 1, PREVIEW_MAX_ROWS, 1);
 		preview.tiles.push({ x, y, w: Math.min(w, columns - x), h, kind: safeKind(tile.kind) });
 		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
-	preview.rows = clamp(src.rows, 1, PREVIEW_MAX_ROWS, Math.max(1, rows));
+	// The tiles decide the height, and a `rows` the server sent can only make it
+	// taller. Taking the server's figure outright would let it declare a
+	// three-row grid holding a tile on row nine, which the browser resolves by
+	// drawing the tile outside the frame.
+	preview.rows = Math.max(rows, clamp(src.rows, 1, PREVIEW_MAX_ROWS, 1));
 
 	const bg = src.background as Record<string, unknown> | undefined;
 	if (bg && typeof bg === "object") {

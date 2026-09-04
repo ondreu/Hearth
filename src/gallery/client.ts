@@ -54,6 +54,18 @@ export type GalleryErrorCode =
 	| "badResponse"
 	/** The reader isn't signed in, or their token has expired. */
 	| "unauthorized"
+	/**
+	 * Signed in, but not allowed to do that — publishing over somebody else's
+	 * dashboard id, withdrawing an entry that isn't yours.
+	 *
+	 * Kept apart from {@link unauthorized} because the two need opposite
+	 * handling: a 401 means the token is no good and should be dropped, while a
+	 * 403 means the token is fine and the *request* was wrong — and the server's
+	 * own sentence is the useful part, since the commonest 403 is "that
+	 * dashboard id belongs to another author, duplicate the board first", which
+	 * is the ordinary end of install → change → publish.
+	 */
+	| "forbidden"
 	/** The host is rate-limiting this key or this address. */
 	| "rateLimited"
 	/** The host refused the upload: too large, or over a quota. */
@@ -163,12 +175,6 @@ export class GalleryClient {
 	/** Whether there is a usable token in hand. */
 	get signedIn(): boolean {
 		return this.session !== null && this.session.expiresAt > Date.now();
-	}
-
-	/** The key the current session belongs to, so a changed identity can be
-	 * noticed rather than used. */
-	get sessionKey(): string | null {
-		return this.signedIn ? (this.session?.publicKey ?? null) : null;
 	}
 
 	/** Forget the token. Called when the vault's identity changes underneath
@@ -285,14 +291,18 @@ export class GalleryClient {
 	 * category, the preview and the card list all come out of `meta` and the
 	 * payload, so an entry cannot advertise a board it isn't.
 	 */
-	async publish(json: string): Promise<{ id: string; updated: boolean }> {
+	async publish(json: string): Promise<{ id: string; updated: boolean; held: boolean }> {
 		const res = (await this.post("/v1/entries", { package: json }, true)) as {
 			id?: unknown;
 			updated?: unknown;
+			held?: unknown;
 		};
 		const id = typeof res?.id === "string" ? res.id : "";
 		if (!id) throw new GalleryError("badResponse");
-		return { id, updated: res.updated === true };
+		// A held entry was taken but is not in the listing until somebody has
+		// looked at it. Saying "published" about one would be a lie the author
+		// only discovers by going to look for it.
+		return { id, updated: res.updated === true, held: res.held === true };
 	}
 
 	/** Withdraw one of the reader's own entries. */
@@ -382,10 +392,13 @@ export class GalleryClient {
 		} catch {
 			/* a host that answers an error with HTML has said nothing useful */
 		}
-		if (res.status === 401 || res.status === 403) {
+		if (res.status === 401) {
 			this.signOut();
 			return new GalleryError("unauthorized", detail, res.status);
 		}
+		// Not a bad token — a request the holder of a good one may not make. The
+		// session stays.
+		if (res.status === 403) return new GalleryError("forbidden", detail, res.status);
 		if (res.status === 404) return new GalleryError("notFound", detail, res.status);
 		if (res.status === 413) return new GalleryError("tooLarge", detail, res.status);
 		if (res.status === 422) return new GalleryError("rejected", detail, res.status);

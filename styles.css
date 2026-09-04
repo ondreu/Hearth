@@ -12173,8 +12173,17 @@ body.hearth-dv-resizing {
 .hearth-gallery-preview.is-empty,
 .hearth-gallery-preview.is-plugin-board {
 	display: flex;
+	flex-direction: column;
+	gap: 6px;
 	align-items: center;
 	justify-content: center;
+}
+
+.hearth-gallery-preview-note {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+	padding: 0 8px;
 }
 
 .hearth-gallery-preview-icon {

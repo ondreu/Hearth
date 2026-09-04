@@ -2128,29 +2128,40 @@ export class HomeSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(strings.host)
 			.setDesc(strings.hostDesc)
-			.addText((tx) =>
-				tx
-					.setPlaceholder(strings.hostPlaceholder)
-					.setValue(this.plugin.settings.galleryUrl)
-					.onChange((v) => {
-						const raw = v.trim();
-						if (!raw) {
-							this.plugin.settings.galleryUrl = "";
-							// A held token belongs to the host it was issued by.
-							forgetGallerySession();
-							void this.plugin.saveData(this.plugin.settings);
-							return;
-						}
-						const host = normalizeGalleryUrl(raw);
-						// Typing is not finished until it is: an invalid address
-						// mid-keystroke is normal, so it simply isn't stored and
-						// isn't complained about either.
-						if (!host) return;
-						this.plugin.settings.galleryUrl = host;
-						forgetGallerySession();
-						void this.plugin.saveData(this.plugin.settings);
-					}),
-			);
+			.addText((tx) => {
+				// Committed on the way out of the field rather than per
+				// keystroke. Half of `https://gallery.example.com` is not an
+				// address, and validating each keystroke means either
+				// complaining about every one of them or — worse — leaving the
+				// *previous* host stored behind a field that now shows something
+				// else, so the gallery buttons would keep talking to a server the
+				// settings page has stopped naming.
+				const commit = (raw: string): void => {
+					const trimmed = raw.trim();
+					const host = trimmed ? normalizeGalleryUrl(trimmed) : "";
+					if (trimmed && host === null) {
+						new Notice(strings.hostInvalid);
+						// Cleared, not left as it was: a field showing an address
+						// Hearth won't use must not sit over one it still would.
+						tx.setValue(this.plugin.settings.galleryUrl);
+						return;
+					}
+					const next = host ?? "";
+					if (next === this.plugin.settings.galleryUrl) return;
+					this.plugin.settings.galleryUrl = next;
+					// A held token belongs to the host that issued it.
+					forgetGallerySession();
+					void this.plugin.saveData(this.plugin.settings);
+					new Notice(next ? strings.hostSet(next) : strings.hostCleared);
+					// The browse row below appears and disappears with the host.
+					this.rerender();
+				};
+				tx.setPlaceholder(strings.hostPlaceholder).setValue(this.plugin.settings.galleryUrl);
+				tx.inputEl.addEventListener("blur", () => commit(tx.inputEl.value));
+				tx.inputEl.addEventListener("keydown", (evt: KeyboardEvent) => {
+					if (evt.key === "Enter") commit(tx.inputEl.value);
+				});
+			});
 
 		if (!galleryConfigured(this.plugin)) return;
 		new Setting(containerEl)

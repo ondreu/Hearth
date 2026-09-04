@@ -101,6 +101,12 @@ class GalleryBrowseModal extends Modal {
 	onOpen(): void {
 		const saved = this.app.loadLocalStorage(SCOPE_KEY) as string | null;
 		if (typeof saved === "string" && this.isScope(saved)) this.browseScope = saved;
+		// "Published by me" is remembered across sessions, but the identity it
+		// was about may not have survived them — a replaced key, or a vault
+		// restored without one. Without this the scope stays selected, its
+		// author filter comes out undefined, and the rail shows "mine" active
+		// over a listing of the whole gallery.
+		if (this.browseScope === "mine" && !vaultIdentity(this.plugin)) this.browseScope = "all";
 		const savedSort = this.app.loadLocalStorage(SORT_KEY) as string | null;
 		if (typeof savedSort === "string" && (GALLERY_SORTS as string[]).includes(savedSort)) {
 			this.sort = savedSort as GallerySort;
@@ -272,6 +278,11 @@ class GalleryBrowseModal extends Modal {
 		this.error = null;
 		this.renderResults();
 		try {
+			// Cached after the first call, so this costs one request per gallery
+			// per session. It is what turns "somebody typed the wrong address"
+			// into a sentence saying so, instead of an empty listing that reads
+			// as "this gallery has nothing in it".
+			await this.client.describe();
 			const listing = await this.client.list(this.queryFor(page));
 			// Somebody typed again, or changed category, while this was in the
 			// air. Their view is the current one; this answer is about a question
@@ -282,7 +293,13 @@ class GalleryBrowseModal extends Modal {
 			this.page = listing.page;
 		} catch (err) {
 			if (generation !== this.generation) return;
-			this.error = galleryErrorText(err);
+			// A failed *first* page has nothing to show but the error. A failed
+			// "show more" has a grid somebody has already scrolled through, and
+			// replacing it with an error message throws that away to report that
+			// nothing new arrived — so the page keeps what it has and says so in
+			// a notice.
+			if (this.entries.length === 0) this.error = galleryErrorText(err);
+			else new Notice(galleryErrorText(err));
 		} finally {
 			if (generation === this.generation) {
 				this.loading = false;
