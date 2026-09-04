@@ -6292,6 +6292,27 @@
 	display: none;
 }
 
+/* A card hidden from the narrow board, shown only while that board is being
+   arranged (see renderDashboard). It is greyed and dashed rather than absent so
+   the way back from hiding a card is on the phone that hid it; its body is
+   never built, so all there is to lay out is the header and a kind label. */
+.hearth-grid.is-stacked .hearth-card.is-mobile-hidden {
+	height: auto;
+	opacity: 0.55;
+	border-style: dashed;
+	box-shadow: none;
+}
+
+.hearth-card.is-mobile-hidden .hearth-card-body.is-hidden-note {
+	display: flex;
+	align-items: center;
+	min-height: 0;
+	padding: 6px 12px 10px;
+	color: var(--text-faint);
+	font-size: 0.85rem;
+	font-style: italic;
+}
+
 /* The whole header is the tap target outside arrange mode, where it holds no
    controls of its own. */
 .hearth-card-head.is-collapsible {

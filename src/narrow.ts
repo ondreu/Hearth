@@ -102,9 +102,18 @@ function readingOrder(cards: DashboardCard[]): DashboardCard[] {
  * isn't — the two share one number line, so `order: 0` pulls a card to the top
  * and a large `order` pushes it to the bottom without having to number every
  * other card. Ties keep reading order.
+ *
+ * `includeHidden` keeps the hidden ones in the list, in the place they would
+ * hold if they were shown. That is what arranging a stacked board asks for: a
+ * card hidden from a phone can only be brought back from a control that is
+ * itself on the phone, so the arrange view has to be able to show what the
+ * rendered board deliberately does not. Nothing outside arrange mode passes it.
  */
-export function stackedCards(cards: DashboardCard[]): DashboardCard[] {
-	return readingOrder(cards.filter((card) => !card.mobile?.hidden))
+export function stackedCards(
+	cards: DashboardCard[],
+	opts: { includeHidden?: boolean } = {},
+): DashboardCard[] {
+	return readingOrder(cards.filter((card) => opts.includeHidden || !card.mobile?.hidden))
 		.map((card, index) => ({
 			card,
 			index,
@@ -162,14 +171,19 @@ export function observeNarrowWidth(
  * order someone arranged the thing that holds.
  *
  * Hidden cards are left out and left alone: they are not in the stack, so they
- * have no position in it to renumber.
+ * have no position in it to renumber. `includeHidden` — what arrange mode
+ * passes, where the hidden cards are on screen and movable — puts them back in
+ * the same one line, so a card moved past a hidden one keeps the place it was
+ * dragged to and the hidden card comes back where it was left rather than
+ * wherever the desktop geometry would re-derive it.
  */
 export function moveStacked(
 	cards: DashboardCard[],
 	card: DashboardCard,
 	delta: -1 | 1,
+	opts: { includeHidden?: boolean } = {},
 ): boolean {
-	const order = stackedCards(cards);
+	const order = stackedCards(cards, opts);
 	const from = order.indexOf(card);
 	const to = from + delta;
 	if (from < 0 || to < 0 || to >= order.length) return false;

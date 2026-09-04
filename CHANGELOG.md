@@ -329,6 +329,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A card hidden from the narrow board can be brought back from a phone.**
+  Hiding a card for the stacked layout took it off the board — including off the
+  board its own settings are reached from — so the switch could only be turned
+  back off from a desktop or by forcing the wide layout. Arranging a stacked
+  board now shows the hidden cards too, greyed out and dashed, each with an eye
+  button in its header that puts it back. They are never built while they sit
+  there (hiding a card is usually because it is expensive or needs width), they
+  keep their place in the stack so unhiding returns a card where it was left,
+  and outside arrange mode nothing changes: hidden stays hidden, and the
+  free-form board on a desktop is untouched.
+
 - **"Disable external calls" now also covers a background image and a title icon
   given as a web address.** The switch promises to block every outbound request
   Hearth makes, and every card kept that promise — but a wallpaper whose kind is

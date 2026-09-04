@@ -90,6 +90,21 @@ describe("stackedCards", () => {
 		expect(ids(stackedCards(cards))).toEqual(["shown", "also-shown"]);
 	});
 
+	it("keeps hidden cards in place when asked for them", () => {
+		// What arranging a stacked board shows: the hidden card is on screen, in
+		// the position it would hold if it were shown, so it can be brought back.
+		const cards = [
+			card("shown", { fy: 0 }),
+			card("gone", { fy: 100, mobile: { hidden: true } }),
+			card("also-shown", { fy: 200 }),
+		];
+		expect(ids(stackedCards(cards, { includeHidden: true }))).toEqual([
+			"shown",
+			"gone",
+			"also-shown",
+		]);
+	});
+
 	it("places an explicit order on the same number line as the derived one", () => {
 		// The clock is last on the board and asks to come first; everything else
 		// keeps its reading-order position around it.
@@ -177,6 +192,26 @@ describe("moveStacked", () => {
 		expect(moveStacked(cards, cards[2], -1)).toBe(true);
 		expect(ids(stackedCards(cards))).toEqual(["c", "a"]);
 		expect(cards[1].mobile).toEqual({ hidden: true });
+	});
+
+	it("counts hidden cards when arranging with them on screen", () => {
+		const cards = [
+			card("a", { fy: 0 }),
+			card("hidden", { fy: 100, mobile: { hidden: true } }),
+			card("c", { fy: 200 }),
+		];
+		expect(moveStacked(cards, cards[2], -1, { includeHidden: true })).toBe(true);
+		// The move is one place on the stack the arranger can see, so `c` lands
+		// above the hidden card rather than jumping the whole way to the top.
+		expect(ids(stackedCards(cards, { includeHidden: true }))).toEqual([
+			"a",
+			"c",
+			"hidden",
+		]);
+		// Hidden or not, the whole stack is numbered — so unhiding the card later
+		// brings it back where it was left.
+		expect(cards.map((c) => c.mobile?.order)).toEqual([0, 2, 1]);
+		expect(cards[1].mobile?.hidden).toBe(true);
 	});
 
 	it("keeps a card's other mobile options while reordering", () => {

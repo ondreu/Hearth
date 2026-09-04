@@ -125,22 +125,36 @@ export function renderDashboard(
 		elements: new Map(),
 	};
 
-	for (const card of stacked ? stackedCards(cards) : cards) {
+	// While arranging a stacked board the hidden cards are shown too, greyed out
+	// and inert, because hiding one is otherwise a one-way door: the only control
+	// that brings it back lives on the board it was just taken off, so a card
+	// hidden on a phone could only be restored from a desktop. Outside arrange
+	// mode the rendered board is unchanged — hidden stays hidden.
+	const arrangingStack = stacked && view.arrangeMode;
+	for (const card of stacked
+		? stackedCards(cards, { includeHidden: arrangingStack })
+		: cards) {
 		// A card asked to collapse gets a title row and nothing else until someone
 		// taps it — which is the whole point of the option: an expensive card
 		// costs one row on a phone instead of a screenful, and its body is never
 		// built at all unless it is opened. Only in the stacked layout, where
 		// vertical space is the scarce thing.
 		const collapsed = stacked && card.mobile?.collapsed === true;
+		// A card only on screen because the board is being arranged: shown as a
+		// greyed header with its kind for a label, and never built. Hiding a card
+		// is most often exactly because it is expensive or needs width, and
+		// arranging it back into view must not be the thing that runs it.
+		const hidden = arrangingStack && card.mobile?.hidden === true;
 
 		const el = grid.createDiv("hearth-card");
+		el.toggleClass("is-mobile-hidden", hidden);
 		gridLayout.elements.set(card, el);
 		// Stacked cards are in normal flow: full width from CSS, and only as tall
 		// as the stacked layout says — bar a collapsed one, which is as tall as
 		// its own header until it is opened. Everywhere else they are placed
 		// absolutely from their stored geometry.
 		if (!stacked) applyCardPosition(el, card);
-		else if (!collapsed) el.style.height = `${stackedHeight(card)}px`;
+		else if (!collapsed && !hidden) el.style.height = `${stackedHeight(card)}px`;
 
 		if (card.pinned) el.addClass("is-pinned");
 		// The card's kind, on the element. Only a couple of kinds contribute a
@@ -196,6 +210,14 @@ export function renderDashboard(
 
 		const body = el.createDiv("hearth-card-body");
 		if (card.background) body.addClass("has-bg");
+
+		// A hidden card names its kind and stops there: nothing is mounted, so
+		// there is no title on an untitled card and no content to recognise it by.
+		if (hidden) {
+			body.addClass("is-hidden-note");
+			body.createSpan({ text: t().editors.kinds[card.kind] });
+			continue;
+		}
 
 		// One mount for both paths, so a card expanded on a phone is built exactly
 		// as it would have been had it never been collapsed — its header extras
@@ -525,7 +547,10 @@ function renderCardControls(
 	// `mobile.order`, the same field the card's own Mobile settings expose.
 	if (stack) {
 		const move = (delta: -1 | 1) => {
-			if (!moveStacked(stack, card, delta)) return;
+			// The arrange stack is the one with the hidden cards in it, so the
+			// renumbering has to count them too — otherwise moving a card past a
+			// hidden one on screen would leave it where it started.
+			if (!moveStacked(stack, card, delta, { includeHidden: true })) return;
 			persistAndRender(view);
 		};
 		for (const [delta, icon, label] of [
@@ -540,6 +565,27 @@ function renderCardControls(
 			btn.addEventListener("pointerdown", (e) => e.stopPropagation());
 			btn.addEventListener("click", () => move(delta));
 		}
+
+		// The way back from a hidden card. `mobile.hidden` is also a toggle in the
+		// card's own settings, but that is a desktop-shaped answer to a phone-shaped
+		// problem: on the board where the card is hidden it isn't rendered, so its
+		// settings can't be reached from it. Arranging shows it greyed out with
+		// this button on it, so hiding is reversible from the phone that did it.
+		const hidden = card.mobile?.hidden === true;
+		const vis = actions.createEl("button", {
+			cls: "hearth-card-action",
+			attr: {
+				"aria-label": hidden ? t().dashboard.showOnNarrow : t().dashboard.hideOnNarrow,
+				"aria-pressed": String(hidden),
+				type: "button",
+			},
+		});
+		setIcon(vis, hidden ? "eye-off" : "eye");
+		vis.addEventListener("pointerdown", (e) => e.stopPropagation());
+		vis.addEventListener("click", () => {
+			card.mobile = { ...card.mobile, hidden: !hidden };
+			persistAndRender(view);
+		});
 	}
 
 	const settingsBtn = actions.createEl("button", {

@@ -490,6 +490,8 @@ export const en = {
 		phonePreviewOff: "Leave phone preview",
 		moveCardUp: "Move card up",
 		moveCardDown: "Move card down",
+		hideOnNarrow: "Hide on a narrow board",
+		showOnNarrow: "Show on a narrow board",
 	},
 
 	// ---- Dashboard switcher & per-dashboard settings -------------------
