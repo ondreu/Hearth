@@ -290,5 +290,27 @@ check("a withdrawn entry cannot be downloaded", (await call("GET", `/v1/entries/
 	check("its package is downloadable again", (await call("GET", `/v1/entries/${id}/package`)).status === 200);
 }
 
+// Republishing a withdrawn board puts one *back* into the gallery, so it has to
+// count against the per-author limit exactly as a new one does — otherwise the
+// cap is bypassable in a loop: withdraw, publish into the space, put the first
+// back. Only checkable against a gallery whose cap this run can reach, so it is
+// skipped on a default one rather than faked.
+{
+	const cap: number = (await call("GET", "/v1/info")).json.limits?.maxEntriesPerAuthor ?? 0;
+	if (cap > 0 && cap <= 2) {
+		await call("DELETE", `/v1/entries/${second.json.id}`, undefined, token);
+		const third = await call("POST", "/v1/entries", { package: f.third }, token);
+		check("a third board fits once one is withdrawn", third.status === 200, third.json);
+		const back = await call("POST", "/v1/entries", { package: f.b }, token);
+		check(
+			"republishing a withdrawn board counts against the limit",
+			back.status === 422 && /limit/.test(back.json.error),
+			back.json,
+		);
+	} else {
+		console.log(`  skip the per-author limit check (cap is ${cap})`);
+	}
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

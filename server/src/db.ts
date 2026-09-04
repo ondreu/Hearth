@@ -156,11 +156,22 @@ const MIGRATIONS: string[] = [
 	ALTER TABLE entries ADD COLUMN snapshot_mime TEXT;
 	`,
 
-	// 5 — tell an author's own withdrawal from an operator's takedown. Every
-	// row that already said 'removed' was written by the withdraw route, which
-	// only its author can reach, so they all become 'withdrawn'.
+	// 5 — `withdrawn`, for an author's own takedown, told apart from `removed`.
+	//
+	// **Nothing is relabelled.** The obvious migration — turn every existing
+	// `removed` into `withdrawn`, since only the withdraw route wrote that
+	// status — is wrong, because `docs/gallery-hosting.md` has been telling
+	// operators to take entries down with exactly `UPDATE … SET
+	// status='removed'` since before the split existed. Relabelling would
+	// reverse every takedown a gallery had actually performed, and hand the
+	// board back to whoever it was taken from.
+	//
+	// So old rows keep `removed` and stay unrepublishable. The cost is a few
+	// authors who withdrew a board before this build and now have to ask; the
+	// alternative cost is undoing moderation, silently, on upgrade. The
+	// hosting guide says how to release one by hand.
 	`
-	UPDATE entries SET status = 'withdrawn' WHERE status = 'removed';
+	SELECT 1;
 	`,
 ];
 

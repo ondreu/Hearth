@@ -59,14 +59,28 @@ export const VIEW_TYPE_HOME = "hearth-home-view";
  * Two callers want it gone — opening the gallery, and photographing a board to
  * publish it — because the way into both runs through arrange mode, so without
  * this most published pictures would be of somebody mid-edit.
+ *
+ * Returns whether anything changed, because a caller about to photograph the
+ * board has to know it just triggered a re-render: cards that mount lazily
+ * (`leafview.ts`, the markdown editors) come back asynchronously, and a picture
+ * taken two frames later would catch them blank.
  */
-export function leaveArrangeMode(app: App): void {
+export function leaveArrangeMode(app: App): boolean {
+	let changed = false;
 	for (const leaf of app.workspace.getLeavesOfType(VIEW_TYPE_HOME)) {
 		const view = leaf.view;
-		if (!(view instanceof HomeView) || !view.arrangeMode) continue;
+		if (!(view instanceof HomeView)) continue;
+		if (!view.arrangeMode && !view.phonePreview) continue;
 		view.arrangeMode = false;
+		// The phone-preview clamp lives in the arrange toolbar and nowhere else,
+		// so leaving arrange mode with it on strands the board at phone width
+		// with no control to undo it. The toolbar's own toggle clears it for the
+		// same reason.
+		view.phonePreview = false;
 		view.render();
+		changed = true;
 	}
+	return changed;
 }
 
 export class HomeView extends ItemView {

@@ -43,6 +43,7 @@ import {
 	type BoardSnapshot,
 	canSnapshot,
 	captureBoard,
+	settleAfterRender,
 	galleryBlockedByExternalCalls,
 	galleryClient,
 	galleryConfigured,
@@ -604,7 +605,7 @@ class ShareDashboardModal extends Modal {
 		// a toolbar above them. That is editing furniture, not the board, and
 		// the way into publishing runs through arrange mode — so without this,
 		// most published pictures would be of somebody mid-edit.
-		leaveArrangeMode(this.app);
+		const rerendered = leaveArrangeMode(this.app);
 		const board = this.boardEl();
 		if (!board) {
 			new Notice(t().portable.exportModal.snapshotFailed);
@@ -612,6 +613,11 @@ class ShareDashboardModal extends Modal {
 		}
 		this.capturing = true;
 		this.render();
+		// A re-render unmounts every card that mounts itself lazily — an
+		// embedded editor, a hosted view, an Excalidraw drawing — and those come
+		// back through `onLayoutReady` and an async `setViewState`, not on the
+		// next frame. Photographing immediately would catch them blank.
+		if (rerendered) await settleAfterRender();
 		// The dialog is in front of the board, so it steps out of the frame for
 		// the moment of the capture rather than closing — its state survives and
 		// the flicker is one frame of an action that already takes a second.
@@ -926,6 +932,14 @@ class ShareDashboardModal extends Modal {
 							this.redrawDetails();
 						}),
 				);
+			// A pinned row's switch cannot be moved, so it says why rather than
+			// looking like a choice somebody failed to make.
+			if (pinned) {
+				setting.descEl.createDiv({
+					cls: "hearth-export-values-empty",
+					text: strings.groupPinned,
+				});
+			}
 			// Nothing in this board falls in this group: say so rather than
 			// offering a switch that would do nothing.
 			if (values.length === 0) {

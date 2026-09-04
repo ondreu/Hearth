@@ -52,6 +52,23 @@ const MAX_SCREENFULS = 4;
  * of every package for no visible gain at this scale. */
 const QUALITY = 74;
 
+/**
+ * Qualities to try, in order, until the picture fits {@link MAX_BYTES}.
+ *
+ * Most boards are done at the first. The rest exist so that a long, busy board
+ * gets a slightly softer picture rather than no entry — see `stitch`.
+ */
+const QUALITY_STEPS = [QUALITY, 60, 48, 36];
+
+/**
+ * The most a picture may weigh.
+ *
+ * Under the 1 MiB a gallery server accepts, with room for the base64 expansion
+ * and the rest of the package around it. Every byte is downloaded by everyone
+ * who installs the board and carried in the file forever.
+ */
+const MAX_BYTES = 850 * 1024;
+
 /** The character text is replaced with. A full block, so the styled bar over it
  * has something the width of the original words to cover. */
 const BLOCK = "█";
@@ -306,6 +323,24 @@ function isOpenCard(body: HTMLElement): boolean {
 }
 
 /**
+ * Wait long enough for a board that has just been re-rendered to be whole
+ * again.
+ *
+ * Cards that mount lazily — a hosted view, an embedded editor, an Excalidraw
+ * drawing — come back through `onLayoutReady` and an asynchronous
+ * `setViewState`, which is several frames rather than one. This is a guess, and
+ * an honest one: there is no event that says "every card has finished", and a
+ * picture taken too early has blank cards in it forever.
+ */
+export function settleAfterRender(): Promise<void> {
+	return new Promise((resolve) => window.setTimeout(resolve, RENDER_SETTLE_MS));
+}
+
+/** How long {@link settleAfterRender} waits. Long enough for a lazily-mounted
+ * card, short enough not to read as the dialog having hung. */
+const RENDER_SETTLE_MS = 600;
+
+/**
  * Wait for the page to have been drawn.
  *
  * Two frames, not one: the first lets a style change or a scroll be applied,
@@ -461,17 +496,21 @@ async function stitch(
 		bitmap.close?.();
 	}
 
-	const url = canvas.toDataURL("image/jpeg", QUALITY / 100);
-	const data = url.slice(url.indexOf(",") + 1);
-	if (!data) return null;
-	return {
-		data,
-		mime: "image/jpeg",
-		// base64 is four characters per three bytes; the padding is the remainder.
-		bytes: Math.floor((data.length * 3) / 4),
-		width: canvas.width,
-		height: canvas.height,
-	};
+	// Encoded down until it fits. A four-screenful board at full quality can pass
+	// a megabyte, and a gallery that refuses the upload for it would leave a
+	// board that *cannot be published at all* — the picture is required. Losing
+	// some quality is the right way to fail here.
+	for (const quality of QUALITY_STEPS) {
+		const url = canvas.toDataURL("image/jpeg", quality / 100);
+		const data = url.slice(url.indexOf(",") + 1);
+		if (!data) return null;
+		// base64 is four characters per three bytes.
+		const bytes = Math.floor((data.length * 3) / 4);
+		if (bytes <= MAX_BYTES || quality === QUALITY_STEPS[QUALITY_STEPS.length - 1]) {
+			return { data, mime: "image/jpeg", bytes, width: canvas.width, height: canvas.height };
+		}
+	}
+	return null;
 }
 
 /** An Electron image as something a canvas can draw. */

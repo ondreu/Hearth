@@ -250,6 +250,14 @@ export function publishEntry(
 	const status = upload.holdReason ? "held" : "live";
 	touchAuthor(db, authorKey);
 
+	// Republishing a board that is currently *out* of the gallery puts one back
+	// into it, so it counts against the limit exactly as a new entry does.
+	// Without this the cap is bypassable in a loop: withdraw one, publish a new
+	// one into the space, put the first back.
+	if (existing && existing.status !== "live" && existing.status !== "held") {
+		requireRoom(db, authorKey);
+	}
+
 	if (existing) {
 		db.prepare(
 			`UPDATE entries SET
@@ -284,18 +292,7 @@ export function publishEntry(
 		return { id: existing.id, updated: true, held: status === "held" };
 	}
 
-	const live = Number(
-		(db
-			// Live and held count against the limit; a board its author withdrew
-			// or an operator removed does not — neither is in the gallery.
-			.prepare(
-				"SELECT COUNT(*) AS n FROM entries WHERE author_key = ? AND status IN ('live', 'held')",
-			)
-			.get(authorKey) as { n: number }).n,
-	);
-	if (config.maxEntriesPerAuthor > 0 && live >= config.maxEntriesPerAuthor) {
-		throw unprocessable("this gallery's limit of published dashboards for one author is reached");
-	}
+	requireRoom(db, authorKey);
 
 	const id = newEntryId();
 	db.prepare(
@@ -331,6 +328,23 @@ export function publishEntry(
 		upload.holdReason,
 	);
 	return { id, updated: false, held: status === "held" };
+}
+
+/** Refuse when this author has as many boards in the gallery as it allows.
+ * Live and held count; a board that is withdrawn or removed does not, because
+ * neither is in the gallery. */
+function requireRoom(db: Db, authorKey: string): void {
+	if (config.maxEntriesPerAuthor <= 0) return;
+	const live = Number(
+		(db
+			.prepare(
+				"SELECT COUNT(*) AS n FROM entries WHERE author_key = ? AND status IN ('live', 'held')",
+			)
+			.get(authorKey) as { n: number }).n,
+	);
+	if (live >= config.maxEntriesPerAuthor) {
+		throw unprocessable("this gallery's limit of published dashboards for one author is reached");
+	}
 }
 
 /**

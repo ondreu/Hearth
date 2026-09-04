@@ -12995,12 +12995,14 @@ body.hearth-snapshot-capturing .hearth-view {
 	filter: blur(10px) !important;
 }
 
-/* A canvas is usually a drawing rather than a document — the graph view is the
-   one people ask about. Its *shape* is worth publishing and its node labels are
-   note titles, so it is blurred just enough that the labels go and the graph
-   stays recognisable. */
+/* A canvas is blurred a little less than a picture, because the graph view's
+   *shape* is worth publishing and a heavy blur turns it to fog. Not much less:
+   nothing inside a canvas is text to the redactor — it is pixels — so this blur
+   is the only thing standing between an Excalidraw heading, an Obsidian Canvas
+   note or a graph's node labels and everyone who installs the board. A graph
+   still reads as a graph at this radius; a word does not. */
 .hearth-snapshot-redacted .hearth-card-body canvas {
-	filter: blur(4px) !important;
+	filter: blur(8px) !important;
 }
 
 /* What publishing takes out, and what it keeps. A block rather than a settings

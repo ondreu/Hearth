@@ -104,6 +104,8 @@ console.log(
 		}),
 		b: build(`hd-smoke-${run}-b`, `Sprint board ${run}`, "work"),
 		leaky: leaky(),
+		// A third clean board, for the per-author limit check.
+		third: build(`hd-smoke-${run}-e`, `Third ${run}`, "other"),
 		// A *second* identity publishing the same dashboard id — the shape of
 		// "installed a board, changed it, tried to publish it" — which the
 		// gallery has to refuse rather than let overwrite somebody's entry.

@@ -90,6 +90,7 @@ const routes = [
 			maxDescriptionLength: config.maxDescriptionLength,
 			maxTags: config.maxTags,
 			uploadsPerDay: config.uploadsPerDay,
+			maxEntriesPerAuthor: config.maxEntriesPerAuthor,
 		},
 		termsUrl: config.termsUrl || undefined,
 	})),

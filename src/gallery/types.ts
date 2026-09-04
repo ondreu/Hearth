@@ -172,6 +172,9 @@ export interface GalleryLimits {
 	maxTags: number;
 	/** Uploads allowed per key per day; 0 means the server didn't say. */
 	uploadsPerDay: number;
+	/** How many boards one identity may have in the gallery at once; 0 means no
+	 * limit, or that the server didn't say. */
+	maxEntriesPerAuthor: number;
 }
 
 /** What a gallery says about itself. Fetched once when a host is first used,
@@ -409,6 +412,7 @@ export function readInfo(raw: unknown): GalleryInfo {
 			maxDescriptionLength: num(limits.maxDescriptionLength, 40, 4000, 600),
 			maxTags: num(limits.maxTags, 0, 24, 8),
 			uploadsPerDay: num(limits.uploadsPerDay, 0, 10000, 0),
+			maxEntriesPerAuthor: num(limits.maxEntriesPerAuthor, 0, 100000, 0),
 		},
 		termsUrl: httpsUrl(src.termsUrl),
 	};

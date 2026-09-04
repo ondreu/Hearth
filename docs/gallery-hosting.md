@@ -51,7 +51,7 @@ GALLERY_URL=https://gallery.example.com \
 	npm --prefix server run smoke                  # against a deployed one
 ```
 
-Sixty-five checks: signing in with a real key, publishing real signed packages,
+Sixty-five checks (two more against a gallery with a small per-author cap): signing in with a real key, publishing real signed packages,
 refusing an unsigned one and an edited one, voting, downloading, withdrawing.
 It mints a fresh identity per run, so it is safe to run against a live gallery
 more than once — though it does publish two boards and leave one behind.
@@ -195,6 +195,12 @@ sqlite3 … "UPDATE comments SET status='removed', body='' WHERE id='…';"
 
 # Release a held entry after looking at it
 sqlite3 … "UPDATE entries SET status='live', hold_reason=NULL WHERE id='…';"
+
+# An author asking why they cannot republish a board they withdrew before this
+# build: their row says `removed`, which is now *your* status. Nothing is
+# relabelled on upgrade, because doing so would have reversed real takedowns.
+# Hand one back with:
+sqlite3 … "UPDATE entries SET status='withdrawn' WHERE id='…';"
 ```
 
 There is no admin UI, deliberately: an admin UI is an authentication surface,

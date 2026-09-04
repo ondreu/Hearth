@@ -94,7 +94,8 @@ None of these needs a token. All of them accept one, and use it only to fill in
     "maxNameLength": 80,
     "maxDescriptionLength": 600,
     "maxTags": 8,
-    "uploadsPerDay": 10
+    "uploadsPerDay": 10,
+    "maxEntriesPerAuthor": 50
   },
   "termsUrl": "https://…"         // optional
 }
