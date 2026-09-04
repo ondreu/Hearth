@@ -41,9 +41,20 @@ export interface PreviewTile {
 	y: number;
 	w: number;
 	h: number;
-	/** The card's kind, for the icon drawn in the tile. Free text as far as this
-	 * module is concerned — the renderer looks it up and falls back. */
+	/** The card's kind, for the icon and the body shape drawn in the tile. Free
+	 * text as far as this module is concerned — the renderer looks it up and
+	 * falls back. */
 	kind: string;
+	/**
+	 * The card's own title, when its author gave it one.
+	 *
+	 * It already travels in every published package — a card title is part of
+	 * the board's design rather than something the strip removes — so showing it
+	 * exposes nothing the file didn't already carry, and it is most of what makes
+	 * a thumbnail readable: "Today", "Reading", "Work" says more about a board
+	 * than three grey rectangles do.
+	 */
+	title?: string;
 }
 
 /** What sits behind the tiles. */
@@ -78,6 +89,12 @@ export interface GalleryPreview {
 	/** True when the board hosts a plugin view instead of a grid of cards, which
 	 * has no tiles to draw. */
 	pluginBoard?: boolean;
+	/** The board shows its title block, so the thumbnail should too — a board
+	 * with a heading and one without look different at a glance, and that is
+	 * exactly what a thumbnail is for. */
+	header?: boolean;
+	/** The board shows the search row. */
+	search?: boolean;
 	/** How many cards were left out by {@link PREVIEW_MAX_TILES} / rows. */
 	truncated?: number;
 }
@@ -102,6 +119,16 @@ function clamp(value: unknown, min: number, max: number, fallback: number): numb
 	const n = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : NaN;
 	if (Number.isNaN(n)) return fallback;
 	return Math.min(max, Math.max(min, n));
+}
+
+/** A card title, bounded and stripped of anything that isn't text a label
+ * shows. Rendered as a text node like every other string from a gallery, so the
+ * cap is about layout rather than safety. */
+function safeTitle(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.replace(/\s+/g, " ").trim();
+	if (!trimmed) return undefined;
+	return trimmed.length > 40 ? `${trimmed.slice(0, 40)}…` : trimmed;
 }
 
 /** A kind id, or "" for anything that isn't one. Kept to the shape Hearth's own
@@ -148,6 +175,14 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 		preview.background = bg;
 	}
 
+	// The chrome above the grid. Both are resolved onto the board by capture, so
+	// what is read here is what that board actually shows.
+	if (dash.header && typeof dash.header === "object") {
+		const header = dash.header as Record<string, unknown>;
+		if (header.show !== false) preview.header = true;
+	}
+	if (dash.showSearch === true) preview.search = true;
+
 	const cards = Array.isArray(dash.cards) ? (dash.cards as Record<string, unknown>[]) : [];
 	let truncated = 0;
 	let rows = 0;
@@ -169,7 +204,14 @@ export function previewFromPackage(pkg: HearthPackage): GalleryPreview | null {
 			truncated++;
 			continue;
 		}
-		preview.tiles.push({ x, y, w: Math.min(w, columns - x), h, kind: safeKind(card.kind) });
+		preview.tiles.push({
+			x,
+			y,
+			w: Math.min(w, columns - x),
+			h,
+			kind: safeKind(card.kind),
+			title: safeTitle(card.title),
+		});
 		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
 	preview.rows = Math.max(1, rows);
@@ -225,7 +267,14 @@ export function readPreview(raw: unknown): GalleryPreview | null {
 		const y = clamp(tile.y, 0, PREVIEW_MAX_ROWS - 1, 0);
 		const w = clamp(tile.w, 1, columns, 1);
 		const h = clamp(tile.h, 1, PREVIEW_MAX_ROWS, 1);
-		preview.tiles.push({ x, y, w: Math.min(w, columns - x), h, kind: safeKind(tile.kind) });
+		preview.tiles.push({
+			x,
+			y,
+			w: Math.min(w, columns - x),
+			h,
+			kind: safeKind(tile.kind),
+			title: safeTitle(tile.title),
+		});
 		rows = Math.max(rows, Math.min(PREVIEW_MAX_ROWS, y + h));
 	}
 	// The tiles decide the height, and a `rows` the server sent can only make it
@@ -248,6 +297,8 @@ export function readPreview(raw: unknown): GalleryPreview | null {
 		preview.opacity = Math.min(1, Math.max(0, src.opacity));
 	}
 	if (src.pluginBoard === true) preview.pluginBoard = true;
+	if (src.header === true) preview.header = true;
+	if (src.search === true) preview.search = true;
 	const truncated = clamp(src.truncated, 0, 100000, 0);
 	if (truncated) preview.truncated = truncated;
 	return preview;

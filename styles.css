@@ -12137,37 +12137,220 @@ body.hearth-dv-resizing {
 	object-fit: cover;
 }
 
-.hearth-gallery-preview-grid {
+.hearth-gallery-preview-inner {
 	position: absolute;
 	inset: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px;
+}
+
+/* The chrome above the grid: a heading bar and a search row, drawn only when
+   the board actually shows them. A board with a title looks different from one
+   without at a size where the cards' contents no longer read. */
+.hearth-gallery-preview-chrome {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.hearth-gallery-preview-title {
+	width: 38%;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--text-normal);
+	opacity: 0.45;
+}
+
+.hearth-gallery-preview-searchbar {
+	width: 100%;
+	height: 7px;
+	border-radius: 4px;
+	background: var(--background-primary);
+	opacity: 0.7;
+}
+
+.hearth-gallery-preview-grid {
+	flex: 1 1 auto;
 	display: grid;
 	grid-template-columns: repeat(var(--hearth-preview-cols, 12), 1fr);
 	grid-template-rows: repeat(var(--hearth-preview-rows, 8), 1fr);
 	gap: 3px;
-	padding: 6px;
+	min-height: 0;
 }
 
 .hearth-gallery-preview-tile {
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	flex-direction: column;
+	gap: 3px;
+	padding: 4px;
+	overflow: hidden;
 	background: var(--background-primary);
-	opacity: var(--hearth-preview-opacity, 0.88);
-	border-radius: var(--hearth-preview-radius, 4px);
+	opacity: var(--hearth-preview-opacity, 0.9);
 	/* The radius travels from the board, and a board can ask for 64px on a tile
 	   a few pixels tall — which reads as a circle rather than as that board. */
-	max-width: 100%;
-	overflow: hidden;
+	border-radius: min(var(--hearth-preview-radius, 4px), 6px);
+}
+
+/* A card too small to hold a header and a skeleton is a swatch. Detail at that
+   size is noise, and noise at thumbnail scale reads as a broken image. */
+.hearth-gallery-preview-tile.is-tiny {
+	padding: 0;
+}
+
+.hearth-gallery-preview-tile-head {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	min-width: 0;
 }
 
 .hearth-gallery-preview-tile-icon {
 	display: flex;
-	color: var(--text-faint);
+	flex: none;
+	color: var(--text-muted);
 }
 
 .hearth-gallery-preview-tile-icon svg {
+	width: 9px;
+	height: 9px;
+}
+
+.hearth-gallery-preview-tile-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 6px;
+	line-height: 1.1;
+	color: var(--text-muted);
+}
+
+.hearth-gallery-preview.is-large .hearth-gallery-preview-tile-icon svg {
 	width: 13px;
 	height: 13px;
+}
+
+.hearth-gallery-preview.is-large .hearth-gallery-preview-tile-title {
+	font-size: 9px;
+}
+
+/* ---- Card skeletons ----
+   Every card kind draws the shape of what it holds rather than a blank
+   rectangle: a list is rows, a calendar is a month, a clock is a dial. See the
+   note above SKELETON in src/galleryui.ts for why this rather than a
+   screenshot. The marks are all `currentColor` at low opacity, so they follow
+   the reader's theme in both directions. */
+.hearth-gallery-preview-tile-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	color: var(--text-normal);
+}
+
+.hearth-gallery-preview-tile-body.is-rows,
+.hearth-gallery-preview-tile-body.is-paragraph,
+.hearth-gallery-preview-tile-body.is-figure {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	gap: 3px;
+}
+
+.hearth-gallery-preview-row,
+.hearth-gallery-preview-line {
+	flex: none;
+	width: var(--hearth-preview-w, 100%);
+	height: 3px;
+	border-radius: 2px;
+	background: currentColor;
+	opacity: 0.24;
+}
+
+.hearth-gallery-preview-line.is-last {
+	width: 45%;
+}
+
+.hearth-gallery-preview-line.is-sub {
+	width: 55%;
+}
+
+/* A row carries a leading dot, the way a task or a feed item does. */
+.hearth-gallery-preview-row {
+	opacity: 0.3;
+}
+
+.hearth-gallery-preview-tile-body.is-grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 2px;
+	align-content: start;
+}
+
+.hearth-gallery-preview-cell {
+	aspect-ratio: 1;
+	border-radius: 1px;
+	background: currentColor;
+	opacity: 0.18;
+}
+
+/* Every third cell a shade stronger, so a month grid reads as one with
+   something in it rather than as graph paper. */
+.hearth-gallery-preview-cell:nth-child(3n + 1) {
+	opacity: 0.32;
+}
+
+.hearth-gallery-preview-tile-body.is-tiles {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 3px;
+	align-content: start;
+}
+
+.hearth-gallery-preview-chip {
+	height: 6px;
+	border-radius: 2px;
+	background: currentColor;
+	opacity: 0.22;
+}
+
+.hearth-gallery-preview-tile-body.is-dial {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hearth-gallery-preview-dial {
+	width: min(70%, 26px);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	border: 2px solid currentColor;
+	opacity: 0.28;
+}
+
+/* One big number over one small line: a stats, weather or calculator card. */
+.hearth-gallery-preview-figure {
+	flex: none;
+	width: 62%;
+	height: 9px;
+	border-radius: 2px;
+	background: currentColor;
+	opacity: 0.3;
+}
+
+.hearth-gallery-preview-tile-body.is-block {
+	display: flex;
+}
+
+.hearth-gallery-preview-block {
+	flex: 1 1 auto;
+	border-radius: 2px;
+	background: currentColor;
+	opacity: 0.16;
 }
 
 .hearth-gallery-preview.is-empty,
@@ -12492,6 +12675,42 @@ body.hearth-dv-resizing {
 	border-left: 3px solid var(--text-accent);
 	border-radius: var(--radius-s);
 	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* ---- Identity ---- */
+/* The handle is a name people are asked to recognise on somebody else's board
+   and to keep a key for, so it is shown at a size that says so rather than
+   mentioned inside a paragraph. Monospace because it is read character by
+   character — the six-symbol suffix is the part that tells two similar handles
+   apart, and a proportional font hides exactly that. */
+.hearth-identity-handle {
+	margin-top: 4px;
+	font-family: var(--font-monospace);
+	font-size: 1.05em;
+	font-weight: var(--font-medium);
+	color: var(--text-accent);
+	user-select: text;
+	overflow-wrap: anywhere;
+}
+
+/* Shown at the top of the gallery to a vault with no handle yet. Not a wall —
+   browsing and installing need nothing — so it reads as an offer. */
+.hearth-gallery-identity-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	margin-bottom: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	flex-wrap: wrap;
+}
+
+.hearth-gallery-identity-text {
+	flex: 1 1 240px;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }

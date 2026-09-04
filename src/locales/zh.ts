@@ -3446,11 +3446,15 @@ export const zh: Translations = {
 
 			// ---- 身份 ----
 			identity: "发布身份",
-			identityDesc: (handle: string) =>
-				`${handle} —— 由一把始终留在本库中的密钥生成。你导出的所有文件都使用同一个代号，` +
-				"它不会透露你是谁；而且每次导出都用该密钥签名，因此别人无法冒用。" +
+			identityDesc:
+				"由一把始终留在本库中的密钥生成。你发布的所有内容都使用同一个代号，" +
+				"它不会透露你是谁；而且每个文件都用该密钥签名，因此别人无法冒用。" +
 				"复制密钥即可把这个代号带到另一处安装。",
-			identityNew: "首次导出时，Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
+			identityNew:
+				"你还没有代号。它由一把永不离开本库的密钥生成，完全匿名——不需要账号、邮箱，也不涉及你的任何身份信息。",
+			identityCreate: "生成我的代号",
+			identityCreated: (handle: string) =>
+				`你的发布身份是 ${handle}。请复制恢复密钥并妥善保存——这是找回这个代号的唯一方式。`,
 			identityCopy: "复制我的恢复密钥",
 			identityUnsaved:
 				"请在需要之前就把恢复密钥保存到安全的地方。它只存在于本库中，一旦丢失就无法重置、也无处可问——" +
@@ -3602,6 +3606,10 @@ export const zh: Translations = {
 			score: (n: number) => `${n > 0 ? "+" : ""}${n}`,
 			cardCount: (n: number) => `${n} 张卡片`,
 			pluginBoard: "承载插件视图",
+			needsIdentity:
+				"浏览和安装无需代号，但投票和发布需要。Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
+			needsIdentityVote:
+				"投票需要一个代号。Hearth 会用一把永不离开本库的密钥为你生成匿名代号——不需要账号，也不涉及你的任何身份信息。现在就生成吗？",
 		},
 		detail: {
 			install: "安装",

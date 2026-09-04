@@ -23,7 +23,7 @@ import { Modal, Notice, Platform, setIcon } from "obsidian";
 import type HearthPlugin from "./main";
 import { t } from "./i18n";
 import { activeDashboard } from "./types";
-import { openPublishDashboard, vaultIdentity } from "./exportimport";
+import { createIdentity, openPublishDashboard, vaultIdentity } from "./exportimport";
 import { galleryErrorText, renderEmpty, renderEntryCard } from "./galleryui";
 import { openGalleryEntry, openGalleryProfile } from "./gallerydetail";
 import {
@@ -88,6 +88,7 @@ class GalleryBrowseModal extends Modal {
 	private generation = 0;
 	private debounce: number | null = null;
 
+	private identityBar: HTMLElement | null = null;
 	private railEl: HTMLElement | null = null;
 	private resultsEl: HTMLElement | null = null;
 	private searchEl: HTMLInputElement | null = null;
@@ -119,6 +120,8 @@ class GalleryBrowseModal extends Modal {
 		contentEl.addClass("hearth-gallery");
 
 		this.renderTopBar(contentEl);
+		this.identityBar = contentEl.createDiv();
+		this.renderIdentityBar();
 		const body = contentEl.createDiv("hearth-gallery-body");
 		this.railEl = body.createDiv("hearth-gallery-rail");
 		this.resultsEl = body.createDiv("hearth-gallery-results");
@@ -197,6 +200,35 @@ class GalleryBrowseModal extends Modal {
 		});
 		setIcon(refresh, "refresh-cw");
 		refresh.addEventListener("click", () => void this.load({ reset: true }));
+	}
+
+	/**
+	 * The one thing somebody arriving without an identity has to know.
+	 *
+	 * Browsing and installing need nothing — a gallery is readable by anyone —
+	 * so this is not a wall. It is the answer to "why is there no vote button
+	 * and no 'published by me'", said before they go looking for one, with the
+	 * button that fixes it. It goes away the moment there is a handle.
+	 */
+	private renderIdentityBar(): void {
+		const bar = this.identityBar;
+		if (!bar) return;
+		bar.empty();
+		if (vaultIdentity(this.plugin)) return;
+		const strings = t().gallery.browse;
+		bar.addClass("hearth-gallery-identity-bar");
+		bar.createDiv({ cls: "hearth-gallery-identity-text", text: strings.needsIdentity });
+		const button = bar.createEl("button", {
+			cls: "mod-cta",
+			text: t().portable.exportModal.identityCreate,
+		});
+		button.addEventListener("click", () => {
+			void createIdentity(this.plugin, () => {
+				this.renderIdentityBar();
+				// "Published by me" only exists once there is a "me".
+				this.renderRail();
+			});
+		});
 	}
 
 	private renderRail(): void {

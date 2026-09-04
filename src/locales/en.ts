@@ -3685,14 +3685,17 @@ export const en = {
 
 			// ---- Identity ----
 			identity: "Published as",
-			identityDesc: (handle: string) =>
-				`${handle} — made for you from a key that stays in this vault. It's the same handle on ` +
-				"everything you export, it says nothing about who you are, and because each export is " +
-				"signed with that key, nobody else can publish under it. Copy the key to carry the " +
-				"handle to another install.",
+			identityDesc:
+				"Made for you from a key that stays in this vault. It's the same handle on everything " +
+				"you publish, it says nothing about who you are, and because each file is signed with " +
+				"that key, nobody else can publish under it. Copy the key to carry the handle to " +
+				"another install.",
 			identityNew:
-				"Hearth will make you an anonymous handle the first time you export something, from a " +
-				"key that never leaves this vault.",
+				"You don't have one yet. It's an anonymous handle made from a key that never leaves " +
+				"this vault — no account, no email, nothing about who you are.",
+			identityCreate: "Create my handle",
+			identityCreated: (handle: string) =>
+				`You publish as ${handle}. Copy your recovery key and keep it somewhere safe — it's the only way to get this handle back.`,
 			identityCopy: "Copy my recovery key",
 			identityUnsaved:
 				"Save your recovery key somewhere safe before you need it. It's held nowhere but this " +
@@ -3870,6 +3873,10 @@ export const en = {
 			score: (n: number) => `${n > 0 ? "+" : ""}${n}`,
 			cardCount: (n: number) => `${n} card${n === 1 ? "" : "s"}`,
 			pluginBoard: "Hosts a plugin view",
+			needsIdentity:
+				"You can browse and install without one, but voting and publishing need a handle. Hearth makes you an anonymous one from a key that never leaves this vault.",
+			needsIdentityVote:
+				"Voting needs a handle. Hearth will make you an anonymous one from a key that never leaves this vault — no account, and nothing about who you are. Make one now?",
 		},
 		detail: {
 			install: "Install",

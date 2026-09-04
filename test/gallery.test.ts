@@ -143,6 +143,40 @@ describe("previewFromPackage", () => {
 		expect(preview?.background?.hasImage).toBe(true);
 	});
 
+	it("carries each card's title, which is most of what makes a thumbnail read", () => {
+		const preview = previewFromPackage(
+			pkg([
+				{ kind: "tasks", x: 0, y: 0, w: 4, h: 3, title: "  Today\n  " },
+				{ kind: "clock", x: 4, y: 0, w: 2, h: 2 },
+			]),
+		);
+		// Whitespace collapsed, because it lands in a one-line label.
+		expect(preview?.tiles[0].title).toBe("Today");
+		expect(preview?.tiles[1].title).toBeUndefined();
+	});
+
+	it("bounds a card title somebody made enormous", () => {
+		const preview = previewFromPackage(
+			pkg([{ kind: "text", x: 0, y: 0, w: 4, h: 3, title: "x".repeat(500) }]),
+		);
+		expect(preview!.tiles[0].title!.length).toBeLessThanOrEqual(41);
+	});
+
+	it("records the chrome the board shows above its grid", () => {
+		const bare = previewFromPackage(pkg([]));
+		expect(bare?.header).toBeUndefined();
+		expect(bare?.search).toBeUndefined();
+
+		const dressed = previewFromPackage(
+			pkg([], { header: { show: true }, showSearch: true }),
+		);
+		expect(dressed?.header).toBe(true);
+		expect(dressed?.search).toBe(true);
+
+		// A header block that is explicitly hidden is not one.
+		expect(previewFromPackage(pkg([], { header: { show: false } }))?.header).toBeUndefined();
+	});
+
 	it("says a plugin board is one, since it has no tiles to draw", () => {
 		const preview = previewFromPackage(pkg([], { mode: "plugin" }));
 		expect(preview?.pluginBoard).toBe(true);
@@ -207,6 +241,21 @@ describe("readPreview re-clamps what arrives over the wire", () => {
 		});
 		expect(preview?.tiles[0].y).toBeLessThan(PREVIEW_MAX_ROWS);
 		expect(preview!.tiles[0].y + preview!.tiles[0].h).toBeLessThanOrEqual(preview!.rows);
+	});
+
+	it("re-reads a title and the chrome flags from the wire", () => {
+		const preview = readPreview({
+			columns: 12,
+			tiles: [{ x: 0, y: 0, w: 4, h: 2, kind: "tasks", title: "  Today  " }],
+			header: true,
+			search: true,
+		});
+		expect(preview?.tiles[0].title).toBe("Today");
+		expect(preview?.header).toBe(true);
+		expect(preview?.search).toBe(true);
+		// A title that isn't text is no title.
+		expect(readPreview({ tiles: [{ x: 0, y: 0, w: 1, h: 1, title: 12 }] })?.tiles[0].title)
+			.toBeUndefined();
 	});
 
 	it("reads nothing out of nothing", () => {

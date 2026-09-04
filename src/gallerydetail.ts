@@ -16,9 +16,10 @@
 
 import { Modal, Notice, setIcon } from "obsidian";
 import type HearthPlugin from "./main";
+import type { AuthorIdentity } from "./identity";
 import { t } from "./i18n";
-import { confirmAction, makeClickable } from "./ui";
-import { openImportPackage, vaultIdentity } from "./exportimport";
+import { confirmAction } from "./ui";
+import { createIdentity, openImportPackage, vaultIdentity } from "./exportimport";
 import {
 	cardKindLabel,
 	galleryDate,
@@ -103,7 +104,6 @@ class GalleryEntryModal extends Modal {
 	private render(): void {
 		const body = this.contentEl;
 		body.empty();
-		const strings = t().gallery.detail;
 
 		if (this.error) {
 			this.titleEl.setText(t().gallery.browse.title);
@@ -123,7 +123,8 @@ class GalleryEntryModal extends Modal {
 			hero,
 			entry.preview,
 			entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
-		).addClass("is-large");
+			{ large: true },
+		);
 
 		const head = body.createDiv("hearth-gallery-detail-head");
 		const byline = head.createDiv("hearth-gallery-detail-byline");
@@ -195,14 +196,11 @@ class GalleryEntryModal extends Modal {
 		const entry = this.entry;
 		if (!entry || this.busy) return;
 		// Voting is signed, so it needs a key — and a vault that has never
-		// published has none. Minting one here costs nothing and reveals
-		// nothing: the handle is derived from a secret that stays in the vault
-		// and says nothing about who anybody is.
-		const identity = vaultIdentity(this.plugin, true);
-		if (!identity) {
-			new Notice(t().gallery.errors.unauthorized);
-			return;
-		}
+		// published has none. Minting one silently would be giving somebody a
+		// name they never asked for and a key they don't know to keep, so the
+		// button asks first and says what it is making.
+		const identity = vaultIdentity(this.plugin) ?? (await this.askForIdentity());
+		if (!identity) return;
 		this.busy = true;
 		try {
 			await this.client.signIn(identity.key, identity.publicKey);
@@ -215,6 +213,27 @@ class GalleryEntryModal extends Modal {
 		} finally {
 			this.busy = false;
 		}
+	}
+
+	/**
+	 * "You need a handle to do that — make one?"
+	 *
+	 * Resolves to the new identity, or null if they said no. Asked at the point
+	 * of the action rather than on the way in, because reading a gallery needs
+	 * no identity at all and being asked for one at the door would suggest
+	 * otherwise.
+	 */
+	private askForIdentity(): Promise<AuthorIdentity | null> {
+		const strings = t().gallery.browse;
+		return new Promise((resolve) => {
+			confirmAction(this.app, {
+				title: t().portable.exportModal.identityCreate,
+				message: strings.needsIdentityVote,
+				confirmText: t().portable.exportModal.identityCreate,
+				onConfirm: () => void createIdentity(this.plugin, () => this.render()).then(resolve),
+				onDismiss: () => resolve(null),
+			});
+		});
 	}
 
 	// ---- The body -------------------------------------------------------

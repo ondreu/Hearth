@@ -197,10 +197,25 @@ export function vaultIdentity(plugin: HearthPlugin, mint = false): AuthorIdentit
  * the same on every export, and not something a stranger can publish under.
  * See `src/identity.ts`.
  *
- * `decorate` adds a control ahead of the two buttons — the export dialog puts
- * its "include this" switch there. `onChanged` is called after the key is
- * replaced, since the handle on screen is then the wrong one. `mint` is for the
- * dialog that is about to use the identity; see {@link vaultIdentity}.
+ * The handle is the point of the row, so it is *shown* rather than mentioned
+ * inside a paragraph — a name people are asked to recognise on somebody else's
+ * board and to keep a key for should not be a word in the middle of an
+ * explanation.
+ *
+ * The buttons depend on whether there is an identity at all, because the two
+ * states want different things:
+ *
+ * - **None yet** — one button that makes one, and one that pastes in a key from
+ *   another install. There is nothing to copy.
+ * - **One already** — copy the key (the thing worth doing before it is needed)
+ *   and replace it. No "generate", because generating over an identity is
+ *   throwing one away, and the thing that does that is called "use a different
+ *   key" and asks first.
+ *
+ * `decorate` adds a control ahead of the buttons — the share dialog puts its
+ * "include this" switch there. `onChanged` is called after the identity changes,
+ * since the handle on screen is then the wrong one. `mint` mints silently for a
+ * caller that is about to *use* the identity; see {@link vaultIdentity}.
  */
 export function identitySetting(
 	plugin: HearthPlugin,
@@ -213,20 +228,44 @@ export function identitySetting(
 	const identity = vaultIdentity(plugin, mint);
 	const row = new Setting(containerEl)
 		.setName(strings.identity)
-		.setDesc(identity ? strings.identityDesc(identity.handle) : strings.identityNew);
+		.setDesc(identity ? strings.identityDesc : strings.identityNew);
+
+	// The handle itself, at a size that says it is a name rather than a setting
+	// value. Selectable, because people copy it into a message to say "that one
+	// is mine".
+	if (identity) {
+		row.nameEl.createDiv({ cls: "hearth-identity-handle", text: identity.handle });
+	}
+
 	decorate?.(row);
-	row.addExtraButton((b) =>
-		b
-			.setIcon("clipboard-copy")
-			.setTooltip(strings.identityCopy)
-			.onClick(() => void copyRecoveryKey(plugin, onChanged)),
-	);
-	row.addExtraButton((b) =>
-		b
-			.setIcon("key-round")
-			.setTooltip(strings.identityRestore)
-			.onClick(() => void restoreIdentity(plugin, onChanged)),
-	);
+
+	if (identity) {
+		row.addExtraButton((b) =>
+			b
+				.setIcon("clipboard-copy")
+				.setTooltip(strings.identityCopy)
+				.onClick(() => void copyRecoveryKey(plugin, onChanged)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("key-round")
+				.setTooltip(strings.identityRestore)
+				.onClick(() => void restoreIdentity(plugin, onChanged)),
+		);
+	} else {
+		row.addButton((b) =>
+			b
+				.setButtonText(strings.identityCreate)
+				.setCta()
+				.onClick(() => void createIdentity(plugin, onChanged)),
+		);
+		row.addExtraButton((b) =>
+			b
+				.setIcon("key-round")
+				.setTooltip(strings.identityRestore)
+				.onClick(() => void restoreIdentity(plugin, onChanged)),
+		);
+	}
 
 	// The one thing about this scheme that can go permanently wrong, said where
 	// it cannot be walked past. Nothing but this vault holds the key, so there
@@ -245,6 +284,25 @@ export function identitySetting(
 		warning.settingEl.addClass("hearth-setting-warning");
 	}
 	return row;
+}
+
+/**
+ * Make this vault an identity, on purpose.
+ *
+ * Separate from the silent minting {@link vaultIdentity} does for a caller
+ * that is mid-publish: this is somebody pressing a button that says what it
+ * makes, so it says what was made — the handle is the thing they now have, and
+ * finding out what you are called by looking for it later is worse.
+ */
+export async function createIdentity(
+	plugin: HearthPlugin,
+	onChanged: () => void,
+): Promise<AuthorIdentity | null> {
+	const identity = vaultIdentity(plugin, true);
+	if (!identity) return null;
+	new Notice(t().portable.exportModal.identityCreated(identity.handle));
+	onChanged();
+	return identity;
 }
 
 /** Asking for the key is asking for an identity, so this mints one if the vault
