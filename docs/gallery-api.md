@@ -391,6 +391,10 @@ something off it without waiting for whoever runs the server.
 Mark it removed and clear the body rather than dropping the row, so an id is
 never reused.
 
+The same applies to an entry an operator takes down: a `removed` entry must
+refuse a republish of the same `meta.id`, or moderation is something its author
+can undo by pressing Publish again.
+
 ## Rate limiting
 
 Applied per address and per key, and per address *first* — a limit that only

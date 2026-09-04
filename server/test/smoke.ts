@@ -170,6 +170,17 @@ check("a row says it has a picture of the board", row?.hasSnapshot === true, row
 check("the detail lists cards by kind", detail.json.cards?.length === 3, detail.json.cards);
 check("the detail reports its size", detail.json.sizeBytes > 0);
 check("a missing entry is a 404", (await call("GET", "/v1/entries/nope")).status === 404);
+// A sort key is chosen from a closed set, and the lookup must not reach
+// `Object.prototype` — `?sort=toString` would otherwise put a function into the
+// ORDER BY and answer with a 500.
+check(
+	"a sort key that isn't one falls back rather than erroring",
+	(await call("GET", `/v1/entries?sort=toString&${mineQuery}`)).status === 200,
+);
+check(
+	"and so does one that is nonsense",
+	(await call("GET", `/v1/entries?sort=nonsense&${mineQuery}`)).json.total === 2,
+);
 
 // ---- Voting ---------------------------------------------------------
 const up = await call("POST", `/v1/entries/${id}/vote`, { value: 1 }, token);
@@ -266,6 +277,21 @@ check("withdrawing somebody else's entry is refused", (await call("DELETE", `/v1
 check("withdrawing your own works", (await call("DELETE", `/v1/entries/${id}`, undefined, token)).status === 204);
 check("a withdrawn entry is gone from the listing", (await call("GET", `/v1/entries?${mineQuery}`)).json.total === 1);
 check("a withdrawn entry cannot be downloaded", (await call("GET", `/v1/entries/${id}/package`)).status === 404);
+// A takedown has to stick: republishing the identical package must not put a
+// removed entry back under the same id, or moderation is something its author
+// can simply undo.
+{
+	const again = await call("POST", "/v1/entries", { package: f.a }, token);
+	check(
+		"a removed entry cannot be republished",
+		again.status === 403 && /removed/.test(again.json.error),
+		again.json,
+	);
+	check(
+		"and it stays out of the listing",
+		(await call("GET", `/v1/entries?${mineQuery}`)).json.total === 1,
+	);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

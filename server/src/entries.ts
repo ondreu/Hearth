@@ -68,8 +68,9 @@ const SUMMARY_COLUMNS = `
 `;
 
 /** How each sort orders the listing. Fixed strings chosen by a closed set —
- * nothing from a query string ever reaches the SQL. */
-const ORDER_BY: Record<string, string> = {
+ * nothing from a query string ever reaches the SQL, and a `Map` rather than an
+ * object so nothing from one can reach `Object.prototype` either. */
+const ORDER_BY = new Map<string, string>(Object.entries({
 	new: "e.published_at DESC, e.id DESC",
 	top: "(e.upvotes - e.downvotes) DESC, e.downloads DESC, e.id DESC",
 	downloads: "e.downloads DESC, (e.upvotes - e.downvotes) DESC, e.id DESC",
@@ -82,7 +83,7 @@ const ORDER_BY: Record<string, string> = {
 		POWER((julianday('now') - julianday(e.published_at)) * 24.0 + 2.0, 1.5) DESC,
 		e.id DESC
 	`,
-};
+}));
 
 export interface ListParams {
 	q?: string;
@@ -135,7 +136,10 @@ export function listEntries(db: Db, params: ListParams): unknown {
 			n: number;
 		}).n,
 	);
-	const order = ORDER_BY[params.sort ?? ""] ?? ORDER_BY.trending;
+	// A Map, not an object: `?sort=toString` would otherwise resolve through
+	// `Object.prototype` and interpolate a function into the SQL, which SQLite
+	// answers with an error and the caller with a 500.
+	const order = ORDER_BY.get(params.sort ?? "") ?? (ORDER_BY.get("trending") as string);
 	const rows = db
 		.prepare(
 			`SELECT ${SUMMARY_COLUMNS} FROM entries e WHERE ${clause}
@@ -231,6 +235,13 @@ export function publishEntry(
 		throw forbidden(
 			"that dashboard id already belongs to another author — duplicate the board first, which gives it an identity of its own, then publish that",
 		);
+	}
+	// A takedown has to stick. Without this, republishing the identical package
+	// sets `status` back to 'live' from the upload alone, and an entry an
+	// operator removed is back under the same id — which makes moderation
+	// something the author can simply undo.
+	if (existing?.status === "removed") {
+		throw forbidden("that dashboard was removed from this gallery and cannot be republished");
 	}
 
 	const now = new Date().toISOString();

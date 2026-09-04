@@ -219,7 +219,12 @@ class GalleryBrowseModal extends Modal {
 		const bar = this.identityBar;
 		if (!bar) return;
 		bar.empty();
-		if (vaultIdentity(this.plugin)) return;
+		if (vaultIdentity(this.plugin)) {
+			// The class carries the border and the padding, so leaving it on an
+			// emptied bar leaves an empty framed strip above the results.
+			bar.removeClass("hearth-gallery-identity-bar");
+			return;
+		}
 		const strings = t().gallery.browse;
 		bar.addClass("hearth-gallery-identity-bar");
 		bar.createDiv({ cls: "hearth-gallery-identity-text", text: strings.needsIdentity });

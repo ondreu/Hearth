@@ -31,7 +31,13 @@ import {
  * kind this build has never heard of keeps its raw id and a neutral icon,
  * which is also what tells the reader they need a newer Hearth. */
 export function cardKindLabel(kind: string): { name: string; icon: string } {
-	const def = CARD_DEFINITIONS[kind as CardKind];
+	// An own-property check, for the same reason `SKELETON` is a Map: `kind`
+	// comes from a server, and `CARD_DEFINITIONS["toString"]` is a function
+	// rather than a card definition. (`Object.hasOwn` would read better, but
+	// this project targets ES2020.)
+	const def = Object.prototype.hasOwnProperty.call(CARD_DEFINITIONS, kind)
+		? CARD_DEFINITIONS[kind as CardKind]
+		: undefined;
 	const template = def?.templates?.[0];
 	if (!template) return { name: kind, icon: "square-dashed" };
 	return { name: templateName(template), icon: template.icon };
@@ -61,7 +67,7 @@ export function cardKindLabel(kind: string): { name: string; icon: string } {
  */
 type SkeletonShape = "rows" | "grid" | "dial" | "paragraph" | "figure" | "tiles" | "block";
 
-const SKELETON: Record<string, SkeletonShape> = {
+const SKELETON = new Map<string, SkeletonShape>(Object.entries({
 	tasks: "rows",
 	schedule: "rows",
 	recent: "rows",
@@ -92,7 +98,7 @@ const SKELETON: Record<string, SkeletonShape> = {
 	pet: "block",
 	leaf: "block",
 	searchbar: "block",
-};
+} as Record<string, SkeletonShape>));
 
 /** Bar widths per skeleton row, as percentages — uneven on purpose, because a
  * stack of identical bars reads as a loading state rather than as content. */
@@ -244,7 +250,10 @@ function renderTile(grid: HTMLElement, tile: PreviewTile, large: boolean): void 
 	const body = el.createDiv("hearth-gallery-preview-tile-body");
 	// Rows scale with how tall the card is against the whole board: a card that
 	// fills half of it gets a long list, one that is a strip gets two lines.
-	renderSkeleton(body, SKELETON[tile.kind] ?? "paragraph", Math.round(tile.h * 12));
+	// A `Map`, not an object: a host serving `kind: "constructor"` would
+	// otherwise resolve through `Object.prototype` and hand a function to
+	// `addClass`, which throws and takes the rest of the grid down with it.
+	renderSkeleton(body, SKELETON.get(tile.kind) ?? "paragraph", Math.round(tile.h * 12));
 }
 
 /** The shape of a card's contents, at thumbnail scale. */

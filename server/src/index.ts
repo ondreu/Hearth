@@ -181,13 +181,19 @@ const routes = [
 	route("POST", "/v1/entries", async (ctx) => {
 		limitWrite(ctx);
 		const key = requireKey(db, ctx);
-		consume(db, `upload:${key}`, config.uploadsPerDay, DAY);
 		// The cap is applied while the body is read, not after — see `readJson`.
 		const body = (await readJson(ctx.req, config.maxPackageBytes + 4096)) as {
 			package?: unknown;
 		};
 		const upload = acceptUpload(body?.package);
-		return publishEntry(db, upload, key);
+		const result = publishEntry(db, upload, key);
+		// Counted *after* the publish succeeds. A daily quota is a quota on
+		// published dashboards, and spending it on refusals means an author who
+		// hits the "duplicate the board first" 403 ten times has used up their
+		// day without publishing anything. The flood case is already covered:
+		// `limitWrite` above is per address and runs first.
+		consume(db, `upload:${key}`, config.uploadsPerDay, DAY);
+		return result;
 	}),
 
 	route("DELETE", "/v1/entries/:id", (ctx) => {
@@ -205,12 +211,15 @@ const routes = [
 	route("POST", "/v1/entries/:id/comments", async (ctx) => {
 		limitWrite(ctx);
 		const key = requireKey(db, ctx);
-		consume(db, `comment:${key}`, config.commentsPerDay, DAY);
-		consume(db, `comment-ip:${ctx.ip}`, config.commentsPerIpPerDay, DAY);
 		// A comment is a paragraph; the cap here is the outer bound on the
 		// request, and `postComment` holds the text itself to its own.
 		const body = (await readJson(ctx.req, 16 * 1024)) as { body?: unknown };
-		return postComment(db, ctx.params[0], key, body?.body);
+		const posted = postComment(db, ctx.params[0], key, body?.body);
+		// After, like the upload above: a rejected empty comment is not one of
+		// somebody's sixty for the day.
+		consume(db, `comment:${key}`, config.commentsPerDay, DAY);
+		consume(db, `comment-ip:${ctx.ip}`, config.commentsPerIpPerDay, DAY);
+		return posted;
 	}),
 
 	route("DELETE", "/v1/comments/:id", (ctx) => {
@@ -223,10 +232,11 @@ const routes = [
 	route("POST", "/v1/entries/:id/vote", async (ctx) => {
 		limitWrite(ctx);
 		const key = requireKey(db, ctx);
+		const body = (await readJson(ctx.req, 1024)) as { value?: unknown };
+		const tallies = castVote(db, ctx.params[0], key, Number(body?.value ?? 0));
 		consume(db, `vote:${key}`, config.votesPerDay, DAY);
 		consume(db, `vote-ip:${ctx.ip}`, config.votesPerIpPerDay, DAY);
-		const body = (await readJson(ctx.req, 1024)) as { value?: unknown };
-		return castVote(db, ctx.params[0], key, Number(body?.value ?? 0));
+		return tallies;
 	}),
 ];
 
