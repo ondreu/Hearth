@@ -3434,11 +3434,12 @@ export const zh: Translations = {
 			title: "分享仪表板",
 			saveFile: "保存为文件",
 			publishRemovesTitle: "离开这个库之前会被移除",
+			publishRemovesTune: "下方的详情会按同样的分组列出具体的值，也可以在那里调整移除的范围。",
 			publishRemoves: [
-				"面板指向的所有笔记、文件夹与附件路径",
-				"私有日历订阅源、内网主机，以及你的所在地",
-				"你在文本卡片上写的内容，以及计算器最后一次的算式",
-				"Jira 令牌，以及卡片可能保存的其他凭据",
+				"笔记与文件夹路径——面板在你库中指向的一切",
+				"日历订阅源、内网主机，以及你的所在地",
+				"你在面板上写的文字——文本卡片的内容、计算器最后一次的算式",
+				"凭据——Jira 令牌，以及卡片可能保存的其他凭据",
 			],
 			publishKeeps:
 				"会保留的是面板本身：布局、样式、配色、图片、卡片设置、搜索与查询，以及它展示的公开页面或订阅源。展开下方的详情可以看到具体的值，也可以调整移除的范围。",
@@ -3447,14 +3448,21 @@ export const zh: Translations = {
 			nameDesc: "文件中该仪表板的名称。默认使用面板自身的名称。",
 			description: "描述",
 			descriptionDesc: "可选。用一两句话说明这个仪表板的用途。",
-			snapshot: "附上这个面板的截图",
+			snapshot: "这个面板的截图",
 			snapshotDesc:
-				"截取面板当前的样子，并在截图前把所有文字涂掉、把嵌入的图片模糊处理。卡片布局、配色、图标和壁纸会保留，可读的内容不会。上传之前你会先在这里看到这张图。",
+				"截取面板当前的样子——会滚动截取，长面板也能完整拍下。卡片内部的内容会先被涂掉；标题栏、工具栏和每张卡片自己的标题会保留，像时钟这类不含个人信息的卡片也会原样保留。",
+			snapshotCheck: "发布前请先看一眼。图里你能读到的东西，所有人都能读到——点击可查看大图。",
+			snapshotTake: "截图",
+			snapshotRetake: "重新截图",
 			snapshotWorking: "正在截图……",
 			snapshotEnlarge: "查看大图",
-			snapshotTaken: (kb: number) =>
-				`这就是将要发布的图片，${kb} KB。继续之前请先检查——如果还有可读内容，请关闭此项并告知。`,
-			snapshotFailed: "Hearth 无法截取面板图片，将改用绘制的预览。",
+			snapshotTaken: (kb: number) => `${kb} KB——这就是将要发布的图片，也是所有浏览画廊的人看到的样子。`,
+			snapshotFailed: "Hearth 无法截取面板图片。",
+			snapshotRequired: "画廊条目需要一张面板截图。请先截图——发布前你可以先检查它。",
+			snapshotUnavailable:
+				"发布需要一张面板截图，而当前版本无法截图——截图需要桌面版应用。你仍然可以把仪表板保存为文件，再从桌面端的库发布。",
+			snapshotNotActive:
+				"发布需要一张面板截图，而 Hearth 只能拍摄当前打开的面板。请先切换到这个仪表板，再发布它。",
 			theme: "推荐搭配我的主题",
 			themeDesc: (name: string) =>
 				`标明这个面板适合在 ${name}（你正在使用的主题）下查看。这只是给安装者的提示——不会在对方那边安装或更改任何东西。`,
@@ -3626,6 +3634,7 @@ export const zh: Translations = {
 			score: (n: number) => `${n > 0 ? "+" : ""}${n}`,
 			cardCount: (n: number) => `${n} 张卡片`,
 			pluginBoard: "承载插件视图",
+			noPicture: "没有图片",
 			needsIdentity:
 				"浏览和安装无需代号，但投票和发布需要。Hearth 会用一把永不离开本库的密钥为你生成一个匿名代号。",
 			needsIdentityVote:

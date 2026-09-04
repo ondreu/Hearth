@@ -39,7 +39,6 @@ interface EntryRow {
 	version: string | null;
 	theme: string | null;
 	plugin_version: string | null;
-	preview: string | null;
 	cards: string;
 	requires: string;
 	remote_refs: number;
@@ -60,7 +59,7 @@ interface EntryRow {
  * — a row must never carry a megabyte it isn't going to use. */
 const SUMMARY_COLUMNS = `
 	e.id, e.source_id, e.author_key, e.name, e.description, e.category, e.tags,
-	e.version, e.theme, e.plugin_version, e.preview, e.cards, e.requires, e.remote_refs,
+	e.version, e.theme, e.plugin_version, e.cards, e.requires, e.remote_refs,
 	e.size_bytes, e.downloads, e.upvotes, e.downvotes, e.published_at,
 	e.updated_at, e.status,
 	(e.wallpaper IS NOT NULL) AS has_wallpaper,
@@ -252,7 +251,7 @@ export function publishEntry(
 		db.prepare(
 			`UPDATE entries SET
 				name = ?, description = ?, category = ?, tags = ?, version = ?, theme = ?,
-				plugin_version = ?, preview = ?, cards = ?, requires = ?,
+				plugin_version = ?, cards = ?, requires = ?,
 				remote_refs = ?, size_bytes = ?, wallpaper = ?, wallpaper_mime = ?,
 				snapshot = ?, snapshot_mime = ?,
 				package = ?, updated_at = ?, status = ?, hold_reason = ?
@@ -265,7 +264,6 @@ export function publishEntry(
 			upload.version,
 			upload.theme,
 			upload.pluginVersion,
-			upload.preview,
 			upload.cards,
 			upload.requires,
 			upload.remoteRefs,
@@ -296,10 +294,10 @@ export function publishEntry(
 	db.prepare(
 		`INSERT INTO entries (
 			id, source_id, author_key, name, description, category, tags, version,
-			theme, plugin_version, preview, cards, requires, remote_refs, size_bytes,
+			theme, plugin_version, cards, requires, remote_refs, size_bytes,
 			wallpaper, wallpaper_mime, snapshot, snapshot_mime, package,
 			published_at, updated_at, status, hold_reason
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		id,
 		upload.sourceId,
@@ -311,7 +309,6 @@ export function publishEntry(
 		upload.version,
 		upload.theme,
 		upload.pluginVersion,
-		upload.preview,
 		upload.cards,
 		upload.requires,
 		upload.remoteRefs,
@@ -411,7 +408,6 @@ function summaryOf(db: Db, row: EntryRow, viewer: string | null): Record<string,
 		publishedAt: row.published_at,
 		updatedAt: row.updated_at,
 		myVote: viewer ? voteOf(db, row.id, viewer) : 0,
-		preview: row.preview ? parseJson(row.preview, null) : null,
 		pluginVersion: row.plugin_version ?? undefined,
 		hasWallpaper: Number(row.has_wallpaper ?? 0) === 1,
 		hasSnapshot: Number(row.has_snapshot ?? 0) === 1,

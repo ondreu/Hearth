@@ -9,7 +9,7 @@
  * Three properties are worth knowing before reading the rest:
  *
  * - **It reuses the plugin's own package engine.** `readPackage`,
- *   `verifyPackageSignature`, `describeReferences` and `previewFromPackage` are
+ *   `verifyPackageSignature`, `describeReferences` and `cardCountsFromPackage` are
  *   imported from `src/`, not reimplemented — a gallery that decides for itself
  *   what a package is will disagree with the plugin exactly where it matters.
  *   `server/esbuild.config.mjs` explains how that import works.

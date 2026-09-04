@@ -19,7 +19,6 @@
  */
 
 import { asGalleryCategory, type GalleryCategory } from "./categories";
-import { type GalleryPreview, readPreview } from "./preview";
 
 /** How a listing is ordered. Kept as a closed set: it goes into a query
  * string, and it is what the browse modal's sort control offers. */
@@ -61,9 +60,6 @@ export interface GalleryEntrySummary {
 	updatedAt?: string;
 	/** How the reader has voted, when the client is signed in. */
 	myVote: VoteValue;
-	/** The board, as a thumbnail draws it. Absent on an entry the server could
-	 * not derive one for. */
-	preview: GalleryPreview | null;
 	/** The Hearth version that wrote the package. */
 	pluginVersion?: string;
 	/** True when the package carries its wallpaper, so the row can ask the
@@ -73,7 +69,8 @@ export interface GalleryEntrySummary {
 	 * True when the author published a redacted photograph of the board.
 	 *
 	 * When there is one it is what a listing shows, because it is the board as
-	 * it really looks; the drawn preview is what stands in when there isn't.
+	 * it really looks. An entry without one — published from a phone, or before
+	 * pictures existed — falls back to its wallpaper, and then to saying so.
 	 */
 	hasSnapshot: boolean;
 }
@@ -282,7 +279,6 @@ export function readEntrySummary(raw: unknown): GalleryEntrySummary | null {
 		publishedAt: readDate(src.publishedAt),
 		updatedAt: readDate(src.updatedAt),
 		myVote: readVote(src.myVote),
-		preview: readPreview(src.preview),
 		pluginVersion: text(src.pluginVersion, 24),
 		hasWallpaper: src.hasWallpaper === true,
 		hasSnapshot: src.hasSnapshot === true,

@@ -41,15 +41,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   blurred *before* the shutter, so the layout, colours, icons and wallpaper
   survive and nothing readable does. You see the picture in the dialog before
   anything is uploaded. Desktop only, opt-in, and where there isn't one a
-  drawing of the board stands in, at the board's real proportions and its cards'
-  real positions, with every card kind drawing the shape of what it holds — a
-  tasks card is a stack of rows, a calendar a month grid.
+  wallpaper stands in, and an entry with neither says so.
 
-  The picture blanks out what is *inside* cards and nothing else: the header,
-  the toolbar, the dashboard switcher and each card's own title stay readable,
-  because those are the board rather than what is on it. Blanked text is drawn
-  as a soft bar in the theme's own ink rather than as a hard block. Click it,
-  in the dialog or in the gallery, to see it full size.
+  The picture blanks out what is *inside* cards that hold something personal,
+  and nothing else: the header, the toolbar, the dashboard switcher, each card's
+  own title, and cards with nothing of yours in them — a clock, a pet — stay as
+  they are. Blanked text is drawn as a soft bar in the theme's own ink rather
+  than as a hard block. A board taller than the window is scrolled through and
+  stitched, so the picture is the whole board; a listing shows its top and the
+  detail view shows all of it. Click it, in the dialog or in the gallery, to see
+  it full size.
 
   Authors can also say **"recommended with Minimal"** — a toggle that fills in
   the theme they are using. Advisory: nothing installs or changes a theme.

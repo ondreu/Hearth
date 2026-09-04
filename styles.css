@@ -10549,63 +10549,36 @@ body.hearth-dv-resizing {
 }
 
 /* ---- Search field ---- */
+/* Same one-element field as the gallery's, and for the same reason. */
 .hearth-picker-search {
+	position: relative;
 	flex: none;
-	/* `border-box` and a bounded width, for the same reason the gallery's search
-	   row needs them: the 1px frame plus 10px of padding is added to a width the
-	   field would otherwise resolve from its own intrinsic size, and the excess
-	   hangs off the right of the modal. */
-	box-sizing: border-box;
-	max-width: 100%;
-	min-width: 0;
-	overflow: hidden;
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 0 10px;
 	margin-bottom: 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	background: var(--background-modifier-form-field);
-}
-
-.hearth-picker-search:focus-within {
-	border-color: var(--interactive-accent);
 }
 
 .hearth-picker-search-icon {
-	display: inline-flex;
-	color: var(--text-muted);
-	flex: none;
+	position: absolute;
+	left: 9px;
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	pointer-events: none;
+	color: var(--text-faint);
 }
 
-/* The field is the box's whole interior — its own border and background would
-   draw a second frame inside the first. */
+.hearth-picker-search-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
 .hearth-picker-search-input {
 	flex: 1 1 auto;
 	min-width: 0;
+	width: 100%;
 	box-sizing: border-box;
-	padding: 8px 0;
-	border: none;
-	background: transparent;
-	box-shadow: none;
+	padding-left: 32px;
 	font-size: var(--font-ui-medium);
-	color: var(--text-normal);
-}
-
-.hearth-picker-search-input:focus,
-.hearth-picker-search-input:focus-visible {
-	outline: none;
-	border: none;
-	box-shadow: none;
-}
-
-/* ---- Rail + results ---- */
-.hearth-picker-body {
-	display: flex;
-	gap: 16px;
-	min-height: 0;
-	flex: 1 1 auto;
 }
 
 .hearth-picker-rail {
@@ -11882,59 +11855,42 @@ body.hearth-dv-resizing {
 	max-width: 100%;
 }
 
+/* ---- The search field ----
+   One element, not two. The previous shape was a styled wrapper around a bare
+   `<input>`, and that cannot be made to work: themes style `input` directly
+   (often through `.modal input[type="text"]`, which outranks a single class),
+   so the field kept its own background, border and focus ring *inside* the
+   frame — two nested boxes, the inner one overflowing the outer. Here the input
+   is the field and keeps whatever the theme gives it, and the icon is placed
+   over its padding. Nothing can disagree about the box because there is one. */
 .hearth-gallery-search {
+	position: relative;
 	flex: 1 1 auto;
-	box-sizing: border-box;
-	max-width: 100%;
-	/* A flex item will not shrink below its content's intrinsic width unless it
-	   is told it may, and an <input> is intrinsically about twenty characters
-	   wide. Without this the field hangs off the right of the modal at narrow
-	   widths. Same reason on the input inside it. */
 	min-width: 0;
-	/* The backstop: whatever a theme draws on the field inside, it is clipped to
-	   this row. The row shows focus on its own border, so there is no ring here
-	   worth letting out. */
-	overflow: hidden;
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 0 10px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-	background: var(--background-modifier-form-field);
-}
-
-.hearth-gallery-search:focus-within {
-	border-color: var(--interactive-accent);
 }
 
 .hearth-gallery-search-icon {
+	position: absolute;
+	left: 9px;
+	top: 50%;
+	transform: translateY(-50%);
 	display: flex;
-	color: var(--text-muted);
+	pointer-events: none;
+	color: var(--text-faint);
+}
+
+.hearth-gallery-search-icon svg {
+	width: 16px;
+	height: 16px;
 }
 
 .hearth-gallery-search-input {
-	/* No `width: 100%` beside `flex: 1 1 auto`. The two disagree: the width
-	   becomes the flex basis, so the field asks for the whole row *and* the
-	   icon and gap beside it, and the excess hangs out of the frame. Basis
-	   `auto` plus `min-width: 0` is what lets it fill exactly what is left. */
 	flex: 1 1 auto;
 	min-width: 0;
+	width: 100%;
 	box-sizing: border-box;
-	border: none;
-	background: transparent;
-	box-shadow: none;
-	padding: 8px 0;
-}
-
-/* Obsidian and most themes draw a focus ring *outside* the field's box. The row
-   already shows focus on its own border, so the field's ring is turned off in
-   every form a theme might have written it. */
-.hearth-gallery-search-input:focus,
-.hearth-gallery-search-input:focus-visible {
-	box-shadow: none;
-	outline: none;
-	border: none;
+	padding-left: 32px;
 }
 
 .hearth-gallery-sort {
@@ -12179,12 +12135,32 @@ body.hearth-dv-resizing {
 	background: var(--background-secondary);
 }
 
+/* A board is photographed whole — scrolled through and stitched — so the
+   picture is often much taller than a listing tile. A tile shows the top of it,
+   which is the part that identifies a board; the detail view shows the whole
+   thing, and clicking either opens it at full size. */
 .hearth-gallery-preview-photo {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	object-position: top center;
+}
+
+.hearth-gallery-preview.is-large {
+	/* Tall enough for a whole board without letting a very long one push the
+	   rest of the detail view off the screen. */
+	aspect-ratio: auto;
+	max-height: 46vh;
+	height: auto;
+}
+
+.hearth-gallery-preview.is-large .hearth-gallery-preview-photo {
+	position: static;
+	height: auto;
+	max-height: 46vh;
+	object-fit: contain;
 	object-position: top center;
 }
 
@@ -12845,6 +12821,7 @@ body.hearth-dv-resizing {
 
 .hearth-share-hero .hearth-gallery-preview {
 	flex: 0 0 168px;
+	aspect-ratio: 16 / 10;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	cursor: default;
@@ -12916,6 +12893,9 @@ body.hearth-dv-resizing {
 .hearth-share-snapshot-img {
 	display: block;
 	width: 100%;
+	max-height: 40vh;
+	object-fit: contain;
+	object-position: top center;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 }
@@ -13035,6 +13015,11 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-size: var(--font-ui-smaller);
 	border-top: 1px solid var(--background-modifier-border);
 	padding-top: 8px;
+	margin-top: 8px;
+}
+
+.hearth-share-removes-kept:first-of-type {
+	margin-top: 0;
 }
 
 .hearth-share-warning {

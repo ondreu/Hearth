@@ -46,7 +46,6 @@ import {
 	galleryBlockedByExternalCalls,
 	galleryClient,
 	galleryConfigured,
-	previewFromPackage,
 	publishDashboard,
 } from "./gallery";
 import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
@@ -442,6 +441,7 @@ class ShareDashboardModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass("hearth-share-modal");
 		this.render();
+		if (this.publishing) void this.takeSnapshot();
 	}
 
 	private get publishing(): boolean {
@@ -500,7 +500,8 @@ class ShareDashboardModal extends Modal {
 	 * Only offered for the board that is actually on screen behind this dialog —
 	 * capturing works by photographing the window, so a board that isn't
 	 * rendered cannot be in the frame — and only on a build that can capture at
-	 * all. Everywhere else the drawn preview stands.
+	 * all. Everywhere else, publishing says why it can't rather than going
+	 * ahead with no picture.
 	 *
 	 * The captured image is shown here, at size, before anything is uploaded.
 	 * That is the point: a promise about what a redacted screenshot contains is
@@ -508,23 +509,30 @@ class ShareDashboardModal extends Modal {
 	 */
 	private renderSnapshot(body: HTMLElement): void {
 		const strings = t().portable.exportModal;
-		if (!canSnapshot() || !this.isActiveBoard()) return;
+		// The picture is the listing. A gallery entry without one is a name and
+		// a paragraph, which sells nobody's dashboard — so publishing takes one,
+		// and the only thing asked here is that the author look at it.
+		if (!this.publishing) return;
+
+		if (!canSnapshot()) {
+			const note = new Setting(body).setDesc(strings.snapshotUnavailable);
+			note.settingEl.addClass("hearth-setting-warning");
+			return;
+		}
+		if (!this.isActiveBoard()) {
+			const note = new Setting(body).setDesc(strings.snapshotNotActive);
+			note.settingEl.addClass("hearth-setting-warning");
+			return;
+		}
 
 		const row = new Setting(body)
 			.setName(strings.snapshot)
-			.setDesc(strings.snapshotDesc)
-			.addToggle((tg) =>
-				tg
-					.setValue(this.snapshot !== null)
+			.setDesc(this.snapshot ? strings.snapshotCheck : strings.snapshotDesc)
+			.addButton((b) =>
+				b
+					.setButtonText(this.snapshot ? strings.snapshotRetake : strings.snapshotTake)
 					.setDisabled(this.capturing)
-					.onChange((v) => {
-						if (!v) {
-							this.snapshot = null;
-							this.render();
-							return;
-						}
-						void this.takeSnapshot();
-					}),
+					.onClick(() => void this.takeSnapshot()),
 			);
 
 		if (this.capturing) {
@@ -588,7 +596,7 @@ class ShareDashboardModal extends Modal {
 		this.snapshot = await captureBoard(board, [this.containerEl]);
 		this.capturing = false;
 		if (!this.snapshot) new Notice(t().portable.exportModal.snapshotFailed);
-		this.render();
+		if (this.containerEl.isConnected) this.render();
 	}
 
 	/** The board itself, drawn the way the gallery will draw it. Sharing a
@@ -597,13 +605,8 @@ class ShareDashboardModal extends Modal {
 	 * here rather than discovered after the upload. */
 	private renderHero(body: HTMLElement): void {
 		const hero = body.createDiv("hearth-share-hero");
-		const preview = previewFromPackage(
-			exportPreviewPackage(this.plugin, this.dash, this.opts),
-		);
-		// Once a picture has been taken it is what a listing will show, so it is
-		// what the dialog shows too — the thumbnail here is a preview of the
-		// entry, not a second opinion about it.
-		renderPreview(hero, preview, {
+		// What a listing will show, which is the picture or nothing at all.
+		renderPreview(hero, {
 			snapshot: this.snapshot
 				? `data:${this.snapshot.mime};base64,${this.snapshot.data}`
 				: undefined,
@@ -637,6 +640,11 @@ class ShareDashboardModal extends Modal {
 				// which is the safe direction for a switch to be sticky in.
 				if (mode === "publish") this.stripPrivate = true;
 				this.render();
+				// Switched to publishing without a picture yet: take one now
+				// rather than leaving it as something else to remember.
+				if (mode === "publish" && !this.snapshot && canSnapshot() && this.isActiveBoard()) {
+					void this.takeSnapshot();
+				}
 			});
 		};
 
@@ -762,6 +770,7 @@ class ShareDashboardModal extends Modal {
 			const list = block.createEl("ul", { cls: "hearth-share-removes-list" });
 			for (const line of strings.publishRemoves) list.createEl("li", { text: line });
 			block.createDiv({ cls: "hearth-share-removes-kept", text: strings.publishKeeps });
+			block.createDiv({ cls: "hearth-share-removes-kept", text: strings.publishRemovesTune });
 			return;
 		}
 
@@ -1040,6 +1049,13 @@ class ShareDashboardModal extends Modal {
 		const identity = vaultIdentity(this.plugin, true);
 		if (!identity) {
 			new Notice(t().gallery.errors.unsigned);
+			return;
+		}
+		// No picture, no entry. Everything else about a listing can be filled in
+		// from the file; this is the one part that has to be taken while the
+		// board is on screen, and a gallery of boards nobody can see is not one.
+		if (!this.snapshot) {
+			new Notice(t().portable.exportModal.snapshotRequired);
 			return;
 		}
 

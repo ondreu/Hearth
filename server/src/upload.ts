@@ -42,7 +42,7 @@ import {
 	verifyPackageSignature,
 } from "../../src/portable/index.js";
 import { asGalleryCategory } from "../../src/gallery/categories.js";
-import { cardCountsFromPackage, previewFromPackage } from "../../src/gallery/preview.js";
+import { cardCountsFromPackage } from "../../src/gallery/contents.js";
 import { config } from "./config.js";
 import { unprocessable } from "./http.js";
 
@@ -79,7 +79,6 @@ export interface AcceptedUpload {
 	pluginVersion: string | null;
 	/** The theme its author recommends, by name. Advisory. */
 	theme: string | null;
-	preview: string | null;
 	cards: string;
 	requires: string;
 	remoteRefs: number;
@@ -146,7 +145,6 @@ export function acceptUpload(json: unknown): AcceptedUpload {
 
 	checkAssets(pkg);
 
-	const preview = previewFromPackage(pkg);
 	const cards = cardCountsFromPackage(pkg);
 	// The backstop the reference table admits it needs. Not a refusal: it is a
 	// heuristic, and a false positive costs a look while a false negative
@@ -165,7 +163,6 @@ export function acceptUpload(json: unknown): AcceptedUpload {
 		version: trimTo(pkg.meta?.version, 32) || null,
 		theme: trimTo(pkg.meta?.theme, 60) || null,
 		pluginVersion: trimTo(pkg.hearth.plugin, 24) || null,
-		preview: preview ? JSON.stringify(preview) : null,
 		cards: JSON.stringify(cards),
 		requires: JSON.stringify({
 			plugins: pkg.requires?.plugins ?? [],

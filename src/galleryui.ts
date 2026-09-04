@@ -19,12 +19,7 @@ import type { CardKind } from "./types";
 import { t } from "./i18n";
 import { makeClickable } from "./ui";
 import { renderAvatar } from "./galleryavatar";
-import {
-	type GalleryEntrySummary,
-	GalleryError,
-	type GalleryPreview,
-	type PreviewTile,
-} from "./gallery";
+import { type GalleryEntrySummary, GalleryError } from "./gallery";
 
 /** What a card kind is called, and the icon it wears — taken from the card
  * registry so the gallery names a `tasks` card exactly as the picker does. A
@@ -44,92 +39,31 @@ export function cardKindLabel(kind: string): { name: string; icon: string } {
 }
 
 /**
- * What a card's body looks like from across the room.
+ * Draw a board's picture.
  *
- * A thumbnail made of plain rectangles tells you a board has six cards and
- * nothing else — which is the complaint this table answers. Every card kind
- * draws a *skeleton* of its real shape instead: a tasks card is a stack of
- * rows, a calendar is a month grid, a clock is a dial, a stats card is one big
- * number over two small ones. At 220 pixels wide that is the difference between
- * "some board" and "a planning board with a big calendar and a task list down
- * the side".
+ * There used to be a fallback here: a drawing of the board assembled from its
+ * card positions and kinds. It is gone, and the reason is worth recording so it
+ * does not come back. A drawing is only useful if it is *right*, and being
+ * right means reproducing a renderer — the continuous layout, the theme, the
+ * card chrome, every card kind's contents — inside a 220-pixel tile. Two
+ * attempts got closer and neither got close, and a thumbnail that is nearly the
+ * board is worse than no thumbnail: it sells a dashboard nobody will receive.
  *
- * The alternative was a screenshot taken at publish, with the author's text
- * blurred or replaced. It is worse in four ways, and they are not effort: a
- * screenshot is of somebody else's window size and somebody else's theme, so it
- * looks wrong in a light-theme gallery; censoring text in a raster is either a
- * blur that reads as a rendering bug or a pre-capture text swap, which means
- * rendering a mangled board anyway; phones cannot capture at all; and it is a
- * standing privacy risk where one bug ships somebody's note titles. This
- * carries the layout, the kinds, the titles, the colours and the real
- * wallpaper — most of what a screenshot conveys, minus the part nobody wants
- * published.
- */
-type SkeletonShape = "rows" | "grid" | "dial" | "paragraph" | "figure" | "tiles" | "block";
-
-const SKELETON = new Map<string, SkeletonShape>(Object.entries({
-	tasks: "rows",
-	schedule: "rows",
-	recent: "rows",
-	favorites: "rows",
-	bookmarks: "rows",
-	rss: "rows",
-	git: "rows",
-	jira: "rows",
-	search: "rows",
-	dataview: "rows",
-	datacore: "rows",
-	operon: "rows",
-	calendar: "grid",
-	heatmap: "grid",
-	clock: "dial",
-	weather: "figure",
-	stats: "figure",
-	calculator: "figure",
-	text: "paragraph",
-	embed: "paragraph",
-	daily: "paragraph",
-	periodic: "paragraph",
-	links: "tiles",
-	commands: "tiles",
-	templater: "tiles",
-	slideshow: "block",
-	web: "block",
-	pet: "block",
-	leaf: "block",
-	searchbar: "block",
-} as Record<string, SkeletonShape>));
-
-/** Bar widths per skeleton row, as percentages — uneven on purpose, because a
- * stack of identical bars reads as a loading state rather than as content. */
-const ROW_WIDTHS = [92, 74, 85, 62, 80, 70];
-
-/**
- * Draw a board as a thumbnail.
+ * So a published board carries a photograph of itself, and an entry without one
+ * says so plainly. See `src/gallery/snapshot.ts` for how the photograph is
+ * taken and what is taken out of it first.
  *
- * A real grid of positioned blocks in the reader's own theme, carrying the
- * board's own column count, corner radius, card opacity and background — see
- * the note above for why it is drawn from numbers rather than shown as a
- * picture, and `src/gallery/preview.ts` for what those numbers are held to.
- *
- * `snapshot` is the author's own redacted photograph of the board, and when
- * there is one it *replaces* everything below: it is the board as it really
- * looks, and no arrangement of rectangles beats that. Everything after this
- * point is what stands in when there isn't one.
- *
- * `wallpaper` is the entry's real wallpaper; passing it puts the actual picture
- * behind the blocks, which is the difference between a thumbnail that
- * identifies a board and one that identifies a layout.
+ * `top` crops to the top of a tall picture, which is what a listing tile wants:
+ * a board is photographed whole, and the first screenful is the part that
+ * identifies it.
  */
 export function renderPreview(
 	parent: HTMLElement,
-	preview: GalleryPreview | null,
-	opts: { wallpaper?: string; snapshot?: string; large?: boolean } = {},
+	opts: { snapshot?: string; wallpaper?: string; large?: boolean } = {},
 ): HTMLElement {
 	const frame = parent.createDiv("hearth-gallery-preview");
 	frame.toggleClass("is-large", opts.large === true);
 
-	// A real picture of the board, when its author published one.
 	if (opts.snapshot) {
 		frame.addClass("is-photo");
 		const shot = frame.createEl("img", { cls: "hearth-gallery-preview-photo" });
@@ -137,178 +71,42 @@ export function renderPreview(
 		shot.alt = "";
 		shot.loading = "lazy";
 		// A host that serves something that isn't a picture falls back to the
-		// drawn preview rather than to a broken-image glyph.
+		// empty state rather than to a broken-image glyph.
 		shot.addEventListener("error", () => {
 			shot.remove();
 			frame.removeClass("is-photo");
-			renderDrawn(frame, preview, opts);
+			renderNoPicture(frame);
 		});
 		return frame;
 	}
 
-	renderDrawn(frame, preview, opts);
-	return frame;
-}
-
-/** The drawn stand-in: chrome, a grid, and a skeleton per card. */
-function renderDrawn(
-	frame: HTMLElement,
-	preview: GalleryPreview | null,
-	opts: { wallpaper?: string; large?: boolean },
-): void {
-	if (!preview) {
-		frame.addClass("is-empty");
-		setIcon(frame.createSpan("hearth-gallery-preview-icon"), "image-off");
-		return;
-	}
-
-	const bg = preview.background;
-	if (bg?.color) frame.style.setProperty("--hearth-gallery-preview-bg", bg.color);
-	if (bg?.hasImage && opts.wallpaper) {
-		const img = frame.createEl("img", { cls: "hearth-gallery-preview-wall" });
-		// `src` and nothing else: the URL is built by the client from the
-		// configured host and an id that has already been held to a plain shape,
-		// and the response is rendered by the image decoder rather than parsed.
+	// A board published from a phone, or before pictures existed. Its wallpaper
+	// is the one thing about its look that did travel, so it stands in.
+	if (opts.wallpaper) {
+		frame.addClass("is-wallpaper");
+		const img = frame.createEl("img", { cls: "hearth-gallery-preview-photo" });
 		img.src = opts.wallpaper;
 		img.alt = "";
 		img.loading = "lazy";
-		// A host that serves something that isn't a picture gets the flat
-		// backdrop instead of a broken-image glyph.
-		img.addEventListener("error", () => img.remove());
-	} else if (bg?.hasImage) {
-		frame.addClass("has-wallpaper");
-	}
-
-	if (preview.pluginBoard) {
-		// A board that hosts one plugin's view has no grid to draw, and a blank
-		// tile would read as "an empty board" rather than as what it is.
-		frame.addClass("is-plugin-board");
-		frame.setAttribute("aria-label", t().gallery.browse.pluginBoard);
-		setIcon(frame.createSpan("hearth-gallery-preview-icon"), "layout-panel-top");
-		frame.createDiv({
-			cls: "hearth-gallery-preview-note",
-			text: t().gallery.browse.pluginBoard,
+		img.addEventListener("error", () => {
+			img.remove();
+			frame.removeClass("is-wallpaper");
+			renderNoPicture(frame);
 		});
-		return;
+		return frame;
 	}
 
-	const inner = frame.createDiv("hearth-gallery-preview-inner");
-	// The chrome above the grid, because a board with a heading and a search row
-	// looks different from one without, and that difference is visible at
-	// thumbnail size where the cards' contents are not.
-	if (preview.header || preview.search) {
-		const chrome = inner.createDiv("hearth-gallery-preview-chrome");
-		if (preview.header) chrome.createDiv("hearth-gallery-preview-title");
-		if (preview.search) chrome.createDiv("hearth-gallery-preview-searchbar");
-	}
-
-	const grid = inner.createDiv("hearth-gallery-preview-grid");
-	// The board's own proportions, letterboxed inside the tile — a tall board
-	// drawn into a wide frame at the frame's ratio is a drawing of a board
-	// nobody has.
-	grid.style.setProperty("--hearth-preview-ratio", String(preview.ratio));
-	if (preview.radius !== undefined) {
-		grid.style.setProperty("--hearth-preview-radius", `${preview.radius}px`);
-	}
-	if (preview.opacity !== undefined) {
-		grid.style.setProperty("--hearth-preview-opacity", String(preview.opacity));
-	}
-	for (const tile of preview.tiles) renderTile(grid, tile, opts.large === true);
+	renderNoPicture(frame);
+	return frame;
 }
 
-/** One card: its chrome, and a skeleton of what it holds. */
-function renderTile(grid: HTMLElement, tile: PreviewTile, large: boolean): void {
-	const el = grid.createDiv("hearth-gallery-preview-tile");
-	// Percentages of the frame, which is what the board itself lays out in —
-	// see `PreviewTile`. Every one was clamped into 0–1 when the preview was
-	// read, so none of these can put a card outside its own board.
-	el.style.setProperty("--hearth-tile-x", `${tile.x * 100}%`);
-	el.style.setProperty("--hearth-tile-y", `${tile.y * 100}%`);
-	el.style.setProperty("--hearth-tile-w", `${tile.w * 100}%`);
-	el.style.setProperty("--hearth-tile-h", `${tile.h * 100}%`);
-
-	// Below this a card is a swatch: a header and a skeleton inside four square
-	// millimetres is noise, and noise at thumbnail size reads as a broken image.
-	const roomy = tile.w >= 0.16 && tile.h >= 0.16;
-	if (!roomy) {
-		if (tile.kind) el.addClass("is-tiny");
-		return;
-	}
-
-	const head = el.createDiv("hearth-gallery-preview-tile-head");
-	if (tile.kind) {
-		setIcon(head.createSpan("hearth-gallery-preview-tile-icon"), cardKindLabel(tile.kind).icon);
-	}
-	// The title only where there is room to read one. A truncated word is worse
-	// than the icon on its own, and a small tile has the icon.
-	const wide = large ? tile.w >= 0.16 : tile.w >= 0.25;
-	const label = tile.title ?? (tile.kind ? cardKindLabel(tile.kind).name : "");
-	if (wide && label) {
-		head.createSpan({ cls: "hearth-gallery-preview-tile-title", text: label });
-	}
-
-	const body = el.createDiv("hearth-gallery-preview-tile-body");
-	// Rows scale with how tall the card is against the whole board: a card that
-	// fills half of it gets a long list, one that is a strip gets two lines.
-	// A `Map`, not an object: a host serving `kind: "constructor"` would
-	// otherwise resolve through `Object.prototype` and hand a function to
-	// `addClass`, which throws and takes the rest of the grid down with it.
-	renderSkeleton(body, SKELETON.get(tile.kind) ?? "paragraph", Math.round(tile.h * 12));
-}
-
-/** The shape of a card's contents, at thumbnail scale. */
-function renderSkeleton(body: HTMLElement, shape: SkeletonShape, height: number): void {
-	body.addClass(`is-${shape}`);
-	switch (shape) {
-		case "rows": {
-			// One row per grid row the card is tall, so a tall list looks like a
-			// long list rather than like a short one with space under it.
-			const count = Math.min(ROW_WIDTHS.length, Math.max(2, height - 1));
-			for (let i = 0; i < count; i++) {
-				const row = body.createDiv("hearth-gallery-preview-row");
-				// A custom property rather than `style.width`: the width is data
-				// (an uneven stack reads as content, an even one as a loading
-				// state) while what it means to be that wide stays in the
-				// stylesheet.
-				row.style.setProperty("--hearth-preview-w", `${ROW_WIDTHS[i]}%`);
-			}
-			break;
-		}
-		case "paragraph": {
-			const count = Math.min(4, Math.max(2, height - 1));
-			for (let i = 0; i < count; i++) {
-				const last = i === count - 1;
-				const line = body.createDiv("hearth-gallery-preview-line");
-				// The last line short, the way a paragraph ends — a fixed width,
-				// so it is a class rather than a value computed into a style.
-				if (last) line.addClass("is-last");
-				else line.style.setProperty("--hearth-preview-w", `${ROW_WIDTHS[i % ROW_WIDTHS.length]}%`);
-			}
-			break;
-		}
-		case "grid": {
-			// A month, roughly: seven across, as many weeks as the card is tall.
-			const weeks = Math.min(5, Math.max(2, height - 1));
-			for (let i = 0; i < weeks * 7; i++) body.createDiv("hearth-gallery-preview-cell");
-			break;
-		}
-		case "tiles": {
-			const count = Math.min(8, Math.max(2, (height - 1) * 2));
-			for (let i = 0; i < count; i++) body.createDiv("hearth-gallery-preview-chip");
-			break;
-		}
-		case "dial":
-			body.createDiv("hearth-gallery-preview-dial");
-			break;
-		case "figure": {
-			body.createDiv("hearth-gallery-preview-figure");
-			body.createDiv("hearth-gallery-preview-line").addClass("is-sub");
-			break;
-		}
-		case "block":
-			body.createDiv("hearth-gallery-preview-block");
-			break;
-	}
+function renderNoPicture(frame: HTMLElement): void {
+	frame.addClass("is-empty");
+	setIcon(frame.createSpan("hearth-gallery-preview-icon"), "image-off");
+	frame.createDiv({
+		cls: "hearth-gallery-preview-note",
+		text: t().gallery.browse.noPicture,
+	});
 }
 
 /** The author line, which is also the way into their profile. An entry with no
@@ -392,7 +190,7 @@ export function renderEntryCard(
 	},
 ): HTMLElement {
 	const card = grid.createDiv("hearth-gallery-card");
-	const preview = renderPreview(card, entry.preview, {
+	const preview = renderPreview(card, {
 		wallpaper: opts.wallpaper,
 		snapshot: opts.snapshot,
 	});

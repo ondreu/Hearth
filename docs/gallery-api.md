@@ -139,7 +139,6 @@ An **entry summary**:
   "publishedAt": "2026-09-01T10:00:00.000Z",
   "updatedAt":   "2026-09-03T08:12:00.000Z",
   "myVote": 1,                    // 1 | 0 | -1, for the bearer of the token
-  "preview": { /* see below */ },
   "pluginVersion": "3.1.0",
   "hasWallpaper": true,
   "hasSnapshot": true
@@ -150,66 +149,33 @@ An **entry summary**:
 gallery is free to weight or age it — but a `score` that disagrees with the
 order rows arrived in is a list that looks broken, so keep them consistent.
 
-### The picture, and the drawing
+### The picture
 
-An entry can carry **both**, and a client shows the first of these it has:
+An entry's picture is a **snapshot**: the author's own screenshot of the board,
+taken at publish. A long board is scrolled through and stitched, so the picture
+is the whole of it rather than the screenful that happened to be visible.
 
-1. **A snapshot** — the author's own screenshot of the board, taken at publish
-   with every word replaced in the DOM and every embedded picture blurred
-   *before* the capture. It arrives in `meta.snapshot` (base64, `mime`, `bytes`,
-   `width`, `height`); decode it out, cap it (1 MiB is plenty for a 900px JPEG),
-   hold the type to a raster allowlist, store it, and serve it at
-   `GET /v1/entries/:id/snapshot`. Set `hasSnapshot` on summaries.
-2. **The drawn preview** below, which every entry has.
+Before the shutter, Hearth replaces the text inside every card that holds
+anything personal — everything but a clock, a pet and a search bar — and blurs
+the pictures in them. The board's chrome (its header, toolbar, switcher and each
+card's own title) stays readable, because that is the board rather than what is
+on it.
 
-The snapshot is in `meta` rather than in `assets` on purpose: an asset is a
+It arrives in `meta.snapshot` (base64, `mime`, `bytes`, `width`, `height`).
+Decode it out, cap it (1 MiB is plenty), hold the type to a raster allowlist,
+store it, and serve it at `GET /v1/entries/:id/snapshot`. Set `hasSnapshot` on
+summaries. It is in `meta` rather than in `assets` on purpose: an asset is a
 picture the *board* uses, and importing a package writes every asset into the
 importing vault — a listing thumbnail would land there as a stray file nothing
 references.
 
-### The preview
-
-A board reduced to something a listing can draw, and the one field with rules
-about *what it may contain*:
-
-```jsonc
-{
-  "ratio": 2.2,                 // the board's own width divided by its height
-  "tiles": [
-    // Fractions of the frame, both axes, 0-1.
-    { "x": 0, "y": 0, "w": 0.33, "h": 0.4, "kind": "clock", "title": "Now" }
-  ],
-  "background": { "kind": "color", "color": "#1e1e2e", "hasImage": false },
-  "header": true,               // the board shows its title block
-  "search": true,               // and its search row
-  "radius": 8,
-  "opacity": 0.9,
-  "pluginBoard": false,
-  "truncated": 0
-}
-```
-
-**Fractions, not grid cells.** A Hearth board positions its cards continuously:
-horizontally as fractions of the board's width, vertically in pixels
-(`DashboardCard.fx/fy/fw/fh`). The grid units stored beside them are a legacy
-seed the renderer does not read, and a preview built from *those* draws a layout
-nobody has ever had on screen. `previewFromPackage` normalises both axes against
-the board's own size and reports the resulting `ratio`, which is what lets a
-client letterbox a tall board instead of squashing it into a wide tile. A card
-with no freeform geometry — from a package older than the field — is counted in
-`truncated` rather than drawn at an invented position.
-
-**Derive it from the package with `previewFromPackage()`; never accept one from
-the uploader.** A preview supplied alongside a file is a listing advertising a
-board it may not be.
-
-It is data rather than a picture on purpose. A screenshot is of somebody else's
-vault in somebody else's theme; a rendered thumbnail means running Hearth
-headless; and SVG from a server is markup from a stranger — which the package
-format already refuses to embed for exactly that reason, so injecting it into
-the modal that lists packages would be odd. Hearth re-clamps every number on
-arrival and drops a `kind` that isn't shaped like one, so a gallery serving
-nonsense produces a small odd thumbnail rather than a broken modal.
+**There is no drawn fallback, and that is a decision rather than an omission.**
+An earlier version of this format carried a `preview`: the board's card
+positions and kinds, for a client to draw. It was tried twice and dropped, and
+the reason generalises to any gallery — a drawing is only useful if it is
+*right*, and being right means reproducing a renderer inside a 220-pixel tile. A
+thumbnail that is nearly the board is worse than none: it sells a dashboard
+nobody will receive. An entry with no picture should say so.
 
 ### `GET /v1/entries/:id`
 

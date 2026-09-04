@@ -3672,14 +3672,21 @@ export const en = {
 			title: "Share dashboard",
 			saveFile: "Save a file",
 			publishRemovesTitle: "Taken out before it leaves this vault",
+			/** Points at the disclosure below, which lists the same groups with
+			 * the actual values under each — so the two read as one thing rather
+			 * than as two lists that might disagree. */
+			publishRemovesTune:
+				"The details below list these same groups, with the exact values under each, and let you change what goes.",
 			/** Named one by one rather than summarised. "Your private
 			 * information is removed" is a promise; this is a list somebody can
 			 * check, and the details section below lists the actual values. */
+			// Worded to match `groups` below one for one, because they are the
+			// same four things and somebody reading both should be able to tell.
 			publishRemoves: [
-				"Every note, folder and attachment path the board points at",
-				"Private calendar feeds, private hosts, and your location",
-				"Anything you typed on a text card, and a calculator's last sum",
-				"Your Jira token, and every other credential a card can hold",
+				"Note and folder paths — everything the board points at in your vault",
+				"Calendar feeds, private hosts and your location",
+				"Text you typed on the board — a text card's body, a calculator's last sum",
+				"Credentials — a Jira token, and anything else a card can hold",
 			],
 			publishKeeps:
 				"Kept, because they're what the board is: the layout, the styling, the colours, the pictures, the card settings, searches and queries, and any public page or feed it shows. Open the details below to see the exact values, and to change what goes.",
@@ -3689,15 +3696,26 @@ export const en = {
 			nameDesc: "What this dashboard is called in the file. Defaults to the board's own name.",
 			description: "Description",
 			descriptionDesc: "Optional. A line or two about what this dashboard is for.",
-			snapshot: "Include a picture of this board",
+			snapshot: "Picture of this board",
 			snapshotDesc:
-				"Takes a screenshot of the board as it looks right now, with every word blanked out and every embedded picture blurred first. Card layout, colours, icons and the wallpaper survive; nothing readable does. You'll see the picture here before anything is uploaded.",
+				"A screenshot of the board as it looks now — scrolled through, so a long board is captured whole. What's inside your cards is blanked out first; the header, the toolbar and each card's own title stay, and so do cards with nothing personal in them, like a clock.",
+			/** Shown once there is a picture. The one thing being asked of the
+			 * author, said as the thing it is: look at it. */
+			snapshotCheck:
+				"Look at it before you publish. Anything you can read in it, everyone can — click it to see it full size.",
+			snapshotTake: "Take the picture",
+			snapshotRetake: "Take it again",
 			snapshotWorking: "Taking the picture…",
 			snapshotEnlarge: "Open the picture full size",
 			snapshotTaken: (kb: number) =>
-				`This is exactly what gets published, at ${kb} KB. Check it before you go on — if anything readable survived, turn this off and tell me.`,
-			snapshotFailed:
-				"Hearth couldn't take a picture of the board. The drawn preview will be used instead.",
+				`${kb} KB — this is exactly what gets published, and what everyone browsing the gallery sees.`,
+			snapshotFailed: "Hearth couldn't take a picture of the board.",
+			snapshotRequired:
+				"A gallery entry needs a picture of the board. Take one first — you can look at it before it goes.",
+			snapshotUnavailable:
+				"Publishing needs a picture of the board, and this build can't take one — screenshots need the desktop app. You can still save the dashboard as a file and publish it from a desktop vault.",
+			snapshotNotActive:
+				"Publishing needs a picture of the board, and Hearth can only photograph the board that's open. Switch to this dashboard first, then publish it.",
 			theme: "Recommended with my theme",
 			themeDesc: (name: string) =>
 				`Say the board is meant to be seen under ${name}, the theme you're using. It's a note for whoever installs it — nothing is installed or changed on their side.`,
@@ -3766,6 +3784,9 @@ export const en = {
 			carriedIntro:
 				"Nothing is being left out, so this is everything in the file that points outside it. Turn on “Leave out my private information” above to remove the first three groups.",
 			carriedNothing: "This board points at nothing outside itself.",
+			// The same four names the publish summary above uses, plus the two
+			// it doesn't remove. A reader comparing the two lists should be able
+			// to line them up without wondering whether they mean the same thing.
 			groups: {
 				paths: "Note and folder paths",
 				private: "Calendar feeds, private hosts and your location",
@@ -3897,6 +3918,7 @@ export const en = {
 			score: (n: number) => `${n > 0 ? "+" : ""}${n}`,
 			cardCount: (n: number) => `${n} card${n === 1 ? "" : "s"}`,
 			pluginBoard: "Hosts a plugin view",
+			noPicture: "No picture",
 			needsIdentity:
 				"You can browse and install without one, but voting and publishing need a handle. Hearth makes you an anonymous one from a key that never leaves this vault.",
 			needsIdentityVote:

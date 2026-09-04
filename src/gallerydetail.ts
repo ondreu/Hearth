@@ -152,7 +152,7 @@ class GalleryEntryModal extends Modal {
 
 		const hero = body.createDiv("hearth-gallery-detail-hero");
 		const shot = entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined;
-		const frame = renderPreview(hero, entry.preview, {
+		const frame = renderPreview(hero, {
 			wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
 			snapshot: shot,
 			large: true,

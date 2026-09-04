@@ -137,12 +137,7 @@ const mineQuery = `author=${f.publicKey}`;
 const list = await call("GET", `/v1/entries?sort=new&${mineQuery}`);
 check("the listing has both boards", list.status === 200 && list.json.total === 2, list.json);
 const row = list.json.entries.find((e: Json) => e.id === id);
-check("a row carries a derived preview", row?.preview?.tiles?.length === 3, row?.preview);
-check(
-	"the preview carries the board's own proportions",
-	Math.abs((row?.preview?.ratio ?? 0) - 1100 / 500) < 0.01,
-	row?.preview?.ratio,
-);
+check("a row carries the author's picture of the board", row?.hasSnapshot === true, row);
 check("a row names the author by derived handle", row?.author?.handle === f.handle, row?.author);
 check("the score starts at zero", row?.score === 0);
 
@@ -154,7 +149,6 @@ check("filtering by author works", (await call("GET", `/v1/entries?${mineQuery}`
 
 const detail = await call("GET", `/v1/entries/${id}`);
 check("the detail carries the recommended theme", detail.json.theme === "Minimal", detail.json.theme);
-check("a row says it has a picture of the board", row?.hasSnapshot === true, row?.hasSnapshot);
 {
 	// Fetched directly rather than through `call`, because the answer is an
 	// image and the point of the check is that it comes back as one.

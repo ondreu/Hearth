@@ -7,7 +7,7 @@
  * `src/exportimport.ts`.
  *
  * - `categories.ts` the closed list of what a board is *for*.
- * - `preview.ts`    a board reduced to something a listing can draw, safely.
+ * - `contents.ts`   what is on a board, by card kind.
  * - `types.ts`      the wire shapes, and the validators every response goes
  *                   through.
  * - `client.ts`     one host, and the only place a request is made.
@@ -25,7 +25,7 @@ import type HearthPlugin from "../main";
 import { GalleryClient, GalleryError, normalizeGalleryUrl } from "./client";
 
 export * from "./categories";
-export * from "./preview";
+export * from "./contents";
 export * from "./types";
 export * from "./client";
 export * from "./install";

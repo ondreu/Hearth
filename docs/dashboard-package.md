@@ -456,8 +456,8 @@ is the implementation:
 6. Re-check `assets`: type against the allowlist, the *encoded* length before
    decoding anything, and the total against your own budget.
 7. Derive the listing — `meta`, `requires`, `describeReferences(pkg)`,
-   `previewFromPackage(pkg)` — **from the package**, never from fields supplied
-   beside it. `capture.performanceTier` is worth showing as "captured on a
+   `cardCountsFromPackage(pkg)` — **from the package**, never from fields
+   supplied beside it. `capture.performanceTier` is worth showing as "captured on a
    low-power device".
 8. Store the file **unchanged**, and serve it back unchanged.
 

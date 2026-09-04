@@ -2,9 +2,9 @@
  * A picture of the board, taken at publish, with everything readable taken out
  * of it first.
  *
- * The drawn preview (`preview.ts`) says where the cards are and what kind each
- * one is, and for some boards that is not enough — a board's *look* is the
- * point, and a diagram of it is not a look. So this takes the real thing.
+ * A gallery entry's picture, and the only one there is. Drawing a board from
+ * its card positions was tried and dropped: a diagram of a board is not a look,
+ * and a board's look is what a listing is selling.
  *
  * Three rules, and the first is the whole reason this file is careful:
  *
@@ -20,8 +20,8 @@
  *   what a picture contains is worth much less than the picture.
  * - **It is best-effort and desktop-only.** Capturing needs Electron, which
  *   Obsidian's mobile app doesn't have and a future desktop build might not
- *   expose. Every failure path returns null and the drawn preview stands, so
- *   nothing here can stop a publish.
+ *   expose. Every failure path returns null, and the publish dialog says so
+ *   rather than uploading an entry with no picture in it.
  */
 
 import { Platform } from "obsidian";
@@ -36,6 +36,15 @@ import { Platform } from "obsidian";
  * bars, so it survives the compression better than a photograph would.
  */
 const MAX_WIDTH = 760;
+
+/**
+ * How many screenfuls of a scrolling board are photographed.
+ *
+ * A board is meant to be a screen, so most take one. This bounds what a very
+ * long one costs — in the time the capture takes, in the pixels the canvas
+ * holds, and in the bytes every reader downloads forever.
+ */
+const MAX_SCREENFULS = 4;
 
 /** JPEG rather than PNG: a screenshot of a dashboard is a photograph-shaped
  * thing (gradients, a wallpaper, soft shadows), and PNG would triple the size
@@ -54,6 +63,23 @@ const BLOCK = "█";
  * could recognise, which defeats the point of taking one.
  */
 const REDACT_INSIDE = ".hearth-card-body";
+
+/**
+ * Card kinds whose bodies are left alone, because there is nothing of the
+ * author in them.
+ *
+ * The rule is the strip's: a card is censored when publishing removes something
+ * from it or when it renders something read out of the vault. A clock renders
+ * the time, a pet renders a pet, a search bar renders an empty field — none of
+ * those is anybody's data, and blanking them makes the picture worse for no
+ * gain. Everything else is censored, which is the safe direction for a list
+ * like this to be wrong in: a kind nobody added here is protected by default.
+ *
+ * Deliberately *not* on it: `weather` (its place is the author's location, and
+ * the strip takes it), `calculator` (its last sum is stripped), `stats` (counts
+ * of somebody's vault), and every card that names a note.
+ */
+const OPEN_KINDS = new Set(["clock", "pet", "searchbar"]);
 
 /** Class the wrapper carries, so `styles.css` can draw the bars. */
 const REDACTED_CLASS = "hearth-snapshot-bar";
@@ -98,7 +124,7 @@ export const SNAPSHOT_ASSET_ID = "snapshot";
  * of the app Hearth runs inside, so every step is guarded and a build that has
  * neither simply cannot take a picture.
  */
-function webContents(): { capturePage(rect: unknown): Promise<NativeImageLike> } | null {
+function webContents(): WebContentsLike | null {
 	if (!Platform.isDesktopApp) return null;
 	const load = (window as unknown as { require?: (id: string) => unknown }).require;
 	if (typeof load !== "function") return null;
@@ -112,7 +138,7 @@ function webContents(): { capturePage(rect: unknown): Promise<NativeImageLike> }
 			if (typeof get !== "function") continue;
 			const contents: unknown = get.call(mod.remote ?? mod);
 			if (contents && typeof (contents as Record<string, unknown>).capturePage === "function") {
-				return contents as { capturePage(rect: unknown): Promise<NativeImageLike> };
+				return contents as WebContentsLike;
 			}
 		} catch {
 			// A module that isn't there, or a build that refuses it. Try the next.
@@ -121,11 +147,18 @@ function webContents(): { capturePage(rect: unknown): Promise<NativeImageLike> }
 	return null;
 }
 
-/** The slice of Electron's NativeImage this file uses. */
+/** The slice of Electron's `webContents` this file uses. */
+interface WebContentsLike {
+	capturePage(rect: unknown): Promise<NativeImageLike>;
+}
+
+/** The slice of Electron's NativeImage this file uses. PNG rather than JPEG on
+ * the way out of Electron: the slices are re-encoded once as a whole after
+ * stitching, and putting a lossy step in front of that would compress the same
+ * pixels twice. */
 interface NativeImageLike {
 	getSize(): { width: number; height: number };
-	resize(options: { width?: number; height?: number; quality?: string }): NativeImageLike;
-	toJPEG(quality: number): { length: number; toString(encoding: string): string };
+	toPNG(): Uint8Array;
 	isEmpty(): boolean;
 }
 
@@ -156,6 +189,7 @@ function redact(root: HTMLElement): () => void {
 	// it makes a picture of a board nobody could recognise. What a card *holds*
 	// is theirs: their notes, their tasks, their sums, their feed.
 	for (const body of Array.from(root.querySelectorAll<HTMLElement>(REDACT_INSIDE))) {
+		if (isOpenCard(body)) continue;
 		const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
 		const texts: Text[] = [];
 		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -203,9 +237,32 @@ function redact(root: HTMLElement): () => void {
 	};
 }
 
-/** One animation frame, so a style change is painted before the shutter. */
-function nextFrame(): Promise<void> {
-	return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+/**
+ * Whether this card's body can be photographed as it is.
+ *
+ * Read off the rendered card's own `data-kind`, so the answer comes from what
+ * is on screen rather than from a second copy of the board's data that could
+ * disagree with it. A card whose kind cannot be determined is censored, because
+ * that is the direction to be wrong in.
+ */
+function isOpenCard(body: HTMLElement): boolean {
+	const card = body.closest<HTMLElement>(".hearth-card");
+	const kind = card?.dataset.kind;
+	return kind !== undefined && OPEN_KINDS.has(kind);
+}
+
+/**
+ * Wait for the page to have been drawn.
+ *
+ * Two frames, not one: the first lets a style change or a scroll be applied,
+ * the second lets it be painted. Photographing between the two catches the
+ * board mid-change — the redaction half-applied, or the previous scroll
+ * position.
+ */
+function settle(): Promise<void> {
+	return new Promise((resolve) =>
+		window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+	);
 }
 
 /**
@@ -237,38 +294,134 @@ export async function captureBoard(
 	// turns filters off for the duration; it is on `body` because the rule has
 	// to outrank a theme's own selector, and off again in the `finally`.
 	document.body.addClass("hearth-snapshot-capturing");
+	const scroller = board.querySelector<HTMLElement>(".hearth-scroll");
+	const scrollFrom = scroller?.scrollTop ?? 0;
+
 	try {
-		// Two frames: one for the redaction and the hidden dialog to be styled,
-		// one for them to have been painted.
-		await nextFrame();
-		await nextFrame();
+		await settle();
+		const shots = await captureSlices(contents, board, rect, scroller);
+		if (shots.length === 0) return null;
+		return await stitch(shots, rect.width);
+	} catch {
+		return null;
+	} finally {
+		if (scroller) scroller.scrollTop = scrollFrom;
+		restore();
+		for (const el of hide) el.removeClass("hearth-snapshot-hidden");
+		document.body.removeClass("hearth-snapshot-capturing");
+	}
+}
+
+/**
+ * Photograph the board one screenful at a time, scrolling between shots.
+ *
+ * A board is usually taller than the window it is in, and a picture of the part
+ * that happens to be visible is a picture of a third of somebody's work. There
+ * is no way to photograph what is off-screen — the capture takes a rectangle of
+ * the *window* — so the board is scrolled through and the pieces put back
+ * together afterwards.
+ *
+ * A board that does not scroll takes one shot and skips all of this.
+ */
+async function captureSlices(
+	contents: WebContentsLike,
+	board: HTMLElement,
+	rect: DOMRect,
+	scroller: HTMLElement | null,
+): Promise<{ image: NativeImageLike; y: number }[]> {
+	const viewport = Math.round(rect.height);
+	const total = scroller
+		? Math.min(scroller.scrollHeight, viewport * MAX_SCREENFULS)
+		: viewport;
+	const shots: { image: NativeImageLike; y: number }[] = [];
+
+	for (let offset = 0; offset < total; offset += viewport) {
+		if (scroller) {
+			scroller.scrollTop = offset;
+			await settle();
+			// The scroller may have refused — it is already at the bottom, or the
+			// board is shorter than it claimed. Taking the same shot twice would
+			// stitch a repeat of it into the picture.
+			if (shots.length > 0 && Math.abs(scroller.scrollTop - offset) > 2) break;
+		}
 		const image = await contents.capturePage({
 			x: Math.round(rect.left),
 			y: Math.round(rect.top),
 			width: Math.round(rect.width),
-			height: Math.round(rect.height),
+			height: viewport,
 		});
-		if (!image || image.isEmpty()) return null;
+		if (!image || image.isEmpty()) break;
+		shots.push({ image, y: scroller ? scroller.scrollTop : 0 });
+		if (!scroller) break;
+	}
+	return shots;
+}
 
-		const size = image.getSize();
-		const scaled =
-			size.width > MAX_WIDTH
-				? image.resize({ width: MAX_WIDTH, quality: "good" })
-				: image;
-		const jpeg = scaled.toJPEG(QUALITY);
-		const final = scaled.getSize();
-		return {
-			data: jpeg.toString("base64"),
-			mime: "image/jpeg",
-			bytes: jpeg.length,
-			width: final.width,
-			height: final.height,
-		};
+/**
+ * Put the screenfuls back into one picture, and scale it down.
+ *
+ * Through a canvas, because that is the only thing in a renderer that can
+ * compose images — and it is also what applies the scale, so the resize and the
+ * join cost one decode each rather than one per slice.
+ */
+async function stitch(
+	shots: { image: NativeImageLike; y: number }[],
+	cssWidth: number,
+): Promise<BoardSnapshot | null> {
+	// The captures are in device pixels; the offsets are in CSS pixels. One
+	// ratio converts between them, and taking it from the picture rather than
+	// from `devicePixelRatio` means it is right even on a display Obsidian
+	// disagrees with.
+	const first = shots[0].image.getSize();
+	const ratio = first.width / cssWidth;
+	const last = shots[shots.length - 1];
+	const height = Math.round(last.y * ratio) + last.image.getSize().height;
+
+	const scale = Math.min(1, MAX_WIDTH / first.width);
+	const canvas = document.createElement("canvas");
+	canvas.width = Math.max(1, Math.round(first.width * scale));
+	canvas.height = Math.max(1, Math.round(height * scale));
+	const ctx = canvas.getContext("2d");
+	if (!ctx) return null;
+	ctx.imageSmoothingQuality = "high";
+
+	for (const shot of shots) {
+		const bitmap = await decode(shot.image);
+		if (!bitmap) return null;
+		ctx.drawImage(
+			bitmap,
+			0,
+			Math.round(shot.y * ratio * scale),
+			canvas.width,
+			Math.round(bitmap.height * scale),
+		);
+		bitmap.close?.();
+	}
+
+	const url = canvas.toDataURL("image/jpeg", QUALITY / 100);
+	const data = url.slice(url.indexOf(",") + 1);
+	if (!data) return null;
+	return {
+		data,
+		mime: "image/jpeg",
+		// base64 is four characters per three bytes; the padding is the remainder.
+		bytes: Math.floor((data.length * 3) / 4),
+		width: canvas.width,
+		height: canvas.height,
+	};
+}
+
+/** An Electron image as something a canvas can draw. */
+async function decode(image: NativeImageLike): Promise<ImageBitmap | null> {
+	try {
+		// Copied into a plain ArrayBuffer: what Electron hands back is a Node
+		// Buffer, whose backing store TypeScript will not accept as a BlobPart.
+		const png = image.toPNG();
+		const bytes = new Uint8Array(png.byteLength);
+		bytes.set(png);
+		const blob = new Blob([bytes.buffer], { type: "image/png" });
+		return await createImageBitmap(blob);
 	} catch {
 		return null;
-	} finally {
-		restore();
-		for (const el of hide) el.removeClass("hearth-snapshot-hidden");
-		document.body.removeClass("hearth-snapshot-capturing");
 	}
 }

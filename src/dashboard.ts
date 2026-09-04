@@ -143,6 +143,11 @@ export function renderDashboard(
 		else if (!collapsed) el.style.height = `${stackedHeight(card)}px`;
 
 		if (card.pinned) el.addClass("is-pinned");
+		// The card's kind, on the element. Only a couple of kinds contribute a
+		// `cardClass`, so this is the one place a reader of the rendered board
+		// can ask what a card *is* — which the gallery's snapshot does, to leave
+		// a clock alone and censor everything that holds somebody's notes.
+		el.dataset.kind = card.kind;
 		const kindClasses = cardClasses(card);
 		if (kindClasses.length) el.addClass(...kindClasses);
 		if (card.accent) {
