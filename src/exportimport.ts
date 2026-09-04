@@ -441,7 +441,9 @@ class ShareDashboardModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass("hearth-share-modal");
 		this.render();
-		if (this.publishing) void this.takeSnapshot();
+		// Taken up front so it is there to look at, rather than one more thing
+		// to remember. Silent when it isn't possible: the row explains why.
+		if (this.publishing && this.canTakeSnapshot()) void this.takeSnapshot();
 	}
 
 	private get publishing(): boolean {
@@ -519,7 +521,11 @@ class ShareDashboardModal extends Modal {
 			note.settingEl.addClass("hearth-setting-warning");
 			return;
 		}
-		if (!this.isActiveBoard()) {
+		// `boardEl()` as well as the id check: a board can be the active one and
+		// still not be rendered anywhere with a size — a collapsed sidebar, a
+		// background tab — and photographing the window where it isn't captures
+		// whatever is actually there.
+		if (!this.isActiveBoard() || !this.boardEl()) {
 			const note = new Setting(body).setDesc(strings.snapshotNotActive);
 			note.settingEl.addClass("hearth-setting-warning");
 			return;
@@ -582,7 +588,18 @@ class ShareDashboardModal extends Modal {
 		return null;
 	}
 
+	/** Whether a picture can be taken at all right now. One question, asked by
+	 * the row that offers the button and by the two places that press it for
+	 * the user, so they cannot disagree about the answer. */
+	private canTakeSnapshot(): boolean {
+		return canSnapshot() && this.isActiveBoard() && this.boardEl() !== null;
+	}
+
 	private async takeSnapshot(): Promise<void> {
+		// One at a time. A second capture starting mid-shot un-hides the dialog
+		// — which then lands in the published picture — and the two restores
+		// race, leaving the live board's text as blocks.
+		if (this.capturing) return;
 		const board = this.boardEl();
 		if (!board) {
 			new Notice(t().portable.exportModal.snapshotFailed);
@@ -642,7 +659,7 @@ class ShareDashboardModal extends Modal {
 				this.render();
 				// Switched to publishing without a picture yet: take one now
 				// rather than leaving it as something else to remember.
-				if (mode === "publish" && !this.snapshot && canSnapshot() && this.isActiveBoard()) {
+				if (mode === "publish" && !this.snapshot && this.canTakeSnapshot()) {
 					void this.takeSnapshot();
 				}
 			});

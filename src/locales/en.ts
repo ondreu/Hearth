@@ -3698,7 +3698,7 @@ export const en = {
 			descriptionDesc: "Optional. A line or two about what this dashboard is for.",
 			snapshot: "Picture of this board",
 			snapshotDesc:
-				"A screenshot of the board as it looks now — scrolled through, so a long board is captured whole. What's inside your cards is blanked out first; the header, the toolbar and each card's own title stay, and so do cards with nothing personal in them, like a clock.",
+				"A screenshot of the board as it looks now — scrolled through, so a long board is captured whole. What's inside your cards is blanked out first; the header, the toolbar and each card's own title stay, and so does a card with nothing of yours in it, like a clock.",
 			/** Shown once there is a picture. The one thing being asked of the
 			 * author, said as the thing it is: look at it. */
 			snapshotCheck:

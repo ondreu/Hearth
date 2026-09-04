@@ -10549,6 +10549,14 @@ body.hearth-dv-resizing {
 }
 
 /* ---- Search field ---- */
+/* ---- Rail + results ---- */
+.hearth-picker-body {
+	display: flex;
+	gap: 16px;
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
 /* Same one-element field as the gallery's, and for the same reason. */
 .hearth-picker-search {
 	position: relative;

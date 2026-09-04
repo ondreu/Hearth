@@ -75,11 +75,14 @@ const REDACT_INSIDE = ".hearth-card-body";
  * gain. Everything else is censored, which is the safe direction for a list
  * like this to be wrong in: a kind nobody added here is protected by default.
  *
- * Deliberately *not* on it: `weather` (its place is the author's location, and
- * the strip takes it), `calculator` (its last sum is stripped), `stats` (counts
- * of somebody's vault), and every card that names a note.
+ * It is deliberately tiny, and each absence has a reason: `weather` shows the
+ * author's location, which the strip takes; `calculator` shows its last sum,
+ * which the strip takes; `stats` and `pet` both show counts of somebody's vault
+ * ("37 notes today", a streak); `searchbar` holds a query and its results. A
+ * card is on this list only when there is nothing it could be showing that
+ * belongs to anyone.
  */
-const OPEN_KINDS = new Set(["clock", "pet", "searchbar"]);
+const OPEN_KINDS = new Set(["clock"]);
 
 /** Class the wrapper carries, so `styles.css` can draw the bars. */
 const REDACTED_CLASS = "hearth-snapshot-bar";
@@ -178,62 +181,86 @@ export function canSnapshot(): boolean {
  * the text is not there to be painted, which is a property of the DOM rather
  * than a property of how it happened to be rendered.
  */
-function redact(root: HTMLElement): () => void {
+interface Redaction {
+	/** Redact anything that has appeared since the last call. Safe to call any
+	 * number of times; already-redacted nodes are left alone. */
+	reapply(): void;
+	/** Put everything back. */
+	restore(): void;
+}
+
+function redact(root: HTMLElement): Redaction {
 	const originals: [Text, string][] = [];
 	const wrapped: HTMLElement[] = [];
 	const fields: [HTMLInputElement | HTMLTextAreaElement, string][] = [];
 
-	// **Only the insides of cards.** The board's chrome — the vault name, the
-	// header, the toolbar, the dashboard switcher, and each card's own title —
-	// is not the author's content: it is the thing being published, and blanking
-	// it makes a picture of a board nobody could recognise. What a card *holds*
-	// is theirs: their notes, their tasks, their sums, their feed.
-	for (const body of Array.from(root.querySelectorAll<HTMLElement>(REDACT_INSIDE))) {
-		if (isOpenCard(body)) continue;
-		const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
-		const texts: Text[] = [];
-		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-			const text = node as Text;
-			if (text.data.trim()) texts.push(text);
-		}
-		for (const text of texts) {
-			originals.push([text, text.data]);
-			text.data = redactedText(text.data);
-			// Wrapped so the blocks can be *styled* rather than merely drawn:
-			// a soft rounded bar in the theme's own ink reads as "text lives
-			// here", where a row of hard glyphs reads as a rendering fault.
-			const span = text.ownerDocument.createElement("span");
-			span.className = REDACTED_CLASS;
-			text.parentNode?.insertBefore(span, text);
-			span.appendChild(text);
-			wrapped.push(span);
-		}
+	const pass = (): void => {
+		// **Only the insides of cards.** The board's chrome — the vault name,
+		// the header, the toolbar, the dashboard switcher, and each card's own
+		// title — is not the author's content: it is the thing being published,
+		// and blanking it makes a picture of a board nobody could recognise.
+		// What a card *holds* is theirs: their notes, their tasks, their sums.
+		for (const body of Array.from(root.querySelectorAll<HTMLElement>(REDACT_INSIDE))) {
+			if (isOpenCard(body)) continue;
 
-		// **A form field's value is not a text node**, so the walk above never
-		// sees it — and a calculator card renders its last sum into an
-		// `<input>`, a search card its query. Those are the author's own working
-		// state, which the publish path removes from the *package*; a picture
-		// that still showed them would put back exactly what the strip took out.
-		// Placeholders stay: they are part of the board's look and travel in the
-		// package anyway.
-		for (const field of Array.from(
-			body.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
-		)) {
-			if (!field.value) continue;
-			fields.push([field, field.value]);
-			field.value = redactedText(field.value);
-		}
-	}
+			const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+			const texts: Text[] = [];
+			for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+				const text = node as Text;
+				if (!text.data.trim()) continue;
+				// Already covered by an earlier pass.
+				if (text.parentElement?.classList.contains(REDACTED_CLASS)) continue;
+				texts.push(text);
+			}
+			for (const text of texts) {
+				originals.push([text, text.data]);
+				text.data = redactedText(text.data);
+				// Wrapped so the blocks can be *styled* rather than merely
+				// drawn: a soft rounded bar in the theme's own ink reads as
+				// "text lives here", where a row of hard glyphs reads as a
+				// rendering fault.
+				const span = text.ownerDocument.createElement("span");
+				span.className = REDACTED_CLASS;
+				text.parentNode?.insertBefore(span, text);
+				span.appendChild(text);
+				wrapped.push(span);
+			}
 
+			// **A form field's value is not a text node**, so the walk above
+			// never sees it — and a calculator card renders its last sum into an
+			// `<input>`, a search card its query. Those are the author's own
+			// working state, which the publish path removes from the *package*;
+			// a picture that still showed them would put back exactly what the
+			// strip took out. Placeholders stay: they are part of the board's
+			// look and travel in the package anyway.
+			for (const field of Array.from(
+				body.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
+			)) {
+				if (!field.value || field.dataset.hearthRedacted === "1") continue;
+				fields.push([field, field.value]);
+				field.dataset.hearthRedacted = "1";
+				field.value = redactedText(field.value);
+			}
+		}
+	};
+
+	pass();
 	root.addClass("hearth-snapshot-redacted");
-	return () => {
-		for (const span of wrapped) {
-			const text = span.firstChild;
-			if (text && span.parentNode) span.parentNode.replaceChild(text, span);
-		}
-		for (const [node, value] of originals) node.data = value;
-		for (const [field, value] of fields) field.value = value;
-		root.removeClass("hearth-snapshot-redacted");
+
+	return {
+		reapply: pass,
+		restore: () => {
+			for (const span of wrapped) {
+				const text = span.firstChild;
+				if (text && span.parentNode) span.parentNode.replaceChild(text, span);
+			}
+			for (const [node, value] of originals) node.data = value;
+			for (const [field, value] of fields) {
+				field.value = value;
+				delete field.dataset.hearthRedacted;
+			}
+			root.removeClass("hearth-snapshot-redacted");
+		},
 	};
 }
 
@@ -286,7 +313,7 @@ export async function captureBoard(
 	const rect = board.getBoundingClientRect();
 	if (rect.width < 40 || rect.height < 40) return null;
 
-	const restore = redact(board);
+	const redaction = redact(board);
 	for (const el of hide) el.addClass("hearth-snapshot-hidden");
 	// Themes are entitled to do what they like while a modal is open, and
 	// several blur the workspace behind one — Velocity does. Capturing
@@ -299,14 +326,14 @@ export async function captureBoard(
 
 	try {
 		await settle();
-		const shots = await captureSlices(contents, board, rect, scroller);
+		const shots = await captureSlices(contents, rect, scroller, () => redaction.reapply());
 		if (shots.length === 0) return null;
 		return await stitch(shots, rect.width);
 	} catch {
 		return null;
 	} finally {
 		if (scroller) scroller.scrollTop = scrollFrom;
-		restore();
+		redaction.restore();
 		for (const el of hide) el.removeClass("hearth-snapshot-hidden");
 		document.body.removeClass("hearth-snapshot-capturing");
 	}
@@ -325,9 +352,9 @@ export async function captureBoard(
  */
 async function captureSlices(
 	contents: WebContentsLike,
-	board: HTMLElement,
 	rect: DOMRect,
 	scroller: HTMLElement | null,
+	reapply: () => void,
 ): Promise<{ image: NativeImageLike; y: number }[]> {
 	const viewport = Math.round(rect.height);
 	const total = scroller
@@ -335,15 +362,24 @@ async function captureSlices(
 		: viewport;
 	const shots: { image: NativeImageLike; y: number }[] = [];
 
+	let previous = -1;
 	for (let offset = 0; offset < total; offset += viewport) {
 		if (scroller) {
 			scroller.scrollTop = offset;
 			await settle();
-			// The scroller may have refused — it is already at the bottom, or the
-			// board is shorter than it claimed. Taking the same shot twice would
-			// stitch a repeat of it into the picture.
-			if (shots.length > 0 && Math.abs(scroller.scrollTop - offset) > 2) break;
+			// Compared against the *previous* shot, not against what was asked
+			// for. A scroller clamps at its bottom, so the last screenful of a
+			// board that is not a whole number of screens tall always lands
+			// short of the offset — checking against the offset threw that shot
+			// away and published a board with its bottom missing.
+			if (scroller.scrollTop === previous) break;
+			previous = scroller.scrollTop;
 		}
+		// Re-applied before every shot: a card can mount lazily as it scrolls
+		// into view (`leafview.ts` waits for an IntersectionObserver), so a card
+		// that was not in the document during the first pass would otherwise
+		// paint its real contents into a later slice.
+		reapply();
 		const image = await contents.capturePage({
 			x: Math.round(rect.left),
 			y: Math.round(rect.top),

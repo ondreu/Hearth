@@ -156,8 +156,7 @@ taken at publish. A long board is scrolled through and stitched, so the picture
 is the whole of it rather than the screenful that happened to be visible.
 
 Before the shutter, Hearth replaces the text inside every card that holds
-anything personal — everything but a clock, a pet and a search bar — and blurs
-the pictures in them. The board's chrome (its header, toolbar, switcher and each
+anything personal — everything but a clock — and blurs the pictures in them. The board's chrome (its header, toolbar, switcher and each
 card's own title) stays readable, because that is the board rather than what is
 on it.
 

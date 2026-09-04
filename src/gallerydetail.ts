@@ -160,8 +160,26 @@ class GalleryEntryModal extends Modal {
 		// Only the photograph is worth enlarging; the drawing is already as much
 		// detail as it has.
 		if (shot) {
+			// `renderPreview` drops the image and falls back to the placeholder
+			// when the host serves something that isn't a picture. The frame has
+			// to stop offering to open one too, or the placeholder opens an
+			// empty viewer — hence the flag rather than only the class: the
+			// listener outlives the styling.
+			let broken = false;
 			frame.addClass("is-zoomable");
-			activate(frame, () => openPictureViewer(shot, entry.name), t().gallery.detail.enlarge);
+			activate(
+				frame,
+				() => {
+					if (!broken) openPictureViewer(shot, entry.name);
+				},
+				t().gallery.detail.enlarge,
+			);
+			frame.querySelector("img")?.addEventListener("error", () => {
+				broken = true;
+				frame.removeClass("is-zoomable");
+				frame.removeAttribute("role");
+				frame.removeAttribute("tabindex");
+			});
 		}
 
 		const head = body.createDiv("hearth-gallery-detail-head");
