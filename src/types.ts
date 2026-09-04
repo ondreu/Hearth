@@ -1,6 +1,7 @@
 import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
+import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
 import type {
@@ -2343,6 +2344,17 @@ export interface HomeSettings {
 	 * that stops it nagging afterwards.
 	 */
 	authorKeySaved: boolean;
+	/**
+	 * The dashboard gallery this vault browses and publishes to.
+	 *
+	 * Empty means the gallery is off, and that is the shipped default: a plugin
+	 * that arrives pointing at a server has decided on the user's behalf that
+	 * their vault talks to it. `https` only, except a loopback address so a
+	 * self-hosted gallery can be tried from `docker compose up` without a
+	 * certificate — see `normalizeGalleryUrl` in `src/gallery/client.ts`, which
+	 * is the one place this string is turned into a request.
+	 */
+	galleryUrl: string;
 }
 
 /**
@@ -2484,6 +2496,8 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// has no identity to have.
 	authorKey: "",
 	authorKeySaved: false,
+	// No host until the user names one: see the field's own note.
+	galleryUrl: DEFAULT_GALLERY_URL,
 };
 
 /** The cards a brand-new vault starts with. Coordinates and sizes are taken
@@ -3291,6 +3305,12 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// A vault with no key has nothing to have saved, so the prompt starts over
 	// with the identity rather than staying dismissed from a previous one.
 	s.authorKeySaved = s.authorKey !== "" && raw.authorKeySaved === true;
+	// A host is a URL this build would actually talk to, or it is nothing: a
+	// value that fails the check is cleared rather than stored, so a hand-edited
+	// `data.json` cannot leave a vault pointed at an `http:` host on the network
+	// and looking configured.
+	s.galleryUrl =
+		typeof raw.galleryUrl === "string" ? (normalizeGalleryUrl(raw.galleryUrl) ?? "") : "";
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";

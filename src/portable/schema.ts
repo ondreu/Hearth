@@ -119,6 +119,19 @@ export interface PackageMeta {
 	 * that.
 	 */
 	signature?: string;
+	/**
+	 * What the board is *for*, from the closed list in `src/gallery/categories.ts`.
+	 *
+	 * The one thing about a published dashboard that cannot be derived from it:
+	 * its card kinds are already in {@link PackageRequirements}, and its tags are
+	 * free text, but neither says whether this is a study board or a work one.
+	 * Only the author knows, so it is asked at publish and travels here.
+	 *
+	 * Absent on a local export and on every package written before 3.1 — a
+	 * gallery files those under `other` rather than guessing, and nothing in
+	 * Hearth branches on it.
+	 */
+	category?: string;
 	/** Free-form, lower-cased by convention. A gallery's facets. */
 	tags?: string[];
 	/** The author's own version string for this board, if they keep one. */

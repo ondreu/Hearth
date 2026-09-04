@@ -3822,6 +3822,146 @@ export const en = {
 		},
 	},
 
+	// ---- Dashboard gallery ---------------------------------------------
+	gallery: {
+		/** The closed list in `src/gallery/categories.ts`. Ids are stored, so a
+		 * name may be reworded freely but an id may never be. */
+		categories: {
+			productivity: "Getting things done",
+			planning: "Planning & calendar",
+			study: "Study & research",
+			writing: "Writing & journaling",
+			work: "Work & projects",
+			personal: "Personal & home",
+			minimal: "Minimal",
+			dense: "Information-dense",
+			other: "Everything else",
+		},
+		sorts: {
+			trending: "Trending",
+			top: "Top rated",
+			new: "Newest",
+			downloads: "Most installed",
+		},
+		browse: {
+			title: "Dashboard gallery",
+			openLabel: "Gallery",
+			openAria: "Browse the dashboard gallery",
+			searchPlaceholder: "Search dashboards…",
+			all: "All dashboards",
+			mine: "Published by me",
+			sortLabel: "Sort by",
+			refresh: "Refresh",
+			publish: "Publish a dashboard",
+			loading: "Loading…",
+			empty: "Nothing here yet.",
+			emptySearch: (query: string) => `Nothing matches “${query}”.`,
+			emptyMine:
+				"You haven't published anything yet. Publish a board and it shows up here.",
+			results: (shown: number, total: number) =>
+				total > shown ? `${shown} of ${total}` : `${shown} dashboard${shown === 1 ? "" : "s"}`,
+			more: "Show more",
+			byAuthor: (handle: string) => `by ${handle}`,
+			anonymous: "unattributed",
+			downloads: (n: number) => `${n} install${n === 1 ? "" : "s"}`,
+			score: (n: number) => `${n > 0 ? "+" : ""}${n}`,
+			cardCount: (n: number) => `${n} card${n === 1 ? "" : "s"}`,
+			pluginBoard: "Hosts a plugin view",
+		},
+		detail: {
+			install: "Install",
+			installing: "Downloading…",
+			installAria: (name: string) => `Install ${name}`,
+			profile: (handle: string) => `See everything by ${handle}`,
+			upvoteAria: "Upvote",
+			downvoteAria: "Downvote",
+			published: (when: string) => `Published ${when}`,
+			updated: (when: string) => `Updated ${when}`,
+			version: (v: string) => `Author's version ${v}`,
+			madeWith: (v: string) => `Made with Hearth ${v}`,
+			contents: "What's on this board",
+			requires: "What it needs",
+			requiresPlugins: "Plugins",
+			requiresCards: "Card types",
+			requiresViews: "Hosted views",
+			requiresSettings: "Settings",
+			nothingRequired: "Nothing beyond Hearth itself.",
+			size: (kb: number) => `${kb} KB`,
+			remote: (n: number) =>
+				n === 1
+					? "One thing on this board is loaded from the internet."
+					: `${n} things on this board are loaded from the internet.`,
+			noRemote: "Nothing on this board is loaded from the internet.",
+			unverified:
+				"This board arrived without a checkable signature, so who made it can't be established.",
+			tags: "Tags",
+			missing: "That dashboard is no longer in the gallery.",
+		},
+		profile: {
+			title: (handle: string) => handle,
+			subtitle:
+				"An anonymous handle, derived from a signing key. It says nothing about who somebody is — only that the same hand made all of this.",
+			totalScore: "Total score",
+			totalDownloads: "Total installs",
+			published: (n: number) => `${n} dashboard${n === 1 ? "" : "s"}`,
+			firstSeen: (when: string) => `First published ${when}`,
+			empty: "Nothing published under this handle.",
+			back: "Back to the gallery",
+		},
+		publish: {
+			title: "Publish to the gallery",
+			intro:
+				"Puts this dashboard in the gallery, where anyone using this Hearth gallery can find and install it.",
+			category: "Category",
+			categoryDesc: "What this board is for. It's how people find it.",
+			button: "Publish",
+			publishing: "Publishing…",
+			update: "Publish update",
+			/** Said before the upload, not after: a published board is copied by
+			 * strangers, and neither an unpublish nor an edit reaches the copies. */
+			warning:
+				"Publishing is public and hard to take back: anyone can install this board, and the copies stay installed even if you withdraw it later. Your notes' paths, private feeds and card text are removed first — open the details to see exactly what goes and what stays.",
+			signedAs: (handle: string) => `Published as ${handle}`,
+			needsName: "Give the dashboard a name before publishing it.",
+			needsCategory: "Choose a category before publishing.",
+			residual: (n: number) =>
+				`Held back: ${n} value${n === 1 ? "" : "s"} still look like paths from your vault after the strip. Check the details section before publishing.`,
+			done: (name: string) => `Published “${name}” to the gallery.`,
+			doneUpdate: (name: string) => `Updated “${name}” in the gallery.`,
+			unpublish: "Remove from the gallery",
+			unpublishConfirm: (name: string) =>
+				`Remove “${name}” from the gallery? People who already installed it keep their copy; nobody new can find it.`,
+			unpublished: "Removed from the gallery.",
+		},
+		settings: {
+			heading: "Dashboard gallery",
+			host: "Gallery address",
+			hostDesc:
+				"The gallery Hearth browses and publishes to. Hearth ships with none — nothing is fetched and nothing is sent until you put one here. https only (or http on localhost, for a gallery you run yourself).",
+			hostPlaceholder: "https://gallery.example.com",
+			hostInvalid: "That isn't an address Hearth will talk to. Use https, or http on localhost.",
+			hostCleared: "Gallery turned off.",
+			hostSet: (host: string) => `Gallery set to ${host}.`,
+			browse: "Browse the gallery",
+			browseDesc: "Dashboards other people have published, and the ones you've published yourself.",
+			browseButton: "Open gallery",
+		},
+		errors: {
+			noHost:
+				"No gallery is set up. Put a gallery address in Hearth's settings, under Dashboard gallery.",
+			offline: "Couldn't reach the gallery. It may be down, or this device may be offline.",
+			badResponse: "That address answered, but not like a Hearth gallery.",
+			unauthorized: "The gallery didn't accept this vault's identity.",
+			rateLimited: "The gallery is asking you to slow down. Try again in a few minutes.",
+			tooLarge: "That dashboard is too large for this gallery. Turn off the wallpaper, or shrink it.",
+			rejected: (why: string) => `The gallery refused it: ${why}`,
+			notFound: "The gallery doesn't have that.",
+			server: "The gallery had a problem with that request.",
+			unsigned:
+				"Hearth couldn't sign the file, so it wasn't published — an unsigned board has no provable author.",
+		},
+	},
+
 	// ---- Layout import errors ------------------------------------------
 	layout: {
 		invalidJson: "That isn't valid JSON.",
