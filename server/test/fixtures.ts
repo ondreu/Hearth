@@ -17,6 +17,13 @@ import type { HearthPackage } from "../../src/portable/schema";
 // test idempotent against a gallery that already has things in it: every
 // assertion is about this key's own boards, and a second run collides with
 // nothing — including its own previous one.
+/** A 1×1 JPEG, so the snapshot path is exercised with real bytes rather than
+ * with a string that merely happens to be base64. */
+const TINY_JPEG =
+	"/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a" +
+	"HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA" +
+	"AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+
 const key = process.env.KEY || newAuthorKey();
 const run = Math.random().toString(36).slice(2, 10);
 const id = identityFromKey(key)!;
@@ -80,7 +87,16 @@ console.log(
 		run,
 		publicKey: id.publicKey,
 		handle: id.handle,
-		a: build(`hd-smoke-${run}-a`, `Reading room ${run}`, "writing"),
+		a: build(`hd-smoke-${run}-a`, `Reading room ${run}`, "writing", {
+			theme: "Minimal",
+			snapshot: {
+				data: TINY_JPEG,
+				mime: "image/jpeg",
+				bytes: 300,
+				width: 1,
+				height: 1,
+			},
+		}),
 		b: build(`hd-smoke-${run}-b`, `Sprint board ${run}`, "work"),
 		leaky: leaky(),
 		// A *second* identity publishing the same dashboard id — the shape of

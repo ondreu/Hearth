@@ -31,6 +31,7 @@ import type { Dashboard, HomeSettings } from "../types";
 import { exportDashboardFile, type ExportDashboardOptions } from "../portable";
 import { GalleryError, type GalleryClient } from "./client";
 import { asGalleryCategory, type GalleryCategory } from "./categories";
+import type { BoardSnapshot } from "./snapshot";
 
 /** What the publish dialog collects on top of an ordinary export. */
 export interface PublishOptions {
@@ -38,6 +39,10 @@ export interface PublishOptions {
 	name: string;
 	description: string;
 	category: GalleryCategory;
+	/** The theme the author recommends, or "" for none. See `PackageMeta.theme`. */
+	theme: string;
+	/** A redacted photograph of the board, when the author took one. */
+	snapshot: BoardSnapshot | null;
 	tags: string[];
 	/** Which reference groups the strip takes. Paths and private references are
 	 * always among them — see the module comment. */
@@ -97,6 +102,8 @@ export async function buildPublishPackage(
 			name: opts.name.trim() || dash.name,
 			description: opts.description.trim() || undefined,
 			category: asGalleryCategory(opts.category),
+			theme: opts.theme.trim() || undefined,
+			snapshot: opts.snapshot ?? undefined,
 			tags: opts.tags.length ? opts.tags : undefined,
 		},
 	});

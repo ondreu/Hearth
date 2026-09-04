@@ -51,7 +51,7 @@ GALLERY_URL=https://gallery.example.com \
 	npm --prefix server run smoke                  # against a deployed one
 ```
 
-Fifty-seven checks: signing in with a real key, publishing real signed packages,
+Sixty-one checks: signing in with a real key, publishing real signed packages,
 refusing an unsigned one and an edited one, voting, downloading, withdrawing.
 It mints a fresh identity per run, so it is safe to run against a live gallery
 more than once — though it does publish two boards and leave one behind.
@@ -277,6 +277,10 @@ path, or a trailing path prefix Hearth kept and the proxy strips.
 
 **Uploads fail at ~1 MB.** The reverse proxy's body limit, not the server's.
 See the Caddy/nginx snippets above.
+
+**"The picture of the board is too large."** A snapshot over 1 MiB. Hearth
+writes ~900px JPEGs at quality 70, which land far below that, so this means a
+different client — or a package edited by hand.
 
 **Every visitor shares one rate-limit bucket.** `TRUST_PROXY` is off behind a
 proxy. Set it to 1.

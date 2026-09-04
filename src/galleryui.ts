@@ -18,6 +18,7 @@ import { CARD_DEFINITIONS, templateName } from "./cards";
 import type { CardKind } from "./types";
 import { t } from "./i18n";
 import { makeClickable } from "./ui";
+import { renderAvatar } from "./galleryavatar";
 import {
 	type GalleryEntrySummary,
 	GalleryError,
@@ -106,32 +107,64 @@ const ROW_WIDTHS = [92, 74, 85, 62, 80, 70];
  * the note above for why it is drawn from numbers rather than shown as a
  * picture, and `src/gallery/preview.ts` for what those numbers are held to.
  *
- * `wallpaperUrl` is the entry's real wallpaper when it has one; passing it puts
- * the actual picture behind the blocks, which is the difference between a
- * thumbnail that identifies a board and one that identifies a layout.
+ * `snapshot` is the author's own redacted photograph of the board, and when
+ * there is one it *replaces* everything below: it is the board as it really
+ * looks, and no arrangement of rectangles beats that. Everything after this
+ * point is what stands in when there isn't one.
+ *
+ * `wallpaper` is the entry's real wallpaper; passing it puts the actual picture
+ * behind the blocks, which is the difference between a thumbnail that
+ * identifies a board and one that identifies a layout.
  */
 export function renderPreview(
 	parent: HTMLElement,
 	preview: GalleryPreview | null,
-	wallpaperUrl?: string,
-	opts: { large?: boolean } = {},
+	opts: { wallpaper?: string; snapshot?: string; large?: boolean } = {},
 ): HTMLElement {
 	const frame = parent.createDiv("hearth-gallery-preview");
 	frame.toggleClass("is-large", opts.large === true);
+
+	// A real picture of the board, when its author published one.
+	if (opts.snapshot) {
+		frame.addClass("is-photo");
+		const shot = frame.createEl("img", { cls: "hearth-gallery-preview-photo" });
+		shot.src = opts.snapshot;
+		shot.alt = "";
+		shot.loading = "lazy";
+		// A host that serves something that isn't a picture falls back to the
+		// drawn preview rather than to a broken-image glyph.
+		shot.addEventListener("error", () => {
+			shot.remove();
+			frame.removeClass("is-photo");
+			renderDrawn(frame, preview, opts);
+		});
+		return frame;
+	}
+
+	renderDrawn(frame, preview, opts);
+	return frame;
+}
+
+/** The drawn stand-in: chrome, a grid, and a skeleton per card. */
+function renderDrawn(
+	frame: HTMLElement,
+	preview: GalleryPreview | null,
+	opts: { wallpaper?: string; large?: boolean },
+): void {
 	if (!preview) {
 		frame.addClass("is-empty");
 		setIcon(frame.createSpan("hearth-gallery-preview-icon"), "image-off");
-		return frame;
+		return;
 	}
 
 	const bg = preview.background;
 	if (bg?.color) frame.style.setProperty("--hearth-gallery-preview-bg", bg.color);
-	if (bg?.hasImage && wallpaperUrl) {
+	if (bg?.hasImage && opts.wallpaper) {
 		const img = frame.createEl("img", { cls: "hearth-gallery-preview-wall" });
 		// `src` and nothing else: the URL is built by the client from the
 		// configured host and an id that has already been held to a plain shape,
 		// and the response is rendered by the image decoder rather than parsed.
-		img.src = wallpaperUrl;
+		img.src = opts.wallpaper;
 		img.alt = "";
 		img.loading = "lazy";
 		// A host that serves something that isn't a picture gets the flat
@@ -151,7 +184,7 @@ export function renderPreview(
 			cls: "hearth-gallery-preview-note",
 			text: t().gallery.browse.pluginBoard,
 		});
-		return frame;
+		return;
 	}
 
 	const inner = frame.createDiv("hearth-gallery-preview-inner");
@@ -174,7 +207,6 @@ export function renderPreview(
 		grid.style.setProperty("--hearth-preview-opacity", String(preview.opacity));
 	}
 	for (const tile of preview.tiles) renderTile(grid, tile, opts.large === true);
-	return frame;
 }
 
 /** One card: its chrome, and a skeleton of what it holds. */
@@ -277,7 +309,11 @@ export function renderAuthor(
 		parent.createSpan({ cls: "hearth-gallery-author is-anonymous", text: strings.anonymous });
 		return;
 	}
-	const el = parent.createSpan({
+	// The mark beside the name, so a shelf of boards by one person reads as one
+	// person's shelf without anybody parsing six-character suffixes.
+	const line = parent.createDiv("hearth-gallery-author-line");
+	renderAvatar(line, entry.author.publicKey, "is-inline");
+	const el = line.createSpan({
 		cls: "hearth-gallery-author",
 		// The whole handle, suffix included: `polished-yarrow-n5tjd6` and
 		// `…-n5tjd5` read the same to anyone skimming, and truncating to the two
@@ -300,7 +336,7 @@ export function renderAuthor(
  * three clickable non-buttons and forgetting the pointer on any of them looks
  * exactly like a broken gallery.
  */
-function activate(el: HTMLElement, onActivate: () => void, label?: string): void {
+export function activate(el: HTMLElement, onActivate: () => void, label?: string): void {
 	makeClickable(el, onActivate, label);
 	el.addEventListener("click", (evt) => {
 		// A card's author sits inside the card: without this, opening a profile
@@ -334,13 +370,17 @@ export function renderEntryCard(
 	grid: HTMLElement,
 	entry: GalleryEntrySummary,
 	opts: {
-		wallpaperUrl?: string;
+		wallpaper?: string;
+		snapshot?: string;
 		onOpen: (entry: GalleryEntrySummary) => void;
 		onOpenProfile?: (publicKey: string) => void;
 	},
 ): HTMLElement {
 	const card = grid.createDiv("hearth-gallery-card");
-	const preview = renderPreview(card, entry.preview, opts.wallpaperUrl);
+	const preview = renderPreview(card, entry.preview, {
+		wallpaper: opts.wallpaper,
+		snapshot: opts.snapshot,
+	});
 	activate(preview, () => opts.onOpen(entry), entry.name);
 
 	const body = card.createDiv("hearth-gallery-card-body");

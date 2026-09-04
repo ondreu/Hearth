@@ -30,10 +30,30 @@ export * from "./types";
 export * from "./client";
 export * from "./install";
 export * from "./publish";
+export * from "./snapshot";
 
-/** Whether a vault has somewhere to browse. */
+/**
+ * Whether this vault has somewhere to browse, and is allowed to.
+ *
+ * Two conditions, and the second is the one worth spelling out. **Disable
+ * external calls** covers the gallery: it is a server on the internet, which is
+ * the whole of what that setting is about, and a vault that has turned every
+ * other outbound request off would be entitled to assume this one went with
+ * them. Every entry point reads this, so turning the setting on removes the
+ * buttons rather than leaving them to fail.
+ */
 export function galleryConfigured(plugin: HearthPlugin): boolean {
+	if (plugin.settings.disableExternalCalls) return false;
 	return normalizeGalleryUrl(plugin.settings.galleryUrl) !== null;
+}
+
+/** Whether the gallery is off *because* external calls are, which is a
+ * different sentence from "no host is set up". */
+export function galleryBlockedByExternalCalls(plugin: HearthPlugin): boolean {
+	return (
+		plugin.settings.disableExternalCalls &&
+		normalizeGalleryUrl(plugin.settings.galleryUrl) !== null
+	);
 }
 
 /**
@@ -46,7 +66,9 @@ export function galleryConfigured(plugin: HearthPlugin): boolean {
 let cached: { host: string; client: GalleryClient } | null = null;
 
 export function galleryClient(plugin: HearthPlugin): GalleryClient | null {
-	const host = normalizeGalleryUrl(plugin.settings.galleryUrl);
+	// Not just "is a host set": a vault with external calls off has no client at
+	// all, so nothing downstream can reach the network by holding one.
+	const host = galleryConfigured(plugin) ? normalizeGalleryUrl(plugin.settings.galleryUrl) : null;
 	if (!host) {
 		cached = null;
 		return null;

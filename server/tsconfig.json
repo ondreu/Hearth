@@ -29,6 +29,7 @@
 		"lib": ["DOM", "ES2020"]
 	},
 	// Both trees, under one set of options, because the server's modules and the
-	// plugin's are one program here.
-	"include": ["src/**/*.ts", "../src/**/*.ts"]
+	// plugin's are one program here — and `test/`, because a test that doesn't
+	// compile is a test nobody finds out about until it runs.
+	"include": ["src/**/*.ts", "test/**/*.ts", "../src/**/*.ts"]
 }

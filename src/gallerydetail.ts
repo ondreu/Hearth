@@ -20,7 +20,9 @@ import type { AuthorIdentity } from "./identity";
 import { t } from "./i18n";
 import { confirmAction } from "./ui";
 import { createIdentity, openImportPackage, vaultIdentity } from "./exportimport";
+import { renderAvatar } from "./galleryavatar";
 import {
+	activate,
 	cardKindLabel,
 	galleryDate,
 	galleryErrorText,
@@ -148,12 +150,11 @@ class GalleryEntryModal extends Modal {
 		this.titleEl.setText(entry.name);
 
 		const hero = body.createDiv("hearth-gallery-detail-hero");
-		renderPreview(
-			hero,
-			entry.preview,
-			entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
-			{ large: true },
-		);
+		renderPreview(hero, entry.preview, {
+			wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+			snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
+			large: true,
+		});
 
 		const head = body.createDiv("hearth-gallery-detail-head");
 		const byline = head.createDiv("hearth-gallery-detail-byline");
@@ -287,6 +288,9 @@ class GalleryEntryModal extends Modal {
 		const updated = galleryDate(entry.updatedAt);
 		if (updated && updated !== published) add("history", strings.updated(updated));
 		if (entry.version) add("tag", strings.version(entry.version));
+		// The author's own note about how it is meant to look. Text, never a
+		// link and never an install prompt.
+		if (entry.theme) add("palette", strings.theme(entry.theme));
 		if (entry.pluginVersion) add("package", strings.madeWith(entry.pluginVersion));
 		if (entry.sizeBytes) add("file", strings.size(Math.max(1, Math.round(entry.sizeBytes / 1024))));
 		// Said here, before the download, rather than only in the import dialog
@@ -403,10 +407,20 @@ class GalleryEntryModal extends Modal {
 		for (const comment of this.comments) {
 			const row = list.createDiv("hearth-gallery-comment");
 			const head = row.createDiv("hearth-gallery-comment-head");
-			head.createSpan({
+			const who = head.createSpan({
 				cls: "hearth-gallery-comment-author",
 				text: comment.author?.handle ?? t().gallery.browse.anonymous,
 			});
+			// A handle is a way to somebody's shelf wherever it appears — in a
+			// listing row, on a board, and here.
+			const key = comment.author?.publicKey;
+			if (key && this.hooks.onOpenProfile) {
+				who.addClass("is-clickable");
+				activate(who, () => {
+					this.close();
+					this.hooks.onOpenProfile?.(key);
+				}, t().gallery.detail.profile(comment.author!.handle));
+			}
 			const when = galleryDate(comment.createdAt);
 			if (when) head.createSpan({ cls: "hearth-gallery-comment-date", text: when });
 			// The comment's author may remove it, and so may the owner of the
@@ -613,35 +627,39 @@ class GalleryProfileModal extends Modal {
 		}
 
 		this.titleEl.setText(strings.title(profile.author.handle));
-		body.createEl("p", { cls: "hearth-modal-intro", text: strings.subtitle });
+
+		// A masthead rather than a row of numbers: the mark, the handle, when
+		// they started, and what they have earned — read top to bottom, which is
+		// how a page about a person reads.
+		const head = body.createDiv("hearth-gallery-profile-head");
+		renderAvatar(head, profile.author.publicKey, "is-large");
+		const who = head.createDiv("hearth-gallery-profile-who");
+		who.createDiv({ cls: "hearth-gallery-profile-handle", text: profile.author.handle });
+		const firstSeen = galleryDate(profile.firstSeenAt);
+		if (firstSeen) {
+			who.createDiv({ cls: "hearth-gallery-profile-since", text: strings.firstSeen(firstSeen) });
+		}
+		who.createDiv({ cls: "hearth-gallery-profile-note", text: strings.subtitle });
 
 		const stats = body.createDiv("hearth-gallery-profile-stats");
-		const stat = (label: string, value: string): void => {
+		const stat = (label: string, value: string, hint?: string): void => {
 			const box = stats.createDiv("hearth-gallery-profile-stat");
 			box.createDiv({ cls: "hearth-gallery-profile-stat-value", text: value });
 			box.createDiv({ cls: "hearth-gallery-profile-stat-label", text: label });
+			if (hint) box.setAttribute("aria-label", `${label}: ${value}. ${hint}`);
 		};
-		// The sum across everything they have published — the number the profile
-		// exists to show, and the only one that describes a maker rather than a
-		// board.
-		stat(strings.totalScore, t().gallery.browse.score(profile.totalScore));
+		// "Karma", not "score": a board has a score, and a person who has
+		// published eight of them has something the sum of those scores is a
+		// worse name for.
+		stat(strings.karma, t().gallery.browse.score(profile.totalScore), strings.karmaHint);
 		stat(strings.totalDownloads, String(profile.totalDownloads));
 		stat(strings.published(profile.entries.length), String(profile.entries.length));
-
-		const firstSeen = galleryDate(profile.firstSeenAt);
-		if (firstSeen) {
-			body.createDiv({ cls: "hearth-gallery-note", text: strings.firstSeen(firstSeen) });
-		}
-
-		if (profile.entries.length === 0) {
-			renderEmpty(body, "inbox", strings.empty);
-			return;
-		}
 
 		const grid = body.createDiv("hearth-gallery-grid");
 		for (const entry of profile.entries) {
 			renderEntryCard(grid, entry, {
-				wallpaperUrl: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
 				onOpen: (chosen) => {
 					this.close();
 					this.hooks.onOpenEntry?.(chosen.id);

@@ -37,6 +37,7 @@ interface EntryRow {
 	category: string;
 	tags: string;
 	version: string | null;
+	theme: string | null;
 	plugin_version: string | null;
 	preview: string | null;
 	cards: string;
@@ -51,6 +52,7 @@ interface EntryRow {
 	updated_at: string;
 	status: string;
 	has_wallpaper?: number;
+	has_snapshot?: number;
 	my_vote?: number;
 }
 
@@ -58,10 +60,11 @@ interface EntryRow {
  * — a row must never carry a megabyte it isn't going to use. */
 const SUMMARY_COLUMNS = `
 	e.id, e.source_id, e.author_key, e.name, e.description, e.category, e.tags,
-	e.version, e.plugin_version, e.preview, e.cards, e.requires, e.remote_refs,
+	e.version, e.theme, e.plugin_version, e.preview, e.cards, e.requires, e.remote_refs,
 	e.size_bytes, e.downloads, e.upvotes, e.downvotes, e.published_at,
 	e.updated_at, e.status,
-	(e.wallpaper IS NOT NULL) AS has_wallpaper
+	(e.wallpaper IS NOT NULL) AS has_wallpaper,
+	(e.snapshot IS NOT NULL) AS has_snapshot
 `;
 
 /** How each sort orders the listing. Fixed strings chosen by a closed set —
@@ -158,6 +161,7 @@ export function entryDetail(db: Db, id: string, viewer: string | null): unknown 
 		cards: parseJson(row.cards, []),
 		requires: parseJson(row.requires, {}),
 		version: row.version ?? undefined,
+		theme: row.theme ?? undefined,
 		remoteRefs: row.remote_refs,
 		sizeBytes: row.size_bytes,
 	};
@@ -236,9 +240,10 @@ export function publishEntry(
 	if (existing) {
 		db.prepare(
 			`UPDATE entries SET
-				name = ?, description = ?, category = ?, tags = ?, version = ?,
+				name = ?, description = ?, category = ?, tags = ?, version = ?, theme = ?,
 				plugin_version = ?, preview = ?, cards = ?, requires = ?,
 				remote_refs = ?, size_bytes = ?, wallpaper = ?, wallpaper_mime = ?,
+				snapshot = ?, snapshot_mime = ?,
 				package = ?, updated_at = ?, status = ?, hold_reason = ?
 			 WHERE id = ?`,
 		).run(
@@ -247,6 +252,7 @@ export function publishEntry(
 			upload.category,
 			JSON.stringify(upload.tags),
 			upload.version,
+			upload.theme,
 			upload.pluginVersion,
 			upload.preview,
 			upload.cards,
@@ -255,6 +261,8 @@ export function publishEntry(
 			upload.sizeBytes,
 			upload.wallpaper,
 			upload.wallpaperMime,
+			upload.snapshot,
+			upload.snapshotMime,
 			upload.json,
 			now,
 			status,
@@ -277,10 +285,10 @@ export function publishEntry(
 	db.prepare(
 		`INSERT INTO entries (
 			id, source_id, author_key, name, description, category, tags, version,
-			plugin_version, preview, cards, requires, remote_refs, size_bytes,
-			wallpaper, wallpaper_mime, package, published_at, updated_at, status,
-			hold_reason
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			theme, plugin_version, preview, cards, requires, remote_refs, size_bytes,
+			wallpaper, wallpaper_mime, snapshot, snapshot_mime, package,
+			published_at, updated_at, status, hold_reason
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	).run(
 		id,
 		upload.sourceId,
@@ -290,6 +298,7 @@ export function publishEntry(
 		upload.category,
 		JSON.stringify(upload.tags),
 		upload.version,
+		upload.theme,
 		upload.pluginVersion,
 		upload.preview,
 		upload.cards,
@@ -298,6 +307,8 @@ export function publishEntry(
 		upload.sizeBytes,
 		upload.wallpaper,
 		upload.wallpaperMime,
+		upload.snapshot,
+		upload.snapshotMime,
 		upload.json,
 		now,
 		now,
@@ -321,7 +332,7 @@ export function withdrawEntry(db: Db, id: string, authorKey: string): void {
 	if (!row) throw notFound();
 	if (row.author_key !== authorKey) throw forbidden();
 	db.prepare(
-		"UPDATE entries SET status = 'removed', package = '', wallpaper = NULL, updated_at = ? WHERE id = ?",
+		"UPDATE entries SET status = 'removed', package = '', wallpaper = NULL, snapshot = NULL, updated_at = ? WHERE id = ?",
 	).run(new Date().toISOString(), id);
 }
 
@@ -345,6 +356,15 @@ export function downloadEntry(db: Db, id: string, ip: string): string {
 		db.prepare("UPDATE entries SET downloads = downloads + 1 WHERE id = ?").run(id);
 	}
 	return row.package;
+}
+
+/** The author's redacted photograph of the board, for a listing thumbnail. */
+export function entrySnapshot(db: Db, id: string): { bytes: Buffer; mime: string } {
+	const row = db
+		.prepare("SELECT snapshot, snapshot_mime FROM entries WHERE id = ? AND status = 'live'")
+		.get(id) as { snapshot?: Uint8Array; snapshot_mime?: string } | undefined;
+	if (!row?.snapshot || !row.snapshot_mime) throw notFound();
+	return { bytes: Buffer.from(row.snapshot), mime: row.snapshot_mime };
 }
 
 /** The board's wallpaper, for a listing thumbnail. */
@@ -381,6 +401,7 @@ function summaryOf(db: Db, row: EntryRow, viewer: string | null): Record<string,
 		preview: row.preview ? parseJson(row.preview, null) : null,
 		pluginVersion: row.plugin_version ?? undefined,
 		hasWallpaper: Number(row.has_wallpaper ?? 0) === 1,
+		hasSnapshot: Number(row.has_snapshot ?? 0) === 1,
 	};
 }
 

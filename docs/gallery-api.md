@@ -141,13 +141,31 @@ An **entry summary**:
   "myVote": 1,                    // 1 | 0 | -1, for the bearer of the token
   "preview": { /* see below */ },
   "pluginVersion": "3.1.0",
-  "hasWallpaper": true
+  "hasWallpaper": true,
+  "hasSnapshot": true
 }
 ```
 
 `score` is taken as sent rather than recomputed from the two tallies, so a
 gallery is free to weight or age it — but a `score` that disagrees with the
 order rows arrived in is a list that looks broken, so keep them consistent.
+
+### The picture, and the drawing
+
+An entry can carry **both**, and a client shows the first of these it has:
+
+1. **A snapshot** — the author's own screenshot of the board, taken at publish
+   with every word replaced in the DOM and every embedded picture blurred
+   *before* the capture. It arrives in `meta.snapshot` (base64, `mime`, `bytes`,
+   `width`, `height`); decode it out, cap it (1 MiB is plenty for a 900px JPEG),
+   hold the type to a raster allowlist, store it, and serve it at
+   `GET /v1/entries/:id/snapshot`. Set `hasSnapshot` on summaries.
+2. **The drawn preview** below, which every entry has.
+
+The snapshot is in `meta` rather than in `assets` on purpose: an asset is a
+picture the *board* uses, and importing a package writes every asset into the
+importing vault — a listing thumbnail would land there as a stray file nothing
+references.
 
 ### The preview
 
@@ -188,6 +206,7 @@ The summary, plus:
   "cards": [{ "kind": "tasks", "count": 2 }],   // derived, not supplied
   "requires": { "plugins": [], "cardKinds": [], "viewTypes": [], "settings": [] },
   "version": "2",                                // the author's own, if any
+  "theme": "Minimal",                            // recommended, advisory only
   "remoteRefs": 2,                               // things fetched from the internet
   "sizeBytes": 48213
 }
@@ -200,6 +219,11 @@ uploaded** — see [Publishing](#publishing).
 
 Count a download here, deduplicated per address per day. A counter anybody can
 run up in a loop is not a number worth sorting by.
+
+### `GET /v1/entries/:id/snapshot`
+
+The author's redacted photograph of the board, as an image. Raster types only,
+same allowlist as below. `404` when they didn't publish one.
 
 ### `GET /v1/entries/:id/wallpaper`
 
@@ -251,7 +275,9 @@ The pipeline, in order, and every step is a refusal rather than a repair:
    backstop for gaps in the reference table. A non-empty result means store the
    entry, keep it out of the listing, and answer `"held": true`.
 7. **Derive the listing** — preview, card counts, requirements, remote
-   references — from the package.
+   references — from the package. `meta.theme` (a theme *name*, advisory, never
+   acted on) and `meta.snapshot` come along as they are; both are covered by the
+   signature, so neither can be substituted.
 8. **Store the file unchanged.**
 
 ### Why nothing edits the package

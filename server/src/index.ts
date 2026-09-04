@@ -34,6 +34,7 @@ import {
 	authorProfile,
 	downloadEntry,
 	entryDetail,
+	entrySnapshot,
 	entryWallpaper,
 	listEntries,
 	publishEntry,
@@ -139,6 +140,12 @@ const routes = [
 		// A raster type from the format's own allowlist, and never SVG — this
 		// is a picture a client puts in an `img.src`, and the one image type
 		// that is really a document has no business being one.
+		return new RawResponse(bytes, mime, { "Cache-Control": "public, max-age=86400" });
+	}),
+
+	route("GET", "/v1/entries/:id/snapshot", (ctx) => {
+		limitRead(ctx);
+		const { bytes, mime } = entrySnapshot(db, ctx.params[0]);
 		return new RawResponse(bytes, mime, { "Cache-Control": "public, max-age=86400" });
 	}),
 

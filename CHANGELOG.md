@@ -36,6 +36,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   and the sanitizers, rather than a shortcut around them. As always, importing
   adds a board and touches no global setting.
 
+  A published board can carry **a picture of itself**: a screenshot taken at
+  publish with every word blanked out in the page and every embedded picture
+  blurred *before* the shutter, so the layout, colours, icons and wallpaper
+  survive and nothing readable does. You see the picture in the dialog before
+  anything is uploaded. Desktop only, opt-in, and where there isn't one a
+  drawing of the board stands in — every card kind draws the shape of what it
+  holds, so a tasks card is a stack of rows and a calendar is a month grid.
+
+  Authors can also say **"recommended with Minimal"** — a toggle that fills in
+  the theme they are using. Advisory: nothing installs or changes a theme.
+
   Each board also carries **comments** — flat, newest first, a paragraph each.
   Their author can delete their own, and a board's owner can delete any comment
   on their board, which is moderation in the hands of the person with the most
@@ -280,12 +291,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   top — the same one a gallery listing draws — and a **category**, which is the
   one thing about a published dashboard that cannot be worked out from it.
 
-  Publishing pins three things and says so: the pictures travel (a wallpaper
-  left as a path arrives missing in every vault but yours), your paths and
-  private feeds come out (your own copy has to keep working; a stranger's has
-  no reason to name your folders), and the file is signed (an unsigned entry
-  has no provable author, so anybody could later claim it). The details section
-  still tunes exactly which groups the strip takes, and still lists the values.
+  Publishing names what it takes out — every note, folder and attachment path;
+  private calendar feeds, private hosts and your location; anything you typed on
+  a text card and a calculator's last sum; every credential a card can hold —
+  and what it keeps, which is the board itself. The details section lists the
+  actual values, so it can be checked rather than believed. The wallpaper is a
+  plain switch at the top, on by default, on both sides.
 
 ### Fixed
 

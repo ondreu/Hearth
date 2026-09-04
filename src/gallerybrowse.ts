@@ -34,6 +34,7 @@ import {
 	type GalleryClient,
 	type GalleryEntrySummary,
 	type GallerySort,
+	galleryBlockedByExternalCalls,
 	galleryClient,
 	type ListQuery,
 } from "./gallery";
@@ -62,7 +63,11 @@ const SEARCH_DEBOUNCE_MS = 350;
 export function openGallery(plugin: HearthPlugin): void {
 	const client = galleryClient(plugin);
 	if (!client) {
-		new Notice(t().gallery.errors.noHost);
+		new Notice(
+			galleryBlockedByExternalCalls(plugin)
+				? t().gallery.errors.externalCallsOff
+				: t().gallery.errors.noHost,
+		);
 		return;
 	}
 	new GalleryBrowseModal(plugin, client).open();
@@ -383,7 +388,8 @@ class GalleryBrowseModal extends Modal {
 		const grid = results.createDiv("hearth-gallery-grid");
 		for (const entry of this.entries) {
 			renderEntryCard(grid, entry, {
-				wallpaperUrl: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
 				onOpen: (chosen) => this.openEntry(chosen),
 				onOpenProfile: (publicKey) => this.openProfile(publicKey),
 			});

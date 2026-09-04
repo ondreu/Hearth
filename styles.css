@@ -10551,6 +10551,13 @@ body.hearth-dv-resizing {
 /* ---- Search field ---- */
 .hearth-picker-search {
 	flex: none;
+	/* `border-box` and a bounded width, for the same reason the gallery's search
+	   row needs them: the 1px frame plus 10px of padding is added to a width the
+	   field would otherwise resolve from its own intrinsic size, and the excess
+	   hangs off the right of the modal. */
+	box-sizing: border-box;
+	max-width: 100%;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -10576,6 +10583,8 @@ body.hearth-dv-resizing {
 .hearth-picker-search-input {
 	flex: 1 1 auto;
 	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
 	padding: 8px 0;
 	border: none;
 	background: transparent;
@@ -11866,10 +11875,19 @@ body.hearth-dv-resizing {
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 12px;
+	min-width: 0;
+	max-width: 100%;
 }
 
 .hearth-gallery-search {
 	flex: 1 1 auto;
+	box-sizing: border-box;
+	max-width: 100%;
+	/* A flex item will not shrink below its content's intrinsic width unless it
+	   is told it may, and an <input> is intrinsically about twenty characters
+	   wide. Without this the field — and its focus ring — hangs off the right of
+	   the modal at narrow widths. Same reason on the input inside it. */
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -11890,6 +11908,9 @@ body.hearth-dv-resizing {
 
 .hearth-gallery-search-input {
 	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
 	border: none;
 	background: transparent;
 	box-shadow: none;
@@ -12051,6 +12072,13 @@ body.hearth-dv-resizing {
 	overflow: hidden;
 }
 
+.hearth-gallery-author-line {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
 .hearth-gallery-author {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
@@ -12127,6 +12155,21 @@ body.hearth-dv-resizing {
 		var(--background-secondary),
 		var(--background-modifier-hover)
 	);
+}
+
+/* The author's own photograph, when there is one: it fills the frame and
+   nothing is drawn over it. */
+.hearth-gallery-preview.is-photo {
+	background: var(--background-secondary);
+}
+
+.hearth-gallery-preview-photo {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: top center;
 }
 
 .hearth-gallery-preview-wall {
@@ -12647,23 +12690,108 @@ body.hearth-dv-resizing {
 	min-height: 60px;
 }
 
-/* ---- Profile ---- */
-.hearth-gallery-profile-stats {
+/* ---- Avatars ----
+   Derived from the public key, drawn as DOM: no upload, no request, no stored
+   picture, and it follows the reader's theme. A recognition aid beside a handle
+   that is always shown in full — see src/galleryavatar.ts. */
+.hearth-gallery-avatar {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	grid-template-rows: repeat(5, 1fr);
+	gap: 1px;
+	width: 34px;
+	height: 34px;
+	flex: none;
+	padding: 3px;
+	border-radius: var(--radius-m);
+	background: var(--background-modifier-hover);
+}
+
+.hearth-gallery-avatar.is-inline {
+	width: 18px;
+	height: 18px;
+	gap: 0;
+	padding: 2px;
+	border-radius: var(--radius-s);
+}
+
+.hearth-gallery-avatar.is-large {
+	width: 72px;
+	height: 72px;
+	gap: 2px;
+	padding: 6px;
+}
+
+.hearth-gallery-avatar-cell {
+	border-radius: 1px;
+}
+
+/* Fixed saturation and lightness: the hue is the key's to choose, but a key
+   must not be able to pick something invisible against either theme. */
+.hearth-gallery-avatar-cell.is-on {
+	background: hsl(var(--hearth-avatar-hue, 250) 55% 58%);
+}
+
+/* ---- Profile ----
+   Read top to bottom — mark, handle, when they started, what they've earned —
+   because it is a page about a person rather than a row of figures. */
+.hearth-gallery-profile-head {
 	display: flex;
-	gap: 24px;
-	margin: 12px 0 16px;
-	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: 18px;
+}
+
+.hearth-gallery-profile-who {
+	min-width: 0;
+}
+
+.hearth-gallery-profile-handle {
+	font-family: var(--font-monospace);
+	font-size: 1.3em;
+	font-weight: var(--font-medium);
+	color: var(--text-normal);
+	user-select: text;
+	overflow-wrap: anywhere;
+}
+
+.hearth-gallery-profile-since {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-top: 2px;
+}
+
+.hearth-gallery-profile-note {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	margin-top: 6px;
+}
+
+.hearth-gallery-profile-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.hearth-gallery-profile-stat {
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	text-align: center;
 }
 
 .hearth-gallery-profile-stat-value {
-	font-size: 1.5em;
+	font-size: 1.6em;
 	font-weight: var(--font-medium);
 	font-variant-numeric: tabular-nums;
+	line-height: 1.2;
 }
 
 .hearth-gallery-profile-stat-label {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+	margin-top: 2px;
 }
 
 /* ---- Share dialog (export / publish) ---- */
@@ -12742,6 +12870,38 @@ body.hearth-dv-resizing {
 	padding: 4px 8px 6px;
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
+}
+
+/* The captured picture, shown at size before anything is uploaded. */
+.hearth-share-snapshot {
+	margin: 0 0 12px;
+}
+
+.hearth-share-snapshot-img {
+	display: block;
+	width: 100%;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.hearth-share-snapshot-note {
+	margin-top: 6px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* Applied for the moment of a capture. The dialog steps out of the frame and
+   every embedded picture is blurred; the text is not styled away but replaced
+   in the DOM, so there is nothing left to paint. See src/gallery/snapshot.ts. */
+.hearth-snapshot-hidden {
+	visibility: hidden !important;
+}
+
+.hearth-snapshot-redacted img,
+.hearth-snapshot-redacted canvas,
+.hearth-snapshot-redacted video,
+.hearth-snapshot-redacted iframe {
+	filter: blur(10px) !important;
 }
 
 .hearth-share-warning {

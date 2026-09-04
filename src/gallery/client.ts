@@ -253,6 +253,12 @@ export class GalleryClient {
 		return `${this.base}/v1/entries/${encodeURIComponent(id)}/wallpaper`;
 	}
 
+	/** The author's redacted photograph of the board, for an entry that has one.
+	 * Same shape and same reasoning as {@link wallpaperUrl}. */
+	snapshotUrl(id: string): string {
+		return `${this.base}/v1/entries/${encodeURIComponent(id)}/snapshot`;
+	}
+
 	// ---- Signing in -----------------------------------------------------
 
 	/**

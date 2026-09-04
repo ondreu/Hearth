@@ -77,6 +77,8 @@ export interface AcceptedUpload {
 	tags: string[];
 	version: string | null;
 	pluginVersion: string | null;
+	/** The theme its author recommends, by name. Advisory. */
+	theme: string | null;
 	preview: string | null;
 	cards: string;
 	requires: string;
@@ -84,6 +86,9 @@ export interface AcceptedUpload {
 	sizeBytes: number;
 	wallpaper: Buffer | null;
 	wallpaperMime: string | null;
+	/** The author's redacted photograph of the board, decoded. */
+	snapshot: Buffer | null;
+	snapshotMime: string | null;
 	/** Non-empty when the strip's own backstop still sees something path-shaped.
 	 * The entry is taken but held out of the listing until somebody looks. */
 	holdReason: string | null;
@@ -158,6 +163,7 @@ export function acceptUpload(json: unknown): AcceptedUpload {
 		category: asGalleryCategory(pkg.meta?.category),
 		tags: readTags(pkg.meta?.tags),
 		version: trimTo(pkg.meta?.version, 32) || null,
+		theme: trimTo(pkg.meta?.theme, 60) || null,
 		pluginVersion: trimTo(pkg.hearth.plugin, 24) || null,
 		preview: preview ? JSON.stringify(preview) : null,
 		cards: JSON.stringify(cards),
@@ -173,6 +179,7 @@ export function acceptUpload(json: unknown): AcceptedUpload {
 		remoteRefs: references.byScope.publicUrl.length,
 		sizeBytes: Buffer.byteLength(json),
 		...wallpaperOf(pkg),
+		...snapshotOf(pkg),
 		holdReason: residual.length
 			? `${residual.length} value(s) still look like vault paths: ${residual.slice(0, 5).join(", ")}`
 			: null,
@@ -228,6 +235,44 @@ function wallpaperOf(pkg: HearthPackage): {
 		return { wallpaper: null, wallpaperMime: null };
 	}
 	return { wallpaper: bytes, wallpaperMime: asset.mime };
+}
+
+/** Widest a stored snapshot may be, in bytes. The client writes ~900px JPEGs at
+ * quality 70, which land well under this; the cap is here because `meta` is
+ * passed through `readPackage` as a bag and this is the one field in it that is
+ * measured in kilobytes rather than characters. */
+const MAX_SNAPSHOT_BYTES = 1024 * 1024;
+
+/** Only the two raster types a screenshot is written as. Never SVG, for the
+ * reason no picture here is ever SVG: it is a document, and this one is served
+ * back to clients. */
+const SNAPSHOT_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * The author's own picture of the board.
+ *
+ * Taken as given, because it is theirs and the signature covers it — but
+ * measured rather than believed: the decoded length is checked against the cap
+ * before the base64 is decoded, the same order every other picture in this
+ * pipeline is checked in.
+ */
+function snapshotOf(pkg: HearthPackage): {
+	snapshot: Buffer | null;
+	snapshotMime: string | null;
+} {
+	const shot = pkg.meta?.snapshot;
+	if (!shot || typeof shot !== "object") return { snapshot: null, snapshotMime: null };
+	if (typeof shot.mime !== "string" || !SNAPSHOT_MIME.has(shot.mime)) {
+		return { snapshot: null, snapshotMime: null };
+	}
+	if (typeof shot.data !== "string") return { snapshot: null, snapshotMime: null };
+	const decoded = Math.floor((shot.data.length * 3) / 4);
+	if (decoded === 0 || decoded > MAX_SNAPSHOT_BYTES) {
+		throw unprocessable("the picture of the board is too large");
+	}
+	const bytes = Buffer.from(shot.data, "base64");
+	if (bytes.length === 0) return { snapshot: null, snapshotMime: null };
+	return { snapshot: bytes, snapshotMime: shot.mime };
 }
 
 function trimTo(value: unknown, max: number): string {

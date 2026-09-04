@@ -138,6 +138,19 @@ const MIGRATIONS: string[] = [
 	CREATE INDEX comments_entry ON comments (entry_id, status, created_at DESC);
 	CREATE INDEX comments_author ON comments (author_key);
 	`,
+
+	// 3 — the theme an author recommends their board be seen under. Advisory,
+	// displayed and never acted on; nothing here installs a theme.
+	`
+	ALTER TABLE entries ADD COLUMN theme TEXT;
+	`,
+
+	// 4 — the author's own redacted photograph of the board, decoded out of the
+	// package so a listing can show it without downloading the whole file.
+	`
+	ALTER TABLE entries ADD COLUMN snapshot BLOB;
+	ALTER TABLE entries ADD COLUMN snapshot_mime TEXT;
+	`,
 ];
 
 export type Db = DatabaseSync;

@@ -69,6 +69,13 @@ export interface GalleryEntrySummary {
 	/** True when the package carries its wallpaper, so the row can ask the
 	 * server for the picture. */
 	hasWallpaper: boolean;
+	/**
+	 * True when the author published a redacted photograph of the board.
+	 *
+	 * When there is one it is what a listing shows, because it is the board as
+	 * it really looks; the drawn preview is what stands in when there isn't.
+	 */
+	hasSnapshot: boolean;
 }
 
 /** Everything the detail view shows, on top of the row. */
@@ -85,6 +92,9 @@ export interface GalleryEntryDetail extends GalleryEntrySummary {
 	};
 	/** The author's own version string, when they keep one. */
 	version?: string;
+	/** The Obsidian theme its author recommends it be seen under, by name.
+	 * Advisory: shown as text, and nothing installs or changes a theme. */
+	theme?: string;
 	/** How many things on this board are fetched from the internet. The import
 	 * dialog says this too; saying it *before* the download is the point. */
 	remoteRefs: number;
@@ -139,8 +149,14 @@ export interface GalleryListing {
 export interface GalleryProfile {
 	author: GalleryAuthor;
 	entries: GalleryEntrySummary[];
-	/** Every upvote across every entry, minus every downvote — the number the
-	 * profile leads with. */
+	/**
+	 * Every upvote across every entry, minus every downvote — the number the
+	 * profile leads with, shown as **karma**.
+	 *
+	 * Named for the person rather than the arithmetic: a board has a score, and
+	 * somebody who has published eight of them has something the sum of those
+	 * scores is a worse name for.
+	 */
 	totalScore: number;
 	totalUpvotes: number;
 	totalDownvotes: number;
@@ -269,6 +285,7 @@ export function readEntrySummary(raw: unknown): GalleryEntrySummary | null {
 		preview: readPreview(src.preview),
 		pluginVersion: text(src.pluginVersion, 24),
 		hasWallpaper: src.hasWallpaper === true,
+		hasSnapshot: src.hasSnapshot === true,
 	};
 }
 
@@ -306,6 +323,7 @@ export function readEntryDetail(raw: unknown): GalleryEntryDetail | null {
 			settings: readStringList(requires.settings, 40, 60),
 		},
 		version: text(src.version, 32),
+		theme: text(src.theme, 60),
 		remoteRefs: num(src.remoteRefs, 0, 10000),
 		sizeBytes: num(src.sizeBytes, 0, 1e10),
 	};

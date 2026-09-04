@@ -30,7 +30,7 @@
 
 import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
-import type { Dashboard } from "./types";
+import { activeDashboard, type Dashboard } from "./types";
 import { detectLanguage, t } from "./i18n";
 import { confirmAction, downloadTextFile, pickTextFile, promptForText } from "./ui";
 import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
@@ -39,6 +39,10 @@ import {
 	DEFAULT_GALLERY_CATEGORY,
 	GALLERY_CATEGORIES,
 	GalleryError,
+	type BoardSnapshot,
+	canSnapshot,
+	captureBoard,
+	galleryBlockedByExternalCalls,
 	galleryClient,
 	galleryConfigured,
 	previewFromPackage,
@@ -414,6 +418,13 @@ class ShareDashboardModal extends Modal {
 	private strip: StripOptions = { ...DEFAULT_STRIP };
 	private includeIdentity = true;
 	private meta = { name: "", description: "", tags: "", category: DEFAULT_GALLERY_CATEGORY };
+	/** "Recommended with <theme>", filled in from the vault's active theme when
+	 * switched on. Empty means the author isn't claiming one. */
+	private theme = "";
+	/** The picture of the board, once one has been taken. Held here rather than
+	 * captured at publish so the author sees exactly what will be uploaded. */
+	private snapshot: BoardSnapshot | null = null;
+	private capturing = false;
 	private busy = false;
 	/** The disclosure, so a choice above it can redraw its contents in place. */
 	private details?: HTMLDetailsElement;
@@ -477,8 +488,90 @@ class ShareDashboardModal extends Modal {
 
 		new Setting(body).setName(strings.contents).setHeading();
 		this.renderContentChoices(body);
+		this.renderSnapshot(body);
 		this.detailsSection(body);
 		this.renderFooter(body);
+	}
+
+	/**
+	 * A photograph of the board, and the switch that takes one.
+	 *
+	 * Only offered for the board that is actually on screen behind this dialog —
+	 * capturing works by photographing the window, so a board that isn't
+	 * rendered cannot be in the frame — and only on a build that can capture at
+	 * all. Everywhere else the drawn preview stands.
+	 *
+	 * The captured image is shown here, at size, before anything is uploaded.
+	 * That is the point: a promise about what a redacted screenshot contains is
+	 * worth much less than the screenshot.
+	 */
+	private renderSnapshot(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
+		if (!canSnapshot() || !this.isActiveBoard()) return;
+
+		const row = new Setting(body)
+			.setName(strings.snapshot)
+			.setDesc(strings.snapshotDesc)
+			.addToggle((tg) =>
+				tg
+					.setValue(this.snapshot !== null)
+					.setDisabled(this.capturing)
+					.onChange((v) => {
+						if (!v) {
+							this.snapshot = null;
+							this.render();
+							return;
+						}
+						void this.takeSnapshot();
+					}),
+			);
+
+		if (this.capturing) {
+			row.descEl.createDiv({
+				cls: "hearth-export-values-empty",
+				text: strings.snapshotWorking,
+			});
+			return;
+		}
+		if (!this.snapshot) return;
+
+		// Shown as an image element with a data URI this vault just produced —
+		// not a URL, not markup, and never anything that arrived from outside.
+		const shot = body.createDiv("hearth-share-snapshot");
+		const img = shot.createEl("img", { cls: "hearth-share-snapshot-img" });
+		img.src = `data:${this.snapshot.mime};base64,${this.snapshot.data}`;
+		img.alt = strings.snapshot;
+		shot.createDiv({
+			cls: "hearth-share-snapshot-note",
+			text: strings.snapshotTaken(Math.max(1, Math.round(this.snapshot.bytes / 1024))),
+		});
+	}
+
+	/** Whether the board being shared is the one rendered behind this dialog. */
+	private isActiveBoard(): boolean {
+		return activeDashboard(this.plugin.settings).id === this.dash.id;
+	}
+
+	/** Find the rendered board to photograph, or null if it isn't on screen. */
+	private boardEl(): HTMLElement | null {
+		return this.app.workspace.containerEl.querySelector<HTMLElement>(".hearth-home");
+	}
+
+	private async takeSnapshot(): Promise<void> {
+		const board = this.boardEl();
+		if (!board) {
+			new Notice(t().portable.exportModal.snapshotFailed);
+			return;
+		}
+		this.capturing = true;
+		this.render();
+		// The dialog is in front of the board, so it steps out of the frame for
+		// the moment of the capture rather than closing — its state survives and
+		// the flicker is one frame of an action that already takes a second.
+		this.snapshot = await captureBoard(board, [this.containerEl]);
+		this.capturing = false;
+		if (!this.snapshot) new Notice(t().portable.exportModal.snapshotFailed);
+		this.render();
 	}
 
 	/** The board itself, drawn the way the gallery will draw it. Sharing a
@@ -490,7 +583,14 @@ class ShareDashboardModal extends Modal {
 		const preview = previewFromPackage(
 			exportPreviewPackage(this.plugin, this.dash, this.opts),
 		);
-		renderPreview(hero, preview);
+		// Once a picture has been taken it is what a listing will show, so it is
+		// what the dialog shows too — the thumbnail here is a preview of the
+		// entry, not a second opinion about it.
+		renderPreview(hero, preview, {
+			snapshot: this.snapshot
+				? `data:${this.snapshot.mime};base64,${this.snapshot.data}`
+				: undefined,
+		});
 		const text = hero.createDiv("hearth-share-hero-text");
 		text.createDiv({ cls: "hearth-share-hero-name", text: this.meta.name || this.dash.name });
 		const count = this.dash.cards.length;
@@ -526,7 +626,12 @@ class ShareDashboardModal extends Modal {
 		tab("export", strings.saveFile, "download", true);
 		tab("publish", t().gallery.browse.publish, "upload", configured);
 		if (!configured) {
-			row.createDiv({ cls: "hearth-share-modes-note", text: t().gallery.errors.noHost });
+			row.createDiv({
+				cls: "hearth-share-modes-note",
+				text: galleryBlockedByExternalCalls(this.plugin)
+					? t().gallery.errors.externalCallsOff
+					: t().gallery.errors.noHost,
+			});
 		}
 	}
 
@@ -565,6 +670,22 @@ class ShareDashboardModal extends Modal {
 				});
 			});
 
+		// What the board was built to look like under. A toggle rather than a
+		// field, because the answer is already on the reader's screen and asking
+		// them to type their own theme's name is asking them to get it wrong.
+		const active = activeThemeName(this.plugin);
+		new Setting(body)
+			.setName(strings.theme)
+			.setDesc(active ? strings.themeDesc(active) : strings.themeNone)
+			.addToggle((tg) =>
+				tg
+					.setValue(this.theme !== "")
+					.setDisabled(active === "")
+					.onChange((v) => {
+						this.theme = v ? active : "";
+					}),
+			);
+
 		new Setting(body)
 			.setName(strings.tags)
 			.setDesc(strings.tagsDesc)
@@ -582,16 +703,22 @@ class ShareDashboardModal extends Modal {
 			);
 	}
 
-	/** The two content switches, and the count of what the file will mention.
-	 * Publishing pins both, so it gets the settled statement instead. */
+	/**
+	 * The content switches.
+	 *
+	 * The wallpaper is a top-level choice on both sides and on by default. It is
+	 * the setting people look for, and burying it — or, worse, pinning it out of
+	 * sight — means a published board arrives grey in every vault but its
+	 * author's with nothing on screen having said it would.
+	 *
+	 * The strip is the difference between the two sides. Saving a file offers
+	 * it, off by default, because a copy of your own board needs its paths to
+	 * keep working. Publishing does it, and says what it takes rather than
+	 * offering a switch: the list is right there, checkable in the details
+	 * section against the actual values.
+	 */
 	private renderContentChoices(body: HTMLElement): void {
 		const strings = t().portable.exportModal;
-
-		if (this.publishing) {
-			const note = new Setting(body).setDesc(strings.publishPinned);
-			note.settingEl.addClass("hearth-setting-note");
-			return;
-		}
 
 		// The wallpaper choice, which is the one people will look for.
 		new Setting(body)
@@ -603,6 +730,22 @@ class ShareDashboardModal extends Modal {
 					this.render();
 				}),
 			);
+
+		if (this.publishing) {
+			// Not a switch, and not one line of reassurance either: the four
+			// groups that come out, named, and the two that stay, named — so
+			// "what am I about to publish" is answered here rather than only
+			// inside a disclosure nobody opens.
+			const removed = new Setting(body).setName(strings.publishRemovesTitle);
+			removed.settingEl.addClass("hearth-setting-note");
+			const list = removed.descEl.createEl("ul", { cls: "hearth-export-values" });
+			for (const line of strings.publishRemoves) list.createEl("li", { text: line });
+			removed.descEl.createDiv({
+				cls: "hearth-export-values-empty",
+				text: strings.publishKeeps,
+			});
+			return;
+		}
 
 		new Setting(body)
 			.setName(strings.stripPrivate)
@@ -832,6 +975,8 @@ class ShareDashboardModal extends Modal {
 					name: this.meta.name.trim() || this.dash.name,
 					description: this.meta.description.trim() || undefined,
 					category: this.meta.category,
+					theme: this.theme || undefined,
+					snapshot: this.snapshot ?? undefined,
 					tags: tags.length ? tags : undefined,
 				},
 			});
@@ -893,6 +1038,8 @@ class ShareDashboardModal extends Modal {
 					name: this.meta.name,
 					description: this.meta.description,
 					category: this.meta.category,
+					theme: this.theme,
+					snapshot: this.snapshot,
 					tags: this.tagList(),
 					strip: this.effectiveStrip(),
 					flatten: this.opts.flatten !== false,
@@ -930,6 +1077,18 @@ class ShareDashboardModal extends Modal {
 			if (this.containerEl.isConnected) this.render();
 		}
 	}
+}
+
+/**
+ * The active community theme's name, or "" for Obsidian's default look.
+ *
+ * `customCss` is an internal, so it is read defensively: a build that doesn't
+ * have it, or has it in another shape, means the toggle is simply not offered
+ * rather than the dialog failing to draw.
+ */
+function activeThemeName(plugin: HearthPlugin): string {
+	const theme = plugin.app.customCss?.theme;
+	return typeof theme === "string" ? theme.trim().slice(0, 60) : "";
 }
 
 /** Distinct values, in the order first seen. */

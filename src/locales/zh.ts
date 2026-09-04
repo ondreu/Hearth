@@ -3433,13 +3433,32 @@ export const zh: Translations = {
 		exportModal: {
 			title: "分享仪表板",
 			saveFile: "保存为文件",
-			publishPinned:
-				"发布时会带上壁纸、移除库中的路径与私有订阅源，并用你的 handle 签名。这三项不可关闭——展开详情可以看到具体带走什么、留下什么。",
+			publishRemovesTitle: "离开这个库之前会被移除",
+			publishRemoves: [
+				"面板指向的所有笔记、文件夹与附件路径",
+				"私有日历订阅源、内网主机，以及你的所在地",
+				"你在文本卡片上写的内容，以及计算器最后一次的算式",
+				"Jira 令牌，以及卡片可能保存的其他凭据",
+			],
+			publishKeeps:
+				"会保留的是面板本身：布局、样式、配色、图片、卡片设置、搜索与查询，以及它展示的公开页面或订阅源。展开下方的详情可以看到具体的值，也可以调整移除的范围。",
 			intro: "将这一个仪表板保存为文件。它的外观会一并带走，因此在其他库中也会呈现相同的样子。",
 			name: "名称",
 			nameDesc: "文件中该仪表板的名称。默认使用面板自身的名称。",
 			description: "描述",
 			descriptionDesc: "可选。用一两句话说明这个仪表板的用途。",
+			snapshot: "附上这个面板的截图",
+			snapshotDesc:
+				"截取面板当前的样子，并在截图前把所有文字涂掉、把嵌入的图片模糊处理。卡片布局、配色、图标和壁纸会保留，可读的内容不会。上传之前你会先在这里看到这张图。",
+			snapshotWorking: "正在截图……",
+			snapshotTaken: (kb: number) =>
+				`这就是将要发布的图片，${kb} KB。继续之前请先检查——如果还有可读内容，请关闭此项并告知。`,
+			snapshotFailed: "Hearth 无法截取面板图片，将改用绘制的预览。",
+			theme: "推荐搭配我的主题",
+			themeDesc: (name: string) =>
+				`标明这个面板适合在 ${name}（你正在使用的主题）下查看。这只是给安装者的提示——不会在对方那边安装或更改任何东西。`,
+			themeNone:
+				"你正在使用 Obsidian 的默认外观，因此没有可推荐的主题。如果这个面板是为某个社区主题设计的，请先切换过去。",
 			tags: "标签",
 			tagsDesc: "可选，用逗号分隔。若仪表板会被公开浏览，标签会很有用。",
 			tagsPlaceholder: "写作, 极简, 深色",
@@ -3621,6 +3640,7 @@ export const zh: Translations = {
 			published: (when: string) => `发布于 ${when}`,
 			updated: (when: string) => `更新于 ${when}`,
 			version: (v: string) => `作者版本 ${v}`,
+			theme: (name: string) => `推荐搭配 ${name} 主题`,
 			madeWith: (v: string) => `使用 Hearth ${v} 制作`,
 			contents: "这个面板上有什么",
 			requires: "它需要什么",
@@ -3638,8 +3658,9 @@ export const zh: Translations = {
 			title: (handle: string) => handle,
 			subtitle:
 				"一个由签名密钥推导出的匿名 handle。它不会透露任何人的身份，只说明这些作品出自同一双手。",
-			totalScore: "总评分",
-			totalDownloads: "总安装数",
+			karma: "Karma",
+			karmaHint: "他们发布的所有内容收到的全部赞减去全部踩。",
+			totalDownloads: "安装数",
 			published: (n: number) => `${n} 个仪表板`,
 			firstSeen: (when: string) => `首次发布于 ${when}`,
 			empty: "这个 handle 下没有发布过内容。",
@@ -3660,7 +3681,7 @@ export const zh: Translations = {
 			button: "发布",
 			publishing: "发布中……",
 			warning:
-				"发布是公开的，而且很难收回：任何人都可以安装这个面板，即使你之后撤下它，已经安装的副本仍然存在。你的笔记路径、私有订阅源和卡片文字会先被移除——展开详情可以看到具体带走什么、留下什么。",
+				"这个面板将会公开：任何使用这个画廊的人都能找到并安装它。你随时可以撤下它，不过已经安装的人仍然保留自己的副本。",
 			needsName: "发布前请先给仪表板起个名字。",
 			residual: (n: number) =>
 				`已暂缓：移除后仍有 ${n} 处值看起来像你库中的路径。发布前请查看详情部分。`,
@@ -3688,6 +3709,8 @@ export const zh: Translations = {
 		},
 		errors: {
 			noHost: "尚未设置画廊。请在 Hearth 设置的“仪表板画廊”中填写画廊地址。",
+			externalCallsOff:
+				"画廊是互联网上的服务器，而此库启用了“禁用外部调用”。要浏览或发布，请先关闭该设置。",
 			offline: "无法连接画廊。它可能已下线，或此设备当前离线。",
 			badResponse: "该地址有响应，但不像是一个 Hearth 画廊。",
 			unauthorized: "画廊没有接受这个库的身份。",

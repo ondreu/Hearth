@@ -3671,14 +3671,37 @@ export const en = {
 		exportModal: {
 			title: "Share dashboard",
 			saveFile: "Save a file",
-			publishPinned:
-				"Publishing carries the wallpaper, removes your vault's paths and private feeds, and signs the file with your handle. Those three aren't optional — open the details to see exactly what goes and what stays.",
+			publishRemovesTitle: "Taken out before it leaves this vault",
+			/** Named one by one rather than summarised. "Your private
+			 * information is removed" is a promise; this is a list somebody can
+			 * check, and the details section below lists the actual values. */
+			publishRemoves: [
+				"Every note, folder and attachment path the board points at",
+				"Private calendar feeds, private hosts, and your location",
+				"Anything you typed on a text card, and a calculator's last sum",
+				"Your Jira token, and every other credential a card can hold",
+			],
+			publishKeeps:
+				"Kept, because they're what the board is: the layout, the styling, the colours, the pictures, the card settings, searches and queries, and any public page or feed it shows. Open the details below to see the exact values, and to change what goes.",
 			intro:
 				"Saves this one dashboard as a file. Everything about how it looks travels with it, so it draws the same in another vault.",
 			name: "Name",
 			nameDesc: "What this dashboard is called in the file. Defaults to the board's own name.",
 			description: "Description",
 			descriptionDesc: "Optional. A line or two about what this dashboard is for.",
+			snapshot: "Include a picture of this board",
+			snapshotDesc:
+				"Takes a screenshot of the board as it looks right now, with every word blanked out and every embedded picture blurred first. Card layout, colours, icons and the wallpaper survive; nothing readable does. You'll see the picture here before anything is uploaded.",
+			snapshotWorking: "Taking the picture…",
+			snapshotTaken: (kb: number) =>
+				`This is exactly what gets published, at ${kb} KB. Check it before you go on — if anything readable survived, turn this off and tell me.`,
+			snapshotFailed:
+				"Hearth couldn't take a picture of the board. The drawn preview will be used instead.",
+			theme: "Recommended with my theme",
+			themeDesc: (name: string) =>
+				`Say the board is meant to be seen under ${name}, the theme you're using. It's a note for whoever installs it — nothing is installed or changed on their side.`,
+			themeNone:
+				"You're on Obsidian's default look, so there's no theme to recommend. Switch to a community theme first if the board is built for one.",
 			tags: "Tags",
 			tagsDesc: "Optional, comma separated. Useful if the dashboard is going somewhere it can be browsed.",
 			tagsPlaceholder: "writing, minimal, dark",
@@ -3888,6 +3911,7 @@ export const en = {
 			published: (when: string) => `Published ${when}`,
 			updated: (when: string) => `Updated ${when}`,
 			version: (v: string) => `Author's version ${v}`,
+			theme: (name: string) => `Recommended with the ${name} theme`,
 			madeWith: (v: string) => `Made with Hearth ${v}`,
 			contents: "What's on this board",
 			requires: "What it needs",
@@ -3909,8 +3933,9 @@ export const en = {
 			title: (handle: string) => handle,
 			subtitle:
 				"An anonymous handle, derived from a signing key. It says nothing about who somebody is — only that the same hand made all of this.",
-			totalScore: "Total score",
-			totalDownloads: "Total installs",
+			karma: "Karma",
+			karmaHint: "Every upvote across everything they've published, minus every downvote.",
+			totalDownloads: "Installs",
 			published: (n: number) => `${n} dashboard${n === 1 ? "" : "s"}`,
 			firstSeen: (when: string) => `First published ${when}`,
 			empty: "Nothing published under this handle.",
@@ -3934,7 +3959,7 @@ export const en = {
 			/** Said before the upload, not after: a published board is copied by
 			 * strangers, and neither an unpublish nor an edit reaches the copies. */
 			warning:
-				"Publishing is public and hard to take back: anyone can install this board, and the copies stay installed even if you withdraw it later. Your notes' paths, private feeds and card text are removed first — open the details to see exactly what goes and what stays.",
+				"This board becomes public: anyone using this gallery can find and install it. You can withdraw it at any time, though people who already installed it keep their copy.",
 			needsName: "Give the dashboard a name before publishing it.",
 			residual: (n: number) =>
 				`Held back: ${n} value${n === 1 ? "" : "s"} still look like paths from your vault after the strip. Check the details section before publishing.`,
@@ -3965,6 +3990,8 @@ export const en = {
 		errors: {
 			noHost:
 				"No gallery is set up. Put a gallery address in Hearth's settings, under Dashboard gallery.",
+			externalCallsOff:
+				"The gallery is a server on the internet, and this vault has \u201cDisable external calls\u201d turned on. Turn that off to browse or publish.",
 			offline: "Couldn't reach the gallery. It may be down, or this device may be offline.",
 			badResponse: "That address answered, but not like a Hearth gallery.",
 			unauthorized: "The gallery didn't accept this vault's identity.",

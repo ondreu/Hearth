@@ -22,9 +22,17 @@ import { signMessage } from "../../src/identity";
 const BASE = process.env.GALLERY_URL ?? "http://localhost:8787";
 const f = JSON.parse(readFileSync(process.argv[2], "utf8")) as Record<string, string>;
 
-/** Anything the gallery sent back. The point of this file is to assert on it,
- * not to model it — the client's own readers do that in `test/gallery.test.ts`. */
-type Json = Record<string, never> & { [key: string]: any };
+/**
+ * Anything the gallery sent back.
+ *
+ * Deliberately unmodelled. The point of this file is to assert on real
+ * responses, and giving them a shape here would mean maintaining a second copy
+ * of the wire contract that the assertions could then agree with while the
+ * server disagreed. The typed readers live in `test/gallery.test.ts`, on the
+ * client's side, where the shape actually matters.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Json = any;
 let pass = 0;
 let fail = 0;
 
@@ -140,6 +148,20 @@ check("search matches a tag", (await call("GET", `/v1/entries?q=minimal&${mineQu
 check("filtering by author works", (await call("GET", `/v1/entries?${mineQuery}`)).json.total === 2);
 
 const detail = await call("GET", `/v1/entries/${id}`);
+check("the detail carries the recommended theme", detail.json.theme === "Minimal", detail.json.theme);
+check("a row says it has a picture of the board", row?.hasSnapshot === true, row?.hasSnapshot);
+{
+	// Fetched directly rather than through `call`, because the answer is an
+	// image and the point of the check is that it comes back as one.
+	const shot = await fetch(`${BASE}/v1/entries/${id}/snapshot`);
+	check(
+		"the picture of the board comes back as an image",
+		shot.status === 200 && (shot.headers.get("content-type") ?? "").startsWith("image/"),
+		shot.status,
+	);
+	const none = await fetch(`${BASE}/v1/entries/${second.json.id}/snapshot`);
+	check("a board published without a picture is a 404 there", none.status === 404);
+}
 check("the detail lists cards by kind", detail.json.cards?.length === 3, detail.json.cards);
 check("the detail reports its size", detail.json.sizeBytes > 0);
 check("a missing entry is a 404", (await call("GET", "/v1/entries/nope")).status === 404);
