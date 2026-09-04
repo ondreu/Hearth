@@ -1,4 +1,4 @@
-import { type Component, Platform, setIcon } from "obsidian";
+import { type Component, Menu, Platform, setIcon } from "obsidian";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
 import { hearthIconIdFor } from "./icon";
@@ -20,10 +20,7 @@ import {
 } from "./types";
 import { t } from "./i18n";
 import { newNoteButtonLabel } from "./newnote";
-
-/** The search engine used by the “Search online” button action.
- * DuckDuckGo's GET endpoint works without an API key and is privacy-friendly. */
-const WEB_SEARCH_URL = "https://duckduckgo.com/?q=";
+import { openWebSearch, WEB_SEARCH_ENGINES } from "./websearch";
 
 /** Renders the title and its icon, the search bar with the New-note button,
  * and the auto-detected filter row. In Mobile mode, the New-note button is left out
@@ -117,25 +114,12 @@ export function createSearchBarButton(
 	bar: HTMLElement,
 	mode: "newNote" | "searchOnline",
 ): HTMLElement {
-	return mode === "searchOnline" ? createSearchOnlineButton(bar) : createNewNoteButton(view);
+	return mode === "searchOnline" ? createSearchOnlineButton(view, bar) : createNewNoteButton(view);
 }
 
 /** Read the current query out of the search bar's input element. */
 function getSearchQuery(bar: HTMLElement): string {
 	return bar.querySelector<HTMLInputElement>(".hearth-search-input")?.value.trim() ?? "";
-}
-
-/** Open a web search for the current query (or the engine's home page when
- * empty) in the user's default browser. */
-function searchOnline(bar: HTMLElement): void {
-	const q = getSearchQuery(bar);
-	const url = q ? WEB_SEARCH_URL + encodeURIComponent(q) : WEB_SEARCH_URL.replace("?q=", "");
-	try {
-		window.open(url, "_blank");
-	} catch {
-		// Pop-up blocked or unavailable — fall back to Obsidian's window opener.
-		window.open(url, "_blank", "noopener");
-	}
 }
 
 /** The New-note button: creates a note on click. What that note is — blank, or
@@ -163,14 +147,52 @@ function createNewNoteButton(view: HomeView): HTMLElement {
 	return btn;
 }
 
-/** The Search-online button: runs a web search for the current query. */
-function createSearchOnlineButton(bar: HTMLElement): HTMLElement {
-	const btn = createEl("button", {
+/** The Search-online control: a split button. The wide half searches with the
+ * configured engine (DuckDuckGo unless Settings → Appearance says otherwise);
+ * the caret opens a menu of the other engines, so a one-off search elsewhere
+ * costs one extra click and doesn't change the default.
+ *
+ * Both halves are real <button>s inside one wrapper rather than one button with
+ * a clickable corner: the caret is then reachable by keyboard and announces
+ * itself as a menu opener. */
+function createSearchOnlineButton(view: HomeView, bar: HTMLElement): HTMLElement {
+	const wrap = createDiv("hearth-searchonline");
+
+	const btn = wrap.createEl("button", {
 		cls: "hearth-newnote hearth-newnote-search",
 		attr: { "aria-label": t().header.searchOnlineAria },
 	});
 	setIcon(btn.createSpan("hearth-newnote-icon"), "globe");
 	btn.createSpan({ cls: "hearth-newnote-label", text: t().header.searchOnline });
-	btn.addEventListener("click", () => searchOnline(bar));
-	return btn;
+	btn.addEventListener("click", () => {
+		openWebSearch(view.plugin.settings.webSearchEngine, getSearchQuery(bar));
+	});
+
+	const caret = wrap.createEl("button", {
+		cls: "hearth-newnote hearth-newnote-search-caret",
+		attr: {
+			"aria-label": t().header.searchOnlinePickAria,
+			"aria-haspopup": "menu",
+		},
+	});
+	setIcon(caret.createSpan("hearth-newnote-icon"), "chevron-down");
+	caret.addEventListener("click", (evt) => {
+		const current = view.plugin.settings.webSearchEngine;
+		const menu = new Menu();
+		for (const engine of WEB_SEARCH_ENGINES) {
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						engine.id === current
+							? t().header.searchEngineDefault(engine.name)
+							: engine.name,
+					)
+					.setChecked(engine.id === current)
+					.onClick(() => openWebSearch(engine.id, getSearchQuery(bar))),
+			);
+		}
+		menu.showAtMouseEvent(evt);
+	});
+
+	return wrap;
 }

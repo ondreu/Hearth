@@ -116,7 +116,11 @@ The search field is keyboard-first, with four transparent modes:
   list its items; hide the ones you don't need.
 - **Recent files** appear in an empty, focused search field.
 - **New note** button creates a note in your default location — or sends the
-  query to DuckDuckGo instead, if you'd rather.
+  query to a web search instead, if you'd rather. That button carries a small
+  arrow: click it to search with **DuckDuckGo** (the default), **DuckDuckGo
+  without AI**, **Brave**, **Kagi**, **Google**, **Mojeek**, **Ecosia** or
+  **Qwant** for that one query. Which engine the button itself uses is
+  **Settings → Appearance → Online search engine**.
 - **Omnisearch engine** *(optional)* — swap the built-in engine for
   [Omnisearch](https://github.com/scambier/obsidian-omnisearch) under
   **Settings → Appearance → Search engine**.
@@ -288,7 +292,7 @@ network → Disable external calls**.
 | Jira Cloud / Server | Jira cards, over REST with bearer PAT auth | Yours, entered on the card; exports never include the PAT |
 | RSS / Atom feeds | RSS cards | None |
 | ICS / webcal feeds | Mini calendar subscriptions (Google, iCloud, Fastmail, Nextcloud…) | The feed URL |
-| DuckDuckGo | The search bar's optional web-search button | None |
+| DuckDuckGo, Brave, Kagi, Google, Mojeek, Ecosia, Qwant | The search bar's optional web-search button, whichever engine you pick for it | None |
 | Whatever host you name | A background image or title icon given as a web address; the bundled default wallpaper is one of these, served from `raw.githubusercontent.com` | None |
 
 ### Operon

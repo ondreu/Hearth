@@ -107,7 +107,10 @@ TaskNotes 这一项值得特别一提：它的字段名可由用户重映射、�
   不需要的可以隐藏。
 - **最近文件** 会在搜索框为空且聚焦时出现。
 - **新建笔记** 按钮会在默认位置创建笔记 —— 如果您更愿意，也可以把查询
-  发送给 DuckDuckGo。
+  发送到网络搜索。该按钮旁带有一个小箭头：点击它即可用 **DuckDuckGo**（默认）、
+  **DuckDuckGo（无 AI）**、**Brave**、**Kagi**、**Google**、**Mojeek**、
+  **Ecosia** 或 **Qwant** 搜索这一次查询。按钮本身使用哪个引擎，
+  可在 **设置 → 外观 → 在线搜索引擎** 中选择。
 - **Omnisearch 引擎** *（可选）* —— 在 **设置 → 外观 → 搜索引擎** 下把内置引擎
   换成 [Omnisearch](https://github.com/scambier/obsidian-omnisearch)。
 - **隐藏它** —— **设置 → 外观 → 主页 → 显示搜索区域** 可在仓库范围内关闭整个区域，
@@ -268,7 +271,7 @@ Hearth 会自行识别这些插件 —— 无需连接，也不用粘贴任何�
 | Jira Cloud / Server | Jira 卡片，通过 REST 与 bearer PAT 认证 | 您自己的，填在卡片上；导出内容绝不包含 PAT |
 | RSS / Atom 源 | RSS 卡片 | 无需 |
 | ICS / webcal 源 | 迷你日历订阅（Google、iCloud、Fastmail、Nextcloud…） | 源的网址 |
-| DuckDuckGo | 搜索栏可选的网络搜索按钮 | 无需 |
+| DuckDuckGo、Brave、Kagi、Google、Mojeek、Ecosia、Qwant | 搜索栏可选的网络搜索按钮，取决于您选择的引擎 | 无需 |
 
 ### Operon
 

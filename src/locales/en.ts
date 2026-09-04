@@ -101,6 +101,8 @@ export const en = {
 		newNoteAria: "Create new note",
 		searchOnline: "Search online",
 		searchOnlineAria: "Search the web for the current query",
+		searchOnlinePickAria: "Choose a search engine",
+		searchEngineDefault: (name: string) => `${name} (default)`,
 	},
 	search: {
 		placeholder: "Search the vault",
@@ -885,6 +887,11 @@ export const en = {
 				"search the web for the current search-field contents.",
 			newNoteButtonModeNewNote: "New note",
 			newNoteButtonModeSearchOnline: "Search online",
+			webSearchEngine: "Online search engine",
+			webSearchEngineDesc:
+				"Which engine the “Search online” button opens. The arrow beside " +
+				"the button searches with any of the others for one query, without " +
+				"changing this choice.",
 			newNoteHeading: "The “New note” button",
 			newNoteHeadingDesc:
 				"What the button makes, and where. The same settings drive the " +

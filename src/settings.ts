@@ -38,6 +38,7 @@ import {
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
+import { isWebSearchEngineId, WEB_SEARCH_ENGINES, webSearchEngine } from "./websearch";
 import {
 	destinationSummary,
 	isTemplaterAvailable,
@@ -801,6 +802,20 @@ export class HomeSettingTab extends PluginSettingTab {
 						s.newNoteButtonMode = v as typeof s.newNoteButtonMode;
 						this.save();
 					});
+			});
+
+		// Which engine the "Search online" button opens. The dropdown beside the
+		// button overrides it for a single search; this is the one it comes back
+		// to (see src/websearch.ts).
+		new Setting(containerEl)
+			.setName(t().settings.appearance.webSearchEngine)
+			.setDesc(t().settings.appearance.webSearchEngineDesc)
+			.addDropdown((d) => {
+				for (const engine of WEB_SEARCH_ENGINES) d.addOption(engine.id, engine.name);
+				d.setValue(webSearchEngine(s.webSearchEngine).id).onChange(async (v) => {
+					if (isWebSearchEngineId(v)) s.webSearchEngine = v;
+					this.save();
+				});
 			});
 
 		this.newNoteSection(containerEl);

@@ -4,6 +4,7 @@ import { normalizeAuthorKey } from "./identity";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
+import { DEFAULT_WEB_SEARCH_ENGINE, type WebSearchEngineId } from "./websearch";
 import type {
 	GitAction,
 	GitActionStyle,
@@ -2098,6 +2099,10 @@ export interface HomeSettings {
 	 * Omnisearch community plugin (only usable when Omnisearch is installed and
 	 * enabled — Hearth falls back to the built-in engine otherwise). */
 	searchEngine: "builtin" | "omnisearch";
+	/** Which web search engine the “Search online” button opens. The dropdown
+	 * beside the button can search elsewhere for one query without changing
+	 * this. See {@link WebSearchEngineId}. */
+	webSearchEngine: WebSearchEngineId;
 
 	// ---- Background ----
 	backgroundKind: BackgroundKind;
@@ -2399,6 +2404,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	newNoteFilename: "",
 	searchContents: true,
 	searchEngine: "builtin",
+	webSearchEngine: DEFAULT_WEB_SEARCH_ENGINE,
 
 	backgroundKind: "default",
 	backgroundValue: "",
