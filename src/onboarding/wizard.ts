@@ -361,6 +361,7 @@ export class SetupWizardModal extends Modal {
 			(v) => {
 				a.titleIcon = v;
 			},
+			this.plugin.settings.disableExternalCalls,
 		);
 
 		new Setting(body)

@@ -3,6 +3,7 @@ import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
+	backgroundIsRemote,
 	type BackgroundLayout,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
@@ -1038,7 +1039,13 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				}),
 			);
 		if (overriding) {
-			addTitleIconPicker(row, this.view.app, current, (v) => set(v));
+			addTitleIconPicker(
+				row,
+				this.view.app,
+				current,
+				(v) => set(v),
+				this.view.plugin.settings.disableExternalCalls,
+			);
 		}
 	}
 
@@ -1359,6 +1366,21 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					this.render();
 				});
 			});
+
+		// A wallpaper fetched from the web is one "Disable external calls" blocks
+		// (#281), so the board says so too — resolving the kind rather than testing
+		// the override, since a board showing the vault's URL wallpaper loses it
+		// just the same.
+		const shownKind = bg?.kind ?? this.view.plugin.settings.backgroundKind;
+		if (backgroundIsRemote(shownKind) && this.view.plugin.settings.disableExternalCalls) {
+			const note = new Setting(containerEl).setDesc(
+				t().settings.background.externalCallsDisabled,
+			);
+			note.settingEl.addClass("hearth-setting-note");
+			const icon = createSpan("hearth-setting-note-icon");
+			setIcon(icon, "wifi-off");
+			note.descEl.prepend(icon);
+		}
 
 		// How the board wears its backdrop is settable whether or not the board
 		// overrides *what* that backdrop is — the two are separate overrides, so

@@ -8,7 +8,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -666,6 +666,7 @@ export class HomeSettingTab extends PluginSettingTab {
 				s.titleIcon = v;
 				void this.save();
 			},
+			s.disableExternalCalls,
 		);
 
 		addIconPicker(
@@ -1046,6 +1047,19 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	// ---- Background -----------------------------------------------------
 
+	/** The note that says a web wallpaper is not being fetched, shown only when
+	 * the chosen kind actually is one and the switch actually is on. */
+	private remoteBackgroundNote(containerEl: HTMLElement, kind: BackgroundKind): void {
+		if (!backgroundIsRemote(kind) || !this.plugin.settings.disableExternalCalls) return;
+		const note = new Setting(containerEl).setDesc(
+			t().settings.background.externalCallsDisabled,
+		);
+		note.settingEl.addClass("hearth-setting-note");
+		const icon = createSpan("hearth-setting-note-icon");
+		setIcon(icon, "wifi-off");
+		note.descEl.prepend(icon);
+	}
+
 	private backgroundSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
 
@@ -1077,6 +1091,11 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.rerender();
 				});
 			});
+
+		// A wallpaper fetched from the web is one the kill switch blocks (#281),
+		// and a background that quietly doesn't appear is worse than one that says
+		// why — so the note sits with the dropdown that chose it.
+		this.remoteBackgroundNote(containerEl, s.backgroundKind);
 
 		// The weather sky stores a place rather than a typed-in value, so it gets
 		// the shared place picker instead of the text field below.

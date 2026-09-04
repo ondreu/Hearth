@@ -60,9 +60,13 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 		}
 
 		// One setting decides the mark: a Lucide icon, an emoji or short text, a
-		// picture from the vault or the web, or — when it is empty, and when a
-		// picture it names has gone missing — the Hearth crystal (#252).
-		renderTitleIcon(view.app, titleRow, effectiveTitleIcon(s), hearthIconIdFor(target));
+		// picture from the vault or the web, or — when it is empty, when a picture
+		// it names has gone missing, and when a web picture is one "Disable
+		// external calls" won't fetch — the Hearth crystal (#252, #281).
+		renderTitleIcon(view.app, titleRow, effectiveTitleIcon(s), {
+			fallbackIconId: hearthIconIdFor(target),
+			externalCallsDisabled: s.disableExternalCalls,
+		});
 		titleRow.createSpan({ cls: "hearth-title-text", text: effectiveTitle(s) });
 	}
 
