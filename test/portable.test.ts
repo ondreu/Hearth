@@ -1121,7 +1121,12 @@ describe("what a package points at outside itself", () => {
 		expect(report.byScope.privateUrl).toEqual([
 			"webcal://cal.example.com/private/abc123.ics",
 		]);
-		expect(report.byScope.publicUrl).toContain("https://obsidian.md");
+		// A launchpad tile *links* to a page; it does not load one. The two are
+		// separate scopes precisely so "how much of this board is fetched from
+		// the internet" — which the import dialog and a gallery both report —
+		// isn't inflated by a board full of bookmarks.
+		expect(report.byScope.linkUrl).toContain("https://obsidian.md");
+		expect(report.byScope.publicUrl).not.toContain("https://obsidian.md");
 		expect(report.byScope.commandId).toContain("app:reload");
 		// Reported as strings: the report is for listing and indexing, and a
 		// latitude is as much a value to show as a place name.

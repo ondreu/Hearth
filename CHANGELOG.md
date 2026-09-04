@@ -45,8 +45,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
   The picture blanks out what is *inside* cards that hold something personal,
   and nothing else: the header, the toolbar, the dashboard switcher, each card's
-  own title, and a card with nothing of yours in it — a clock — stay as they
-  are. Blanked text is drawn as a soft bar in the theme's own ink rather
+  own title, a card with nothing of yours in it (a clock), and a calendar's own
+  dates and weekdays stay as they are. Blanked text is drawn as a soft bar in the theme's own ink rather
   than as a hard block. A board taller than the window is scrolled through and
   stitched, so the picture is the whole board; a listing shows its top and the
   detail view shows all of it. Click it, in the dialog or in the gallery, to see

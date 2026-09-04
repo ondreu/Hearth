@@ -33,8 +33,12 @@ import { dirname } from "node:path";
  * - `wallpaper` is a decoded copy of the board's own embedded wallpaper, so a
  *   listing can show the real picture without downloading the whole package.
  *   Raster types only; the format's allowlist already excludes SVG.
- * - `status` is `live`, `held` (something needs a look before it is listed) or
- *   `removed` (withdrawn by its author, kept so its id is never reused).
+ * - `status` is one of four, and the last two are deliberately different things:
+ *   `live`; `held` (something needs a look before it is listed); `withdrawn`
+ *   (its author took it down, and may put it back); and `removed` (an operator
+ *   took it down, and its author may not undo that). Both keep the row so an id
+ *   is never reused. Conflating them makes moderation something the moderated
+ *   party can reverse.
  */
 const MIGRATIONS: string[] = [
 	`
@@ -150,6 +154,13 @@ const MIGRATIONS: string[] = [
 	`
 	ALTER TABLE entries ADD COLUMN snapshot BLOB;
 	ALTER TABLE entries ADD COLUMN snapshot_mime TEXT;
+	`,
+
+	// 5 — tell an author's own withdrawal from an operator's takedown. Every
+	// row that already said 'removed' was written by the withdraw route, which
+	// only its author can reach, so they all become 'withdrawn'.
+	`
+	UPDATE entries SET status = 'withdrawn' WHERE status = 'removed';
 	`,
 ];
 

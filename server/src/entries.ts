@@ -235,10 +235,13 @@ export function publishEntry(
 			"that dashboard id already belongs to another author — duplicate the board first, which gives it an identity of its own, then publish that",
 		);
 	}
-	// A takedown has to stick. Without this, republishing the identical package
-	// sets `status` back to 'live' from the upload alone, and an entry an
-	// operator removed is back under the same id — which makes moderation
-	// something the author can simply undo.
+	// An operator's takedown has to stick: without this, republishing the
+	// identical package sets `status` back to 'live' from the upload alone, and
+	// moderation becomes something the moderated party can undo.
+	//
+	// An author's *own* withdrawal is the opposite — taking a board down and
+	// putting it back is theirs to do, and refusing it would be a trap rather
+	// than a policy. `withdrawn` therefore republishes normally.
 	if (existing?.status === "removed") {
 		throw forbidden("that dashboard was removed from this gallery and cannot be republished");
 	}
@@ -283,7 +286,11 @@ export function publishEntry(
 
 	const live = Number(
 		(db
-			.prepare("SELECT COUNT(*) AS n FROM entries WHERE author_key = ? AND status != 'removed'")
+			// Live and held count against the limit; a board its author withdrew
+			// or an operator removed does not — neither is in the gallery.
+			.prepare(
+				"SELECT COUNT(*) AS n FROM entries WHERE author_key = ? AND status IN ('live', 'held')",
+			)
 			.get(authorKey) as { n: number }).n,
 	);
 	if (config.maxEntriesPerAuthor > 0 && live >= config.maxEntriesPerAuthor) {
@@ -327,11 +334,15 @@ export function publishEntry(
 }
 
 /**
- * Withdraw an entry.
+ * Withdraw an entry, at its author's request.
  *
  * Marked rather than deleted, so its id and its `source_id` are never handed to
  * something else: an id that could be reused is an id that could be made to
  * point at a different board than the one somebody installed.
+ *
+ * `withdrawn`, not `removed` — the author may publish it again. An operator's
+ * takedown writes `removed`, which `publishEntry` refuses to reopen; see the
+ * status note in `db.ts`.
  */
 export function withdrawEntry(db: Db, id: string, authorKey: string): void {
 	const row = db.prepare("SELECT author_key FROM entries WHERE id = ?").get(id) as
@@ -340,7 +351,7 @@ export function withdrawEntry(db: Db, id: string, authorKey: string): void {
 	if (!row) throw notFound();
 	if (row.author_key !== authorKey) throw forbidden();
 	db.prepare(
-		`UPDATE entries SET status = 'removed', package = '', wallpaper = NULL,
+		`UPDATE entries SET status = 'withdrawn', package = '', wallpaper = NULL,
 		   wallpaper_mime = NULL, snapshot = NULL, snapshot_mime = NULL, updated_at = ?
 		 WHERE id = ?`,
 	).run(new Date().toISOString(), id);

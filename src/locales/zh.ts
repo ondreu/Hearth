@@ -3523,12 +3523,13 @@ export const zh: Translations = {
 				"当前没有移除任何内容，以下是文件中所有指向外部的信息。开启上面的“不包含我的私人信息”即可移除前三组。",
 			carriedNothing: "这个面板没有指向任何外部内容。",
 			groups: {
-				paths: "笔记与文件夹路径",
-				private: "日历订阅、内部主机与你的位置",
-				content: "你在面板上写下的文字",
-				queries: "搜索与 Dataview 查询",
-				plugins: "命令 ID 与视图类型",
+				paths: "移除笔记与文件夹路径",
+				private: "移除日历订阅、内部主机与你的位置",
+				content: "移除你在面板上写下的文字",
+				queries: "移除搜索与 Dataview 查询",
+				plugins: "移除命令 ID 与视图类型",
 			},
+			groupPinned: "发布时始终会移除。",
 			groupDesc: {
 				paths: "该面板在你库中指向的一切，以及每张内嵌图片的来源文件夹。若上面的壁纸开关是打开的，图片本身仍会随文件一起带走——被移除的只是它们所在的文件夹。",
 				private: "ICS 日历链接（拿到链接的人即可读取该日历）、内部 Jira 主机，以及天气卡片设定的地点。",

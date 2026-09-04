@@ -31,7 +31,7 @@
 import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";
-import { VIEW_TYPE_HOME } from "./view";
+import { leaveArrangeMode, VIEW_TYPE_HOME } from "./view";
 import { detectLanguage, t } from "./i18n";
 import { confirmAction, downloadTextFile, pickTextFile, promptForText } from "./ui";
 import { type AuthorIdentity, identityFromKey, newAuthorKey } from "./identity";
@@ -600,6 +600,11 @@ class ShareDashboardModal extends Modal {
 		// — which then lands in the published picture — and the two restores
 		// race, leaving the live board's text as blocks.
 		if (this.capturing) return;
+		// Arrange mode puts a title field and a row of actions on every card and
+		// a toolbar above them. That is editing furniture, not the board, and
+		// the way into publishing runs through arrange mode — so without this,
+		// most published pictures would be of somebody mid-edit.
+		leaveArrangeMode(this.app);
 		const board = this.boardEl();
 		if (!board) {
 			new Notice(t().portable.exportModal.snapshotFailed);

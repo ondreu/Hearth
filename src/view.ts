@@ -1,4 +1,5 @@
 import {
+	type App,
 	Component,
 	ItemView,
 	Platform,
@@ -49,6 +50,24 @@ import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
 
 export const VIEW_TYPE_HOME = "hearth-home-view";
+
+/**
+ * Take every open Hearth view out of arrange mode.
+ *
+ * Arrange mode is how a board is *edited*: it puts a title field and a row of
+ * actions on every card and a toolbar above them. None of that is the board.
+ * Two callers want it gone — opening the gallery, and photographing a board to
+ * publish it — because the way into both runs through arrange mode, so without
+ * this most published pictures would be of somebody mid-edit.
+ */
+export function leaveArrangeMode(app: App): void {
+	for (const leaf of app.workspace.getLeavesOfType(VIEW_TYPE_HOME)) {
+		const view = leaf.view;
+		if (!(view instanceof HomeView) || !view.arrangeMode) continue;
+		view.arrangeMode = false;
+		view.render();
+	}
+}
 
 export class HomeView extends ItemView {
 	plugin: HearthPlugin;

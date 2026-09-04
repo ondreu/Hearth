@@ -393,7 +393,8 @@ the package, classified by scope:
 | `privateUrl` | a URL that is effectively a credential — a private ICS feed | `private` |
 | `privateHost` | a host only reachable inside the author's network | `private` |
 | `place` | the author's location, from a weather card or sky background | `private` |
-| `publicUrl` | a public page or feed the board embeds | *kept* |
+| `publicUrl` | a public page or feed the board **fetches** — an embedded page, an RSS source, a wallpaper by URL | *kept* |
+| `linkUrl` | a URL the board **links to** — a launchpad tile, a mobile action button | *kept* |
 | `commandId`, `viewType` | names a plugin, not the author | `plugins` (off) |
 | `userQuery` | a search/Dataview/Datacore query, or a frontmatter property a card reads | `queries` (off) |
 | `userContent` | the author's own prose or working state | `content` |
@@ -415,6 +416,11 @@ is left for strings that still look like vault paths or calendar feeds and
 reports where it found them. It is a heuristic — treat a non-empty result as
 "hold this for review", since a false positive costs a look and a false negative
 publishes someone's folder tree.
+
+`publicUrl` and `linkUrl` are kept apart because "how much of this board is
+loaded from the internet" is a fair question to ask of a stranger's dashboard,
+and a button that opens a page when pressed is not an answer to it. Only
+`publicUrl` is counted when a gallery or the import dialog reports that.
 
 **When you add a card kind whose config names a note, folder, attachment,
 private URL, command or view type, add a rule for it to that table.** A gap

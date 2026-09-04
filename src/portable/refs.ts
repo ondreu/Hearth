@@ -52,6 +52,17 @@ export type ReferenceScope =
 	/** A public feed or page the board embeds. Travels — it is part of what the
 	 * board *is* — but is worth listing so a reader knows what will be fetched. */
 	| "publicUrl"
+	/**
+	 * A URL the board *links to* — a launchpad tile, a mobile action button.
+	 *
+	 * Kept, like {@link publicUrl}, and for the same reason: it is what the
+	 * board is. Told apart from it because the two answer different questions.
+	 * "How much of this board is loaded from the internet" is a fair thing to
+	 * ask before installing a stranger's dashboard, and a button that opens a
+	 * page when you press it is not an answer to it — counting one made a board
+	 * of bookmarks look like a board that phones home.
+	 */
+	| "linkUrl"
 	/** A host only reachable inside the author's network (a company Jira). */
 	| "privateHost"
 	/** A place on Earth the author chose. Their town is personal data even
@@ -129,7 +140,7 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	// links (launchpad tiles)
 	{ at: "links[].target", scope: "vaultPath", when: tileTargetIsNote },
 	{ at: "links[].target", scope: "commandId", when: tileTargetIsCommand },
-	{ at: "links[].target", scope: "publicUrl", when: tileTargetIsUrl },
+	{ at: "links[].target", scope: "linkUrl", when: tileTargetIsUrl },
 	{ at: "links[].icon", scope: "asset", when: iconOwnerIsImage },
 
 	// commands
@@ -227,7 +238,7 @@ export const GLOBAL_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "newNoteFolder", scope: "vaultPath", folder: true },
 	{ at: "mobileActionButtons[].target", scope: "vaultPath", when: tileTargetIsNote },
 	{ at: "mobileActionButtons[].target", scope: "commandId", when: tileTargetIsCommand },
-	{ at: "mobileActionButtons[].target", scope: "publicUrl", when: tileTargetIsUrl },
+	{ at: "mobileActionButtons[].target", scope: "linkUrl", when: tileTargetIsUrl },
 ];
 
 /** How thoroughly the walker looks. */
@@ -452,6 +463,7 @@ const EMPTY_SCOPES = (): Record<ReferenceScope, string[]> => ({
 	asset: [],
 	privateUrl: [],
 	publicUrl: [],
+	linkUrl: [],
 	privateHost: [],
 	place: [],
 	commandId: [],

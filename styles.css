@@ -10585,7 +10585,8 @@ body.hearth-dv-resizing {
 	min-width: 0;
 	width: 100%;
 	box-sizing: border-box;
-	padding-left: 32px;
+	/* See the gallery's field: the theme's own input rule outranks this one. */
+	padding-left: 32px !important;
 	font-size: var(--font-ui-medium);
 }
 
@@ -11898,7 +11899,11 @@ body.hearth-dv-resizing {
 	min-width: 0;
 	width: 100%;
 	box-sizing: border-box;
-	padding-left: 32px;
+	/* `!important` because it has to win, and cannot by specificity: themes
+	   style the field through `.modal input[type="text"]`, which outranks a
+	   class and loads after the plugin's stylesheet. Without it the padding is
+	   dropped and the placeholder starts underneath the magnifier. */
+	padding-left: 32px !important;
 }
 
 .hearth-gallery-sort {
@@ -12985,10 +12990,17 @@ body.hearth-snapshot-capturing .hearth-view {
    The wallpaper is behind the grid and survives, because it is already
    published as an asset. */
 .hearth-snapshot-redacted .hearth-card-body img,
-.hearth-snapshot-redacted .hearth-card-body canvas,
 .hearth-snapshot-redacted .hearth-card-body video,
 .hearth-snapshot-redacted .hearth-card-body iframe {
 	filter: blur(10px) !important;
+}
+
+/* A canvas is usually a drawing rather than a document — the graph view is the
+   one people ask about. Its *shape* is worth publishing and its node labels are
+   note titles, so it is blurred just enough that the labels go and the graph
+   stays recognisable. */
+.hearth-snapshot-redacted .hearth-card-body canvas {
+	filter: blur(4px) !important;
 }
 
 /* What publishing takes out, and what it keeps. A block rather than a settings

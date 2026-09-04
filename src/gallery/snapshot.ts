@@ -30,12 +30,13 @@ import { Platform } from "obsidian";
  * Widest a snapshot is stored at.
  *
  * A listing tile is ~220px and the detail view ~680px, so this covers the
- * larger of the two at a little over 1× — which is the right trade, because
- * every byte here is downloaded by everyone who installs the board *and*
- * carried inside the package forever. A redacted board is flat colour and soft
- * bars, so it survives the compression better than a photograph would.
+ * larger of the two comfortably. Every byte is downloaded by everyone who
+ * installs the board *and* carried inside the package forever, so this is a
+ * trade rather than a maximum — but a picture that sells a dashboard has to be
+ * worth looking at, and a redacted board is flat colour and soft bars, which
+ * survives compression better than a photograph would.
  */
-const MAX_WIDTH = 760;
+const MAX_WIDTH = 900;
 
 /**
  * How many screenfuls of a scrolling board are photographed.
@@ -49,7 +50,7 @@ const MAX_SCREENFULS = 4;
 /** JPEG rather than PNG: a screenshot of a dashboard is a photograph-shaped
  * thing (gradients, a wallpaper, soft shadows), and PNG would triple the size
  * of every package for no visible gain at this scale. */
-const QUALITY = 58;
+const QUALITY = 74;
 
 /** The character text is replaced with. A full block, so the styled bar over it
  * has something the width of the original words to cover. */
@@ -86,6 +87,30 @@ const OPEN_KINDS = new Set(["clock"]);
 
 /** Class the wrapper carries, so `styles.css` can draw the bars. */
 const REDACTED_CLASS = "hearth-snapshot-bar";
+
+/**
+ * Parts of a card that stay readable, because they are the card's own
+ * furniture rather than anything of the author's.
+ *
+ * A calendar's dates are the clearest case: "March 2026", "Mon", "17" say
+ * nothing about whose calendar it is, and blanking them turns a recognisable
+ * month grid into grey confetti. The same goes for the agenda's and the
+ * schedule's day headings. What sits *beside* those — the event, the note, the
+ * task — is still censored, because that is the part that is somebody's.
+ */
+const KEEP_INSIDE = [
+	".hearth-calendar-head",
+	".hearth-calendar-label",
+	".hearth-calendar-dow",
+	".hearth-calendar-wk",
+	".hearth-calendar-daynum",
+	".hearth-agenda-month",
+	".hearth-agenda-date",
+	".hearth-agenda-label",
+	".hearth-sched-daynum",
+	".hearth-sched-headnum",
+	".hearth-sched-listdate",
+].join(",");
 
 /** Longest run of blocks one string becomes. A card holding an essay should not
  * paint ten thousand glyphs to be photographed. */
@@ -210,6 +235,8 @@ function redact(root: HTMLElement): Redaction {
 				if (!text.data.trim()) continue;
 				// Already covered by an earlier pass.
 				if (text.parentElement?.classList.contains(REDACTED_CLASS)) continue;
+				// A date, a weekday, a month name: the card's own furniture.
+				if (text.parentElement?.closest(KEEP_INSIDE)) continue;
 				texts.push(text);
 			}
 			for (const text of texts) {

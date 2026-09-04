@@ -356,9 +356,11 @@ something off it without waiting for whoever runs the server.
 Mark it removed and clear the body rather than dropping the row, so an id is
 never reused.
 
-The same applies to an entry an operator takes down: a `removed` entry must
-refuse a republish of the same `meta.id`, or moderation is something its author
-can undo by pressing Publish again.
+An **operator's** takedown is a different status from an **author's**
+withdrawal, and the difference is load-bearing. A withdrawn entry may be
+published again — taking a board down and putting it back is its author's to do,
+and refusing it would be a trap rather than a policy. A removed one may not, or
+moderation is something the moderated party can undo by pressing Publish again.
 
 ## Rate limiting
 

@@ -275,16 +275,19 @@ check("a withdrawn entry cannot be downloaded", (await call("GET", `/v1/entries/
 // removed entry back under the same id, or moderation is something its author
 // can simply undo.
 {
+	// Withdrawing is the author's own act, so putting the board back is theirs
+	// too — the same id, live again.
 	const again = await call("POST", "/v1/entries", { package: f.a }, token);
 	check(
-		"a removed entry cannot be republished",
-		again.status === 403 && /removed/.test(again.json.error),
+		"an author can republish a board they withdrew",
+		again.status === 200 && again.json.id === id && again.json.updated === true,
 		again.json,
 	);
 	check(
-		"and it stays out of the listing",
-		(await call("GET", `/v1/entries?${mineQuery}`)).json.total === 1,
+		"and it is back in the listing",
+		(await call("GET", `/v1/entries?${mineQuery}`)).json.total === 2,
 	);
+	check("its package is downloadable again", (await call("GET", `/v1/entries/${id}/package`)).status === 200);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

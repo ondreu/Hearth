@@ -3779,6 +3779,8 @@ export const en = {
 			flatten: "Copy this vault's appearance settings onto the dashboard",
 			flattenDesc:
 				"Most of what a board looks like — the grid, spacing, card surfaces, background, header — is a vault-wide setting, and the board only stores what it overrides. This writes the resolved values onto the dashboard itself, so it looks the same in someone else's vault instead of picking up theirs. Turn it off and the board carries only its own overrides and adapts to wherever it lands.",
+			/** Said on each pinned row, where the switch cannot be moved. */
+			groupPinned: "Always removed when publishing.",
 			stripIntro:
 				"Each group below comes out of the file. What it will remove is listed under it — that is the actual list, read from this board.",
 			carriedIntro:
@@ -3787,12 +3789,17 @@ export const en = {
 			// The same four names the publish summary above uses, plus the two
 			// it doesn't remove. A reader comparing the two lists should be able
 			// to line them up without wondering whether they mean the same thing.
+			// Named as the *action*, not as the subject. "Note and folder paths"
+			// beside a switch that is on reads just as easily as "include note
+			// and folder paths", which is the opposite of what it does — and
+			// nobody should have to infer the direction of a privacy control
+			// from a heading two rows above it.
 			groups: {
-				paths: "Note and folder paths",
-				private: "Calendar feeds, private hosts and your location",
-				content: "Text you typed on the board",
-				queries: "Searches and Dataview queries",
-				plugins: "Command ids and view types",
+				paths: "Remove note and folder paths",
+				private: "Remove calendar feeds, private hosts and your location",
+				content: "Remove text you typed on the board",
+				queries: "Remove searches and Dataview queries",
+				plugins: "Remove command ids and view types",
 			},
 			groupDesc: {
 				paths: "Everything this board points at in your vault, and the folder each embedded picture came from. The pictures themselves still travel when the wallpaper switch above is on — it's the folder they lived in that goes.",

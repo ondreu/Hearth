@@ -23,6 +23,7 @@ import { Modal, Notice, Platform, setIcon } from "obsidian";
 import type HearthPlugin from "./main";
 import { t } from "./i18n";
 import { activeDashboard } from "./types";
+import { leaveArrangeMode } from "./view";
 import { createIdentity, openPublishDashboard, vaultIdentity } from "./exportimport";
 import { galleryErrorText, renderEmpty, renderEntryCard } from "./galleryui";
 import { openGalleryEntry, openGalleryProfile } from "./gallerydetail";
@@ -70,6 +71,7 @@ export function openGallery(plugin: HearthPlugin): void {
 		);
 		return;
 	}
+	leaveArrangeMode(plugin.app);
 	new GalleryBrowseModal(plugin, client).open();
 }
 

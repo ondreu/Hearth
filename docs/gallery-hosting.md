@@ -51,7 +51,7 @@ GALLERY_URL=https://gallery.example.com \
 	npm --prefix server run smoke                  # against a deployed one
 ```
 
-Sixty-four checks: signing in with a real key, publishing real signed packages,
+Sixty-five checks: signing in with a real key, publishing real signed packages,
 refusing an unsigned one and an edited one, voting, downloading, withdrawing.
 It mints a fresh identity per run, so it is safe to run against a live gallery
 more than once — though it does publish two boards and leave one behind.
@@ -180,9 +180,13 @@ sqlite3 /var/lib/hearth/gallery.db \
 # Held for review — the strip's own backstop saw something path-shaped
 sqlite3 … "SELECT id, name, hold_reason FROM entries WHERE status='held';"
 
-# Take something down. The id is kept, so it can never be reused — and a
-# removed entry cannot be republished, so the takedown sticks even if its
-# author uploads the identical package again.
+# Take something down. `removed` is *your* status: the id is kept so it can
+# never be reused, and the entry cannot be republished, so the takedown sticks
+# even if its author uploads the identical package again.
+#
+# Not to be confused with `withdrawn`, which is what an author's own "Remove
+# from the gallery" writes — that one they may undo by publishing again, which
+# is theirs to do.
 sqlite3 … "UPDATE entries SET status='removed', package='', wallpaper=NULL, snapshot=NULL WHERE id='…';"
 
 # Recent comments, which are the only prose in the database somebody else wrote
