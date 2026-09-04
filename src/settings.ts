@@ -2117,9 +2117,11 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * far end of the same pipe — a package that goes somewhere instead of into a
 	 * file — and the identity row it depends on is already here.
 	 *
-	 * The address field is the on switch. Hearth ships with none, so nothing is
-	 * fetched and nothing is sent until somebody puts a host in, and the gallery
-	 * buttons elsewhere in the plugin simply are not drawn until then.
+	 * The address field is the on switch, and it arrives with
+	 * `DEFAULT_GALLERY_URL` in it. Clearing it turns the gallery off — the
+	 * buttons elsewhere in the plugin are not drawn, nothing is fetched and
+	 * nothing is sent — and that stays cleared across upgrades, which is the
+	 * half of it `migrateSettings` handles.
 	 */
 	private gallerySection(containerEl: HTMLElement): void {
 		const strings = t().gallery.settings;

@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import {
 	asGalleryCategory,
 	cardCountsFromPackage,
+	DEFAULT_GALLERY_URL,
 	GALLERY_CATEGORIES,
 	isGalleryCategory,
 	normalizeGalleryUrl,
@@ -26,6 +27,7 @@ import {
 	readProfile,
 } from "../src/gallery";
 import type { HearthPackage } from "../src/portable";
+import { DEFAULT_SETTINGS, migrateSettings } from "../src/types";
 
 /** A dashboard package with the cards given, and nothing else set. */
 function pkg(cards: unknown[], dash: Record<string, unknown> = {}): HearthPackage {
@@ -314,6 +316,47 @@ describe("reading a listing from a host", () => {
 		expect(readInfo({ termsUrl: "https://example.com/terms" }).termsUrl).toBe(
 			"https://example.com/terms",
 		);
+	});
+});
+
+describe("the gallery host a vault ends up with", () => {
+	/** A settings object as `loadData` would hand it over, before migration. */
+	function migrated(raw: Record<string, unknown>): string {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		migrateSettings(s, raw);
+		return s.galleryUrl;
+	}
+
+	it("gives a vault that has never seen the setting the default", () => {
+		// The upgrade path for every existing install: `data.json` has no
+		// `galleryUrl` key at all.
+		expect(migrated({})).toBe(DEFAULT_GALLERY_URL);
+	});
+
+	it("leaves a vault that turned the gallery off turned off", () => {
+		// The one that matters. An empty string is somebody's decision, and
+		// re-seeding the default over it would switch the feature back on at
+		// every upgrade, silently.
+		expect(migrated({ galleryUrl: "" })).toBe("");
+	});
+
+	it("keeps a host somebody chose", () => {
+		expect(migrated({ galleryUrl: "https://gallery.example.com/" })).toBe(
+			"https://gallery.example.com",
+		);
+	});
+
+	it("clears a stored host this build would not talk to", () => {
+		// A hand-edited `data.json` must not leave a vault pointed at an `http:`
+		// host on the network and looking configured — and it must not silently
+		// fall back to the default either, since that is a host the vault never
+		// asked for.
+		expect(migrated({ galleryUrl: "http://192.168.1.5:8787" })).toBe("");
+		expect(migrated({ galleryUrl: "not a url" })).toBe("");
+	});
+
+	it("ships a default this build would actually talk to", () => {
+		expect(normalizeGalleryUrl(DEFAULT_GALLERY_URL)).toBe(DEFAULT_GALLERY_URL);
 	});
 });
 

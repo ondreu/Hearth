@@ -22,11 +22,11 @@ curl http://localhost:8787/v1/info
 ```
 
 Then, in Obsidian: **Settings → Hearth → Import / export → Dashboard gallery**,
-and put `http://localhost:8787` in the address field. Hearth allows plain
-`http` on a loopback address for exactly this, so no certificate is needed to
-try it. The gallery buttons — beside "Add card" in arrange mode, in the add-card
-picker's rail, and on the setup wizard's first step — appear as soon as an
-address is saved.
+and replace the address there with `http://localhost:8787` (the field arrives
+holding the default gallery — see §8). Hearth allows plain `http` on a loopback
+address for exactly this, so no certificate is needed to try it. The gallery
+buttons — beside "Add card" in arrange mode, in the add-card picker's rail, and
+on the setup wizard's first step — follow whatever address is saved.
 
 Publish a board from **Share dashboard → Publish**, and it is there.
 
@@ -231,15 +231,26 @@ Take a backup first anyway.
 
 ---
 
-## 8. When Hearth points at your gallery by default
+## 8. The default gallery
 
-Hearth ships with no gallery address — `DEFAULT_GALLERY_URL` in
-`src/gallery/client.ts` is empty, so nothing is fetched and nothing is sent
-until somebody puts a host in. Changing that one line is what makes a gallery
-the default for everyone who installs the plugin. Before doing it, be sure of
-what you are taking on: uptime, moderation, the bandwidth of every listing
-thumbnail, and a decision on other people's behalf that their vault talks to
-your server.
+`DEFAULT_GALLERY_URL` in `src/gallery/client.ts` is
+`https://gallery.o-uhnavy.com`, so that is the gallery every install points at
+until somebody changes it. Three things follow, and they are the reason this
+section exists:
+
+- **It is what you are on the hook for.** Uptime, moderation, and the bandwidth
+  of every listing thumbnail every Hearth user loads when they open the gallery.
+  §5 is the part worth re-reading before a release goes out.
+- **Nothing is fetched until somebody opens it.** Configuring a host draws the
+  buttons; it does not make a request. A vault that never opens the gallery
+  never talks to it.
+- **Off stays off.** Clearing the address in settings turns the gallery off
+  entirely, and `migrateSettings` distinguishes a stored empty string from a key
+  that was never there — so an upgrade re-seeds the default for a vault that has
+  never seen the setting, and leaves a vault that switched it off alone.
+
+Pointing a build at a different gallery — a fork, a private one for a team — is
+that one line, plus the address field for anybody who wants to do it per vault.
 
 ---
 

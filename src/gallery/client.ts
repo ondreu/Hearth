@@ -114,16 +114,21 @@ interface Session {
 /**
  * The gallery Hearth points at out of the box.
  *
- * Empty on purpose. A plugin that ships pointing at a server has decided on its
- * users' behalf that their vault talks to that server; Hearth asks instead, and
- * every gallery button says so until a host is named. When there is a default
- * host to point at, this is the one line that changes.
+ * A default host means every install talks to it — so the setting stays a
+ * setting: clearing the address in settings turns the gallery off entirely, and
+ * a vault that has cleared it keeps it cleared across upgrades (see the
+ * `galleryUrl` migration in `src/types.ts`, which is the half of this that makes
+ * "off" stick).
+ *
+ * Nothing is fetched before somebody opens the gallery. The buttons are drawn
+ * because a host is configured; no listing, no thumbnail and no request happens
+ * until one of them is clicked.
  *
  * It lives beside {@link normalizeGalleryUrl} rather than in `index.ts` because
  * `src/types.ts` needs both to seed and sanitize the setting, and this module —
  * unlike the barrel — has no path back to the plugin object.
  */
-export const DEFAULT_GALLERY_URL = "";
+export const DEFAULT_GALLERY_URL = "https://gallery.o-uhnavy.com";
 
 /**
  * Normalise and vet a host.

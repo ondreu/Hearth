@@ -3661,7 +3661,7 @@ export const zh: Translations = {
 			heading: "仪表板画廊",
 			host: "画廊地址",
 			hostDesc:
-				"Hearth 浏览与发布仪表板的画廊。Hearth 默认不带任何地址——在你填入之前，不会拉取也不会发送任何内容。只接受 https（自建画廊也可用 localhost 上的 http）。",
+				"Hearth 浏览与发布仪表板的画廊。打开画廊之前不会拉取任何内容，发布之前也不会发送任何内容。清空此项即可彻底关闭画廊，并且会一直保持关闭。只接受 https（自建画廊也可用 localhost 上的 http）。",
 			hostPlaceholder: "https://gallery.example.com",
 			hostInvalid: "这不是 Hearth 会连接的地址。请使用 https，或 localhost 上的 http。",
 			hostCleared: "已关闭画廊。",

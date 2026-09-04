@@ -47,10 +47,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   beside **Next** on the setup wizard's first step — where somebody has nothing
   yet that installing a board could overwrite.
 
-  **Hearth ships pointing at no gallery.** Nothing is fetched and nothing is
-  sent until you put an address in Settings → Import / export → Dashboard
-  gallery. A plugin that arrives pointing at a server has decided on your
-  behalf that your vault talks to it.
+  **Nothing is fetched until you open it, and nothing is sent until you
+  publish.** Hearth points at `gallery.o-uhnavy.com` out of the box; the
+  address lives in Settings → Import / export → Dashboard gallery, and clearing
+  it turns the gallery off entirely — no buttons, no requests — and keeps it off
+  across upgrades. Point it at a different one, or at your own, in the same
+  field.
 
   **The server is in this repository** (`server/`), and
   [`docs/gallery-hosting.md`](docs/gallery-hosting.md) is how to run one: one

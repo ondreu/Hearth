@@ -366,10 +366,10 @@ Before you add one:
   category, search or rating, and install one in a click; publish your own from
   the same dialog you export from, with your paths and private feeds removed and
   the file signed so nobody can publish under your handle. Every upvote you get
-  adds up on your profile. Hearth ships pointing at **no gallery at all** —
-  nothing is fetched and nothing is sent until you name a host — and anybody can
-  [run one](docs/gallery-hosting.md): the server is in this repository and
-  starts with one Docker command.
+  adds up on your profile. Nothing is fetched until you open the gallery and
+  nothing is sent until you publish, and clearing the address in settings turns
+  it off for good. Anybody can [run their own](docs/gallery-hosting.md): the
+  server is in this repository and starts with one Docker command.
 
 ## Appearance
 

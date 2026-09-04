@@ -3938,7 +3938,7 @@ export const en = {
 			heading: "Dashboard gallery",
 			host: "Gallery address",
 			hostDesc:
-				"The gallery Hearth browses and publishes to. Hearth ships with none — nothing is fetched and nothing is sent until you put one here. https only (or http on localhost, for a gallery you run yourself).",
+				"The gallery Hearth browses and publishes to. Nothing is fetched until you open it and nothing is sent until you publish. Clear this field to turn the gallery off entirely — it stays off. https only (or http on localhost, for a gallery you run yourself).",
 			hostPlaceholder: "https://gallery.example.com",
 			hostInvalid: "That isn't an address Hearth will talk to. Use https, or http on localhost.",
 			hostCleared: "Gallery turned off.",

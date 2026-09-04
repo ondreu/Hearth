@@ -56,8 +56,8 @@ const SEARCH_DEBOUNCE_MS = 350;
  * Open the gallery.
  *
  * Says why it can't rather than failing quietly when no host is configured:
- * Hearth ships pointing at nothing on purpose, so "there is no gallery" is a
- * normal state with an answer, not an error.
+ * clearing the address is how somebody turns the gallery off, so "there is no
+ * gallery" is a normal state with an answer, not an error.
  */
 export function openGallery(plugin: HearthPlugin): void {
 	const client = galleryClient(plugin);

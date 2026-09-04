@@ -2347,12 +2347,17 @@ export interface HomeSettings {
 	/**
 	 * The dashboard gallery this vault browses and publishes to.
 	 *
-	 * Empty means the gallery is off, and that is the shipped default: a plugin
-	 * that arrives pointing at a server has decided on the user's behalf that
-	 * their vault talks to it. `https` only, except a loopback address so a
-	 * self-hosted gallery can be tried from `docker compose up` without a
-	 * certificate — see `normalizeGalleryUrl` in `src/gallery/client.ts`, which
-	 * is the one place this string is turned into a request.
+	 * Seeded with {@link DEFAULT_GALLERY_URL}. **Empty means the gallery is off**
+	 * — no buttons, no requests — and clearing the field is how somebody turns it
+	 * off. That choice has to survive an upgrade, which is why the migration
+	 * below distinguishes a stored empty string from a key that was never there:
+	 * seeding the default over the first is overriding a decision, while seeding
+	 * it over the second is just a new setting arriving with its default.
+	 *
+	 * `https` only, except a loopback address so a self-hosted gallery can be
+	 * tried from `docker compose up` without a certificate — see
+	 * `normalizeGalleryUrl` in `src/gallery/client.ts`, which is the one place
+	 * this string is turned into a request.
 	 *
 	 * Deliberately left out of a settings backup, for the reason `authorKey` is,
 	 * one step removed: it is not a secret, but it is a server that receives this
@@ -3314,8 +3319,15 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// value that fails the check is cleared rather than stored, so a hand-edited
 	// `data.json` cannot leave a vault pointed at an `http:` host on the network
 	// and looking configured.
+	//
+	// A vault that has never seen this setting takes the default; one that stored
+	// an empty string chose to have no gallery, and re-seeding the default over
+	// that would switch a feature back on that somebody had switched off — every
+	// upgrade, silently.
 	s.galleryUrl =
-		typeof raw.galleryUrl === "string" ? (normalizeGalleryUrl(raw.galleryUrl) ?? "") : "";
+		typeof raw.galleryUrl === "string"
+			? (normalizeGalleryUrl(raw.galleryUrl) ?? "")
+			: DEFAULT_GALLERY_URL;
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
