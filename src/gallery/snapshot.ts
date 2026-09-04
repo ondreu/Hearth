@@ -121,10 +121,12 @@ const REDACTED_CLASS = "hearth-snapshot-bar";
  * CodeMirror had already moved on from, so the file kept the blocks. The same
  * is true of any other editable surface a hosted view mounts.
  *
- * So these are blanked by *style* instead: the class below paints no glyphs and
- * blurs whatever is left, and the walk skips everything inside them. Nothing
- * readable is in the frame either way; the difference is that the vault is not
- * written to in order to take a photograph.
+ * So these are blanked by *style* instead: {@link BLANKED_CLASS} hides what is
+ * inside them and paints no glyphs, and the walk skips everything within.
+ * Nothing readable is in the frame either way; the difference is that the vault
+ * is not written to in order to take a photograph. A form field's value is
+ * treated the same way and for the same reason — see the field pass in
+ * `redact`.
  */
 const EDITABLE_INSIDE = '[contenteditable]:not([contenteditable="false"])';
 
@@ -138,8 +140,9 @@ const EDITABLE_INSIDE = '[contenteditable]:not([contenteditable="false"])';
  */
 const EDITABLE_HOST = ".cm-editor";
 
-/** Class an editable region carries while the shutter is open. `styles.css`
- * paints its text away and blurs the rest. */
+/** Class a region carries while the shutter is open, instead of having its text
+ * replaced: an editor, or a field holding a value. `styles.css` hides what is
+ * inside it, paints its text away and blurs the rest. */
 const BLANKED_CLASS = "hearth-snapshot-blank";
 
 /**
@@ -271,7 +274,6 @@ interface Redaction {
 function redact(root: HTMLElement): Redaction {
 	const originals: [Text, string][] = [];
 	const wrapped: HTMLElement[] = [];
-	const fields: [HTMLInputElement | HTMLTextAreaElement, string][] = [];
 	const blanked: HTMLElement[] = [];
 
 	const pass = (): void => {
@@ -322,22 +324,28 @@ function redact(root: HTMLElement): Redaction {
 
 			// **A form field's value is not a text node**, so the walk above
 			// never sees it — and a calculator card renders its last sum into an
-			// `<input>`, a search card its query. Those are the author's own
-			// working state, which the publish path removes from the *package*;
-			// a picture that still showed them would put back exactly what the
-			// strip took out. Placeholders stay: they are part of the board's
-			// look and travel in the package anyway.
+			// `<input>`, a search card its query, and the raw-edit note card the
+			// whole note. Those are the author's own working state, which the
+			// publish path removes from the *package*; a picture that still
+			// showed them would put back exactly what the strip took out.
+			//
+			// Blanked by style rather than by writing over `value`, for the
+			// reason the editors are: a field's value can be what the card saves
+			// to the vault. `renderEditableEmbed`'s textarea *is* the note, and
+			// its debounced `flush()` writes whatever `value` holds at the
+			// moment it fires — so a save landing inside the second the shutter
+			// is open would write the blocks to the file. Nothing readable is
+			// painted either way; this way there is no window in which the
+			// author's own data has been replaced.
+			//
+			// Placeholders stay: they are part of the board's look and travel in
+			// the package anyway.
 			for (const field of Array.from(
 				body.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
 			)) {
-				if (!field.value || field.dataset.hearthRedacted === "1") continue;
-				// A field a hosted view owns is blanked with the rest of it; a
-				// value written behind that view's back is the same mistake as
-				// rewriting an editor's text.
-				if (field.closest(`.${BLANKED_CLASS}`)) continue;
-				fields.push([field, field.value]);
-				field.dataset.hearthRedacted = "1";
-				field.value = redactedText(field.value);
+				if (!field.value || field.classList.contains(BLANKED_CLASS)) continue;
+				field.classList.add(BLANKED_CLASS);
+				blanked.push(field);
 			}
 		}
 	};
@@ -353,10 +361,6 @@ function redact(root: HTMLElement): Redaction {
 				if (text && span.parentNode) span.parentNode.replaceChild(text, span);
 			}
 			for (const [node, value] of originals) node.data = value;
-			for (const [field, value] of fields) {
-				field.value = value;
-				delete field.dataset.hearthRedacted;
-			}
 			for (const region of blanked) region.classList.remove(BLANKED_CLASS);
 			root.removeClass("hearth-snapshot-redacted");
 		},
