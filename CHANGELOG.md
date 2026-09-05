@@ -343,6 +343,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   card before this, check that note**: Obsidian's own File recovery holds a
   snapshot from before the damage.
 
+- **A published board's picture no longer misses what a card renders late, and
+  a live-preview note photographs as writing again.** Two things the redaction
+  behind the publish snapshot got wrong. A card that fills itself from a query
+  — a Bases embed above all — renders its rows whenever the query comes back,
+  which can be after the page has been blanked and even during the moment the
+  picture is being read, so a table of somebody's notes could land in the
+  frame; the board is now watched for the whole capture and anything that
+  appears is covered in the frame it appeared in, and a shot the board moved
+  under is thrown away and taken again rather than published. And a
+  live-preview note card, which has to be hidden rather than blanked over
+  (its page is the note), was photographing as a grey slab; its line rhythm is
+  now measured and drawn back as bars, so the card still reads as a note.
+  Nothing readable is painted either way — the bars are decoration over a
+  region that is already blank, and stand only where text really is.
+
 - **A card hidden from the narrow board can be brought back from a phone.**
   Hiding a card for the stacked layout took it off the board — including off the
   board its own settings are reached from — so the switch could only be turned

@@ -146,6 +146,48 @@ const EDITABLE_HOST = ".cm-editor";
 const BLANKED_CLASS = "hearth-snapshot-blank";
 
 /**
+ * The bars drawn *over* a blanked editor, so a note card photographs as a note
+ * rather than as a grey rectangle.
+ *
+ * A blanked editor is safe but mute: hiding it takes the layout with it, and a
+ * board whose centrepiece is a live-preview note then sells itself with an
+ * empty slab. The line rhythm, though, is geometry rather than text —
+ * `visibility: hidden` keeps every box exactly where it was, so the *shape* of
+ * the writing can still be measured after the words have stopped being
+ * painted, and drawn back as bars.
+ *
+ * This is decoration over a region that is already blank. Nothing here can
+ * expose anything: if the measuring finds nothing, draws nothing, or gets the
+ * geometry wrong, what is photographed is the slab it would have been anyway.
+ * That is why it is allowed to be best-effort.
+ *
+ * Two things it deliberately does not do. It does not read CodeMirror's token
+ * classes to colour headings or links: those class names differ between themes
+ * and Markdown plugins, and colouring by token would publish the note's
+ * structure. And it never invents a line — every bar stands where text really
+ * is, so a two-line note photographs as two lines.
+ */
+const LINES_CLASS = "hearth-snapshot-lines";
+
+/** Marks an editor whose bars were drawn, so `styles.css` can drop the slab
+ * that stands in when they weren't. */
+const LINED_CLASS = "is-lined";
+
+/**
+ * The most bars one editor is drawn with.
+ *
+ * CodeMirror only renders the lines near the viewport, so a normal card is far
+ * under this. The cap is for the pathological case — a card holding a whole
+ * book with virtualisation off — where measuring every run would cost more
+ * than the picture is worth.
+ */
+const MAX_BARS = 600;
+
+/** Bars thinner than this are dropped: a stray one-pixel rect from a wrap point
+ * or a zero-width span reads as dirt on the picture. */
+const MIN_BAR = 3;
+
+/**
  * Parts of a card that stay readable, because they are the card's own
  * furniture rather than anything of the author's.
  *
@@ -267,14 +309,105 @@ interface Redaction {
 	/** Redact anything that has appeared since the last call. Safe to call any
 	 * number of times; already-redacted nodes are left alone. */
 	reapply(): void;
+	/** Whether the board has changed since {@link settle} was last called — a
+	 * query that came back, a row that rendered, a card that mounted. A shot
+	 * taken across one of those cannot be trusted to have been redacted, so the
+	 * caller takes it again. */
+	changed(): boolean;
+	/** Mark the board as quiet, at the moment just before a shot. */
+	settle(): void;
 	/** Put everything back. */
 	restore(): void;
 }
+
+/**
+ * Draw one bar per run of text inside a blanked editor.
+ *
+ * Measured with a `Range` over each text node rather than from the line boxes:
+ * a line box is the full width of the editor whatever it holds, so bars taken
+ * from it would be a stack of identical stripes. A range around the text stops
+ * where the text stops, which is what makes the result read as writing.
+ *
+ * The bars go in a container of the painter's own, appended to `document.body`
+ * — **never inside the editor**. Appending into the contenteditable is the
+ * exact mutation that made publishing rewrite people's notes; and `body` also
+ * keeps the container clear of the card's own backdrop filter, which would
+ * otherwise become the containing block for its fixed position and shift every
+ * bar. Positions are in viewport coordinates, which is what `capturePage` is
+ * handed too, and are re-measured for each screenful.
+ *
+ * Returns the container, or null when there was nothing to draw.
+ */
+function paintLines(region: HTMLElement): HTMLElement | null {
+	const box = region.getBoundingClientRect();
+	if (box.width < 8 || box.height < 8) return null;
+
+	const overlay = document.body.createDiv(LINES_CLASS);
+	// Clipped to the editor, so a bar from a line scrolled half out of the card
+	// stops at the card's edge rather than being drawn across the board.
+	overlay.style.left = `${box.left}px`;
+	overlay.style.top = `${box.top}px`;
+	overlay.style.width = `${box.width}px`;
+	overlay.style.height = `${box.height}px`;
+
+	let drawn = 0;
+	const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
+	for (let node = walker.nextNode(); node && drawn < MAX_BARS; node = walker.nextNode()) {
+		const text = node as Text;
+		if (!text.data.trim()) continue;
+		const range = document.createRange();
+		range.selectNodeContents(text);
+		// One rect per *visual* line: a paragraph that wraps four times gives
+		// four, which is how a wrapped sentence keeps its shape.
+		for (const rect of Array.from(range.getClientRects())) {
+			if (rect.width < MIN_BAR || rect.height < MIN_BAR) continue;
+			const bar = overlay.createEl("i");
+			bar.style.left = `${rect.left - box.left}px`;
+			bar.style.top = `${rect.top - box.top}px`;
+			bar.style.width = `${rect.width}px`;
+			bar.style.height = `${rect.height}px`;
+			if (++drawn >= MAX_BARS) break;
+		}
+		range.detach();
+	}
+
+	if (drawn === 0) {
+		overlay.remove();
+		return null;
+	}
+	region.addClass(LINED_CLASS);
+	return overlay;
+}
+
 
 function redact(root: HTMLElement): Redaction {
 	const originals: [Text, string][] = [];
 	const wrapped: HTMLElement[] = [];
 	const blanked: HTMLElement[] = [];
+	/** Editors among `blanked`: the ones whose line rhythm can be drawn back. A
+	 * field's value is not reachable as text nodes, so it keeps the slab. */
+	const editors: HTMLElement[] = [];
+	let overlays: HTMLElement[] = [];
+
+	/** Take the bars down. Called before every re-measure and once at the end;
+	 * they are the painter's own elements, so this touches nothing of
+	 * Obsidian's. */
+	const clearLines = (): void => {
+		for (const overlay of overlays) overlay.remove();
+		overlays = [];
+		for (const editor of editors) editor.removeClass(LINED_CLASS);
+	};
+
+	/** Measure and draw. Re-run per screenful, because the coordinates are the
+	 * viewport's and the board scrolls between shots. */
+	const drawLines = (): void => {
+		clearLines();
+		for (const editor of editors) {
+			if (!editor.isConnected) continue;
+			const overlay = paintLines(editor);
+			if (overlay) overlays.push(overlay);
+		}
+	};
 
 	const pass = (): void => {
 		// **Only the insides of cards.** The board's chrome — the vault name,
@@ -293,6 +426,7 @@ function redact(root: HTMLElement): Redaction {
 				if (region.classList.contains(BLANKED_CLASS)) continue;
 				region.classList.add(BLANKED_CLASS);
 				blanked.push(region);
+				editors.push(region);
 			}
 
 			const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
@@ -352,15 +486,63 @@ function redact(root: HTMLElement): Redaction {
 
 	pass();
 	root.addClass("hearth-snapshot-redacted");
+	// After the class, not before: the bars are measured against boxes the
+	// blanking has already settled.
+	drawLines();
+
+	/**
+	 * Redact what appears *while* the shutter is open.
+	 *
+	 * A pass before each screenful is not enough, and a Bases embed is why. It
+	 * arrives through an asynchronous transclusion, runs its query, and then
+	 * renders — and re-renders — its rows on its own schedule, including as the
+	 * card is scrolled. So rows could be created in the gap between the last
+	 * pass and `capturePage`, and be photographed with somebody's table in
+	 * them. Dataview, Datacore and any other card that fills itself from a
+	 * query have the same shape.
+	 *
+	 * Watching the board closes the gap for all of them at once: anything added
+	 * or changed is redacted in the same frame it appeared in. `pass` is
+	 * idempotent and only touches what is not already covered, so re-entering
+	 * through the records of its own writes settles immediately instead of
+	 * looping. Attributes are deliberately not watched — the blanking works by
+	 * adding classes, and watching them would be nothing but that loop.
+	 */
+	let scheduled = false;
+	let changed = false;
+	const observer = new MutationObserver(() => {
+		// Set before anything else and never batched: it is the record that the
+		// board moved, which the caller reads after a shot to decide whether the
+		// shot can be trusted.
+		changed = true;
+		if (scheduled) return;
+		scheduled = true;
+		window.requestAnimationFrame(() => {
+			scheduled = false;
+			if (!root.isConnected) return;
+			pass();
+			drawLines();
+		});
+	});
+	observer.observe(root, { subtree: true, childList: true, characterData: true });
 
 	return {
-		reapply: pass,
+		reapply: () => {
+			pass();
+			drawLines();
+		},
+		changed: () => changed,
+		settle: () => {
+			changed = false;
+		},
 		restore: () => {
+			observer.disconnect();
 			for (const span of wrapped) {
 				const text = span.firstChild;
 				if (text && span.parentNode) span.parentNode.replaceChild(text, span);
 			}
 			for (const [node, value] of originals) node.data = value;
+			clearLines();
 			for (const region of blanked) region.classList.remove(BLANKED_CLASS);
 			root.removeClass("hearth-snapshot-redacted");
 		},
@@ -394,6 +576,19 @@ function isOpenCard(body: HTMLElement): boolean {
 export function settleAfterRender(): Promise<void> {
 	return new Promise((resolve) => window.setTimeout(resolve, RENDER_SETTLE_MS));
 }
+
+/**
+ * How many times a slice is retaken when the board moves while it is being
+ * photographed.
+ *
+ * Almost always zero: the retake exists for a query that comes back at exactly
+ * the wrong moment. Bounded because a board that never stops moving — a card
+ * animating, a clock ticking — would otherwise photograph forever, and the
+ * shot after the last retake is still a redacted one: the watcher has had a
+ * frame by then, so what a persistent mover costs is a slightly stale picture,
+ * not an unredacted one.
+ */
+const RETAKES = 2;
 
 /** How long {@link settleAfterRender} waits. Long enough for a lazily-mounted
  * card, short enough not to read as the dialog having hung. */
@@ -447,7 +642,7 @@ export async function captureBoard(
 
 	try {
 		await settle();
-		const shots = await captureSlices(contents, rect, scroller, () => redaction.reapply());
+		const shots = await captureSlices(contents, rect, scroller, redaction);
 		if (shots.length === 0) return null;
 		return await stitch(shots, rect.width);
 	} catch {
@@ -475,7 +670,7 @@ async function captureSlices(
 	contents: WebContentsLike,
 	rect: DOMRect,
 	scroller: HTMLElement | null,
-	reapply: () => void,
+	redaction: Redaction,
 ): Promise<{ image: NativeImageLike; y: number }[]> {
 	const viewport = Math.round(rect.height);
 	const total = scroller
@@ -500,13 +695,35 @@ async function captureSlices(
 		// into view (`leafview.ts` waits for an IntersectionObserver), so a card
 		// that was not in the document during the first pass would otherwise
 		// paint its real contents into a later slice.
-		reapply();
-		const image = await contents.capturePage({
-			x: Math.round(rect.left),
-			y: Math.round(rect.top),
-			width: Math.round(rect.width),
-			height: viewport,
-		});
+		//
+		// And taken again if the board moved *during* the shot. `capturePage`
+		// is not instant, and a card that fills itself from a query — a Bases
+		// embed above all, which renders its rows whenever its query comes back
+		// — can put a row on screen inside that window, after the last pass and
+		// before the pixels are read. The watcher redacts it a frame later,
+		// which is too late for this shot but not for the next one, so a shot
+		// the board moved under is thrown away and retaken rather than
+		// published.
+		let image: NativeImageLike | null = null;
+		for (let attempt = 0; attempt <= RETAKES; attempt++) {
+			redaction.reapply();
+			// A frame between the pass and the flag: the watcher hears about
+			// this pass's own writes first, so what `changed()` reports after
+			// the shot is the board moving on its own rather than the redaction
+			// being applied. It also gives the blanking a frame to be painted.
+			await settle();
+			redaction.settle();
+			image = await contents.capturePage({
+				x: Math.round(rect.left),
+				y: Math.round(rect.top),
+				width: Math.round(rect.width),
+				height: viewport,
+			});
+			if (!redaction.changed()) break;
+			// Let the watcher's pass land before trying again, so the retake is
+			// of a board that has been redacted rather than of the same frame.
+			await settle();
+		}
 		if (!image || image.isEmpty()) break;
 		shots.push({ image, y: scroller ? scroller.scrollTop : 0 });
 		if (!scroller) break;

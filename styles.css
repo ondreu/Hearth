@@ -13092,6 +13092,39 @@ body.hearth-snapshot-capturing .hearth-view {
 	opacity: 0.16;
 }
 
+/* When the editor's line rhythm was measured and drawn back over it (see
+   paintLines in src/gallery/snapshot.ts), the stand-in slab comes off: the bars
+   carry the look, and a slab behind them would only muddy it. The editor itself
+   stays hidden either way — the bars are decoration over a region that is
+   already blank, which is why they are allowed to be best-effort. */
+.hearth-snapshot-redacted .hearth-snapshot-blank.is-lined {
+	background-color: transparent;
+	opacity: 1;
+}
+
+/* The bars themselves. Fixed, because they are placed in the viewport
+   coordinates the capture is taken in, and clipped to the editor they stand
+   for. Never inside the editor's own DOM. */
+.hearth-snapshot-lines {
+	position: fixed;
+	overflow: hidden;
+	pointer-events: none;
+	/* Above the card, below nothing that matters: the only thing in front of the
+	   board during a capture is the share dialog, which is hidden for the shot. */
+	z-index: 40;
+}
+
+.hearth-snapshot-lines i {
+	position: absolute;
+	background-color: var(--text-normal);
+	opacity: 0.22;
+	border-radius: 3px;
+	/* Text does not fill its line box — descenders and leading are air. Bars
+	   drawn at the full height read as a solid block, so they are inset to the
+	   weight of the writing they stand for. */
+	transform: scaleY(0.56);
+}
+
 /* A canvas is blurred a little less than a picture, because the graph view's
    *shape* is worth publishing and a heavy blur turns it to fog. Not much less:
    nothing inside a canvas is text to the redactor — it is pixels — so this blur
