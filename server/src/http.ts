@@ -51,7 +51,7 @@ export interface RequestContext {
 	ip: string;
 }
 
-export type Handler = (ctx: RequestContext) => Promise<unknown> | unknown;
+export type Handler = (ctx: RequestContext) => unknown;
 
 /** `METHOD /v1/path/:x` → handler. `:x` matches one segment. */
 export interface Route {
