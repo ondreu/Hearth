@@ -12136,8 +12136,9 @@ body.hearth-dv-resizing {
 
 .hearth-gallery-author.is-clickable {
 	cursor: pointer;
-	text-decoration-line: underline;
-	text-decoration-style: dotted;
+	/* A dotted rule rather than `text-decoration-style`, whose longhands
+	   Obsidian's supported engine only partially covers. Same look. */
+	border-bottom: 1px dotted currentColor;
 }
 
 .hearth-gallery-author.is-clickable:hover {

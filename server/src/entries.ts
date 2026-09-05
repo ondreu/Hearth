@@ -66,6 +66,19 @@ const SUMMARY_COLUMNS = `
 	(e.snapshot IS NOT NULL) AS has_snapshot
 `;
 
+/** The default order: score over age. A board with ten votes today outranks one
+ * with twelve from last month, and one with two hundred still holds its place
+ * for a while. `+ 1` so a board with no votes yet has an age-ordered position
+ * rather than a flat zero, and `+ 2` hours so the first minutes aren't a divide
+ * by ~0. Named rather than only living in the map below, so the fallback in
+ * `listEntries` is the string itself rather than a lookup the types have to be
+ * told cannot miss. */
+const TRENDING_ORDER = `
+		((e.upvotes - e.downvotes) + 1.0) /
+		POWER((julianday('now') - julianday(e.published_at)) * 24.0 + 2.0, 1.5) DESC,
+		e.id DESC
+	`;
+
 /** How each sort orders the listing. Fixed strings chosen by a closed set —
  * nothing from a query string ever reaches the SQL, and a `Map` rather than an
  * object so nothing from one can reach `Object.prototype` either. */
@@ -73,15 +86,7 @@ const ORDER_BY = new Map<string, string>(Object.entries({
 	new: "e.published_at DESC, e.id DESC",
 	top: "(e.upvotes - e.downvotes) DESC, e.downloads DESC, e.id DESC",
 	downloads: "e.downloads DESC, (e.upvotes - e.downvotes) DESC, e.id DESC",
-	// Score over age: a board with ten votes today outranks one with twelve from
-	// last month, and one with two hundred still holds its place for a while.
-	// `+ 1` so a board with no votes yet has an age-ordered position rather than
-	// a flat zero, and `+ 2` hours so the first minutes aren't a divide by ~0.
-	trending: `
-		((e.upvotes - e.downvotes) + 1.0) /
-		POWER((julianday('now') - julianday(e.published_at)) * 24.0 + 2.0, 1.5) DESC,
-		e.id DESC
-	`,
+	trending: TRENDING_ORDER,
 }));
 
 export interface ListParams {
@@ -138,7 +143,7 @@ export function listEntries(db: Db, params: ListParams): unknown {
 	// A Map, not an object: `?sort=toString` would otherwise resolve through
 	// `Object.prototype` and interpolate a function into the SQL, which SQLite
 	// answers with an error and the caller with a 500.
-	const order = ORDER_BY.get(params.sort ?? "") ?? (ORDER_BY.get("trending") as string);
+	const order = ORDER_BY.get(params.sort ?? "") ?? TRENDING_ORDER;
 	const rows = db
 		.prepare(
 			`SELECT ${SUMMARY_COLUMNS} FROM entries e WHERE ${clause}
@@ -157,7 +162,7 @@ export function listEntries(db: Db, params: ListParams): unknown {
 export function entryDetail(db: Db, id: string, viewer: string | null): unknown {
 	const row = db
 		.prepare(`SELECT ${SUMMARY_COLUMNS} FROM entries e WHERE e.id = ? AND e.status = 'live'`)
-		.get(id) as unknown as EntryRow | undefined;
+		.get(id) as EntryRow | undefined;
 	if (!row) throw notFound();
 	// `source_id` is the author's own id for the board — the `meta.id` their
 	// vault stamped into the package — and it is sent back only to them. It is

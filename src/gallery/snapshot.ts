@@ -368,7 +368,8 @@ function paintLines(region: HTMLElement): HTMLElement | null {
 			bar.style.height = `${rect.height}px`;
 			if (++drawn >= MAX_BARS) break;
 		}
-		range.detach();
+		// No `range.detach()`: it is a no-op in every current engine and is
+		// deprecated. The range is a local that goes with the iteration.
 	}
 
 	if (drawn === 0) {
@@ -449,8 +450,7 @@ function redact(root: HTMLElement): Redaction {
 				// drawn: a soft rounded bar in the theme's own ink reads as
 				// "text lives here", where a row of hard glyphs reads as a
 				// rendering fault.
-				const span = text.ownerDocument.createElement("span");
-				span.className = REDACTED_CLASS;
+				const span = text.ownerDocument.createSpan({ cls: REDACTED_CLASS });
 				text.parentNode?.insertBefore(span, text);
 				span.appendChild(text);
 				wrapped.push(span);
@@ -752,7 +752,7 @@ async function stitch(
 	const height = Math.round(last.y * ratio) + last.image.getSize().height;
 
 	const scale = Math.min(1, MAX_WIDTH / first.width);
-	const canvas = document.createElement("canvas");
+	const canvas = createEl("canvas");
 	canvas.width = Math.max(1, Math.round(first.width * scale));
 	canvas.height = Math.max(1, Math.round(height * scale));
 	const ctx = canvas.getContext("2d");
