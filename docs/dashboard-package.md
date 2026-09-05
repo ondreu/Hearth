@@ -9,7 +9,7 @@ This document is the contract. The implementation is `src/portable/`, and
 
 For the gallery this format was shaped for: [`gallery-api.md`](gallery-api.md)
 is the wire contract, [`gallery-hosting.md`](gallery-hosting.md) is how to run
-one, and `server/` is a working implementation.
+one, and [ondreu/hearth-gallery](https://github.com/ondreu/hearth-gallery) is a working implementation.
 
 ## Why the format exists
 
@@ -444,8 +444,9 @@ should surface the same, and may want to strip or proxy `publicUrl` itself.
 
 ### The upload pipeline
 
-There is a working gallery in `server/`, and its pipeline is the reference
-version of this — `docs/gallery-api.md` is the contract, `server/src/upload.ts`
+There is a working gallery in [ondreu/hearth-gallery](https://github.com/ondreu/hearth-gallery), and its pipeline is
+the reference
+version of this — `docs/gallery-api.md` is the contract, its `src/upload.ts`
 is the implementation:
 
 1. `readPackage(json)` — reject anything that isn't a package.

@@ -1,12 +1,13 @@
 # The Hearth gallery API
 
 The wire contract between Hearth and a dashboard gallery. The client half is
-`src/gallery/`; a working server is in `server/`, and
+`src/gallery/`; a working server is in [ondreu/hearth-gallery](https://github.com/ondreu/hearth-gallery), and
 [`gallery-hosting.md`](gallery-hosting.md) is how to run it.
 
 This document is the contract, not a description of that implementation. A
 different server that answers these routes the same way is a gallery Hearth can
-use, and `server/test/smoke.ts` is a conformance suite you can point at one.
+use, and that repository's `test/smoke.ts` is a conformance suite you can point
+at one.
 
 ## The shape of it
 

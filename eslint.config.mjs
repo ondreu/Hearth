@@ -54,26 +54,6 @@ export default tseslint.config(
 			"obsidianmd/prefer-create-el": "off",
 		},
 	},
-	// `server/` is the self-hosted gallery service — a Node program run on a
-	// machine, built by its own package.json/tsconfig and absent from the plugin
-	// bundle (`main.js` contains no `node:` import at all; check with
-	// `grep -c 'node:' main.js` after a build). The guidelines these rules carry
-	// are about what Obsidian loads on a phone, so none of them reach it: there
-	// is no `Platform.isDesktop` to guard `node:sqlite` behind when SQLite *is*
-	// the storage, no `window` to take `setInterval` from, and a service's log
-	// lines are its only output. It lives here rather than in a repository of
-	// its own because it imports `readPackage`, `verifyPackageSignature` and
-	// friends from `../src/` — a gallery that decided for itself what a package
-	// is would disagree with the plugin exactly where it matters.
-	{
-		files: ["server/**"],
-		rules: {
-			"obsidianmd/no-nodejs-modules": "off",
-			"obsidianmd/prefer-window-timers": "off",
-			// The wrapper the preset delivers `no-console` through.
-			"obsidianmd/rule-custom-message": "off",
-		},
-	},
 	{
 		files: ["test/**"],
 		rules: {

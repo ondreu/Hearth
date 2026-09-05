@@ -2,16 +2,27 @@
 
 This is the operator's guide: what to do, in order, to have a dashboard gallery
 that people can browse and publish to. The wire contract is
-[`gallery-api.md`](gallery-api.md); the server is in `server/`.
+[`gallery-api.md`](gallery-api.md); the server itself lives in its own
+repository, [ondreu/hearth-gallery](https://github.com/ondreu/hearth-gallery).
 
-Everything below assumes you are at the repository root.
+Everything below assumes you have cloned that repository and are at its root:
+
+```sh
+git clone --recurse-submodules https://github.com/ondreu/hearth-gallery.git
+cd hearth-gallery
+```
+
+The `--recurse-submodules` is not optional. The server bundles the plugin's own
+package engine, and `vendor/hearth` is where it reads it from — pinned to a
+released tag, so a gallery never serves packages the released plugin cannot
+read. After a plain clone, `git submodule update --init --depth 1`.
 
 ---
 
 ## 1. Try it locally, in one command
 
 ```sh
-docker compose -f server/docker-compose.yml up -d --build
+docker compose up -d --build
 ```
 
 That builds the server and starts it on `http://localhost:8787`, with its whole
@@ -34,8 +45,8 @@ Publish a board from **Share dashboard → Publish**, and it is there.
 
 ```sh
 npm ci
-node server/esbuild.config.mjs
-DB_PATH=./data/gallery.db node server/dist/index.js
+npm run build
+DB_PATH=./data/gallery.db node dist/index.js
 ```
 
 The build produces one file with no dependencies. That is the whole deployment
@@ -111,7 +122,7 @@ proxy.
 
 ## 4. Settings worth deciding
 
-Copy `server/.env.example` to `server/.env` and change what you mean to. Every
+Copy `.env.example` to `.env` and change what you mean to. Every
 value has a default and the server starts with none of them set. The ones that
 are actually decisions:
 
@@ -226,9 +237,9 @@ sqlite3 /var/lib/hearth/gallery.db ".backup '/backups/gallery-$(date +%F).db'"
 With Docker:
 
 ```sh
-docker compose -f server/docker-compose.yml exec gallery \
+docker compose exec gallery \
 	node -e "const{DatabaseSync}=require('node:sqlite');new DatabaseSync('/data/gallery.db').exec(\"VACUUM INTO '/data/backup.db'\")"
-docker compose -f server/docker-compose.yml cp gallery:/data/backup.db ./gallery-backup.db
+docker compose cp gallery:/data/backup.db ./gallery-backup.db
 ```
 
 Restoring is putting the file back and starting the server. Migrations are
@@ -245,8 +256,8 @@ public, and everything already published.
 ## 7. Upgrading
 
 ```sh
-git pull
-docker compose -f server/docker-compose.yml up -d --build
+git pull --recurse-submodules
+docker compose up -d --build
 ```
 
 The container is stateless; the volume is the state. Migrations run on startup.
