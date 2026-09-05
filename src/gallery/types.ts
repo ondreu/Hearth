@@ -113,7 +113,8 @@ export interface GalleryEntryDetail extends GalleryEntrySummary {
 /**
  * The longest comment a gallery will take.
  *
- * The same figure the server enforces (`server/src/comments.ts`), applied on
+ * The same figure the server enforces (`src/comments.ts` in the gallery-server
+ * repository), applied on
  * this side too so the compose box stops at it rather than letting somebody
  * write four paragraphs and be told no afterwards. A comment is a remark; past
  * this it is a document, and a document about somebody else's dashboard belongs

@@ -78,7 +78,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   across upgrades. Point it at a different one, or at your own, in the same
   field.
 
-  **The server is in this repository** (`server/`), and
+  **The server is open, in
+  [ondreu/hearth-gallery](https://github.com/ondreu/hearth-gallery)**, and
   [`docs/gallery-hosting.md`](docs/gallery-hosting.md) is how to run one: one
   Docker command for a local gallery, a reverse proxy and one environment
   variable for a public one, and its whole state is a single SQLite file you
