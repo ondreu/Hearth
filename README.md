@@ -42,6 +42,11 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 [Settings & shortcuts](#settings--shortcuts) · [Development](#development) ·
 [Contributing](#contributing)
 
+> **Looking for more detail?** The [Hearth User Guide](docs/user-guide/) is a
+> full, chapter-by-chapter manual: every card, every setting, every integration,
+> plus troubleshooting and a glossary. This README is the tour; the guide is the
+> reference.
+
 ## Quick start
 
 1. Install **Hearth** from Obsidian's community plugin browser — or drop
