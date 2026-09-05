@@ -450,7 +450,12 @@ function redact(root: HTMLElement): Redaction {
 				// drawn: a soft rounded bar in the theme's own ink reads as
 				// "text lives here", where a row of hard glyphs reads as a
 				// rendering fault.
-				const span = text.ownerDocument.createSpan({ cls: REDACTED_CLASS });
+				// `createElement`, not Obsidian's `createSpan`: the helpers on a
+				// Node *append to that node*, and appending to a Document throws
+				// — which took the whole capture down. The span is placed by the
+				// `insertBefore` below.
+				const span = text.ownerDocument.createElement("span");
+				span.className = REDACTED_CLASS;
 				text.parentNode?.insertBefore(span, text);
 				span.appendChild(text);
 				wrapped.push(span);
@@ -752,7 +757,9 @@ async function stitch(
 	const height = Math.round(last.y * ratio) + last.image.getSize().height;
 
 	const scale = Math.min(1, MAX_WIDTH / first.width);
-	const canvas = createEl("canvas");
+	// Detached and thrown away after the draw; Obsidian's `createEl` is for
+	// elements that go into the page.
+	const canvas = document.createElement("canvas");
 	canvas.width = Math.max(1, Math.round(first.width * scale));
 	canvas.height = Math.max(1, Math.round(height * scale));
 	const ctx = canvas.getContext("2d");
