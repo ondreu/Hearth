@@ -337,6 +337,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   freshly updated one. For an entry published before it kept that note, pressing
   Update reads the entry itself to find out, once, and remembers the answer.
 
+  An update **opens on the listing you already wrote** — its name, description,
+  category, tags and recommended theme — rather than on an empty form. Those are
+  things typed once that live nowhere else in the vault, and since publishing
+  replaces the entry, a blank description left blank would have quietly deleted
+  the written one. Publishing a board again from the board itself fills the same
+  fields in from what you said last time.
+
 ### Changed
 
 - **"Export dashboard" is now "Share dashboard",** with a switch at the top for

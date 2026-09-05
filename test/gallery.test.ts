@@ -14,6 +14,7 @@ import {
 	forgetGalleryEntry,
 	GalleryClient,
 	galleryEntrySourceId,
+	rememberedListing,
 	rememberGalleryEntry,
 	cardCountsFromPackage,
 	DEFAULT_GALLERY_URL,
@@ -431,6 +432,59 @@ describe("which entry a published board became", () => {
 		expect(galleryEntrySourceId(reloaded, HOST, "e1")).toBe("hd-aaa");
 		expect(galleryEntrySourceId(reloaded, HOST, "e9")).toBeUndefined();
 		expect(Object.keys(reloaded.galleryEntries ?? {})).toEqual([`${HOST}|e1`]);
+	});
+
+	/**
+	 * A description, a category and a set of tags are typed into the publish
+	 * dialog and kept nowhere else in the vault — so publishing the same board
+	 * again with them blank would mean writing them out a second time, and would
+	 * replace what the listing says with nothing.
+	 */
+	it("remembers what the listing said, so a second publish opens on it", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa", {
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			theme: "Minimal",
+			tags: ["quiet", "minimal"],
+		});
+		expect(rememberedListing(s, HOST, "hd-aaa")).toEqual({
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			theme: "Minimal",
+			tags: ["quiet", "minimal"],
+		});
+		// Another board, and another host, are not this listing.
+		expect(rememberedListing(s, HOST, "hd-bbb")).toBeUndefined();
+		expect(rememberedListing(s, "https://other.example.com", "hd-aaa")).toBeUndefined();
+		expect(rememberedListing(s, HOST, undefined)).toBeUndefined();
+	});
+
+	it("brings the listing back off disk, bounded and cleaned", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa", {
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			tags: ["Quiet", "quiet", ""],
+		});
+		const reloaded = structuredClone(DEFAULT_SETTINGS);
+		reloaded.dashboards = s.dashboards;
+		migrateSettings(reloaded, { galleryEntries: structuredClone(s.galleryEntries) });
+		const listing = rememberedListing(reloaded, HOST, "hd-aaa");
+		expect(listing?.name).toBe("Reading room");
+		expect(listing?.tags).toEqual(["quiet"]);
+	});
+
+	it("keeps the pairing when the listing it stored is nonsense", () => {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		migrateSettings(s, {
+			galleryEntries: { [`${HOST}|e1`]: { sourceId: "hd-aaa", listing: "a description" } },
+		});
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+		expect(rememberedListing(s, HOST, "hd-aaa")).toBeUndefined();
 	});
 
 	/** Same reasoning as the host it names: a backup is a thing people hand each

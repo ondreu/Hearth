@@ -495,7 +495,7 @@ class GalleryEntryModal extends Modal {
 		update.setAttribute("title", why);
 		update.setAttribute("aria-label", why);
 		update.addEventListener("click", () => {
-			if (dash) void this.openUpdate(dash);
+			if (dash) void this.openUpdate(dash, entry);
 			else void this.findBoardThenUpdate(entry);
 		});
 	}
@@ -531,7 +531,7 @@ class GalleryEntryModal extends Modal {
 			}
 			rememberGalleryEntry(this.plugin.settings, this.client.host, entry.id, sourceId);
 			await this.plugin.saveData(this.plugin.settings);
-			await this.openUpdate(dash);
+			await this.openUpdate(dash, entry);
 		} catch (err) {
 			new Notice(galleryErrorText(err));
 		} finally {
@@ -569,8 +569,11 @@ class GalleryEntryModal extends Modal {
 	 * over a different active board would come up saying it cannot take one.
 	 * The wait is the same one the capture itself uses, because a view revealed
 	 * on this frame has no size until the next few.
+	 *
+	 * The dialog opens filled in from `entry`, so an update is a change to a
+	 * listing rather than a second attempt at writing one.
 	 */
-	private async openUpdate(dash: Dashboard): Promise<void> {
+	private async openUpdate(dash: Dashboard, entry: GalleryEntryDetail): Promise<void> {
 		this.close();
 		// Everything else the gallery has open goes too: the publish dialog
 		// photographs the board, and a browse modal still standing over it would
@@ -579,7 +582,20 @@ class GalleryEntryModal extends Modal {
 		this.plugin.setActiveDashboard(dash.id);
 		await this.plugin.activateView();
 		await settleAfterRender();
-		openPublishDashboard(this.plugin, dash);
+		// Opened on the listing as it stands, not on a blank form: the name,
+		// description, category, tags and recommended theme are things somebody
+		// typed once and that live nowhere in the vault. Taken from the entry
+		// rather than from what this vault remembers publishing, because the
+		// entry is what everyone is currently reading — and because a publish
+		// replaces it, so a description left blank here would delete the one on
+		// the listing.
+		openPublishDashboard(this.plugin, dash, {
+			name: entry.name,
+			description: entry.description,
+			category: entry.category,
+			theme: entry.theme,
+			tags: entry.tags,
+		});
 	}
 
 	// ---- Comments -------------------------------------------------------

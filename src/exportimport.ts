@@ -47,8 +47,11 @@ import {
 	galleryBlockedByExternalCalls,
 	galleryClient,
 	galleryConfigured,
+	normalizeGalleryUrl,
 	publishDashboard,
+	type PublishedListing,
 	redactionReportGithubUrl,
+	rememberedListing,
 	rememberGalleryEntry,
 } from "./gallery";
 import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
@@ -130,9 +133,23 @@ export function openExportDashboard(plugin: HearthPlugin, dash: Dashboard): void
  * Falls back to the file side when no gallery is configured rather than opening
  * a form whose button cannot do anything: the destination switch says why, and
  * saving a file is the thing that still works.
+ *
+ * `listing` fills the form in from an entry that already exists — the gallery's
+ * "Update" passes what the listing says right now, which beats what this vault
+ * remembers saying. Without it the dialog falls back to the note kept at the
+ * last publish, and then to the board's own name.
  */
-export function openPublishDashboard(plugin: HearthPlugin, dash: Dashboard): void {
-	new ShareDashboardModal(plugin, dash, galleryConfigured(plugin) ? "publish" : "export").open();
+export function openPublishDashboard(
+	plugin: HearthPlugin,
+	dash: Dashboard,
+	listing?: PublishedListing,
+): void {
+	new ShareDashboardModal(
+		plugin,
+		dash,
+		galleryConfigured(plugin) ? "publish" : "export",
+		listing,
+	).open();
 }
 
 /**
@@ -443,13 +460,50 @@ class ShareDashboardModal extends Modal {
 	/** The disclosure, so a choice above it can redraw its contents in place. */
 	private details?: HTMLDetailsElement;
 
-	constructor(plugin: HearthPlugin, dash: Dashboard, mode: ShareMode) {
+	constructor(
+		plugin: HearthPlugin,
+		dash: Dashboard,
+		mode: ShareMode,
+		listing?: PublishedListing,
+	) {
 		super(plugin.app);
 		this.plugin = plugin;
 		this.dash = dash;
 		this.mode = mode;
 		this.meta.name = dash.name;
 		if (mode === "publish") this.stripPrivate = true;
+		this.seedListing(listing);
+	}
+
+	/**
+	 * Open on what was said last time, rather than on a blank form.
+	 *
+	 * A description, a category and a set of tags exist nowhere in the vault
+	 * except in the listing they were typed for, and a board's name is not
+	 * necessarily its listing's name. Publishing again with those fields empty
+	 * would mean typing them out again — and since a publish replaces the entry,
+	 * an untouched blank description would quietly delete the written one.
+	 *
+	 * Two sources, in this order: what the caller passed, which is the entry as
+	 * the gallery has it now (the "Update" button knows this); then the note
+	 * this vault kept when it last published this board to the host it is
+	 * pointed at. Neither is a promise — anything here can be typed over before
+	 * the upload, and the fields are the ones the dialog already shows.
+	 */
+	private seedListing(listing?: PublishedListing): void {
+		const seed =
+			listing ??
+			rememberedListing(
+				this.plugin.settings,
+				normalizeGalleryUrl(this.plugin.settings.galleryUrl) ?? "",
+				this.dash.sourceId,
+			);
+		if (!seed) return;
+		if (seed.name) this.meta.name = seed.name;
+		if (seed.description) this.meta.description = seed.description;
+		if (seed.category) this.meta.category = seed.category;
+		if (seed.tags?.length) this.meta.tags = seed.tags.join(", ");
+		if (seed.theme) this.theme = seed.theme;
 	}
 
 	onOpen(): void {
@@ -1180,6 +1234,7 @@ class ShareDashboardModal extends Modal {
 		this.render();
 		try {
 			await this.ensureSourceId();
+			const tags = this.tagList();
 			const result = await publishDashboard(
 				client,
 				this.app,
@@ -1192,7 +1247,7 @@ class ShareDashboardModal extends Modal {
 					theme: this.theme,
 					snapshot: this.snapshot,
 					embedAssets: this.opts.embedAssets !== false,
-					tags: this.tagList(),
+					tags,
 					strip: this.effectiveStrip(),
 					flatten: this.opts.flatten !== false,
 					signWith: identity.key,
@@ -1206,12 +1261,13 @@ class ShareDashboardModal extends Modal {
 			// gallery's own "Update" button find this board later without having
 			// to ask a host that may not be able to answer.
 			if (this.dash.sourceId) {
-				rememberGalleryEntry(
-					this.plugin.settings,
-					client.host,
-					result.id,
-					this.dash.sourceId,
-				);
+				rememberGalleryEntry(this.plugin.settings, client.host, result.id, this.dash.sourceId, {
+					name: this.meta.name.trim() || this.dash.name,
+					description: this.meta.description.trim() || undefined,
+					category: this.meta.category,
+					theme: this.theme || undefined,
+					tags: tags.length ? tags : undefined,
+				});
 				await this.plugin.saveData(this.plugin.settings);
 			}
 			this.close();

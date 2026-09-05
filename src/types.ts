@@ -2,7 +2,7 @@ import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
-import { readGalleryEntries } from "./gallery/published";
+import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
 import { DEFAULT_WEB_SEARCH_ENGINE, type WebSearchEngineId } from "./websearch";
@@ -2373,7 +2373,7 @@ export interface HomeSettings {
 	galleryUrl: string;
 	/**
 	 * Which gallery entry each board this vault published became: `host|entryId`
-	 * → the board's `sourceId`.
+	 * → the board's `sourceId`, and what its listing said.
 	 *
 	 * Written when a publish succeeds, because that is the one moment both
 	 * halves are in hand — see `src/gallery/published.ts`, which is the only
@@ -2385,7 +2385,7 @@ export interface HomeSettings {
 	 * Left out of a settings backup for the reason `galleryUrl` is: it is a list
 	 * of one host's ids, and it means nothing in the vault that restores it.
 	 */
-	galleryEntries?: Record<string, string>;
+	galleryEntries?: Record<string, PublishedEntry>;
 }
 
 /**
