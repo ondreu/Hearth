@@ -380,8 +380,14 @@ function paintLines(region: HTMLElement): HTMLElement | null {
 	return overlay;
 }
 
-
-function redact(root: HTMLElement): Redaction {
+/**
+ * Blank a board for the shutter, and hand back the way to put it back.
+ *
+ * Exported for `test/snapshotredact.test.ts`, which is the only part of the
+ * capture that can be tested without Electron — and the part where getting it
+ * wrong writes to somebody's vault or publishes their notes.
+ */
+export function redact(root: HTMLElement): Redaction {
 	const originals: [Text, string][] = [];
 	const wrapped: HTMLElement[] = [];
 	const blanked: HTMLElement[] = [];

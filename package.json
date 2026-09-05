@@ -27,6 +27,7 @@
 		"esbuild": "^0.28.2",
 		"eslint": "^10.10.0",
 		"eslint-plugin-obsidianmd": "^0.4.2",
+		"jsdom": "^30.0.1",
 		"moment": "2.29.4",
 		"obsidian": "latest",
 		"tslib": "^2.6.2",

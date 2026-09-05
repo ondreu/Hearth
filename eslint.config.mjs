@@ -54,6 +54,15 @@ export default tseslint.config(
 			"obsidianmd/prefer-create-el": "off",
 		},
 	},
+	// The file that *implements* Obsidian's `createEl` for jsdom has to reach
+	// for `document.createElement` — following the rule here would define the
+	// helper in terms of itself.
+	{
+		files: ["test/support/obsidian-dom.ts"],
+		rules: {
+			"obsidianmd/prefer-create-el": "off",
+		},
+	},
 	{
 		files: ["test/**"],
 		rules: {

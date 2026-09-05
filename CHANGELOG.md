@@ -43,12 +43,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   anything is uploaded. Desktop only, opt-in, and where there isn't one a
   wallpaper stands in, and an entry with neither says so.
 
+  The blanking is done by *style* rather than by rewriting the page, so nothing
+  is written into your notes in order to photograph them — which matters for the
+  three cards whose page *is* your data, the live-preview and raw-edit note
+  cards and the text card. A card that fills itself from a query is waited for
+  too, so what a Bases embed renders late is blanked like everything else.
+
   The picture blanks out what is *inside* cards that hold something personal,
   and nothing else: the header, the toolbar, the dashboard switcher, each card's
   own title, a card with nothing of yours in it (a clock), and a calendar's own
-  dates and weekdays stay as they are. Blanked text is drawn as a soft bar in the theme's own ink rather
-  than as a hard block. A board taller than the window is scrolled through and
-  stitched, so the picture is the whole board; a listing shows its top and the
+  dates and weekdays stay as they are. Blanked text is drawn as a soft bar in
+  the theme's own ink rather than as a hard block. A board taller than the
+  window is scrolled through and stitched, so the picture is the whole board; a
+  listing shows its top and the
   detail view shows all of it. Click it, in the dialog or in the gallery, to see
   it full size.
 
@@ -87,6 +94,129 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   passwords — signing in is a challenge-response against the ed25519 key that
   already signs your exports, so a breach of a gallery leaks public keys, which
   are public.
+
+  **Publishing waits until you have said the picture is clean, and gives you
+  somewhere to go when it isn't.** The photograph of the board is shown in the
+  publish dialog because a promise about what a redacted screenshot contains is
+  worth less than the screenshot — but nothing made you look at it. Publishing
+  now asks: read the picture, then switch on *"I've looked — nothing private is
+  readable in it"*. Until then the Publish button is off, and every retake asks
+  again, because the answer is about one particular image. If something of
+  yours **is** readable, the answer is not to publish it anyway: don't, and use
+  the report link beside the switch — it opens a pre-filled GitHub bug report,
+  because a picture that got past the blanking is a bug in the blanking and the
+  next person it happens to will not be looking.
+
+  **"Update" on your own gallery entry.** Opening a board you published now
+  offers, beside "Remove from the gallery", a button that opens the publish
+  dialog on the board this listing came from — so publishing again lands on the
+  entry rather than beside it, picture and all, and you do not have to go and
+  find the board first. The new picture is the one everybody sees straight
+  away, rather than yesterday's for another day. It switches to that board on
+  the way, since publishing photographs the board that is open. When this vault
+  no longer has it — deleted, or this is another vault holding the same key —
+  the button is there but greyed out and
+  says why, rather than quietly making a second listing.
+
+  Which board an entry is, Hearth writes down when it publishes one, so the
+  button works against whatever gallery you are pointed at rather than only a
+  freshly updated one. For an entry published before it kept that note, pressing
+  Update reads the entry itself to find out, once, and remembers the answer.
+
+  An update **opens on the listing you already wrote** — its name, description,
+  category, tags and recommended theme — rather than on an empty form. Those are
+  things typed once that live nowhere else in the vault, and since publishing
+  replaces the entry, a blank description left blank would have quietly deleted
+  the written one. Publishing a board again from the board itself fills the same
+  fields in from what you said last time.
+
+- **Share a dashboard.** Export one board — not the whole vault — as a file
+  someone else can import, and get back a board that looks like the one you
+  sent. **Dashboard settings → the switcher's right-click menu → Export
+  dashboard**, or Settings → Import / export.
+
+  The reason this needed building rather than tweaking is that a dashboard never
+  described itself completely. Half its look lived on the board and half in the
+  vault's global settings, which the board fell back to for anything it hadn't
+  overridden — so a board handed to someone else arrived wearing *their* grid,
+  card opacity, wallpaper and search placeholder. An export now resolves all of
+  it onto the board itself: it stops inheriting and states what it is.
+
+  **The wallpaper travels too, if you want it to.** A background picture is a
+  file in your vault, and a path to it means nothing in anyone else's — so the
+  export can carry the picture (and image icons, and a slideshow's explicit
+  pictures) inside the file, and the import writes them into the importing
+  vault. It is a toggle in the export dialog, on for a shared board and worth
+  turning off for a backup of your own vault, where the pictures are already
+  where they belong. Anything too large or no longer in the vault is left as a
+  path and reported rather than silently dropped.
+
+  **What you see is what travels.** The export carries the board exactly as it
+  is on screen — every card's own settings, the cards you had pinned to every
+  board (they arrive as ordinary cards on the imported board, so nothing gets
+  pinned across the importer's vault), and the notes a Favorites card was
+  showing. None of that is a question the dialog asks any more, because none of
+  it is a difference you can see on a dashboard.
+
+  Importing **adds** the board rather than replacing anything: a new board, a
+  name that doesn't collide, and not one of your own settings touched. A shared
+  dashboard carries an identity of its own — separate from which board it is in
+  any one vault — so when the author publishes a newer version of it, importing
+  that offers to *update* the board you already have instead of leaving you two
+  near-identical ones in the switcher. The dialog reads the file first and
+  says what is in it — who made it, what plugins it wants, which of its notes
+  your vault hasn't got, whether it brought its pictures — before anything
+  changes. None of those gaps stop an import; the cards come through and you
+  point them at your own notes.
+
+- **A signed, anonymous handle, instead of typing your name.** The export dialog
+  used to ask for an author name. That is a bad question twice over: it is
+  personal information Hearth has no reason to hold, and it is a label anybody
+  can type — the first person to publish a board as somebody else's name is the
+  last one anyone trusts a name from.
+
+  So nothing is asked. Hearth makes you one **recovery key** the first time you
+  export something, keeps it in your vault, and everything public follows from
+  it: a handle like `quiet-lantern-4kj2m8`, and a signature on every file you
+  export. It says nothing about who you are, and it is the same on everything
+  you export.
+
+  **Nobody else can publish under it.** Your handle appears in every board you
+  share, so anyone can copy it — which is exactly why the file is signed. A
+  reader recomputes the handle from the key in the file and then checks that the
+  holder of that key really made this file. A board carrying somebody else's
+  handle fails that check and is shown with no author at all, and the import
+  dialog says why. This is the part that hashing alone could never do: a file is
+  static, so any proof it carries, its reader has too — only a signature works.
+
+  What it doesn't do is tell you *who* somebody is. It tells you that the same
+  person made two boards, which is what a gallery needs to build reputation on
+  and about as far as a file format can honestly go on its own.
+
+  **Reinstalling doesn't lose it.** The key is the only thing worth keeping:
+  paste it into a new vault (Settings → Import / export → **Published as**, or
+  the same row in the export dialog) and the same handle comes back. There is no
+  account and nothing is stored anywhere but your vault, which is also the catch
+  — there is no reset and nobody to ask, so the export dialog keeps asking you
+  to save the key until you have, and warns before letting you paste another one
+  over a key you never copied. It is left out of every export file, backups
+  included.
+
+- **One switch for everything private in the file.** A dashboard export
+  deliberately carries the paths it points at — that is what makes it work as
+  your own backup — which is exactly wrong for a board you are about to publish.
+  **Leave out my private information** removes the note and folder paths,
+  calendar feed links, an internal Jira host, your location, and anything you
+  typed on a text card. The board still looks identical; the cards just arrive
+  pointing at nothing, which whoever downloads it has to fill in anyway.
+
+  And it can be checked rather than trusted. **See and tune exactly what
+  travels** opens a section that lists the actual values — read from this board,
+  not described in the abstract — for each group it removes, and lets each group
+  be turned on or off separately (queries and command ids are off by default,
+  since removing those stops the board doing anything). Left as it is, the same
+  section lists everything the file will mention. It is built only when you open
+  it, so an export you never expand costs nothing.
 
 - **Plugin view dashboards.** A dashboard no longer has to be a grid of cards.
   Set one to **Plugin view** (Dashboard settings → General → **Dashboard type**)
@@ -189,94 +319,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   alone until you are done. Off is available — Settings → Behaviour → **Pick up
   synced changes** — but on is the honest default.
 
-- **Share a dashboard.** Export one board — not the whole vault — as a file
-  someone else can import, and get back a board that looks like the one you
-  sent. **Dashboard settings → the switcher's right-click menu → Export
-  dashboard**, or Settings → Import / export.
-
-  The reason this needed building rather than tweaking is that a dashboard never
-  described itself completely. Half its look lived on the board and half in the
-  vault's global settings, which the board fell back to for anything it hadn't
-  overridden — so a board handed to someone else arrived wearing *their* grid,
-  card opacity, wallpaper and search placeholder. An export now resolves all of
-  it onto the board itself: it stops inheriting and states what it is.
-
-  **The wallpaper travels too, if you want it to.** A background picture is a
-  file in your vault, and a path to it means nothing in anyone else's — so the
-  export can carry the picture (and image icons, and a slideshow's explicit
-  pictures) inside the file, and the import writes them into the importing
-  vault. It is a toggle in the export dialog, on for a shared board and worth
-  turning off for a backup of your own vault, where the pictures are already
-  where they belong. Anything too large or no longer in the vault is left as a
-  path and reported rather than silently dropped.
-
-  **What you see is what travels.** The export carries the board exactly as it
-  is on screen — every card's own settings, the cards you had pinned to every
-  board (they arrive as ordinary cards on the imported board, so nothing gets
-  pinned across the importer's vault), and the notes a Favorites card was
-  showing. None of that is a question the dialog asks any more, because none of
-  it is a difference you can see on a dashboard.
-
-  Importing **adds** the board rather than replacing anything: a new board, a
-  name that doesn't collide, and not one of your own settings touched. A shared
-  dashboard carries an identity of its own — separate from which board it is in
-  any one vault — so when the author publishes a newer version of it, importing
-  that offers to *update* the board you already have instead of leaving you two
-  near-identical ones in the switcher. The dialog reads the file first and
-  says what is in it — who made it, what plugins it wants, which of its notes
-  your vault hasn't got, whether it brought its pictures — before anything
-  changes. None of those gaps stop an import; the cards come through and you
-  point them at your own notes.
-
-- **A signed, anonymous handle, instead of typing your name.** The export dialog
-  used to ask for an author name. That is a bad question twice over: it is
-  personal information Hearth has no reason to hold, and it is a label anybody
-  can type — the first person to publish a board as somebody else's name is the
-  last one anyone trusts a name from.
-
-  So nothing is asked. Hearth makes you one **recovery key** the first time you
-  export something, keeps it in your vault, and everything public follows from
-  it: a handle like `quiet-lantern-4kj2m8`, and a signature on every file you
-  export. It says nothing about who you are, and it is the same on everything
-  you export.
-
-  **Nobody else can publish under it.** Your handle appears in every board you
-  share, so anyone can copy it — which is exactly why the file is signed. A
-  reader recomputes the handle from the key in the file and then checks that the
-  holder of that key really made this file. A board carrying somebody else's
-  handle fails that check and is shown with no author at all, and the import
-  dialog says why. This is the part that hashing alone could never do: a file is
-  static, so any proof it carries, its reader has too — only a signature works.
-
-  What it doesn't do is tell you *who* somebody is. It tells you that the same
-  person made two boards, which is what a gallery needs to build reputation on
-  and about as far as a file format can honestly go on its own.
-
-  **Reinstalling doesn't lose it.** The key is the only thing worth keeping:
-  paste it into a new vault (Settings → Import / export → **Published as**, or
-  the same row in the export dialog) and the same handle comes back. There is no
-  account and nothing is stored anywhere but your vault, which is also the catch
-  — there is no reset and nobody to ask, so the export dialog keeps asking you
-  to save the key until you have, and warns before letting you paste another one
-  over a key you never copied. It is left out of every export file, backups
-  included.
-
-- **One switch for everything private in the file.** A dashboard export
-  deliberately carries the paths it points at — that is what makes it work as
-  your own backup — which is exactly wrong for a board you are about to publish.
-  **Leave out my private information** removes the note and folder paths,
-  calendar feed links, an internal Jira host, your location, and anything you
-  typed on a text card. The board still looks identical; the cards just arrive
-  pointing at nothing, which whoever downloads it has to fill in anyway.
-
-  And it can be checked rather than trusted. **See and tune exactly what
-  travels** opens a section that lists the actual values — read from this board,
-  not described in the abstract — for each group it removes, and lets each group
-  be turned on or off separately (queries and command ids are off by default,
-  since removing those stops the board doing anything). Left as it is, the same
-  section lists everything the file will mention. It is built only when you open
-  it, so an export you never expand costs nothing.
-
 - **A board can carry its own search row, chrome and sky.** Nine settings that
   decide how a board looks were vault-wide only: the search placeholder, the
   button beside the search field (whether it's there, what it does, what it
@@ -294,8 +336,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **The "Search online" button can search somewhere other than DuckDuckGo.**
   The button used to be wired to DuckDuckGo and nothing else. It still opens
   DuckDuckGo out of the box, but it now carries an arrow beside it: click that
-  and pick DuckDuckGo, DuckDuckGo with its AI features off (`noai.duckduckgo.com`),
-  Brave, Kagi, Google, Mojeek, Ecosia or Qwant for that one search, without
+  and pick DuckDuckGo, DuckDuckGo with its AI features off
+  (`noai.duckduckgo.com`), Brave, Kagi, Google, Mojeek, Ecosia or Qwant for that
+  one search, without
   changing anything.
 
   Which engine the button itself opens is **Settings → Appearance → Online
@@ -311,39 +354,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   hotkey or a note-toolbar button can land you on the board you want from
   anywhere in the vault. "Switch to dashboard N" is unchanged and keeps its
   hotkeys, for when Hearth is already in front of you.
-
-- **Publishing waits until you have said the picture is clean, and gives you
-  somewhere to go when it isn't.** The photograph of the board is shown in the
-  publish dialog because a promise about what a redacted screenshot contains is
-  worth less than the screenshot — but nothing made you look at it. Publishing
-  now asks: read the picture, then switch on *"I've looked — nothing private is
-  readable in it"*. Until then the Publish button is off, and every retake asks
-  again, because the answer is about one particular image. If something of
-  yours **is** readable, the answer is not to publish it anyway: don't, and use
-  the report link beside the switch — it opens a pre-filled GitHub bug report,
-  because a picture that got past the blanking is a bug in the blanking and the
-  next person it happens to will not be looking.
-
-- **"Update" on your own gallery entry.** Opening a board you published now
-  offers, beside "Remove from the gallery", a button that opens the publish
-  dialog on the board this listing came from — so publishing again lands on the
-  entry rather than beside it, and you do not have to go and find the board
-  first. It switches to that board on the way, since publishing photographs the
-  board that is open. When this vault no longer has it — deleted, or this is
-  another vault holding the same key — the button is there but greyed out and
-  says why, rather than quietly making a second listing.
-
-  Which board an entry is, Hearth writes down when it publishes one, so the
-  button works against whatever gallery you are pointed at rather than only a
-  freshly updated one. For an entry published before it kept that note, pressing
-  Update reads the entry itself to find out, once, and remembers the answer.
-
-  An update **opens on the listing you already wrote** — its name, description,
-  category, tags and recommended theme — rather than on an empty form. Those are
-  things typed once that live nowhere else in the vault, and since publishing
-  replaces the entry, a blank description left blank would have quietly deleted
-  the written one. Publishing a board again from the board itself fills the same
-  fields in from what you said last time.
 
 ### Changed
 
@@ -362,56 +372,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plain switch at the top, on by default, on both sides.
 
 ### Fixed
-
-- **A gallery now knows who is reading it, so your own vote and your own board
-  come back right.** Hearth signs in to publish, vote or withdraw, but it was
-  sending that token only on those requests — every read went out anonymously,
-  and a gallery cannot answer a question about *you* from a request that does
-  not say who is asking. Reopening a board you had voted on therefore showed no
-  vote, and your own entry could not tell Hearth which of your dashboards it
-  was, so "Update" sat greyed out saying the board was gone when it was not.
-  Reads now carry the token when there is one; browsing without ever having
-  signed in is unchanged, and opening your own entry signs in to ask that one
-  question.
-
-- **Publishing a board again now updates its picture in the gallery.** A
-  listing's picture lives at an address made only of the entry's id, and a
-  gallery serves it with a long cache lifetime because for one version of a
-  board it never changes — so republishing replaced the bytes behind an address
-  that hadn't, and everyone who had already looked (you included) went on
-  seeing the old picture for a day. Hearth now asks for the picture at an
-  address that carries the entry's last-updated stamp, so a republished board
-  is a new picture immediately; the bundled gallery server also stops telling
-  clients to hold on to a picture asked for without one.
-
-- **Publishing a board no longer edits the notes it photographs.** The picture
-  taken at publish blanked the board by writing block characters over the page
-  itself and putting the text back afterwards — which is harmless for something
-  merely rendered, and was not harmless for the three cards whose page *is* your
-  data. A live-preview note card hosts Obsidian's own editor, which read the
-  blocks back as typing and saved them, so publishing a board rewrote the note
-  on it and the restore came too late to help; the raw-edit note card and the
-  text card could do the same through a save landing in the second the shutter
-  was open. Those regions are now blanked by *style* — hidden, drawn in nothing,
-  and blurred — so nothing readable is in the frame and nothing is written to
-  the vault to get it there. **If you published a board carrying a live note
-  card before this, check that note**: Obsidian's own File recovery holds a
-  snapshot from before the damage.
-
-- **A published board's picture no longer misses what a card renders late, and
-  a live-preview note photographs as writing again.** Two things the redaction
-  behind the publish snapshot got wrong. A card that fills itself from a query
-  — a Bases embed above all — renders its rows whenever the query comes back,
-  which can be after the page has been blanked and even during the moment the
-  picture is being read, so a table of somebody's notes could land in the
-  frame; the board is now watched for the whole capture and anything that
-  appears is covered in the frame it appeared in, and a shot the board moved
-  under is thrown away and taken again rather than published. And a
-  live-preview note card, which has to be hidden rather than blanked over
-  (its page is the note), was photographing as a grey slab; its line rhythm is
-  now measured and drawn back as bars, so the card still reads as a note.
-  Nothing readable is painted either way — the bars are decoration over a
-  region that is already blank, and stand only where text really is.
 
 - **A card hidden from the narrow board can be brought back from a phone.**
   Hiding a card for the stacked layout took it off the board — including off the
@@ -465,12 +425,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   still renders. All of them now travel, in single-dashboard exports and in full
   backups alike, and a test walks every kind's config block so the next one
   added cannot slip through the same gap.
-
-- **Exporting a single dashboard no longer includes a Jira token.** The layout
-  and full-settings exports have always scrubbed a Jira card's personal access
-  token; the new single-dashboard export needed the same scrub, and there is now
-  one shared function doing it for all three so a future export path cannot
-  forget.
 
 - **Duplicating a dashboard copies all of it.** The duplicate action carried a
   hand-written list of fields, which had fallen behind every override added
