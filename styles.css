@@ -12705,6 +12705,23 @@ body.hearth-dv-resizing {
 	background: var(--background-modifier-error-hover);
 }
 
+/* Publish this board again, over the entry that is open. Sits beside the remove
+   button — the two things only an author can do here — and greys out when this
+   vault no longer has the board the entry was published from. */
+.hearth-gallery-update {
+	background: transparent;
+	box-shadow: none;
+}
+
+.hearth-gallery-update:not(:disabled):hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-gallery-update:disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
 /* ---- Comments ----
    Prose from strangers, so the only thing worth saying here is that
    `overflow-wrap` is load-bearing: a 1000-character word is a valid comment and
@@ -12982,6 +12999,43 @@ body.hearth-dv-resizing {
 	margin-top: 6px;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+}
+
+/* The gate in front of publishing: "I've looked, nothing private is readable in
+   it", and what to do when the answer is no. The block below is the "this board
+   becomes public" warning's shape — a quiet panel with a coloured edge — in the
+   warning ink rather than the accent, because it is the same kind of sentence
+   said a little more firmly. Not an error box: nothing has gone wrong yet. */
+.hearth-share-snapshot-confirm {
+	border-top: none;
+	padding-top: 4px;
+}
+
+.hearth-share-snapshot-leak {
+	padding: 10px 12px;
+	margin-bottom: 12px;
+	border-left: 3px solid var(--text-warning);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-share-snapshot-report {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 8px;
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-share-snapshot-report-icon {
+	display: inline-flex;
+}
+
+.hearth-share-snapshot-report-icon .svg-icon {
+	width: 14px;
+	height: 14px;
 }
 
 /* A picture at full size, over whatever opened it. Not an Obsidian modal: it

@@ -159,6 +159,13 @@ export function entryDetail(db: Db, id: string, viewer: string | null): unknown 
 		.prepare(`SELECT ${SUMMARY_COLUMNS} FROM entries e WHERE e.id = ? AND e.status = 'live'`)
 		.get(id) as unknown as EntryRow | undefined;
 	if (!row) throw notFound();
+	// `source_id` is the author's own id for the board — the `meta.id` their
+	// vault stamped into the package — and it is sent back only to them. It is
+	// what lets their copy of Hearth line this entry up with the board it was
+	// published from, so "update" can mean this entry rather than a new one.
+	// Nobody else is told it: it is an identifier for a thing in somebody's
+	// vault, and a listing has no reason to carry one.
+	const mine = viewer !== null && viewer.toLowerCase() === row.author_key.toLowerCase();
 	return {
 		...summaryOf(db, row, viewer),
 		cards: parseJson(row.cards, []),
@@ -167,6 +174,7 @@ export function entryDetail(db: Db, id: string, viewer: string | null): unknown 
 		theme: row.theme ?? undefined,
 		remoteRefs: row.remote_refs,
 		sizeBytes: row.size_bytes,
+		sourceId: mine ? row.source_id : undefined,
 	};
 }
 

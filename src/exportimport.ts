@@ -28,7 +28,7 @@
  * stranger's dashboard a safe thing to do at all.
  */
 
-import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
+import { apiVersion, type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";
 import { leaveArrangeMode, VIEW_TYPE_HOME } from "./view";
@@ -47,7 +47,12 @@ import {
 	galleryBlockedByExternalCalls,
 	galleryClient,
 	galleryConfigured,
+	normalizeGalleryUrl,
 	publishDashboard,
+	type PublishedListing,
+	redactionReportGithubUrl,
+	rememberedListing,
+	rememberGalleryEntry,
 } from "./gallery";
 import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
 import {
@@ -128,9 +133,23 @@ export function openExportDashboard(plugin: HearthPlugin, dash: Dashboard): void
  * Falls back to the file side when no gallery is configured rather than opening
  * a form whose button cannot do anything: the destination switch says why, and
  * saving a file is the thing that still works.
+ *
+ * `listing` fills the form in from an entry that already exists — the gallery's
+ * "Update" passes what the listing says right now, which beats what this vault
+ * remembers saying. Without it the dialog falls back to the note kept at the
+ * last publish, and then to the board's own name.
  */
-export function openPublishDashboard(plugin: HearthPlugin, dash: Dashboard): void {
-	new ShareDashboardModal(plugin, dash, galleryConfigured(plugin) ? "publish" : "export").open();
+export function openPublishDashboard(
+	plugin: HearthPlugin,
+	dash: Dashboard,
+	listing?: PublishedListing,
+): void {
+	new ShareDashboardModal(
+		plugin,
+		dash,
+		galleryConfigured(plugin) ? "publish" : "export",
+		listing,
+	).open();
 }
 
 /**
@@ -425,18 +444,66 @@ class ShareDashboardModal extends Modal {
 	/** The picture of the board, once one has been taken. Held here rather than
 	 * captured at publish so the author sees exactly what will be uploaded. */
 	private snapshot: BoardSnapshot | null = null;
+	/**
+	 * Whether the author has said, of *this* picture, that there is nothing of
+	 * theirs readable in it.
+	 *
+	 * Off until they say so, and reset by every retake, because the answer is
+	 * about one particular image. Publishing is gated on it: the redaction is
+	 * good but it is a machine's reading of what counts as content, and the one
+	 * person who can tell whether it got this board right is looking straight
+	 * at the result.
+	 */
+	private snapshotChecked = false;
 	private capturing = false;
 	private busy = false;
 	/** The disclosure, so a choice above it can redraw its contents in place. */
 	private details?: HTMLDetailsElement;
 
-	constructor(plugin: HearthPlugin, dash: Dashboard, mode: ShareMode) {
+	constructor(
+		plugin: HearthPlugin,
+		dash: Dashboard,
+		mode: ShareMode,
+		listing?: PublishedListing,
+	) {
 		super(plugin.app);
 		this.plugin = plugin;
 		this.dash = dash;
 		this.mode = mode;
 		this.meta.name = dash.name;
 		if (mode === "publish") this.stripPrivate = true;
+		this.seedListing(listing);
+	}
+
+	/**
+	 * Open on what was said last time, rather than on a blank form.
+	 *
+	 * A description, a category and a set of tags exist nowhere in the vault
+	 * except in the listing they were typed for, and a board's name is not
+	 * necessarily its listing's name. Publishing again with those fields empty
+	 * would mean typing them out again — and since a publish replaces the entry,
+	 * an untouched blank description would quietly delete the written one.
+	 *
+	 * Two sources, in this order: what the caller passed, which is the entry as
+	 * the gallery has it now (the "Update" button knows this); then the note
+	 * this vault kept when it last published this board to the host it is
+	 * pointed at. Neither is a promise — anything here can be typed over before
+	 * the upload, and the fields are the ones the dialog already shows.
+	 */
+	private seedListing(listing?: PublishedListing): void {
+		const seed =
+			listing ??
+			rememberedListing(
+				this.plugin.settings,
+				normalizeGalleryUrl(this.plugin.settings.galleryUrl) ?? "",
+				this.dash.sourceId,
+			);
+		if (!seed) return;
+		if (seed.name) this.meta.name = seed.name;
+		if (seed.description) this.meta.description = seed.description;
+		if (seed.category) this.meta.category = seed.category;
+		if (seed.tags?.length) this.meta.tags = seed.tags.join(", ");
+		if (seed.theme) this.theme = seed.theme;
 	}
 
 	onOpen(): void {
@@ -564,6 +631,60 @@ class ShareDashboardModal extends Modal {
 			cls: "hearth-share-snapshot-note",
 			text: strings.snapshotTaken(Math.max(1, Math.round(this.snapshot.bytes / 1024))),
 		});
+		this.renderSnapshotConfirm(body);
+	}
+
+	/**
+	 * The one question asked about the picture, and what to do if the answer is
+	 * no.
+	 *
+	 * The redaction blanks what it recognises as a card's contents. It is
+	 * careful and it is still a rule, so it can be wrong about a card nobody
+	 * anticipated — and the cost of it being wrong is somebody's notes on a
+	 * public listing, permanently, in a file strangers have already copied. So
+	 * the picture is not taken as checked because it was shown: publishing waits
+	 * on the author saying they looked.
+	 *
+	 * When something *is* readable the answer is not "publish it anyway with a
+	 * warning". It is: don't, and tell us — a picture that leaked is a bug in
+	 * the redaction, and the next person it happens to will not be looking.
+	 * Hence the report link beside the switch rather than in a help page.
+	 */
+	private renderSnapshotConfirm(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
+
+		const confirm = new Setting(body)
+			.setName(strings.snapshotConfirm)
+			.setDesc(strings.snapshotConfirmDesc)
+			.addToggle((tg) =>
+				tg.setValue(this.snapshotChecked).onChange((v) => {
+					this.snapshotChecked = v;
+					// Redrawn so the publish button's state follows the switch:
+					// a disabled button with no visible reason is worse than no
+					// button.
+					this.render();
+				}),
+			);
+		confirm.settingEl.addClass("hearth-share-snapshot-confirm");
+
+		const leak = body.createDiv("hearth-share-snapshot-leak");
+		leak.createDiv({ text: strings.snapshotLeak });
+		// Icon and label as their own elements: `setButtonText` on a button that
+		// already has an icon wipes the icon, and a bare text node beside one is
+		// an anonymous flex item that orders by whatever the theme does.
+		const report = leak.createEl("button", { cls: "hearth-share-snapshot-report" });
+		setIcon(report.createSpan("hearth-share-snapshot-report-icon"), "bug");
+		report.createSpan({ text: strings.snapshotLeakReport });
+		report.addEventListener("click", () => {
+			window.open(
+				redactionReportGithubUrl({
+					hearthVersion: this.plugin.manifest.version,
+					obsidianVersion: apiVersion,
+					platform: Platform.isMobile ? "Mobile" : "Desktop",
+				}),
+				"_blank",
+			);
+		});
 	}
 
 	/** Whether the board being shared is the one rendered behind this dialog. */
@@ -622,6 +743,10 @@ class ShareDashboardModal extends Modal {
 		// the moment of the capture rather than closing — its state survives and
 		// the flicker is one frame of an action that already takes a second.
 		this.snapshot = await captureBoard(board, [this.containerEl]);
+		// A new picture is a new thing to look at, so the confirmation goes with
+		// the old one. Carrying it over would mean a retake — the button somebody
+		// presses precisely because the last one was wrong — arriving pre-approved.
+		this.snapshotChecked = false;
 		this.capturing = false;
 		if (!this.snapshot) new Notice(t().portable.exportModal.snapshotFailed);
 		if (this.containerEl.isConnected) this.render();
@@ -835,7 +960,10 @@ class ShareDashboardModal extends Modal {
 							: strings.exportButton,
 					)
 					.setCta()
-					.setDisabled(this.busy)
+					// Publishing also waits on the author having looked at the
+					// picture: see `renderSnapshotConfirm`. The switch is a few
+					// rows up, so a disabled button here has a visible reason.
+					.setDisabled(this.busy || (this.publishing && !this.snapshotChecked))
 					.onClick(() => void (this.publishing ? this.runPublish() : this.runExport())),
 			);
 		if (Platform.isMobile && !this.publishing) {
@@ -1094,11 +1222,19 @@ class ShareDashboardModal extends Modal {
 			new Notice(t().portable.exportModal.snapshotRequired);
 			return;
 		}
+		// The button is disabled without this, so reaching here means something
+		// else pressed it. Checked anyway: it is the last gate in front of a
+		// picture that cannot be recalled once strangers have copied it.
+		if (!this.snapshotChecked) {
+			new Notice(t().portable.exportModal.snapshotConfirmRequired);
+			return;
+		}
 
 		this.busy = true;
 		this.render();
 		try {
 			await this.ensureSourceId();
+			const tags = this.tagList();
 			const result = await publishDashboard(
 				client,
 				this.app,
@@ -1111,7 +1247,7 @@ class ShareDashboardModal extends Modal {
 					theme: this.theme,
 					snapshot: this.snapshot,
 					embedAssets: this.opts.embedAssets !== false,
-					tags: this.tagList(),
+					tags,
 					strip: this.effectiveStrip(),
 					flatten: this.opts.flatten !== false,
 					signWith: identity.key,
@@ -1119,6 +1255,21 @@ class ShareDashboardModal extends Modal {
 				commonOptions(this.plugin),
 				identity.publicKey,
 			);
+			// Which entry this board is, now that the host has said. Written for
+			// an update as well as a first publish: it is how a board published
+			// before this existed picks the pairing up, and it is what lets the
+			// gallery's own "Update" button find this board later without having
+			// to ask a host that may not be able to answer.
+			if (this.dash.sourceId) {
+				rememberGalleryEntry(this.plugin.settings, client.host, result.id, this.dash.sourceId, {
+					name: this.meta.name.trim() || this.dash.name,
+					description: this.meta.description.trim() || undefined,
+					category: this.meta.category,
+					theme: this.theme || undefined,
+					tags: tags.length ? tags : undefined,
+				});
+				await this.plugin.saveData(this.plugin.settings);
+			}
 			this.close();
 			const name = this.meta.name.trim() || this.dash.name;
 			new Notice(

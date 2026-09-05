@@ -248,15 +248,19 @@ export class GalleryClient {
 
 	/** Where the real wallpaper lives, for an entry that carries one. A URL
 	 * rather than bytes: it goes straight into an `img.src`, which is how Hearth
-	 * renders every other picture. */
-	wallpaperUrl(id: string): string {
-		return `${this.base}/v1/entries/${encodeURIComponent(id)}/wallpaper`;
+	 * renders every other picture.
+	 *
+	 * `version` should be the entry's `updatedAt`. See {@link pictureVersion}:
+	 * without it a republished board keeps showing the picture it had, because
+	 * the address of the picture never changed. */
+	wallpaperUrl(id: string, version?: string): string {
+		return `${this.base}/v1/entries/${encodeURIComponent(id)}/wallpaper${pictureVersion(version)}`;
 	}
 
 	/** The author's redacted photograph of the board, for an entry that has one.
 	 * Same shape and same reasoning as {@link wallpaperUrl}. */
-	snapshotUrl(id: string): string {
-		return `${this.base}/v1/entries/${encodeURIComponent(id)}/snapshot`;
+	snapshotUrl(id: string, version?: string): string {
+		return `${this.base}/v1/entries/${encodeURIComponent(id)}/snapshot${pictureVersion(version)}`;
 	}
 
 	// ---- Signing in -----------------------------------------------------
@@ -399,7 +403,14 @@ export class GalleryClient {
 		if (auth && !this.signedIn) throw new GalleryError("unauthorized");
 		const headers: Record<string, string> = { Accept: "application/json" };
 		if (body !== undefined) headers["Content-Type"] = "application/json";
-		if (auth && this.session) headers.Authorization = `Bearer ${this.session.token}`;
+		// The token goes on *every* request once there is one, not only the ones
+		// that cannot be made without it. Several answers are about the reader
+		// rather than about the entry — how you voted on it, and, on your own
+		// board, which of your dashboards it is — and a host has nothing to
+		// answer those from unless the read says who is asking. `auth` still
+		// means "this request is refused without a token"; it is not what
+		// decides whether one is sent.
+		if (this.signedIn && this.session) headers.Authorization = `Bearer ${this.session.token}`;
 
 		let res: RequestUrlResponse;
 		try {
@@ -463,4 +474,28 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
 			},
 		);
 	});
+}
+
+/**
+ * The `?v=` a picture's address carries, so a republished board shows its new
+ * picture.
+ *
+ * A snapshot and a wallpaper live at an address made only of the entry's id,
+ * and they are fetched by an `img.src` rather than through `request` — so they
+ * go through the browser's cache, and the host serves them with a long
+ * `max-age` because for a given version of an entry they really are immutable.
+ * Publishing again replaces the bytes behind an address that did not change,
+ * and every client that had already looked keeps drawing yesterday's picture
+ * until its cache lets go. Stamping the entry's `updatedAt` into the query
+ * makes a new version a new address, which is the only part of this the client
+ * can decide on its own.
+ *
+ * Hashed rather than passed through: a timestamp is a short opaque token here,
+ * and one that survives being put in a URL by construction.
+ */
+function pictureVersion(version?: string): string {
+	if (!version) return "";
+	let hash = 0;
+	for (let i = 0; i < version.length; i++) hash = (hash * 31 + version.charCodeAt(i)) | 0;
+	return `?v=${(hash >>> 0).toString(36)}`;
 }

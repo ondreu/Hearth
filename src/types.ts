@@ -2,6 +2,7 @@ import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
+import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
 import type { EventNoteConfig } from "./eventnote";
 import type { Granularity } from "./periodic";
 import { DEFAULT_WEB_SEARCH_ENGINE, type WebSearchEngineId } from "./websearch";
@@ -2370,6 +2371,21 @@ export interface HomeSettings {
 	 * somebody else's must not quietly point your vault at their host.
 	 */
 	galleryUrl: string;
+	/**
+	 * Which gallery entry each board this vault published became: `host|entryId`
+	 * → the board's `sourceId`, and what its listing said.
+	 *
+	 * Written when a publish succeeds, because that is the one moment both
+	 * halves are in hand — see `src/gallery/published.ts`, which is the only
+	 * place this is read or changed. A cache of something a host can also
+	 * answer, kept because the answer needs a host new enough to give it, and
+	 * "Update this entry" should work against the gallery somebody is actually
+	 * running.
+	 *
+	 * Left out of a settings backup for the reason `galleryUrl` is: it is a list
+	 * of one host's ids, and it means nothing in the vault that restores it.
+	 */
+	galleryEntries?: Record<string, PublishedEntry>;
 }
 
 /**
@@ -3362,6 +3378,12 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 		typeof raw.galleryUrl === "string"
 			? (normalizeGalleryUrl(raw.galleryUrl) ?? "")
 			: DEFAULT_GALLERY_URL;
+	// Which entry each published board is, as this vault last learned it. Read
+	// through its own sanitizer: the keys are strings a host chose, and this is
+	// a file people edit and sync clients merge.
+	const entries = readGalleryEntries(raw.galleryEntries);
+	if (entries) s.galleryEntries = entries;
+	else delete s.galleryEntries;
 	// The short-lived "split" pill mode was replaced by a plain single button
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";

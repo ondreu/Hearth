@@ -188,9 +188,18 @@ The summary, plus:
   "version": "2",                                // the author's own, if any
   "theme": "Minimal",                            // recommended, advisory only
   "remoteRefs": 2,                               // things fetched from the internet
-  "sizeBytes": 48213
+  "sizeBytes": 48213,
+  "sourceId": "hd-3f9c2a"                        // the author only — see below
 }
 ```
+
+`sourceId` is the entry's `meta.id`: which dashboard, in the author's vault,
+this entry was published from. **Send it only to the author** — the signed-in
+key that owns the entry — and leave it out for everybody else. It is what lets
+their copy of Hearth find the board behind a listing, so "update this entry"
+can open the publish dialog on the right board instead of making a second
+listing beside it. It names something in somebody's vault, and a reader
+browsing a gallery has no use for one.
 
 ### `GET /v1/entries/:id/package`
 
@@ -204,6 +213,16 @@ run up in a loop is not a number worth sorting by.
 
 The author's redacted photograph of the board, as an image. Raster types only,
 same allowlist as below. `404` when they didn't publish one.
+
+Both picture routes take an optional `?v=` — Hearth stamps a token derived from
+the entry's `updatedAt` into it. **Cache accordingly:** a request carrying `v`
+may be answered `public, max-age=86400, immutable`, because for one version of
+an entry the bytes really are fixed; a request without one must not be, because
+these pictures are replaced in place when a board is published again, and a
+long `max-age` on a bare address means every client that already looked keeps
+drawing the old picture until its cache lets go. `?v=` is a cache key and
+nothing else — never look it up, and never refuse a request for carrying an
+unfamiliar one.
 
 ### `GET /v1/entries/:id/wallpaper`
 

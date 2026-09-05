@@ -3470,6 +3470,13 @@ export const zh: Translations = {
 			snapshotWorking: "正在截图……",
 			snapshotEnlarge: "查看大图",
 			snapshotTaken: (kb: number) => `${kb} KB——这就是将要发布的图片，也是所有浏览画廊的人看到的样子。`,
+			snapshotConfirm: "我看过了——图里没有我的隐私内容",
+			snapshotConfirmDesc:
+				"点击图片查看大图，逐处读一遍。卡片标题、标题栏，以及卡片中本就不属于你的内容可以保留；笔记正文、任务、文件名、日程、和你生活有关的数字则不应出现。确认之后才能发布。",
+			snapshotConfirmRequired: "请先看过图片，再打开“我看过了”。",
+			snapshotLeak:
+				"如果图里能读到你的内容，请不要发布这个面板：别人一旦安装，这张图就再也收不回来了。也请告诉我们——这是涂抹功能的缺陷，最好在它落到别人身上之前修好。",
+			snapshotLeakReport: "去 GitHub 反馈",
 			snapshotFailed: "Hearth 无法截取面板图片。",
 			snapshotRequired: "画廊条目需要一张面板截图。请先截图——发布前你可以先检查它。",
 			snapshotUnavailable:
@@ -3714,6 +3721,13 @@ export const zh: Translations = {
 			doneHeld: (name: string) =>
 				`画廊已收到“${name}”，但先暂缓列出——其中仍有内容看起来像你库中的路径。等对方查看之后才会出现在列表中。`,
 			doneUpdate: (name: string) => `已更新画廊中的“${name}”。`,
+			update: "更新",
+			updateChecking: "正在检查……",
+			updateDesc: "把这个面板重新发布一次，覆盖当前这个条目。",
+			updateMissing:
+				"这个库里没有当初用来发布它的面板——可能已被删除，或者它在另一个库里。从这里发布只会新建一个条目，所以没有可更新的对象。",
+			updateUnknown:
+				"Hearth 还不知道这个条目对应你的哪个面板。点击“更新”，它会读取条目来确认。",
 			unpublish: "从画廊移除",
 			unpublishConfirm: (name: string) =>
 				`要把“${name}”从画廊移除吗？已经安装的人仍然保留副本，但新的人再也找不到它。`,

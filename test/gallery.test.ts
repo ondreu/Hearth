@@ -11,6 +11,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	asGalleryCategory,
+	forgetGalleryEntry,
+	GalleryClient,
+	galleryEntrySourceId,
+	rememberedListing,
+	rememberGalleryEntry,
 	cardCountsFromPackage,
 	DEFAULT_GALLERY_URL,
 	GALLERY_CATEGORIES,
@@ -24,7 +29,8 @@ import {
 	redactedText,
 } from "../src/gallery";
 import type { HearthPackage } from "../src/portable";
-import { DEFAULT_SETTINGS, migrateSettings } from "../src/types";
+import { exportSettingsPayload } from "../src/layout";
+import { DEFAULT_SETTINGS, type HomeSettings, migrateSettings } from "../src/types";
 
 /**
  * A card at the coordinates the board renders from: `fx`/`fw` as fractions of
@@ -295,5 +301,203 @@ describe("normalizeGalleryUrl", () => {
 		expect(normalizeGalleryUrl("javascript:alert(1)")).toBeNull();
 		// Credentials in a URL are a way to hand a secret to a host by pasting.
 		expect(normalizeGalleryUrl("https://user:pw@example.com")).toBeNull();
+	});
+});
+
+describe("picture addresses", () => {
+	const client = new GalleryClient("https://gallery.example.com");
+
+	/**
+	 * The bug this exists to stop: publish a board, publish it again with a new
+	 * picture, and everyone who had already looked keeps seeing the old one —
+	 * the bytes changed but the address didn't, and the host serves pictures
+	 * with a long `max-age` because for one version of an entry they really are
+	 * immutable.
+	 */
+	it("gives a republished entry a picture address of its own", () => {
+		const before = client.snapshotUrl("abc", "2026-01-01T00:00:00.000Z");
+		const after = client.snapshotUrl("abc", "2026-02-01T00:00:00.000Z");
+		expect(before).not.toBe(after);
+		expect(new URL(before).pathname).toBe(new URL(after).pathname);
+		expect(new URL(after).searchParams.get("v")).toBeTruthy();
+	});
+
+	it("is stable for an entry that has not changed", () => {
+		expect(client.wallpaperUrl("abc", "2026-01-01T00:00:00.000Z")).toBe(
+			client.wallpaperUrl("abc", "2026-01-01T00:00:00.000Z"),
+		);
+	});
+
+	it("asks for the picture plainly when the host never said when it changed", () => {
+		expect(client.snapshotUrl("abc")).toBe(
+			"https://gallery.example.com/v1/entries/abc/snapshot",
+		);
+	});
+});
+
+describe("the author's own entry", () => {
+	/** A detail response as a host would send one. */
+	function detail(extra: Record<string, unknown> = {}): Record<string, unknown> {
+		return {
+			id: "e1",
+			name: "Board",
+			author: { publicKey: KEY, handle: HANDLE },
+			cards: [],
+			requires: {},
+			...extra,
+		};
+	}
+
+	/**
+	 * `sourceId` is how the detail view finds the local board an entry was
+	 * published from, so "update" can mean this entry rather than a second one
+	 * beside it. A host sends it only to the author; everybody else gets a
+	 * detail without it, and a vault that has no board with that id gets no
+	 * match — both of which read as "nothing to update" rather than as an error.
+	 */
+	it("carries the published id back when the host sends one", () => {
+		expect(readEntryDetail(detail({ sourceId: "brd-1a2b" }))?.sourceId).toBe("brd-1a2b");
+	});
+
+	it("has none when the host didn't say, or said something that isn't an id", () => {
+		expect(readEntryDetail(detail())?.sourceId).toBeUndefined();
+		expect(readEntryDetail(detail({ sourceId: "../../etc/passwd" }))?.sourceId).toBeUndefined();
+		expect(readEntryDetail(detail({ sourceId: 7 }))?.sourceId).toBeUndefined();
+	});
+});
+
+describe("which entry a published board became", () => {
+	const HOST = "https://gallery.example.com";
+
+	/** A settings object with two boards, one of them published. */
+	function settings(): HomeSettings {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		s.dashboards = [
+			{ id: "d1", name: "Reading room", cards: [], sourceId: "hd-aaa" },
+			{ id: "d2", name: "Sprint", cards: [], sourceId: "hd-bbb" },
+		];
+		s.activeDashboardId = "d1";
+		return s;
+	}
+
+	/**
+	 * The pairing exists so "Update" works against the gallery somebody is
+	 * actually running: a host can also answer it, but only one new enough to
+	 * send the field, to a vault it recognised. Written at publish, which is the
+	 * one moment both halves are in hand.
+	 */
+	it("remembers the board an entry was published from", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+	});
+
+	it("keeps two galleries apart, since an id means nothing across hosts", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		rememberGalleryEntry(s, "https://other.example.com", "e1", "hd-bbb");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+		expect(galleryEntrySourceId(s, "https://other.example.com", "e1")).toBe("hd-bbb");
+	});
+
+	it("forgets a withdrawn entry, and knows nothing about one never published", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		forgetGalleryEntry(s, HOST, "e1");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBeUndefined();
+		expect(galleryEntrySourceId(s, HOST, "never")).toBeUndefined();
+	});
+
+	// A pairing whose board is gone can never match again, so it is dropped
+	// rather than kept forever in `data.json`.
+	it("drops pairings whose board is no longer in the vault", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		s.dashboards = s.dashboards.filter((d) => d.sourceId !== "hd-aaa");
+		rememberGalleryEntry(s, HOST, "e2", "hd-bbb");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBeUndefined();
+		expect(galleryEntrySourceId(s, HOST, "e2")).toBe("hd-bbb");
+	});
+
+	/** It comes back off disk through the same sanitizer every other persisted
+	 * value does: `data.json` is a file people edit and sync clients merge. */
+	it("survives a reload, and drops anything that isn't a pairing", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		const reloaded = structuredClone(DEFAULT_SETTINGS);
+		reloaded.dashboards = s.dashboards;
+		migrateSettings(reloaded, {
+			galleryEntries: { ...s.galleryEntries, "bad-key": "hd-aaa", [`${HOST}|e9`]: 7 },
+		});
+		expect(galleryEntrySourceId(reloaded, HOST, "e1")).toBe("hd-aaa");
+		expect(galleryEntrySourceId(reloaded, HOST, "e9")).toBeUndefined();
+		expect(Object.keys(reloaded.galleryEntries ?? {})).toEqual([`${HOST}|e1`]);
+	});
+
+	/**
+	 * A description, a category and a set of tags are typed into the publish
+	 * dialog and kept nowhere else in the vault — so publishing the same board
+	 * again with them blank would mean writing them out a second time, and would
+	 * replace what the listing says with nothing.
+	 */
+	it("remembers what the listing said, so a second publish opens on it", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa", {
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			theme: "Minimal",
+			tags: ["quiet", "minimal"],
+		});
+		expect(rememberedListing(s, HOST, "hd-aaa")).toEqual({
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			theme: "Minimal",
+			tags: ["quiet", "minimal"],
+		});
+		// Another board, and another host, are not this listing.
+		expect(rememberedListing(s, HOST, "hd-bbb")).toBeUndefined();
+		expect(rememberedListing(s, "https://other.example.com", "hd-aaa")).toBeUndefined();
+		expect(rememberedListing(s, HOST, undefined)).toBeUndefined();
+	});
+
+	it("brings the listing back off disk, bounded and cleaned", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa", {
+			name: "Reading room",
+			description: "A quiet board.",
+			category: "writing",
+			tags: ["Quiet", "quiet", ""],
+		});
+		const reloaded = structuredClone(DEFAULT_SETTINGS);
+		reloaded.dashboards = s.dashboards;
+		migrateSettings(reloaded, { galleryEntries: structuredClone(s.galleryEntries) });
+		const listing = rememberedListing(reloaded, HOST, "hd-aaa");
+		expect(listing?.name).toBe("Reading room");
+		expect(listing?.tags).toEqual(["quiet"]);
+	});
+
+	it("keeps the pairing when the listing it stored is nonsense", () => {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		migrateSettings(s, {
+			galleryEntries: { [`${HOST}|e1`]: { sourceId: "hd-aaa", listing: "a description" } },
+		});
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+		expect(rememberedListing(s, HOST, "hd-aaa")).toBeUndefined();
+	});
+
+	/** Same reasoning as the host it names: a backup is a thing people hand each
+	 * other, and one gallery's ids mean nothing in the vault that restores them. */
+	it("stays out of a settings backup", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		expect(Object.keys(exportSettingsPayload(s))).not.toContain("galleryEntries");
+	});
+
+	it("takes nothing from a persisted value that isn't an object", () => {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		migrateSettings(s, { galleryEntries: ["hd-aaa"] });
+		expect(s.galleryEntries).toBeUndefined();
 	});
 });

@@ -3725,6 +3725,22 @@ export const en = {
 			snapshotEnlarge: "Open the picture full size",
 			snapshotTaken: (kb: number) =>
 				`${kb} KB — this is exactly what gets published, and what everyone browsing the gallery sees.`,
+			/** The gate in front of publishing. Named as a question about this
+			 * picture, because that is what it is: the redaction is a rule, and
+			 * the author is the only one who can tell whether it read this board
+			 * right. */
+			snapshotConfirm: "I've looked — nothing private is readable in it",
+			snapshotConfirmDesc:
+				"Click the picture to see it full size and read it. Card titles, the header and anything a card shows that isn't yours are meant to be there; a note's text, a task, a file name, an event, a number from your life is not. Publishing waits until you've said.",
+			snapshotConfirmRequired:
+				"Have a look at the picture first, then switch on “I've looked”.",
+			/** What to do when the answer is no. Said in the same shape as the
+			 * "this board becomes public" warning above, a little more firmly:
+			 * not "publish anyway", because a picture that got past the blanking
+			 * is a bug, and the next person it happens to won't be looking. */
+			snapshotLeak:
+				"If something of yours is readable in it, don't publish this board: the picture can't be taken back once people have installed it. Please tell us instead — that's a bug in the blanking, and it's worth fixing before it happens to somebody else.",
+			snapshotLeakReport: "Report it on GitHub",
 			snapshotFailed: "Hearth couldn't take a picture of the board.",
 			snapshotRequired:
 				"A gallery entry needs a picture of the board. Take one first — you can look at it before it goes.",
@@ -4016,6 +4032,19 @@ export const en = {
 			doneHeld: (name: string) =>
 				`The gallery took “${name}” but is holding it for review — something in it still looks like a path from your vault. It won't be listed until somebody there has looked.`,
 			doneUpdate: (name: string) => `Updated “${name}” in the gallery.`,
+			/** Beside the remove button on your own entry: publish the board
+			 * again, over this listing rather than beside it. */
+			update: "Update",
+			/** While it is reading the entry to work out which board it is. */
+			updateChecking: "Checking…",
+			updateDesc: "Publish this board again, over this listing.",
+			updateMissing:
+				"This vault hasn't got the board this was published from — it was deleted, or it lives in another vault. Publishing from here would make a second listing, so there's nothing to update.",
+			/** Nothing has said which board this is yet — an entry published
+			 * before Hearth kept the note, or to a gallery too old to be asked.
+			 * The button still works: pressing it reads the entry to find out. */
+			updateUnknown:
+				"Hearth doesn't know yet which of your boards this entry is. Press Update and it will read the entry to find out.",
 			unpublish: "Remove from the gallery",
 			unpublishConfirm: (name: string) =>
 				`Remove “${name}” from the gallery? People who already installed it keep their copy; nobody new can find it.`,
