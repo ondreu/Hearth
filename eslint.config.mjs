@@ -40,6 +40,40 @@ export default tseslint.config(
 	// test/support/obsidian-shim.ts is what *provides* the `moment` export that
 	// the "import moment from 'obsidian' instead" rule points at — following
 	// that advice here would be circular, and the shim documents the choice.
+	// `prefer-create-el` is right nearly everywhere and wrong in exactly two
+	// places in the snapshot code, because Obsidian's helpers *append to the
+	// node they are called on*. `text.ownerDocument.createSpan()` therefore
+	// appends a span to the Document, which throws and takes the whole capture
+	// with it (3.1.0-beta.8 shipped that; the redaction wrapper is placed by an
+	// `insertBefore` instead). The stitching canvas is the other: it is drawn
+	// into, read back as a data URL and dropped, and never goes into the page.
+	// Both are commented at the call site.
+	{
+		files: ["src/gallery/snapshot.ts"],
+		rules: {
+			"obsidianmd/prefer-create-el": "off",
+		},
+	},
+	// `server/` is the self-hosted gallery service — a Node program run on a
+	// machine, built by its own package.json/tsconfig and absent from the plugin
+	// bundle (`main.js` contains no `node:` import at all; check with
+	// `grep -c 'node:' main.js` after a build). The guidelines these rules carry
+	// are about what Obsidian loads on a phone, so none of them reach it: there
+	// is no `Platform.isDesktop` to guard `node:sqlite` behind when SQLite *is*
+	// the storage, no `window` to take `setInterval` from, and a service's log
+	// lines are its only output. It lives here rather than in a repository of
+	// its own because it imports `readPackage`, `verifyPackageSignature` and
+	// friends from `../src/` — a gallery that decided for itself what a package
+	// is would disagree with the plugin exactly where it matters.
+	{
+		files: ["server/**"],
+		rules: {
+			"obsidianmd/no-nodejs-modules": "off",
+			"obsidianmd/prefer-window-timers": "off",
+			// The wrapper the preset delivers `no-console` through.
+			"obsidianmd/rule-custom-message": "off",
+		},
+	},
 	{
 		files: ["test/**"],
 		rules: {
