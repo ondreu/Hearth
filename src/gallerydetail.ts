@@ -114,11 +114,47 @@ class GalleryEntryModal extends Modal {
 		try {
 			this.entry = await this.client.entry(this.id);
 			this.error = null;
+			await this.askAgainAsAuthor();
 		} catch (err) {
 			this.error = galleryErrorText(err);
 		}
 		this.render();
 		if (this.entry) void this.loadComments();
+	}
+
+	/**
+	 * Fetch this entry again, this time saying who is asking — but only when it
+	 * turns out to be the reader's own board.
+	 *
+	 * A host answers part of an entry *about the reader*: how they voted, and,
+	 * for the author, which of their dashboards this listing was published from
+	 * (`sourceId`, the thing "Update" needs). Both need a token on the read, and
+	 * browsing does not need one — a vault that has only ever read a gallery has
+	 * never signed in, and asking it to before it can look at a listing would be
+	 * a login where the format deliberately has none.
+	 *
+	 * So the first read is anonymous, and this is the second one: taken only
+	 * when the entry that came back is signed by this vault's own key, and only
+	 * when the host did not already say. It fails quietly — an entry nobody can
+	 * update still reads perfectly well — and the button below says which of the
+	 * two silences it got.
+	 */
+	private async askAgainAsAuthor(): Promise<void> {
+		const entry = this.entry;
+		if (!entry || entry.sourceId) return;
+		const identity = vaultIdentity(this.plugin);
+		if (!identity || entry.author?.publicKey !== identity.publicKey) return;
+		// Already signed in and still not told: this host is older than the
+		// field, and signing in again would not change its answer.
+		if (this.client.signedIn) return;
+		try {
+			await this.client.signIn(identity.key, identity.publicKey);
+			this.entry = await this.client.entry(this.id);
+		} catch {
+			// Offline, or a host that would not take the key. Nothing is broken
+			// here — the entry is already on screen, and the update button says
+			// that it could not find out rather than that the board is gone.
+		}
 	}
 
 	/**
@@ -428,23 +464,28 @@ class GalleryEntryModal extends Modal {
 	 * which is the whole of what makes an update an update.
 	 *
 	 * Which local board that is comes from the entry itself — the host tells an
-	 * author, and only the author, the `sourceId` it filed their entry under.
-	 * When this vault has no board with that id the button stays, disabled and
-	 * saying why: the board was deleted, or this is simply a different vault
-	 * holding the same key, and an update from here would publish something
-	 * that isn't the board. Removing the button instead would leave somebody
-	 * looking for a control they had used before with nothing to read.
+	 * author, and only the author, the `sourceId` it filed their entry under
+	 * (`askAgainAsAuthor` is what gets it). It stays visible and disabled rather
+	 * than disappearing when it cannot be used, and the two reasons it can't are
+	 * different enough to say apart: the host named a board this vault hasn't
+	 * got — deleted, or another vault holding the same key — or the host was
+	 * never able to say which board it is at all.
 	 */
 	private renderUpdate(actions: HTMLElement, entry: GalleryEntryDetail): void {
 		const strings = t().gallery.publish;
 		const dash = this.localBoard(entry);
+		const why = dash
+			? strings.updateDesc
+			: entry.sourceId
+				? strings.updateMissing
+				: strings.updateUnknown;
 		const update = actions.createEl("button", {
 			cls: "hearth-gallery-update",
 			text: strings.update,
 		});
 		update.disabled = !dash;
-		update.setAttribute("title", dash ? strings.updateDesc : strings.updateMissing);
-		update.setAttribute("aria-label", dash ? strings.updateDesc : strings.updateMissing);
+		update.setAttribute("title", why);
+		update.setAttribute("aria-label", why);
 		if (!dash) return;
 		update.addEventListener("click", () => void this.openUpdate(dash));
 	}

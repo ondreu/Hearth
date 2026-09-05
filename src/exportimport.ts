@@ -613,7 +613,7 @@ class ShareDashboardModal extends Modal {
 		confirm.settingEl.addClass("hearth-share-snapshot-confirm");
 
 		const leak = body.createDiv("hearth-share-snapshot-leak");
-		leak.createSpan({ text: strings.snapshotLeak });
+		leak.createDiv({ text: strings.snapshotLeak });
 		// Icon and label as their own elements: `setButtonText` on a button that
 		// already has an icon wipes the icon, and a bare text node beside one is
 		// an anonymous flex item that orders by whatever the theme does.

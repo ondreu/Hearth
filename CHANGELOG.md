@@ -330,7 +330,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   first. It switches to that board on the way, since publishing photographs the
   board that is open. When this vault no longer has it — deleted, or this is
   another vault holding the same key — the button is there but greyed out and
-  says why, rather than quietly making a second listing.
+  says why, rather than quietly making a second listing; and when the gallery
+  couldn't be asked which board it is at all, it says that instead.
 
 ### Changed
 
@@ -349,6 +350,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plain switch at the top, on by default, on both sides.
 
 ### Fixed
+
+- **A gallery now knows who is reading it, so your own vote and your own board
+  come back right.** Hearth signs in to publish, vote or withdraw, but it was
+  sending that token only on those requests — every read went out anonymously,
+  and a gallery cannot answer a question about *you* from a request that does
+  not say who is asking. Reopening a board you had voted on therefore showed no
+  vote, and your own entry could not tell Hearth which of your dashboards it
+  was, so "Update" sat greyed out saying the board was gone when it was not.
+  Reads now carry the token when there is one; browsing without ever having
+  signed in is unchanged, and opening your own entry signs in to ask that one
+  question.
 
 - **Publishing a board again now updates its picture in the gallery.** A
   listing's picture lives at an address made only of the entry's id, and a

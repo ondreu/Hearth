@@ -13002,22 +13002,21 @@ body.hearth-dv-resizing {
 }
 
 /* The gate in front of publishing: "I've looked, nothing private is readable in
-   it", and what to do when the answer is no. Warm rather than alarming — this
-   is the ordinary path — with the report link reading as the exit it is. */
+   it", and what to do when the answer is no. The block below is the "this board
+   becomes public" warning's shape — a quiet panel with a coloured edge — in the
+   warning ink rather than the accent, because it is the same kind of sentence
+   said a little more firmly. Not an error box: nothing has gone wrong yet. */
 .hearth-share-snapshot-confirm {
 	border-top: none;
 	padding-top: 4px;
 }
 
 .hearth-share-snapshot-leak {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	margin: 0 0 12px;
 	padding: 10px 12px;
-	border-radius: var(--radius-m);
-	background: var(--background-modifier-error-hover);
+	margin-bottom: 12px;
+	border-left: 3px solid var(--text-warning);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
@@ -13026,6 +13025,8 @@ body.hearth-dv-resizing {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	margin-top: 8px;
+	font-size: var(--font-ui-smaller);
 }
 
 .hearth-share-snapshot-report-icon {

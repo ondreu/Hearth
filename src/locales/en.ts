@@ -3731,14 +3731,15 @@ export const en = {
 			 * right. */
 			snapshotConfirm: "I've looked — nothing private is readable in it",
 			snapshotConfirmDesc:
-				"Open it full size and read it. Card titles, the header and anything a card shows that isn't yours are meant to be there; a note's text, a task, a file name, an event, a number from your life is not. Publishing waits until you've said.",
+				"Click the picture to see it full size and read it. Card titles, the header and anything a card shows that isn't yours are meant to be there; a note's text, a task, a file name, an event, a number from your life is not. Publishing waits until you've said.",
 			snapshotConfirmRequired:
-				"Look at the picture first, then switch on “I've looked” — it's the last thing that stands between the board and everyone.",
-			/** What to do when the answer is no. Not "publish anyway": a picture
-			 * that got past the redaction is a bug, and the next person it
-			 * happens to won't be looking. */
+				"Have a look at the picture first, then switch on “I've looked”.",
+			/** What to do when the answer is no. Said in the same shape as the
+			 * "this board becomes public" warning above, a little more firmly:
+			 * not "publish anyway", because a picture that got past the blanking
+			 * is a bug, and the next person it happens to won't be looking. */
 			snapshotLeak:
-				"Something of yours readable in it? Don't publish this board — it's a bug in the blanking, and the file can't be recalled once people have copied it.",
+				"If something of yours is readable in it, don't publish this board: the picture can't be taken back once people have installed it. Please tell us instead — that's a bug in the blanking, and it's worth fixing before it happens to somebody else.",
 			snapshotLeakReport: "Report it on GitHub",
 			snapshotFailed: "Hearth couldn't take a picture of the board.",
 			snapshotRequired:
@@ -4037,6 +4038,11 @@ export const en = {
 			updateDesc: "Publish this board again, over this listing.",
 			updateMissing:
 				"This vault hasn't got the board this was published from — it was deleted, or it lives in another vault. Publishing from here would make a second listing, so there's nothing to update.",
+			/** The other reason it can be off: the gallery never said which board
+			 * this is. Only an author is told, so this is a host that couldn't be
+			 * asked — offline, or older than the field. */
+			updateUnknown:
+				"Hearth couldn't ask this gallery which of your boards this entry is. Reopen it when you're online; if it keeps saying this, the gallery is running an older build. You can still publish the board again from the board itself.",
 			unpublish: "Remove from the gallery",
 			unpublishConfirm: (name: string) =>
 				`Remove “${name}” from the gallery? People who already installed it keep their copy; nobody new can find it.`,

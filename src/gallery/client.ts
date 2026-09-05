@@ -403,7 +403,14 @@ export class GalleryClient {
 		if (auth && !this.signedIn) throw new GalleryError("unauthorized");
 		const headers: Record<string, string> = { Accept: "application/json" };
 		if (body !== undefined) headers["Content-Type"] = "application/json";
-		if (auth && this.session) headers.Authorization = `Bearer ${this.session.token}`;
+		// The token goes on *every* request once there is one, not only the ones
+		// that cannot be made without it. Several answers are about the reader
+		// rather than about the entry — how you voted on it, and, on your own
+		// board, which of your dashboards it is — and a host has nothing to
+		// answer those from unless the read says who is asking. `auth` still
+		// means "this request is refused without a token"; it is not what
+		// decides whether one is sent.
+		if (this.signedIn && this.session) headers.Authorization = `Bearer ${this.session.token}`;
 
 		let res: RequestUrlResponse;
 		try {
