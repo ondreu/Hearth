@@ -13,6 +13,7 @@
  * - `client.ts`     one host, and the only place a request is made.
  * - `install.ts`    a downloaded entry, handed to the importer unchanged.
  * - `publish.ts`    an export, stripped and signed, handed to a host.
+ * - `published.ts`  which entry each board this vault published became.
  * - `redactionreport.ts` where an author goes when the picture leaked.
  *
  * Nothing about the gallery is required for Hearth to work, and nothing here
@@ -31,6 +32,7 @@ export * from "./types";
 export * from "./client";
 export * from "./install";
 export * from "./publish";
+export * from "./published";
 export * from "./redactionreport";
 export * from "./snapshot";
 

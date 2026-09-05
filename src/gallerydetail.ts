@@ -21,6 +21,7 @@ import type { Dashboard } from "./types";
 import { t } from "./i18n";
 import { confirmAction } from "./ui";
 import { createIdentity, openImportPackage, openPublishDashboard, vaultIdentity } from "./exportimport";
+import { packageSourceId } from "./portable";
 import { renderAvatar } from "./galleryavatar";
 import {
 	activate,
@@ -41,6 +42,9 @@ import {
 	type GalleryEntryDetail,
 	type GalleryEntrySummary,
 	type GalleryProfile,
+	forgetGalleryEntry,
+	galleryEntrySourceId,
+	rememberGalleryEntry,
 	settleAfterRender,
 	type VoteValue,
 } from "./gallery";
@@ -463,37 +467,98 @@ class GalleryEntryModal extends Modal {
 	 * beside it: the board carries the `sourceId` the gallery keys the entry by,
 	 * which is the whole of what makes an update an update.
 	 *
-	 * Which local board that is comes from the entry itself — the host tells an
-	 * author, and only the author, the `sourceId` it filed their entry under
-	 * (`askAgainAsAuthor` is what gets it). It stays visible and disabled rather
-	 * than disappearing when it cannot be used, and the two reasons it can't are
-	 * different enough to say apart: the host named a board this vault hasn't
-	 * got — deleted, or another vault holding the same key — or the host was
-	 * never able to say which board it is at all.
+	 * Which local board that is, `localBoard` answers. The button stays visible
+	 * and disabled rather than disappearing when it cannot be used, and the two
+	 * reasons it can't are different enough to say apart: something named a
+	 * board and this vault hasn't got it — deleted, or another vault holding the
+	 * same key — or nothing named a board at all, which is an entry published
+	 * from somewhere this vault cannot see and is fixed by publishing the board
+	 * once more from the board itself.
 	 */
 	private renderUpdate(actions: HTMLElement, entry: GalleryEntryDetail): void {
 		const strings = t().gallery.publish;
 		const dash = this.localBoard(entry);
-		const why = dash
-			? strings.updateDesc
-			: entry.sourceId
-				? strings.updateMissing
-				: strings.updateUnknown;
+		// Whether anything named a board at all, which is what separates "you
+		// haven't got it" from "nobody has said yet".
+		const named =
+			entry.sourceId ??
+			galleryEntrySourceId(this.plugin.settings, this.client.host, entry.id);
+		const why = dash ? strings.updateDesc : named ? strings.updateMissing : strings.updateUnknown;
 		const update = actions.createEl("button", {
 			cls: "hearth-gallery-update",
-			text: strings.update,
+			text: this.busy ? strings.updateChecking : strings.update,
 		});
-		update.disabled = !dash;
+		// Off only when a board is named and this vault hasn't got it: that is
+		// the one case where pressing it could not lead anywhere. When nothing
+		// has named a board the button still works — it goes and finds out.
+		update.disabled = this.busy || (!dash && named !== undefined);
 		update.setAttribute("title", why);
 		update.setAttribute("aria-label", why);
-		if (!dash) return;
-		update.addEventListener("click", () => void this.openUpdate(dash));
+		update.addEventListener("click", () => {
+			if (dash) void this.openUpdate(dash);
+			else void this.findBoardThenUpdate(entry);
+		});
 	}
 
-	/** The board in this vault this entry was published from, or null. */
+	/**
+	 * Nobody said which board this entry is, so go and read it out of the entry
+	 * itself.
+	 *
+	 * The package carries `meta.id` — the `sourceId` the board was published
+	 * under — so downloading it answers the question outright, without a host
+	 * new enough to be asked and without the author having to publish once more
+	 * first. It is the entry's own file and the reader is its author, so this
+	 * downloads nothing they don't already have.
+	 *
+	 * Done on the press rather than while the modal loads: it is a package, and
+	 * fetching a few megabytes to decide whether a button is enabled would be
+	 * paying for it on every entry somebody opens. The answer is written down
+	 * (`rememberGalleryEntry`), so it is paid once per entry.
+	 */
+	private async findBoardThenUpdate(entry: GalleryEntryDetail): Promise<void> {
+		if (this.busy) return;
+		this.busy = true;
+		this.render();
+		try {
+			const fetched = await fetchEntryPackage(this.client, entry.id);
+			const sourceId = packageSourceId(fetched.pkg);
+			const dash = sourceId
+				? (this.plugin.settings.dashboards.find((d) => d.sourceId === sourceId) ?? null)
+				: null;
+			if (!dash || !sourceId) {
+				new Notice(t().gallery.publish.updateMissing);
+				return;
+			}
+			rememberGalleryEntry(this.plugin.settings, this.client.host, entry.id, sourceId);
+			await this.plugin.saveData(this.plugin.settings);
+			await this.openUpdate(dash);
+		} catch (err) {
+			new Notice(galleryErrorText(err));
+		} finally {
+			this.busy = false;
+			if (this.containerEl.isConnected) this.render();
+		}
+	}
+
+	/**
+	 * The board in this vault this entry was published from, or null.
+	 *
+	 * Two ways of knowing, and the second is the one that works everywhere. The
+	 * host tells an author which of their boards an entry is — but only a host
+	 * new enough to send the field, answering a read this vault was signed in
+	 * for. The vault also wrote the pairing down itself when it published (see
+	 * `src/gallery/published.ts`), which needs neither.
+	 *
+	 * The host's answer is preferred where there is one: it is the gallery's own
+	 * bookkeeping rather than a note this vault kept, so it is the one that is
+	 * right if they ever disagree.
+	 */
 	private localBoard(entry: GalleryEntryDetail): Dashboard | null {
-		if (!entry.sourceId) return null;
-		return this.plugin.settings.dashboards.find((d) => d.sourceId === entry.sourceId) ?? null;
+		const sourceId =
+			entry.sourceId ??
+			galleryEntrySourceId(this.plugin.settings, this.client.host, entry.id);
+		if (!sourceId) return null;
+		return this.plugin.settings.dashboards.find((d) => d.sourceId === sourceId) ?? null;
 	}
 
 	/**
@@ -676,6 +741,11 @@ class GalleryEntryModal extends Modal {
 		try {
 			await this.client.signIn(identity.key, identity.publicKey);
 			await this.client.unpublish(entry.id);
+			// Nothing for the pairing to name any more. Publishing the board
+			// again writes a new one, since a withdrawn entry comes back under
+			// the same `sourceId`.
+			forgetGalleryEntry(this.plugin.settings, this.client.host, entry.id);
+			await this.plugin.saveData(this.plugin.settings);
 			new Notice(t().gallery.publish.unpublished);
 			this.close();
 		} catch (err) {

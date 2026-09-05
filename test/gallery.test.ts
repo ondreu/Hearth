@@ -11,7 +11,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	asGalleryCategory,
+	forgetGalleryEntry,
 	GalleryClient,
+	galleryEntrySourceId,
+	rememberGalleryEntry,
 	cardCountsFromPackage,
 	DEFAULT_GALLERY_URL,
 	GALLERY_CATEGORIES,
@@ -25,7 +28,8 @@ import {
 	redactedText,
 } from "../src/gallery";
 import type { HearthPackage } from "../src/portable";
-import { DEFAULT_SETTINGS, migrateSettings } from "../src/types";
+import { exportSettingsPayload } from "../src/layout";
+import { DEFAULT_SETTINGS, type HomeSettings, migrateSettings } from "../src/types";
 
 /**
  * A card at the coordinates the board renders from: `fx`/`fw` as fractions of
@@ -358,5 +362,88 @@ describe("the author's own entry", () => {
 		expect(readEntryDetail(detail())?.sourceId).toBeUndefined();
 		expect(readEntryDetail(detail({ sourceId: "../../etc/passwd" }))?.sourceId).toBeUndefined();
 		expect(readEntryDetail(detail({ sourceId: 7 }))?.sourceId).toBeUndefined();
+	});
+});
+
+describe("which entry a published board became", () => {
+	const HOST = "https://gallery.example.com";
+
+	/** A settings object with two boards, one of them published. */
+	function settings(): HomeSettings {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		s.dashboards = [
+			{ id: "d1", name: "Reading room", cards: [], sourceId: "hd-aaa" },
+			{ id: "d2", name: "Sprint", cards: [], sourceId: "hd-bbb" },
+		];
+		s.activeDashboardId = "d1";
+		return s;
+	}
+
+	/**
+	 * The pairing exists so "Update" works against the gallery somebody is
+	 * actually running: a host can also answer it, but only one new enough to
+	 * send the field, to a vault it recognised. Written at publish, which is the
+	 * one moment both halves are in hand.
+	 */
+	it("remembers the board an entry was published from", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+	});
+
+	it("keeps two galleries apart, since an id means nothing across hosts", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		rememberGalleryEntry(s, "https://other.example.com", "e1", "hd-bbb");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBe("hd-aaa");
+		expect(galleryEntrySourceId(s, "https://other.example.com", "e1")).toBe("hd-bbb");
+	});
+
+	it("forgets a withdrawn entry, and knows nothing about one never published", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		forgetGalleryEntry(s, HOST, "e1");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBeUndefined();
+		expect(galleryEntrySourceId(s, HOST, "never")).toBeUndefined();
+	});
+
+	// A pairing whose board is gone can never match again, so it is dropped
+	// rather than kept forever in `data.json`.
+	it("drops pairings whose board is no longer in the vault", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		s.dashboards = s.dashboards.filter((d) => d.sourceId !== "hd-aaa");
+		rememberGalleryEntry(s, HOST, "e2", "hd-bbb");
+		expect(galleryEntrySourceId(s, HOST, "e1")).toBeUndefined();
+		expect(galleryEntrySourceId(s, HOST, "e2")).toBe("hd-bbb");
+	});
+
+	/** It comes back off disk through the same sanitizer every other persisted
+	 * value does: `data.json` is a file people edit and sync clients merge. */
+	it("survives a reload, and drops anything that isn't a pairing", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		const reloaded = structuredClone(DEFAULT_SETTINGS);
+		reloaded.dashboards = s.dashboards;
+		migrateSettings(reloaded, {
+			galleryEntries: { ...s.galleryEntries, "bad-key": "hd-aaa", [`${HOST}|e9`]: 7 },
+		});
+		expect(galleryEntrySourceId(reloaded, HOST, "e1")).toBe("hd-aaa");
+		expect(galleryEntrySourceId(reloaded, HOST, "e9")).toBeUndefined();
+		expect(Object.keys(reloaded.galleryEntries ?? {})).toEqual([`${HOST}|e1`]);
+	});
+
+	/** Same reasoning as the host it names: a backup is a thing people hand each
+	 * other, and one gallery's ids mean nothing in the vault that restores them. */
+	it("stays out of a settings backup", () => {
+		const s = settings();
+		rememberGalleryEntry(s, HOST, "e1", "hd-aaa");
+		expect(Object.keys(exportSettingsPayload(s))).not.toContain("galleryEntries");
+	});
+
+	it("takes nothing from a persisted value that isn't an object", () => {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		migrateSettings(s, { galleryEntries: ["hd-aaa"] });
+		expect(s.galleryEntries).toBeUndefined();
 	});
 });

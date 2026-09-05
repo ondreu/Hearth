@@ -4035,14 +4035,16 @@ export const en = {
 			/** Beside the remove button on your own entry: publish the board
 			 * again, over this listing rather than beside it. */
 			update: "Update",
+			/** While it is reading the entry to work out which board it is. */
+			updateChecking: "Checking…",
 			updateDesc: "Publish this board again, over this listing.",
 			updateMissing:
 				"This vault hasn't got the board this was published from — it was deleted, or it lives in another vault. Publishing from here would make a second listing, so there's nothing to update.",
-			/** The other reason it can be off: the gallery never said which board
-			 * this is. Only an author is told, so this is a host that couldn't be
-			 * asked — offline, or older than the field. */
+			/** Nothing has said which board this is yet — an entry published
+			 * before Hearth kept the note, or to a gallery too old to be asked.
+			 * The button still works: pressing it reads the entry to find out. */
 			updateUnknown:
-				"Hearth couldn't ask this gallery which of your boards this entry is. Reopen it when you're online; if it keeps saying this, the gallery is running an older build. You can still publish the board again from the board itself.",
+				"Hearth doesn't know yet which of your boards this entry is. Press Update and it will read the entry to find out.",
 			unpublish: "Remove from the gallery",
 			unpublishConfirm: (name: string) =>
 				`Remove “${name}” from the gallery? People who already installed it keep their copy; nobody new can find it.`,

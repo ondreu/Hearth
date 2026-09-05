@@ -49,6 +49,7 @@ import {
 	galleryConfigured,
 	publishDashboard,
 	redactionReportGithubUrl,
+	rememberGalleryEntry,
 } from "./gallery";
 import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
 import {
@@ -1199,6 +1200,20 @@ class ShareDashboardModal extends Modal {
 				commonOptions(this.plugin),
 				identity.publicKey,
 			);
+			// Which entry this board is, now that the host has said. Written for
+			// an update as well as a first publish: it is how a board published
+			// before this existed picks the pairing up, and it is what lets the
+			// gallery's own "Update" button find this board later without having
+			// to ask a host that may not be able to answer.
+			if (this.dash.sourceId) {
+				rememberGalleryEntry(
+					this.plugin.settings,
+					client.host,
+					result.id,
+					this.dash.sourceId,
+				);
+				await this.plugin.saveData(this.plugin.settings);
+			}
 			this.close();
 			const name = this.meta.name.trim() || this.dash.name;
 			new Notice(

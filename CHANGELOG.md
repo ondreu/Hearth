@@ -330,8 +330,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   first. It switches to that board on the way, since publishing photographs the
   board that is open. When this vault no longer has it — deleted, or this is
   another vault holding the same key — the button is there but greyed out and
-  says why, rather than quietly making a second listing; and when the gallery
-  couldn't be asked which board it is at all, it says that instead.
+  says why, rather than quietly making a second listing.
+
+  Which board an entry is, Hearth writes down when it publishes one, so the
+  button works against whatever gallery you are pointed at rather than only a
+  freshly updated one. For an entry published before it kept that note, pressing
+  Update reads the entry itself to find out, once, and remembers the answer.
 
 ### Changed
 
