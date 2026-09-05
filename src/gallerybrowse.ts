@@ -395,8 +395,8 @@ class GalleryBrowseModal extends Modal {
 		const grid = results.createDiv("hearth-gallery-grid");
 		for (const entry of this.entries) {
 			renderEntryCard(grid, entry, {
-				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
-				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
+				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id, entry.updatedAt) : undefined,
+				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id, entry.updatedAt) : undefined,
 				onOpen: (chosen) => this.openEntry(chosen),
 				onOpenProfile: (publicKey) => this.openProfile(publicKey),
 			});
@@ -425,17 +425,24 @@ class GalleryBrowseModal extends Modal {
 	private openEntry(entry: GalleryEntrySummary): void {
 		openGalleryEntry(this.plugin, this.client, entry.id, {
 			onChanged: (updated) => this.applyEntryUpdate(updated),
-			onInstalled: () => this.close(),
+			onHandOff: () => this.close(),
 			onOpenProfile: (publicKey) => this.openProfile(publicKey),
 		});
 	}
 
 	private openProfile(publicKey: string): void {
-		openGalleryProfile(this.plugin, this.client, publicKey, {
+		// The profile is held so it can be closed with everything else when an
+		// entry opened *from* it hands over: the publish dialog photographs the
+		// board behind it, and a profile left standing over it would be in the
+		// picture.
+		const profile = openGalleryProfile(this.plugin, this.client, publicKey, {
 			onOpenEntry: (id) =>
 				openGalleryEntry(this.plugin, this.client, id, {
 					onChanged: (updated) => this.applyEntryUpdate(updated),
-					onInstalled: () => this.close(),
+					onHandOff: () => {
+						profile.close();
+						this.close();
+					},
 					onOpenProfile: (key) => this.openProfile(key),
 				}),
 		});

@@ -68,6 +68,24 @@ function limitWrite(ctx: RequestContext): void {
 	consume(db, `write:${ctx.ip}`, config.writesPerMinute, MINUTE);
 }
 
+/**
+ * How long a client may hold on to a picture.
+ *
+ * The bytes behind `/wallpaper` and `/snapshot` are replaced when their board
+ * is published again, at an address that did not change — so a long `max-age`
+ * on a bare address means a republished board goes on showing its old picture
+ * in every client that had already looked at it. Clients that stamp the
+ * entry's `updatedAt` into a `v` parameter have given the new version a new
+ * address, and can be told to keep it as long as they like; a request without
+ * one is asked to come back, because there is nothing else to tell it that the
+ * picture changed.
+ */
+function pictureCache(ctx: RequestContext): string {
+	return ctx.url.searchParams.get("v")
+		? "public, max-age=86400, immutable"
+		: "public, max-age=60, must-revalidate";
+}
+
 function intParam(url: URL, name: string, fallback: number, min: number, max: number): number {
 	// An absent parameter is not a zero. `searchParams.get` returns null for one
 	// and `Number(null)` is 0, which is finite — so without this check a missing
@@ -141,13 +159,13 @@ const routes = [
 		// A raster type from the format's own allowlist, and never SVG — this
 		// is a picture a client puts in an `img.src`, and the one image type
 		// that is really a document has no business being one.
-		return new RawResponse(bytes, mime, { "Cache-Control": "public, max-age=86400" });
+		return new RawResponse(bytes, mime, { "Cache-Control": pictureCache(ctx) });
 	}),
 
 	route("GET", "/v1/entries/:id/snapshot", (ctx) => {
 		limitRead(ctx);
 		const { bytes, mime } = entrySnapshot(db, ctx.params[0]);
-		return new RawResponse(bytes, mime, { "Cache-Control": "public, max-age=86400" });
+		return new RawResponse(bytes, mime, { "Cache-Control": pictureCache(ctx) });
 	}),
 
 	route("GET", "/v1/authors/:key", (ctx) => {

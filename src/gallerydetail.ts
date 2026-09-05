@@ -17,9 +17,10 @@
 import { Modal, Notice, setIcon } from "obsidian";
 import type HearthPlugin from "./main";
 import type { AuthorIdentity } from "./identity";
+import type { Dashboard } from "./types";
 import { t } from "./i18n";
 import { confirmAction } from "./ui";
-import { createIdentity, openImportPackage, vaultIdentity } from "./exportimport";
+import { createIdentity, openImportPackage, openPublishDashboard, vaultIdentity } from "./exportimport";
 import { renderAvatar } from "./galleryavatar";
 import {
 	activate,
@@ -40,6 +41,7 @@ import {
 	type GalleryEntryDetail,
 	type GalleryEntrySummary,
 	type GalleryProfile,
+	settleAfterRender,
 	type VoteValue,
 } from "./gallery";
 
@@ -47,8 +49,16 @@ import {
 export interface EntryViewHooks {
 	/** A vote landed, so the row behind this modal is out of date. */
 	onChanged?: (entry: GalleryEntrySummary) => void;
-	/** The board was installed and the import dialog has taken over. */
-	onInstalled?: () => void;
+	/**
+	 * This modal has handed over to another dialog — the import dialog after an
+	 * install, or the publish dialog on the way to updating an entry — and has
+	 * closed itself. Whatever else the gallery has on screen should go too.
+	 *
+	 * It matters for more than tidiness on the publish side: the publish dialog
+	 * photographs the board behind it, and a browse modal left open would be
+	 * what it photographs.
+	 */
+	onHandOff?: () => void;
 	onOpenProfile?: (publicKey: string) => void;
 }
 
@@ -151,9 +161,9 @@ class GalleryEntryModal extends Modal {
 		this.titleEl.setText(entry.name);
 
 		const hero = body.createDiv("hearth-gallery-detail-hero");
-		const shot = entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined;
+		const shot = entry.hasSnapshot ? this.client.snapshotUrl(entry.id, entry.updatedAt) : undefined;
 		const frame = renderPreview(hero, {
-			wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
+			wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id, entry.updatedAt) : undefined,
 			snapshot: shot,
 			large: true,
 		});
@@ -384,9 +394,14 @@ class GalleryEntryModal extends Modal {
 		const strings = t().gallery.detail;
 		const actions = body.createDiv("hearth-gallery-actions");
 
-		// The reader's own entry gets the one thing only they can do with it.
+		// The reader's own entry gets the two things only they can do with it.
 		const mine = vaultIdentity(this.plugin)?.publicKey;
 		if (mine && entry.author?.publicKey === mine) {
+			// Before the remove button rather than after it: that one carries the
+			// `margin-right: auto` that holds this pair against the left edge,
+			// away from the install button, and anything after it lands on the
+			// other side of the gap.
+			this.renderUpdate(actions, entry);
 			const remove = actions.createEl("button", {
 				cls: "hearth-gallery-remove",
 				text: t().gallery.publish.unpublish,
@@ -401,6 +416,64 @@ class GalleryEntryModal extends Modal {
 		});
 		install.disabled = this.busy;
 		install.addEventListener("click", () => void this.install(entry));
+	}
+
+	/**
+	 * "Publish this again" — for the author, standing in front of their own
+	 * entry, looking at a board they have since changed.
+	 *
+	 * The button is the publish dialog, opened on the local board this entry
+	 * came from, and publishing from there lands *on* this entry rather than
+	 * beside it: the board carries the `sourceId` the gallery keys the entry by,
+	 * which is the whole of what makes an update an update.
+	 *
+	 * Which local board that is comes from the entry itself — the host tells an
+	 * author, and only the author, the `sourceId` it filed their entry under.
+	 * When this vault has no board with that id the button stays, disabled and
+	 * saying why: the board was deleted, or this is simply a different vault
+	 * holding the same key, and an update from here would publish something
+	 * that isn't the board. Removing the button instead would leave somebody
+	 * looking for a control they had used before with nothing to read.
+	 */
+	private renderUpdate(actions: HTMLElement, entry: GalleryEntryDetail): void {
+		const strings = t().gallery.publish;
+		const dash = this.localBoard(entry);
+		const update = actions.createEl("button", {
+			cls: "hearth-gallery-update",
+			text: strings.update,
+		});
+		update.disabled = !dash;
+		update.setAttribute("title", dash ? strings.updateDesc : strings.updateMissing);
+		update.setAttribute("aria-label", dash ? strings.updateDesc : strings.updateMissing);
+		if (!dash) return;
+		update.addEventListener("click", () => void this.openUpdate(dash));
+	}
+
+	/** The board in this vault this entry was published from, or null. */
+	private localBoard(entry: GalleryEntryDetail): Dashboard | null {
+		if (!entry.sourceId) return null;
+		return this.plugin.settings.dashboards.find((d) => d.sourceId === entry.sourceId) ?? null;
+	}
+
+	/**
+	 * Put the board on screen, then open the publish dialog on it.
+	 *
+	 * Both steps matter: publishing needs a picture of the board, and Hearth can
+	 * only photograph the board that is actually rendered — so a dialog opened
+	 * over a different active board would come up saying it cannot take one.
+	 * The wait is the same one the capture itself uses, because a view revealed
+	 * on this frame has no size until the next few.
+	 */
+	private async openUpdate(dash: Dashboard): Promise<void> {
+		this.close();
+		// Everything else the gallery has open goes too: the publish dialog
+		// photographs the board, and a browse modal still standing over it would
+		// be what lands in the picture.
+		this.hooks.onHandOff?.();
+		this.plugin.setActiveDashboard(dash.id);
+		await this.plugin.activateView();
+		await settleAfterRender();
+		openPublishDashboard(this.plugin, dash);
 	}
 
 	// ---- Comments -------------------------------------------------------
@@ -530,7 +603,7 @@ class GalleryEntryModal extends Modal {
 		try {
 			const fetched = await fetchEntryPackage(this.client, entry.id);
 			this.close();
-			this.hooks.onInstalled?.();
+			this.hooks.onHandOff?.();
 			// Handed on as bytes: the import dialog verifies the signature over
 			// exactly what was served, and applies it through the same sanitizers
 			// a file off disk goes through.
@@ -591,8 +664,13 @@ export function openGalleryProfile(
 	client: GalleryClient,
 	publicKey: string,
 	hooks: ProfileViewHooks = {},
-): void {
-	new GalleryProfileModal(plugin, client, publicKey, hooks).open();
+): Modal {
+	// Returned rather than opened and forgotten: an entry opened from a profile
+	// can hand over to a dialog that needs the screen clear, and closing this
+	// one is the opener's to do.
+	const modal = new GalleryProfileModal(plugin, client, publicKey, hooks);
+	modal.open();
+	return modal;
 }
 
 class GalleryProfileModal extends Modal {
@@ -692,8 +770,8 @@ class GalleryProfileModal extends Modal {
 		const grid = body.createDiv("hearth-gallery-grid");
 		for (const entry of profile.entries) {
 			renderEntryCard(grid, entry, {
-				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id) : undefined,
-				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id) : undefined,
+				wallpaper: entry.hasWallpaper ? this.client.wallpaperUrl(entry.id, entry.updatedAt) : undefined,
+				snapshot: entry.hasSnapshot ? this.client.snapshotUrl(entry.id, entry.updatedAt) : undefined,
 				onOpen: (chosen) => {
 					this.close();
 					this.hooks.onOpenEntry?.(chosen.id);

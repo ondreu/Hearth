@@ -28,7 +28,7 @@
  * stranger's dashboard a safe thing to do at all.
  */
 
-import { type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
+import { apiVersion, type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";
 import { leaveArrangeMode, VIEW_TYPE_HOME } from "./view";
@@ -48,6 +48,7 @@ import {
 	galleryClient,
 	galleryConfigured,
 	publishDashboard,
+	redactionReportGithubUrl,
 } from "./gallery";
 import { activate, galleryErrorText, openPictureViewer, renderPreview } from "./galleryui";
 import {
@@ -425,6 +426,17 @@ class ShareDashboardModal extends Modal {
 	/** The picture of the board, once one has been taken. Held here rather than
 	 * captured at publish so the author sees exactly what will be uploaded. */
 	private snapshot: BoardSnapshot | null = null;
+	/**
+	 * Whether the author has said, of *this* picture, that there is nothing of
+	 * theirs readable in it.
+	 *
+	 * Off until they say so, and reset by every retake, because the answer is
+	 * about one particular image. Publishing is gated on it: the redaction is
+	 * good but it is a machine's reading of what counts as content, and the one
+	 * person who can tell whether it got this board right is looking straight
+	 * at the result.
+	 */
+	private snapshotChecked = false;
 	private capturing = false;
 	private busy = false;
 	/** The disclosure, so a choice above it can redraw its contents in place. */
@@ -564,6 +576,60 @@ class ShareDashboardModal extends Modal {
 			cls: "hearth-share-snapshot-note",
 			text: strings.snapshotTaken(Math.max(1, Math.round(this.snapshot.bytes / 1024))),
 		});
+		this.renderSnapshotConfirm(body);
+	}
+
+	/**
+	 * The one question asked about the picture, and what to do if the answer is
+	 * no.
+	 *
+	 * The redaction blanks what it recognises as a card's contents. It is
+	 * careful and it is still a rule, so it can be wrong about a card nobody
+	 * anticipated — and the cost of it being wrong is somebody's notes on a
+	 * public listing, permanently, in a file strangers have already copied. So
+	 * the picture is not taken as checked because it was shown: publishing waits
+	 * on the author saying they looked.
+	 *
+	 * When something *is* readable the answer is not "publish it anyway with a
+	 * warning". It is: don't, and tell us — a picture that leaked is a bug in
+	 * the redaction, and the next person it happens to will not be looking.
+	 * Hence the report link beside the switch rather than in a help page.
+	 */
+	private renderSnapshotConfirm(body: HTMLElement): void {
+		const strings = t().portable.exportModal;
+
+		const confirm = new Setting(body)
+			.setName(strings.snapshotConfirm)
+			.setDesc(strings.snapshotConfirmDesc)
+			.addToggle((tg) =>
+				tg.setValue(this.snapshotChecked).onChange((v) => {
+					this.snapshotChecked = v;
+					// Redrawn so the publish button's state follows the switch:
+					// a disabled button with no visible reason is worse than no
+					// button.
+					this.render();
+				}),
+			);
+		confirm.settingEl.addClass("hearth-share-snapshot-confirm");
+
+		const leak = body.createDiv("hearth-share-snapshot-leak");
+		leak.createSpan({ text: strings.snapshotLeak });
+		// Icon and label as their own elements: `setButtonText` on a button that
+		// already has an icon wipes the icon, and a bare text node beside one is
+		// an anonymous flex item that orders by whatever the theme does.
+		const report = leak.createEl("button", { cls: "hearth-share-snapshot-report" });
+		setIcon(report.createSpan("hearth-share-snapshot-report-icon"), "bug");
+		report.createSpan({ text: strings.snapshotLeakReport });
+		report.addEventListener("click", () => {
+			window.open(
+				redactionReportGithubUrl({
+					hearthVersion: this.plugin.manifest.version,
+					obsidianVersion: apiVersion,
+					platform: Platform.isMobile ? "Mobile" : "Desktop",
+				}),
+				"_blank",
+			);
+		});
 	}
 
 	/** Whether the board being shared is the one rendered behind this dialog. */
@@ -622,6 +688,10 @@ class ShareDashboardModal extends Modal {
 		// the moment of the capture rather than closing — its state survives and
 		// the flicker is one frame of an action that already takes a second.
 		this.snapshot = await captureBoard(board, [this.containerEl]);
+		// A new picture is a new thing to look at, so the confirmation goes with
+		// the old one. Carrying it over would mean a retake — the button somebody
+		// presses precisely because the last one was wrong — arriving pre-approved.
+		this.snapshotChecked = false;
 		this.capturing = false;
 		if (!this.snapshot) new Notice(t().portable.exportModal.snapshotFailed);
 		if (this.containerEl.isConnected) this.render();
@@ -835,7 +905,10 @@ class ShareDashboardModal extends Modal {
 							: strings.exportButton,
 					)
 					.setCta()
-					.setDisabled(this.busy)
+					// Publishing also waits on the author having looked at the
+					// picture: see `renderSnapshotConfirm`. The switch is a few
+					// rows up, so a disabled button here has a visible reason.
+					.setDisabled(this.busy || (this.publishing && !this.snapshotChecked))
 					.onClick(() => void (this.publishing ? this.runPublish() : this.runExport())),
 			);
 		if (Platform.isMobile && !this.publishing) {
@@ -1092,6 +1165,13 @@ class ShareDashboardModal extends Modal {
 		// board is on screen, and a gallery of boards nobody can see is not one.
 		if (!this.snapshot) {
 			new Notice(t().portable.exportModal.snapshotRequired);
+			return;
+		}
+		// The button is disabled without this, so reaching here means something
+		// else pressed it. Checked anyway: it is the last gate in front of a
+		// picture that cannot be recalled once strangers have copied it.
+		if (!this.snapshotChecked) {
+			new Notice(t().portable.exportModal.snapshotConfirmRequired);
 			return;
 		}
 

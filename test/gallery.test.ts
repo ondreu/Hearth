@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	asGalleryCategory,
+	GalleryClient,
 	cardCountsFromPackage,
 	DEFAULT_GALLERY_URL,
 	GALLERY_CATEGORIES,
@@ -295,5 +296,67 @@ describe("normalizeGalleryUrl", () => {
 		expect(normalizeGalleryUrl("javascript:alert(1)")).toBeNull();
 		// Credentials in a URL are a way to hand a secret to a host by pasting.
 		expect(normalizeGalleryUrl("https://user:pw@example.com")).toBeNull();
+	});
+});
+
+describe("picture addresses", () => {
+	const client = new GalleryClient("https://gallery.example.com");
+
+	/**
+	 * The bug this exists to stop: publish a board, publish it again with a new
+	 * picture, and everyone who had already looked keeps seeing the old one —
+	 * the bytes changed but the address didn't, and the host serves pictures
+	 * with a long `max-age` because for one version of an entry they really are
+	 * immutable.
+	 */
+	it("gives a republished entry a picture address of its own", () => {
+		const before = client.snapshotUrl("abc", "2026-01-01T00:00:00.000Z");
+		const after = client.snapshotUrl("abc", "2026-02-01T00:00:00.000Z");
+		expect(before).not.toBe(after);
+		expect(new URL(before).pathname).toBe(new URL(after).pathname);
+		expect(new URL(after).searchParams.get("v")).toBeTruthy();
+	});
+
+	it("is stable for an entry that has not changed", () => {
+		expect(client.wallpaperUrl("abc", "2026-01-01T00:00:00.000Z")).toBe(
+			client.wallpaperUrl("abc", "2026-01-01T00:00:00.000Z"),
+		);
+	});
+
+	it("asks for the picture plainly when the host never said when it changed", () => {
+		expect(client.snapshotUrl("abc")).toBe(
+			"https://gallery.example.com/v1/entries/abc/snapshot",
+		);
+	});
+});
+
+describe("the author's own entry", () => {
+	/** A detail response as a host would send one. */
+	function detail(extra: Record<string, unknown> = {}): Record<string, unknown> {
+		return {
+			id: "e1",
+			name: "Board",
+			author: { publicKey: KEY, handle: HANDLE },
+			cards: [],
+			requires: {},
+			...extra,
+		};
+	}
+
+	/**
+	 * `sourceId` is how the detail view finds the local board an entry was
+	 * published from, so "update" can mean this entry rather than a second one
+	 * beside it. A host sends it only to the author; everybody else gets a
+	 * detail without it, and a vault that has no board with that id gets no
+	 * match — both of which read as "nothing to update" rather than as an error.
+	 */
+	it("carries the published id back when the host sends one", () => {
+		expect(readEntryDetail(detail({ sourceId: "brd-1a2b" }))?.sourceId).toBe("brd-1a2b");
+	});
+
+	it("has none when the host didn't say, or said something that isn't an id", () => {
+		expect(readEntryDetail(detail())?.sourceId).toBeUndefined();
+		expect(readEntryDetail(detail({ sourceId: "../../etc/passwd" }))?.sourceId).toBeUndefined();
+		expect(readEntryDetail(detail({ sourceId: 7 }))?.sourceId).toBeUndefined();
 	});
 });

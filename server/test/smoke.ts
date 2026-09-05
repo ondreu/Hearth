@@ -160,6 +160,45 @@ check("the detail carries the recommended theme", detail.json.theme === "Minimal
 	);
 	const none = await fetch(`${BASE}/v1/entries/${second.json.id}/snapshot`);
 	check("a board published without a picture is a 404 there", none.status === 404);
+	// A picture is served from an address made only of the entry's id, and the
+	// bytes behind it are replaced whenever the board is published again. A
+	// client that has stamped the entry's `updatedAt` into `v` has given the new
+	// version an address of its own and may keep it; one that asks plainly has
+	// to be sent back, or a republished board goes on showing yesterday's
+	// picture for as long as the cache holds it.
+	const versioned = await fetch(`${BASE}/v1/entries/${id}/snapshot?v=abc123`);
+	check(
+		"a versioned picture address may be cached for a long time",
+		(versioned.headers.get("cache-control") ?? "").includes("immutable"),
+		versioned.headers.get("cache-control"),
+	);
+	check(
+		"a bare picture address is not, so a republished board shows its new picture",
+		!(shot.headers.get("cache-control") ?? "").includes("immutable") &&
+			/max-age=([0-9]|[1-9][0-9]|[1-5][0-9]{2})\b/.test(shot.headers.get("cache-control") ?? ""),
+		shot.headers.get("cache-control"),
+	);
+}
+// The author's own id for the board, which is what lets their vault line this
+// entry up with the board it was published from. Sent to them and to nobody
+// else: it names something in somebody's vault, and a reader browsing a gallery
+// has no use for it.
+{
+	const mine = await call("GET", `/v1/entries/${id}`, undefined, token);
+	check(
+		"the author is told which of their boards this entry is",
+		mine.json.sourceId === `hd-smoke-${f.run}-a`,
+		mine.json.sourceId,
+	);
+	check("a reader is not", detail.json.sourceId === undefined, detail.json.sourceId);
+	const ch = await call("POST", "/v1/auth/challenge", { publicKey: f.forkPublicKey });
+	const forkToken = (await call("POST", "/v1/auth/token", {
+		publicKey: f.forkPublicKey,
+		nonce: ch.json.nonce,
+		signature: signMessage(f.forkKey, ch.json.nonce)!,
+	})).json.token;
+	const other = await call("GET", `/v1/entries/${id}`, undefined, forkToken);
+	check("and neither is another signed-in author", other.json.sourceId === undefined, other.json.sourceId);
 }
 check("the detail lists cards by kind", detail.json.cards?.length === 3, detail.json.cards);
 check("the detail reports its size", detail.json.sizeBytes > 0);

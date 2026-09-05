@@ -3725,6 +3725,21 @@ export const en = {
 			snapshotEnlarge: "Open the picture full size",
 			snapshotTaken: (kb: number) =>
 				`${kb} KB — this is exactly what gets published, and what everyone browsing the gallery sees.`,
+			/** The gate in front of publishing. Named as a question about this
+			 * picture, because that is what it is: the redaction is a rule, and
+			 * the author is the only one who can tell whether it read this board
+			 * right. */
+			snapshotConfirm: "I've looked — nothing private is readable in it",
+			snapshotConfirmDesc:
+				"Open it full size and read it. Card titles, the header and anything a card shows that isn't yours are meant to be there; a note's text, a task, a file name, an event, a number from your life is not. Publishing waits until you've said.",
+			snapshotConfirmRequired:
+				"Look at the picture first, then switch on “I've looked” — it's the last thing that stands between the board and everyone.",
+			/** What to do when the answer is no. Not "publish anyway": a picture
+			 * that got past the redaction is a bug, and the next person it
+			 * happens to won't be looking. */
+			snapshotLeak:
+				"Something of yours readable in it? Don't publish this board — it's a bug in the blanking, and the file can't be recalled once people have copied it.",
+			snapshotLeakReport: "Report it on GitHub",
 			snapshotFailed: "Hearth couldn't take a picture of the board.",
 			snapshotRequired:
 				"A gallery entry needs a picture of the board. Take one first — you can look at it before it goes.",
@@ -4016,6 +4031,12 @@ export const en = {
 			doneHeld: (name: string) =>
 				`The gallery took “${name}” but is holding it for review — something in it still looks like a path from your vault. It won't be listed until somebody there has looked.`,
 			doneUpdate: (name: string) => `Updated “${name}” in the gallery.`,
+			/** Beside the remove button on your own entry: publish the board
+			 * again, over this listing rather than beside it. */
+			update: "Update",
+			updateDesc: "Publish this board again, over this listing.",
+			updateMissing:
+				"This vault hasn't got the board this was published from — it was deleted, or it lives in another vault. Publishing from here would make a second listing, so there's nothing to update.",
 			unpublish: "Remove from the gallery",
 			unpublishConfirm: (name: string) =>
 				`Remove “${name}” from the gallery? People who already installed it keep their copy; nobody new can find it.`,

@@ -311,6 +311,27 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   anywhere in the vault. "Switch to dashboard N" is unchanged and keeps its
   hotkeys, for when Hearth is already in front of you.
 
+- **Publishing waits until you have said the picture is clean, and gives you
+  somewhere to go when it isn't.** The photograph of the board is shown in the
+  publish dialog because a promise about what a redacted screenshot contains is
+  worth less than the screenshot — but nothing made you look at it. Publishing
+  now asks: read the picture, then switch on *"I've looked — nothing private is
+  readable in it"*. Until then the Publish button is off, and every retake asks
+  again, because the answer is about one particular image. If something of
+  yours **is** readable, the answer is not to publish it anyway: don't, and use
+  the report link beside the switch — it opens a pre-filled GitHub bug report,
+  because a picture that got past the blanking is a bug in the blanking and the
+  next person it happens to will not be looking.
+
+- **"Update" on your own gallery entry.** Opening a board you published now
+  offers, beside "Remove from the gallery", a button that opens the publish
+  dialog on the board this listing came from — so publishing again lands on the
+  entry rather than beside it, and you do not have to go and find the board
+  first. It switches to that board on the way, since publishing photographs the
+  board that is open. When this vault no longer has it — deleted, or this is
+  another vault holding the same key — the button is there but greyed out and
+  says why, rather than quietly making a second listing.
+
 ### Changed
 
 - **"Export dashboard" is now "Share dashboard",** with a switch at the top for
@@ -328,6 +349,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   plain switch at the top, on by default, on both sides.
 
 ### Fixed
+
+- **Publishing a board again now updates its picture in the gallery.** A
+  listing's picture lives at an address made only of the entry's id, and a
+  gallery serves it with a long cache lifetime because for one version of a
+  board it never changes — so republishing replaced the bytes behind an address
+  that hadn't, and everyone who had already looked (you included) went on
+  seeing the old picture for a day. Hearth now asks for the picture at an
+  address that carries the entry's last-updated stamp, so a republished board
+  is a new picture immediately; the bundled gallery server also stops telling
+  clients to hold on to a picture asked for without one.
 
 - **Publishing a board no longer edits the notes it photographs.** The picture
   taken at publish blanked the board by writing block characters over the page
