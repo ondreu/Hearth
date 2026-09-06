@@ -32,6 +32,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   still created and edited in TaskNotes, so Hearth reads their tags without
   writing them.
 
+  Like the date and priority marks, a tag is scraped out of the title rather
+  than left in it: a task reads as "Buy milk" and carries a small `#shopping`
+  chip beside its dates. With *Dates & priorities* off nothing is scraped and
+  tags stay part of the text, as before.
+
 - **The Filter button on the Kanban board.** The board now offers the same
   hover-revealed *Filter* control the list layout has, and honours the filter a
   card carries. Columns stay put and thin out, so a column emptied by a filter

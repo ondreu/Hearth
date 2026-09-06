@@ -124,6 +124,17 @@ export function stripInlineTags(text: string): string {
 }
 
 
+/** The line a newly created task starts as: the typed text, plus any tag from
+ * the Tags field it doesn't already carry. Only real `#hashtags` in the text
+ * count as tags it already carries — the words of the title are the title, not
+ * tags, which is why this reads the text with {@link inlineTags} and never with
+ * {@link parseTagInput} (that one is for the Tags field, where a bare word is a
+ * tag by definition). */
+export function withTypedTags(text: string, tags: string[]): string {
+	return applyInlineTags(text, [...inlineTags(text), ...tags]);
+}
+
+
 /** Rewrite a task line so its inline tags are exactly `tags`. A tag the line
  * already carries keeps its place — only the ones dropped by the edit are cut
  * and only the newly added ones are appended — so editing tags never reshuffles

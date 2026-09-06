@@ -121,6 +121,12 @@ new ones are appended. For a Kanban card that is a link to a note, the tags are
 that note's frontmatter `tags` instead, since that is where the card's other
 metadata lives too.
 
+Like the date and priority marks, a tag is *scraped* out of the title: the task
+reads as "Buy milk", not "Buy milk #shopping", and its tags show as their own
+small chips beside the date chips. With *Dates & priorities* off nothing is
+scraped, so tags stay part of the text exactly as you typed them — and are still
+offered in the filter.
+
 TaskNotes tasks are created and edited in TaskNotes itself, so Hearth reads
 their tags but doesn't write them.
 

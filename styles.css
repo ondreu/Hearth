@@ -7189,6 +7189,23 @@
 	color: var(--text-muted);
 }
 
+/* Tags scraped out of a task's line, shown beside its date chips. Quiet by
+ * default — a task can carry several and they must not outshout the title. */
+.hearth-task-tag {
+	flex-shrink: 0;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	line-height: 1.5;
+}
+
+.hearth-task.is-done .hearth-task-tag,
+.hearth-kanban-card.is-done .hearth-task-tag {
+	color: var(--text-faint);
+}
+
 /* The TaskNotes status chip in the list layout. Raw frontmatter values are
    usually lowercase ("open", "in-progress"), so capitalize them to read like a
    label rather than a field value. */

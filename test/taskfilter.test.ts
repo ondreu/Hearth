@@ -5,6 +5,7 @@ import {
 	formatTagInput,
 	parseTagInput,
 	stripInlineTags,
+	withTypedTags,
 	filterTagLabel,
 	inlineTags,
 	isTaskFilterActive,
@@ -93,6 +94,17 @@ describe("applyInlineTags", () => {
 	it("leaves a # that is not a tag alone", () => {
 		expect(applyInlineTags("Read example.com/p#top", ["work"])).toBe("Read example.com/p#top #work");
 		expect(applyInlineTags("Close #1", ["work"])).toBe("Close #1 #work");
+	});
+});
+
+describe("withTypedTags", () => {
+	it("never mistakes the words of a title for tags", () => {
+		expect(withTypedTags("Task name", ["tag"])).toBe("Task name #tag");
+		expect(withTypedTags("Buy milk and eggs", [])).toBe("Buy milk and eggs");
+	});
+
+	it("keeps a tag typed into the title and doesn't duplicate it", () => {
+		expect(withTypedTags("Task name #work", ["work", "home"])).toBe("Task name #work #home");
 	});
 });
 

@@ -66,6 +66,7 @@ import {
 	inlineTags,
 	parseTagInput,
 	stripInlineTags,
+	withTypedTags,
 	isTaskFilterActive,
 	normalizeFilterTag,
 	taskMatchesFilter,
@@ -983,7 +984,22 @@ function renderLegacyTaskFields(
 		renderTaskDateChip(hosts.meta, hit, id, today, "text");
 	}
 
+	// Tags scraped out of the title come back as chips, so nothing the line said
+	// is lost. Only where they were scraped: a plain-mode task keeps its tags in
+	// its text, and a TaskNotes task never had them there, so neither gets a
+	// second copy here.
+	if (taskMetaEnabled(cfg, hit)) renderTaskTagChips(hosts.meta, hit);
+
 	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description);
+}
+
+
+/** A task's tags as small chips (`#work`), in the order the line wrote them.
+ * Draws nothing when the task has none. */
+function renderTaskTagChips(host: HTMLElement, hit: TaskHit): void {
+	for (const tag of hit.tags ?? []) {
+		host.createDiv({ cls: "hearth-task-tag", text: `#${tag}` });
+	}
 }
 
 
@@ -2626,7 +2642,7 @@ function renderKanbanAddCard(
 						view,
 						cfg,
 						heading,
-						applyInlineTags(text, [...parseTagInput(text), ...(meta.tags ?? [])]) + buildMetadataSuffix(meta),
+						withTypedTags(text, meta.tags ?? []) + buildMetadataSuffix(meta),
 						opts.markDone,
 						doneDate,
 						body,
@@ -3143,7 +3159,10 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 			hits.push({
 				file,
 				line: i,
-				text: stripTaskMetadata(raw),
+				// Tags are managed metadata here (the Tags field edits them), so —
+				// like the emoji markers — they come out of the title and are shown
+				// as their own chips rather than left sitting in the text.
+				text: stripInlineTags(stripTaskMetadata(raw)),
 				done,
 				checkboxStatus: symbol,
 				due,
@@ -3604,7 +3623,7 @@ async function collectKanbanTasks(
 				doneDate = readEmojiDate(rawText, "✅") || null;
 				priority = readPriorityEmoji(rawText);
 				recurrence = readEmojiField(rawText, "🔁") ?? undefined;
-				text = stripTaskMetadata(rawText);
+				text = stripInlineTags(stripTaskMetadata(rawText));
 			}
 			// A card that is just a link to a note (as "Convert to note" produces)
 			// is treated as that note: metadata missing from the card is read from
