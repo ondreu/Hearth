@@ -113,6 +113,28 @@ Sorting is either a **smart chain** — due date, then scheduled date, then
 priority, then created date — or a custom multi-rule sort you define. Sorting is
 set per list and per Kanban column.
 
+**The Filter button** appears at the card's top-right on hover — in the list
+layout and on the Kanban board alike — and stays visible while a filter is set.
+It opens a dialog with quick presets (Overdue, Today, This week, High priority,
+No date) and these criteria, all combined with AND:
+
+| Criterion | Meaning |
+| --- | --- |
+| *Date* | Matches a task's due date or its scheduled date |
+| *Priority* | High / Medium / Low / None — pick any number |
+| *Status* | The task's status (TaskNotes) or board column (Kanban) |
+| *Contexts*, *Projects* | TaskNotes only, read from the task's frontmatter |
+| *Tags* | Any tag Hearth found on the card's tasks |
+| *Text contains* | A substring of the task's text |
+
+Picking several values in one row matches a task carrying **any** of them.
+Tags, contexts, projects and statuses are auto-detected from the tasks the card
+loaded, so you only ever see chips your own tasks actually use — TaskNotes tasks
+contribute the task note's own tags, and checkbox and Kanban tasks the hashtags
+written in the task line. On a Kanban board the filter thins the columns out
+rather than removing them, so an emptied column is still there to drag a card
+into.
+
 Other filters on the card:
 
 | Setting | Meaning |

@@ -3213,6 +3213,7 @@ export const zh: Translations = {
 			filterStatus: "状态",
 			filterContexts: "上下文",
 			filterProjects: "项目",
+			filterTags: "标签",
 			filterText: "文本包含",
 			filterTextPlaceholder: "搜索任务文本…",
 			filterApply: "应用",

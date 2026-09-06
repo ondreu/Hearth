@@ -3453,6 +3453,7 @@ export const en = {
 			filterStatus: "Status",
 			filterContexts: "Contexts",
 			filterProjects: "Projects",
+			filterTags: "Tags",
 			filterText: "Text contains",
 			filterTextPlaceholder: "Search task text…",
 			filterApply: "Apply",

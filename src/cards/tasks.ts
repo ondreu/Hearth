@@ -58,8 +58,10 @@ import {
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
+	filterHashtagLabel,
 	filterTagLabel,
 	hitStatusValue,
+	inlineTags,
 	isTaskFilterActive,
 	normalizeFilterTag,
 	taskMatchesFilter,
@@ -162,6 +164,10 @@ interface TaskHit {
 	contexts?: string[];
 	/** TaskNotes source: linked project names from frontmatter. */
 	projects?: string[];
+	/** Tags carried by the task, without their leading "#". TaskNotes reads the
+	 * task note's own tags (frontmatter and inline); checkbox and Kanban tasks
+	 * read the hashtags written in the task line itself. */
+	tags?: string[];
 }
 
 
@@ -234,6 +240,7 @@ interface TaskFilterChoices {
 	statuses: string[];
 	contexts: string[];
 	projects: string[];
+	tags: string[];
 }
 
 
@@ -1561,14 +1568,24 @@ function collectTaskFilterChoices(hits: TaskHit[], source: string): TaskFilterCh
 	const statuses: string[] = [];
 	const contexts: string[] = [];
 	const projects: string[] = [];
+	const tags: string[] = [];
 	const seenStatus = new Set<string>();
 	const seenContext = new Set<string>();
 	const seenProject = new Set<string>();
+	const seenTag = new Set<string>();
 	for (const hit of hits) {
 		const status = hitStatusValue(hit);
 		if (status && !seenStatus.has(status.toLowerCase())) {
 			seenStatus.add(status.toLowerCase());
 			statuses.push(status);
+		}
+		// Tags are offered for every source: each one carries them, whether in a
+		// task note's frontmatter or as a hashtag in the task line.
+		for (const tag of hit.tags ?? []) {
+			const key = normalizeFilterTag(tag);
+			if (!key || seenTag.has(key)) continue;
+			seenTag.add(key);
+			tags.push(tag);
 		}
 		if (source !== "tasknotes") continue;
 		for (const context of hit.contexts ?? []) {
@@ -1584,7 +1601,8 @@ function collectTaskFilterChoices(hits: TaskHit[], source: string): TaskFilterCh
 			projects.push(project);
 		}
 	}
-	return { source, statuses, contexts, projects };
+	tags.sort((a, b) => a.localeCompare(b));
+	return { source, statuses, contexts, projects, tags };
 }
 
 
@@ -1650,6 +1668,7 @@ class TaskFilterModal extends Modal {
 			priorities: [...(initial.priorities ?? [])],
 			contexts: [...(initial.contexts ?? [])],
 			projects: [...(initial.projects ?? [])],
+			tags: [...(initial.tags ?? [])],
 			due: initial.due,
 			text: initial.text,
 		};
@@ -1791,6 +1810,20 @@ class TaskFilterModal extends Modal {
 			}
 		}
 
+		// Tags present on the card's tasks. Offered for every source — TaskNotes
+		// reads the task note's tags, checkbox and Kanban tasks their inline
+		// hashtags.
+		const tags = this.chipOptions(this.filterChoices.tags, this.working.tags);
+		if (tags.length) {
+			const tagRow = new Setting(body).setName(labels.filterTags).setClass("hearth-taskfilter-row");
+			const tagHost = tagRow.controlEl.createDiv("hearth-taskfilter-chips");
+			for (const tag of tags) {
+				this.toggleTagChip(tagHost, tag, () => this.working.tags, (next) => {
+					this.working.tags = next;
+				}, filterHashtagLabel);
+			}
+		}
+
 		// Free-text substring.
 		new Setting(body).setName(labels.filterText).addText((txt) => {
 			txt.setPlaceholder(labels.filterTextPlaceholder).setValue(this.working.text ?? "");
@@ -1814,15 +1847,19 @@ class TaskFilterModal extends Modal {
 		return out;
 	}
 
-	/** Multi-select chip for TaskNotes contexts/projects (wikilink-aware match). */
+	/** Multi-select chip for a multi-valued dimension — TaskNotes contexts and
+	 * projects, or tags — matched wikilink- and "#"-insensitively. `labelOf`
+	 * picks how the value reads on the chip (a project shows its note name, a
+	 * tag its whole path). */
 	private toggleTagChip(
 		host: HTMLElement,
 		value: string,
 		read: () => string[] | undefined,
 		write: (next: string[] | undefined) => void,
+		labelOf: (value: string) => string = filterTagLabel,
 	): void {
-		const label = filterTagLabel(value);
-		const bare = value.trim().replace(/^\[\[/, "").replace(/\]\]$/, "").split("|")[0].trim();
+		const label = labelOf(value);
+		const bare = value.trim().replace(/^#/, "").replace(/^\[\[/, "").replace(/\]\]$/, "").split("|")[0].trim();
 		this.toggleChip(
 			host,
 			label,
@@ -1835,7 +1872,7 @@ class TaskFilterModal extends Modal {
 					: [...cur, value];
 				write(next.length ? next : undefined);
 			},
-			label !== bare ? bare : undefined,
+			label.replace(/^#/, "") !== bare ? bare : undefined,
 		);
 	}
 
@@ -1931,19 +1968,28 @@ async function loadAndRenderTasks(
 
 	sortTasks(hits, cfg);
 
-	if (cfg.layout === "kanban") {
-		// TaskNotes' quick-add sits top-right over the board; sorting is per
-		// column, handled inside renderTaskKanban.
-		if (source === "tasknotes") taskNotesAddButton(view, container.createDiv("hearth-tasks-head"));
-		renderTaskKanban(view, cfg, hits, container, refresh, boardColumns);
-		return;
-	}
-
 	const today: string = moment().format("YYYY-MM-DD");
 
 	// Distinct filter values present, offered as chips (computed from all hits
-	// so the choices don't shift as the filter narrows the list).
+	// so the choices don't shift as the filter narrows the list or the board).
 	const filterChoices = collectTaskFilterChoices(hits, source);
+
+	if (cfg.layout === "kanban") {
+		// The board filters the same way the list does — the columns stay, their
+		// cards thin out — so a filter set in one layout still means the same
+		// thing after switching to the other.
+		const cards = isTaskFilterActive(cfg.taskFilter)
+			? hits.filter((h) => taskMatchesFilter(asTaskFilterHit(h), cfg.taskFilter as TaskFilterConfig, today))
+			: hits;
+		// The filter control (and TaskNotes' quick-add) sit top-right over the
+		// board, revealed on hover — as they are in the list layout. Sorting is
+		// per column and handled inside renderTaskKanban.
+		const actions = resolveTaskActionsHost(view, container);
+		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
+		if (source === "tasknotes") taskNotesAddButton(view, actions);
+		renderTaskKanban(view, cfg, cards, container, refresh, boardColumns);
+		return;
+	}
 
 	// List layout: hide completed unless asked, apply any active filter, then cap.
 	let list = cfg.showCompleted ? hits : hits.filter((h) => !h.done);
@@ -3048,6 +3094,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 					start: null,
 					doneDate: null,
 					created: file.stat.ctime,
+					tags: inlineTags(raw),
 				});
 				return;
 			}
@@ -3074,6 +3121,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 				created: file.stat.ctime,
 				recurrence: readEmojiField(raw, "🔁") ?? undefined,
 				priority: readPriorityEmoji(raw),
+				tags: inlineTags(raw),
 			});
 		});
 	}
@@ -3188,7 +3236,29 @@ function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 		priority: hit.priority,
 		contexts: hit.contexts,
 		projects: hit.projects,
+		tags: hit.tags,
 	};
+}
+
+
+/** Every tag on a note — frontmatter and inline — without its leading "#".
+ * Used for the TaskNotes source, where a task is a note of its own. */
+function noteTagValues(app: App, file: TFile): string[] {
+	const cache = app.metadataCache.getFileCache(file);
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const add = (raw: unknown) => {
+		if (typeof raw !== "string") return;
+		const tag = raw.trim().replace(/^#/, "");
+		if (!tag || seen.has(tag.toLowerCase())) return;
+		seen.add(tag.toLowerCase());
+		out.push(tag);
+	};
+	for (const t of cache?.tags ?? []) add(t.tag);
+	const fmTags: unknown = cache?.frontmatter?.tags;
+	if (Array.isArray(fmTags)) for (const t of fmTags) add(t);
+	else if (typeof fmTags === "string") for (const t of fmTags.split(/[,\s]+/)) add(t);
+	return out;
 }
 
 
@@ -3204,6 +3274,14 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	// "canceled") overrides the single global done value; otherwise fall back to
 	// that global value alone.
 	const isDone = doneStatusMatcher(cfg, taskNotesDoneValue(s, cfg));
+	// Tags every task note carries by construction — TaskNotes' own "this is a
+	// task" tag and its archive tag — are dropped from a task's tag list: a chip
+	// that every task matches filters nothing and only crowds the row.
+	const structuralTags = new Set(
+		[setup.identify.tag, setup.fields.archiveTag]
+			.map((tag) => (tag ?? "").trim().replace(/^#/, "").toLowerCase())
+			.filter(Boolean),
+	);
 
 	const files = view.app.vault.getMarkdownFiles().filter((f) => inTaskScope(f.path, cfg));
 	const hits: TaskHit[] = [];
@@ -3231,6 +3309,7 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 		const priority = scalarField(fm[priorityField]);
 		const contexts = listField(fm[contextsField]);
 		const projects = listField(fm[projectsField]);
+		const tags = noteTagValues(view.app, file).filter((tag) => !structuralTags.has(tag.toLowerCase()));
 		// TaskNotes stores the recurrence rule in a "recurrence" frontmatter
 		// field (an RRULE like "FREQ=WEEKLY;INTERVAL=1" or "RRULE:FREQ=DAILY").
 		const recurrence = scalarField(fm["recurrence"]);
@@ -3256,6 +3335,7 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 			priority,
 			contexts,
 			projects,
+			tags,
 		});
 	}
 	return hits;
@@ -3478,6 +3558,10 @@ async function collectKanbanTasks(
 			// the note's frontmatter so it still shows and sorts, and "open note"
 			// opens the linked note.
 			const linkedFile = soleLinkedNote(view, extended ? text : stripTaskMetadata(rawText), file.path);
+			// A card's own hashtags, plus — for a card that is really a link to a
+			// note — that note's tags, so a converted card filters the same as the
+			// card it was before.
+			let tags = inlineTags(rawText);
 			let completeInstances: string[] | undefined;
 			if (extended && linkedFile) {
 				const fm = view.app.metadataCache.getFileCache(linkedFile)?.frontmatter;
@@ -3503,6 +3587,10 @@ async function collectKanbanTasks(
 					if (Array.isArray(ci)) completeInstances = ci.map((v) => String(v)).filter(Boolean);
 				}
 			}
+			if (linkedFile) {
+				const held = new Set(tags.map((tag) => tag.toLowerCase()));
+				tags = [...tags, ...noteTagValues(view.app, linkedFile).filter((tag) => !held.has(tag.toLowerCase()))];
+			}
 			hits.push({
 				file,
 				line: i,
@@ -3520,6 +3608,7 @@ async function collectKanbanTasks(
 				description: descLines.join("\n"),
 				linkedFile,
 				completeInstances,
+				tags,
 			});
 			i = end;
 		}
