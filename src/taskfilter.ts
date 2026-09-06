@@ -63,17 +63,88 @@ export function filterHashtagLabel(value: string): string {
 export function inlineTags(text: string): string[] {
 	const out: string[] = [];
 	const seen = new Set<string>();
-	const re = /(?:^|\s)#([\p{L}\p{N}_/-]+)/gu;
+	INLINE_TAG_RE.lastIndex = 0;
 	let m: RegExpExecArray | null;
-	while ((m = re.exec(text))) {
-		const tag = m[1].replace(/\/+$/, "");
-		if (!tag || !/[^\d/]/.test(tag)) continue;
+	while ((m = INLINE_TAG_RE.exec(text))) {
+		const tag = usableTag(m[2]);
+		if (!tag) continue;
 		const key = tag.toLowerCase();
 		if (seen.has(key)) continue;
 		seen.add(key);
 		out.push(tag);
 	}
 	return out;
+}
+
+
+/** The pattern one inline tag matches inside a task line. Shared by every
+ * routine that reads or rewrites tags so they can never disagree about where a
+ * tag starts and ends. */
+const INLINE_TAG_RE = /(^|\s)#([\p{L}\p{N}_/-]+)/gu;
+
+
+/** Whether a matched `#…` run is really a tag: it must survive trailing-slash
+ * trimming and hold at least one non-digit, so `#1` (an issue number) and `#/`
+ * are left alone — the same rule Obsidian applies. */
+function usableTag(raw: string): string | null {
+	const tag = raw.replace(/\/+$/, "");
+	return tag && /[^\d/]/.test(tag) ? tag : null;
+}
+
+
+/** Read a Tags field's free text (`#work, home  #work/urgent`) as a tag list,
+ * without the leading "#" and de-duplicated case-insensitively. */
+export function parseTagInput(value: string): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const raw of value.split(/[\s,]+/)) {
+		const tag = raw.trim().replace(/^#+/, "").replace(/\/+$/, "");
+		if (!tag || seen.has(tag.toLowerCase())) continue;
+		seen.add(tag.toLowerCase());
+		out.push(tag);
+	}
+	return out;
+}
+
+
+/** A tag list as the Tags field shows it: hashes on, space separated. */
+export function formatTagInput(tags: string[]): string {
+	return tags.map((tag) => `#${tag.replace(/^#/, "")}`).join(" ");
+}
+
+
+/** A task line with its inline tags removed. Used to compare a stored card
+ * against the line on disk without a tag edit reading as "someone else changed
+ * this card". */
+export function stripInlineTags(text: string): string {
+	return text
+		.replace(INLINE_TAG_RE, (whole, lead: string, tag: string) => (usableTag(tag) ? "" : whole))
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+
+/** Rewrite a task line so its inline tags are exactly `tags`. A tag the line
+ * already carries keeps its place — only the ones dropped by the edit are cut
+ * and only the newly added ones are appended — so editing tags never reshuffles
+ * a line the user wrote. */
+export function applyInlineTags(text: string, tags: string[]): string {
+	const wanted = new Map<string, string>();
+	for (const tag of tags) {
+		const clean = tag.trim().replace(/^#+/, "").replace(/\/+$/, "");
+		if (clean) wanted.set(clean.toLowerCase(), clean);
+	}
+	const held = new Set<string>();
+	const kept = text.replace(INLINE_TAG_RE, (whole, lead: string, raw: string) => {
+		const tag = usableTag(raw);
+		if (!tag) return whole;
+		const key = tag.toLowerCase();
+		if (!wanted.has(key)) return "";
+		held.add(key);
+		return whole;
+	});
+	const missing = [...wanted.entries()].filter(([key]) => !held.has(key)).map(([, tag]) => `#${tag}`);
+	return [kept.replace(/\s+/g, " ").trim(), ...missing].filter(Boolean).join(" ");
 }
 
 

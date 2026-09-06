@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	applyInlineTags,
 	filterHashtagLabel,
+	formatTagInput,
+	parseTagInput,
+	stripInlineTags,
 	filterTagLabel,
 	inlineTags,
 	isTaskFilterActive,
@@ -55,6 +59,48 @@ describe("inlineTags", () => {
 
 	it("de-duplicates case-insensitively, keeping the first spelling", () => {
 		expect(inlineTags("#Work and #work")).toEqual(["Work"]);
+	});
+});
+
+describe("parseTagInput / formatTagInput", () => {
+	it("reads a free-text tag field, hashes optional", () => {
+		expect(parseTagInput("#work, home  #work/urgent")).toEqual(["work", "home", "work/urgent"]);
+		expect(parseTagInput("   ")).toEqual([]);
+	});
+
+	it("de-duplicates case-insensitively and round-trips through the field", () => {
+		expect(parseTagInput("#Work work")).toEqual(["Work"]);
+		expect(formatTagInput(["work", "#home"])).toBe("#work #home");
+		expect(parseTagInput(formatTagInput(["work", "home/errands"]))).toEqual(["work", "home/errands"]);
+	});
+});
+
+describe("applyInlineTags", () => {
+	it("keeps a tag the line already carries where it is", () => {
+		expect(applyInlineTags("Buy #shopping milk", ["shopping"])).toBe("Buy #shopping milk");
+	});
+
+	it("cuts the tags the edit dropped and appends the new ones", () => {
+		expect(applyInlineTags("Buy #shopping milk", ["errands"])).toBe("Buy milk #errands");
+		expect(applyInlineTags("Buy milk", [])).toBe("Buy milk");
+		expect(applyInlineTags("Buy #a milk #b", ["b", "c"])).toBe("Buy milk #b #c");
+	});
+
+	it("treats an existing tag as held whatever its case", () => {
+		expect(applyInlineTags("Buy #Shopping milk", ["shopping"])).toBe("Buy #Shopping milk");
+	});
+
+	it("leaves a # that is not a tag alone", () => {
+		expect(applyInlineTags("Read example.com/p#top", ["work"])).toBe("Read example.com/p#top #work");
+		expect(applyInlineTags("Close #1", ["work"])).toBe("Close #1 #work");
+	});
+});
+
+describe("stripInlineTags", () => {
+	it("removes tags so a tag edit does not read as a foreign change", () => {
+		expect(stripInlineTags("Buy #shopping milk")).toBe("Buy milk");
+		expect(stripInlineTags("Buy milk")).toBe("Buy milk");
+		expect(stripInlineTags("Close #1")).toBe("Close #1");
 	});
 });
 

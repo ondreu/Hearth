@@ -3148,6 +3148,8 @@ export const zh: Translations = {
 			taskCount: (n: number) => `${n} 个任务`,
 			description: "描述",
 			descriptionPlaceholder: "备注…（纯文本）",
+			tags: "标签",
+			tagsPlaceholder: "#工作 #家庭/杂事",
 			renameColumnHint: "双击以重命名",
 			editTitle: "编辑标题",
 			editTitleHint: "双击以编辑",

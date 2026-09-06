@@ -58,10 +58,14 @@ import {
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
+	applyInlineTags,
 	filterHashtagLabel,
 	filterTagLabel,
+	formatTagInput,
 	hitStatusValue,
 	inlineTags,
+	parseTagInput,
+	stripInlineTags,
 	isTaskFilterActive,
 	normalizeFilterTag,
 	taskMatchesFilter,
@@ -601,6 +605,7 @@ async function writeTaskFieldValue(
 	if (builtin === "priority" && hit.line >= 0 && !hit.linkedFile) {
 		const meta: TaskMeta = {
 			priority: value ? priorityKey(value) : "",
+			tags: hit.tags ?? [],
 			recurrence: hit.recurrence ?? "",
 			start: hit.start ?? "",
 			scheduled: hit.scheduled ?? "",
@@ -614,6 +619,7 @@ async function writeTaskFieldValue(
 	if (builtin && isDateSource(source) && hit.line >= 0 && !hit.linkedFile) {
 		const meta: TaskMeta = {
 			priority: priorityKey(hit.priority ?? ""),
+			tags: hit.tags ?? [],
 			recurrence: hit.recurrence ?? "",
 			start: hit.start ?? "",
 			scheduled: hit.scheduled ?? "",
@@ -2616,7 +2622,15 @@ function renderKanbanAddCard(
 			// instead of an inline checkbox.
 			const add = asNote
 				? addKanbanCardAsNote(view, cfg, heading, text, meta, body, opts.markDone, doneDate)
-				: addKanbanCard(view, cfg, heading, text + buildMetadataSuffix(meta), opts.markDone, doneDate, body);
+				: addKanbanCard(
+						view,
+						cfg,
+						heading,
+						applyInlineTags(text, [...parseTagInput(text), ...(meta.tags ?? [])]) + buildMetadataSuffix(meta),
+						opts.markDone,
+						doneDate,
+						body,
+					);
 			void add.then((ok) => {
 				if (!ok) new Notice(t().notices.couldNotAddKanbanCard);
 				refresh();
@@ -2648,7 +2662,7 @@ function renderKanbanAddCard(
 
 /** An empty metadata set. */
 function emptyMeta(): TaskMeta {
-	return { priority: "", recurrence: "", start: "", scheduled: "", due: "" };
+	return { priority: "", tags: [], recurrence: "", start: "", scheduled: "", due: "" };
 }
 
 
@@ -2783,6 +2797,16 @@ function buildTaskDetailFields(
 	);
 	sync();
 
+	// Tags: free text, one field for the whole set (`#work #home`). Typed rather
+	// than picked from chips because a task's first use of a tag has to be
+	// possible — a picker could only ever offer tags that already exist.
+	const tagRow = row(t().cards.tasks.tags);
+	const tagInput = tagRow.createEl("input", {
+		cls: "hearth-taskdetail-input",
+		attr: { type: "text", placeholder: t().cards.tasks.tagsPlaceholder, "aria-label": t().cards.tasks.tags },
+	});
+	tagInput.value = formatTagInput(meta.tags ?? []);
+
 	// Description: plain multiline text, stored as sub-bullets under the card.
 	// Only offered where nested lines are a description (Kanban cards), not for
 	// plain checkboxes whose nested lines may be sub-tasks.
@@ -2802,6 +2826,7 @@ function buildTaskDetailFields(
 		return {
 			meta: {
 				priority: prio.value,
+				tags: parseTagInput(tagInput.value),
 				recurrence: repeating ? buildRecurrence(repeatUnit.value, parseInt(repeatInterval.value, 10)) : "",
 				start: repeating ? "" : start.value,
 				scheduled: scheduled.value,
@@ -2906,6 +2931,9 @@ class TaskDetailModal extends Modal {
 		if (editable) {
 			const current: TaskMeta = {
 				priority: priorityKey(hit.priority),
+				// A linked card's metadata (tags included) lives in its note's
+				// frontmatter, which is also where a save writes them back.
+				tags: linked && hit.linkedFile ? noteFrontmatterTags(view.app, hit.linkedFile) : (hit.tags ?? []),
 				recurrence: hit.recurrence ?? "",
 				start: hit.start ?? "",
 				scheduled: hit.scheduled ?? "",
@@ -2979,7 +3007,12 @@ class TaskDetailModal extends Modal {
 						const r = this.read?.();
 						const linkedDescArea = this.linkedDescArea;
 						const ownDescArea = this.descArea;
-						const newTitle = this.titleInput?.value.trim();
+						// The title write replaces the card's whole text, so the tags
+						// the metadata write just synced have to be carried into it —
+						// otherwise saving a new tag and a new title in one go would
+						// write the tag and then immediately overwrite it away.
+						const typed = this.titleInput?.value.trim();
+						const newTitle = typed && r ? applyInlineTags(typed, r.meta.tags ?? []) : typed;
 						void (async () => {
 							// Write metadata first (it also rewrites the description
 							// sub-bullets and preserves the card's current title), then the
@@ -3238,6 +3271,26 @@ function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 		projects: hit.projects,
 		tags: hit.tags,
 	};
+}
+
+
+/** Just a note's frontmatter tags, without their leading "#". This is the set
+ * the editor round-trips for a note-linked card: {@link writeMetadataFrontmatter}
+ * writes the whole `tags` key, so offering the note's body tags for editing
+ * would quietly hoist them into frontmatter on the next save. */
+function noteFrontmatterTags(app: App, file: TFile): string[] {
+	const raw: unknown = app.metadataCache.getFileCache(file)?.frontmatter?.tags;
+	const values = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[,\s]+/) : [];
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const value of values) {
+		if (typeof value !== "string") continue;
+		const tag = value.trim().replace(/^#/, "");
+		if (!tag || seen.has(tag.toLowerCase())) continue;
+		seen.add(tag.toLowerCase());
+		out.push(tag);
+	}
+	return out;
 }
 
 
@@ -3662,6 +3715,16 @@ function stripTaskMetadata(text: string): string {
 }
 
 
+/** Whether a line on disk is still the card we read, ignoring anything Hearth
+ * itself rewrites — the metadata markers and the inline tags. Both are edited
+ * through this card, so a change to either is ours, not a sign that the file
+ * moved on underneath us. */
+function sameCardLine(lineText: string, hitText: string): boolean {
+	const norm = (v: string) => stripInlineTags(stripTaskMetadata(v));
+	return norm(lineText) === norm(hitText);
+}
+
+
 /** Add or remove the Tasks-plugin done-date marker (✅ YYYY-MM-DD) on a card's
  * text: any existing ✅ field is dropped, then today's is appended when `done`.
  * Used to keep the completion date in sync as cards are checked/unchecked. */
@@ -3697,7 +3760,7 @@ async function setLineRecurringInstanceDone(
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const today: string = moment().format("YYYY-MM-DD");
 	const rule = hit.recurrence ?? readEmojiField(m[2], "🔁") ?? "";
 	// The reference date the recurrence advances: due first, then scheduled, then
@@ -3748,7 +3811,7 @@ async function setKanbanCardDone(
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const marker = cur
 		.slice(0, cur.length - m[2].length)
 		.replace(CHECKBOX_MARKER, (_x, pre: string, _s: string, post: string) => `${pre}${done ? "x" : " "}${post}`);
@@ -3776,7 +3839,7 @@ async function moveKanbanCard(
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
 	if (!m) return false; // line changed under us
-	if (stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!sameCardLine(m[2], hit.text)) return false;
 
 	// Capture the card block: the item line plus any deeper-indented, non-blank
 	// continuation lines (nested content that belongs to the card).
@@ -3886,7 +3949,7 @@ async function addKanbanCardAsNote(
 	const link = view.app.fileManager.generateMarkdownLink(note, board.path);
 	let cardBody = link;
 	if (!scrape) {
-		cardBody = `${link}${buildMetadataSuffix(meta)}`;
+		cardBody = `${applyInlineTags(link, meta.tags ?? [])}${buildMetadataSuffix(meta)}`;
 		if (markDone && doneDate) cardBody = withDoneDate(cardBody, true, doneDate);
 	}
 	const block = [`- [${markDone ? "x" : " "}] ${cardBody}`.trimEnd()];
@@ -3910,7 +3973,7 @@ async function markCardsDone(view: HomeView, hits: TaskHit[], doneDate?: string)
 		const line = lines[hit.line];
 		const m = line != null ? KANBAN_CARD_RE.exec(line) : null;
 		if (!m) continue;
-		if (stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) continue;
+		if (!sameCardLine(m[2], hit.text)) continue;
 		const marker = line
 			.slice(0, line.length - m[2].length)
 			.replace(CHECKBOX_MARKER, (_x, pre: string, _s: string, post: string) => `${pre}x${post}`);
@@ -3954,6 +4017,9 @@ function attachKanbanCardMenu(
 					.onClick(() => {
 						const current: TaskMeta = {
 							priority: priorityKey(hit.priority),
+							tags: hit.linkedFile
+								? noteFrontmatterTags(view.app, hit.linkedFile)
+								: (hit.tags ?? []),
 							recurrence: hit.recurrence ?? "",
 							start: hit.start ?? "",
 							scheduled: hit.scheduled ?? "",
@@ -4047,12 +4113,15 @@ async function setKanbanCardMetadata(
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	// Strip the managed markers (priority/recurrence/start/scheduled/due and
 	// their values) from the card text, leaving ✅/➕/❌ untouched, then re-append
 	// the new markers.
 	const managedRe = new RegExp(`[${MANAGED_EMOJI_CLASS}][^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
-	const base = m[2].replace(managedRe, "").replace(/\s+/g, " ").trim();
+	// Tags live in the line's text, not in a marker, so they're synced here:
+	// a tag the line already has keeps its place, one the edit dropped is cut,
+	// and a new one is appended before the metadata tail.
+	const base = applyInlineTags(m[2].replace(managedRe, "").replace(/\s+/g, " ").trim(), meta.tags ?? []);
 	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
 	const prefix = cur.slice(0, cur.length - m[2].length);
 	const newItem = `${prefix}${base}${buildMetadataSuffix(meta)}`.trimEnd();
@@ -4088,7 +4157,7 @@ async function setKanbanCardText(
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const clean = newText.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
 	if (!clean) return false; // never write a text-less card
 	const prefix = cur.slice(0, cur.length - m[2].length);
@@ -4131,7 +4200,7 @@ async function setKanbanCardDescription(
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
 	const { end } = cardBlockRange(lines, hit.line);
 	// Swap just the description sub-bullets (item line + 1 … block end) for the
@@ -4150,7 +4219,7 @@ async function deleteKanbanCard(view: HomeView, hit: TaskHit): Promise<boolean> 
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) return false;
+	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const indent = (/^(\s*)/.exec(cur)?.[1] ?? "").length;
 	let end = hit.line + 1;
 	while (end < lines.length) {
@@ -4450,6 +4519,10 @@ async function writeMetadataFrontmatter(view: HomeView, file: TFile, meta: TaskM
 				else delete fm[k];
 			};
 			set("priority", meta.priority);
+			// Tags are a list, not a scalar: write the whole set, or drop the key
+			// when the edit emptied it.
+			if (meta.tags?.length) fm["tags"] = [...meta.tags];
+			else delete fm["tags"];
 			set("recurrence", meta.recurrence.trim());
 			set("start", isDate(meta.start) ? meta.start : "");
 			set("scheduled", isDate(meta.scheduled) ? meta.scheduled : "");

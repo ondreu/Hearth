@@ -3388,6 +3388,8 @@ export const en = {
 			taskCount: (n: number) => (n === 1 ? "1 task" : `${n} tasks`),
 			description: "Description",
 			descriptionPlaceholder: "Notes… (plain text)",
+			tags: "Tags",
+			tagsPlaceholder: "#work #home/errands",
 			renameColumnHint: "Double-click to rename",
 			editTitle: "Edit title",
 			editTitleHint: "Double-click to edit",

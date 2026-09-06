@@ -185,6 +185,9 @@ export interface TemplaterConfig {
  * `recurrence` is the raw text written after 🔁 (e.g. "every week") or "". */
 export interface TaskMeta {
 	priority: string;
+	/** Inline tags on the task, without their leading "#". Written into the task
+	 * line as `#tag` tokens, or into a linked note's frontmatter `tags`. */
+	tags: string[];
 	recurrence: string;
 	start: string;
 	scheduled: string;

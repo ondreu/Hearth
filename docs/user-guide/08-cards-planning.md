@@ -107,6 +107,23 @@ accepts natural-language input when you edit a date (`📅 in 3 days`), and
 handles per-occurrence completion for recurring tasks — completing one
 occurrence of a repeating task leaves the series intact.
 
+### Tags
+
+With *Dates & priorities* on, the task editor — the quick view, the right-click
+**Edit details**, and the Kanban **+ Add card** form — carries a **Tags** field.
+Type them space- or comma-separated, with or without the `#`: `#work
+home/errands`.
+
+Tags are written as plain `#tag` text in the task's own line, so they stay
+readable in the note and to every other plugin. A tag the line already carries
+keeps its place in the sentence; only the ones you removed are cut and only the
+new ones are appended. For a Kanban card that is a link to a note, the tags are
+that note's frontmatter `tags` instead, since that is where the card's other
+metadata lives too.
+
+TaskNotes tasks are created and edited in TaskNotes itself, so Hearth reads
+their tags but doesn't write them.
+
 ### Sorting and filtering
 
 Sorting is either a **smart chain** — due date, then scheduled date, then

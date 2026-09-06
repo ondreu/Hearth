@@ -23,6 +23,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   task" and archive tags are left out, since every task carries them and a chip
   every task matches filters nothing.
 
+- **Tags in the task editor.** The quick view, *Edit details* and the Kanban
+  *+ Add card* form gain a **Tags** field (with *Dates & priorities* on), typed
+  space- or comma-separated with the `#` optional. Tags are written as plain
+  `#tag` text in the task line — a tag already there keeps its place, only the
+  ones you removed are cut and only the new ones appended — or, for a card that
+  is a link to a note, into that note's frontmatter `tags`. TaskNotes tasks are
+  still created and edited in TaskNotes, so Hearth reads their tags without
+  writing them.
+
 - **The Filter button on the Kanban board.** The board now offers the same
   hover-revealed *Filter* control the list layout has, and honours the filter a
   card carries. Columns stay put and thin out, so a column emptied by a filter
