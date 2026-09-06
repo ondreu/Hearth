@@ -107,11 +107,56 @@ accepts natural-language input when you edit a date (`📅 in 3 days`), and
 handles per-occurrence completion for recurring tasks — completing one
 occurrence of a repeating task leaves the series intact.
 
+### Tags
+
+With *Dates & priorities* on, the task editor — the quick view, the right-click
+**Edit details**, and the Kanban **+ Add card** form — carries a **Tags** field.
+Type them space- or comma-separated, with or without the `#`: `#work
+home/errands`.
+
+Tags are written as plain `#tag` text in the task's own line, so they stay
+readable in the note and to every other plugin. A tag the line already carries
+keeps its place in the sentence; only the ones you removed are cut and only the
+new ones are appended. For a Kanban card that is a link to a note, the tags are
+that note's frontmatter `tags` instead, since that is where the card's other
+metadata lives too.
+
+Like the date and priority marks, a tag is *scraped* out of the title: the task
+reads as "Buy milk", not "Buy milk #shopping", and its tags show as their own
+small chips beside the date chips. With *Dates & priorities* off nothing is
+scraped, so tags stay part of the text exactly as you typed them — and are still
+offered in the filter.
+
+TaskNotes tasks are created and edited in TaskNotes itself, so Hearth reads
+their tags but doesn't write them.
+
 ### Sorting and filtering
 
 Sorting is either a **smart chain** — due date, then scheduled date, then
 priority, then created date — or a custom multi-rule sort you define. Sorting is
 set per list and per Kanban column.
+
+**The Filter button** appears at the card's top-right on hover — in the list
+layout and on the Kanban board alike — and stays visible while a filter is set.
+It opens a dialog with quick presets (Overdue, Today, This week, High priority,
+No date) and these criteria, all combined with AND:
+
+| Criterion | Meaning |
+| --- | --- |
+| *Date* | Matches a task's due date or its scheduled date |
+| *Priority* | High / Medium / Low / None — pick any number |
+| *Status* | The task's status (TaskNotes) or board column (Kanban) |
+| *Contexts*, *Projects* | TaskNotes only, read from the task's frontmatter |
+| *Tags* | Any tag Hearth found on the card's tasks |
+| *Text contains* | A substring of the task's text |
+
+Picking several values in one row matches a task carrying **any** of them.
+Tags, contexts, projects and statuses are auto-detected from the tasks the card
+loaded, so you only ever see chips your own tasks actually use — TaskNotes tasks
+contribute the task note's own tags, and checkbox and Kanban tasks the hashtags
+written in the task line. On a Kanban board the filter thins the columns out
+rather than removing them, so an emptied column is still there to drag a card
+into.
 
 Other filters on the card:
 

@@ -15,12 +15,16 @@ export interface TaskFilterHit {
 	priority?: string;
 	contexts?: string[];
 	projects?: string[];
+	tags?: string[];
 }
 
-/** Strip wikilink brackets and an optional display alias (`[[path|Alias]]`). */
+/** Strip wikilink brackets, a leading "#", and an optional display alias
+ * (`[[path|Alias]]`). The hash goes so a chip built from `#work` still matches
+ * a value stored as `work` — the two are the same tag written two ways. */
 function bareFilterTag(value: string): string {
 	return value
 		.trim()
+		.replace(/^#/, "")
 		.replace(/^\[\[/, "")
 		.replace(/\]\]$/, "")
 		.split("|")[0]
@@ -41,6 +45,119 @@ export function filterTagLabel(value: string): string {
 	const slash = bare.lastIndexOf("/");
 	return slash >= 0 ? bare.slice(slash + 1) : bare;
 }
+
+/** A chip label for a tag: the whole tag with its "#" back on. Unlike a
+ * context or project, a nested tag's leading segments carry meaning
+ * (`#work/urgent` is not `#home/urgent`), so nothing is trimmed away. */
+export function filterHashtagLabel(value: string): string {
+	return `#${bareFilterTag(value)}`;
+}
+
+
+/** Inline hashtags written in a task's own line (`#work`, `#work/urgent`), in
+ * order and without their leading "#". A tag has to start at the line's start or
+ * after whitespace, so a URL fragment (`…/page#top`) and a Markdown heading
+ * inside a description are not mistaken for one, and it must hold at least one
+ * non-digit — `#1` is an issue number, not a tag, which is the same rule
+ * Obsidian applies. */
+export function inlineTags(text: string): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	INLINE_TAG_RE.lastIndex = 0;
+	let m: RegExpExecArray | null;
+	while ((m = INLINE_TAG_RE.exec(text))) {
+		const tag = usableTag(m[2]);
+		if (!tag) continue;
+		const key = tag.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		out.push(tag);
+	}
+	return out;
+}
+
+
+/** The pattern one inline tag matches inside a task line. Shared by every
+ * routine that reads or rewrites tags so they can never disagree about where a
+ * tag starts and ends. */
+const INLINE_TAG_RE = /(^|\s)#([\p{L}\p{N}_/-]+)/gu;
+
+
+/** Whether a matched `#…` run is really a tag: it must survive trailing-slash
+ * trimming and hold at least one non-digit, so `#1` (an issue number) and `#/`
+ * are left alone — the same rule Obsidian applies. */
+function usableTag(raw: string): string | null {
+	const tag = raw.replace(/\/+$/, "");
+	return tag && /[^\d/]/.test(tag) ? tag : null;
+}
+
+
+/** Read a Tags field's free text (`#work, home  #work/urgent`) as a tag list,
+ * without the leading "#" and de-duplicated case-insensitively. */
+export function parseTagInput(value: string): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const raw of value.split(/[\s,]+/)) {
+		const tag = raw.trim().replace(/^#+/, "").replace(/\/+$/, "");
+		if (!tag || seen.has(tag.toLowerCase())) continue;
+		seen.add(tag.toLowerCase());
+		out.push(tag);
+	}
+	return out;
+}
+
+
+/** A tag list as the Tags field shows it: hashes on, space separated. */
+export function formatTagInput(tags: string[]): string {
+	return tags.map((tag) => `#${tag.replace(/^#/, "")}`).join(" ");
+}
+
+
+/** A task line with its inline tags removed. Used to compare a stored card
+ * against the line on disk without a tag edit reading as "someone else changed
+ * this card". */
+export function stripInlineTags(text: string): string {
+	return text
+		.replace(INLINE_TAG_RE, (whole, lead: string, tag: string) => (usableTag(tag) ? "" : whole))
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+
+/** The line a newly created task starts as: the typed text, plus any tag from
+ * the Tags field it doesn't already carry. Only real `#hashtags` in the text
+ * count as tags it already carries — the words of the title are the title, not
+ * tags, which is why this reads the text with {@link inlineTags} and never with
+ * {@link parseTagInput} (that one is for the Tags field, where a bare word is a
+ * tag by definition). */
+export function withTypedTags(text: string, tags: string[]): string {
+	return applyInlineTags(text, [...inlineTags(text), ...tags]);
+}
+
+
+/** Rewrite a task line so its inline tags are exactly `tags`. A tag the line
+ * already carries keeps its place — only the ones dropped by the edit are cut
+ * and only the newly added ones are appended — so editing tags never reshuffles
+ * a line the user wrote. */
+export function applyInlineTags(text: string, tags: string[]): string {
+	const wanted = new Map<string, string>();
+	for (const tag of tags) {
+		const clean = tag.trim().replace(/^#+/, "").replace(/\/+$/, "");
+		if (clean) wanted.set(clean.toLowerCase(), clean);
+	}
+	const held = new Set<string>();
+	const kept = text.replace(INLINE_TAG_RE, (whole, lead: string, raw: string) => {
+		const tag = usableTag(raw);
+		if (!tag) return whole;
+		const key = tag.toLowerCase();
+		if (!wanted.has(key)) return "";
+		held.add(key);
+		return whole;
+	});
+	const missing = [...wanted.entries()].filter(([key]) => !held.has(key)).map(([, tag]) => `#${tag}`);
+	return [kept.replace(/\s+/g, " ").trim(), ...missing].filter(Boolean).join(" ");
+}
+
 
 export function hitStatusValue(hit: Pick<TaskFilterHit, "status" | "boardColumn">): string | null {
 	return hit.status ?? hit.boardColumn ?? null;
@@ -69,6 +186,7 @@ export function isTaskFilterActive(f: TaskFilterConfig | undefined): boolean {
 		f.priorities?.length ||
 		f.contexts?.length ||
 		f.projects?.length ||
+		f.tags?.length ||
 		f.due ||
 		(f.text && f.text.trim())
 	);
@@ -94,7 +212,8 @@ function taskMatchesDue(hit: TaskFilterHit, due: TaskDueFilter, today: string): 
 }
 
 /** True when the task carries at least one of the selected tags (OR within the
- * dimension). Used for TaskNotes contexts and projects, which are multi-valued. */
+ * dimension). Used for TaskNotes contexts and projects and for tags, all of
+ * which are multi-valued. */
 function tagListMatches(selected: string[], values: string[] | undefined): boolean {
 	if (!selected.length) return true;
 	const held = new Set((values ?? []).map(normalizeFilterTag));
@@ -110,6 +229,7 @@ export function taskMatchesFilter(hit: TaskFilterHit, f: TaskFilterConfig, today
 	if (f.priorities?.length && !f.priorities.includes(hitPriorityLevel(hit))) return false;
 	if (f.contexts?.length && !tagListMatches(f.contexts, hit.contexts)) return false;
 	if (f.projects?.length && !tagListMatches(f.projects, hit.projects)) return false;
+	if (f.tags?.length && !tagListMatches(f.tags, hit.tags)) return false;
 	if (f.due && !taskMatchesDue(hit, f.due, today)) return false;
 	if (f.text?.trim()) {
 		const needle = f.text.trim().toLowerCase();
