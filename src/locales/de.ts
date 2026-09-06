@@ -14,6 +14,10 @@ import type { Translations } from "./index";
  * Einheit auf „e“, wird ein „n“ angehängt, sonst ein „e“.
  */
 const pluralUnit = (unit: string) => (unit.endsWith("e") ? `${unit}n` : `${unit}e`);
+// „jeden Tag“, „jede Woche“, „jedes Jahr“ - der Artikel richtet sich nach dem Genus
+// der Einheit, das aus dem Wort allein nicht ableitbar ist.
+const everyUnit = (unit: string) =>
+	({ Woche: "jede", Jahr: "jedes" } as Record<string, string>)[unit] ?? "jeden";
 
 export const de: Translations = {
 	// ---- Befehle (Befehlspalette) und Menüband ---------------------------
@@ -1917,11 +1921,11 @@ export const de: Translations = {
 			chipPriority: "Priorität",
 			chipPriorityDesc: "Die TaskNotes-Priorität einer Aufgabe, z. B. „Hoch“.",
 			chipDue: "Fälligkeitsmarkierung",
-			chipDueDesc: "Das „Due“-Abzeichen an einem Eintrag mit Fälligkeitsdatum.",
+			chipDueDesc: "Das „Fällig“-Abzeichen an einem Eintrag mit Fälligkeitsdatum.",
 			chipRecurring: "Wiederholungsmarkierung",
-			chipRecurringDesc: "Das „Recurring“-Abzeichen an einer sich wiederholenden Aufgabe.",
+			chipRecurringDesc: "Das „Wiederkehrend“-Abzeichen an einer sich wiederholenden Aufgabe.",
 			chipTimeblock: "Timeblock-Markierung",
-			chipTimeblockDesc: "Das „Timeblock“-Abzeichen an einem Timeblock.",
+			chipTimeblockDesc: "Das „Zeitblock“-Abzeichen an einem Timeblock.",
 			taskNotesHeading: "TaskNotes",
 			taskNotesDesc:
 				"Nutze TaskNotes als Terminquelle. Die Karte spiegelt, was der eigene Kalender von TaskNotes zeigt - geplante Aufgaben, Fälligkeitsdaten, wiederkehrende Vorkommen, Timeblocks und die in TaskNotes abonnierten Kalender - mit den eigenen Feldnamen, Status und Farben von TaskNotes.",
@@ -2256,8 +2260,8 @@ export const de: Translations = {
 				"Alles innerhalb der Vorlage selbst - <% tp.* %>, deine Userskripte, tp.system.prompt() - gehört Templater " +
 				"und läuft genau wie über Templaters Befehl.",
 			tokensHelpScoped: (folder: string) =>
-				`Die Auswahl listet die Vorlagen in „${folder}“, Templaters eigenem Vorlagen- ` +
-				"ordner. Dateinamen dürfen {{date}}, {{date:YYYY-MM}}, {{time}}, " +
+				`Die Auswahl listet die Vorlagen in „${folder}“, Templaters eigenem ` +
+				"Vorlagenordner. Dateinamen dürfen {{date}}, {{date:YYYY-MM}}, {{time}}, " +
 				"{{time:HH-mm}} und {{prompt}} nutzen, das dich vor dem Erstellen der Notiz nach dem Rest des Namens fragt. " +
 				"Alles innerhalb der Vorlage selbst - " +
 				"<% tp.* %>, deine Userskripte, tp.system.prompt() - gehört Templater " +
@@ -2373,7 +2377,7 @@ export const de: Translations = {
 			fieldDisplayDesc:
 				"Wie die Werte dieses Felds gezeichnet werden. Die letzten beiden zeigen nichts auf der " +
 				"Aufgabe und färben stattdessen die ganze Zeile oder Karte, und nur ein Feld kann " +
-				"sie verwenden. „Farbpunkt mit Label“ ist die eigene Form der Priorität und wird " +
+				"sie verwenden. „Farbiger Punkt mit Label“ ist die eigene Form der Priorität und wird " +
 				"Feldern angeboten, die eine lesen. Eine Beschreibung ist immer ein eigener Block " +
 				"aus Unterpunkten.",
 			fieldAmbientTaken: (name: string) =>
@@ -3480,7 +3484,7 @@ export const de: Translations = {
 			month: "Monat",
 			year: "Jahr",
 		},
-		everyOne: (unit: string) => `Wiederholt sich pro ${unit}`,
+		everyOne: (unit: string) => `Wiederholt sich ${everyUnit(unit)} ${unit}`,
 		everyMany: (count: number, unit: string) =>
 			`Wiederholt sich alle ${count} ${pluralUnit(unit)}`,
 	},
@@ -4057,7 +4061,7 @@ export const de: Translations = {
 			noHost:
 				"Keine Galerie eingerichtet. Trage eine Galerieadresse in Hearths Einstellungen ein, unter Dashboard-Galerie.",
 			externalCallsOff:
-				"Die Galerie ist ein Server im Internet, und dieser Vault hat \u201cExterne Aufrufe deaktivieren\u201d eingeschaltet. Schalte das aus, um zu stöbern oder zu veröffentlichen.",
+				"Die Galerie ist ein Server im Internet, und dieser Vault hat \u201eExterne Aufrufe deaktivieren\u201c eingeschaltet. Schalte das aus, um zu stöbern oder zu veröffentlichen.",
 			offline: "Die Galerie war nicht erreichbar. Sie ist vielleicht ausgefallen, oder dieses Gerät ist offline.",
 			badResponse: "Diese Adresse hat geantwortet, aber nicht wie eine Hearth-Galerie.",
 			unauthorized: "Die Galerie hat die Identität dieses Vaults nicht akzeptiert.",
