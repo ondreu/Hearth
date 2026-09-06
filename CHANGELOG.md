@@ -13,7 +13,35 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ## [3.1.1]
 
-Nothing yet — this line is open for the next cycle's work.
+### Added
+
+- **Filter tasks by tag.** *Filter tasks* gains a Tags row, built from the tags
+  the card's own tasks carry — a TaskNotes task note's tags (frontmatter and
+  inline), and the hashtags written in a checkbox or Kanban card's line. Pick
+  several to match a task carrying any of them; the row combines with the other
+  criteria the way Contexts and Projects already do. TaskNotes' own "this is a
+  task" and archive tags are left out, since every task carries them and a chip
+  every task matches filters nothing.
+
+- **Tags in the task editor.** The quick view, *Edit details* and the Kanban
+  *+ Add card* form gain a **Tags** field (with *Dates & priorities* on), typed
+  space- or comma-separated with the `#` optional. Tags are written as plain
+  `#tag` text in the task line — a tag already there keeps its place, only the
+  ones you removed are cut and only the new ones appended — or, for a card that
+  is a link to a note, into that note's frontmatter `tags`. TaskNotes tasks are
+  still created and edited in TaskNotes, so Hearth reads their tags without
+  writing them.
+
+  Like the date and priority marks, a tag is scraped out of the title rather
+  than left in it: a task reads as "Buy milk" and carries a small `#shopping`
+  chip beside its dates. With *Dates & priorities* off nothing is scraped and
+  tags stay part of the text, as before.
+
+- **The Filter button on the Kanban board.** The board now offers the same
+  hover-revealed *Filter* control the list layout has, and honours the filter a
+  card carries. Columns stay put and thin out, so a column emptied by a filter
+  is still there to drag a card into — and a filter set in one layout means the
+  same thing after switching to the other.
 
 ## [3.1.0]
 

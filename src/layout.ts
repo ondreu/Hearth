@@ -825,6 +825,8 @@ function sanitizeTaskFilter(value: unknown): TaskFilterConfig | undefined {
 	if (contexts) cfg.contexts = contexts;
 	const projects = strArray(r.projects);
 	if (projects) cfg.projects = projects;
+	const tags = strArray(r.tags);
+	if (tags) cfg.tags = tags;
 	const text = str(r.text);
 	if (text !== undefined) cfg.text = text;
 	return cfg;

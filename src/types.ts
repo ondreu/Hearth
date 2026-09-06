@@ -185,6 +185,9 @@ export interface TemplaterConfig {
  * `recurrence` is the raw text written after 🔁 (e.g. "every week") or "". */
 export interface TaskMeta {
 	priority: string;
+	/** Inline tags on the task, without their leading "#". Written into the task
+	 * line as `#tag` tokens, or into a linked note's frontmatter `tags`. */
+	tags: string[];
 	recurrence: string;
 	start: string;
 	scheduled: string;
@@ -228,6 +231,11 @@ export interface TaskFilterConfig {
 	/** TaskNotes only: task must carry at least one of these projects
 	 * (case-insensitive; wikilink brackets ignored). */
 	projects?: string[];
+	/** Task must carry at least one of these tags (case-insensitive; a leading
+	 * "#" is ignored, so "#work" and "work" are the same tag). Tags come from
+	 * the task note's frontmatter/body for TaskNotes and from inline hashtags in
+	 * the line for checkbox and Kanban tasks. */
+	tags?: string[];
 	/** A due-date constraint (see {@link TaskDueFilter}). */
 	due?: TaskDueFilter;
 	/** Case-insensitive substring the task text must contain. */

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+	applyInlineTags,
+	filterHashtagLabel,
+	formatTagInput,
+	parseTagInput,
+	stripInlineTags,
+	withTypedTags,
 	filterTagLabel,
+	inlineTags,
 	isTaskFilterActive,
 	normalizeFilterTag,
 	taskMatchesFilter,
@@ -33,10 +40,88 @@ describe("normalizeFilterTag", () => {
 	});
 });
 
+describe("filterHashtagLabel", () => {
+	it("keeps a nested tag whole and puts the # back", () => {
+		expect(filterHashtagLabel("work/urgent")).toBe("#work/urgent");
+		expect(filterHashtagLabel("#Work")).toBe("#Work");
+	});
+});
+
+describe("inlineTags", () => {
+	it("reads hashtags written in a task line, without their #", () => {
+		expect(inlineTags("Write report #work #work/urgent")).toEqual(["work", "work/urgent"]);
+	});
+
+	it("ignores a # that is not a tag", () => {
+		expect(inlineTags("See https://example.com/page#top")).toEqual([]);
+		expect(inlineTags("Close issue #1")).toEqual([]);
+		expect(inlineTags("a#b")).toEqual([]);
+	});
+
+	it("de-duplicates case-insensitively, keeping the first spelling", () => {
+		expect(inlineTags("#Work and #work")).toEqual(["Work"]);
+	});
+});
+
+describe("parseTagInput / formatTagInput", () => {
+	it("reads a free-text tag field, hashes optional", () => {
+		expect(parseTagInput("#work, home  #work/urgent")).toEqual(["work", "home", "work/urgent"]);
+		expect(parseTagInput("   ")).toEqual([]);
+	});
+
+	it("de-duplicates case-insensitively and round-trips through the field", () => {
+		expect(parseTagInput("#Work work")).toEqual(["Work"]);
+		expect(formatTagInput(["work", "#home"])).toBe("#work #home");
+		expect(parseTagInput(formatTagInput(["work", "home/errands"]))).toEqual(["work", "home/errands"]);
+	});
+});
+
+describe("applyInlineTags", () => {
+	it("keeps a tag the line already carries where it is", () => {
+		expect(applyInlineTags("Buy #shopping milk", ["shopping"])).toBe("Buy #shopping milk");
+	});
+
+	it("cuts the tags the edit dropped and appends the new ones", () => {
+		expect(applyInlineTags("Buy #shopping milk", ["errands"])).toBe("Buy milk #errands");
+		expect(applyInlineTags("Buy milk", [])).toBe("Buy milk");
+		expect(applyInlineTags("Buy #a milk #b", ["b", "c"])).toBe("Buy milk #b #c");
+	});
+
+	it("treats an existing tag as held whatever its case", () => {
+		expect(applyInlineTags("Buy #Shopping milk", ["shopping"])).toBe("Buy #Shopping milk");
+	});
+
+	it("leaves a # that is not a tag alone", () => {
+		expect(applyInlineTags("Read example.com/p#top", ["work"])).toBe("Read example.com/p#top #work");
+		expect(applyInlineTags("Close #1", ["work"])).toBe("Close #1 #work");
+	});
+});
+
+describe("withTypedTags", () => {
+	it("never mistakes the words of a title for tags", () => {
+		expect(withTypedTags("Task name", ["tag"])).toBe("Task name #tag");
+		expect(withTypedTags("Buy milk and eggs", [])).toBe("Buy milk and eggs");
+	});
+
+	it("keeps a tag typed into the title and doesn't duplicate it", () => {
+		expect(withTypedTags("Task name #work", ["work", "home"])).toBe("Task name #work #home");
+	});
+});
+
+describe("stripInlineTags", () => {
+	it("removes tags so a tag edit does not read as a foreign change", () => {
+		expect(stripInlineTags("Buy #shopping milk")).toBe("Buy milk");
+		expect(stripInlineTags("Buy milk")).toBe("Buy milk");
+		expect(stripInlineTags("Close #1")).toBe("Close #1");
+	});
+});
+
 describe("isTaskFilterActive", () => {
-	it("treats contexts and projects as active constraints", () => {
+	it("treats contexts, projects and tags as active constraints", () => {
 		expect(isTaskFilterActive({ contexts: ["home"] })).toBe(true);
 		expect(isTaskFilterActive({ projects: ["[[Alpha]]"] })).toBe(true);
+		expect(isTaskFilterActive({ tags: ["work"] })).toBe(true);
+		expect(isTaskFilterActive({ tags: [] })).toBe(false);
 		expect(isTaskFilterActive({})).toBe(false);
 	});
 });
@@ -48,6 +133,21 @@ describe("taskMatchesFilter", () => {
 		const filter: TaskFilterConfig = { contexts: ["home", "work"] };
 		expect(taskMatchesFilter(hit({ contexts: ["home"] }), filter, today)).toBe(true);
 		expect(taskMatchesFilter(hit({ contexts: ["errands"] }), filter, today)).toBe(false);
+	});
+
+	it("matches tags with OR semantics, ignoring a leading # and case", () => {
+		const filter: TaskFilterConfig = { tags: ["#Work", "errands"] };
+		expect(taskMatchesFilter(hit({ tags: ["work"] }), filter, today)).toBe(true);
+		expect(taskMatchesFilter(hit({ tags: ["#errands"] }), filter, today)).toBe(true);
+		expect(taskMatchesFilter(hit({ tags: ["work/urgent"] }), filter, today)).toBe(false);
+		expect(taskMatchesFilter(hit({ tags: [] }), filter, today)).toBe(false);
+		expect(taskMatchesFilter(hit(), filter, today)).toBe(false);
+	});
+
+	it("ANDs tags with the other dimensions", () => {
+		const filter: TaskFilterConfig = { tags: ["work"], priorities: ["high"] };
+		expect(taskMatchesFilter(hit({ tags: ["work"], priority: "high" }), filter, today)).toBe(true);
+		expect(taskMatchesFilter(hit({ tags: ["work"], priority: "low" }), filter, today)).toBe(false);
 	});
 
 	it("matches TaskNotes projects with wikilink normalization", () => {
