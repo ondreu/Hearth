@@ -9,6 +9,7 @@ truth; every other locale is type-checked against it.
 | Code | Language | File |
 | --- | --- | --- |
 | `en` | English (source of truth) | [`en.ts`](en.ts) |
+| `de` | German — Deutsch | [`de.ts`](de.ts) |
 | `zh` | Simplified Chinese — 简体中文 | [`zh.ts`](zh.ts) |
 
 ## How it works
