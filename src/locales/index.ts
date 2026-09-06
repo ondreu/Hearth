@@ -1,3 +1,4 @@
+import { de } from "./de";
 import { en } from "./en";
 import { zh } from "./zh";
 
@@ -18,5 +19,6 @@ export type Translations = typeof en;
  */
 export const LOCALES: Record<string, Translations> = {
 	en,
+	de,
 	zh,
 };
