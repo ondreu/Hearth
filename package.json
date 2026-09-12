@@ -32,8 +32,8 @@
 		"obsidian": "latest",
 		"tslib": "^2.6.2",
 		"typescript": "^5.4.0",
-		"typescript-eslint": "^8.63.0",
-		"vitest": "^4.1.11"
+		"typescript-eslint": "^8.70.0",
+		"vitest": "^5.0.0"
 	},
 	"dependencies": {
 		"@noble/ed25519": "^3.2.0",
