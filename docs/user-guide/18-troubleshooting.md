@@ -96,6 +96,9 @@ set of these messages, and what each means:
 | --- | --- |
 | *Install the Excalidraw plugin to embed drawings* | Install and enable Excalidraw |
 | *Install the Periodic Notes plugin* | Install and enable Periodic Notes |
+| *Install the Journals plugin* | Install and enable Journals |
+| *Choose a journal in this card's settings* | Journals is there, but the card doesn't follow one yet |
+| *No journal named "…"* | The journal was renamed or deleted in Journals; pick it again in the card's settings |
 | *Enable the Templater plugin to create notes from templates* | Install and enable Templater. The card keeps its configuration meanwhile |
 | *Enable the Dataview plugin to run queries* | Install and enable Dataview |
 | *Enable the Datacore plugin to run queries* | Install and enable Datacore |

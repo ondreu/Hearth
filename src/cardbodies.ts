@@ -163,6 +163,39 @@ export function resetCardBody(body: HTMLElement, baseClasses: string): void {
 }
 
 
+/** Each mounted card body's full redraw, registered by `mountCardBody`. */
+const CARD_REDRAWS = new WeakMap<HTMLElement, () => void>();
+
+/** Record how to redraw this body. Called once per mount, by the one place
+ * that renders a card — see {@link redrawCard} for why anything else needs it. */
+export function setCardRedraw(body: HTMLElement, draw: () => void): void {
+	CARD_REDRAWS.set(body, draw);
+}
+
+/**
+ * Redraw a card the way the board itself does, from inside the card's own
+ * render — for a card that has just learned something it could not know when
+ * it drew (a note another plugin answered for asynchronously), or that has just
+ * created the file it shows.
+ *
+ * Not `body.empty()` + calling the render again, tempting as that is: a mount
+ * is more than the body's children. It swaps in a fresh {@link Component}, so
+ * the previous draw's Markdown render and its listeners are unloaded rather
+ * than left running, and it goes through {@link resetCardBody}, so the body's
+ * render marks are restored and the floating overlay button is cleared instead
+ * of stacking another copy on every redraw.
+ *
+ * Returns false when the body is no longer on screen or was never mounted, so
+ * a late answer to a card the user has since removed quietly does nothing.
+ */
+export function redrawCard(body: HTMLElement): boolean {
+	const draw = CARD_REDRAWS.get(body);
+	if (!draw || !body.isConnected) return false;
+	draw();
+	return true;
+}
+
+
 // ---- Embed (note / image / base / ...) ---------------------------------
 
 /** Which embed view (0 = primary, 1 = second) each card is currently showing.

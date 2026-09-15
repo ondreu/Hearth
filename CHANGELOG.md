@@ -15,6 +15,27 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The Periodic note card reads from Journals.** The card gained a *Source*
+  setting: leave it on Periodic Notes, or point it at the
+  [Journals](https://github.com/srg-kostyrko/obsidian-journal) plugin, which
+  covers the same ground — a note per day, week, month, quarter or year from
+  your own folder, name template and note template. Existing cards are
+  untouched and keep reading from Periodic Notes. *Journal note* is in the
+  "Add card" picker too, as the same card with the source preset. (#318)
+
+  On Journals the card asks for a **journal by name** rather than a period,
+  because a vault can hold several journals of the same cadence — a personal
+  daily and a work daily — and the journal already knows what period it writes.
+  That covers journals on a custom cadence, like every two weeks, with nothing
+  extra to choose.
+
+  The note is resolved, and a missing one created, through the Journals
+  plugin's own API, so its folder, templates and creation prompts apply exactly
+  as they do from Journals itself — the same rule the rest of Hearth's
+  integrations follow. Everything else about the card is unchanged: the
+  read-only, editable and live-preview modes, the open button, and the live
+  update as you type.
+
 - **Descriptions on checkbox tasks.** Lines indented under a `- [ ]` checkbox
   now show as muted sub-bullets under the task, the same block a Kanban card's
   description has always drawn, with no setting to turn on. The description

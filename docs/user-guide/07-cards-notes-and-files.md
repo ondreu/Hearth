@@ -6,9 +6,9 @@ Home view, press **Add card**, and pick it — and every card is configured from
 its own gear button while arranging. See [chapter 6](06-arranging-cards.md) for
 the mechanics.
 
-The eleven cards in this category are: Embedded note, Daily note, Periodic note,
-Embedded image, Slideshow, Embedded canvas, Excalidraw drawing, Embedded base,
-Recent files, Favorites and Bookmarks.
+The twelve cards in this category are: Embedded note, Daily note, Periodic note,
+Journal note, Embedded image, Slideshow, Embedded canvas, Excalidraw drawing,
+Embedded base, Recent files, Favorites and Bookmarks.
 
 ---
 
@@ -92,7 +92,41 @@ card updates live as you edit.
 
 | Setting | Meaning |
 | --- | --- |
+| *Source* | Periodic Notes or Journals — see *Journal note* below |
 | *Period* | Daily, Weekly, Monthly, Quarterly or Yearly |
+| *Editable* | Edit the note in place instead of read-only |
+| *Open button* | Show a button to open the note in the editor |
+
+---
+
+## Journal note
+
+**What it shows:** the current note of one journal — whatever period that
+journal writes. Like the Periodic note card it is always the *current* one, so
+it moves on by itself when the period ends.
+
+**Requires:** the [Journals](https://github.com/srg-kostyrko/obsidian-journal)
+community plugin.
+
+This is the same card as *Periodic note* with its *Source* set to Journals, and
+you can switch an existing card between the two at any time.
+
+The difference is what you choose. Periodic Notes has one weekly note, so that
+card asks for a period; Journals lets a vault hold several journals of the same
+cadence — a personal daily and a work daily, say — so this card asks for a
+**journal by name** instead, and takes the period from the journal itself. That
+also covers journals on a custom cadence, like every two weeks.
+
+The note is resolved — and, if missing, created — by Journals itself through its
+own plugin API, so its folder, name template, note template and creation prompts
+all apply. The card updates live as you edit.
+
+### Options
+
+| Setting | Meaning |
+| --- | --- |
+| *Source* | Periodic Notes or Journals |
+| *Journal* | Which journal to follow. The list comes from Journals |
 | *Editable* | Edit the note in place instead of read-only |
 | *Open button* | Show a button to open the note in the editor |
 

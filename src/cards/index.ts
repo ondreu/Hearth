@@ -125,7 +125,7 @@ export function cardDefinition(card: DashboardCard): CardDefinition {
 export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[] }[] = [
 	{
 		category: "notes",
-		templates: ["note", "daily", "periodic", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
+		templates: ["note", "daily", "periodic", "journal", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
 	},
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },

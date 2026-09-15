@@ -411,7 +411,9 @@ export function failure(error: string): ImportResult {
  * this table need nothing installed.
  *
  * When you add a card kind that talks to another plugin, add it here so a
- * shared board can say what it wants.
+ * shared board can say what it wants. A kind whose plugin depends on how the
+ * card is *configured* — tasks, periodic — is resolved per card in
+ * `requirementsFor` instead, so a board asks only for the plugin it uses.
  */
 export const CARD_PLUGIN_REQUIREMENTS: Partial<Record<CardKind, readonly string[]>> = {
 	dataview: ["dataview"],
@@ -419,7 +421,6 @@ export const CARD_PLUGIN_REQUIREMENTS: Partial<Record<CardKind, readonly string[
 	templater: ["templater-obsidian"],
 	git: ["obsidian-git"],
 	operon: ["operon"],
-	periodic: ["periodic-notes"],
 	bookmarks: ["bookmarks"],
 	daily: ["daily-notes"],
 };

@@ -4,7 +4,7 @@ import {
 	setIcon,
 	type TAbstractFile,
 } from "obsidian";
-import { emptyState, resetCardBody } from "./cardbodies";
+import { emptyState, resetCardBody, setCardRedraw } from "./cardbodies";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateCardMotionOnVisibility } from "./motion";
 import { confirmAction } from "./ui";
@@ -364,6 +364,9 @@ function mountCardBody(
 			emptyState(body, "alert-triangle", t().cards.empty.renderFailed);
 		}
 	};
+	// Registered before the first draw: a card can resolve something
+	// asynchronously and ask for a redraw from inside that very draw.
+	setCardRedraw(body, draw);
 	draw();
 
 	const live = def.liveness;

@@ -322,6 +322,11 @@ function requirementsFor(
 		if (card.kind === "tasks" && card.tasks?.source === "kanban") {
 			plugins.add("obsidian-kanban");
 		}
+		// Likewise a periodic card, which reads from either Periodic Notes or
+		// Journals but never both (#318).
+		if (card.kind === "periodic") {
+			plugins.add(card.periodic?.source === "journals" ? "journals" : "periodic-notes");
+		}
 		const viewType = card.leafView?.viewType?.trim();
 		if (viewType) viewTypes.add(viewType);
 	}

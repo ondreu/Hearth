@@ -1416,10 +1416,21 @@ export type SlideshowFit = "cover" | "contain";
 /** What a Periodic note card shows: always the *current* note of one period,
  * resolved through the Periodic Notes plugin (issue #116). Which folder, name
  * and template that note has is Periodic Notes' business, not Hearth's. */
+/** Which plugin the Periodic note card asks for its note (#318). Omitted means
+ * Periodic Notes, which is the only source the card had before Journals. */
+export type PeriodicSource = "periodic-notes" | "journals";
+
 export interface PeriodicCardConfig {
-	/** The period the card tracks. Omitted means weekly — the daily note has a
-	 * card of its own. */
+	/** The plugin the note comes from. Omitted means `"periodic-notes"`. */
+	source?: PeriodicSource;
+	/** The period the card tracks, on the Periodic Notes source. Omitted means
+	 * weekly — the daily note has a card of its own. Unused on Journals, where
+	 * the journal itself carries its cadence. */
 	granularity?: Granularity;
+	/** The journal's name, on the Journals source. A vault can hold several
+	 * journals of the same cadence, so the card names one rather than picking a
+	 * period. Omitted until the user chooses in the card's settings. */
+	journal?: string;
 }
 
 export interface SlideshowConfig {

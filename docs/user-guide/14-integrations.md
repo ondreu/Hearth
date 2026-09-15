@@ -105,6 +105,16 @@ quarter's or year's note, resolved — and created, from your own template — b
 
 **Configured in:** the card itself.
 
+### Journals
+
+**What Hearth does with it:** the same Periodic note card reads from
+[Journals](https://github.com/srg-kostyrko/obsidian-journal) too. Set the card's
+*Source* to Journals and pick one of your journals, and it shows that journal's
+current note — resolved, and created with its own template and prompts, through
+the Journals plugin's own API.
+
+**Configured in:** the card itself.
+
 ### Git
 
 **What Hearth does with it:** the Git card shows your repository's branch,
@@ -283,5 +293,6 @@ See [chapter 10](10-cards-integrations.md) for the four Operon cards themselves.
 
 For completeness, this is the set that simply works once the other plugin is
 enabled, with nothing to configure in Hearth: Dataview, Datacore, Excalidraw,
-Kanban, Periodic Notes, Git, Bases, Canvas, Bookmarks, Daily notes, Search, File
-explorer, Workspaces, Audio recorder, and any plugin with a side panel.
+Kanban, Periodic Notes, Journals, Git, Bases, Canvas, Bookmarks, Daily notes,
+Search, File explorer, Workspaces, Audio recorder, and any plugin with a side
+panel.

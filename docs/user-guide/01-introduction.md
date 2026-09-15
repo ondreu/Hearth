@@ -80,7 +80,8 @@ integrates with another plugin, it uses that plugin's own machinery. Git commits
 go through the Git plugin's task queue, so your remote, credentials and
 commit-message template apply unchanged. Kanban writes are made in the Kanban
 plugin's own format, so the note stays editable in Kanban. Periodic notes are
-resolved and created by Periodic Notes itself. Templater does the templating.
+resolved and created by Periodic Notes — or by Journals — itself. Templater does
+the templating.
 This means Hearth does not become a second, disagreeing source of truth.
 
 **Your layout is never rewritten behind your back.** When the board is too

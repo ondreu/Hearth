@@ -48,6 +48,13 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				requires: "Periodic Notes",
 				build: { kind: "periodic", periodic: { granularity: "week" }, w: 6, h: 4 },
 			},
+			{
+				id: "journal",
+				icon: "notebook-pen",
+				category: "notes",
+				requires: "Journals",
+				build: { kind: "periodic", periodic: { source: "journals" }, w: 6, h: 4 },
+			},
 			{ id: "image", icon: "image", category: "notes", requires: null, build: { kind: "embed", title: "Image", target: "", w: 4, h: 3 } },
 			{
 				id: "slideshow",
