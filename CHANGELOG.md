@@ -15,6 +15,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Descriptions on checkbox tasks.** Lines indented under a `- [ ]` checkbox
+  now show as muted sub-bullets under the task, the same block a Kanban card's
+  description has always drawn, with no setting to turn on. The description
+  stops at the first nested checkbox, so a sub-task still reads as its own task
+  instead of appearing twice; and it is read-only — editing a task's title or
+  metadata leaves everything nested under it exactly as the note wrote it.
+
 - **Filter tasks by tag.** *Filter tasks* gains a Tags row, built from the tags
   the card's own tasks carry — a TaskNotes task note's tags (frontmatter and
   inline), and the hashtags written in a checkbox or Kanban card's line. Pick

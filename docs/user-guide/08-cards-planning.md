@@ -43,6 +43,13 @@ Reads checkboxes from your notes. Two options shape how they are read:
   card to a column writes that column's symbol. Leave it empty for the default
   set of To do, In progress and Done.
 
+Lines indented under a checkbox are its **description**, shown as muted
+sub-bullets under the task exactly as a Kanban card's description is. The
+description stops at the first nested checkbox: a sub-task is a task in its own
+right and shows as one, rather than as a line of its parent's description.
+Hearth reads it but never rewrites it — editing a task's title or metadata
+leaves everything nested under it untouched.
+
 #### The TaskNotes source
 
 TaskNotes stores each task as its own note, with the task's metadata in
@@ -227,7 +234,9 @@ A description key is always drawn as its own block of sub-bullets.
 *Quick view on click* (on by default) makes clicking a task open a compact
 popover — its metadata and description, editable in place, with buttons to open
 the full note or delete the task — instead of jumping into the note. Turning it
-off opens the note on click.
+off opens the note on click. A Kanban card's description is edited there; a
+checkbox task's is shown read-only, since the lines under a checkbox belong to
+the note rather than to Hearth.
 
 ### Converting a card into a note
 

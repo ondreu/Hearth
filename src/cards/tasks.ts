@@ -154,8 +154,10 @@ interface TaskHit {
 	start?: string | null;
 	/** Tasks-plugin "done" date (✅), set when the card was completed. */
 	doneDate?: string | null;
-	/** Kanban card description: the plain-text lines nested under the card,
-	 * shown as sub-bullets. Joined with "\n"; empty when the card has none. */
+	/** Task description: the plain-text lines nested under the card or checkbox
+	 * line, shown as sub-bullets. Joined with "\n"; empty when there are none.
+	 * A Kanban card takes every nested line; a checkbox task stops at the first
+	 * nested checkbox, which is a task of its own. */
 	description?: string;
 	/** Kanban card that is essentially a single link to a note (as produced by
 	 * "Convert to note"): the linked note. When set, the card's metadata is read
@@ -2971,6 +2973,11 @@ class TaskDetailModal extends Modal {
 					// Don't clobber edits the user already started typing.
 					if (!area.value) area.value = desc;
 				});
+			} else if (!isKanban && hit.description) {
+				// Plain checkbox: its nested lines are shown, but not edited here — they
+				// may be anything the note wrote under the task, and the metadata write
+				// deliberately leaves them alone.
+				renderTaskDescription(contentEl, hit.description);
 			}
 		} else {
 			// Read-only summary of whatever metadata the task carries (from the card
@@ -3129,6 +3136,11 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 			const raw = match[2].trim();
 			if (!raw) return; // ignore empty checkboxes ("- [ ]")
 			const done = st ? !!st.done : symbol.toLowerCase() === "x";
+			// Lines nested under the task are its description, shown as sub-bullets
+			// exactly as a Kanban card's are. Structure, not metadata, so it is read
+			// in plain mode too.
+			const descLines = checkboxDescriptionLines(lines, i);
+			const description = descLines.length ? descLines.join("\n") : undefined;
 			if (!extended) {
 				// Plain mode: keep the line's text verbatim, no metadata parsing.
 				hits.push({
@@ -3143,6 +3155,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 					start: null,
 					doneDate: null,
 					created: file.stat.ctime,
+					description,
 					tags: inlineTags(raw),
 				});
 				return;
@@ -3173,6 +3186,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 				created: file.stat.ctime,
 				recurrence: readEmojiField(raw, "🔁") ?? undefined,
 				priority: readPriorityEmoji(raw),
+				description,
 				tags: inlineTags(raw),
 			});
 		});
@@ -3489,6 +3503,28 @@ function cardBlockRange(lines: string[], cardLine: number): { end: number; descL
 		end++;
 	}
 	return { end, descLines };
+}
+
+
+/** The description of a plain checkbox task: the lines nested under it, in the
+ * same shape a Kanban card's description has (indentation and any list marker
+ * stripped, one entry per line), so both sources render the same sub-bullets.
+ *
+ * Unlike a Kanban card's block, the scan stops at the first nested checkbox: a
+ * sub-task is a task in its own right — the scan collects it separately, with
+ * its own description — so swallowing it here would show it twice, once as a
+ * task and once as a line of its parent's description. */
+function checkboxDescriptionLines(lines: string[], taskLine: number): string[] {
+	const indent = (/^(\s*)/.exec(lines[taskLine])?.[1] ?? "").length;
+	const out: string[] = [];
+	for (let i = taskLine + 1; i < lines.length; i++) {
+		const l = lines[i];
+		if (l.trim() === "") break;
+		if ((/^(\s*)/.exec(l)?.[1] ?? "").length <= indent) break;
+		if (KANBAN_CARD_RE.test(l)) break;
+		out.push(l.replace(/^\s*(?:[-*+]\s+)?/, ""));
+	}
+	return out;
 }
 
 
