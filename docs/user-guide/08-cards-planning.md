@@ -47,8 +47,12 @@ Lines indented under a checkbox are its **description**, shown as muted
 sub-bullets under the task exactly as a Kanban card's description is. The
 description stops at the first nested checkbox: a sub-task is a task in its own
 right and shows as one, rather than as a line of its parent's description.
-Hearth reads it but never rewrites it — editing a task's title or metadata
-leaves everything nested under it untouched.
+
+A description is edited in the quick view and in *Edit details*, as plain text —
+one sub-bullet is written under the checkbox per line you type. Only those lines
+are rewritten, and only when you actually change the description: a sub-task,
+anything nested under it, and an untouched description keep exactly the shape
+the note gave them.
 
 #### The TaskNotes source
 
@@ -234,9 +238,9 @@ A description key is always drawn as its own block of sub-bullets.
 *Quick view on click* (on by default) makes clicking a task open a compact
 popover — its metadata and description, editable in place, with buttons to open
 the full note or delete the task — instead of jumping into the note. Turning it
-off opens the note on click. A Kanban card's description is edited there; a
-checkbox task's is shown read-only, since the lines under a checkbox belong to
-the note rather than to Hearth.
+off opens the note on click. Kanban cards and Markdown checkboxes both edit
+their description there; a TaskNotes task keeps its in its own note, so it is
+shown as it stands.
 
 ### Converting a card into a note
 

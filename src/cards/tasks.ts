@@ -2825,9 +2825,9 @@ function buildTaskDetailFields(
 	});
 	tagInput.value = formatTagInput(meta.tags ?? []);
 
-	// Description: plain multiline text, stored as sub-bullets under the card.
-	// Only offered where nested lines are a description (Kanban cards), not for
-	// plain checkboxes whose nested lines may be sub-tasks.
+	// Description: plain multiline text, one sub-bullet per line under the task's
+	// own line. Offered wherever those nested lines are Hearth's to rewrite — a
+	// Kanban card or a checkbox — but not for a task that lives in its own note.
 	let descArea: HTMLTextAreaElement | null = null;
 	if (allowDescription) {
 		const descRow = grid.createDiv({ cls: "hearth-taskdetail-row is-description" });
@@ -2957,7 +2957,10 @@ class TaskDetailModal extends Modal {
 				scheduled: hit.scheduled ?? "",
 				due: hit.due ?? "",
 			};
-			this.read = buildTaskDetailFields(contentEl, current, hit.description ?? "", isKanban && !linked);
+			// The description is edited here for any task whose lines Hearth owns —
+			// a Kanban card and a plain checkbox alike. A linked card keeps its in the
+			// note, so it gets the separate textarea below instead.
+			this.read = buildTaskDetailFields(contentEl, current, hit.description ?? "", canEditTitle);
 			if (linked && hit.linkedFile) {
 				// Description lives inside the linked note — edit it in its own
 				// textarea, prefilled from the note body once it loads.
@@ -2973,11 +2976,6 @@ class TaskDetailModal extends Modal {
 					// Don't clobber edits the user already started typing.
 					if (!area.value) area.value = desc;
 				});
-			} else if (!isKanban && hit.description) {
-				// Plain checkbox: its nested lines are shown, but not edited here — they
-				// may be anything the note wrote under the task, and the metadata write
-				// deliberately leaves them alone.
-				renderTaskDescription(contentEl, hit.description);
 			}
 		} else {
 			// Read-only summary of whatever metadata the task carries (from the card
@@ -2995,9 +2993,9 @@ class TaskDetailModal extends Modal {
 			}
 			if (!chips.childNodes.length)
 				chips.createSpan({ cls: "hearth-taskdetail-empty", text: t().cards.tasks.noMetadata });
-			if (isKanban) {
-				// Kanban card: an editable description (sub-bullets under the card, or
-				// the note body for a linked card).
+			if (isKanban || canEditTitle) {
+				// A line-based task: an editable description (sub-bullets under the card
+				// or checkbox, or the note body for a linked card).
 				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
 				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
 				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
@@ -3015,7 +3013,7 @@ class TaskDetailModal extends Modal {
 					area.value = hit.description ?? "";
 				}
 			} else if (hit.description) {
-				// Plain checkbox: nested lines may be sub-tasks, so show read-only.
+				// A task note's description isn't Hearth's to rewrite — show it as it is.
 				renderTaskDescription(contentEl, hit.description);
 			}
 		}
@@ -3044,9 +3042,9 @@ class TaskDetailModal extends Modal {
 								const ok = await setKanbanCardMetadata(view, hit, r.meta, r.description);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 							} else if (ownDescArea && !hit.linkedFile) {
-								// Non-extended Kanban card: description-only write (no metadata
-								// managed, so the card's markers are left untouched).
-								const ok = await setKanbanCardDescription(view, hit, ownDescArea.value);
+								// Non-extended card or checkbox: description-only write (no
+								// metadata managed, so the line's markers are left untouched).
+								const ok = await setTaskDescription(view, hit, ownDescArea.value);
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 							}
 							if (canEditTitle && newTitle && newTitle !== (hit.text || "")) {
@@ -3139,7 +3137,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 			// Lines nested under the task are its description, shown as sub-bullets
 			// exactly as a Kanban card's are. Structure, not metadata, so it is read
 			// in plain mode too.
-			const descLines = checkboxDescriptionLines(lines, i);
+			const { descLines } = checkboxBlockRange(lines, i);
 			const description = descLines.length ? descLines.join("\n") : undefined;
 			if (!extended) {
 				// Plain mode: keep the line's text verbatim, no metadata parsing.
@@ -3506,25 +3504,43 @@ function cardBlockRange(lines: string[], cardLine: number): { end: number; descL
 }
 
 
-/** The description of a plain checkbox task: the lines nested under it, in the
- * same shape a Kanban card's description has (indentation and any list marker
- * stripped, one entry per line), so both sources render the same sub-bullets.
+/** The extent of a plain checkbox task's description — the lines nested under
+ * it — in the same shape {@link cardBlockRange} returns for a Kanban card, so
+ * both sources read and write the same sub-bullets.
  *
  * Unlike a Kanban card's block, the scan stops at the first nested checkbox: a
  * sub-task is a task in its own right — the scan collects it separately, with
  * its own description — so swallowing it here would show it twice, once as a
- * task and once as a line of its parent's description. */
-function checkboxDescriptionLines(lines: string[], taskLine: number): string[] {
+ * task and once as a line of its parent's description. Stopping there is also
+ * what keeps a description write off the sub-task and everything under it. */
+function checkboxBlockRange(lines: string[], taskLine: number): { end: number; descLines: string[] } {
 	const indent = (/^(\s*)/.exec(lines[taskLine])?.[1] ?? "").length;
-	const out: string[] = [];
-	for (let i = taskLine + 1; i < lines.length; i++) {
-		const l = lines[i];
+	const descLines: string[] = [];
+	let end = taskLine + 1;
+	while (end < lines.length) {
+		const l = lines[end];
 		if (l.trim() === "") break;
 		if ((/^(\s*)/.exec(l)?.[1] ?? "").length <= indent) break;
 		if (KANBAN_CARD_RE.test(l)) break;
-		out.push(l.replace(/^\s*(?:[-*+]\s+)?/, ""));
+		descLines.push(l.replace(/^\s*(?:[-*+]\s+)?/, ""));
+		end++;
 	}
-	return out;
+	return { end, descLines };
+}
+
+
+/** A description compared the way it is written: line by line, trimmed, with
+ * blank lines dropped — the same shape {@link descriptionBullets} lays down. So
+ * a description that round-trips through the editor unchanged compares equal to
+ * the lines already on disk, whatever their original indentation or markers. */
+function sameDescription(a: string, b: string): boolean {
+	const norm = (v: string) =>
+		v
+			.split(/\r?\n/)
+			.map((l) => l.trim())
+			.filter(Boolean)
+			.join("\n");
+	return norm(a) === norm(b);
 }
 
 
@@ -4081,8 +4097,10 @@ function attachKanbanCardMenu(
 							due: hit.due ?? "",
 						};
 						// A linked card's description lives in its note, so only its
-						// metadata (frontmatter) is editable here.
-						new TaskMetadataModal(view.app, current, hit.description ?? "", isKanban && !hit.linkedFile, (meta, description) => {
+						// metadata (frontmatter) is editable here; a card or checkbox on a
+						// line of its own edits both.
+						const ownsLines = hit.line >= 0 && !hit.linkedFile;
+						new TaskMetadataModal(view.app, current, hit.description ?? "", ownsLines, (meta, description) => {
 							void setKanbanCardMetadata(view, hit, meta, description).then((ok) => {
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 								refresh();
@@ -4186,9 +4204,14 @@ async function setKanbanCardMetadata(
 		const { end } = cardBlockRange(lines, hit.line);
 		lines.splice(hit.line, end - hit.line, newItem, ...descriptionBullets(description, itemIndent));
 	} else {
-		// Plain checkbox: rewrite only the item line, leaving any nested lines
-		// (which may be sub-tasks, not a description) untouched.
-		lines[hit.line] = newItem;
+		// Plain checkbox: the same rewrite, but only over the lines that are its
+		// own description (never a nested sub-task), and only when the description
+		// actually changed — a metadata-only edit, a date picked off a chip say,
+		// must leave what the note wrote under the task exactly as it stands,
+		// indentation and markers included.
+		const { end, descLines } = checkboxBlockRange(lines, hit.line);
+		if (sameDescription(description, descLines.join("\n"))) lines[hit.line] = newItem;
+		else lines.splice(hit.line, end - hit.line, newItem, ...descriptionBullets(description, itemIndent));
 	}
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
@@ -4236,13 +4259,14 @@ async function setKanbanCardText(
 }
 
 
-/** Set (or clear) a Kanban card's description, independent of its metadata: a
- * card linked to a note writes it to the note body; a normal card replaces the
- * nested `- ` sub-bullets under its item line, leaving the item line (title and
- * metadata) untouched. This is the description-only path used when Tasks-plugin
- * metadata isn't managed (`kanbanExtended` off), so no markers are rewritten.
- * Bails (returns false) if the stored line no longer matches the card. */
-async function setKanbanCardDescription(
+/** Set (or clear) a line-based task's description, independent of its metadata:
+ * a card linked to a note writes it to the note body; a Kanban card or a plain
+ * checkbox replaces the nested `- ` sub-bullets under its item line, leaving the
+ * item line (title and metadata) untouched. This is the description-only path
+ * used when Tasks-plugin metadata isn't managed (`kanbanExtended` /
+ * `checkboxExtended` off), so no markers are rewritten. Bails (returns false) if
+ * the stored line no longer matches the task. */
+async function setTaskDescription(
 	view: HomeView,
 	hit: TaskHit,
 	description: string,
@@ -4257,9 +4281,11 @@ async function setKanbanCardDescription(
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
 	if (!m || !sameCardLine(m[2], hit.text)) return false;
 	const itemIndent = /^(\s*)/.exec(cur)?.[1] ?? "";
-	const { end } = cardBlockRange(lines, hit.line);
+	// A Kanban card owns every line nested under it; a checkbox's description
+	// stops at its first sub-task, which this write must not touch.
+	const { end } = hit.boardColumn ? cardBlockRange(lines, hit.line) : checkboxBlockRange(lines, hit.line);
 	// Swap just the description sub-bullets (item line + 1 … block end) for the
-	// freshly-built ones, keeping the card's title/metadata line as-is.
+	// freshly-built ones, keeping the task's title/metadata line as-is.
 	lines.splice(hit.line + 1, end - (hit.line + 1), ...descriptionBullets(description, itemIndent));
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;

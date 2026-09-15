@@ -19,8 +19,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   now show as muted sub-bullets under the task, the same block a Kanban card's
   description has always drawn, with no setting to turn on. The description
   stops at the first nested checkbox, so a sub-task still reads as its own task
-  instead of appearing twice; and it is read-only — editing a task's title or
-  metadata leaves everything nested under it exactly as the note wrote it.
+  instead of appearing twice.
+
+  The description is editable too, in the quick view and *Edit details*, the
+  same plain-text field a Kanban card has — one sub-bullet written under the
+  checkbox per line typed. The write is kept narrow: only those description
+  lines are replaced, and only when the description actually changed, so a
+  sub-task, anything nested under it, and a description you didn't touch keep
+  exactly the shape the note gave them.
 
 - **Filter tasks by tag.** *Filter tasks* gains a Tags row, built from the tags
   the card's own tasks carry — a TaskNotes task note's tags (frontmatter and
