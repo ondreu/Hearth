@@ -201,6 +201,22 @@ export function isGitAvailable(app: App): boolean {
 	return getGitPlugin(app) !== null;
 }
 
+/**
+ * Whether obsidian-git is enabled at all, however far into its startup it is.
+ *
+ * `getGitPlugin` deliberately refuses a plugin instance that has no
+ * `gitManager` yet, because nothing the card calls would work on it. But that
+ * state is not the same as "the plugin isn't there": obsidian-git builds its
+ * manager asynchronously after layout-ready, and probing the git binary on a
+ * cold desktop start takes long enough that a restored Hearth tab can render
+ * first. Telling those two apart is what stops the card from settling on
+ * "enable the Git plugin" while the plugin is in fact seconds away from being
+ * usable — see `renderGit`, which waits it out.
+ */
+export function isGitPluginEnabled(app: App): boolean {
+	return app.plugins.plugins[GIT_PLUGIN_ID] != null;
+}
+
 
 // ---- Card configuration vocabulary --------------------------------------
 

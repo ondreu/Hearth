@@ -14,6 +14,8 @@ import {
 	onlyStagedFor,
 	parseCommitDate,
 	queueGitAction,
+	getGitPlugin,
+	isGitPluginEnabled,
 	queueGitFileAction,
 	readGitSnapshot,
 	shortHash,
@@ -21,6 +23,7 @@ import {
 	type GitPlugin,
 	type GitStatus,
 } from "../src/git";
+import type { App } from "obsidian";
 
 /**
  * The Git card is a window onto the obsidian-git plugin, so the logic worth
@@ -415,5 +418,45 @@ describe("readGitSnapshot", () => {
 		expect(log).not.toHaveBeenCalled();
 		await readGitSnapshot(plugin, { logLimit: 3 });
 		expect(log).toHaveBeenCalledWith(undefined, false, 3);
+	});
+});
+
+
+/** An app whose plugin registry holds exactly what a test puts there. */
+function appWith(gitPlugin: unknown): App {
+	const plugins = gitPlugin === undefined ? {} : { "obsidian-git": gitPlugin };
+	return { plugins: { plugins } } as unknown as App;
+}
+
+describe("getGitPlugin / isGitPluginEnabled", () => {
+	it("tells a missing plugin apart from one that is still starting up", () => {
+		// The two questions the card asks, and the reason they are separate: on a
+		// cold start obsidian-git is enabled for a while before it has built the
+		// git manager, and answering "not installed" then leaves the card stuck on
+		// "enable the Git plugin" for the rest of the session.
+		const starting = appWith({ gitReady: false });
+		expect(getGitPlugin(starting)).toBeNull();
+		expect(isGitPluginEnabled(starting)).toBe(true);
+
+		const absent = appWith(undefined);
+		expect(getGitPlugin(absent)).toBeNull();
+		expect(isGitPluginEnabled(absent)).toBe(false);
+	});
+
+	it("accepts the plugin once the manager exists, ready or not", () => {
+		// `gitReady === false` is a state the card renders, not one it refuses:
+		// the plugin is callable, it just has no repository open yet.
+		expect(getGitPlugin(appWith({ gitReady: false, gitManager: {} }))).not.toBeNull();
+		expect(getGitPlugin(appWith({ gitReady: true, gitManager: {} }))).not.toBeNull();
+	});
+
+	it("refuses a plugin that doesn't look like obsidian-git at all", () => {
+		// Something else squatting the id, or a build old enough to be unreadable:
+		// no gitReady flag means none of the members the card calls can be trusted.
+		const odd = appWith({ gitManager: {} });
+		expect(getGitPlugin(odd)).toBeNull();
+		// Still "enabled", so the card waits rather than nagging — a wait that ends
+		// the moment the id stops resolving.
+		expect(isGitPluginEnabled(odd)).toBe(true);
 	});
 });

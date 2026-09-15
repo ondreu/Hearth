@@ -56,6 +56,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   is still there to drag a card into — and a filter set in one layout means the
   same thing after switching to the other.
 
+### Fixed
+
+- **The Git card no longer gets stuck asking you to enable a plugin you already
+  have.** On a cold start, obsidian-git builds its git manager after Obsidian's
+  layout is ready — probing the git binary takes long enough on desktop that a
+  restored Hearth tab can render first. The card read that half-started plugin
+  as no plugin at all and settled on *Enable the Git plugin*, where it stayed
+  until something forced a re-render. It now recognises a plugin that is still
+  starting, shows the same temporary not-ready state it shows while obsidian-git
+  is looking for the repository, and fills itself in as soon as the plugin is
+  usable ([#315](https://github.com/ondreu/Hearth/issues/315)).
+
+
 ## [3.1.0]
 
 ### Added

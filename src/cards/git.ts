@@ -16,6 +16,7 @@ import {
 	gitSections,
 	getGitPlugin,
 	isGitAvailable,
+	isGitPluginEnabled,
 	onlyStagedFor,
 	openGitDiff,
 	openGitView,
@@ -64,11 +65,84 @@ export function renderGit(
 	component: Component,
 ): void {
 	const plugin = getGitPlugin(view.app);
-	if (!plugin) {
+	if (plugin) {
+		renderGitBody(view, card, body, component, plugin);
+		return;
+	}
+	if (!isGitPluginEnabled(view.app)) {
 		emptyState(body, "git-branch", t().cards.empty.gitEnable);
 		return;
 	}
+	// obsidian-git is enabled but hasn't built its git manager yet. That happens
+	// on every cold desktop start — the plugin probes the git binary after
+	// layout-ready, which can outlast the render of a restored Hearth tab — and
+	// it is a phase, not an answer, so the card says "not ready" and waits
+	// instead of telling the user to enable a plugin they already have.
+	waitForGit(view, card, body, component);
+}
 
+/** Draw the temporary "obsidian-git is still starting" state, then swap in the
+ * real card the moment the plugin becomes usable.
+ *
+ * Polling is the only way in: obsidian-git fires its workspace events through
+ * its own manager, so none of them arrive before the very thing being waited
+ * for exists. The check is two property reads, the interval dies with the card,
+ * and it stops as soon as the plugin resolves — or, if the user disables
+ * obsidian-git while the card is up, as soon as it is gone, which is the one
+ * case that really is "enable the Git plugin". */
+function waitForGit(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component: Component,
+): void {
+	paintGitStarting(view, body);
+	const timer = window.setInterval(() => {
+		const ready = getGitPlugin(view.app);
+		if (ready) {
+			window.clearInterval(timer);
+			body.empty();
+			renderGitBody(view, card, body, component, ready);
+			return;
+		}
+		if (!isGitPluginEnabled(view.app)) {
+			window.clearInterval(timer);
+			body.empty();
+			emptyState(body, "git-branch", t().cards.empty.gitEnable);
+		}
+	}, GIT_STARTUP_POLL_MS);
+	// Registered as well as cleared by hand: the register covers the card being
+	// torn down while still waiting, the clear covers the wait ending first.
+	component.registerInterval(timer);
+}
+
+/** How often to re-check a starting obsidian-git. Short enough that the card
+ * fills in while the user is still looking at the dashboard, cheap enough that
+ * the cost of never resolving is nothing. */
+const GIT_STARTUP_POLL_MS = 500;
+
+/** The shared "the plugin is there, the repo isn't usable yet" state: the same
+ * body the `gitReady === false` path draws, since to the user they are the same
+ * situation — obsidian-git has nothing to show yet, and its own view is where
+ * that gets sorted out. */
+function paintGitStarting(view: HomeView, parent: HTMLElement): void {
+	const empty = parent.createDiv("hearth-git-notready");
+	emptyState(empty, "git-branch", t().cards.empty.gitNotReady);
+	const button = empty.createEl("button", {
+		cls: "hearth-git-notready-button",
+		text: t().cards.git.openSourceControl,
+	});
+	button.addEventListener("click", () => void openGitView(view.app, "sourceControl"));
+}
+
+/** The card proper, once obsidian-git is far enough along to be called. */
+function renderGitBody(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component: Component,
+	plugin: GitPlugin,
+): void {
 	const cfg = card.git ?? {};
 	const sections = gitSections(cfg.sections);
 	const wantsLog = sections.includes("log");
@@ -156,13 +230,7 @@ export function renderGit(
 			// The plugin is loaded but has no repository open — either it is still
 			// starting up, or this vault isn't a repo. Both are worth saying, and
 			// both are fixed from obsidian-git's own view.
-			const empty = wrap.createDiv("hearth-git-notready");
-			emptyState(empty, "git-branch", t().cards.empty.gitNotReady);
-			const button = empty.createEl("button", {
-				cls: "hearth-git-notready-button",
-				text: t().cards.git.openSourceControl,
-			});
-			button.addEventListener("click", () => void openGitView(view.app, "sourceControl"));
+			paintGitStarting(view, wrap);
 			return;
 		}
 
