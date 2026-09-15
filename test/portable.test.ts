@@ -27,6 +27,7 @@ import {
 	effectiveShowSearch,
 	effectiveShowTitle,
 	effectiveSkyAnimate,
+	effectiveNarrowWidth,
 	effectiveStackOnNarrow,
 	effectiveSwitcherVisibility,
 	effectiveThemeColorTarget,
@@ -102,6 +103,7 @@ function opinionatedVault(): HomeSettings {
 	s.newNoteButtonLabel = "Look it up";
 	s.hiddenFilters = ["images", "audio"];
 	s.stackOnNarrow = false;
+	s.narrowWidth = 900;
 	s.arrangeButtonVisibility = "hover";
 	s.dashboardSwitcherVisibility = "hover";
 	s.title = "The archive";
@@ -143,6 +145,7 @@ function contraryVault(): HomeSettings {
 	s.newNoteButtonLabel = "";
 	s.hiddenFilters = [];
 	s.stackOnNarrow = true;
+	s.narrowWidth = 400;
 	s.arrangeButtonVisibility = "always";
 	s.dashboardSwitcherVisibility = "always";
 	s.title = "Someone else's vault";
@@ -182,6 +185,7 @@ function look(s: HomeSettings): Record<string, unknown> {
 		newNoteButtonLabel: effectiveNewNoteButtonLabel(s),
 		hiddenFilters: effectiveHiddenFilters(s),
 		stackOnNarrow: effectiveStackOnNarrow(s),
+		narrowWidth: effectiveNarrowWidth(s),
 		arrange: effectiveArrangeButtonVisibility(s),
 		switcher: effectiveSwitcherVisibility(s),
 		showTitle: effectiveShowTitle(s),
@@ -931,6 +935,9 @@ describe("the full settings backup carries every setting", () => {
 		expect(theirs.liveSettingsSync).toBe(false);
 		expect(theirs.focusSearchOnOpen).toBe(true);
 		expect(theirs.stackOnNarrow).toBe(false);
+		// Set to 900 by opinionatedVault and to 400 in the receiving vault, so
+		// this can only pass if the threshold travelled.
+		expect(theirs.narrowWidth).toBe(900);
 		expect(theirs.operonWrites).toBe(true);
 	});
 

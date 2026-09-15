@@ -69,6 +69,8 @@ import {
 	CONTENT_WIDTH_MAX,
 	CONTENT_WIDTH_MIN,
 	clampBannerHeight,
+	NARROW_WIDTH_MAX,
+	NARROW_WIDTH_MIN,
 	PERFORMANCE_TIERS,
 	type PerformanceTier,
 } from "./types";
@@ -135,6 +137,7 @@ const RANGE = {
 	gridColumns: { min: 4, max: 16 },
 	rowHeight: { min: 32, max: 160 },
 	maxWidth: { min: CONTENT_WIDTH_MIN, max: CONTENT_WIDTH_MAX },
+	narrowWidth: { min: NARROW_WIDTH_MIN, max: NARROW_WIDTH_MAX },
 	cardW: { min: 1, max: 16 },
 	cardH: { min: 1, max: 60 },
 	cardBlur: { min: 0, max: 24 },
@@ -259,6 +262,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		liveSettingsSync: s.liveSettingsSync,
 		mobileSearchOnly: s.mobileSearchOnly,
 		stackOnNarrow: s.stackOnNarrow,
+		narrowWidth: s.narrowWidth,
 		showMobileActionBar: s.showMobileActionBar,
 		mobileActionButtons: s.mobileActionButtons,
 		disableExternalCalls: s.disableExternalCalls,
@@ -1685,6 +1689,14 @@ export function sanitizeDashboard(
 		);
 	}
 	if (typeof r.stackOnNarrow === "boolean") dash.stackOnNarrow = r.stackOnNarrow;
+	if (typeof r.narrowWidth === "number") {
+		dash.narrowWidth = clampNum(
+			r.narrowWidth,
+			RANGE.narrowWidth.min,
+			RANGE.narrowWidth.max,
+			s.narrowWidth,
+		);
+	}
 	if (r.arrangeButtonVisibility === "always" || r.arrangeButtonVisibility === "hover")
 		dash.arrangeButtonVisibility = r.arrangeButtonVisibility;
 	if (
@@ -2125,6 +2137,14 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.mobileSearchOnly = data.mobileSearchOnly;
 	if (typeof data.stackOnNarrow === "boolean")
 		s.stackOnNarrow = data.stackOnNarrow;
+	if (typeof data.narrowWidth === "number") {
+		s.narrowWidth = clampNum(
+			data.narrowWidth,
+			RANGE.narrowWidth.min,
+			RANGE.narrowWidth.max,
+			s.narrowWidth,
+		);
+	}
 	if (typeof data.showMobileActionBar === "boolean")
 		s.showMobileActionBar = data.showMobileActionBar;
 	if (Array.isArray(data.mobileActionButtons)) {

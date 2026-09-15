@@ -566,6 +566,7 @@ export const zh: Translations = {
 			stackOnNarrowStateOff: "保持布局",
 			stackOnNarrowOptionOn: "堆叠为单列",
 			stackOnNarrowOptionOff: "保持缩放后的布局",
+			narrowWidth: "窄屏阈值",
 			arrangeVisibility: "排列按钮",
 			arrangeVisibilityDesc: "本仪表板上的“排列”按钮是始终可见，还是悬停时淡入。",
 			switcherVisibility: "仪表板切换器",
@@ -1005,6 +1006,10 @@ export const zh: Translations = {
 				"当面板宽度不足以容纳其布局时——手机，或桌面端的窄窗格——改为将卡片显示为" +
 				"单列通栏。你的布局不会被修改，恢复宽度后即照旧。每张卡片都可以在自身设置" +
 				"中为该单列单独设置隐藏、排序、高度或折叠。",
+			narrowWidth: "窄屏宽度阈值",
+			narrowWidthDesc:
+				"面板宽度低于该像素值即视为窄屏。调高它，半屏窗口也会切换到窄屏布局；" +
+				"调低它，则在更窄的窗格中仍保持自由布局。各个面板可以单独覆盖此设置。",
 			mobilePerformanceTier: "移动端性能档位",
 			mobilePerformanceTierDesc:
 				"在手机和平板上使用的档位——那里动画天空与毛玻璃绘制在最小的屏幕上，却要由" +

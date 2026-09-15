@@ -254,12 +254,15 @@ full-width column. Your stored layout is untouched and returns at full width.
 
 If you would rather it did not, turn off *Stack cards on narrow screens* under
 **Settings → Hearth → Mobile → Layout**, or set *Stack when narrow* to *Keep the
-scaled layout* on that one board.
+scaled layout* on that one board. The 600 is a setting too — *Narrow below*, in
+the same place — if the column should start sooner or later than that.
 
 ### A narrow split pane on my desktop is stacking too
 
 That is the same feature: the threshold is the measured width of the board, not
 the platform. It is also how you preview your phone layout — drag a pane narrow.
+Set *Narrow below* lower if you want that pane to keep the free-form layout, or
+higher if a half-screen window should stack as well.
 
 ### One card ruins the phone layout
 

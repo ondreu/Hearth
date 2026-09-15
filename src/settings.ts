@@ -8,7 +8,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -51,6 +51,7 @@ import {
  * used to reset slider-backed settings back to their factory value. */
 type NumericSettingKey =
 	| "maxWidth"
+	| "narrowWidth"
 	| "backgroundOpacity"
 	| "backgroundBlur"
 	| "bannerHeight"
@@ -1447,6 +1448,22 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		// Offered whether or not stacking is on: the threshold also decides when
+		// the board drops its width ceiling and wears its narrow chrome, so it is
+		// not a sub-setting of the toggle above.
+		const narrow = new Setting(containerEl)
+			.setName(t().settings.behaviour.narrowWidth)
+			.setDesc(t().settings.behaviour.narrowWidthDesc);
+		narrow.addSlider((sl) => {
+			sl.setLimits(NARROW_WIDTH_MIN, NARROW_WIDTH_MAX, NARROW_WIDTH_STEP)
+				.setValue(s.narrowWidth)
+				.onChange(async (v) => {
+					s.narrowWidth = v;
+					this.save();
+				});
+			this.addSliderReset(narrow, sl, "narrowWidth");
+		});
 
 		// The mobile performance tier lives here rather than beside the desktop
 		// one: it is a mobile setting that happens to be about performance, and

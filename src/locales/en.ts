@@ -607,6 +607,7 @@ export const en = {
 			stackOnNarrowStateOff: "keep the layout",
 			stackOnNarrowOptionOn: "Stack into one column",
 			stackOnNarrowOptionOff: "Keep the scaled layout",
+			narrowWidth: "Narrow below",
 			arrangeVisibility: "Arrange button",
 			arrangeVisibilityDesc:
 				"Whether the Arrange button stays visible on this board or fades in on hover.",
@@ -1096,6 +1097,12 @@ export const en = {
 				"instead. Your layout is untouched and comes back at full width. " +
 				"Each card can be hidden, reordered, resized or collapsed for this " +
 				"column from its own settings.",
+			narrowWidth: "Narrow below",
+			narrowWidthDesc:
+				"The width, in pixels, at which the board counts as narrow. Raise it " +
+				"to have a half-screen window switch to the narrow layout; lower it " +
+				"to keep the free-form layout in tighter panes. Individual " +
+				"dashboards can override this.",
 			mobilePerformanceTier: "Performance tier on mobile",
 			mobilePerformanceTierDesc:
 				"The tier to use on phones and tablets, where the animated sky and " +

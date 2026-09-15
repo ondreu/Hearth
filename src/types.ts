@@ -1980,6 +1980,11 @@ export interface Dashboard extends BannerOverrides {
 	/** Override whether this board reflows into one column when narrow
 	 * (undefined = follow {@link HomeSettings.stackOnNarrow}). */
 	stackOnNarrow?: boolean;
+	/** Override the width at which this board becomes narrow (undefined =
+	 * follow {@link HomeSettings.narrowWidth}). A board is the unit that knows
+	 * how much room its own cards need, so the threshold is per-board for the
+	 * same reason the content width is. */
+	narrowWidth?: number;
 	/** Override the arrange button's visibility on this board (undefined =
 	 * follow {@link HomeSettings.arrangeButtonVisibility}). */
 	arrangeButtonVisibility?: ChromeVisibility;
@@ -2176,11 +2181,18 @@ export interface HomeSettings {
 	/** Buttons shown in the mobile action bar. */
 	mobileActionButtons: MobileActionButton[];
 	/** Reflow the board into a single full-width column once it is narrower
-	 * than {@link NARROW_MAX_WIDTH} — a phone, but equally a narrow desktop
+	 * than {@link narrowWidth} — a phone, but equally a narrow desktop
 	 * pane. On by default: the free-form layout has no meaning at that width
 	 * (a quarter-width card is ~90px on a phone), so the alternative is a board
 	 * nobody can read. Turn it off to keep the scaled free-form layout. */
 	stackOnNarrow: boolean;
+	/** The board width, in pixels, at or below which the narrow layout takes
+	 * over. Customizable because the width at which a board stops working is a
+	 * property of the board, not of Hearth: a dense six-card grid is unreadable
+	 * long before a two-card one is, and someone who works in a half-screen
+	 * window wants the stacked layout at a width a phone would call generous
+	 * (#316). Clamped to [{@link NARROW_WIDTH_MIN}, {@link NARROW_WIDTH_MAX}]. */
+	narrowWidth: number;
 	/** Block all outbound network requests Hearth would otherwise make. The only
 	 * requests are configured live-content cards (including Jira) and the
 	 * calculator's key-less, ECB-backed currency-rate fetch. */
@@ -2466,6 +2478,11 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// and existing vaults aren't silently reset if the list is emptied.
 	mobileActionButtons: [],
 	stackOnNarrow: true,
+	// The literal, not NARROW_WIDTH_DEFAULT: the constant is declared further
+	// down this file, so reading it here would hit the temporal dead zone while
+	// this object is being built. `maxWidth` above keeps its literal for the
+	// same reason. The clamp in migrateSettings is what holds them together.
+	narrowWidth: 600,
 	disableExternalCalls: false,
 
 	// A new tab is what Hearth has always done; existing vaults must not change
@@ -2751,6 +2768,14 @@ export function effectiveStackOnNarrow(s: HomeSettings): boolean {
 	return activeDashboard(s).stackOnNarrow ?? s.stackOnNarrow;
 }
 
+/** The width at or below which the active board uses the narrow layout
+ * (per-dashboard override or global), clamped to the supported range so a
+ * hand-edited or imported value can't put the threshold somewhere the settings
+ * slider could never reach. */
+export function effectiveNarrowWidth(s: HomeSettings): number {
+	return clampNarrowWidth(activeDashboard(s).narrowWidth ?? s.narrowWidth);
+}
+
 /** Arrange-button visibility for the active board. */
 export function effectiveArrangeButtonVisibility(s: HomeSettings): ChromeVisibility {
 	return chromeVisibility(activeDashboard(s).arrangeButtonVisibility, s.arrangeButtonVisibility);
@@ -2890,6 +2915,30 @@ export function effectiveThemeColorTarget(s: HomeSettings): HomeSettings["themeC
 export const CONTENT_WIDTH_MIN = 700;
 export const CONTENT_WIDTH_MAX = 3840;
 export const CONTENT_WIDTH_STEP = 20;
+
+/** Narrow-threshold bounds, in pixels. The floor is a phone in portrait, below
+ * which nothing is ever wide enough to be called anything but narrow; the
+ * ceiling is a half-screen window on a large desktop, past which "narrow" would
+ * cover every board anyone actually uses and the stacked layout is better asked
+ * for outright. The default is the width at which a half-width card stops being
+ * able to hold a line of text and a label: a phone in landscape, a small tablet
+ * in portrait, or a desktop pane at roughly a third of a 1080p screen.
+ *
+ * The settings slider, the per-board override and the clamp applied to an
+ * imported layout all read these, so the range has exactly one definition. */
+export const NARROW_WIDTH_MIN = 320;
+export const NARROW_WIDTH_MAX = 1200;
+export const NARROW_WIDTH_STEP = 20;
+export const NARROW_WIDTH_DEFAULT = 600;
+
+/** A stored or imported narrow threshold, brought into range. Anything that
+ * isn't a finite number — a missing key in settings saved before the threshold
+ * was customizable, a hand-edited string — falls back to the default rather
+ * than clamping to a bound, which would silently pick an extreme. */
+export function clampNarrowWidth(v: unknown): number {
+	if (typeof v !== "number" || !Number.isFinite(v)) return NARROW_WIDTH_DEFAULT;
+	return Math.min(NARROW_WIDTH_MAX, Math.max(NARROW_WIDTH_MIN, Math.round(v)));
+}
 
 /** Effective content max-width for the active board (per-dashboard override or global). */
 export function effectiveMaxWidth(s: HomeSettings): number {
@@ -3307,6 +3356,10 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// existing board looking exactly as it did.
 	if (s.backgroundLayout !== "banner") s.backgroundLayout = "full";
 	s.bannerHeight = clampBannerHeight(s.bannerHeight);
+	// Additive: settings saved before the narrow threshold was customizable have
+	// no key here, and the clamp hands those the default the threshold was
+	// hard-coded to — so nothing about an existing vault's layout changes.
+	s.narrowWidth = clampNarrowWidth(s.narrowWidth);
 	if (typeof s.bannerFade !== "boolean") s.bannerFade = true;
 	if (typeof s.bannerFullWidth !== "boolean") s.bannerFullWidth = false;
 	// Additive too: a vault saved before the content column could go unbounded

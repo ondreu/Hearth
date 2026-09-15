@@ -619,6 +619,7 @@ export const de: Translations = {
 			stackOnNarrowStateOff: "Layout behalten",
 			stackOnNarrowOptionOn: "In eine Spalte stapeln",
 			stackOnNarrowOptionOff: "Skaliertes Layout behalten",
+			narrowWidth: "Schmal unterhalb",
 			arrangeVisibility: "Anordnen-Schaltfläche",
 			arrangeVisibilityDesc:
 				"Ob die Anordnen-Schaltfläche auf diesem Board sichtbar bleibt oder bei Hover eingeblendet wird.",
@@ -1105,6 +1106,12 @@ export const de: Translations = {
 				"Bereich auf dem Desktop - zeige die Karten stattdessen als eine Spalte in voller Breite " +
 				"an. Dein Layout bleibt unberührt und kehrt bei voller Breite zurück. " +
 				"Jede Karte kann für diese Spalte in ihren eigenen Einstellungen ausgeblendet, umsortiert, in der Größe geändert oder eingeklappt werden.",
+			narrowWidth: "Schmal unterhalb von",
+			narrowWidthDesc:
+				"Die Breite in Pixeln, ab der das Board als schmal gilt. Erhöhe sie, " +
+				"damit ein halbbreites Fenster ins schmale Layout wechselt; verringere " +
+				"sie, um das freie Layout auch in engen Bereichen zu behalten. " +
+				"Einzelne Dashboards können dies überschreiben.",
 			mobilePerformanceTier: "Leistungsstufe auf Mobilgeräten",
 			mobilePerformanceTierDesc:
 				"Die Stufe für Smartphones und Tablets, wo der animierte Himmel und " +

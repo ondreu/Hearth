@@ -28,6 +28,9 @@ import {
 	type HeaderAlign,
 	type HomeSettings,
 	isPluginBoard,
+	NARROW_WIDTH_MAX,
+	NARROW_WIDTH_MIN,
+	NARROW_WIDTH_STEP,
 	newDashboardId,
 } from "./types";
 import { cloneCard } from "./cards";
@@ -1148,6 +1151,23 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			},
 			(v) => {
 				dash.stackOnNarrow = v;
+			},
+		);
+
+		// The width at which this board becomes narrow. Per board because the
+		// point at which a layout stops working is a property of the layout: a
+		// dense board wants stacking sooner than a two-card one.
+		this.overrideSlider(
+			containerEl,
+			t().dashboards.modal.narrowWidth,
+			dash.narrowWidth,
+			s.narrowWidth,
+			NARROW_WIDTH_MIN,
+			NARROW_WIDTH_MAX,
+			NARROW_WIDTH_STEP,
+			(v) => {
+				dash.narrowWidth = v;
+				this.commit();
 			},
 		);
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
 	isNarrowWidth,
 	moveStacked,
-	NARROW_MAX_WIDTH,
 	ROW_BAND,
 	STACK_HEIGHT_DEFAULT,
 	STACK_HEIGHT_MAX,
@@ -10,7 +9,15 @@ import {
 	stackedHeight,
 } from "../src/narrow";
 import { MIN_H_PX } from "../src/grid";
-import type { DashboardCard } from "../src/types";
+import {
+	clampNarrowWidth,
+	DEFAULT_SETTINGS,
+	effectiveNarrowWidth,
+	NARROW_WIDTH_DEFAULT,
+	NARROW_WIDTH_MAX,
+	NARROW_WIDTH_MIN,
+} from "../src/types";
+import type { Dashboard, DashboardCard, HomeSettings } from "../src/types";
 
 /**
  * The stacked layout a narrow board reflows to. Everything under test here is
@@ -39,8 +46,8 @@ const ids = (cards: DashboardCard[]) => cards.map((c) => c.id);
 
 describe("isNarrowWidth", () => {
 	it("takes the threshold itself as narrow", () => {
-		expect(isNarrowWidth(NARROW_MAX_WIDTH)).toBe(true);
-		expect(isNarrowWidth(NARROW_MAX_WIDTH + 1)).toBe(false);
+		expect(isNarrowWidth(NARROW_WIDTH_DEFAULT)).toBe(true);
+		expect(isNarrowWidth(NARROW_WIDTH_DEFAULT + 1)).toBe(false);
 	});
 
 	it("treats an unmeasured pane as wide", () => {
@@ -48,6 +55,60 @@ describe("isNarrowWidth", () => {
 		// would stack the board for one frame and then reflow it.
 		expect(isNarrowWidth(0)).toBe(false);
 		expect(isNarrowWidth(-10)).toBe(false);
+		// Including when the threshold is raised to the top of its range: an
+		// unmeasured pane is not "narrower than anything", it is unknown.
+		expect(isNarrowWidth(0, NARROW_WIDTH_MAX)).toBe(false);
+	});
+
+	it("measures against the threshold it is given", () => {
+		// The point of the setting (#316): a half-screen desktop window is wide
+		// by the default and narrow once someone says it is.
+		expect(isNarrowWidth(960)).toBe(false);
+		expect(isNarrowWidth(960, 1000)).toBe(true);
+		expect(isNarrowWidth(960, 960)).toBe(true);
+		expect(isNarrowWidth(960, 959)).toBe(false);
+	});
+});
+
+describe("clampNarrowWidth", () => {
+	it("brings a stored value into range", () => {
+		expect(clampNarrowWidth(NARROW_WIDTH_MIN - 100)).toBe(NARROW_WIDTH_MIN);
+		expect(clampNarrowWidth(NARROW_WIDTH_MAX + 5000)).toBe(NARROW_WIDTH_MAX);
+		expect(clampNarrowWidth(800)).toBe(800);
+		expect(clampNarrowWidth(800.4)).toBe(800);
+	});
+
+	it("falls back to the default rather than to a bound", () => {
+		// Settings saved before the threshold was customizable have no key here,
+		// and clamping `undefined` to a bound would pick an extreme nobody asked
+		// for. The default is the width the threshold used to be hard-coded to,
+		// so an existing vault's layout is unchanged.
+		expect(clampNarrowWidth(undefined)).toBe(NARROW_WIDTH_DEFAULT);
+		expect(clampNarrowWidth("600")).toBe(NARROW_WIDTH_DEFAULT);
+		expect(clampNarrowWidth(Number.NaN)).toBe(NARROW_WIDTH_DEFAULT);
+	});
+});
+
+describe("effectiveNarrowWidth", () => {
+	const settings = (dash: Partial<Dashboard>, global: number): HomeSettings => ({
+		...DEFAULT_SETTINGS,
+		narrowWidth: global,
+		activeDashboardId: "a",
+		dashboards: [{ id: "a", name: "A", cards: [], ...dash }],
+	});
+
+	it("prefers the board's own threshold", () => {
+		expect(effectiveNarrowWidth(settings({ narrowWidth: 900 }, 600))).toBe(900);
+		expect(effectiveNarrowWidth(settings({}, 700))).toBe(700);
+	});
+
+	it("clamps whatever it finds", () => {
+		// An imported or hand-edited board can hold a number the slider could
+		// never produce; the board is still drawn at a width that means something.
+		expect(effectiveNarrowWidth(settings({ narrowWidth: 99999 }, 600))).toBe(
+			NARROW_WIDTH_MAX,
+		);
+		expect(effectiveNarrowWidth(settings({}, 1))).toBe(NARROW_WIDTH_MIN);
 	});
 });
 

@@ -35,6 +35,17 @@ down.
 Each dashboard can override this from *Dashboard settings → Layout → Stack when
 narrow*: **Stack into one column** or **Keep the scaled layout**.
 
+*Narrow below* — the slider under it — is the width, in pixels, at which the
+board counts as narrow. It starts at 600, which is a phone in landscape or a
+desktop pane at roughly a third of a 1080p screen. Raise it if you work in a
+half-screen window and want the column there too; lower it to keep the free-form
+layout in tighter panes. Each dashboard can override the threshold as well, from
+*Dashboard settings → Layout → Narrow below* — a dense board can ask for the
+column sooner than a two-card one.
+
+The switch happens as you drag the window: crossing the threshold in either
+direction rebuilds the board there and then.
+
 While stacked, cards are full width, one per row.
 
 ## Per-card behaviour in the column

@@ -4,6 +4,7 @@ import {
 	effectiveArrangeButtonVisibility,
 	effectiveCompact,
 	effectiveHiddenFilters,
+	effectiveNarrowWidth,
 	effectiveNewNoteButtonLabel,
 	effectiveNewNoteButtonMode,
 	effectiveSearchPlaceholder,
@@ -162,6 +163,17 @@ describe("the chrome and stacking overrides", () => {
 		expect(effectiveStackOnNarrow(s)).toBe(false);
 		s.activeDashboardId = "d2";
 		expect(effectiveStackOnNarrow(s)).toBe(true);
+	});
+
+	it("lets one board decide for itself how narrow is narrow", () => {
+		// A dense board is unreadable at a width a sparse one is fine at, so the
+		// threshold follows the board (#316).
+		const s = settings();
+		expect(effectiveNarrowWidth(s)).toBe(DEFAULT_SETTINGS.narrowWidth);
+		s.dashboards[0].narrowWidth = 900;
+		expect(effectiveNarrowWidth(s)).toBe(900);
+		s.activeDashboardId = "d2";
+		expect(effectiveNarrowWidth(s)).toBe(DEFAULT_SETTINGS.narrowWidth);
 	});
 
 	it("lets one board auto-hide the arrange button and the switcher", () => {

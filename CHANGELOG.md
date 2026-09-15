@@ -15,6 +15,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Choose the width at which the board goes narrow.** *Narrow below*, under
+  **Settings → Hearth → Mobile → Layout**, sets the board width at or below
+  which Hearth switches to the narrow layout — the single full-width column,
+  where *Stack cards on narrow screens* is on. It was fixed at 600 pixels,
+  which is a phone in landscape but leaves a half-screen desktop window on the
+  free-form layout; the slider covers 320 to 1200, so the column can start
+  wherever your board stops being readable. Each dashboard can override it from
+  *Dashboard settings → Layout → Narrow below*, because a dense board wants the
+  column sooner than a two-card one. (#316)
+
+  The switch follows the window as you drag it: crossing the threshold in
+  either direction rebuilds the board right then, and changing the threshold
+  re-judges the board at its current width. Your stored layout is untouched
+  either way and comes back as it was at full width.
+
 - **The Periodic note card reads from Journals.** The card gained a *Source*
   setting: leave it on Periodic Notes, or point it at the
   [Journals](https://github.com/srg-kostyrko/obsidian-journal) plugin, which

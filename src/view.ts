@@ -38,6 +38,7 @@ import {
 	effectiveFitToPage,
 	effectiveFullWidth,
 	effectiveMaxWidth,
+	effectiveNarrowWidth,
 	effectiveShowSearch,
 	effectiveShowTitle,
 	effectiveStackOnNarrow,
@@ -203,18 +204,35 @@ export class HomeView extends ItemView {
 	 * inside the view it rebuilds, so reacting to every resize would be a loop.
 	 */
 	private trackWidth(): void {
-		this.register(observeNarrowWidth(this.contentEl, (narrow) => {
-			// The phone preview pins the layout narrow, so a pane resize behind
-			// it changes nothing until it is switched off.
-			if (this.phonePreview || narrow === this.narrowAtRender) return;
-			this.render();
-		}));
+		this.register(observeNarrowWidth(
+			this.contentEl,
+			// Re-read per resize, not captured: the threshold is a setting, and a
+			// board sitting at a width the new value calls narrow is re-rendered by
+			// the settings save itself — but the *next* resize has to be judged
+			// against the new number, not the one in force when the tab opened.
+			(width) => isNarrowWidth(width, effectiveNarrowWidth(this.plugin.settings)),
+			(narrow) => {
+				// The phone preview pins the layout narrow, so a pane resize behind
+				// it changes nothing until it is switched off. The observer reports
+				// every resize, so this is also the guard that keeps a rebuild from
+				// re-triggering itself: only a crossing gets a render.
+				if (this.phonePreview || narrow === this.narrowAtRender) return;
+				this.render();
+			},
+		));
 	}
 
-	/** Whether this render uses the narrow layout: the measured board width, or
-	 * the Arrange phone preview forcing it on. */
+	/** Whether this render uses the narrow layout: the measured board width
+	 * against the board's threshold, or the Arrange phone preview forcing it
+	 * on. */
 	isNarrow(): boolean {
-		return this.phonePreview || isNarrowWidth(this.contentEl.clientWidth);
+		return (
+			this.phonePreview ||
+			isNarrowWidth(
+				this.contentEl.clientWidth,
+				effectiveNarrowWidth(this.plugin.settings),
+			)
+		);
 	}
 
 	/** Whether the board reflows into a single stacked column — narrow, and the
@@ -484,12 +502,14 @@ export class HomeView extends ItemView {
 		// scroll area, so it already follows a narrow pane down. The setting only
 		// decides how far it may grow: to a pixel ceiling, or to the pane itself.
 		//
-		// A narrow board skips the ceiling entirely: it is already narrower than
-		// the smallest value the setting can hold (CONTENT_WIDTH_MIN is 700px),
-		// so the only thing a max-width could do there is nothing.
-		// The phone preview needs no clause of its own: it forces `narrow`, and its
-		// ceiling is the device shell's width, not the board's.
-		if (!narrow && !effectiveFullWidth(this.plugin.settings)) {
+		// The narrow layout is not exempt from the ceiling: since the threshold
+		// became a setting it can be raised above CONTENT_WIDTH_MIN (700px), so a
+		// board can now be narrow and still wide enough for a max-width to bite.
+		// Below that it costs nothing — a ceiling wider than the pane does not
+		// apply itself — which is why there is no width clause here at all.
+		// The phone preview is exempt, and stays so: its ceiling is the device
+		// shell's width, not the board's.
+		if (!this.phonePreview && !effectiveFullWidth(this.plugin.settings)) {
 			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
 		}
 

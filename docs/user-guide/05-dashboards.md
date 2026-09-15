@@ -80,6 +80,8 @@ global default currently is.
 - *Stack when narrow* — whether this board reflows into one full-width column
   when the pane is too narrow for the free-form layout, or keeps the scaled
   layout.
+- *Narrow below* — the width at which this board counts as narrow, overriding
+  the vault-wide threshold.
 - *Arrange button* and *Dashboard switcher* — always visible, or fade in on
   hover, on this board.
 

@@ -1,3 +1,4 @@
+import { NARROW_WIDTH_DEFAULT } from "./types";
 import type { DashboardCard } from "./types";
 import { MIN_H_PX } from "./grid";
 
@@ -27,14 +28,10 @@ import { MIN_H_PX } from "./grid";
  *    persist; the same rule applies here for the same reason.)
  */
 
-/** Board widths at or below this reflow to the stacked layout. Chosen as the
- * point where a half-width card stops being able to hold a line of text and a
- * label: 600px is a phone in landscape, a small tablet in portrait, or a
- * desktop pane dragged to roughly a third of a 1080p screen. */
-export const NARROW_MAX_WIDTH = 600;
-
 /** The width the Arrange phone preview clamps the board to — a mainstream
- * phone in portrait, comfortably inside {@link NARROW_MAX_WIDTH}. */
+ * phone in portrait, comfortably inside the narrow threshold at its lowest
+ * setting ({@link NARROW_WIDTH_MIN} is 320px, and the preview forces the narrow
+ * layout on regardless). */
 export const PHONE_PREVIEW_WIDTH = 400;
 
 /** How far below a row's top a card may start and still belong to that row.
@@ -54,12 +51,22 @@ export const STACK_HEIGHT_DEFAULT = 184;
  * question the cap is guessing at. */
 export const STACK_HEIGHT_MAX = 420;
 
-/** Whether a board of this width uses the stacked layout. */
-export function isNarrowWidth(width: number): boolean {
+/**
+ * Whether a board of this width uses the narrow layout.
+ *
+ * The threshold is a setting ({@link HomeSettings.narrowWidth}, per board or
+ * global) rather than a constant, because the width at which a board stops
+ * working is a property of that board: a six-card grid is unreadable at a width
+ * a two-card one is fine at, and someone who works in a half-screen window
+ * wants the stacked layout well before a phone would (#316). Callers pass the
+ * effective value; the default is only for the handful of call sites that have
+ * no settings to hand.
+ */
+export function isNarrowWidth(width: number, threshold = NARROW_WIDTH_DEFAULT): boolean {
 	// A zero/negative width is a pane that hasn't been laid out yet. Answering
 	// "narrow" there would stack the board for one frame and then reflow it, so
 	// an unmeasured board keeps the free-form layout until it has a real width.
-	return width > 0 && width <= NARROW_MAX_WIDTH;
+	return width > 0 && width <= threshold;
 }
 
 /**
@@ -138,24 +145,33 @@ export function stackedHeight(card: DashboardCard): number {
 }
 
 /**
- * Watch an element's width and report when it crosses the narrow threshold.
+ * Watch an element's width and report, on every resize, which layout that width
+ * now calls for. Returns a disposer.
  *
- * `onChange` fires only on an actual change of state, never on every resize:
- * the callback rebuilds the view, and the observer watches an element inside
- * the view it rebuilds. Returns a disposer.
+ * `narrowAt` is asked each time rather than the threshold being captured once,
+ * and the answer is reported rather than compared against a remembered one.
+ * Both because the threshold is now a setting: an observer holding its own
+ * "last" state would go stale the moment the setting changed under it, and
+ * would then sit on the next real crossing — the board would be resized past
+ * the new threshold and stay in the old layout, which is exactly the bug this
+ * whole feature exists to fix.
+ *
+ * That makes it the caller's job not to loop: this watches an element inside
+ * the view the callback rebuilds, so the callback must compare against the
+ * layout it last rendered and do nothing when they agree. `HomeView.trackWidth`
+ * does, against `narrowAtRender`.
  */
 export function observeNarrowWidth(
 	el: HTMLElement,
+	narrowAt: (width: number) => boolean,
 	onChange: (narrow: boolean) => void,
 ): () => void {
-	let last = isNarrowWidth(el.clientWidth);
-	const observer = new ResizeObserver((entries) => {
-		const width = entries[0]?.contentRect.width ?? el.clientWidth;
-		const narrow = isNarrowWidth(width);
-		if (narrow === last) return;
-		last = narrow;
-		onChange(narrow);
-	});
+	// `clientWidth`, not the entry's `contentRect`: the two differ by the
+	// element's padding, and `HomeView.isNarrow` measures with `clientWidth`. A
+	// stateless observer that measured the other one could report "narrow" for a
+	// width the render then judges wide, and the two would trade renders on every
+	// resize. The entry is only the signal that a measurement is worth taking.
+	const observer = new ResizeObserver(() => onChange(narrowAt(el.clientWidth)));
 	observer.observe(el);
 	return () => observer.disconnect();
 }

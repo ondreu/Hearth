@@ -47,6 +47,7 @@ import {
 	effectiveHeaderTitleScale,
 	effectiveHiddenFilters,
 	effectiveMaxWidth,
+	effectiveNarrowWidth,
 	effectiveNewNoteButtonLabel,
 	effectiveNewNoteButtonMode,
 	effectiveRowHeight,
@@ -136,6 +137,7 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
 	out.newNoteButtonLabel = effectiveNewNoteButtonLabel(snap);
 	out.hiddenFilters = [...effectiveHiddenFilters(snap)];
 	out.stackOnNarrow = effectiveStackOnNarrow(snap);
+	out.narrowWidth = effectiveNarrowWidth(snap);
 	out.arrangeButtonVisibility = effectiveArrangeButtonVisibility(snap);
 	out.dashboardSwitcherVisibility = effectiveSwitcherVisibility(snap);
 
