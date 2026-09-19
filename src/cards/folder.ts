@@ -234,13 +234,17 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	if ((cfg.view ?? "list") === "tiles") renderFolderTiles(view, body, shown, cfg, activate);
 	else renderFolderList(view, body, shown, cfg, activate);
 
-	// What the card is not showing, said plainly and clickable — otherwise a
-	// folder of 300 notes looks like a folder of 12.
+	// What the card is not showing — otherwise a folder of 300 notes looks like
+	// a folder of 12. Said even with the browser turned off, where it is the
+	// only thing that can say it; it just isn't a way in then.
 	const rest = entries.length - shown.length;
-	if (rest > 0 && browse) {
+	if (rest > 0) {
 		const more = body.createDiv({ cls: "hearth-folder-more", text: t().cards.folder.more(rest) });
-		makeClickable(more, () => open(path), t().cards.folder.browse);
-		more.addEventListener("click", () => open(path));
+		more.toggleClass("is-static", !browse);
+		if (browse) {
+			makeClickable(more, () => open(path), t().cards.folder.browse);
+			more.addEventListener("click", () => open(path));
+		}
 	}
 }
 

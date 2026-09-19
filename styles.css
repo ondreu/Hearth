@@ -13460,6 +13460,17 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--text-normal);
 }
 
+/* With the browser turned off the row still counts what is left, but it is a
+   statement rather than a way in — so it must not look like one. */
+.hearth-folder-more.is-static {
+	cursor: default;
+}
+
+.hearth-folder-more.is-static:hover {
+	background: transparent;
+	color: var(--text-muted);
+}
+
 /* ---- The browser ---- */
 
 /* Wide, for the same reason the weather detail is: this is the one place a

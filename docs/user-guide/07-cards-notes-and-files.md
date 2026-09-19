@@ -275,7 +275,7 @@ empty space or its folder button always opens the browser.
 | *Order* | How the contents are ordered — see below |
 | *Show* | Folders and files, folders only, or files only. The browser follows the same choice |
 | *Display* | A list of rows, or a grid of icon tiles |
-| *Number of items* | How many the card lists before it says how many are left. The browser is never capped |
+| *Number of items* | How many the card lists before it says how many are left (it says so either way; with the browser off the count is not a way in). The browser is never capped |
 | *Item counts* | Show how many things each subfolder holds |
 | *Opening a subfolder* | In the folder browser (the default), or in the card itself |
 | *Open the browser from the card* | Turn off for a card that should only ever open what it lists |
