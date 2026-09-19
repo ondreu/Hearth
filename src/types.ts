@@ -46,7 +46,8 @@ export type CardKind =
 	| "git"
 	| "operon"
 	| "leaf"
-	| "pet";
+	| "pet"
+	| "vaultpet";
 
 /** A refinement control available on a Jira saved-filter card. */
 export type JiraControl =
@@ -1319,6 +1320,30 @@ export interface PetConfig {
 	lastPlayedAt?: number;
 }
 
+/** Which of the Vault Pet plugin's own surfaces a `vaultpet` card houses:
+ * "pet" — its compact `vault-pet` block (the default), "house" — its pet-house
+ * view, hosted in the card. */
+export type VaultPetDisplay = "pet" | "house";
+
+/** Per-card settings for the Vault Pet card.
+ *
+ * Deliberately thin. Everything that makes the pet a pet — its species, name,
+ * XP, quests, badges, wardrobe, sounds and language — belongs to the Vault Pet
+ * plugin and is set in *its* settings; a copy of any of it here could only go
+ * stale or, worse, disagree. What is left is Hearth's half of the arrangement:
+ * which surface to show, and how much chrome to put around it. */
+export interface VaultPetConfig {
+	/** Which surface the card shows. Default "pet". */
+	display?: VaultPetDisplay;
+	/** Keep the hosted house view's own title bar, which is otherwise hidden —
+	 * the card has a header of its own. Only read when `display` is "house".
+	 * Default false. */
+	showHeader?: boolean;
+	/** Drop the floating "open the pet house" button. Default false — the
+	 * button is there. */
+	hideOpenButton?: boolean;
+}
+
 /** A single button in the mobile action bar (shown under the search bar and
  * filters in Mobile mode). Like a launchpad tile, a button can run an Obsidian
  * command, open a vault note/file, or open a URL — chosen by `type`. Hearth's
@@ -1612,6 +1637,9 @@ export interface DashboardCard {
 	leafView?: LeafViewConfig;
 	/** kind === "pet": species, colors, name and what feeds its mood. */
 	pet?: PetConfig;
+	/** kind === "vaultpet": which of the Vault Pet plugin's surfaces the card
+	 * houses, and the chrome around it. */
+	vaultPet?: VaultPetConfig;
 
 	// ---- Live content ----
 	/** Auto-refresh interval in seconds for live content (embed / web). 0 or

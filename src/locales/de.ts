@@ -1315,6 +1315,15 @@ export const de: Translations = {
 						"Dasselbe für Iconize (ehemals Obsidian Icon Folder), einschließlich Symbolen, " +
 						"die über eine Frontmatter-Eigenschaft gesetzt wurden.",
 				},
+				vaultPet: {
+					name: "Vault Pet",
+					desc:
+						"Die Vault-Pet-Karte gibt dem Plugin einen Platz auf deinem Board - " +
+						"entweder seine eigene Haustierkarte, lebendig und anklickbar, oder " +
+						"sein ganzes Haus mit Quests, Dex, Abzeichen und Statistik. Das " +
+						"Haustier, seine EP und alles Freigeschaltete gehören Vault Pet; " +
+						"Hearth gibt ihm nur den Raum.",
+				},
 				excalidraw: {
 					name: "Excalidraw",
 					desc:
@@ -1646,6 +1655,7 @@ export const de: Translations = {
 			operon: "Operon",
 			leaf: "Plugin-Ansicht (Beta)",
 			pet: "Haustier",
+			vaultpet: "Vault Pet",
 		},
 		linkTypes: {
 			note: "Notiz",
@@ -3015,6 +3025,28 @@ export const de: Translations = {
 			showMood: "Stimmung anzeigen",
 			showActivity: "Heutige Aktivität anzeigen",
 		},
+		vaultPet: {
+			missing: "Vault Pet ist nicht installiert",
+			missingDesc:
+				"Diese Karte beherbergt das Community-Plugin Vault Pet. Installiere und " +
+				"aktiviere es, und die Karte füllt sich von selbst - diese Einstellungen " +
+				"bleiben so oder so erhalten.",
+			display: "Anzeigen",
+			displayDesc:
+				"Beides stammt von Vault Pet selbst: die kleine Karte, die es in eine " +
+				"Notiz einfügen kann, oder seine Haus-Ansicht, hier statt in der " +
+				"Seitenleiste eingebettet.",
+			displayPet: "Das Haustier",
+			displayHouse: "Das Haustierhaus",
+			showHeader: "Titelleiste des Hauses behalten",
+			showHeaderDesc:
+				"Die eigene Kopfzeile der eingebetteten Ansicht ist standardmäßig " +
+				"ausgeblendet - die Karte hat bereits eine.",
+			openButton: "Schaltfläche „Haustierhaus öffnen“",
+			openButtonDesc:
+				"Eine Schaltfläche in der Ecke der Karte, die das Haus von Vault Pet in " +
+				"der Seitenleiste öffnet - wie sein Symbol in der Seitenleiste.",
+		},
 		colors: {
 			heading: "Farben",
 			headingDesc: "Akzent und Hintergrundtönung für diese Karte.",
@@ -3103,6 +3135,10 @@ export const de: Translations = {
 			boardNeedsFile: "Wähle eine Datei für dieses Board in den Dashboard-Einstellungen",
 			leafViewMissing:
 				"Diese Ansicht ist nicht verfügbar - aktiviere das Plugin, das sie bereitstellt",
+			vaultPetInstall:
+				"Installiere das Plugin Vault Pet, um hier ein Haustier zu halten",
+			vaultPetNoHouse:
+				"Das Haus von Vault Pet ist nicht verfügbar - aktiviere oder aktualisiere das Plugin",
 			operonEnable: "Aktiviere das Operon-Plugin, um seine Aufgaben anzuzeigen",
 			operonDisabled:
 				"Die Operon-Integration ist aus - schalte sie unter Einstellungen → Hearth → Integrations ein",
@@ -3193,6 +3229,9 @@ export const de: Translations = {
 					? `${count} neue Notiz${count === 1 ? "" : "en"} heute`
 					: `${count} Notiz${count === 1 ? "" : "en"} heute`,
 			streak: (days: number) => `${days}-Tage-Serie`,
+		},
+		vaultPet: {
+			openHouse: "Haustierhaus öffnen",
 		},
 		embed: {
 			openFile: "Diese Datei öffnen",
@@ -3697,6 +3736,8 @@ export const de: Translations = {
 		"operon-timer": "Operon-Timer",
 		leaf: "Plugin-Ansicht (Beta)",
 		pet: "Haustier",
+		"vault-pet": "Vault Pet",
+		"vault-pet-house": "Vault-Pet-Haus",
 	},
 
 	/** Eine Zeile pro Vorlage, gezeigt unter ihrem Namen in der Kartenauswahl und
@@ -3742,6 +3783,8 @@ export const de: Translations = {
 		"operon-timer": "Operons laufende Zeiterfassung, live tickend",
 		leaf: "Die Seitenleiste eines anderen Plugins, eingebettet in einer Karte",
 		pet: "Ein kleiner Begleiter, der auf deinem Board lebt",
+		"vault-pet": "Das Haustier des Vault-Pet-Plugins, das mit dem Schreiben wächst",
+		"vault-pet-house": "Das Haus von Vault Pet - Quests, Dex, Abzeichen und Statistik",
 	},
 
 	// ---- Kartenauswahl -----------------------------------------------

@@ -1194,6 +1194,13 @@ export const zh: Translations = {
 						"对 Iconize（原 Obsidian Icon Folder）同样适用，包括通过 frontmatter " +
 						"属性设置的图标。",
 				},
+				vaultPet: {
+					name: "Vault Pet",
+					desc:
+						"Vault Pet 卡片把该插件安置在您的面板上：既可以是它自己的宠物卡片，" +
+						"活生生且可点击，也可以是它完整的小屋，含任务、图鉴、徽章与统计。" +
+						"宠物、经验以及解锁的一切都属于 Vault Pet，Hearth 只提供空间。",
+				},
 				excalidraw: {
 					name: "Excalidraw",
 					desc:
@@ -1495,6 +1502,7 @@ export const zh: Translations = {
 			operon: "Operon",
 			leaf: "插件视图（测试版）",
 			pet: "宠物",
+			vaultpet: "Vault Pet",
 		},
 		linkTypes: {
 			note: "笔记",
@@ -2761,6 +2769,22 @@ export const zh: Translations = {
 			showMood: "显示心情",
 			showActivity: "显示今天的活跃度",
 		},
+		vaultPet: {
+			missing: "尚未安装 Vault Pet",
+			missingDesc:
+				"这张卡片用来承载 Vault Pet 社区插件。安装并启用后卡片会自行填充 —— " +
+				"无论如何这些设置都会保留。",
+			display: "显示",
+			displayDesc:
+				"两者都来自 Vault Pet 自身：它可以插入笔记的小卡片，或它的小屋视图，" +
+				"承载在这里而不是侧边栏。",
+			displayPet: "宠物",
+			displayHouse: "宠物小屋",
+			showHeader: "保留小屋的标题栏",
+			showHeaderDesc: "承载视图自带的标题栏默认隐藏 —— 卡片本身已经有一个。",
+			openButton: "“打开宠物小屋”按钮",
+			openButtonDesc: "卡片角落的一个按钮，像它的功能区图标一样在侧边栏打开 Vault Pet 的小屋。",
+		},
 		colors: {
 			heading: "颜色",
 			headingDesc: "此卡片的强调色和背景色调。",
@@ -2845,6 +2869,8 @@ export const zh: Translations = {
 			boardPickView: "请在仪表板设置中为本面板选择一个视图",
 			boardNeedsFile: "请在仪表板设置中为本面板选择一个文件",
 			leafViewMissing: "此视图不可用 — 请启用提供它的插件",
+			vaultPetInstall: "安装 Vault Pet 插件即可在此养一只宠物",
+			vaultPetNoHouse: "Vault Pet 的小屋不可用 — 请启用或更新该插件",
 			operonEnable: "请启用 Operon 插件以显示其任务",
 			operonDisabled: "Operon 集成已关闭 — 请在 设置 → Hearth → 集成 中开启",
 			operonUnsupported:
@@ -2935,6 +2961,9 @@ export const zh: Translations = {
 					? `今天新建了 ${count} 篇笔记`
 					: `今天有 ${count} 篇笔记`,
 			streak: (days: number) => `连续 ${days} 天`,
+		},
+		vaultPet: {
+			openHouse: "打开宠物小屋",
 		},
 		embed: {
 			openFile: "打开此文件",
@@ -3436,6 +3465,8 @@ export const zh: Translations = {
 		"operon-timer": "Operon 计时器",
 		leaf: "插件视图（测试版）",
 		pet: "宠物",
+		"vault-pet": "Vault Pet",
+		"vault-pet-house": "Vault Pet 小屋",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -3481,6 +3512,8 @@ export const zh: Translations = {
 		"operon-timer": "Operon 正在运行的时间追踪，实时跳动",
 		leaf: "在卡片中承载另一个插件的侧边面板",
 		pet: "住在您面板上的小伙伴",
+		"vault-pet": "Vault Pet 插件的宠物，随着您的写作成长",
+		"vault-pet-house": "Vault Pet 的小屋 —— 任务、图鉴、徽章与统计",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

@@ -175,6 +175,20 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 
 			// ---- Fun ----
 			{ id: "pet", icon: "cat", category: "fun", requires: null, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
+			{
+				id: "vault-pet",
+				icon: "egg",
+				category: "fun",
+				requires: "Vault Pet",
+				build: { kind: "vaultpet", title: "Vault Pet", vaultPet: {}, w: 3, h: 4 },
+			},
+			{
+				id: "vault-pet-house",
+				icon: "house",
+				category: "fun",
+				requires: "Vault Pet",
+				build: { kind: "vaultpet", title: "Pet house", vaultPet: { display: "house" }, w: 5, h: 6 },
+			},
 		]);
 	});
 
@@ -413,6 +427,7 @@ describe("liveness classification", () => {
 			operon: "vault",
 			leaf: "static",
 			pet: "vault",
+			vaultpet: "static",
 		});
 	});
 });

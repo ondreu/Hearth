@@ -3,7 +3,7 @@
 This chapter documents three categories from Hearth's Add card picker: **Vault
 insight** (Query, Search bar, Vault statistics, Activity heatmap), **Tools**
 (Links / launchpad, Commands, Text / jot-down, Calculator, Web page) and **Fun**
-(Pet).
+(Pet, Vault Pet).
 
 Cards are added with **Arrange → Add card** in Hearth's Home view and configured
 from each card's own gear button while arranging; see
@@ -308,3 +308,37 @@ midnight. A thin small hour is the hour, not neglect: a good day still shows as
 a good day, and petting wakes the pet whatever you set here.
 
 Clicking the pet pets it, and earns hearts.
+
+## The Vault Pet card
+
+**What it shows:** the pet from the
+[Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) community
+plugin, on your board.
+
+**Requires:** the Vault Pet plugin. Without it the card shows a prompt, and its
+settings are kept for when the plugin arrives.
+
+This is not the card above. The Pet card is Hearth's own and needs nothing; the
+Vault Pet card is a *house* for someone else's plugin — one that keeps XP,
+levels, quests, badges, a dex, streaks and a wardrobe, all of which stay the
+plugin's. Hearth draws none of it and stores none of it, so nothing here can
+reset your pet or disagree with what the plugin shows elsewhere.
+
+| Setting | Meaning |
+| --- | --- |
+| *Show* | **The pet** — the plugin's own compact card: its sprite, level bar, today's characters, links and notes, and its streak. Clicking it pets the pet, exactly as clicking it in a note does. **The pet house** — the plugin's house view, hosted in the card: quests, dex, badges, wardrobe and stats |
+| *Keep the house's title bar* | The hosted view's own header is hidden by default, since the card has one already. Only shown for the house |
+| *"Open the pet house" button* | A small button in the card's corner that opens the house in the sidebar, the same as Vault Pet's ribbon icon. On by default |
+
+Everything *about* the pet — which of the five friends it is, its name, colour,
+accessories, sounds, language, size and the folders it ignores — is set in
+**Settings → Vault Pet**, not here. The card follows whatever you set there.
+
+There are two ways to add it from the picker: **Vault Pet** starts small, on the
+pet; **Vault Pet house** starts larger, on the house. They are the same card,
+and the *Show* setting switches between them at any time.
+
+One note on movement: the pet is animated by Vault Pet, not by Hearth, so
+Hearth's performance tier and its reduced-motion handling do not reach it —
+exactly as they do not reach any other plugin's view hosted in a card. How much
+the pet moves is Vault Pet's to decide.

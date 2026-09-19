@@ -18,7 +18,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 
 - 🔍 **Search everything** — fuzzy, full-text, tags, frontmatter and commands
 - 🧩 **35+ cards** — embeds, tasks, calendars, Dataview, Git, Jira, Operon, and more
-- 🔌 **25 integrations** — picked up automatically when the plugin is enabled
+- 🔌 **26 integrations** — picked up automatically when the plugin is enabled
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
@@ -245,6 +245,7 @@ from you.
 | Card | What it shows | Needs |
 | --- | --- | --- |
 | **Pet** | A pixel-art companion (cat, dog, bird, fox, frog or blob) whose mood follows your vault — content, happy, bored, or asleep on a quiet day, with drawn animation and eyes that follow your pointer. Set a night window, name it, color it. Nothing to lose; clicking it earns hearts | — |
+| **Vault Pet** | The [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) plugin's own pet, living on the board: its card (sprite, level, streak, click to pet) or its whole house — quests, dex, badges, wardrobe and stats | [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) |
 
 Everything is **live**: embeds and editable notes follow vault events without
 losing your cursor, data cards redraw on vault and metadata changes, and web
@@ -273,6 +274,7 @@ full list, with live status and where each one's settings live, is under
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | Your per-file icons show wherever Hearth lists a file | Integrations tab |
 | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) | Drawings render live in Embed cards; "New drawing" runs its command | The card |
 | [Kanban](https://github.com/obsidian-community/obsidian-kanban) | Tasks cards read and write its board notes in its own format | The card |
+| [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) | The Vault Pet card gives the plugin a place on the board — its own pet card, or its whole pet house | The card |
 
 **Obsidian core plugins**
 

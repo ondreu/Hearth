@@ -174,6 +174,23 @@ Kanban.
 
 **Configured in:** the card itself.
 
+### Vault Pet
+
+**What Hearth does with it:** the **Vault Pet** card gives
+[Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) a place on
+the board — either the plugin's own pet card (its sprite, level bar, today's
+count and streak, clickable to pet) or its whole pet house, with quests, dex,
+badges, wardrobe and stats, hosted in the card instead of the sidebar.
+
+Both are the plugin's own surfaces: Hearth draws no pet of its own here and
+stores nothing about yours. The pet, its XP, everything it unlocks and all of
+its settings stay in Vault Pet, and nothing here resets or duplicates them. (For
+Hearth's *own* pixel pet, which needs no plugin at all, see
+[chapter 9](09-cards-vault-tools-and-fun.md#the-pet-card).)
+
+**Configured in:** the card itself — plus Vault Pet's own settings for
+everything about the pet.
+
 ---
 
 ## Obsidian core plugins
