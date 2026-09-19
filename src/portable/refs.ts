@@ -198,6 +198,9 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "leafView.viewType", scope: "viewType" },
 	{ at: "leafView.file", scope: "vaultPath" },
 
+	// folder — the folder a folder card lists
+	{ at: "folder.path", scope: "vaultPath", folder: true },
+
 	// favourites — the note paths a favourites card shows, folded onto the card
 	// at capture so the board can state its own list (see `capture.ts`).
 	{ at: "favorites[]", scope: "vaultPath" },

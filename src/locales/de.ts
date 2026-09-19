@@ -1618,6 +1618,7 @@ export const de: Translations = {
 			favorites: "Favoriten",
 			text: "Text / Kurznotiz",
 			recent: "Letzte Dateien",
+			folder: "Ordnerinhalt",
 			links: "Links / Zentrale",
 			commands: "Befehle",
 			templater: "Neue Notiz aus Vorlage",
@@ -1880,6 +1881,45 @@ export const de: Translations = {
 				`weit reicht Hearths Verlauf zuletzt geöffneter Dateien zurück.`,
 			types: "Dateitypen",
 			typesDesc: "Liste nur Dateien der ausgewählten Typen. Wähle eine beliebige Kombination; ohne Auswahl werden alle Typen angezeigt.",
+		},
+		folder: {
+			folder: "Ordner",
+			folderDesc: "Der Ordner, den diese Karte auflistet. Leer lassen für die Vault-Wurzel.",
+			folderPlaceholder: "Projekte/2026",
+			pickFolder: "Ordner wählen",
+			sort: "Reihenfolge",
+			sortDesc:
+				"Wie der Inhalt sortiert wird. Bei Hearths eigenen Sortierungen stehen " +
+				"Ordner vorn und werden nach Namen sortiert, wie im Datei-Explorer.",
+			sorts: {
+				explorer: "Wie im Datei-Explorer",
+				name: "Name (A–Z)",
+				nameDesc: "Name (Z–A)",
+				modified: "Geändert (neueste zuerst)",
+				modifiedAsc: "Geändert (älteste zuerst)",
+				created: "Erstellt (neueste zuerst)",
+				createdAsc: "Erstellt (älteste zuerst)",
+			},
+			show: "Anzeigen",
+			showDesc: "Welche Inhalte des Ordners die Karte auflistet.",
+			showAll: "Ordner und Dateien",
+			showFolders: "Nur Ordner",
+			showFiles: "Nur Dateien",
+			display: "Darstellung",
+			displayDesc: "Eine Liste von Zeilen oder ein Raster aus Kacheln.",
+			displayList: "Liste",
+			displayTiles: "Kacheln",
+			count: "Anzahl der Einträge",
+			countDesc:
+				"Wie viele die Karte auflistet, bevor sie sagt, wie viele übrig sind. " +
+				"Der Browser, den sie öffnet, ist nie begrenzt.",
+			counts: "Anzahl je Unterordner",
+			countsDesc: "Zeigt, wie viele Einträge jeder Unterordner enthält.",
+			browse: "Browser von der Karte aus öffnen",
+			browseDesc:
+				"Ein Klick auf die freie Fläche der Karte — oder auf ihre " +
+				"Ordner-Schaltfläche — öffnet den Ordner in einem Browser mit " +
+				"Pfadleiste, in dem jeder Ordner geöffnet werden kann.",
 		},
 		calendar: {
 			view: "Layout",
@@ -3020,6 +3060,9 @@ export const de: Translations = {
 			bookmarksEmpty: "Noch keine Lesezeichen",
 			favoritesEmpty: "Füge Favoriten in den Einstellungen hinzu",
 			recentEmpty: "Keine kürzlich verwendeten Dateien",
+			folderEmpty: "Dieser Ordner ist leer",
+			folderMissing: (path: string) =>
+				path ? `Kein Ordner unter „${path}“` : "Ordner in den Karteneinstellungen wählen",
 			linksEmpty: "Füge Links in den Einstellungen hinzu",
 			commandsEmpty: "Füge Befehle in den Karteneinstellungen hinzu",
 			templaterEnable: "Aktiviere das Templater-Plugin, um Notizen aus Vorlagen zu erstellen",
@@ -3064,6 +3107,12 @@ export const de: Translations = {
 			operonNoTasks: "Keine passenden Operon-Aufgaben",
 			operonNoAgenda: "Nichts in diesem Zeitraum geplant",
 			operonNoColumns: "Keine Operon-Status anzuzeigen - wähle eine Pipeline in den Karteneinstellungen",
+		},
+		folder: {
+			browse: "Diesen Ordner durchsehen",
+			/** The card's last row: what it isn't showing. */
+			more: (n: number) => `${n} weitere…`,
+			missing: "Diesen Ordner gibt es im Vault nicht mehr.",
 		},
 		operon: {
 			loading: "Lese Operon…",
@@ -3605,6 +3654,7 @@ export const de: Translations = {
 		bookmarks: "Lesezeichen",
 		favorites: "Favoriten",
 		recent: "Zuletzt verwendete Dateien",
+		folder: "Ordner",
 		links: "Links / Zentrale",
 		commands: "Befehle",
 		templater: "Neue Notiz aus Vorlage",
@@ -3649,6 +3699,7 @@ export const de: Translations = {
 		bookmarks: "Deine Obsidian-Lesezeichen, einen Klick entfernt",
 		favorites: "Die Notizen, die du in Hearth markiert hast",
 		recent: "Die Dateien, die du zuletzt geöffnet hast",
+		folder: "Was in einem Ordner liegt, eine Ebene tief, mit Browser dahinter",
 		links: "Eine Zentrale für Links, Notizen und Ordner",
 		commands: "Schaltflächen, die Obsidian-Befehle ausführen",
 		templater: "Schaltflächen, die aus einer Templater-Vorlage eine Notiz in einem Ordner deiner Wahl erstellen",

@@ -157,6 +157,7 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
 | **Excalidraw drawing** | A drawing with native pan and zoom | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) |
 | **Embedded base** | A `.base` file, rendered by Obsidian's Bases | Bases (core) |
 | **Recent files** | The files you opened most recently | — |
+| **Folder** | What is in a folder, one level down, in the file explorer's own order — with a browser behind it: a breadcrumb, every subfolder opened one level, and any folder on the page steppable into | — |
 | **Favorites** | The notes you starred in Hearth | — |
 | **Bookmarks** | Your Obsidian bookmarks, with site favicons | Bookmarks (core) |
 

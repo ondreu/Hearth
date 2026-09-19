@@ -35,6 +35,7 @@ import {
 	type PetConfig,
 	type PetSpecies,
 	type PeriodicCardConfig,
+	type FolderCardConfig,
 	type SavedSearchConfig,
 	type ScheduleConfig,
 	type ScheduleView,
@@ -87,6 +88,7 @@ import {
 	SLIDESHOW_TRANSITIONS,
 } from "./slideshow";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
+import { asFolderSort } from "./foldercontents";
 import {
 	type EventField,
 	type EventFieldAction,
@@ -568,6 +570,9 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	// follows the vault keeps following it.
 	if (Array.isArray(r.favorites)) {
 		card.favorites = r.favorites.filter((v): v is string => typeof v === "string");
+	}
+	if (r.folder && typeof r.folder === "object") {
+		card.folder = sanitizeFolder(r.folder as Record<string, unknown>);
 	}
 	if (r.savedSearch && typeof r.savedSearch === "object") {
 		card.savedSearch = sanitizeSavedSearch(
@@ -1354,6 +1359,20 @@ function sanitizeOperon(r: Record<string, unknown>): OperonConfig {
 	] as const) {
 		if (typeof r[key] === "boolean") cfg[key] = r[key];
 	}
+	return cfg;
+}
+
+function sanitizeFolder(r: Record<string, unknown>): FolderCardConfig {
+	const cfg: FolderCardConfig = {};
+	const path = str(r.path);
+	if (path !== undefined) cfg.path = path;
+	const sort = asFolderSort(r.sort);
+	if (sort !== undefined) cfg.sort = sort;
+	if (r.show === "all" || r.show === "folders" || r.show === "files") cfg.show = r.show;
+	if (typeof r.count === "number") cfg.count = r.count;
+	if (r.view === "list" || r.view === "tiles") cfg.view = r.view;
+	if (typeof r.counts === "boolean") cfg.counts = r.counts;
+	if (typeof r.browse === "boolean") cfg.browse = r.browse;
 	return cfg;
 }
 

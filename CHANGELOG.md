@@ -15,6 +15,28 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A Folder card.** *Folder*, in the "Add card" picker's Notes & files
+  section, lists what sits one level inside a folder you pick — its subfolders
+  and its files — as rows or as icon tiles. Clicking a file opens it; clicking a
+  subfolder, the card's empty space or its folder button opens the folder
+  browser. (#329)
+
+  Its default order is *Same as the file explorer*: the card shows the folder in
+  the order the sidebar is showing it, including the order a plugin that
+  reorders the explorer (such as
+  [Flexplorer](https://github.com/kh4f/flexplorer)) has put it in. When the
+  explorer can't be read the card falls back to the sort the explorer is *set*
+  to, so it still agrees with the sidebar. Name, modified and created orders are
+  offered too, and under those folders lead and sort by name, exactly as they do
+  in the explorer.
+
+  The browser behind the card is the whole folder: a breadcrumb from the vault
+  root down, each subfolder as its own section opened one extra level, and the
+  files between them gathered into blocks so the page keeps the sidebar's order
+  rather than sorting the folders away from the files. Every folder on the page
+  — a breadcrumb step, a section heading, a row — steps the dialog into that
+  folder, so a whole tree can be walked without leaving it.
+
 - **Choose the width at which the board goes narrow.** *Narrow below*, under
   **Settings → Hearth → Mobile → Layout**, sets the board width at or below
   which Hearth switches to the narrow layout — the single full-width column,

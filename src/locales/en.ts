@@ -1611,6 +1611,7 @@ export const en = {
 			favorites: "Favorites",
 			text: "Text / jot-down",
 			recent: "Recent files",
+			folder: "Folder contents",
 			links: "Links / launchpad",
 			commands: "Commands",
 			templater: "New note from template",
@@ -1871,6 +1872,45 @@ export const en = {
 				`far back as Hearth's recent-file history goes.`,
 			types: "File types",
 			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
+		},
+		folder: {
+			folder: "Folder",
+			folderDesc: "The folder this card lists. Leave it empty for the vault root.",
+			folderPlaceholder: "Projects/2026",
+			pickFolder: "Pick a folder",
+			sort: "Order",
+			sortDesc:
+				"How the contents are ordered. Under Hearth's own orders folders lead " +
+				"and sort by name, the way the file explorer does.",
+			sorts: {
+				explorer: "Same as the file explorer",
+				name: "Name (A–Z)",
+				nameDesc: "Name (Z–A)",
+				modified: "Modified (newest first)",
+				modifiedAsc: "Modified (oldest first)",
+				created: "Created (newest first)",
+				createdAsc: "Created (oldest first)",
+			},
+			show: "Show",
+			showDesc: "Which of the folder's contents the card lists.",
+			showAll: "Folders and files",
+			showFolders: "Folders only",
+			showFiles: "Files only",
+			display: "Display",
+			displayDesc: "A list of rows, or a grid of icon tiles.",
+			displayList: "List",
+			displayTiles: "Tiles",
+			count: "Number of items",
+			countDesc:
+				"How many the card lists before it says how many are left. The browser " +
+				"it opens is never capped.",
+			counts: "Item counts",
+			countsDesc: "Show how many things each subfolder holds.",
+			browse: "Open the browser from the card",
+			browseDesc:
+				"Clicking the card's empty space — or its folder button — opens the " +
+				"folder in a browser with a breadcrumb, where every folder can be " +
+				"stepped into.",
 		},
 		calendar: {
 			view: "Layout",
@@ -3015,6 +3055,9 @@ export const en = {
 			bookmarksEmpty: "No bookmarks yet",
 			favoritesEmpty: "Add favorites in settings",
 			recentEmpty: "No recent files",
+			folderEmpty: "This folder is empty",
+			folderMissing: (path: string) =>
+				path ? `No folder at "${path}"` : "Pick a folder in card settings",
 			linksEmpty: "Add links in settings",
 			commandsEmpty: "Add commands in card settings",
 			templaterEnable: "Enable the Templater plugin to create notes from templates",
@@ -3059,6 +3102,12 @@ export const en = {
 			operonNoTasks: "No Operon tasks match",
 			operonNoAgenda: "Nothing scheduled in this window",
 			operonNoColumns: "No Operon statuses to show — pick a pipeline in card settings",
+		},
+		folder: {
+			browse: "Browse this folder",
+			/** The card's last row: what it isn't showing. */
+			more: (n: number) => `${n} more…`,
+			missing: "This folder is no longer in the vault.",
 		},
 		operon: {
 			loading: "Reading Operon…",
@@ -3602,6 +3651,7 @@ export const en = {
 		bookmarks: "Bookmarks",
 		favorites: "Favorites",
 		recent: "Recent files",
+		folder: "Folder",
 		links: "Links / launchpad",
 		commands: "Commands",
 		templater: "New note from template",
@@ -3646,6 +3696,7 @@ export const en = {
 		bookmarks: "Your Obsidian bookmarks, one click away",
 		favorites: "The notes you starred in Hearth",
 		recent: "The files you opened most recently",
+		folder: "What is in a folder, one level down, with a browser behind it",
 		links: "A launchpad of links, notes and folders",
 		commands: "Buttons that run Obsidian commands",
 		templater: "Buttons that make a note from a Templater template, in a folder you pick",
