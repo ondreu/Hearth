@@ -104,6 +104,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   is looking for the repository, and fills itself in as soon as the plugin is
   usable ([#315](https://github.com/ondreu/Hearth/issues/315)).
 
+- **The board no longer wobbles sideways on a phone.** The scroll area allowed
+  horizontal scrolling by accident: `overflow-y: auto` makes the horizontal
+  axis `auto` too, so anything overshooting the pane by a few pixels turned the
+  whole dashboard into a plane that could be dragged left and right — enough to
+  shave its own left edge and to sit a horizontal scrollbar across the bottom.
+  The board is laid out to the pane's width in every mode, so that axis is now
+  clipped outright and one stray element can't drag the board with it.
+
+  One such element is fixed at the source too: a title with a word too long to
+  break — a one-word vault name at header size — sized the title row past the
+  board's edge instead of wrapping inside it
+  ([#326](https://github.com/ondreu/Hearth/issues/326)).
+
 
 ## [3.1.0]
 
