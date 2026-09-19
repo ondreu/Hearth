@@ -2482,7 +2482,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// down this file, so reading it here would hit the temporal dead zone while
 	// this object is being built. `maxWidth` above keeps its literal for the
 	// same reason. The clamp in migrateSettings is what holds them together.
-	narrowWidth: 600,
+	narrowWidth: 700,
 	disableExternalCalls: false,
 
 	// A new tab is what Hearth has always done; existing vaults must not change
@@ -2920,16 +2920,24 @@ export const CONTENT_WIDTH_STEP = 20;
  * which nothing is ever wide enough to be called anything but narrow; the
  * ceiling is a half-screen window on a large desktop, past which "narrow" would
  * cover every board anyone actually uses and the stacked layout is better asked
- * for outright. The default is the width at which a half-width card stops being
- * able to hold a line of text and a label: a phone in landscape, a small tablet
- * in portrait, or a desktop pane at roughly a third of a 1080p screen.
+ * for outright.
+ *
+ * The default is set above the widest phone rather than at the width a
+ * half-width card stops holding a line of text, because a phone that misses the
+ * threshold gets the free-form layout and a board nobody can read on it. It was
+ * 600 — the readability answer, and the wrong one: an Android phone at a device
+ * pixel ratio of 2 reports a ~608px viewport, so a 1216px display, an ordinary
+ * phone held in the hand, landed eight pixels on the free-form side and drew a
+ * desktop board on a phone screen (#326). 700 clears the phones that report
+ * 600-680 and still leaves a half-screen desktop window free-form; a board that
+ * wants the column sooner, or later, says so for itself.
  *
  * The settings slider, the per-board override and the clamp applied to an
  * imported layout all read these, so the range has exactly one definition. */
 export const NARROW_WIDTH_MIN = 320;
 export const NARROW_WIDTH_MAX = 1200;
 export const NARROW_WIDTH_STEP = 20;
-export const NARROW_WIDTH_DEFAULT = 600;
+export const NARROW_WIDTH_DEFAULT = 700;
 
 /** A stored or imported narrow threshold, brought into range. Anything that
  * isn't a finite number — a missing key in settings saved before the threshold
@@ -3357,8 +3365,11 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	if (s.backgroundLayout !== "banner") s.backgroundLayout = "full";
 	s.bannerHeight = clampBannerHeight(s.bannerHeight);
 	// Additive: settings saved before the narrow threshold was customizable have
-	// no key here, and the clamp hands those the default the threshold was
-	// hard-coded to — so nothing about an existing vault's layout changes.
+	// no key here, and the clamp hands those the current default. Raising that
+	// default from 600 to 700 (#326) therefore does move such a vault on upgrade,
+	// which is deliberate: a pane between the two widths now stacks where it used
+	// to draw a free-form board too narrow to read. A stored threshold is a
+	// choice and is kept — 600 included.
 	s.narrowWidth = clampNarrowWidth(s.narrowWidth);
 	if (typeof s.bannerFade !== "boolean") s.bannerFade = true;
 	if (typeof s.bannerFullWidth !== "boolean") s.bannerFullWidth = false;

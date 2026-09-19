@@ -200,6 +200,18 @@
 	z-index: 1;
 	height: 100%;
 	overflow-y: auto;
+	/* The board never scrolls sideways — it is laid out to the pane's width in
+	 * every mode. Without this the axis is not merely unused, it is live:
+	 * `overflow-y: auto` makes the computed `overflow-x` `auto` too, so anything
+	 * that overshoots the pane by a hair — a title with a word too long to
+	 * break, a theme's wider control, a sub-pixel rounding at a fractional
+	 * device pixel ratio — turns the whole board into a horizontally scrollable
+	 * plane. On a phone that reads as a dashboard that wobbles under the thumb
+	 * and sits a few pixels off its own left edge (#326), with a scrollbar
+	 * across the bottom to go with it. Clipping the axis costs nothing here and
+	 * keeps one stray element from dragging the board sideways with it — the
+	 * same failure the wrapping dashboard switcher was fixed for earlier. */
+	overflow-x: hidden;
 	/* Kept in variables so a full-bleed banner can cancel exactly this padding,
 	 * whichever spacing mode is in force (see .hearth-banner.is-full-width). */
 	--hearth-scroll-pad-x: 24px;
@@ -298,6 +310,14 @@
 	display: flex;
 	align-items: center;
 	gap: 12px;
+	/* The header is a centred column, so the title row is sized to its content
+	 * rather than stretched — and a flex row's content floor is the sum of its
+	 * items' longest unbreakable runs. A one-word title (a vault name, a
+	 * handle) at 2.2rem and up can pass a phone's width on its own, and the row
+	 * then hangs out of the header rather than being contained by it. Cap it at
+	 * the header's width and let it shrink; the text below breaks. */
+	max-width: 100%;
+	min-width: 0;
 	font-size: clamp(2.2rem, 5vw, 3.4rem);
 	font-weight: 700;
 	letter-spacing: -0.02em;
@@ -327,6 +347,12 @@
 
 .hearth-title-text {
 	font-size: calc(1em * var(--hearth-title-scale, 1));
+	/* `anywhere`, not `break-word`: only `anywhere` lowers the element's
+	 * min-content width, which is what the row above is being measured by. A
+	 * long word wraps inside the title instead of pushing the row past the
+	 * board's edge. */
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 .hearth-logo-icon {
