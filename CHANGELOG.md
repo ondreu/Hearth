@@ -126,6 +126,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   is still there to drag a card into — and a filter set in one layout means the
   same thing after switching to the other.
 
+- **Hearth speaks German.** A full `de` locale joins English and Simplified
+  Chinese, so every string Hearth draws — commands, notices, the setup wizard,
+  all of the plugin and card settings, card bodies and the add-card picker —
+  comes out in German when Obsidian's own display language is German. It is
+  picked up from Obsidian's language at load and needs no setting of its own;
+  regional codes fall back to `de`, and anything untranslated still falls back
+  to English. It uses the informal "du" throughout.
+  ([#312](https://github.com/ondreu/Hearth/pull/312))
+
 ### Fixed
 
 - **Every bookmark on the Bookmarks card opens something now.** The card drew a
