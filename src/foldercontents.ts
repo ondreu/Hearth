@@ -202,6 +202,13 @@ export function parentPath(path: string): string {
 	return cut === -1 ? "" : path.slice(0, cut);
 }
 
+/** Whether `path` is `root` itself or sits somewhere under it. The vault root
+ * (an empty string) holds everything. Keeps a card that navigates in place from
+ * climbing out of the folder it was set to. */
+export function pathWithin(path: string, root: string): boolean {
+	return root === "" || path === root || path.startsWith(`${root}/`);
+}
+
 /**
  * Whether a change at `path` can alter what a card rooted at `folder` shows.
  *

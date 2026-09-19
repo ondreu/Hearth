@@ -736,6 +736,15 @@ export interface FolderCardConfig {
 	/** Clicking the card's empty space opens the folder browser. Default on;
 	 * set false for a card that should only ever open what it lists. */
 	browse?: boolean;
+	/** Where clicking a subfolder goes. Omitted is the browser dialog; "card"
+	 * walks the card itself into the folder, which then grows a path row with
+	 * a way back up.
+	 *
+	 * Either way the folder a card has been walked to is *not* stored here: it
+	 * is where the reader currently is, not what the card is, and a board that
+	 * rewrote itself (and synced) on every click into a subfolder would be a
+	 * board nobody could share. See `browsedPath` in `cards/folder.ts`. */
+	navigate?: "card";
 }
 
 /** Per-card configuration for a "searchbar" (live search field) card. */

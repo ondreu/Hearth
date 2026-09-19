@@ -1373,6 +1373,7 @@ function sanitizeFolder(r: Record<string, unknown>): FolderCardConfig {
 	if (r.view === "list" || r.view === "tiles") cfg.view = r.view;
 	if (typeof r.counts === "boolean") cfg.counts = r.counts;
 	if (typeof r.browse === "boolean") cfg.browse = r.browse;
+	if (r.navigate === "card") cfg.navigate = "card";
 	return cfg;
 }
 

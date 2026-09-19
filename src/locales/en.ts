@@ -1906,6 +1906,12 @@ export const en = {
 				"it opens is never capped.",
 			counts: "Item counts",
 			countsDesc: "Show how many things each subfolder holds.",
+			navigate: "Opening a subfolder",
+			navigateDesc:
+				"In a dialog, or in the card itself — which then grows a path row " +
+				"with a way back up, and stays where you left it.",
+			navigateModal: "In the folder browser",
+			navigateCard: "In the card",
 			browse: "Open the browser from the card",
 			browseDesc:
 				"Clicking the card's empty space — or its folder button — opens the " +
@@ -3108,6 +3114,9 @@ export const en = {
 			/** The card's last row: what it isn't showing. */
 			more: (n: number) => `${n} more…`,
 			missing: "This folder is no longer in the vault.",
+			/** The path row's back arrow, and the vault's own name in it. */
+			up: (name: string) => `Up to ${name}`,
+			vaultRoot: "the vault root",
 		},
 		operon: {
 			loading: "Reading Operon…",

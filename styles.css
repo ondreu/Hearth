@@ -13404,6 +13404,47 @@ body.hearth-snapshot-capturing .hearth-view {
 	margin: 0;
 }
 
+/* The path row a card grows once it has been walked below its own folder. It
+   sits above the listing and stays put: the listing under it is what scrolls. */
+.hearth-folder-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 4px;
+	min-width: 0;
+}
+
+.hearth-folder-up {
+	display: flex;
+	flex: 0 0 auto;
+	padding: 2px;
+	border-radius: 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-folder-up:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-folder-up .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* Where the card is, from its own folder down. One line: a card is narrow, and
+   the whole path is the row's tooltip. */
+.hearth-folder-here {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* The card's last row: what it is not showing, and a way to see it. */
 .hearth-folder-more {
 	margin-top: 4px;

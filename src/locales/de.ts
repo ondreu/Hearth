@@ -1915,6 +1915,12 @@ export const de: Translations = {
 				"Der Browser, den sie öffnet, ist nie begrenzt.",
 			counts: "Anzahl je Unterordner",
 			countsDesc: "Zeigt, wie viele Einträge jeder Unterordner enthält.",
+			navigate: "Unterordner öffnen",
+			navigateDesc:
+				"In einem Dialog oder in der Karte selbst — die dann eine Pfadzeile " +
+				"mit einem Weg zurück erhält und dort bleibt, wo Sie waren.",
+			navigateModal: "Im Ordner-Browser",
+			navigateCard: "In der Karte",
 			browse: "Browser von der Karte aus öffnen",
 			browseDesc:
 				"Ein Klick auf die freie Fläche der Karte — oder auf ihre " +
@@ -3113,6 +3119,9 @@ export const de: Translations = {
 			/** The card's last row: what it isn't showing. */
 			more: (n: number) => `${n} weitere…`,
 			missing: "Diesen Ordner gibt es im Vault nicht mehr.",
+			/** The path row's back arrow, and the vault's own name in it. */
+			up: (name: string) => `Zurück zu ${name}`,
+			vaultRoot: "Vault-Wurzel",
 		},
 		operon: {
 			loading: "Lese Operon…",

@@ -30,12 +30,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   offered too, and under those folders lead and sort by name, exactly as they do
   in the explorer.
 
+  Clicking a subfolder opens the browser by default, or walks the card itself
+  into it when *Opening a subfolder* is set to *In the card* — the card then
+  grows a path row with a back arrow that never climbs above the folder the card
+  is set to. Where a card has been walked to is deliberately not part of the
+  dashboard: it isn't saved, synced or carried in a shared board, it survives
+  arranging and a tab reopen, and it resets when Obsidian restarts.
+
   The browser behind the card is the whole folder: a breadcrumb from the vault
   root down, each subfolder as its own section opened one extra level, and the
   files between them gathered into blocks so the page keeps the sidebar's order
   rather than sorting the folders away from the files. Every folder on the page
   — a breadcrumb step, a section heading, a row — steps the dialog into that
-  folder, so a whole tree can be walked without leaving it.
+  folder, so a whole tree can be walked without leaving it. It reopens where it
+  was left, and Ctrl/Cmd-clicking a note opens it without closing the browser,
+  for picking several notes into tabs rather than leaving to read one.
 
 - **Choose the width at which the board goes narrow.** *Narrow below*, under
   **Settings → Hearth → Mobile → Layout**, sets the board width at or below

@@ -8,6 +8,7 @@ import {
 	naturalCompare,
 	orderByPaths,
 	parentPath,
+	pathWithin,
 	sortFolderEntries,
 	type FolderEntry,
 } from "../src/foldercontents";
@@ -163,6 +164,24 @@ describe("folderTrail and parentPath", () => {
 	it("reads the holding folder off a path, the root as an empty string", () => {
 		expect(parentPath("A/B/note.md")).toBe("A/B");
 		expect(parentPath("note.md")).toBe("");
+	});
+});
+
+describe("pathWithin", () => {
+	it("holds for the folder itself and anything under it", () => {
+		expect(pathWithin("A", "A")).toBe(true);
+		expect(pathWithin("A/B", "A")).toBe(true);
+		expect(pathWithin("A/B/c.md", "A")).toBe(true);
+	});
+
+	it("does not hold for a sibling whose name merely starts the same", () => {
+		expect(pathWithin("Archive", "A")).toBe(false);
+		expect(pathWithin("B/A", "A")).toBe(false);
+	});
+
+	it("holds for everything under the vault root", () => {
+		expect(pathWithin("A/B", "")).toBe(true);
+		expect(pathWithin("", "")).toBe(true);
 	});
 });
 

@@ -263,8 +263,9 @@ files — with a browser behind it for the rest.
 
 **Requires:** nothing.
 
-Clicking a file opens it. Clicking a subfolder opens the **folder browser**,
-and so does clicking the card's empty space or its folder button.
+Clicking a file opens it. Clicking a subfolder opens the **folder browser** —
+or walks the card itself into that folder, if you set it to. Clicking the card's
+empty space or its folder button always opens the browser.
 
 ### Options
 
@@ -276,6 +277,7 @@ and so does clicking the card's empty space or its folder button.
 | *Display* | A list of rows, or a grid of icon tiles |
 | *Number of items* | How many the card lists before it says how many are left. The browser is never capped |
 | *Item counts* | Show how many things each subfolder holds |
+| *Opening a subfolder* | In the folder browser (the default), or in the card itself |
 | *Open the browser from the card* | Turn off for a card that should only ever open what it lists |
 
 ### Order
@@ -296,6 +298,19 @@ Manual drag-and-drop ordering is not offered. Reordering a folder's contents by
 hand is a file-explorer job, and a card that stored its own order would quietly
 disagree with the sidebar the moment a file was added.
 
+### Navigating in the card
+
+Set *Opening a subfolder* to **In the card** and clicking a subfolder walks the
+card into it instead of opening a dialog. The card then grows a path row: a back
+arrow, and where you are, counted from the card's own folder. The arrow never
+climbs above that folder — the card *is* that folder.
+
+Where a card has been walked to is not part of the dashboard. It is not saved,
+not synced to your other devices, and not carried in a shared dashboard: it is
+where you are reading, not what the card is. It survives arranging the board,
+switching dashboards and closing the tab, and resets to the card's own folder
+when Obsidian restarts.
+
 ### The folder browser
 
 The card is a glance; the browser is the whole folder. It opens as a dialog
@@ -312,7 +327,17 @@ with:
 
 Every folder in the browser — a breadcrumb step, a section heading, a row —
 steps the dialog into that folder, so you can walk a whole tree without leaving
-it. Clicking a file opens it and closes the browser.
+it.
+
+Clicking a file opens it and closes the browser. **Ctrl/Cmd-clicking** one opens
+it and leaves the browser where it is, for when you are picking several notes
+into tabs rather than leaving to read one.
+
+Either way the browser **reopens where you left it**, so a note opened out of a
+folder five levels down doesn't cost you the walk back. Like the card's own
+position, that is remembered for the session only, and a card set to navigate in
+the card follows the browser: walk somewhere in the dialog, close it, and the
+card is there.
 
 If you use Iconic or Iconize, files and folders show their own icons here. See
 [chapter 14](14-integrations.md).

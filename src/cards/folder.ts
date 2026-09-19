@@ -1,5 +1,5 @@
-import { Modal, Setting, TAbstractFile, TFile, TFolder, setIcon, type App } from "obsidian";
-import { cardOverlayButton, emptyState } from "../cardbodies";
+import { Keymap, Modal, Setting, TAbstractFile, TFile, TFolder, setIcon, type App } from "obsidian";
+import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { explorerChildOrder, explorerSortAsFolderSort } from "../explorerorder";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type FileIconOptions } from "../fileicons";
@@ -12,6 +12,8 @@ import {
 	folderTrail,
 	groupFolderEntries,
 	orderByPaths,
+	parentPath,
+	pathWithin,
 	sortFolderEntries,
 	type FolderEntry,
 	type FolderShow,
@@ -114,11 +116,52 @@ function childCount(app: App, path: string): number {
 }
 
 
+// ---- Where the card is looking ------------------------------------------
+
+/**
+ * The folder each card has been walked into, keyed by the card object.
+ *
+ * Transient on purpose, the way the embed card remembers which of its two views
+ * is showing (`activeEmbedView`): the card objects live in settings and are
+ * reused across redraws and view rebuilds, so a step into a subfolder survives
+ * arranging, a dashboard switch and a tab reopen — and resets to the card's own
+ * folder when Obsidian reloads. Writing it to the config instead would mean
+ * every click into a subfolder rewrote the board, synced it to the user's other
+ * devices, and shipped someone else's reading position in a shared dashboard.
+ *
+ * One entry serves both ways of browsing: the card's own position when it
+ * navigates in place, and where the browser dialog reopens otherwise.
+ */
+const browsedPath = new WeakMap<DashboardCard, string>();
+
+/**
+ * Where this card is looking now: the folder it was walked into, as long as
+ * that is still the card's own folder or somewhere under it and still exists.
+ * Anything else — the configured folder was changed, or the one being read was
+ * deleted or renamed away — falls back to the card's own folder rather than
+ * leaving the card pointed somewhere it was never set to.
+ */
+function currentPath(app: App, card: DashboardCard, root: string): string {
+	const at = browsedPath.get(card);
+	if (at === undefined || at === root) return root;
+	if (!pathWithin(at, root) || !folderAt(app, at)) {
+		browsedPath.delete(card);
+		return root;
+	}
+	return at;
+}
+
+
 // ---- The card -----------------------------------------------------------
 
 export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.folder ?? {};
-	const path = folderPath(cfg.path);
+	const root = folderPath(cfg.path);
+	const inCard = cfg.navigate === "card";
+	// Only a card that navigates in place shows where it was walked to; one that
+	// browses in the dialog always draws its own folder, and the walked-to path
+	// is only where that dialog reopens.
+	const path = inCard ? currentPath(view.app, card, root) : root;
 	const folder = folderAt(view.app, path);
 	if (!folder) {
 		emptyState(body, "folder-x", t().cards.empty.folderMissing(cfg.path ?? ""));
@@ -129,7 +172,31 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	const show = cfg.show ?? "all";
 	const entries = folderEntries(view.app, folder, sort, show);
 	const browse = cfg.browse !== false;
-	const open = (at: string) => openFolderBrowser(view, { path: at, sort, show, counts: cfg.counts === true });
+	/** Redraw through the board, so the previous draw's component and its
+	 * overlay button go with it; off the board (a preview) there is no
+	 * registered redraw, so the body is reset and repainted by hand. */
+	const refresh = () => {
+		if (redrawCard(body)) return;
+		resetCardBody(body, body.className);
+		renderFolder(view, card, body);
+	};
+	const walkTo = (at: string) => {
+		browsedPath.set(card, at);
+		refresh();
+	};
+	const open = (at: string) =>
+		openFolderBrowser(view, {
+			path: at,
+			sort,
+			show,
+			counts: cfg.counts === true,
+			// The dialog is the same reader in the same card: where they walk to
+			// there is where the card reopens, and where an in-card card is.
+			remember: (to) => {
+				browsedPath.set(card, to);
+				if (inCard) refresh();
+			},
+		});
 
 	if (browse) {
 		// The click target for the browser is the body's empty space, which a
@@ -142,13 +209,15 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 		body.addEventListener("click", (evt) => {
 			const target = evt.target;
 			// Everything the body draws that handles its own click — a row, a
-			// tile, the "N more" footer — is left to it, or the browser would
-			// open twice on the footer and over the note on a row.
-			const own = ".hearth-list-item, .hearth-link-tile, .hearth-folder-more";
+			// tile, the path row, the "N more" footer — is left to it, or the
+			// browser would open twice on the footer and over the note on a row.
+			const own = ".hearth-list-item, .hearth-link-tile, .hearth-folder-more, .hearth-folder-nav";
 			if (target instanceof HTMLElement && target.closest(own)) return;
 			open(path);
 		});
 	}
+
+	if (inCard && path !== root) drawCardNav(body, path, root, walkTo);
 
 	if (entries.length === 0) {
 		emptyState(body, "folder-open", t().cards.empty.folderEmpty);
@@ -159,7 +228,8 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	const shown = entries.slice(0, limit);
 	const activate = (entry: FolderEntry, evt?: MouseEvent) => {
 		if (entry.isFolder) {
-			open(entry.path);
+			if (inCard) walkTo(entry.path);
+			else open(entry.path);
 			return;
 		}
 		const file = view.app.vault.getAbstractFileByPath(entry.path);
@@ -177,6 +247,43 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 		makeClickable(more, () => open(path), t().cards.folder.browse);
 		more.addEventListener("click", () => open(path));
 	}
+}
+
+
+/**
+ * The path row a card grows once it has been walked below its own folder: where
+ * you are, and the way back up.
+ *
+ * Only the arrow acts — the text beside it says where the card is, and a label
+ * that navigated somewhere other than where it points would be a trap. The
+ * whole trail is the row's tooltip, since a narrow card has room for one line.
+ */
+function drawCardNav(
+	body: HTMLElement,
+	path: string,
+	root: string,
+	walkTo: (at: string) => void,
+): void {
+	const nav = body.createDiv("hearth-folder-nav");
+	// Never above the card's own folder: the card is that folder, and a reader
+	// who could climb out of it would be looking at a card that isn't this one.
+	const up = path === root ? root : maxPath(parentPath(path), root);
+	const upName = up === ROOT ? t().cards.folder.vaultRoot : (up.split("/").pop() ?? up);
+	const button = nav.createDiv("hearth-folder-up");
+	setIcon(button, "chevron-left");
+	const go = () => walkTo(up);
+	button.addEventListener("click", go);
+	makeClickable(button, go, t().cards.folder.up(upName));
+
+	// The path from the card's own folder down, which is the part the card's
+	// title doesn't already say.
+	const here = root === ROOT ? path : path.slice(root.length + 1);
+	nav.createDiv({ cls: "hearth-folder-here", text: here, attr: { title: path } });
+}
+
+/** `path` unless it has climbed above `root`, which it must not. */
+function maxPath(path: string, root: string): string {
+	return pathWithin(path, root) ? path : root;
 }
 
 
@@ -247,6 +354,9 @@ interface BrowseOptions {
 	sort: FolderSort;
 	show: FolderShow;
 	counts: boolean;
+	/** Told where the reader walked to, so the card it came from reopens there
+	 * (and follows along when it navigates in place). */
+	remember?: (path: string) => void;
 }
 
 /** Open the folder browser at a path. Exported for the card and for anything
@@ -280,11 +390,19 @@ class FolderBrowserModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass("hearth-folder-modal");
 		this.body = this.contentEl.createDiv("hearth-folder-browser");
+		this.remember();
 		this.draw();
 	}
 
 	onClose(): void {
 		this.contentEl.empty();
+	}
+
+	/** Reopen where the reader left off, even if they never stepped anywhere:
+	 * a dialog opened on a subfolder row is already somewhere worth returning
+	 * to. Set on open rather than only on navigation. */
+	private remember(): void {
+		this.opts.remember?.(this.path);
 	}
 
 	/** Repaint from scratch on every navigation and sort change: at a folder's
@@ -395,9 +513,13 @@ class FolderBrowserModal extends Modal {
 			}
 			const file = this.app.vault.getAbstractFileByPath(entry.path);
 			if (!(file instanceof TFile)) return;
-			// Opening a note is the end of browsing: leaving the dialog over the
-			// note it just opened would hide the thing the click asked for.
-			this.close();
+			// A plain click is the end of browsing — leaving the dialog over the
+			// note it just opened would hide the thing the click asked for. A
+			// modifier is the opposite: the reader is collecting notes into tabs
+			// and wants the list they are picking from to still be there. Either
+			// way the dialog reopens where it left off, so closing it is never
+			// the loss of a place in a deep folder.
+			if (!keepsBrowsingOpen(evt)) this.close();
 			void openFile(this.view, file, "card", evt);
 		};
 		row.addEventListener("click", (evt) => activate(evt));
@@ -406,10 +528,25 @@ class FolderBrowserModal extends Modal {
 
 	private navigate(path: string): void {
 		this.path = path;
+		this.opts.remember?.(path);
 		// A step into a deep folder starts where the last one left off, which is
 		// rarely what you want to read.
 		this.body.scrollTop = 0;
 		this.draw();
+	}
+}
+
+
+/** Whether the click that opened a note should leave the browser open: a
+ * modifier means the reader is sending notes to other tabs, not leaving. Never
+ * throws — `isModEvent` reads Obsidian's own key state, and a browser that
+ * closed on an error would be the same as no modifier at all. */
+function keepsBrowsingOpen(evt?: MouseEvent): boolean {
+	if (!evt) return false;
+	try {
+		return Keymap.isModEvent(evt) !== false;
+	} catch {
+		return false;
 	}
 }
 
@@ -512,6 +649,19 @@ export function folderEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 		);
 
 	new Setting(containerEl)
+		.setName(strings.navigate)
+		.setDesc(strings.navigateDesc)
+		.addDropdown((d) => {
+			d.addOption("modal", strings.navigateModal);
+			d.addOption("card", strings.navigateCard);
+			d.setValue(cfg.navigate === "card" ? "card" : "modal").onChange((v) => {
+				cfg.navigate = v === "card" ? "card" : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+
+	new Setting(containerEl)
 		.setName(strings.browse)
 		.setDesc(strings.browseDesc)
 		.addToggle((tg) =>
@@ -554,9 +704,10 @@ export function folderReactsTo(
 ): boolean {
 	const cfg = card.folder ?? {};
 	const root = folderPath(cfg.path);
-	// Counts read one level below the card's own, so with them on a change
-	// anywhere under the folder can change a number on it.
-	const deep = cfg.counts === true;
+	// Two things make a card care below its own level: counts, which read the
+	// level under each row, and in-card navigation, which can have walked the
+	// card to any folder beneath its own.
+	const deep = cfg.counts === true || cfg.navigate === "card";
 	if (folderTouches(root, ev.file.path, deep)) return true;
 	return ev.oldPath !== undefined && folderTouches(root, ev.oldPath, deep);
 }

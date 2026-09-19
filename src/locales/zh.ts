@@ -1734,6 +1734,10 @@ export const zh: Translations = {
 			countDesc: "卡片在提示还剩多少条之前列出的数量。它打开的浏览页不受此限制。",
 			counts: "条目计数",
 			countsDesc: "显示每个子文件夹包含多少条目。",
+			navigate: "打开子文件夹时",
+			navigateDesc: "在对话框中打开，或在卡片内打开——卡片会显示一行路径和返回上级的按钮，并保持在您离开时的位置。",
+			navigateModal: "在文件夹浏览页中",
+			navigateCard: "在卡片内",
 			browse: "从卡片打开浏览页",
 			browseDesc: "点击卡片的空白处（或其文件夹按钮）会打开带面包屑导航的浏览页，其中每个文件夹都可以继续进入。",
 		},
@@ -2858,6 +2862,9 @@ export const zh: Translations = {
 			/** The card's last row: what it isn't showing. */
 			more: (n: number) => `还有 ${n} 项…`,
 			missing: "库中已不存在此文件夹。",
+			/** The path row's back arrow, and the vault's own name in it. */
+			up: (name: string) => `返回 ${name}`,
+			vaultRoot: "库根目录",
 		},
 		operon: {
 			loading: "正在读取 Operon…",
