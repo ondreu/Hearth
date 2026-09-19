@@ -189,7 +189,7 @@ Three sections: Startup & tabs, Opening notes, Privacy & network.
 | *Open on startup* | On | Open the home view when the vault loads |
 | *Replace new tabs* | On | Show the home view instead of an empty new tab |
 | *Focus search on open* | Off | Place the cursor in the search field whenever a home view opens. Desktop only |
-| *Live refresh on vault changes* | Off | Keep an open home view current as the vault changes — Recent, Bookmarks and saved-query cards update without reopening the tab. Switching back to the Hearth tab always refreshes it regardless |
+| *Live refresh on vault changes* | Off | Keep an open home view current as the vault changes — Recent and saved-query cards update without reopening the tab. Switching back to the Hearth tab always refreshes it regardless |
 | *Pick up synced changes* | On | Apply dashboard changes made on another device as soon as sync brings them in, instead of at the next Obsidian restart |
 
 ### Opening notes
