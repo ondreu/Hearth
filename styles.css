@@ -143,6 +143,29 @@
 	-webkit-backdrop-filter: none !important;
 }
 
+/* The same switch, thrown for a reason that has nothing to do with the tier:
+ * Obsidian's translucent window (#272).
+ *
+ * `is-translucent` is Obsidian's body class for macOS vibrancy; `hearth-macos`
+ * is set once in view.ts and scopes this to the platform that has it. Under
+ * vibrancy the window's backdrop is the material macOS paints for the whole
+ * window, chrome included, so every frost layer re-filtering re-blends that
+ * material — which the reporter of #272 saw as the tab bar flickering while a
+ * board was up: at Balanced and Full, which build frost, and never at Reduced
+ * or below, which do not.
+ *
+ * Only the blur goes. Motion, the wallpaper, card opacity and the cards' own
+ * translucency are all untouched, and nothing is written to settings: turn the
+ * translucent window off and the frosted glass comes straight back at whatever
+ * radius it was already set to. The paired note in Settings -> Dashboard ->
+ * Card surface says so, so a missing blur is never a mystery. */
+body.is-translucent .hearth-view.hearth-macos *,
+body.is-translucent .hearth-view.hearth-macos *::before,
+body.is-translucent .hearth-view.hearth-macos *::after {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
 /* Loading spinners are the one animation the tier keeps: frozen mid-spin they
  * read as a broken card rather than a calm one. The gates above still pause
  * them, which is right — a spinner nobody can see is the clearest case of

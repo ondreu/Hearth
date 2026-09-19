@@ -423,6 +423,12 @@ export class HomeView extends ItemView {
 		// instead, so these classes only cover what has no setting to override.
 		root.toggleClass("hearth-no-motion", !motionAllowed(this.plugin.settings));
 		root.toggleClass("hearth-no-frost", !frostAllowed(this.plugin.settings));
+		// Platform marker, not a state flag: it never changes for the life of the
+		// app, and it is what scopes the vibrancy rule in styles.css (#272) to the
+		// one platform that has a translucent window. The `is-translucent` half of
+		// that rule is Obsidian's own body class, so the pair reacts on its own
+		// when the user flips the setting — nothing here has to re-render.
+		root.toggleClass("hearth-macos", Platform.isMacOS);
 		// In arrange mode the user can hide the per-card headers to see each
 		// card's full body. The class is only applied while arranging so the
 		// headers come back automatically when arranging ends.

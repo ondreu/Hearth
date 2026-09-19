@@ -1001,6 +1001,12 @@ export const de: Translations = {
 			effectClock: "Uhr-Karten lassen Sekunden und den schleichenden Sekundenzeiger weg",
 			effectSlideshow: "Diashow-Karten halten ein Bild statt zu wechseln",
 			/** Wird in den Abschnitten angezeigt, deren Einstellungen die Stufe gerade überschreibt. */
+			vibrancyFrost:
+				"Milchglas ist aus, solange Obsidians transparentes Fenster an ist: " +
+				"Eine Weichzeichnung und die macOS-Transparenz verrechnen das ganze " +
+				"Fenster gegeneinander neu, was die Tableiste flackern lässt. Deine " +
+				"Einstellung bleibt erhalten und gilt wieder, sobald du das " +
+				"transparente Fenster ausschaltest.",
 			overridden:
 				"Die Leistungsstufe überschreibt diese gerade. Sie bleiben wie " +
 				"sie sind und greifen wieder, wenn du nach oben wechselst.",

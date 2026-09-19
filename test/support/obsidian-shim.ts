@@ -121,6 +121,9 @@ export const Platform = {
 	isDesktop: true,
 	isMobileApp: false,
 	isDesktopApp: true,
+	// Defaults to a non-Mac desktop so the macOS-only paths (the vibrancy frost
+	// rule, #272) are off unless a test asks for them.
+	isMacOS: false,
 };
 // Set to the newest version any Hearth feature gates on (Operon's Developer
 // API needs 1.12.2), so a `requireApiVersion` check is satisfied by default and
