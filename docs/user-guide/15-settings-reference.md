@@ -235,7 +235,7 @@ Two sections: Layout, Mobile action bar.
 | --- | --- | --- |
 | *Mobile mode (search only)* | Off | On phones and tablets, hide the dashboard and show only the search field. No effect on desktop |
 | *Stack cards on narrow screens* | On | When the board is too narrow for its layout, show the cards as one full-width column instead. Your layout is untouched and comes back at full width |
-| *Narrow below* | 600 px | The board width at or below which the board counts as narrow. 320-1200 px. Raise it to have a half-screen window switch to the narrow layout; lower it to keep the free-form layout in tighter panes. Individual dashboards can override it |
+| *Narrow below* | 700 px | The board width at or below which the board counts as narrow. 320-1200 px. Raise it to have a half-screen window switch to the narrow layout; lower it to keep the free-form layout in tighter panes. Individual dashboards can override it |
 | *Performance tier on mobile* | Balanced | The tier to use on phones and tablets. Can also be **Match desktop**. Your desktop tier is kept separately and is not changed |
 
 ### Mobile action bar

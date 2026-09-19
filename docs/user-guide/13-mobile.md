@@ -11,7 +11,7 @@ Hearth → Mobile**.
 ## The threshold is width, not platform
 
 A Hearth board is laid out freely: cards sit where you drop them, at a fraction
-of the board's width. At or below **600 pixels** of measured board width that
+of the board's width. At or below **700 pixels** of measured board width that
 stops working, so the board **reflows into a single full-width column**, top to
 bottom, in the order the desktop board reads in.
 
@@ -36,10 +36,11 @@ Each dashboard can override this from *Dashboard settings → Layout → Stack w
 narrow*: **Stack into one column** or **Keep the scaled layout**.
 
 *Narrow below* — the slider under it — is the width, in pixels, at which the
-board counts as narrow. It starts at 600, which is a phone in landscape or a
-desktop pane at roughly a third of a 1080p screen. Raise it if you work in a
-half-screen window and want the column there too; lower it to keep the free-form
-layout in tighter panes. Each dashboard can override the threshold as well, from
+board counts as narrow. It starts at 700, which clears every phone — including
+the ones that report a 600-680 pixel viewport — and leaves a half-screen desktop
+window on the free-form layout. Raise it if you work in a half-screen window and
+want the column there too; lower it to keep the free-form layout in tighter
+panes. Each dashboard can override the threshold as well, from
 *Dashboard settings → Layout → Narrow below* — a dense board can ask for the
 column sooner than a two-card one.
 

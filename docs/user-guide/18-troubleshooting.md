@@ -249,12 +249,12 @@ while the desktop tier defaults to *Full*.
 
 ### My board looks completely different on my phone
 
-At or below 600 pixels of measured board width, Hearth reflows the board into one
+At or below 700 pixels of measured board width, Hearth reflows the board into one
 full-width column. Your stored layout is untouched and returns at full width.
 
 If you would rather it did not, turn off *Stack cards on narrow screens* under
 **Settings → Hearth → Mobile → Layout**, or set *Stack when narrow* to *Keep the
-scaled layout* on that one board. The 600 is a setting too — *Narrow below*, in
+scaled layout* on that one board. The 700 is a setting too — *Narrow below*, in
 the same place — if the column should start sooner or later than that.
 
 ### A narrow split pane on my desktop is stacking too

@@ -117,6 +117,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   board's edge instead of wrapping inside it
   ([#326](https://github.com/ondreu/Hearth/issues/326)).
 
+### Changed
+
+- **A phone gets the stacked column again: *Narrow below* now starts at 700.**
+  The threshold is a measured width, and 600 was chosen for readability — the
+  width at which a half-width card stops holding a line of text. Phones do not
+  report the width they look like: an Android device at a pixel ratio of 2
+  reports a 608-pixel viewport for a 1216-pixel display, landing eight pixels
+  on the wrong side of 600 and drawing the desktop free-form board on a phone
+  screen, with *Stack when narrow* on and doing nothing. 700 clears the phones
+  that report 600-680 and still leaves a half-screen desktop window free-form
+  ([#326](https://github.com/ondreu/Hearth/issues/326)).
+
+  This does change boards that never set a threshold: a pane between 600 and
+  700 pixels now stacks where it used to draw a scaled free-form board. A
+  stored *Narrow below* is a choice and is kept, 600 included — set it back
+  there, globally or per board, to keep the old width.
+
 
 ## [3.1.0]
 

@@ -60,6 +60,21 @@ describe("isNarrowWidth", () => {
 		expect(isNarrowWidth(0, NARROW_WIDTH_MAX)).toBe(false);
 	});
 
+	it("calls a phone narrow at the widths phones actually report", () => {
+		// The default has to clear the phone, not the readable card width: a
+		// device that misses it gets the free-form layout with no way to reach
+		// the stacked one from the phone itself. An Android phone at a device
+		// pixel ratio of 2 reports ~608px for a 1216px display, which the old
+		// 600px default called wide — a desktop board on a phone screen (#326).
+		expect(isNarrowWidth(608)).toBe(true);
+		expect(isNarrowWidth(640)).toBe(true);
+		expect(isNarrowWidth(680)).toBe(true);
+		// …while a half-screen desktop window is still free-form, which is the
+		// layout someone with that much width is asking for.
+		expect(isNarrowWidth(760)).toBe(false);
+		expect(isNarrowWidth(960)).toBe(false);
+	});
+
 	it("measures against the threshold it is given", () => {
 		// The point of the setting (#316): a half-screen desktop window is wide
 		// by the default and narrow once someone says it is.
@@ -81,8 +96,9 @@ describe("clampNarrowWidth", () => {
 	it("falls back to the default rather than to a bound", () => {
 		// Settings saved before the threshold was customizable have no key here,
 		// and clamping `undefined` to a bound would pick an extreme nobody asked
-		// for. The default is the width the threshold used to be hard-coded to,
-		// so an existing vault's layout is unchanged.
+		// for. The default such a vault lands on is the current one, not the
+		// width the threshold was once hard-coded to (see the phone-width case
+		// below) — a vault that never chose a threshold follows Hearth's answer.
 		expect(clampNarrowWidth(undefined)).toBe(NARROW_WIDTH_DEFAULT);
 		expect(clampNarrowWidth("600")).toBe(NARROW_WIDTH_DEFAULT);
 		expect(clampNarrowWidth(Number.NaN)).toBe(NARROW_WIDTH_DEFAULT);
