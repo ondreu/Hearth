@@ -3453,6 +3453,8 @@ export const en = {
 		},
 		bookmarks: {
 			untitled: "Untitled",
+			needsSearch: "Enable the core Search plugin to open a saved search",
+			needsGraph: "Enable the core Graph view plugin to open a saved graph",
 		},
 		tasks: {
 			createNewTask: "Create new task",

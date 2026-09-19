@@ -3196,6 +3196,8 @@ export const zh: Translations = {
 		},
 		bookmarks: {
 			untitled: "未命名",
+			needsSearch: "请启用核心插件「搜索」以打开已保存的搜索",
+			needsGraph: "请启用核心插件「关系图谱」以打开已保存的图谱",
 		},
 		tasks: {
 			createNewTask: "新建任务",

@@ -1,4 +1,5 @@
 import { Keymap, type App, type OpenViewState, type PaneType, type TFile, type UserEvent, type WorkspaceLeaf } from "obsidian";
+import type { GlobalSearchInstance } from "./obsidian-ext";
 import {
 	OPEN_IN_MODES,
 	type HomeSettings,
@@ -171,4 +172,22 @@ export async function openLink(
 	}
 	if (h.leaf) h.app.workspace.setActiveLeaf(h.leaf, { focus: true });
 	await h.app.workspace.openLinkText(linktext, sourcePath, false);
+}
+
+
+/**
+ * Hand a query to Obsidian's own search pane, the way a tag click does.
+ *
+ * `openGlobalSearch` is the core Search plugin's own entry point — it reveals
+ * the pane, fills the box and runs the query — and there is no public API that
+ * does any of it. Returns whether the search actually ran, so a caller can say
+ * something when the core plugin is switched off rather than looking broken.
+ */
+export function openSearch(app: App, query: string): boolean {
+	const search = app.internalPlugins.getPluginById("global-search");
+	if (!search?.enabled) return false;
+	const instance = search.instance as GlobalSearchInstance | undefined;
+	if (!instance?.openGlobalSearch) return false;
+	instance.openGlobalSearch(query);
+	return true;
 }

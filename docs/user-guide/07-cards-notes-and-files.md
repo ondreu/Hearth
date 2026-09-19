@@ -384,7 +384,30 @@ for bookmarked URLs.
 **Requires:** Obsidian's core **Bookmarks** plugin.
 
 The card reads Obsidian's bookmarks directly, so anything you bookmark anywhere
-in the app appears here.
+in the app appears here, and it follows the list as you change it — a bookmark
+added, renamed, removed or reordered shows up on the card without reopening the
+tab.
+
+Obsidian bookmarks five different things, and clicking a row opens each one
+where it belongs:
+
+| Bookmark | Clicking it |
+| --- | --- |
+| A **note** | Opens the note — at the heading or block you bookmarked, if you bookmarked one rather than the whole note |
+| A **folder** | Opens Hearth's folder browser on that folder (the same browser the Folder card uses) |
+| A **URL** | Opens it in your browser |
+| A **search** | Hands the query to Obsidian's search pane |
+| A **graph** | Opens the graph view with the settings that were saved with the bookmark |
+
+A group is a collapsible header: clicking it folds and unfolds what's inside,
+to any depth.
+
+Saved searches and saved graphs need Obsidian's own **Search** and **Graph
+view** core plugins switched on. If one is off, the card tells you which rather
+than doing nothing.
+
+Bookmarks whose target has been deleted are hidden, the same way Obsidian's own
+bookmarks pane hides them.
 
 ---
 
@@ -396,10 +419,11 @@ override for *Notes in cards*, which covers the Recent, Bookmarks, Favorites,
 Calendar, Heatmap and Tasks cards.
 
 **Liveness.** Embedded and editable notes follow vault events without losing
-your cursor. The Recent, Bookmarks and saved-query cards update as the vault
-changes if *Live refresh on vault changes* is on under **Settings → Hearth →
-Behaviour**. Switching back to the Hearth tab always refreshes it regardless of
-that setting.
+your cursor. The Recent and saved-query cards update as the vault changes if
+*Live refresh on vault changes* is on under **Settings → Hearth → Behaviour**.
+Switching back to the Hearth tab always refreshes it regardless of that
+setting. The Bookmarks card is the exception: bookmarks aren't a vault change,
+so it follows the bookmark list itself and needs no setting.
 
 **Headerless cards.** Leaving a card's *Title* empty draws it without a header
 row. For image, slideshow, canvas and drawing cards this is usually what you

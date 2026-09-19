@@ -3456,6 +3456,8 @@ export const de: Translations = {
 		},
 		bookmarks: {
 			untitled: "Unbenannt",
+			needsSearch: "Aktiviere das Kern-Plugin „Suche“, um eine gespeicherte Suche zu öffnen",
+			needsGraph: "Aktiviere das Kern-Plugin „Graphansicht“, um einen gespeicherten Graphen zu öffnen",
 		},
 		tasks: {
 			createNewTask: "Neue Aufgabe erstellen",

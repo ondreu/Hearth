@@ -128,6 +128,34 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Every bookmark on the Bookmarks card opens something now.** The card drew a
+  clickable row for all five kinds of bookmark Obsidian stores, but only ever
+  opened two of them: a bookmarked **folder** fell through the check that looks
+  for a note and did nothing at all, and a saved **search** or a saved **graph**
+  had no handling whatsoever. A row that looks clickable and goes nowhere reads
+  as the whole card being broken, which is how it was reported
+  ([#327](https://github.com/ondreu/Hearth/issues/327)).
+
+  Each kind now has a destination. A folder opens Hearth's own folder browser —
+  the one the Folder card added — rather than revealing the folder in the
+  sidebar, because the browser is the better answer on a board and it is
+  already there. A saved search goes to Obsidian's search pane, the same
+  hand-off clicking a tag has always made. A saved graph opens the graph view
+  carrying the state that was saved with it, since the filters, groups and
+  forces *are* what was bookmarked. If the core Search or Graph view plugin is
+  switched off, the card says so instead of going quiet.
+
+- **A bookmark into a note lands on the heading you bookmarked.** Obsidian lets
+  you bookmark a heading or a block inside a note, not just the note. The card
+  dropped that part of the bookmark and opened the file at the top; it now
+  opens exactly where the bookmark points.
+
+- **The Bookmarks card keeps up with your bookmarks.** Adding, renaming,
+  removing or reordering a bookmark left the card showing the old list until
+  something unrelated rebuilt the board — the bookmark store is a file in the
+  config folder, so none of the vault changes Hearth watches ever saw it. The
+  card now follows the store itself and redraws when it changes.
+
 - **The tab bar no longer flickers while a board is up on macOS.** With
   Obsidian's *Translucent window* switched on, the frosted glass behind cards
   and macOS's own vibrancy were sampling each other: a `backdrop-filter` reads

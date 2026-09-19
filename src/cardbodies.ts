@@ -6,7 +6,7 @@ import { localDayKey } from "./dates";
 import { heatmapByDay, needsMetadata, type HeatmapNote } from "./heatmapmetric";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
-import { internalLinkText, openLink } from "./opener";
+import { internalLinkText, openLink, openSearch } from "./opener";
 import {
 	TILE_GAP,
 	gridTracks,
@@ -316,11 +316,7 @@ export function wireMarkdownLinks(
 				const tag = anchor.getAttribute("href");
 				if (tag) {
 					claim();
-					const search = view.app.internalPlugins.getPluginById("global-search");
-					const instance = search?.instance as
-						| { openGlobalSearch?: (query: string) => void }
-						| undefined;
-					instance?.openGlobalSearch?.(`tag:${tag}`);
+					openSearch(view.app, `tag:${tag}`);
 				}
 				return;
 			}
