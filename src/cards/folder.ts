@@ -210,10 +210,10 @@ function renderFolderTiles(
 	cfg: FolderCardConfig,
 	activate: (entry: FolderEntry, evt?: MouseEvent) => void,
 ): void {
-	// The tile size is a constant of this card's look, so it is a class rather
-	// than an inline custom property (the links card's tiles are user-sized and
-	// set theirs per card).
-	const grid = body.createDiv("hearth-links hearth-tiles-sized hearth-folder-tiles");
+	// Not the links card's grid: those tiles carry a user-chosen span in its
+	// fine 44×34 cells, and a folder tile has none to carry — it is sized by
+	// what is in it (see the CSS). Only the tile's own look is shared.
+	const grid = body.createDiv("hearth-folder-tiles");
 	const icons = fileIconOptions(view.plugin.settings);
 	for (const entry of entries) {
 		const tile = grid.createDiv("hearth-link-tile");

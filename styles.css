@@ -13349,10 +13349,37 @@ body.hearth-snapshot-capturing .hearth-view {
    stranding two thirds of it.
    ========================================================================== */
 
-/* Tiles on a folder card are a fixed size: unlike the links card's, they are
-   not arranged by the user, so there is nothing to size them against. */
+/* Tiles on a folder card are their own grid rather than the links card's.
+   `.hearth-links` is a fine 44×34px cell grid whose tiles are given a span in
+   cells by `applyTileSize()`, because the user drags and resizes them; a folder
+   tile has no span to be given, so it came out one cell — an icon with its name
+   clipped away. These are sized by their content instead: wide enough for two
+   lines of a name, and as many per row as the card is wide. */
 .hearth-folder-tiles {
-	--hearth-tile: 90px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+	grid-auto-rows: minmax(84px, auto);
+	gap: 6px;
+	align-content: start;
+}
+
+.hearth-folder-tiles .hearth-link-tile {
+	position: relative;
+	gap: 6px;
+	padding: 12px 6px;
+}
+
+/* Two lines of the name, then an ellipsis — a folder called "Meeting notes" is
+   two words before it is anything, and one clipped word names nothing. */
+.hearth-folder-tiles .hearth-link-label {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	font-size: 0.75rem;
+	line-height: 1.25;
 }
 
 /* How many things a subfolder holds. Sits at the end of its row, muted, and
@@ -13368,7 +13395,12 @@ body.hearth-snapshot-capturing .hearth-view {
 	line-height: 1.4;
 }
 
-.hearth-link-tile .hearth-folder-count {
+/* On a tile the count rides in the corner, so it never takes one of the two
+   lines the name has. */
+.hearth-folder-tiles .hearth-folder-count {
+	position: absolute;
+	top: 4px;
+	inset-inline-end: 4px;
 	margin: 0;
 }
 
@@ -13505,6 +13537,13 @@ body.hearth-snapshot-capturing .hearth-view {
 .hearth-folder-head-icon {
 	display: flex;
 	color: var(--text-muted);
+}
+
+/* Beside the name, not at the end of the row: the count belongs to the folder
+   it names, and a heading has no column for it to line up with the way the
+   rows below do. */
+.hearth-folder-head .hearth-folder-count {
+	margin-inline: 0 auto;
 }
 
 .hearth-folder-head-name {
