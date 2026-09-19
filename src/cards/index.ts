@@ -17,6 +17,7 @@ import { bookmarksCard } from "./bookmarks";
 import { favoritesCard } from "./favorites";
 import { textCard } from "./text";
 import { recentCard } from "./recent";
+import { folderCard } from "./folder";
 import { linksCard } from "./links";
 import { commandsCard } from "./commands";
 import { templaterCard } from "./templater";
@@ -65,6 +66,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	favorites: favoritesCard,
 	text: textCard,
 	recent: recentCard,
+	folder: folderCard,
 	links: linksCard,
 	commands: commandsCard,
 	templater: templaterCard,
@@ -125,7 +127,7 @@ export function cardDefinition(card: DashboardCard): CardDefinition {
 export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[] }[] = [
 	{
 		category: "notes",
-		templates: ["note", "daily", "periodic", "journal", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "favorites", "bookmarks"],
+		templates: ["note", "daily", "periodic", "journal", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "folder", "favorites", "bookmarks"],
 	},
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },

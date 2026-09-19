@@ -13333,3 +13333,280 @@ body.hearth-snapshot-capturing .hearth-view {
 .hearth-picker-rail-btn.is-gallery {
 	color: var(--text-accent);
 }
+
+/* ==========================================================================
+   Folder card and folder browser
+   --------------------------------------------------------------------------
+   The card is a list (or a grid of tiles) of what sits one level inside a
+   folder, reusing the list and tile rules above so a folder row looks like
+   every other file row in Hearth. Only three things are its own: the count
+   badge on a subfolder, the "N more" footer, and the browser the card opens.
+
+   The browser is the page the card can't be — a breadcrumb, then the folder's
+   contents with each subfolder shown one level deep. Its sections are laid out
+   with `column-width` rather than a fixed column count, so a folder of four
+   files and a folder of forty both fill the dialog instead of one of them
+   stranding two thirds of it.
+   ========================================================================== */
+
+/* Tiles on a folder card are their own grid rather than the links card's.
+   `.hearth-links` is a fine 44×34px cell grid whose tiles are given a span in
+   cells by `applyTileSize()`, because the user drags and resizes them; a folder
+   tile has no span to be given, so it came out one cell — an icon with its name
+   clipped away. These are sized by their content instead: wide enough for two
+   lines of a name, and as many per row as the card is wide. */
+.hearth-folder-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+	grid-auto-rows: minmax(84px, auto);
+	gap: 6px;
+	align-content: start;
+}
+
+.hearth-folder-tiles .hearth-link-tile {
+	position: relative;
+	gap: 6px;
+	padding: 12px 6px;
+}
+
+/* Two lines of the name, then an ellipsis — a folder called "Meeting notes" is
+   two words before it is anything, and one clipped word names nothing. */
+.hearth-folder-tiles .hearth-link-label {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	font-size: 0.75rem;
+	line-height: 1.25;
+}
+
+/* How many things a subfolder holds. Sits at the end of its row, muted, and
+   never competes with the name for the row's width. */
+.hearth-folder-count {
+	flex: 0 0 auto;
+	margin-inline-start: auto;
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.4;
+}
+
+/* On a tile the count rides in the corner, so it never takes one of the two
+   lines the name has. */
+.hearth-folder-tiles .hearth-folder-count {
+	position: absolute;
+	top: 4px;
+	inset-inline-end: 4px;
+	margin: 0;
+}
+
+/* The path row a card grows once it has been walked below its own folder. It
+   sits above the listing and stays put: the listing under it is what scrolls. */
+.hearth-folder-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 4px;
+	min-width: 0;
+}
+
+.hearth-folder-up {
+	display: flex;
+	flex: 0 0 auto;
+	padding: 2px;
+	border-radius: 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-folder-up:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-folder-up .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* Where the card is, from its own folder down. One line: a card is narrow, and
+   the whole path is the row's tooltip. */
+.hearth-folder-here {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The card's last row: what it is not showing, and a way to see it. */
+.hearth-folder-more {
+	margin-top: 4px;
+	padding: 4px 8px;
+	border-radius: 7px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.hearth-folder-more:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* With the browser turned off the row still counts what is left, but it is a
+   statement rather than a way in — so it must not look like one. */
+.hearth-folder-more.is-static {
+	cursor: default;
+}
+
+.hearth-folder-more.is-static:hover {
+	background: transparent;
+	color: var(--text-muted);
+}
+
+/* ---- The browser ---- */
+
+/* Wide, for the same reason the weather detail is: this is the one place a
+   folder is read rather than glanced at, and its sections sit side by side. */
+.hearth-folder-modal {
+	width: min(860px, 94vw);
+}
+
+.hearth-folder-browser {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+/* Breadcrumb and sort picker: one row, because both answer "what am I looking
+   at". The trail wraps; the picker never leaves the end of the row. */
+.hearth-folder-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding-bottom: 6px;
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-folder-trail {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 1 1 auto;
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.hearth-folder-crumb {
+	padding: 2px 6px;
+	border-radius: 6px;
+	color: var(--text-accent);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.hearth-folder-crumb:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* The folder being shown is not a link to itself. */
+.hearth-folder-crumb.is-current {
+	color: var(--text-normal);
+	font-weight: var(--font-semibold);
+	cursor: default;
+}
+
+.hearth-folder-crumb.is-current:hover {
+	background: transparent;
+}
+
+.hearth-folder-crumb-sep {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.hearth-folder-crumb-sep .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-folder-sort {
+	flex: 0 0 auto;
+}
+
+.hearth-folder-groups {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+/* A block of files, or one folder's children: both flow into columns, so a
+   wide dialog is used rather than filled with one tall list. */
+.hearth-folder-files {
+	column-width: 220px;
+	column-gap: 18px;
+}
+
+/* Rows must not be split down the middle of a column break. */
+.hearth-folder-files .hearth-list-item {
+	break-inside: avoid;
+}
+
+.hearth-folder-section {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+/* A subfolder's heading — itself the way into that folder. */
+.hearth-folder-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 8px;
+	border-radius: 7px;
+	cursor: pointer;
+}
+
+.hearth-folder-head:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-folder-head-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+/* Beside the name, not at the end of the row: the count belongs to the folder
+   it names, and a heading has no column for it to line up with the way the
+   rows below do. */
+.hearth-folder-head .hearth-folder-count {
+	margin-inline: 0 auto;
+}
+
+.hearth-folder-head-name {
+	font-weight: var(--font-semibold);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-folder-empty {
+	padding: 4px 8px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}

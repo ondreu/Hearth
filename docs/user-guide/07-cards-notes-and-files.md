@@ -6,9 +6,9 @@ Home view, press **Add card**, and pick it — and every card is configured from
 its own gear button while arranging. See [chapter 6](06-arranging-cards.md) for
 the mechanics.
 
-The twelve cards in this category are: Embedded note, Daily note, Periodic note,
-Journal note, Embedded image, Slideshow, Embedded canvas, Excalidraw drawing,
-Embedded base, Recent files, Favorites and Bookmarks.
+The thirteen cards in this category are: Embedded note, Daily note, Periodic
+note, Journal note, Embedded image, Slideshow, Embedded canvas, Excalidraw
+drawing, Embedded base, Recent files, Folder, Favorites and Bookmarks.
 
 ---
 
@@ -252,6 +252,109 @@ the *Base view* and *Hide base header* options.
 | *File types* | Only list files of the selected types. Pick any combination; selecting none shows every type |
 
 If you use Iconic or Iconize, each file shows its own icon here. See
+[chapter 14](14-integrations.md).
+
+---
+
+## Folder
+
+**What it shows:** what sits one level inside a folder — its subfolders and its
+files — with a browser behind it for the rest.
+
+**Requires:** nothing.
+
+Clicking a file opens it. Clicking a subfolder opens the **folder browser** —
+or walks the card itself into that folder, if you set it to. Clicking the card's
+empty space or its folder button always opens the browser.
+
+### Options
+
+| Setting | Meaning |
+| --- | --- |
+| *Folder* | The folder the card lists. Leave it empty for the vault root; *Pick a folder* chooses one from a list |
+| *Order* | How the contents are ordered — see below |
+| *Show* | Folders and files, folders only, or files only. The browser follows the same choice |
+| *Display* | A list of rows, or a grid of icon tiles |
+| *Number of items* | How many the card lists before it says how many are left (it says so either way; with the browser off the count is not a way in). The browser is never capped |
+| *Item counts* | Show how many things each subfolder holds |
+| *Opening a subfolder* | In the folder browser (the default), or in the card itself |
+| *Open the browser from the card* | Turn off for a card that should only ever open what it lists |
+
+### Order
+
+*Same as the file explorer* is the default, and it means what it says: the card
+asks the file explorer to order the folder, exactly as the sidebar does when it
+draws it. The folder does not have to be open in the sidebar — or the sidebar
+even visible — for this to work.
+
+That includes a **custom order from a plugin**. A plugin that lets you drag the
+sidebar into your own order — [Flexplorer](https://github.com/kh4f/flexplorer),
+which the card was asked for, works this way — does it by replacing that same
+ordering call, so its order is the answer the card gets, pinned items and all.
+Reorder the sidebar and the card follows on its next redraw.
+
+Two honest limits:
+
+- If the explorer can't be read at all — no file explorer in this window, or a
+  future Obsidian rearranges its internals — the card falls back to the sort the
+  explorer is *set* to, so it still agrees with the sidebar's rule even when it
+  can't get its order.
+- A file a plugin **hides** rather than moves still appears on the card.
+  Flexplorer hides by marking the row it has already ordered, so a hidden file
+  is still in the order the card is given. Use *Show* if you need the card to
+  leave things out.
+
+The other orders are Hearth's own: name A–Z or Z–A, and modified or created,
+newest or oldest first. Under those, folders lead and are sorted by name, the
+way the file explorer does it — a folder has no modification time of its own for
+a time sort to use.
+
+Manual drag-and-drop ordering is not offered. Reordering a folder's contents by
+hand is a file-explorer job, and a card that stored its own order would quietly
+disagree with the sidebar the moment a file was added.
+
+### Navigating in the card
+
+Set *Opening a subfolder* to **In the card** and clicking a subfolder walks the
+card into it instead of opening a dialog. The card then grows a path row: a back
+arrow, and where you are, counted from the card's own folder. The arrow never
+climbs above that folder — the card *is* that folder.
+
+Where a card has been walked to is not part of the dashboard. It is not saved,
+not synced to your other devices, and not carried in a shared dashboard: it is
+where you are reading, not what the card is. It survives arranging the board,
+switching dashboards and closing the tab, and resets to the card's own folder
+when Obsidian restarts.
+
+### The folder browser
+
+The card is a glance; the browser is the whole folder. It opens as a dialog
+with:
+
+- a **breadcrumb** from the vault root down to the folder, every step of it
+  clickable;
+- the folder's **contents**, with each subfolder shown as its own section and
+  opened one extra level, and the files between them gathered into blocks — so
+  the page keeps the order the sidebar has, rather than sorting the folders away
+  from the files;
+- an **order** picker, which belongs to the dialog: changing it there doesn't
+  touch the card.
+
+Every folder in the browser — a breadcrumb step, a section heading, a row —
+steps the dialog into that folder, so you can walk a whole tree without leaving
+it.
+
+Clicking a file opens it and closes the browser. **Ctrl/Cmd-clicking** one opens
+it and leaves the browser where it is, for when you are picking several notes
+into tabs rather than leaving to read one.
+
+Either way the browser **reopens where you left it**, so a note opened out of a
+folder five levels down doesn't cost you the walk back. Like the card's own
+position, that is remembered for the session only, and a card set to navigate in
+the card follows the browser: walk somewhere in the dialog, close it, and the
+card is there.
+
+If you use Iconic or Iconize, files and folders show their own icons here. See
 [chapter 14](14-integrations.md).
 
 ---

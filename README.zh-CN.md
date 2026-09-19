@@ -139,6 +139,7 @@ TaskNotes 这一项值得特别一提：它的字段名可由用户重映射、�
 | **Excalidraw 绘图** | 一幅支持原生平移与缩放的绘图 | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) |
 | **嵌入 base** | 一个 `.base` 文件，由 Obsidian 的 Bases 渲染 | Bases（核心） |
 | **最近文件** | 您最近打开的文件 | — |
+| **文件夹** | 文件夹下一层的内容，按文件管理器自身的顺序排列；并可打开浏览页：带面包屑导航、每个子文件夹展开一层，页面上的任意文件夹都可继续进入 | — |
 | **收藏** | 您在 Hearth 中标星的笔记 | — |
 | **书签** | 您的 Obsidian 书签，带站点图标 | 书签（核心） |
 

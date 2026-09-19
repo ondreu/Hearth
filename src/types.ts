@@ -4,6 +4,7 @@ import { normalizeAuthorKey } from "./identity";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
 import type { EventNoteConfig } from "./eventnote";
+import type { FolderShow, FolderSort } from "./foldercontents";
 import type { Granularity } from "./periodic";
 import { DEFAULT_WEB_SEARCH_ENGINE, type WebSearchEngineId } from "./websearch";
 import type {
@@ -24,6 +25,7 @@ export type CardKind =
 	| "favorites"
 	| "text"
 	| "recent"
+	| "folder"
 	| "links"
 	| "commands"
 	| "templater"
@@ -710,6 +712,39 @@ export interface SavedSearchConfig {
 	/** Display layout: "list" (default) renders a vertical list; "tiles"
 	 * renders results as a grid of icon tiles (like the links card). */
 	view?: "list" | "tiles";
+}
+
+/** Per-card configuration for a "folder" (folder contents) card. */
+export interface FolderCardConfig {
+	/** The folder listed, vault-relative. Empty or omitted is the vault root,
+	 * so a card added from the picker shows something before it is configured. */
+	path?: string;
+	/** How the contents are ordered. Omitted means `explorer` — the order the
+	 * sidebar's file explorer is showing (see src/explorerorder.ts). */
+	sort?: FolderSort;
+	/** Which children are listed. Omitted means everything. */
+	show?: FolderShow;
+	/** Max rows/tiles on the card itself. Omitted means 12. The browser opened
+	 * from the card is never capped — that is what it is for. */
+	count?: number;
+	/** Display layout, as on the query card: "list" (default) is a vertical
+	 * list of rows, "tiles" a grid of icon tiles. */
+	view?: "list" | "tiles";
+	/** Show how many items each subfolder holds. Off by default: it is the one
+	 * setting that reads below the card's own level. */
+	counts?: boolean;
+	/** Clicking the card's empty space opens the folder browser. Default on;
+	 * set false for a card that should only ever open what it lists. */
+	browse?: boolean;
+	/** Where clicking a subfolder goes. Omitted is the browser dialog; "card"
+	 * walks the card itself into the folder, which then grows a path row with
+	 * a way back up.
+	 *
+	 * Either way the folder a card has been walked to is *not* stored here: it
+	 * is where the reader currently is, not what the card is, and a board that
+	 * rewrote itself (and synced) on every click into a subfolder would be a
+	 * board nobody could share. See `browsedPath` in `cards/folder.ts`. */
+	navigate?: "card";
 }
 
 /** Per-card configuration for a "searchbar" (live search field) card. */
@@ -1523,6 +1558,9 @@ export interface DashboardCard {
 	 * Any combination of the search filter's types; undefined or empty means all
 	 * types are shown. */
 	recentTypes?: string[];
+	/** kind === "folder": which folder the card lists, how it is ordered and
+	 * how it is drawn. */
+	folder?: FolderCardConfig;
 	/**
 	 * kind === "favorites": this card's own list of note paths, instead of the
 	 * vault-wide one in `settings.favorites`.
