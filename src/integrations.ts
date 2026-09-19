@@ -31,6 +31,7 @@ import { JOURNALS_PLUGIN_ID } from "./journals";
 import { PERIODIC_NOTES_PLUGIN_ID } from "./periodic";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
 import { TEMPLATER_PLUGIN_ID } from "./templater";
+import { VAULT_PET_PLUGIN_ID } from "./vaultpet";
 
 /**
  * Ids of the settings ribbon tabs.
@@ -86,6 +87,7 @@ export type IntegrationId =
 	| "iconic"
 	| "iconize"
 	| "excalidraw"
+	| "vaultPet"
 	| "bases"
 	| "canvas"
 	| "dailyNotes"
@@ -191,6 +193,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "excalidraw",
 		group: "plugin",
 		pluginId: EXCALIDRAW_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "vaultPet",
+		group: "plugin",
+		pluginId: VAULT_PET_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 

@@ -39,6 +39,7 @@ import { gitCard } from "./git";
 import { operonCard } from "./operon";
 import { leafCard } from "./leaf";
 import { petCard } from "./pet";
+import { vaultPetCard } from "./vaultpet";
 
 export type {
 	CardCategory,
@@ -88,6 +89,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	operon: operonCard,
 	leaf: leafCard,
 	pet: petCard,
+	vaultpet: vaultPetCard,
 };
 
 /** Every registered kind, in registry order. Used for layout-import validation
@@ -133,7 +135,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
 	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
-	{ category: "fun", templates: ["pet"] },
+	{ category: "fun", templates: ["pet", "vault-pet", "vault-pet-house"] },
 ];
 
 /** The categories, in picker order. */

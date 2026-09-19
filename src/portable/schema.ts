@@ -423,4 +423,5 @@ export const CARD_PLUGIN_REQUIREMENTS: Partial<Record<CardKind, readonly string[
 	operon: ["operon"],
 	bookmarks: ["bookmarks"],
 	daily: ["daily-notes"],
+	vaultpet: ["vault-pet"],
 };

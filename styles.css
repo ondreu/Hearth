@@ -10658,6 +10658,39 @@ body.hearth-dv-resizing {
 	}
 }
 
+/* ========================================================================
+ * Vault Pet card
+ *
+ * Not Hearth's pet: the card that houses the Vault Pet community plugin, in
+ * one of two shapes. The house is a hosted leaf and needs nothing beyond the
+ * `.hearth-leaf-host` rules further up; what is left is the block shape,
+ * where the plugin renders its own compact card into a Markdown container.
+ *
+ * So there is deliberately almost no styling here, and none of it reaches
+ * inside the plugin's own elements: it paints itself from its own settings
+ * and its own theme choice, and a rule of ours reaching in would fight that
+ * on the next release of either plugin. All Hearth does is give the block the
+ * middle of the card and take away the margins a Markdown preview would
+ * otherwise put around it.
+ * ===================================================================== */
+
+.hearth-vaultpet-block {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	min-height: 0;
+	overflow: auto;
+}
+
+/* A rendered Markdown container is a stack of block elements with vertical
+ * margins between them; here it holds exactly one child, so those margins can
+ * only push the pet off-centre. */
+.hearth-vaultpet-block > * {
+	margin-block: 0;
+	max-width: 100%;
+}
+
 /* ── Add-card picker ───────────────────────────────────────────────────
    The card catalogue outgrew a dropdown: ~30 templates in one column, with
    nothing but a name each. This is a browsable modal instead — a category

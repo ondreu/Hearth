@@ -1307,6 +1307,14 @@ export const en = {
 						"The same for Iconize (formerly Obsidian Icon Folder), including icons " +
 						"set through a frontmatter property.",
 				},
+				vaultPet: {
+					name: "Vault Pet",
+					desc:
+						"The Vault Pet card houses the plugin on your board — either its " +
+						"own pet card, live and clickable, or its whole pet house with " +
+						"quests, dex, badges and stats. The pet, its XP and everything " +
+						"it unlocks stay Vault Pet's; Hearth only gives it the space.",
+				},
 				excalidraw: {
 					name: "Excalidraw",
 					desc:
@@ -1640,6 +1648,7 @@ export const en = {
 			operon: "Operon",
 			leaf: "Plugin view (beta)",
 			pet: "Pet",
+			vaultpet: "Vault Pet",
 		},
 		linkTypes: {
 			note: "Note",
@@ -3010,6 +3019,26 @@ export const en = {
 			showMood: "Show mood",
 			showActivity: "Show today's activity",
 		},
+		vaultPet: {
+			missing: "Vault Pet isn't installed",
+			missingDesc:
+				"This card houses the Vault Pet community plugin. Install and enable " +
+				"it and the card fills itself in — these settings are kept either way.",
+			display: "Show",
+			displayDesc:
+				"Both are Vault Pet's own: the small card it can insert into a note, " +
+				"or its house view, hosted here instead of in the sidebar.",
+			displayPet: "The pet",
+			displayHouse: "The pet house",
+			showHeader: "Keep the house's title bar",
+			showHeaderDesc:
+				"The hosted view's own header is hidden by default — the card already " +
+				"has one.",
+			openButton: "“Open the pet house” button",
+			openButtonDesc:
+				"A button in the card's corner that opens Vault Pet's house in the " +
+				"sidebar, the same as its ribbon icon.",
+		},
 		colors: {
 			heading: "Colors",
 			headingDesc: "Accent and background tint for this card.",
@@ -3099,6 +3128,9 @@ export const en = {
 			boardNeedsFile: "Pick a file for this board in dashboard settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",
+			vaultPetInstall: "Install the Vault Pet plugin to keep a pet here",
+			vaultPetNoHouse:
+				"Vault Pet's house isn't available — enable the plugin, or update it",
 			operonEnable: "Enable the Operon plugin to show its tasks",
 			operonDisabled:
 				"The Operon integration is off — turn it on in Settings → Hearth → Integrations",
@@ -3190,6 +3222,9 @@ export const en = {
 					? `${count} new note${count === 1 ? "" : "s"} today`
 					: `${count} note${count === 1 ? "" : "s"} today`,
 			streak: (days: number) => `${days}-day streak`,
+		},
+		vaultPet: {
+			openHouse: "Open the pet house",
 		},
 		embed: {
 			openFile: "Open this file",
@@ -3695,6 +3730,8 @@ export const en = {
 		"operon-timer": "Operon timer",
 		leaf: "Plugin view (beta)",
 		pet: "Pet",
+		"vault-pet": "Vault Pet",
+		"vault-pet-house": "Vault Pet house",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -3740,6 +3777,8 @@ export const en = {
 		"operon-timer": "Operon's running time tracker, ticking live",
 		leaf: "Another plugin's side panel, hosted in a card",
 		pet: "A small companion that lives on your board",
+		"vault-pet": "The Vault Pet plugin's pet, growing as you write",
+		"vault-pet-house": "Vault Pet's house — quests, dex, badges and stats",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

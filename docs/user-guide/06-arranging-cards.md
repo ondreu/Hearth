@@ -44,7 +44,7 @@ description, or browse the six categories down the left rail:
   web page.
 - **Integrations** — Templater, Dataview, Datacore, Git, Jira, RSS, Weather,
   Operon, Plugin view.
-- **Fun** — the Pet.
+- **Fun** — the Pet, and the Vault Pet card.
 
 Cards backed by a community plugin are **always listed**, whether or not the
 plugin is installed. A card whose dependency is missing is marked *Needs

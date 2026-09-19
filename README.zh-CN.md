@@ -17,7 +17,7 @@
 
 - 🔍 **搜索一切** —— 模糊搜索、全文、标签、frontmatter 与命令
 - 🧩 **35+ 种卡片** —— 嵌入、任务、日历、Dataview、Git、Jira、Operon 等等
-- 🔌 **25 项集成** —— 插件启用后自动识别
+- 🔌 **26 项集成** —— 插件启用后自动识别
 - 🎛️ **自由布局** —— 卡片可任意拖动、缩放与吸附
 - 🪟 **毛玻璃** —— 每张卡片可单独设置不透明度、模糊、颜色和圆角
 - 🗂️ **多个面板** —— 一次点击或一个快捷键即可切换
@@ -223,6 +223,7 @@ Git 和 Operon 都是*通过*另一个插件工作，而不是绕过它：Git �
 | 卡片 | 显示内容 | 需要 |
 | --- | --- | --- |
 | **宠物** | 一只像素风小伙伴（猫、狗、鸟、狐狸、青蛙或软软），心情跟随您的仓库 —— 满足、开心、无聊，或在安静的一天里睡去，带绘制动画和跟随指针的眼睛。可设置夜间时段、命名、上色。不会丢失；点击它还能收获爱心 | — |
+| **Vault Pet** | [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) 插件的宠物住进面板：它自己的宠物卡片（像素形象、等级、连续天数，点击可撸），或它完整的小屋 —— 任务、图鉴、徽章、衣橱与统计 | [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) |
 
 一切都是**实时的**：嵌入和可编辑的笔记会跟随仓库事件而不丢失光标位置，
 数据卡片会随仓库和元数据变化重绘，网页卡片按计时器刷新。每一张会联网的卡片
@@ -248,6 +249,7 @@ Hearth 会自行识别这些插件 —— 无需连接，也不用粘贴任何�
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | 您的按文件图标会出现在 Hearth 列出文件的任何位置 | 集成标签页 |
 | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) | 绘图在嵌入卡片中实时渲染；“新建绘图”会运行它的命令 | 卡片本身 |
 | [Kanban](https://github.com/obsidian-community/obsidian-kanban) | 任务卡片以它自己的格式读写其看板笔记 | 卡片本身 |
+| [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) | Vault Pet 卡片把该插件安置在面板上 —— 它自己的宠物卡片，或它完整的宠物小屋 | 卡片本身 |
 
 **Obsidian 核心插件**
 

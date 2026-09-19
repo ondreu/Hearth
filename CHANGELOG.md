@@ -15,6 +15,28 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A card for the Vault Pet plugin.** *Vault Pet*, in the "Add card" picker's
+  Fun section, gives
+  [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) a place
+  on the board. *Show* picks which of the plugin's own two surfaces the card
+  holds: **the pet** — its compact card, with the sprite, the level bar,
+  today's characters, links and notes, and the streak, clickable to pet it —
+  or **the pet house**, its whole house view hosted in the card, with quests,
+  dex, badges, wardrobe and stats. A second picker entry, *Vault Pet house*,
+  is the same card started on the house at a larger size.
+
+  Both are drawn by Vault Pet itself: Hearth renders the plugin's own
+  `vault-pet` block, or hosts its house view the way the Plugin view card
+  hosts any registered view. So the pet animates, the bar fills and a click
+  pets it, all under the plugin's control, and Hearth keeps no copy of the XP,
+  the levels, the badges or anything else it would only be able to get wrong.
+  Everything about the pet stays in **Settings → Vault Pet**; the card's own
+  settings are the two bits of chrome around it — whether the hosted house
+  keeps its title bar, and whether the corner button that opens the house in
+  the sidebar is there.
+
+  Hearth's own *Pet* card is unchanged and still needs no plugin at all.
+
 - **A Folder card.** *Folder*, in the "Add card" picker's Notes & files
   section, lists what sits one level inside a folder you pick — its subfolders
   and its files — as rows or as icon tiles. Clicking a file opens it; clicking a
