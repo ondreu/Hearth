@@ -10632,9 +10632,19 @@ body.hearth-dv-resizing {
 		opacity: 0;
 	}
 
-	/* The pointer tracking is motion too — the eyes hold still. */
+	/* The pointer tracking is motion too — the eyes hold still.
+
+	   Neutralise the two variables the transform reads, not the transform it
+	   resolves to: pet.ts sets them on the stage and the eyes inherit them, so
+	   a declaration here wins over that inheritance without needing weight.
+	   `transform: none` stays alongside so the element keeps dropping its
+	   layer exactly as before — at equal specificity and later in the file it
+	   wins over the tracking rule, and the only higher-specificity rules that
+	   touch it (`.is-sleepy`, `.is-still`) already say `none`. */
 	.hearth-pet-eyes {
-		transform: none !important;
+		--hearth-pet-look-x: 0px;
+		--hearth-pet-look-y: 0px;
+		transform: none;
 		transition: none;
 	}
 
