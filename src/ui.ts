@@ -71,6 +71,12 @@ export class ConfirmModal extends Modal {
 			// setWarning() is deprecated in favour of setDestructive(), but that
 			// API is @since 1.13.0 and our declared minAppVersion is 1.8.7, so we
 			// keep setWarning() to stay within the supported API surface.
+			// The no-deprecated warning this raises is the cost of that, and it
+			// is the cheaper one: feature-detecting setDestructive() and falling
+			// back trades this single warning for two `obsidianmd/
+			// no-unsupported-api` *errors*, because that rule reads the call, not
+			// the guard around it. Retire this the release minAppVersion reaches
+			// 1.13.0, not before.
 			b.setButtonText(this.confirmText)
 				.setWarning()
 				.onClick(() => {
