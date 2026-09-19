@@ -989,6 +989,13 @@ export const en = {
 			effectLiveRefresh: "the dashboard stops rebuilding itself on vault changes",
 			effectClock: "clock cards drop seconds and the sweeping second hand",
 			effectSlideshow: "slideshow cards hold one picture instead of rotating",
+			/** Shown beside the card blur when Obsidian's translucent window is on
+			 * and the blur is therefore being withheld (#272). */
+			vibrancyFrost:
+				"Frosted glass is off while Obsidian's Translucent window is on: a " +
+				"blur and macOS vibrancy re-blend the whole window against each " +
+				"other, which flickers the tab bar. Your blur setting is kept and " +
+				"comes back as soon as you turn the translucent window off.",
 			/** Shown in the sections whose settings the tier currently overrides. */
 			overridden:
 				"The performance tier overrides these right now. They are kept as " +

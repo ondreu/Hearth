@@ -3067,6 +3067,38 @@ export function frostAllowed(s: HomeSettings): boolean {
 	return tierRank(s) < PERFORMANCE_TIERS.indexOf("reduced");
 }
 
+/**
+ * Whether Obsidian's own translucent window is in force: macOS vibrancy, from
+ * Settings -> Appearance -> Translucent window, which Obsidian marks with
+ * `is-translucent` on `body`.
+ *
+ * Read from the DOM rather than from settings because it is Obsidian's switch
+ * and not Hearth's — there is nothing in HomeSettings to consult, and the class
+ * goes on and comes off live as the user flips it. `document` is resolved at
+ * call time (never at import), so this stays safe to load in a DOM-less test.
+ */
+export function translucentWindowActive(doc: Document = document): boolean {
+	return Platform.isMacOS && doc.body.classList.contains("is-translucent");
+}
+
+/**
+ * Whether the frosted glass is being withheld because the window is vibrant.
+ *
+ * A backdrop-filter samples what is behind it, and under a translucent window
+ * what is behind it is the vibrant material macOS paints for the whole window —
+ * so every frost layer re-filtering drags the window's own chrome through a
+ * re-blend with it. That is what #272 sees: the tab bar flickering while the
+ * board is up, at Balanced and Full (the rungs that build frost) and never at
+ * Reduced or below, and gone outright with Translucent window switched off.
+ *
+ * True only where the tier would otherwise have allowed frost, so the settings
+ * note it drives speaks up in exactly the case the tier's own note does not
+ * already cover.
+ */
+export function frostSuppressedByVibrancy(s: HomeSettings, doc?: Document): boolean {
+	return frostAllowed(s) && translucentWindowActive(doc);
+}
+
 /** Whether timer-driven work may run at all: card auto-refresh and the
  * vault-driven live rebuild. False only on `minimal`. */
 export function timersAllowed(s: HomeSettings): boolean {

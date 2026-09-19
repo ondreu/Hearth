@@ -128,6 +128,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The tab bar no longer flickers while a board is up on macOS.** With
+  Obsidian's *Translucent window* switched on, the frosted glass behind cards
+  and macOS's own vibrancy were sampling each other: a `backdrop-filter` reads
+  whatever is behind it, and under a translucent window that is the material
+  macOS paints for the entire window — chrome included — so every frost layer
+  re-filtering dragged the tab bar through a re-blend with it. That is why the
+  flicker showed only at the *Balanced* and *Full* performance tiers, the two
+  that build frost, and stopped the moment a note was opened over the board.
+
+  The frosted glass now stands down for as long as the translucent window is
+  on, and only on macOS. Nothing else changes: motion, the wallpaper, card
+  opacity and the cards' own translucency are untouched, and no setting is
+  written — your blur radius is kept and takes effect again the moment you turn
+  the translucent window off. A note under *Dashboard → Card surface* says so
+  while it applies, so a missing blur is never a mystery
+  ([#272](https://github.com/ondreu/Hearth/issues/272)).
+
 - **The Git card no longer gets stuck asking you to enable a plugin you already
   have.** On a cold start, obsidian-git builds its git manager after Obsidian's
   layout is ready — probing the git binary takes long enough on desktop that a

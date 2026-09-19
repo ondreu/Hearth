@@ -8,7 +8,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -1061,6 +1061,18 @@ export class HomeSettingTab extends PluginSettingTab {
 		note.descEl.prepend(icon);
 	}
 
+	/** The note that says the frosted glass is being withheld because Obsidian's
+	 * translucent window is on (#272), shown only where the tier would otherwise
+	 * have allowed the blur — below that, the tier's own note already speaks. */
+	private vibrancyFrostNote(containerEl: HTMLElement): void {
+		if (!frostSuppressedByVibrancy(this.plugin.settings)) return;
+		const note = new Setting(containerEl).setDesc(t().settings.performance.vibrancyFrost);
+		note.settingEl.addClass("hearth-setting-note");
+		const icon = createSpan("hearth-setting-note-icon");
+		setIcon(icon, "layers");
+		note.descEl.prepend(icon);
+	}
+
 	// ---- Background -----------------------------------------------------
 
 	/** The note that says a web wallpaper is not being fetched, shown only when
@@ -2093,6 +2105,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		// from `reduced` down and opacity on `minimal`, hence the note covering
 		// the section as soon as either applies.
 		this.tierOverrideNote(containerEl, !frostAllowed(s) || lowPowerActive(s));
+		this.vibrancyFrostNote(containerEl);
 
 		const cardOpacity = new Setting(containerEl)
 			.setName(t().settings.dashboard.cardOpacity)

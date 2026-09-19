@@ -915,6 +915,10 @@ export const zh: Translations = {
 			effectClock: "时钟卡片不显示秒数与走动的秒针",
 			effectSlideshow: "幻灯片卡片固定显示一张图片，不再轮播",
 			/** Shown in the sections whose settings the tier currently overrides. */
+			vibrancyFrost:
+				"启用 Obsidian 的「半透明窗口」时，毛玻璃效果会关闭：模糊与 macOS 的" +
+				"半透明材质会让整个窗口互相重新混合，导致标签栏闪烁。你的模糊设置会保留，" +
+				"关闭半透明窗口后即可恢复。",
 			overridden:
 				"当前性能档位覆盖了这些设置。它们会原样保留，并在您调回更高档位时重新生效。",
 		},
