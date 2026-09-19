@@ -29,10 +29,11 @@ function pickGreeting(hour: number, playful: boolean): string {
 
 
 /** Resolve the clock's `hour12` option. Returns `undefined` for "auto" so the
- * locale default is used, or a boolean to force a 12- or 24-hour clock. Falls
- * back to the deprecated `use24Hour` flag for configs saved before hourFormat. */
+ * locale default is used, or a boolean to force a 12- or 24-hour clock. The
+ * pre-`hourFormat` `use24Hour` boolean is not read here: `sanitizeClock` folds
+ * it into `hourFormat` on load and never copies it onto a `ClockConfig`. */
 function resolveHour12(cfg: ClockConfig): boolean | undefined {
-	const fmt = cfg.hourFormat ?? (cfg.use24Hour ? "24" : "auto");
+	const fmt = cfg.hourFormat ?? "auto";
 	if (fmt === "24") return false;
 	if (fmt === "12") return true;
 	return undefined;
@@ -216,9 +217,8 @@ export function clockEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				d.addOption("auto", t().editors.clock.hourFormatAuto);
 				d.addOption("12", t().editors.clock.hourFormat12);
 				d.addOption("24", t().editors.clock.hourFormat24);
-				d.setValue(cfg.hourFormat ?? (cfg.use24Hour ? "24" : "auto")).onChange((v) => {
+				d.setValue(cfg.hourFormat ?? "auto").onChange((v) => {
 					cfg.hourFormat = v as NonNullable<ClockConfig["hourFormat"]>;
-					cfg.use24Hour = undefined;
 					ctx.opts.save();
 				});
 			});

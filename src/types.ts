@@ -1235,9 +1235,6 @@ export interface ClockConfig {
 	/** Time format: "auto" follows the locale default, "12"/"24" force a
 	 * 12- or 24-hour clock regardless of locale. Default "auto". */
 	hourFormat?: "auto" | "12" | "24";
-	/** @deprecated Superseded by `hourFormat`. Kept for migration only:
-	 * `true` maps to `hourFormat: "24"`. */
-	use24Hour?: boolean;
 	/** Show seconds in the time. */
 	showSeconds?: boolean;
 	/** Show the greeting line (default true). */
@@ -1332,18 +1329,20 @@ export interface MobileActionButton {
 	id: string;
 	label: string;
 	icon: string;
-	/** What the button does. Defaults to "command" when absent (older buttons
-	 * stored only `commandId`). */
+	/** What the button does. Defaults to "command" when absent (buttons saved
+	 * before 1.9.0 stored only the legacy `commandId`, which `migrateSettings`
+	 * folds into `target`). */
 	type?: "command" | "note" | "url";
 	/** Command id, vault path, or URL depending on `type`. */
 	target?: string;
-	/** @deprecated Legacy command id from before `type`/`target` existed.
-	 * `migrateSettings` folds it into `target` on load (one-way); the fallback
-	 * read in `actionTarget` is a transitional safety net.
-	 * Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
-	 * migration has run for everyone — together with that fallback. */
-	commandId?: string;
 }
+
+/** A mobile action button as saved before 1.9.0, when a button could only run
+ * a command and stored it as `commandId`. Deliberately *not* part of
+ * `MobileActionButton`: the field is read in exactly two places — the fold in
+ * `migrateSettings` and the one in `sanitizeMobileActionButton` — and nothing
+ * downstream should have to know it ever existed. */
+export type LegacyMobileActionButton = MobileActionButton & { commandId?: string };
 
 /**
  * How an embedded picture fills its card.
@@ -3461,20 +3460,20 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 		s.mobileActionButtons = defaultMobileActionButtons();
 	}
 	// One-way migration (added 1.9.0): fold the legacy per-button `commandId`
-	// into the unified `target` field so the deprecated fallback can be retired.
+	// into the unified `target` field. `commandId` is no longer part of
+	// `MobileActionButton` — this loop and `sanitizeMobileActionButton` (for
+	// imported backups) are the only code that still knows the name, which is
+	// why the field is reached through `LegacyMobileActionButton` here.
 	// This does NOT round-trip — a user who upgrades and then downgrades below
 	// 1.9.0 loses any button whose action was stored only as `commandId`. See
 	// CHANGELOG.
-	// Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
-	// migration has run for everyone — together with the `commandId` field on
-	// MobileActionButton and the fallback read in actionTarget().
+	// The loop is convergent: it deletes what it folds, so once every install
+	// has run it is a no-op over data that no longer carries the field. Keep it
+	// for as long as a vault might still be opening from a pre-1.9.0 data.json.
 	let migratedCommandId = false;
 	if (Array.isArray(s.mobileActionButtons)) {
-		for (const btn of s.mobileActionButtons) {
-			// Reading (and below, deleting) `commandId` intentionally trips
-			// no-deprecated — the repo forbids silencing that rule, so the
-			// warnings stay visible until the field is removed in 1.11.0. That is
-			// expected: a migration must touch the field it is retiring.
+		for (const button of s.mobileActionButtons) {
+			const btn = button as LegacyMobileActionButton;
 			const legacy = btn.commandId;
 			if (legacy === undefined) continue;
 			// Only lift the value into `target` when `target` is unset: a button

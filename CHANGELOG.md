@@ -185,6 +185,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   stored *Narrow below* is a choice and is kept, 600 included — set it back
   there, globally or per board, to keep the old width.
 
+- **Two long-retired settings fields are gone from the code for good.** A
+  mobile action button's pre-1.9.0 `commandId` and a clock card's
+  pre-`hourFormat` `use24Hour` were both already folded into their replacements
+  when settings are loaded and when a backup is imported, but each was also
+  still declared on the public config type and read a second time at render
+  time as a safety net. The types now stop at the current shape and the
+  duplicate reads are gone; the folds themselves stay exactly where they were,
+  so an old `data.json` still upgrades in place and no button or clock face
+  changes. The folds now have tests of their own, which the safety nets had
+  been standing in for.
+
 
 ## [3.1.0]
 

@@ -35,25 +35,6 @@ export default tseslint.config(
 			],
 		},
 	},
-	// The test suite is not part of the shipped plugin bundle, so the rules
-	// about what a plugin may import do not apply to it. In particular,
-	// test/support/obsidian-shim.ts is what *provides* the `moment` export that
-	// the "import moment from 'obsidian' instead" rule points at — following
-	// that advice here would be circular, and the shim documents the choice.
-	// `prefer-create-el` is right nearly everywhere and wrong in exactly two
-	// places in the snapshot code, because Obsidian's helpers *append to the
-	// node they are called on*. `text.ownerDocument.createSpan()` therefore
-	// appends a span to the Document, which throws and takes the whole capture
-	// with it (3.1.0-beta.8 shipped that; the redaction wrapper is placed by an
-	// `insertBefore` instead). The stitching canvas is the other: it is drawn
-	// into, read back as a data URL and dropped, and never goes into the page.
-	// Both are commented at the call site.
-	{
-		files: ["src/gallery/snapshot.ts"],
-		rules: {
-			"obsidianmd/prefer-create-el": "off",
-		},
-	},
 	// The file that *implements* Obsidian's `createEl` for jsdom has to reach
 	// for `document.createElement` — following the rule here would define the
 	// helper in terms of itself.
@@ -63,6 +44,11 @@ export default tseslint.config(
 			"obsidianmd/prefer-create-el": "off",
 		},
 	},
+	// The test suite is not part of the shipped plugin bundle, so the rules
+	// about what a plugin may import do not apply to it. In particular,
+	// test/support/obsidian-shim.ts is what *provides* the `moment` export that
+	// the "import moment from 'obsidian' instead" rule points at — following
+	// that advice here would be circular, and the shim documents the choice.
 	{
 		files: ["test/**"],
 		rules: {

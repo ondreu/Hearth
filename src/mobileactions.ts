@@ -26,16 +26,11 @@ export function renderMobileActionBar(view: HomeView, parent: HTMLElement): void
 	}
 }
 
-/** The button's target. `migrateSettings` folds the legacy `commandId` into
- * `target` at load time, so this reads `target` alone; the `?? btn.commandId`
- * below is a transitional safety net for any button not yet migrated in memory.
- * Remove in 1.11.0 or later — two minor releases after 1.9.0, once the
- * migration has run for everyone — together with the `commandId` field. */
+/** The button's target. The pre-1.9.0 `commandId` is folded into `target`
+ * before a button ever reaches here — by `migrateSettings` on load and by
+ * `sanitizeMobileActionButton` on import — so `target` is the only source. */
 export function actionTarget(btn: MobileActionButton): string {
-	// The `?? btn.commandId` read intentionally trips no-deprecated (the repo
-	// forbids silencing that rule): the warning is the visible marker for this
-	// transitional fallback and disappears when the field is removed in 1.11.0.
-	return btn.target ?? btn.commandId ?? "";
+	return btn.target ?? "";
 }
 
 /** Run a mobile action button: execute its command, open its note/file, or
