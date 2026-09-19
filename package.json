@@ -23,7 +23,7 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@stratejya/operon-cli": "^1.2.0",
-		"@types/node": "^24.13.3",
+		"@types/node": "^24.13.5",
 		"esbuild": "^0.28.2",
 		"eslint": "^10.10.0",
 		"eslint-plugin-obsidianmd": "^0.4.2",
@@ -32,8 +32,8 @@
 		"obsidian": "latest",
 		"tslib": "^2.6.2",
 		"typescript": "^5.4.0",
-		"typescript-eslint": "^8.63.0",
-		"vitest": "^4.1.11"
+		"typescript-eslint": "^8.70.0",
+		"vitest": "^5.0.1"
 	},
 	"dependencies": {
 		"@noble/ed25519": "^3.2.0",
