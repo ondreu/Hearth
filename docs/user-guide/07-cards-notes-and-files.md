@@ -283,11 +283,26 @@ empty space or its folder button always opens the browser.
 ### Order
 
 *Same as the file explorer* is the default, and it means what it says: the card
-shows the folder in the order the sidebar is showing it, including the order a
-plugin that reorders the explorer (Flexplorer and the like) has put it in. If
-the explorer can't be read — the sidebar has never been opened this session, or
-a future Obsidian rearranges its internals — the card falls back to the sort the
-explorer is *set* to, so it still agrees with the sidebar's rule.
+asks the file explorer to order the folder, exactly as the sidebar does when it
+draws it. The folder does not have to be open in the sidebar — or the sidebar
+even visible — for this to work.
+
+That includes a **custom order from a plugin**. A plugin that lets you drag the
+sidebar into your own order — [Flexplorer](https://github.com/kh4f/flexplorer),
+which the card was asked for, works this way — does it by replacing that same
+ordering call, so its order is the answer the card gets, pinned items and all.
+Reorder the sidebar and the card follows on its next redraw.
+
+Two honest limits:
+
+- If the explorer can't be read at all — no file explorer in this window, or a
+  future Obsidian rearranges its internals — the card falls back to the sort the
+  explorer is *set* to, so it still agrees with the sidebar's rule even when it
+  can't get its order.
+- A file a plugin **hides** rather than moves still appears on the card.
+  Flexplorer hides by marking the row it has already ordered, so a hidden file
+  is still in the order the card is given. Use *Show* if you need the card to
+  leave things out.
 
 The other orders are Hearth's own: name A–Z or Z–A, and modified or created,
 newest or oldest first. Under those, folders lead and are sorted by name, the

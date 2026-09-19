@@ -21,14 +21,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   subfolder, the card's empty space or its folder button opens the folder
   browser. (#329)
 
-  Its default order is *Same as the file explorer*: the card shows the folder in
-  the order the sidebar is showing it, including the order a plugin that
-  reorders the explorer (such as
-  [Flexplorer](https://github.com/kh4f/flexplorer)) has put it in. When the
-  explorer can't be read the card falls back to the sort the explorer is *set*
-  to, so it still agrees with the sidebar. Name, modified and created orders are
-  offered too, and under those folders lead and sort by name, exactly as they do
-  in the explorer.
+  Its default order is *Same as the file explorer*: the card asks the explorer
+  to order the folder, the same call the sidebar makes when it draws it — so a
+  folder does not have to be open in the sidebar, or the sidebar even visible,
+  and a plugin that lets you drag the sidebar into your own order (such as
+  [Flexplorer](https://github.com/kh4f/flexplorer)) replaces that very call, so
+  its order is the one the card shows, pinned items and all. When the explorer
+  can't be read the card falls back to the sort the explorer is *set* to, so it
+  still agrees with the sidebar. Name, modified and created orders are offered
+  too, and under those folders lead and sort by name, exactly as they do in the
+  explorer. A file such a plugin *hides* rather than moves is still on the card:
+  hiding is a mark on a row, not a change to the order.
 
   Clicking a subfolder opens the browser by default, or walks the card itself
   into it when *Opening a subfolder* is set to *In the card* — the card then

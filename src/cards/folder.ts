@@ -53,11 +53,6 @@ function folderAt(app: App, path: string): TFolder | null {
 	return found instanceof TFolder ? found : null;
 }
 
-/** How a folder is addressed here — the root's "/" folded onto `ROOT`. */
-function keyOf(folder: TFolder): string {
-	return folder.isRoot() ? ROOT : folder.path;
-}
-
 /** One vault child, flattened onto the shape the ordering rules work on. */
 function toEntry(file: TAbstractFile): FolderEntry {
 	if (file instanceof TFolder) {
@@ -94,7 +89,7 @@ export function folderEntries(
 ): FolderEntry[] {
 	const kept = filterFolderEntries(folder.children.map(toEntry), show);
 	if (sort !== "explorer") return sortFolderEntries(kept, sort);
-	const order = explorerChildOrder(app, keyOf(folder));
+	const order = explorerChildOrder(app, folder);
 	return order
 		? orderByPaths(kept, order)
 		: sortFolderEntries(kept, explorerSortAsFolderSort(app));
