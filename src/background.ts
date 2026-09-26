@@ -181,6 +181,7 @@ function applyWeatherSky(
 	const settings = view.plugin.settings;
 	const animate = effectiveSkyAnimate(settings) && motionAllowed(settings);
 	const density = skyDensity(settings);
+	const design = settings.backgroundSkyDesign ?? "classic";
 
 	// A fixed sky is the whole feature for anyone who wants one weather and
 	// wants it kept: it is drawn once, from a condition the reader chose, and
@@ -192,6 +193,7 @@ function applyWeatherSky(
 			animate,
 			density,
 			spread: "board",
+			design,
 		});
 		return;
 	}
@@ -216,6 +218,7 @@ function applyWeatherSky(
 				animate,
 				density,
 				spread: "board",
+			design,
 			});
 			return;
 		}
@@ -229,6 +232,7 @@ function applyWeatherSky(
 			animate,
 			density,
 			spread: "board",
+			design,
 		});
 	};
 

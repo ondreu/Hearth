@@ -1186,6 +1186,11 @@ export interface WeatherConfig {
 	place?: WeatherPlace;
 	/** Visual style. Default "compact". */
 	style?: WeatherStyle;
+	/** How the style is drawn: "classic" (line icons, a painted sky) or
+	 * "expressive" (Material 3 Expressive — flat weather drawings, chips and
+	 * tonal containers in the accent colour, a flat illustrated sky). The moon
+	 * and daylight styles are always expressive. Default "classic". */
+	design?: "classic" | "expressive";
 
 	// ---- Units ----
 	/** Temperature unit. Default "c". */
@@ -2226,6 +2231,9 @@ export interface HomeSettings {
 	 * power mode replaces the whole background anyway, and a reader who has
 	 * asked their OS for reduced motion gets a still sky regardless. */
 	backgroundSkyAnimate?: boolean;
+	/** How the "weather" background is drawn: the classic painted sky, or the
+	 * flat Material 3 Expressive one. Default "classic". */
+	backgroundSkyDesign?: "classic" | "expressive";
 
 	// ---- Behaviour ----
 	openOnStartup: boolean;

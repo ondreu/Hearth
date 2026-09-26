@@ -1297,6 +1297,18 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(strings.skyDesign)
+			.setDesc(strings.skyDesignDesc)
+			.addDropdown((d) => {
+				d.addOption("classic", strings.skyDesignClassic);
+				d.addOption("expressive", strings.skyDesignExpressive);
+				d.setValue(s.backgroundSkyDesign ?? "classic").onChange((v) => {
+					s.backgroundSkyDesign = v === "expressive" ? "expressive" : undefined;
+					this.save();
+				});
+			});
 	}
 
 	// ---- Startup & tabs -------------------------------------------------

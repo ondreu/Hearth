@@ -15,6 +15,24 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **An Expressive design for the weather card and the weather background.**
+  The weather card's new *Design* setting chooses **Classic** — as before — or
+  **Expressive**, which redraws every style in the Material 3 Expressive manner
+  of the Moon and Daylight styles: flat weather drawings in place of line icons
+  (the big one set on a turning cookie shape), feels-like, high / low and the
+  metrics as chips, the hourly strip as pills with the current hour in the
+  accent, thick range bars, metric tiles with round icon badges, a heavier
+  curve and heavy, tight type. Interface parts take tonal steps of your accent
+  colour; the weather drawings and the sky take their colours from the
+  weather.
+
+  The *Artistic* style's sky, and the board's weather background under its own
+  new *Design* setting, get a flat illustrated sky to match: a pastel sky with
+  dark text by day and a deep one with light text by night, one palette per
+  condition, rolling hills along the bottom, bubbly opaque clouds, a turning
+  sunny sun with ringed halo, sparkle stars, pill raindrops, flower snowflakes,
+  pill fog and solid bolts — all moving exactly as the classic sky does.
+
 - **Two new weather card styles: Moon and Daylight.** (#338) Both are drawn in
   the Material 3 Expressive manner — flat tonal colours for the light and the
   dark theme, soft shapes from Material's shape library, pill chips and a

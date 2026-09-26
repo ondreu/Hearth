@@ -14,11 +14,22 @@
  * pointer, holds state, or survives a redraw: a sky is rebuilt wholesale each
  * time and the caller owns when that happens.
  */
+import { boltShape, shapePath, sparklePath } from "./shapes";
 import type { WeatherPlace } from "./types";
 import { parsePlaceValue, type WeatherGroup, weatherGroup } from "./weather";
 
 /** How much sky there is to fill. */
 export type SkySpread = "card" | "board";
+
+/**
+ * How the sky is drawn. "classic" is the painted sky: gradients, soft
+ * translucent clouds, hairline rain. "expressive" is the same sky, the same
+ * motion, in Material 3 Expressive's flat manner — tonal fills with no
+ * gradient, rolling hills along the bottom, a turning sunny for the sun,
+ * sparkles for stars, bubbly opaque clouds, pill raindrops, flower snowflakes
+ * and solid bolts.
+ */
+export type SkyDesign = "classic" | "expressive";
 
 // ---- Choosing which sky to paint ----------------------------------------
 
@@ -292,7 +303,7 @@ function driftSeconds(lane: number): number {
  * across in a row. The outer group therefore owns the horizontal drift and
  * nothing else; the inner one owns where the cloud sits and how big it is.
  */
-function drawCloud(svg: SVGElement, cloud: Cloud, field: SkyField): void {
+function drawCloud(svg: SVGElement, cloud: Cloud, field: SkyField, expressive = false): void {
 	const drift = svg.createSvg("g", {
 		// An array, not "a b": createSvg hands `cls` to classList.add(), which
 		// rejects a token containing a space. (createDiv sets the class
@@ -311,6 +322,15 @@ function drawCloud(svg: SVGElement, cloud: Cloud, field: SkyField): void {
 	const group = drift.createSvg("g", {
 		attr: { transform: `translate(0 ${cloud.y}) scale(${cloud.scale})` },
 	});
+	if (expressive) {
+		// Round bumps on a pill: the bubbly cloud Material draws, opaque and
+		// flat, so it reads as a shape rather than as haze.
+		group.createSvg("circle", { attr: { cx: "-13", cy: "4", r: "11" } });
+		group.createSvg("circle", { attr: { cx: "3", cy: "-3", r: "14" } });
+		group.createSvg("circle", { attr: { cx: "18", cy: "5", r: "10" } });
+		group.createSvg("rect", { attr: { x: "-26", y: "3", width: "56", height: "14", rx: "7" } });
+		return;
+	}
 	group.createSvg("ellipse", { attr: { cx: "-14", cy: "4", rx: "16", ry: "10" } });
 	group.createSvg("ellipse", { attr: { cx: "2", cy: "-2", rx: "18", ry: "13" } });
 	group.createSvg("ellipse", { attr: { cx: "18", cy: "5", rx: "15", ry: "9" } });
@@ -325,6 +345,7 @@ function drawPrecipitation(
 	group: WeatherGroup,
 	field: SkyField,
 	density: number,
+	expressive = false,
 ): void {
 	const snow = group === "snow";
 	const count = thinned(
@@ -340,7 +361,9 @@ function drawPrecipitation(
 		const x = ((i * 37) % span) + 5;
 		const duration = (snow ? 3.4 : 1.1) + (i % 5) * 0.18;
 		const drop = snow
-			? layer.createSvg("circle", { attr: { cx: String(x), cy: "0", r: "1.6" } })
+			? expressive
+				? layer.createSvg("path", { attr: { d: shapePath(x, 0, 2.6, 6, 0.28) } })
+				: layer.createSvg("circle", { attr: { cx: String(x), cy: "0", r: "1.6" } })
 			: layer.createSvg("line", {
 					attr: {
 						x1: String(x),
@@ -382,6 +405,52 @@ function drawSun(svg: SVGElement, field: SkyField): void {
 	});
 }
 
+/** The expressive sun: a sunny on two flat rings of halo. The halo breathes on
+ * the classic sun's keyframes; the sunny turns in a group of its own. */
+function drawExpressiveSun(svg: SVGElement, field: SkyField): void {
+	const { cx, cy } = celestialCentre(field);
+	const group = svg.createSvg("g", { cls: "hearth-weather-sun" });
+	group.createSvg("circle", {
+		cls: "hearth-weather-sun-glow",
+		attr: { cx: String(cx), cy: String(cy), r: "30" },
+	});
+	group.createSvg("circle", {
+		cls: "hearth-weather-sun-ring",
+		attr: { cx: String(cx), cy: String(cy), r: "22" },
+	});
+	group.createSvg("g", { cls: "hearth-weather-sun-spin" }).createSvg("path", {
+		cls: "hearth-weather-sun-disc",
+		attr: { d: shapePath(cx, cy, 15, 8, 0.12) },
+	});
+}
+
+/**
+ * Rolling hills along the bottom of an expressive sky: three wide flat domes
+ * in the palette's deeper tones, overlapping. They give the flat sky a ground
+ * to stand on — the one thing that makes a tonal fill read as a landscape
+ * rather than as a coloured box.
+ */
+function drawHills(svg: SVGElement, field: SkyField): void {
+	const layer = svg.createSvg("g", { cls: "hearth-weather-hills" });
+	const { width: w, height: h } = field;
+	const hills: [string, number, number, number][] = [
+		["is-far", w * 0.2, h * 1.02, w * 0.42],
+		["is-far", w * 0.86, h * 1.06, w * 0.36],
+		["is-near", w * 0.56, h * 1.18, w * 0.48],
+	];
+	for (const [cls, cx, cy, r] of hills) {
+		layer.createSvg("ellipse", {
+			cls,
+			attr: {
+				cx: cx.toFixed(1),
+				cy: cy.toFixed(1),
+				rx: r.toFixed(1),
+				ry: (r * 0.34).toFixed(1),
+			},
+		});
+	}
+}
+
 /** The moon: two arcs meeting where the lit disc and the shadow circle cross.
  * Two overlapping circles filled `evenodd` would be the obvious shortcut and is
  * wrong — that fills their symmetric difference, so the shadow's own outer lobe
@@ -421,7 +490,13 @@ function drawMoon(svg: SVGElement, field: SkyField): void {
  * keeps changing. The whole bank is faded as a group, so the overlaps merge
  * into one body of haze instead of stacking into visible seams.
  */
-function drawFog(svg: SVGElement, field: SkyField, density: number, seed = 0xf066): void {
+function drawFog(
+	svg: SVGElement,
+	field: SkyField,
+	density: number,
+	seed = 0xf066,
+	expressive = false,
+): void {
 	const layer = svg.createSvg("g", { cls: "hearth-weather-fogbank" });
 	const rand = seeded(seed);
 	const count = thinned(Math.round(field.width / 26), density);
@@ -432,9 +507,20 @@ function drawFog(svg: SVGElement, field: SkyField, density: number, seed = 0xf06
 		const y = Math.round(field.height * (0.18 + depth * 0.72));
 		const rx = Math.round(field.width * (0.12 + rand() * 0.22));
 		const ry = Math.round(field.height * (0.03 + depth * 0.055));
-		const wisp = layer.createSvg("ellipse", {
-			attr: { cx: "0", cy: String(y), rx: String(rx), ry: String(ry) },
-		});
+		// Expressive fog is a stack of pills: the same bands, flat-ended round.
+		const wisp = expressive
+			? layer.createSvg("rect", {
+					attr: {
+						x: String(-rx),
+						y: String(y - ry),
+						width: String(rx * 2),
+						height: String(ry * 2),
+						rx: String(ry),
+					},
+			  })
+			: layer.createSvg("ellipse", {
+					attr: { cx: "0", cy: String(y), rx: String(rx), ry: String(ry) },
+			  });
 		// Nearer wisps (lower down) are denser and slide past faster, which is
 		// the whole parallax cue that makes a flat gradient read as depth.
 		wisp.style.opacity = (0.25 + depth * 0.45).toFixed(2);
@@ -486,7 +572,7 @@ function boltPath(rand: () => number, x: number, top: number, bottom: number): s
  * behind them is what actually reads as lightning at a glance — a whole sky
  * momentarily going pale — with the bolts as the detail inside it.
  */
-function drawStorm(svg: SVGElement, field: SkyField, seed = 0xb017): void {
+function drawStorm(svg: SVGElement, field: SkyField, seed = 0xb017, expressive = false): void {
 	const rand = seeded(seed);
 	// Behind everything: the sky itself going pale for an instant.
 	svg.createSvg("rect", {
@@ -505,9 +591,14 @@ function drawStorm(svg: SVGElement, field: SkyField, seed = 0xb017): void {
 		const x = field.width * (0.12 + band * 0.76 + (rand() - 0.5) * 0.14);
 		const top = field.height * (0.1 + rand() * 0.12);
 		const bottom = field.height * (0.55 + rand() * 0.3);
+		// Expressive bolts are one solid shape each, not a forked hairline.
 		const bolt = layer.createSvg("path", {
 			cls: "hearth-weather-bolt",
-			attr: { d: boltPath(rand, x, top, bottom) },
+			attr: {
+				d: expressive
+					? boltShape(x, top, Math.min(bottom - top, field.height * 0.34))
+					: boltPath(rand, x, top, bottom),
+			},
 		});
 		bolt.style.animationDuration = `${durations[i % durations.length]}s`;
 		bolt.style.animationDelay = `${(-rand() * 9).toFixed(1)}s`;
@@ -554,6 +645,8 @@ export interface SkyOptions {
 	 * `skyDensity(settings)`.
 	 */
 	density?: number;
+	/** How the sky is drawn. Default "classic". */
+	design?: SkyDesign;
 }
 
 /**
@@ -565,9 +658,12 @@ export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 	const field = fieldFor(opts.spread ?? "card");
 	const density = Math.max(0, Math.min(1, opts.density ?? 1));
 
+	const expressive = opts.design === "expressive";
+
 	const sky = parent.createDiv(`hearth-weather-sky sky-${group}`);
 	sky.toggleClass("is-night", !opts.isDay);
 	sky.toggleClass("is-animated", opts.animate);
+	sky.toggleClass("is-expressive", expressive);
 	// The drift and fall distances are the one part of the animation that has to
 	// know how big the box is, so they cross into CSS as variables rather than
 	// being baked into the keyframes.
@@ -588,34 +684,42 @@ export function drawSky(parent: HTMLElement, opts: SkyOptions): HTMLElement {
 
 	const celestial = group === "clear" || group === "partly";
 	if (celestial) {
-		if (opts.isDay) drawSun(svg, field);
-		else drawMoon(svg, field);
+		if (opts.isDay) {
+			if (expressive) drawExpressiveSun(svg, field);
+			else drawSun(svg, field);
+		} else drawMoon(svg, field);
 	}
 	if (celestial && !opts.isDay) {
 		const stars = svg.createSvg("g", { cls: "hearth-weather-stars" });
 		for (const star of field.stars.slice(0, thinned(field.stars.length, density))) {
-			const dot = stars.createSvg("circle", {
-				attr: { cx: String(star.x), cy: String(star.y), r: String(star.r) },
-			});
+			const dot = expressive
+				? stars.createSvg("path", { attr: { d: sparklePath(star.x, star.y, star.r * 2.4) } })
+				: stars.createSvg("circle", {
+						attr: { cx: String(star.x), cy: String(star.y), r: String(star.r) },
+				  });
 			dot.style.animationDelay = `${star.delay}s`;
 		}
 	}
 
-	if (group === "fog") drawFog(svg, field, density);
+	if (group === "fog") drawFog(svg, field, density, undefined, expressive);
 
 	const clouds = thinned(cloudCount(group, field.clouds.length), density);
-	for (let i = 0; i < clouds; i++) drawCloud(svg, field.clouds[i], field);
+	for (let i = 0; i < clouds; i++) drawCloud(svg, field.clouds[i], field, expressive);
 
 	if (group === "rain" || group === "drizzle" || group === "snow") {
-		drawPrecipitation(svg, group, field, density);
+		drawPrecipitation(svg, group, field, density, expressive);
 	}
 	if (group === "thunder") {
-		drawPrecipitation(svg, "rain", field, density);
+		drawPrecipitation(svg, "rain", field, density, expressive);
 		// The storm's bolts are not thinned: there are only two or three, and they
 		// step their opacity rather than moving, which measures at no per-frame
 		// cost at all.
-		drawStorm(svg, field);
+		drawStorm(svg, field, undefined, expressive);
 	}
+
+	// The hills go in front of everything that falls, so rain lands behind the
+	// ground rather than running off the bottom edge.
+	if (expressive) drawHills(svg, field);
 
 	return sky;
 }

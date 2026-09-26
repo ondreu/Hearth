@@ -74,6 +74,7 @@ online**. If you like the look but do not want the network, this is the option.
 | *Condition* | Fixed sky only: the weather this sky always shows |
 | *Time of day* | **Follow the clock**, **Always day**, or **Always night** |
 | *Animate the sky* | Drifting clouds, falling rain and twinkling stars behind the board |
+| *Design* | **Classic (painted)** — gradients and soft clouds — or **Expressive (flat)**, drawn in Material 3 Expressive's manner: pastel skies by day and deep ones by night, rolling hills, bubbly clouds, a turning sun, sparkling stars, pill raindrops and flower snowflakes. The vault's choice; a dashboard can't override it yet |
 
 Animation is always off in low power mode, and for readers whose system asks for
 reduced motion. Each dashboard can also override *Animate the sky* on its own.

@@ -983,6 +983,10 @@ export const zh: Translations = {
 			skyAnimateDesc:
 				"面板背后飘动的云、落下的雨与闪烁的星。在低功耗模式下，" +
 				"以及系统要求减少动态效果的用户处，始终关闭。",
+			skyDesign: "设计",
+			skyDesignDesc: "经典的手绘天空，或 Material 3 Expressive 风格的扁平天空：山丘、圆润的云与旋转的太阳。",
+			skyDesignClassic: "经典（手绘）",
+			skyDesignExpressive: "Expressive（扁平）",
 		},
 		behaviour: {
 			heading: "行为",
@@ -2622,6 +2626,10 @@ export const zh: Translations = {
 			styleForecast: "预报（逐小时曲线）",
 			styleArtistic: "艺术（绘制的天空）",
 			styleMoon: "月亮（今晚的月相）",
+			design: "设计",
+			designDesc: "经典线条图标与手绘天空，或 Material 3 Expressive：扁平天气插画、标签与强调色色块。",
+			designClassic: "经典",
+			designExpressive: "Expressive",
 			styleDaylight: "日照（太阳的轨迹）",
 			animate: "让天空动起来",
 			animateDesc: "飘动的云、落下的雨与闪烁的星。低功耗模式下始终关闭。",

@@ -5167,6 +5167,637 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	}
 }
 
+/* ======================================================================
+ * The weather card's Expressive design
+ *
+ * `is-expressive` on `.hearth-weather` (the card's *Design* setting) and on
+ * `.hearth-weather-sky` (the card's artistic style, and the board's weather
+ * background under *Design*). Two sources of colour, on purpose: the parts
+ * you touch or read as interface — chips, the hour pills, the range bars, the
+ * metric tiles, the curve — take tonal steps of Obsidian's accent colour, the
+ * way Material You derives a scheme from a seed; the weather itself — the
+ * glyphs and the sky — takes a palette from the weather.
+ * ====================================================================== */
+.hearth-weather.is-expressive {
+	--x-primary: var(--interactive-accent);
+	--x-container: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
+	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
+	--x-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 13%, var(--background-primary));
+}
+
+/* ---- The glyphs (src/weathericons.ts) ---- */
+.hearth-wx-icon {
+	--wx-i-sun: #ffb300;
+	--wx-i-moon: #7f86e0;
+	--wx-i-cloud: #a9b8cd;
+	--wx-i-cloud-back: #d0d9e5;
+	--wx-i-drop: #3a86f0;
+	--wx-i-flake: #56aee8;
+	--wx-i-bolt: #ffb300;
+	--wx-i-fog: #a3aebd;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.theme-dark .hearth-wx-icon {
+	--wx-i-sun: #ffc740;
+	--wx-i-moon: #c3c7ff;
+	--wx-i-cloud: #c6d1e1;
+	--wx-i-cloud-back: #7c889d;
+	--wx-i-drop: #86b6ff;
+	--wx-i-flake: #b9e0ff;
+	--wx-i-bolt: #ffc740;
+	--wx-i-fog: #8e99aa;
+}
+
+.hearth-wx-icon svg {
+	display: block;
+	width: 1em;
+	height: 1em;
+	overflow: visible;
+}
+
+.hearth-wx-sun {
+	fill: var(--wx-i-sun);
+}
+
+.hearth-wx-moon,
+.hearth-wx-star {
+	fill: var(--wx-i-moon);
+}
+
+.hearth-wx-cloud {
+	fill: var(--wx-i-cloud);
+}
+
+.hearth-wx-cloud-back {
+	fill: var(--wx-i-cloud-back);
+}
+
+.hearth-wx-drops line {
+	stroke: var(--wx-i-drop);
+	stroke-width: 3.6px;
+	stroke-linecap: round;
+}
+
+.hearth-wx-flakes path {
+	fill: var(--wx-i-flake);
+}
+
+.hearth-wx-bolt {
+	fill: var(--wx-i-bolt);
+	stroke: var(--wx-i-bolt);
+	stroke-width: 2px;
+	stroke-linejoin: round;
+}
+
+.hearth-wx-fog line {
+	stroke: var(--wx-i-fog);
+	stroke-width: 4.5px;
+	stroke-linecap: round;
+}
+
+.hearth-wx-backdrop {
+	fill: var(--x-container, var(--background-modifier-hover));
+}
+
+/* The hero glyph sits on its cookie, so it is drawn larger than the Classic
+ * line icon it replaces: the cookie takes the outer quarter of the box. */
+.is-expressive .hearth-weather-hero .hearth-weather-glyph {
+	font-size: clamp(1.9rem, min(20cqw, 36cqh), 4.4rem);
+}
+
+.is-expressive .hearth-weather-row .hearth-weather-glyph {
+	font-size: 2.9rem;
+}
+
+.is-expressive .hearth-weather-row-tight .hearth-weather-glyph {
+	font-size: 2.3rem;
+}
+
+.is-expressive .hearth-weather-head .hearth-weather-glyph {
+	font-size: 3.9rem;
+}
+
+.is-expressive .hearth-weather-hour-icon svg {
+	width: 22px;
+	height: 22px;
+}
+
+.is-expressive .hearth-weather-day-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+/* The hero glyph's sun turns and its cookie with it, slower. */
+.is-expressive.is-animated .hearth-weather-glyph .hearth-wx-spin,
+.is-expressive.is-animated .hearth-wx-backdrop-wrap {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-m3-spin 30s linear infinite;
+}
+
+.is-expressive.is-animated .hearth-wx-backdrop-wrap {
+	animation-duration: 60s;
+}
+
+/* ---- Type: heavy and tight ---- */
+.is-expressive .hearth-weather-temp {
+	font-weight: 750;
+	letter-spacing: -0.045em;
+}
+
+.is-expressive .hearth-weather-condition {
+	font-size: 0.95rem;
+	font-weight: 650;
+}
+
+.is-expressive .hearth-weather-place {
+	font-weight: 600;
+}
+
+/* ---- Chips ---- */
+.hearth-weather-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 6px;
+	margin-top: 2px;
+}
+
+.hearth-weather-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-size: 0.72rem;
+	font-weight: 650;
+	line-height: 1.5;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-weather-chip-icon {
+	display: flex;
+}
+
+.hearth-weather-chip-icon .svg-icon {
+	width: 12px;
+	height: 12px;
+	stroke-width: 2.6px;
+}
+
+/* ---- The hourly strip: a row of pills, now in the accent's container ---- */
+.is-expressive .hearth-weather-hours {
+	gap: 5px;
+}
+
+.is-expressive .hearth-weather-hour {
+	padding: 8px 2px;
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-weather-hour:hover {
+	background: var(--x-surface-high);
+}
+
+.is-expressive .hearth-weather-hour.is-now {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.is-expressive .hearth-weather-hour.is-now .hearth-weather-hour-label {
+	color: inherit;
+	font-weight: 700;
+}
+
+.is-expressive .hearth-weather-hour-temp {
+	font-weight: 700;
+}
+
+/* ---- The daily list: thick range bars in the accent ---- */
+.is-expressive .hearth-weather-days {
+	gap: 3px;
+}
+
+.is-expressive .hearth-weather-day {
+	padding: 4px 8px;
+	border-radius: 14px;
+}
+
+.is-expressive .hearth-weather-day:hover {
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-weather-day-track {
+	height: 8px;
+	background: var(--x-surface-high);
+}
+
+.is-expressive .hearth-weather-day-bar {
+	background: var(--x-primary);
+}
+
+.is-expressive .hearth-weather-day-high {
+	font-weight: 700;
+}
+
+/* ---- The metric tiles: tonal containers, the icon on a round badge ---- */
+.is-expressive .hearth-weather-metrics {
+	/* Wider tiles than Classic's: the round badge takes room of its own. */
+	grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+	gap: 8px;
+}
+
+.is-expressive .hearth-weather-metric {
+	gap: 10px;
+	padding: 8px 10px;
+	border-radius: 18px;
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-weather-metric-icon {
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.is-expressive .hearth-weather-metric-icon .svg-icon {
+	width: 15px;
+	height: 15px;
+	stroke-width: 2.4px;
+}
+
+.is-expressive .hearth-weather-metric-label {
+	color: var(--text-muted);
+	font-weight: 600;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.is-expressive .hearth-weather-metric-value {
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+/* ---- The forecast curve: a thick accent line on a tonal field ---- */
+.is-expressive .hearth-weather-curve-line {
+	stroke-width: 3.5px;
+}
+
+.is-expressive .hearth-weather-curve-fill {
+	opacity: 0.2;
+}
+
+.is-expressive .hearth-weather-curve-dot {
+	stroke: var(--background-primary);
+	stroke-width: 2px;
+}
+
+.is-expressive .hearth-weather-chart-temp {
+	font-weight: 700;
+}
+
+/* ---- The artistic style over the flat sky: no scrim, no shadows ---- */
+.is-expressive .hearth-weather-art-content {
+	background: none;
+}
+
+.is-expressive .hearth-weather-art-content * {
+	text-shadow: none;
+}
+
+.is-expressive .hearth-weather-art-temp {
+	font-weight: 750;
+	letter-spacing: -0.045em;
+}
+
+.is-expressive .hearth-weather-art-place {
+	font-weight: 700;
+}
+
+.is-expressive .hearth-weather-art-condition {
+	font-size: 0.82rem;
+	font-weight: 600;
+	opacity: 0.9;
+}
+
+/* ---- The flat sky ----
+ *
+ * One palette per condition and half of the day, as tokens: the sky, two
+ * tones of hill, two of cloud (the far drift lane is the paler), the sun and
+ * its halo, the moon, stars, rain, snow, fog, the bolt — and `--wx-on`, the
+ * colour of whatever is written over it. Material's rule for the pair: a day
+ * sky is a light pastel container with dark text, a night sky a deep one with
+ * light text, so the reading stays legible on the sky and on a cloud drifting
+ * under it alike. The classic sky's motion is untouched; only what it moves is
+ * drawn differently. */
+.hearth-weather-sky.is-expressive {
+	--wx-sky: #c9d3e0;
+	--wx-hill: #b6c2d2;
+	--wx-hill-2: #a3b1c4;
+	--wx-cloud: #f4f7fb;
+	--wx-cloud-back: #dfe6ef;
+	--wx-sun: #ffb300;
+	/* White by day: a yellow halo over a pastel blue mixes to green. */
+	--wx-halo: #ffffff;
+	--wx-moon: #f6ecc9;
+	--wx-star: #fff5d6;
+	--wx-drop: #5b86bd;
+	--wx-flake: #8fb7e3;
+	--wx-fog: #eef2f7;
+	--wx-bolt: #ffb300;
+	--wx-on: #18263a;
+	color: var(--wx-on);
+	background: var(--wx-sky);
+}
+
+.hearth-weather-sky.is-expressive.sky-clear {
+	--wx-sky: #bfe0ff;
+	--wx-hill: #a6d0f7;
+	--wx-hill-2: #8cbfef;
+	--wx-on: #0c2b4d;
+}
+
+.hearth-weather-sky.is-expressive.sky-partly {
+	--wx-sky: #c6e1fb;
+	--wx-hill: #aed0f2;
+	--wx-hill-2: #95bfe8;
+	--wx-cloud: #ffffff;
+	--wx-cloud-back: #e3effb;
+	--wx-on: #0c2b4d;
+}
+
+.hearth-weather-sky.is-expressive.sky-fog {
+	--wx-sky: #d3d9e1;
+	--wx-hill: #c2c9d3;
+	--wx-hill-2: #b0b8c4;
+	--wx-cloud: #eef1f5;
+	--wx-cloud-back: #dde2e9;
+	--wx-fog: #f5f7fa;
+	--wx-on: #1f2733;
+}
+
+.hearth-weather-sky.is-expressive.sky-drizzle {
+	--wx-sky: #c3d0e0;
+	--wx-hill: #afbfd3;
+	--wx-hill-2: #9aadc5;
+	--wx-cloud: #eef3f9;
+	--wx-cloud-back: #d7e0ec;
+	--wx-drop: #4c7bb8;
+	--wx-on: #15263b;
+}
+
+.hearth-weather-sky.is-expressive.sky-rain {
+	--wx-sky: #b3c3d8;
+	--wx-hill: #9fb2ca;
+	--wx-hill-2: #8ba0bc;
+	--wx-cloud: #e9eff6;
+	--wx-cloud-back: #cbd6e4;
+	--wx-drop: #3f6fae;
+	--wx-on: #13233a;
+}
+
+.hearth-weather-sky.is-expressive.sky-snow {
+	--wx-sky: #d6e6f7;
+	--wx-hill: #f1f6fc;
+	--wx-hill-2: #ffffff;
+	--wx-cloud: #ffffff;
+	--wx-cloud-back: #e6eef8;
+	--wx-on: #14304f;
+}
+
+.hearth-weather-sky.is-expressive.sky-thunder {
+	--wx-sky: #c5c7e8;
+	--wx-hill: #b0b3dc;
+	--wx-hill-2: #9b9fd0;
+	--wx-cloud: #eeeffa;
+	--wx-cloud-back: #d6d8f0;
+	--wx-drop: #5d63b8;
+	--wx-on: #1d1f47;
+}
+
+.hearth-weather-sky.is-expressive.is-night {
+	--wx-sky: #2d3348;
+	--wx-hill: #373e56;
+	--wx-hill-2: #414964;
+	--wx-cloud: #5d6683;
+	--wx-cloud-back: #474f6b;
+	--wx-halo: #6a73c9;
+	--wx-drop: #9dbdf0;
+	--wx-flake: #f2f6ff;
+	--wx-fog: #6b7490;
+	--wx-bolt: #ffd23f;
+	--wx-on: #eef0ff;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-clear {
+	--wx-sky: #1e2552;
+	--wx-hill: #283068;
+	--wx-hill-2: #313a7a;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-partly {
+	--wx-sky: #252c5a;
+	--wx-hill: #2e366b;
+	--wx-hill-2: #38417c;
+	--wx-cloud: #5b64a0;
+	--wx-cloud-back: #424a85;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-fog {
+	--wx-sky: #343a4f;
+	--wx-hill: #3e455c;
+	--wx-hill-2: #485069;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-drizzle {
+	--wx-sky: #26304a;
+	--wx-hill: #2f3a56;
+	--wx-hill-2: #394563;
+	--wx-cloud: #53607e;
+	--wx-cloud-back: #404c69;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-rain {
+	--wx-sky: #202a41;
+	--wx-hill: #29344e;
+	--wx-hill-2: #333f5b;
+	--wx-cloud: #4a5876;
+	--wx-cloud-back: #384562;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-snow {
+	--wx-sky: #2e3d5e;
+	--wx-hill: #b8c6dd;
+	--wx-hill-2: #d8e2f1;
+	--wx-cloud: #64769b;
+	--wx-cloud-back: #4f6085;
+}
+
+.hearth-weather-sky.is-expressive.is-night.sky-thunder {
+	--wx-sky: #201d3b;
+	--wx-hill: #2b274b;
+	--wx-hill-2: #36315b;
+	--wx-cloud: #4f4a78;
+	--wx-cloud-back: #3d3964;
+	--wx-drop: #a9b4ff;
+}
+
+/* The reading over the flat sky takes the palette's own ink, all of it. */
+.is-expressive .hearth-weather-art-content,
+.is-expressive .hearth-weather-art-content * {
+	color: var(--wx-on);
+}
+
+.is-expressive .hearth-weather-art-content .hearth-weather-chip {
+	background: color-mix(in srgb, var(--wx-on) 12%, transparent);
+}
+
+.is-expressive .hearth-weather-art-content .hearth-weather-hour {
+	background: color-mix(in srgb, var(--wx-on) 8%, transparent);
+}
+
+.is-expressive .hearth-weather-art-content .hearth-weather-hour.is-now {
+	background: color-mix(in srgb, var(--wx-on) 18%, transparent);
+	color: var(--wx-on);
+}
+
+.is-expressive .hearth-weather-art-content .hearth-weather-day-track {
+	background: color-mix(in srgb, var(--wx-on) 14%, transparent);
+}
+
+.is-expressive .hearth-weather-art-content .hearth-weather-day-bar {
+	background: var(--wx-on);
+}
+
+/* Glyphs laid over the sky are drawn in its tones, not the card's. */
+.is-expressive .hearth-weather-art-content .hearth-wx-icon {
+	--wx-i-cloud: color-mix(in srgb, var(--wx-on) 30%, var(--wx-sky));
+	--wx-i-cloud-back: color-mix(in srgb, var(--wx-on) 15%, var(--wx-sky));
+	--wx-i-moon: var(--wx-moon);
+	--wx-i-drop: var(--wx-drop);
+	--wx-i-flake: color-mix(in srgb, var(--wx-on) 45%, var(--wx-sky));
+	--wx-i-fog: color-mix(in srgb, var(--wx-on) 30%, var(--wx-sky));
+}
+
+.is-expressive .hearth-weather-hills .is-far {
+	fill: var(--wx-hill);
+}
+
+.is-expressive .hearth-weather-hills .is-near {
+	fill: var(--wx-hill-2);
+}
+
+.is-expressive .hearth-weather-sun-disc {
+	fill: var(--wx-sun);
+}
+
+.is-expressive .hearth-weather-sun-glow,
+.is-expressive .hearth-weather-moon-glow {
+	fill: var(--wx-halo);
+}
+
+.is-expressive .hearth-weather-sun-ring {
+	fill: var(--wx-halo);
+	opacity: 0.5;
+}
+
+.is-expressive .hearth-weather-moon-disc {
+	fill: var(--wx-moon);
+}
+
+.is-expressive.is-animated .hearth-weather-sun-spin {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-m3-spin 40s linear infinite;
+}
+
+.is-expressive .hearth-weather-stars path {
+	fill: var(--wx-star);
+	opacity: 0.85;
+}
+
+.is-expressive.is-animated .hearth-weather-stars path {
+	animation: hearth-weather-twinkle 4s ease-in-out infinite;
+}
+
+/* Opaque, where the classic clouds are translucent: a flat cloud is a shape. */
+.hearth-weather-sky.is-expressive .hearth-weather-cloud,
+.hearth-weather-sky.is-expressive.is-night .hearth-weather-cloud {
+	opacity: 1;
+}
+
+.is-expressive .hearth-weather-cloud :is(circle, rect) {
+	fill: var(--wx-cloud);
+}
+
+.is-expressive .hearth-weather-cloud.is-lane-3 :is(circle, rect) {
+	fill: var(--wx-cloud-back);
+}
+
+.is-expressive .hearth-weather-cloud.is-lane-2 :is(circle, rect) {
+	fill: color-mix(in srgb, var(--wx-cloud) 55%, var(--wx-cloud-back));
+}
+
+.is-expressive .hearth-weather-fogbank {
+	opacity: 0.8;
+}
+
+.is-expressive .hearth-weather-fogbank rect {
+	fill: var(--wx-fog);
+}
+
+.is-animated .hearth-weather-fogbank rect {
+	animation-name: hearth-weather-drift;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+}
+
+.is-expressive .hearth-weather-fall line {
+	stroke: var(--wx-drop);
+	stroke-width: 2.6;
+	opacity: 0.9;
+}
+
+.is-expressive .hearth-weather-fall.is-drizzle line {
+	stroke-width: 2;
+}
+
+.is-expressive .hearth-weather-fall path {
+	fill: var(--wx-flake);
+	opacity: 0.95;
+}
+
+.is-animated .hearth-weather-fall.is-snow path {
+	animation-name: hearth-weather-snowfall;
+	animation-timing-function: ease-in-out;
+	animation-iteration-count: infinite;
+}
+
+.is-expressive .hearth-weather-bolt {
+	fill: var(--wx-bolt);
+	stroke: var(--wx-bolt);
+	stroke-width: 2;
+	filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-weather.is-expressive * {
+		animation: none !important;
+	}
+}
+
 /* ---- The full forecast ----
  *
  * A weather card is a glance at a snapshot the API sent in full, so clicking

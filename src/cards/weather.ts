@@ -37,6 +37,7 @@ import {
 } from "../weather";
 import { configuredPlaces, renderPlacePicker } from "../placepicker";
 import { drawSky } from "../sky";
+import { drawWeatherIcon } from "../weathericons";
 import { type AstroOptions, moonSummary, paintDaylight, paintMoon } from "./weatherastro";
 import { makeClickable } from "../ui";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -76,6 +77,9 @@ interface Resolved {
 	animate: boolean;
 	/** The moon style's layout. */
 	moonLayout: "full" | "clean";
+	/** The Expressive design (flat glyphs, chips, tonal containers) rather than
+	 * the Classic one. The moon and daylight styles are always expressive. */
+	expressive: boolean;
 	/** Fraction of the painted sky's field to draw (see skyDensity in types.ts).
 	 * 1 on every tier but "balanced". */
 	density: number;
@@ -145,6 +149,7 @@ export function resolveConfig(cfg: WeatherConfig, lowPower = false, density = 1)
 		// exception, and it is the most expensive one on the board.
 		animate: (cfg.animate ?? true) && !lowPower,
 		moonLayout: cfg.moonLayout ?? "full",
+		expressive: cfg.design === "expressive",
 		density,
 	};
 }
@@ -172,6 +177,23 @@ function glyph(parent: HTMLElement, icon: string, cls: string): HTMLElement {
 	const el = parent.createDiv(cls);
 	setIcon(el, icon);
 	return el;
+}
+
+/**
+ * The condition's glyph: a Lucide line icon in the Classic design, the flat
+ * Expressive drawing (src/weathericons.ts) otherwise. `hero` sets the big
+ * reading's glyph on a cookie in the accent's container tone.
+ */
+function conditionGlyph(
+	parent: HTMLElement,
+	code: number,
+	isDay: boolean,
+	cls: string,
+	r: Resolved,
+	hero = false,
+): void {
+	if (r.expressive) drawWeatherIcon(parent, code, isDay, cls, hero);
+	else glyph(parent, weatherIcon(code, isDay), cls);
 }
 
 /** One labelled value — the unit of the meta lines and the metric grid. */
@@ -269,6 +291,44 @@ function metaLine(parent: HTMLElement, bits: string[], cls = "hearth-weather-met
 	parent.createDiv({ cls, text: bits.join(" · ") });
 }
 
+/**
+ * A line of small readings. Classic joins them with bullets; Expressive sets
+ * each on a pill of its own — with its icon, when it has one.
+ */
+function readings(
+	parent: HTMLElement,
+	items: { text: string; icon?: string }[],
+	r: Resolved,
+	cls = "hearth-weather-meta",
+): void {
+	if (!items.length) return;
+	if (!r.expressive) {
+		metaLine(parent, items.map((item) => item.text), cls);
+		return;
+	}
+	const row = parent.createDiv(`${cls} hearth-weather-chips`);
+	for (const item of items) {
+		const chip = row.createDiv("hearth-weather-chip");
+		if (item.icon) setIcon(chip.createSpan("hearth-weather-chip-icon"), item.icon);
+		chip.createSpan({ text: item.text });
+	}
+}
+
+/** The headline readings as chips-or-bullets: feels like, and high / low. */
+function headline(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved, cls?: string): void {
+	readings(parent, headlineBits(snapshot, r).map((text) => ({ text })), r, cls);
+}
+
+/** The switched-on metrics as one line (or row of chips). */
+function metricLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved, cls: string): void {
+	readings(
+		parent,
+		metricsFor(snapshot, r).map((m) => ({ icon: m.icon, text: `${m.label} ${m.value}` })),
+		r,
+		`${cls} hearth-weather-meta-wrap`,
+	);
+}
+
 /** The place name (and, where there is room, its region). */
 function placeLine(parent: HTMLElement, cfg: WeatherConfig, cls: string): void {
 	const name = cfg.place?.name?.trim();
@@ -283,13 +343,14 @@ function hourlyStrip(parent: HTMLElement, hours: WeatherHour[], r: Resolved): vo
 	const strip = parent.createDiv("hearth-weather-hours");
 	hours.forEach((hour, i) => {
 		const col = strip.createDiv("hearth-weather-hour");
+		col.toggleClass("is-now", i === 0);
 		col.createDiv({
 			cls: "hearth-weather-hour-label",
 			// The first column is "now" rather than a time the reader has to
 			// compare against their own clock.
 			text: i === 0 ? t().cards.weather.now : formatHour(hour.time, r.hour12),
 		});
-		glyph(col, weatherIcon(hour.code, hour.isDay), "hearth-weather-hour-icon");
+		conditionGlyph(col, hour.code, hour.isDay, "hearth-weather-hour-icon", r);
 		col.createDiv({
 			cls: "hearth-weather-hour-temp",
 			text: formatTemp(hour.temp, r.tempUnit),
@@ -388,7 +449,7 @@ function dailyList(parent: HTMLElement, days: WeatherDay[], r: Resolved): void {
 			cls: "hearth-weather-day-label",
 			text: i === 0 ? t().cards.weather.todayLabel : formatWeekday(day.date),
 		});
-		glyph(row, weatherIcon(day.code, true), "hearth-weather-day-icon");
+		conditionGlyph(row, day.code, true, "hearth-weather-day-icon", r);
 		if (r.showPrecip) {
 			row.createDiv({
 				cls: "hearth-weather-day-precip",
@@ -449,7 +510,7 @@ function updatedLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved
 /** Minimal: one glyph, one temperature. Anything else is opt-in. */
 function paintMinimal(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const hero = wrap.createDiv("hearth-weather-hero");
-	glyph(hero, weatherIcon(snapshot.now.code, snapshot.now.isDay), "hearth-weather-glyph");
+	conditionGlyph(hero, snapshot.now.code, snapshot.now.isDay, "hearth-weather-glyph", r, true);
 	hero.createDiv({
 		cls: "hearth-weather-temp",
 		text: formatTemp(snapshot.now.temp, r.tempUnit),
@@ -465,7 +526,7 @@ function paintMinimal(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weather
 /** Compact: a single row — glyph, temperature, and the words beside them. */
 function paintCompact(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const row = wrap.createDiv("hearth-weather-row");
-	glyph(row, weatherIcon(snapshot.now.code, snapshot.now.isDay), "hearth-weather-glyph");
+	conditionGlyph(row, snapshot.now.code, snapshot.now.isDay, "hearth-weather-glyph", r, true);
 	row.createDiv({
 		cls: "hearth-weather-temp",
 		text: formatTemp(snapshot.now.temp, r.tempUnit),
@@ -479,14 +540,9 @@ function paintCompact(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weather
 		});
 	}
 	if (r.showLocation) placeLine(text, cfg, "hearth-weather-place");
-	metaLine(text, headlineBits(snapshot, r));
+	headline(text, snapshot, r);
 
-	const metrics = metricsFor(snapshot, r);
-	metaLine(
-		wrap,
-		metrics.map((m) => `${m.label} ${m.value}`),
-		"hearth-weather-meta hearth-weather-meta-wrap",
-	);
+	metricLine(wrap, snapshot, r, "hearth-weather-meta");
 	hourlyStrip(wrap, upcomingHours(snapshot, r.hourlyCount), r);
 	dailyList(wrap, upcomingDays(snapshot, r.dailyCount), r);
 	updatedLine(wrap, snapshot, r);
@@ -496,7 +552,7 @@ function paintCompact(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weather
  * the forecast strips. The weather-station layout. */
 function paintDetailed(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const head = wrap.createDiv("hearth-weather-head");
-	glyph(head, weatherIcon(snapshot.now.code, snapshot.now.isDay), "hearth-weather-glyph");
+	conditionGlyph(head, snapshot.now.code, snapshot.now.isDay, "hearth-weather-glyph", r, true);
 	const headText = head.createDiv("hearth-weather-headtext");
 	headText.createDiv({
 		cls: "hearth-weather-temp",
@@ -509,7 +565,7 @@ function paintDetailed(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 		});
 	}
 	if (r.showLocation) placeLine(headText, cfg, "hearth-weather-place");
-	metaLine(headText, headlineBits(snapshot, r));
+	headline(headText, snapshot, r);
 
 	metricGrid(wrap, metricsFor(snapshot, r));
 	hourlyStrip(wrap, upcomingHours(snapshot, r.hourlyCount), r);
@@ -521,7 +577,7 @@ function paintDetailed(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
  * above it and the daily strip sits below. */
 function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const row = wrap.createDiv("hearth-weather-row hearth-weather-row-tight");
-	glyph(row, weatherIcon(snapshot.now.code, snapshot.now.isDay), "hearth-weather-glyph");
+	conditionGlyph(row, snapshot.now.code, snapshot.now.isDay, "hearth-weather-glyph", r, true);
 	row.createDiv({
 		cls: "hearth-weather-temp",
 		text: formatTemp(snapshot.now.temp, r.tempUnit),
@@ -534,7 +590,7 @@ function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 		});
 	}
 	if (r.showLocation) placeLine(text, cfg, "hearth-weather-place");
-	metaLine(text, headlineBits(snapshot, r));
+	headline(text, snapshot, r);
 
 	const hours = upcomingHours(snapshot, r.hourlyCount || defaultHourlyCount("forecast"));
 	if (hours.length >= 2) {
@@ -568,6 +624,7 @@ function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 		isDay: now.isDay,
 		animate: r.animate,
 		density: r.density,
+		design: r.expressive ? "expressive" : "classic",
 	});
 	const content = sky.createDiv("hearth-weather-art-content");
 
@@ -585,13 +642,8 @@ function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 		cls: "hearth-weather-art-temp",
 		text: formatTemp(now.temp, r.tempUnit),
 	});
-	metaLine(bottom, headlineBits(snapshot, r), "hearth-weather-art-meta");
-	const metrics = metricsFor(snapshot, r);
-	metaLine(
-		bottom,
-		metrics.map((m) => `${m.label} ${m.value}`),
-		"hearth-weather-art-meta hearth-weather-meta-wrap",
-	);
+	headline(bottom, snapshot, r, "hearth-weather-art-meta");
+	metricLine(bottom, snapshot, r, "hearth-weather-art-meta");
 	hourlyStrip(bottom, upcomingHours(snapshot, r.hourlyCount), r);
 	dailyList(bottom, upcomingDays(snapshot, r.dailyCount), r);
 	updatedLine(bottom, snapshot, r);
@@ -704,6 +756,10 @@ export function renderWeather(
 	let tick: ((ms: number) => boolean) | null = null;
 
 	const wrap = body.createDiv(`hearth-weather is-${r.style}`);
+	wrap.toggleClass("is-expressive", r.expressive);
+	// The expressive glyphs have motion of their own (a turning sun), under the
+	// same switch as the painted sky's.
+	wrap.toggleClass("is-animated", r.animate);
 
 	/** Paint the snapshot, or the loading / offline / error state standing in
 	 * for it. A stale snapshot always beats a placeholder: yesterday's sky is
@@ -1228,6 +1284,22 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 				ctx.requestRender();
 			});
 		});
+
+	// The moon and daylight styles are drawn expressively whatever this says.
+	if (style !== "moon" && style !== "daylight") {
+		new Setting(containerEl)
+			.setName(strings.design)
+			.setDesc(strings.designDesc)
+			.addDropdown((d) => {
+				d.addOption("classic", strings.designClassic);
+				d.addOption("expressive", strings.designExpressive);
+				d.setValue(cfg.design ?? "classic").onChange((v) => {
+					cfg.design = v === "expressive" ? "expressive" : undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
+			});
+	}
 
 	if (style === "moon") {
 		new Setting(containerEl)

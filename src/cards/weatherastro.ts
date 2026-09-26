@@ -11,6 +11,7 @@ import {
 	wallClockAt,
 } from "../astro";
 import { t } from "../i18n";
+import { shapePath, wavePath } from "../shapes";
 import { starField } from "../sky";
 import {
 	formatDayDate,
@@ -99,58 +100,6 @@ function svgRoot(parent: HTMLElement, cls: string, viewBox: string, aspect = "xM
 		cls,
 		attr: { ...SVG_NS, viewBox, preserveAspectRatio: aspect, "aria-hidden": "true" },
 	});
-}
-
-
-// ---- Shapes -------------------------------------------------------------
-
-/**
- * A soft polygon from Material's shape library, as a path: a circle whose
- * radius swells and dips `lobes` times round, by `depth` of the radius. Nine
- * shallow lobes is the "cookie", eight deeper ones the "sunny". The first lobe
- * points straight up. Exported for the tests.
- */
-export function shapePath(cx: number, cy: number, r: number, lobes: number, depth: number): string {
-	const steps = Math.max(lobes, 3) * 12;
-	const points: string[] = [];
-	for (let i = 0; i < steps; i++) {
-		const a = (i / steps) * Math.PI * 2;
-		const radius = r * (1 + depth * Math.cos(lobes * a));
-		const x = cx + radius * Math.sin(a);
-		const y = cy - radius * Math.cos(a);
-		points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
-	}
-	return `M ${points.join(" L ")} Z`;
-}
-
-/**
- * A polyline as a wave that runs along it: every point pushed off the line
- * along its normal by a sine of the distance travelled. Material's wavy
- * progress track, bent to follow the sun's arc. Exported for the tests.
- */
-export function wavePath(
-	points: { x: number; y: number }[],
-	amplitude: number,
-	wavelength: number,
-): string {
-	if (points.length < 2) return "";
-	let travelled = 0;
-	const out: string[] = [];
-	for (let i = 0; i < points.length; i++) {
-		const p = points[i];
-		if (i > 0) travelled += Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y);
-		// The normal from the neighbours on either side, so a bend doesn't kink.
-		const a = points[Math.max(i - 1, 0)];
-		const b = points[Math.min(i + 1, points.length - 1)];
-		const dx = b.x - a.x;
-		const dy = b.y - a.y;
-		const len = Math.hypot(dx, dy) || 1;
-		const offset = amplitude * Math.sin((travelled / wavelength) * Math.PI * 2);
-		const x = p.x + (-dy / len) * offset;
-		const y = p.y + (dx / len) * offset;
-		out.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
-	}
-	return `M ${out.join(" L ")}`;
 }
 
 

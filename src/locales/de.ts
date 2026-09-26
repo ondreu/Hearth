@@ -1079,6 +1079,11 @@ export const de: Translations = {
 			skyAnimateDesc:
 				"Ziehende Wolken, fallender Regen und funkelnde Sterne hinter dem Board. Immer " +
 				"aus im Energiesparmodus und für Leser, deren System reduzierte Bewegung wünscht.",
+			skyDesign: "Design",
+			skyDesignDesc:
+				"Der klassische gemalte Himmel oder ein flacher im Stil von Material 3 Expressive mit Hügeln, runden Wolken und einer sich drehenden Sonne.",
+			skyDesignClassic: "Klassisch (gemalt)",
+			skyDesignExpressive: "Expressive (flach)",
 		},
 		behaviour: {
 			heading: "Verhalten",
@@ -2870,6 +2875,11 @@ export const de: Translations = {
 			styleForecast: "Vorhersage (Stundenkurve)",
 			styleArtistic: "Künstlerisch (gemalter Himmel)",
 			styleMoon: "Mond (heutige Phase)",
+			design: "Design",
+			designDesc:
+				"Klassische Liniensymbole und ein gemalter Himmel oder Material 3 Expressive: flache Wetterbilder, Chips und Flächen in deiner Akzentfarbe.",
+			designClassic: "Klassisch",
+			designExpressive: "Expressive",
 			styleDaylight: "Tageslicht (Sonnenbogen)",
 			animate: "Himmel animieren",
 			animateDesc:

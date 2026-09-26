@@ -1070,6 +1070,11 @@ export const en = {
 			skyAnimateDesc:
 				"Drifting clouds, falling rain and twinkling stars behind the board. Always " +
 				"off in low power mode, and for readers whose system asks for reduced motion.",
+			skyDesign: "Design",
+			skyDesignDesc:
+				"The classic painted sky, or a flat Material 3 Expressive one with hills, bubbly clouds and a turning sun.",
+			skyDesignClassic: "Classic (painted)",
+			skyDesignExpressive: "Expressive (flat)",
 		},
 		behaviour: {
 			heading: "Behaviour",
@@ -2862,6 +2867,11 @@ export const en = {
 			styleForecast: "Forecast (hourly curve)",
 			styleArtistic: "Artistic (painted sky)",
 			styleMoon: "Moon (tonight's phase)",
+			design: "Design",
+			designDesc:
+				"Classic line icons and a painted sky, or Material 3 Expressive: flat weather drawings, chips and tonal containers in your accent colour.",
+			designClassic: "Classic",
+			designExpressive: "Expressive",
 			styleDaylight: "Daylight (the sun's arc)",
 			animate: "Animate the sky",
 			animateDesc:
