@@ -255,7 +255,7 @@ coordinates by hand still works.
 
 *Moon* has a *Layout* setting: *Full* (the moon with its name, the month's
 slider and the next full and new moon, moonrise and moonset) or *Clean* (just the
-moon and the slider, with the phase as the hover text).
+moon on its turning shape and the slider, with the phase as the hover text).
 
 *Moon* and *Daylight* make no extra request: the moon is worked out on your
 device from the time and the card's coordinates, and the sun's arc from the
