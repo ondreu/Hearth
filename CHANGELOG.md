@@ -15,6 +15,30 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A Markets card: stocks, funds, forex and crypto.** (#337) Type or search a
+  symbol — `AAPL`, `0700.HK`, `510300`, `EUR/USD`, `BTC-USD`, `fund:161725` —
+  and the card finds where it trades, across Yahoo Finance (most of the world's
+  exchanges, forex, crypto, futures), Tencent (Shanghai, Shenzhen, Beijing and
+  Hong Kong, on-exchange funds included), Eastmoney (Chinese off-exchange
+  funds, valued through the day), CoinGecko and the ECB. All are free and
+  key-less; none is an official API, so every instrument more than one source
+  carries falls back to the next when one fails, and the card remembers which
+  answered — a mainland board keeps working where Yahoo can't be reached.
+
+  Eight styles: **Minimal**, **Spotlight** (price, a chart with a 1D–5Y range
+  switcher, the day's and 52-week range, stats; a switcher when it follows
+  several), **Chart** edge to edge, **Watchlist** with sparklines, **Tiles**,
+  **Ticker tape**, **Portfolio** (units and average cost per holding, the total
+  in one currency at ECB rates, today's and overall gain, an allocation bar) and
+  **Lookup**, a search field on the card that adds a result with one click. Each
+  comes in **Classic** or **Material 3 Expressive**, the weather card's two,
+  and rises are green or red — automatic follows Obsidian's language, red-up
+  for Chinese, Japanese and Korean. Clicking an instrument opens a chart over
+  any range with a crosshair, its stats, your position and a link to its page.
+  Quotes are shared across every card and board, and a closed market is checked
+  at most every half hour. Publishing a board strips a portfolio's units and
+  costs along with the other private details; the symbols travel.
+
 - **An Expressive design for the weather card and the weather background.**
   The weather card's new *Design* setting chooses **Classic** — as before — or
   **Expressive**, which redraws every style in the Material 3 Expressive manner

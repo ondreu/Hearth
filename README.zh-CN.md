@@ -205,6 +205,7 @@ TaskNotes 这一项值得特别一提：它的字段名可由用户重映射、�
 | **Jira 筛选器** | 来自已保存 Jira 筛选器或 JQL 搜索的事项，可按状态、负责人、优先级、类型、迭代和版本筛选 | 通过 HTTPS 访问 Jira |
 | **RSS 订阅** | 来自您关注的任意 RSS 2.0 或 Atom 源的头条 | 联网 |
 | **天气** | 来自 [Open-Meteo](https://open-meteo.com) 的当前天况和预报，共五种样式，最高可达铺满整屏、跟随真实天况与时段的绘制天空 —— 点击卡片可查看完整预报，精确到每小时 | 联网 |
+| **行情** | 全球大多数交易所的股票、ETF、基金、指数、外汇与加密货币，包括场内与场外基金 —— 可显示为单一价格、带走势图的聚焦视图、铺满卡片的走势图、自选列表、磁贴、滚动行情条、以单一币种统计盈亏的投资组合，或卡片上的搜索框。经典或 Material 3 Expressive 设计；红涨绿跌或绿涨红跌。点击任意品种可查看完整走势与数据 | 联网 |
 | **Operon 任务 / 看板 / 日程 / 计时器** | 基于 [Operon](https://github.com/hasanyilmaz/operon) 自己 API 的四张卡片 —— 任务列表、流程看板、几天的日程，以及正在运行的时间追踪 | Operon（桌面端） |
 | **插件视图** *（测试版）* | 在卡片中承载另一个插件的侧边面板视图（日历、大纲、标签面板、Kanban…），可选固定到某个文件 | 一个提供视图的插件 |
 
@@ -270,6 +271,7 @@ Hearth 会自行识别这些插件 —— 无需连接，也不用粘贴任何�
 | 服务 | 使用者 | 账号 / 密钥 |
 | --- | --- | --- |
 | [Open-Meteo](https://open-meteo.com) | 天气卡片与实时天气天空 | 无需。仅会发送您选择的坐标，而固定的天空完全不需要位置信息 |
+| [Yahoo Finance](https://finance.yahoo.com)、[腾讯](https://gu.qq.com)、[东方财富](https://fund.eastmoney.com)、[CoinGecko](https://www.coingecko.com)、[Frankfurter](https://www.frankfurter.app/) | 行情卡片。这些都不是官方 API，某个来源失败时会自动改用下一个提供同一品种的来源 | 无需。仅会发送卡片上的代码（以及您在搜索中输入的内容） |
 | [Frankfurter](https://www.frankfurter.app/)（欧洲央行汇率） | 计算器的货币换算 | 无需 |
 | Jira Cloud / Server | Jira 卡片，通过 REST 与 bearer PAT 认证 | 您自己的，填在卡片上；导出内容绝不包含 PAT |
 | RSS / Atom 源 | RSS 卡片 | 无需 |

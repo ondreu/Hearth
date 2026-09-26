@@ -58,7 +58,7 @@ section:
 | Group | What comes out |
 | --- | --- |
 | *Remove note and folder paths* | Everything the board points at in your vault, and the folder each embedded picture came from. The pictures themselves still travel if the wallpaper switch is on; it is the folder they lived in that goes |
-| *Remove calendar feeds, private hosts and your location* | ICS calendar links (anyone holding one can read that calendar), an internal Jira host, and the place a weather card is set to |
+| *Remove calendar feeds, private hosts, your location and holdings* | ICS calendar links (anyone holding one can read that calendar), an internal Jira host, the place a weather card is set to, and the units and costs on a portfolio |
 | *Remove text you typed on the board* | A text card's body and a calculator's last input |
 | *Remove searches and Dataview queries* | Off by default: a board without its queries stops doing anything. Worth turning on if a query names a private folder |
 | *Remove command ids and view types* | Off by default: these name plugins, not you. Removing them leaves the buttons that ran them doing nothing |

@@ -68,6 +68,9 @@ export type ReferenceScope =
 	/** A place on Earth the author chose. Their town is personal data even
 	 * though it looks like configuration. */
 	| "place"
+	/** How much of an instrument the author holds, and what they paid: their
+	 * portfolio, which says more about them than any path. */
+	| "holding"
 	/** A command id, which resolves only if the right plugin is installed. */
 	| "commandId"
 	/** A registered view type, likewise. */
@@ -177,6 +180,11 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "weather.place.lat", scope: "place" },
 	{ at: "weather.place.lon", scope: "place" },
 	{ at: "weather.place.timezone", scope: "place" },
+
+	// market — the symbols are what the board is and travel; the holdings are
+	// the author's money and don't.
+	{ at: "market.items[].quantity", scope: "holding" },
+	{ at: "market.items[].cost", scope: "holding" },
 
 	// heatmap — an advanced rule can test a note's folder or its full path, and
 	// then `value` holds a literal one. Everything else a rule names is a
@@ -469,6 +477,7 @@ const EMPTY_SCOPES = (): Record<ReferenceScope, string[]> => ({
 	linkUrl: [],
 	privateHost: [],
 	place: [],
+	holding: [],
 	commandId: [],
 	viewType: [],
 	userQuery: [],
@@ -557,6 +566,7 @@ function scopesToStrip(opts: StripOptions): Set<ReferenceScope> {
 		scopes.add("privateUrl");
 		scopes.add("privateHost");
 		scopes.add("place");
+		scopes.add("holding");
 	}
 	if (opts.content) scopes.add("userContent");
 	if (opts.queries) scopes.add("userQuery");

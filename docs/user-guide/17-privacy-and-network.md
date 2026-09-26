@@ -45,12 +45,13 @@ The gallery is also blocked, with a message saying exactly that.
 
 ## Everything Hearth can send, and to whom
 
-There are eight categories of outbound request. Nothing else exists.
+There are nine categories of outbound request. Nothing else exists.
 
 | Destination | Sent by | What is sent | Account or key |
 | --- | --- | --- | --- |
 | [Open-Meteo](https://open-meteo.com) | Weather cards, and the live weather sky background | Only the coordinates you picked | None. Free, key-less, no account |
-| [Frankfurter](https://www.frankfurter.app/) | The Calculator card, for currency conversion | A rate request. Your sum is computed locally | None |
+| [Frankfurter](https://www.frankfurter.app/) | The Calculator card, for currency conversion; Markets cards, for forex and portfolio totals | A rate request. Your sum is computed locally | None |
+| [Yahoo Finance](https://finance.yahoo.com), [Tencent](https://gu.qq.com), [Eastmoney](https://fund.eastmoney.com), [CoinGecko](https://www.coingecko.com) | Markets cards | The symbols on your cards, and what you type into a market search. Holdings and costs never leave your vault | None. Free, key-less |
 | Your Jira Cloud or Server instance | Jira cards | A REST query, authenticated with the personal access token you entered on the card | Yours |
 | RSS and Atom feed hosts | RSS cards | A feed request | None |
 | ICS and webcal hosts | Mini calendar subscriptions | A feed request | The feed URL you entered |

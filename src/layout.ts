@@ -64,6 +64,11 @@ import {
 	type WeatherConfig,
 	type WeatherPlace,
 	type WeatherStyle,
+	type MarketConfig,
+	type MarketItem,
+	type MarketProviderId,
+	type MarketRange,
+	type MarketStyle,
 	ALL_STATS,
 	activeDashboard,
 	CARD_BORDER_WIDTH_MAX,
@@ -560,6 +565,9 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	}
 	if (r.weather && typeof r.weather === "object") {
 		card.weather = sanitizeWeather(r.weather as Record<string, unknown>);
+	}
+	if (r.market && typeof r.market === "object") {
+		card.market = sanitizeMarket(r.market as Record<string, unknown>);
 	}
 	if (r.pet && typeof r.pet === "object") {
 		card.pet = sanitizePet(r.pet as Record<string, unknown>);
@@ -1268,6 +1276,60 @@ function sanitizeWeather(r: Record<string, unknown>): WeatherConfig {
 	if (typeof r.hourlyCount === "number") cfg.hourlyCount = clampNum(r.hourlyCount, 0, 48, 6);
 	if (typeof r.dailyCount === "number") cfg.dailyCount = clampNum(r.dailyCount, 0, 16, 4);
 	if (typeof r.refreshMin === "number") cfg.refreshMin = clampNum(r.refreshMin, 0, 24 * 60, 30);
+	return cfg;
+}
+
+const MARKET_STYLES: readonly MarketStyle[] = [
+	"minimal",
+	"spotlight",
+	"chart",
+	"list",
+	"tiles",
+	"ticker",
+	"portfolio",
+	"lookup",
+];
+const MARKET_PROVIDERS: readonly MarketProviderId[] = ["yahoo", "tencent", "eastmoney", "coingecko", "frankfurter"];
+const MARKET_RANGES: readonly MarketRange[] = ["1d", "5d", "1mo", "6mo", "1y", "5y"];
+/** More than any board could draw; a bound on what an import can hand us. */
+const MARKET_ITEMS_MAX = 200;
+
+/** One instrument: a symbol is the whole of it, the rest is optional. A
+ * holding is a finite number or nothing. */
+function sanitizeMarketItem(raw: unknown): MarketItem | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const r = raw as Record<string, unknown>;
+	const symbol = str(r.symbol)?.trim().slice(0, 64);
+	if (!symbol) return undefined;
+	const item: MarketItem = { symbol };
+	if (MARKET_PROVIDERS.includes(r.provider as MarketProviderId)) item.provider = r.provider as MarketProviderId;
+	const name = str(r.name)?.slice(0, 200);
+	if (name) item.name = name;
+	if (typeof r.quantity === "number" && Number.isFinite(r.quantity)) item.quantity = r.quantity;
+	if (typeof r.cost === "number" && Number.isFinite(r.cost)) item.cost = r.cost;
+	return item;
+}
+
+function sanitizeMarket(r: Record<string, unknown>): MarketConfig {
+	const cfg: MarketConfig = {};
+	if (Array.isArray(r.items)) {
+		cfg.items = r.items
+			.slice(0, MARKET_ITEMS_MAX)
+			.map(sanitizeMarketItem)
+			.filter((item): item is MarketItem => item !== undefined);
+	}
+	if (MARKET_STYLES.includes(r.style as MarketStyle)) cfg.style = r.style as MarketStyle;
+	if (r.design === "classic" || r.design === "expressive") cfg.design = r.design;
+	if (r.upColor === "green" || r.upColor === "red") cfg.upColor = r.upColor;
+	if (MARKET_RANGES.includes(r.range as MarketRange)) cfg.range = r.range as MarketRange;
+	if (r.change === "percent" || r.change === "absolute" || r.change === "both") cfg.change = r.change;
+	const flags = ["showName", "showSparkline", "showStats", "showMarketState", "showUpdated", "animate"] as const;
+	for (const flag of flags) {
+		if (typeof r[flag] === "boolean") cfg[flag] = r[flag];
+	}
+	const base = str(r.baseCurrency)?.trim().toLowerCase();
+	if (base && /^[a-z]{3}$/.test(base)) cfg.baseCurrency = base;
+	if (typeof r.refreshMin === "number") cfg.refreshMin = clampNum(r.refreshMin, 0, 24 * 60, 5);
 	return cfg;
 }
 

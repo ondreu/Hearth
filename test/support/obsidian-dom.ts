@@ -140,4 +140,12 @@ export function installObsidianDom(): void {
 	elProto.empty = function (this: Element) { while (this.firstChild) this.removeChild(this.firstChild); };
 	elProto.detach = function (this: Element) { this.remove(); };
 	elProto.setText = function (this: Element, text: string) { this.textContent = text; };
+	// HTMLElement and SVGElement both carry these (obsidian.d.ts): styles are
+	// assigned onto `style`, props are custom properties set one by one.
+	elProto.setCssStyles = function (this: HTMLElement, styles: Partial<CSSStyleDeclaration>) {
+		Object.assign(this.style, styles);
+	};
+	elProto.setCssProps = function (this: HTMLElement, props: Record<string, string>) {
+		for (const [key, value] of Object.entries(props)) this.style.setProperty(key, value);
+	};
 }

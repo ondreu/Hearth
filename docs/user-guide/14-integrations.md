@@ -221,7 +221,8 @@ Privacy & network**. See [chapter 17](17-privacy-and-network.md).
 | Service | Used by | Account or key needed |
 | --- | --- | --- |
 | [Open-Meteo](https://open-meteo.com) | Weather cards and the live weather sky | None. Only the coordinates you pick are sent, and a pinned sky needs no location at all |
-| [Frankfurter](https://www.frankfurter.app/) (European Central Bank rates) | Calculator currency conversion | None |
+| [Frankfurter](https://www.frankfurter.app/) (European Central Bank rates) | Calculator currency conversion; Markets forex and portfolio totals | None |
+| [Yahoo Finance](https://finance.yahoo.com), [Tencent](https://gu.qq.com), [Eastmoney](https://fund.eastmoney.com), [CoinGecko](https://www.coingecko.com) | Markets cards | None. Only the symbols on your cards are sent |
 | Jira Cloud or Jira Server | Jira cards, over REST with bearer PAT authentication | Yours, entered on the card. Exports never include the token |
 | RSS and Atom feeds | RSS cards | None |
 | ICS and webcal feeds | Mini calendar subscriptions — Google, iCloud, Fastmail, Nextcloud and others | The feed URL |

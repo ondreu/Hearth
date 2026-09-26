@@ -187,7 +187,7 @@ type StripGroup = (typeof STRIP_GROUPS)[number];
  * and for saying what the file still carries when nothing is being removed. */
 const GROUP_SCOPES: Record<StripGroup, readonly ReferenceScope[]> = {
 	paths: ["vaultPath", "asset"],
-	private: ["privateUrl", "privateHost", "place"],
+	private: ["privateUrl", "privateHost", "place", "holding"],
 	content: ["userContent"],
 	queries: ["userQuery"],
 	plugins: ["commandId", "viewType"],

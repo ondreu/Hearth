@@ -138,6 +138,25 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: { kind: "weather", title: "Weather", weather: {}, w: 4, h: 3 },
 			},
 			{
+				id: "market",
+				icon: "trending-up",
+				category: "integrations",
+				requires: null,
+				build: {
+					kind: "market",
+					title: "Markets",
+					market: {
+						items: [
+							{ symbol: "^GSPC", provider: "yahoo", name: "S&P 500" },
+							{ symbol: "EURUSD=X", provider: "yahoo", name: "EUR/USD" },
+							{ symbol: "BTC-USD", provider: "yahoo", name: "Bitcoin" },
+						],
+					},
+					w: 4,
+					h: 3,
+				},
+			},
+			{
 				id: "operon-tasks",
 				icon: "list-checks",
 				category: "integrations",
@@ -423,6 +442,7 @@ describe("liveness classification", () => {
 			rss: "static",
 			jira: "static",
 			weather: "static",
+			market: "static",
 			git: "static",
 			operon: "vault",
 			leaf: "static",

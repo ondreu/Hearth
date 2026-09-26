@@ -15695,3 +15695,1084 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
 }
+
+/* ======================================================================
+ * Market card
+ *
+ * Eight styles on one set of pieces — title, price, move, chart, range chips —
+ * in a Classic and an Expressive design, like the weather card's. The
+ * direction of a move is a variable (`--m-dir`) set by `is-up` / `is-down` /
+ * `is-flat` on whatever shows it, so the chart, the move and a tile's tint
+ * all follow it, and `is-red-up` on the card swaps the two colours for
+ * readers who read red as a rise.
+ * ====================================================================== */
+.hearth-market {
+	--m-up: var(--color-green);
+	--m-down: var(--color-red);
+	--m-flat: var(--text-muted);
+	--m-dir: var(--m-flat);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 100%;
+	color: var(--text-normal);
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-market.is-red-up {
+	--m-up: var(--color-red);
+	--m-down: var(--color-green);
+}
+
+.hearth-market .is-up {
+	--m-dir: var(--m-up);
+}
+
+.hearth-market .is-down {
+	--m-dir: var(--m-down);
+}
+
+.hearth-market .is-flat {
+	--m-dir: var(--m-flat);
+}
+
+.hearth-card-body.hearth-market-host {
+	container-type: size;
+}
+
+.hearth-card-body.hearth-market-flush {
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-card-body.hearth-market-flush .hearth-card-empty {
+	padding: 12px 14px;
+}
+
+.hearth-market .is-clickable {
+	cursor: pointer;
+}
+
+.hearth-market .is-clickable:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+	border-radius: var(--radius-s);
+}
+
+/* ---- Shared pieces ---- */
+.hearth-market-title {
+	font-weight: 600;
+	line-height: 1.25;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-market-sub {
+	color: var(--text-muted);
+	font-size: 0.74rem;
+	line-height: 1.3;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-market-price {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 4px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.hearth-market-ccy {
+	color: var(--text-muted);
+	font-size: 0.68rem;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+}
+
+.hearth-market-change {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	color: var(--m-dir);
+	font-size: 0.8rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.hearth-market-change-icon {
+	display: flex;
+}
+
+.hearth-market-change-icon .svg-icon {
+	width: 13px;
+	height: 13px;
+	stroke-width: 2.4px;
+}
+
+.hearth-market-missing {
+	color: var(--text-faint);
+	font-size: 0.78rem;
+}
+
+.hearth-market-updated,
+.hearth-market-note {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+}
+
+.hearth-market-updated {
+	margin-top: auto;
+}
+
+.hearth-market-state {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
+.hearth-market-state-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+.hearth-market-state.is-open .hearth-market-state-dot {
+	background: var(--color-green);
+}
+
+.hearth-market-state.is-pre .hearth-market-state-dot,
+.hearth-market-state.is-post .hearth-market-state-dot {
+	background: var(--color-orange);
+}
+
+/* ---- Charts ---- */
+.hearth-market-chart {
+	position: relative;
+	color: var(--m-dir);
+	touch-action: pan-y;
+}
+
+.hearth-market-chart-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.hearth-market-chart-line {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5px;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.hearth-market-chart-fill {
+	fill: currentColor;
+	opacity: 0.1;
+}
+
+.hearth-market-chart-base {
+	stroke: var(--text-faint);
+	stroke-width: 1px;
+	stroke-dasharray: 3 3;
+}
+
+.hearth-market-spark {
+	flex: 0 0 auto;
+	width: 64px;
+	height: 26px;
+}
+
+.hearth-market-chart-main {
+	height: clamp(64px, 34cqh, 220px);
+	flex: 0 0 auto;
+}
+
+.hearth-market-chart-detail {
+	height: 220px;
+}
+
+.hearth-market-chart-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-faint);
+	font-size: 0.78rem;
+}
+
+.hearth-market-chart-cursor,
+.hearth-market-chart-dot,
+.hearth-market-chart-readout {
+	display: none;
+	position: absolute;
+	pointer-events: none;
+}
+
+.hearth-market-chart.is-tracking .hearth-market-chart-cursor,
+.hearth-market-chart.is-tracking .hearth-market-chart-dot,
+.hearth-market-chart.is-tracking .hearth-market-chart-readout {
+	display: block;
+}
+
+.hearth-market-chart-cursor {
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: var(--text-faint);
+}
+
+.hearth-market-chart-dot {
+	width: 9px;
+	height: 9px;
+	border: 2px solid var(--background-primary);
+	border-radius: 50%;
+	background: currentColor;
+	transform: translate(-50%, -50%);
+}
+
+.hearth-market-chart-readout {
+	top: -2px;
+	right: 0;
+	padding: 2px 7px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	color: var(--text-normal);
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
+.hearth-market-chart-readout.is-right {
+	right: auto;
+	left: 0;
+}
+
+/* ---- Chips: ranges and the spotlight's switcher ---- */
+.hearth-market-ranges,
+.hearth-market-switcher {
+	display: flex;
+	gap: 4px;
+}
+
+.hearth-market-ranges {
+	flex-wrap: wrap;
+}
+
+.hearth-market-switcher {
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.hearth-market-range,
+.hearth-market-switch,
+.hearth-market-icon-button {
+	height: auto;
+	padding: 2px 8px;
+	border: none;
+	border-radius: var(--radius-s);
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.hearth-market-range:hover,
+.hearth-market-switch:hover,
+.hearth-market-icon-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-market-range.is-active,
+.hearth-market-switch.is-active {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	font-weight: 650;
+}
+
+.hearth-market-switch {
+	flex: 0 0 auto;
+	box-shadow: inset 0 -2px 0 var(--m-dir);
+}
+
+.hearth-market-icon-button {
+	display: flex;
+	align-items: center;
+	padding: 4px;
+}
+
+.hearth-market-icon-button .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* ---- Minimal ---- */
+.hearth-market.is-minimal {
+	justify-content: center;
+}
+
+.hearth-market-hero {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	text-align: center;
+}
+
+.hearth-market-hero .hearth-market-title {
+	max-width: 100%;
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.hearth-market-price-hero .hearth-market-price-value {
+	font-size: clamp(1.5rem, min(15cqw, 28cqh), 3.6rem);
+	font-weight: 300;
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+}
+
+/* ---- Spotlight ---- */
+.hearth-market-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.hearth-market-headtext {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-market-numbers {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 2px 10px;
+}
+
+.hearth-market-price-big .hearth-market-price-value {
+	font-size: clamp(1.3rem, 9cqw, 2.4rem);
+	font-weight: 300;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+}
+
+.hearth-market-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.hearth-market-rangebar-label {
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	margin-bottom: 2px;
+}
+
+.hearth-market-rangebar-line {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.74rem;
+}
+
+.hearth-market-rangebar-end {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.hearth-market-rangebar-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 4px;
+	border-radius: 2px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-market-rangebar-fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	border-radius: inherit;
+	background: var(--text-faint);
+}
+
+.hearth-market-rangebar-mark {
+	position: absolute;
+	top: 50%;
+	width: 3px;
+	height: 12px;
+	border-radius: 2px;
+	background: var(--text-normal);
+	transform: translate(-50%, -50%);
+}
+
+.hearth-market-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+	gap: 6px 12px;
+}
+
+.hearth-market-fact-label {
+	color: var(--text-muted);
+	font-size: 0.72rem;
+}
+
+.hearth-market-fact-value {
+	font-size: 0.85rem;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+/* ---- Chart: edge to edge ---- */
+.hearth-market.is-chart {
+	position: relative;
+	gap: 0;
+}
+
+.hearth-market-chart-full {
+	position: absolute;
+	inset: 34% 0 34px 0;
+}
+
+.hearth-market-over {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	padding: 12px 14px 0;
+}
+
+.hearth-market-foot {
+	position: absolute;
+	right: 10px;
+	bottom: 6px;
+	left: 10px;
+	z-index: 1;
+}
+
+/* ---- List ---- */
+.hearth-market-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-market-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 4px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-market-row:last-child {
+	border-bottom: none;
+}
+
+.hearth-market-row.is-clickable:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-market-id {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-market-quote {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 1px;
+}
+
+.hearth-market-swatch {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--seg-color);
+}
+
+@container (max-width: 250px) {
+	.hearth-market-row .hearth-market-spark {
+		display: none;
+	}
+}
+
+/* ---- Tiles ---- */
+.hearth-market-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+	gap: 8px;
+}
+
+.hearth-market-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.hearth-market-tile.is-clickable:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-market-tile .hearth-market-price {
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+.hearth-market-tile .hearth-market-spark {
+	width: 100%;
+	height: 28px;
+	margin-top: 4px;
+}
+
+/* ---- Ticker tape ---- */
+.hearth-market.is-ticker {
+	justify-content: center;
+}
+
+.hearth-market-tape {
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	mask-image: linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+}
+
+.hearth-market-tape.is-moving {
+	overflow: hidden;
+}
+
+.hearth-market-tape-track {
+	display: flex;
+	width: max-content;
+}
+
+.hearth-market-tape.is-moving .hearth-market-tape-track {
+	animation: hearth-market-tape var(--hearth-tape-duration, 30s) linear infinite;
+}
+
+.hearth-market-tape.is-moving:hover .hearth-market-tape-track {
+	animation-play-state: paused;
+}
+
+.hearth-market-tape-run {
+	display: flex;
+	flex: 0 0 auto;
+	gap: 20px;
+	padding-inline-end: 20px;
+}
+
+.hearth-market-tape-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.hearth-market-tape-item .hearth-market-title {
+	overflow: visible;
+}
+
+@keyframes hearth-market-tape {
+	from {
+		transform: translateX(0);
+	}
+
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+/* ---- Portfolio ---- */
+.hearth-market-summary {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.hearth-market-summary-label {
+	color: var(--text-muted);
+	font-size: 0.75rem;
+}
+
+.hearth-market-summary-value {
+	font-size: clamp(1.3rem, 8cqw, 2.2rem);
+	font-weight: 300;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+}
+
+.hearth-market-summary-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px 12px;
+	font-size: 0.8rem;
+}
+
+.hearth-market-summary-chip {
+	display: inline-flex;
+	gap: 5px;
+	color: var(--m-dir);
+	font-weight: 500;
+}
+
+.hearth-market-summary-chip-label {
+	color: var(--text-muted);
+	font-weight: 400;
+}
+
+.hearth-market-alloc {
+	display: flex;
+	gap: 2px;
+	height: 8px;
+	overflow: hidden;
+	border-radius: 4px;
+}
+
+.hearth-market-alloc-seg {
+	flex: 0 1 auto;
+	width: var(--seg-share);
+	min-width: 2px;
+	background: var(--seg-color);
+}
+
+.hearth-market-holdings .hearth-market-change {
+	font-size: 0.74rem;
+}
+
+/* ---- Lookup ---- */
+.hearth-market-searchbar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+}
+
+.hearth-market-searchbar:focus-within {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-market-search-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-market-search-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-market-searchbar .hearth-market-search-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 4px 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	font-size: 0.9rem;
+}
+
+.hearth-market-searchbar .hearth-market-search-input:focus {
+	box-shadow: none;
+}
+
+.hearth-market-lookup {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.hearth-market-lookup-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.hearth-market-add {
+	font-size: 0.8rem;
+}
+
+.hearth-market-results {
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-market-result {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 4px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.hearth-market-result:hover,
+.hearth-market-result:focus-visible {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-market-tag {
+	flex: 0 0 auto;
+	padding: 1px 6px;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: 0.68rem;
+}
+
+.hearth-market-hint {
+	padding: 8px 2px;
+	color: var(--text-muted);
+	font-size: 0.82rem;
+}
+
+/* ---- The detail dialog ---- */
+.hearth-market-modal {
+	width: min(640px, 94vw);
+}
+
+.hearth-market-detail {
+	gap: 12px;
+	min-height: 0;
+}
+
+.hearth-market-detail-heading {
+	margin-top: 4px;
+	font-weight: 600;
+}
+
+.hearth-market-detail-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+/* ---- Editor ---- */
+.hearth-market-editor-holding input {
+	width: 8em;
+}
+
+.hearth-market-editor-empty {
+	padding: 4px 0 8px;
+}
+
+/* ======================================================================
+ * The market card's Expressive design — the weather card's recipe: the
+ * interface in tonal steps of the accent colour, a move in tonal steps of
+ * its own direction, pills and soft shapes, heavy tight type.
+ * ====================================================================== */
+.hearth-market.is-expressive {
+	--x-primary: var(--interactive-accent);
+	--x-container: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
+	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
+	--x-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 13%, var(--background-primary));
+}
+
+.is-expressive .hearth-market-title {
+	font-weight: 700;
+}
+
+.is-expressive .hearth-market-price-hero .hearth-market-price-value,
+.is-expressive .hearth-market-price-big .hearth-market-price-value,
+.is-expressive .hearth-market-summary-value {
+	font-weight: 750;
+	letter-spacing: -0.045em;
+}
+
+.is-expressive .hearth-market-price {
+	font-weight: 700;
+}
+
+/* The move on a pill in its own direction's container tone. */
+.is-expressive .hearth-market-change {
+	padding: 1px 8px 1px 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--m-dir) 16%, var(--background-primary));
+	color: color-mix(in srgb, var(--m-dir) 78%, var(--text-normal));
+	font-weight: 700;
+}
+
+.is-expressive .hearth-market-state {
+	padding: 1px 9px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	font-weight: 600;
+}
+
+/* The hero badge: the trend glyph on a cookie. */
+.hearth-market-badge {
+	position: relative;
+	flex: 0 0 auto;
+	width: 44px;
+	aspect-ratio: 1;
+	color: color-mix(in srgb, var(--m-dir) 80%, var(--text-normal));
+}
+
+.hearth-market-hero .hearth-market-badge {
+	width: clamp(36px, 20cqh, 68px);
+	margin-bottom: 2px;
+}
+
+.hearth-market-badge svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.hearth-market-badge-shape {
+	fill: color-mix(in srgb, var(--m-dir) 20%, var(--background-primary));
+}
+
+.hearth-market-badge-icon {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hearth-market-badge-icon .svg-icon {
+	width: 46%;
+	height: 46%;
+	stroke-width: 2.6px;
+}
+
+/* A heavier curve with more of a fill. */
+.is-expressive .hearth-market-chart-line {
+	stroke-width: 2.75px;
+}
+
+.is-expressive .hearth-market-chart-fill {
+	opacity: 0.18;
+}
+
+.is-expressive .hearth-market-chart-dot {
+	width: 13px;
+	height: 13px;
+	border-width: 3px;
+}
+
+.is-expressive .hearth-market-chart-readout {
+	border-radius: 999px;
+	background: var(--x-container);
+	box-shadow: none;
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+/* Chips: pills, the active one in the accent's container. */
+.is-expressive .hearth-market-range,
+.is-expressive .hearth-market-switch {
+	padding: 3px 11px;
+	border-radius: 999px;
+	background: var(--x-surface);
+	font-weight: 600;
+}
+
+.is-expressive .hearth-market-range:hover,
+.is-expressive .hearth-market-switch:hover {
+	background: var(--x-surface-high);
+}
+
+.is-expressive .hearth-market-range.is-active,
+.is-expressive .hearth-market-switch.is-active {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+.is-expressive .hearth-market-switch {
+	box-shadow: none;
+}
+
+/* Range bars: thick tracks with a pill handle. */
+.is-expressive .hearth-market-rangebar-track {
+	height: 8px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.is-expressive .hearth-market-rangebar-fill {
+	background: var(--x-primary);
+}
+
+.is-expressive .hearth-market-rangebar-mark {
+	width: 5px;
+	height: 18px;
+	border-radius: 999px;
+	background: var(--x-on-container);
+	box-shadow: 0 0 0 2px var(--background-primary);
+}
+
+/* Facts: tonal tiles. */
+.is-expressive .hearth-market-facts {
+	gap: 6px;
+}
+
+.is-expressive .hearth-market-fact {
+	padding: 6px 10px;
+	border-radius: 16px;
+	background: var(--x-surface);
+}
+
+/* Rows: tonal containers instead of rules. */
+.is-expressive .hearth-market-list {
+	gap: 4px;
+}
+
+.is-expressive .hearth-market-row {
+	padding: 8px 10px;
+	border-bottom: none;
+	border-radius: 18px;
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-market-row.is-clickable:hover {
+	background: var(--x-surface-high);
+}
+
+/* Tiles: tinted by their own move, with generous corners. */
+.is-expressive .hearth-market-tile {
+	border: none;
+	border-radius: 24px;
+	background: color-mix(in srgb, var(--m-dir) 11%, var(--background-primary));
+	padding: 10px 12px;
+}
+
+.is-expressive .hearth-market-tile.is-flat {
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-market-tile.is-clickable:hover {
+	background: color-mix(in srgb, var(--m-dir) 17%, var(--background-primary));
+}
+
+.is-expressive .hearth-market-tile .hearth-market-change {
+	align-self: flex-start;
+}
+
+/* The tape: a run of pills. */
+.is-expressive .hearth-market-tape-run {
+	gap: 8px;
+	padding-inline-end: 8px;
+}
+
+.is-expressive .hearth-market-tape-item {
+	padding: 5px 6px 5px 14px;
+	border-radius: 999px;
+	background: var(--x-surface);
+}
+
+/* Portfolio: the total in the accent's container. */
+.is-expressive .hearth-market-summary {
+	padding: 12px 16px;
+	border-radius: 26px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.is-expressive .hearth-market-summary-label,
+.is-expressive .hearth-market-summary .hearth-market-sub,
+.is-expressive .hearth-market-summary .hearth-market-note {
+	color: inherit;
+	opacity: 0.8;
+}
+
+.is-expressive .hearth-market-summary-chips {
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.is-expressive .hearth-market-summary-chip {
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--m-dir) 22%, var(--background-primary));
+	color: color-mix(in srgb, var(--m-dir) 78%, var(--text-normal));
+	font-weight: 700;
+}
+
+.is-expressive .hearth-market-alloc {
+	gap: 3px;
+	height: 12px;
+	border-radius: 999px;
+}
+
+.is-expressive .hearth-market-alloc-seg {
+	border-radius: 999px;
+}
+
+/* The edge-to-edge chart on a faint accent wash. */
+.hearth-market.is-chart.is-expressive {
+	background: var(--x-surface);
+}
+
+/* Lookup: a pill of a search field, pill tags and results. */
+.is-expressive .hearth-market-searchbar {
+	padding: 4px 14px;
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.is-expressive .hearth-market-searchbar:focus-within {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.is-expressive .hearth-market-result {
+	padding: 8px 10px;
+	border-radius: 18px;
+}
+
+.is-expressive .hearth-market-result:hover,
+.is-expressive .hearth-market-result:focus-visible {
+	background: var(--x-surface);
+}
+
+.is-expressive .hearth-market-tag {
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+.is-expressive .hearth-market-add {
+	border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-market-tape.is-moving {
+		overflow-x: auto;
+	}
+
+	.hearth-market-tape.is-moving .hearth-market-tape-track {
+		animation: none;
+	}
+}

@@ -43,6 +43,7 @@ export type CardKind =
 	| "rss"
 	| "jira"
 	| "weather"
+	| "market"
 	| "git"
 	| "operon"
 	| "leaf"
@@ -1244,6 +1245,109 @@ export interface WeatherConfig {
 	refreshMin?: number;
 }
 
+/**
+ * Where a "market" card's quotes come from. Every one is free and key-less:
+ *
+ * - `yahoo`       — Yahoo Finance's chart API: stocks, ETFs, funds and indices
+ *   on most of the world's exchanges, forex pairs, crypto and futures.
+ * - `tencent`     — Tencent's quote service: Shanghai, Shenzhen and Beijing
+ *   listings (on-exchange funds among them), Hong Kong and US.
+ * - `eastmoney`   — Eastmoney's fund estimates: Chinese off-exchange (OTC)
+ *   mutual funds, valued through the trading day.
+ * - `coingecko`   — CoinGecko: every coin it lists, against any currency.
+ * - `frankfurter` — ECB reference rates: daily forex, the fallback for pairs.
+ */
+export type MarketProviderId = "yahoo" | "tencent" | "eastmoney" | "coingecko" | "frankfurter";
+
+/** One instrument on a "market" card. */
+export interface MarketItem {
+	/** The symbol as typed or picked: a provider-native one ("AAPL",
+	 * "510300.SS", "EURUSD=X", "sh510300", "bitcoin") or a shorthand the card
+	 * resolves ("510300", "EUR/USD", "fund:161725", "cg:bitcoin"). */
+	symbol: string;
+	/** The source a search picked it from. Undefined = work it out from the
+	 * symbol's shape (see resolveSymbol in market.ts). */
+	provider?: MarketProviderId;
+	/** Display name, from the search or typed; the quote's own name otherwise. */
+	name?: string;
+	/** Portfolio: units held. Undefined = watched, not held. */
+	quantity?: number;
+	/** Portfolio: average cost per unit, in the instrument's own currency. */
+	cost?: number;
+}
+
+/**
+ * How a "market" card draws itself.
+ *
+ * One instrument (the first on the card; a spotlight with more gets a switcher):
+ * - `minimal`   — the price and its move, nothing else.
+ * - `spotlight` — name, price, move, a chart with a range switcher, key stats.
+ * - `chart`     — the chart edge to edge, with the price laid over it.
+ *
+ * Several:
+ * - `list`      — a watchlist: one row each, with a sparkline.
+ * - `tiles`     — a grid of tiles.
+ * - `ticker`    — a scrolling ticker tape.
+ * - `portfolio` — holdings valued in one currency, with the day's and the
+ *   overall gain or loss and an allocation bar.
+ * - `lookup`    — a search field over a watchlist: look anything up on the card
+ *   and add it with one click.
+ */
+export type MarketStyle =
+	| "minimal"
+	| "spotlight"
+	| "chart"
+	| "list"
+	| "tiles"
+	| "ticker"
+	| "portfolio"
+	| "lookup";
+
+/** A chart's time span. */
+export type MarketRange = "1d" | "5d" | "1mo" | "6mo" | "1y" | "5y";
+
+/**
+ * Per-card configuration for a "market" card. Every field is optional and the
+ * defaults draw a watchlist in the Classic design.
+ */
+export interface MarketConfig {
+	/** The instruments, in the order they are drawn. */
+	items?: MarketItem[];
+	/** Visual style. Default "list". */
+	style?: MarketStyle;
+	/** "classic" or "expressive" (Material 3 Expressive — chips, tonal
+	 * containers in the accent colour, soft shapes). Default "classic". */
+	design?: "classic" | "expressive";
+	/** Which colour a rise is: "green" (most of the world) or "red" (China,
+	 * Japan, Korea). Undefined follows the interface language. */
+	upColor?: "green" | "red";
+	/** Span of the sparklines and the chart. Default "1d". */
+	range?: MarketRange;
+	/** How a move is written: "percent", "absolute" or "both". Default "both"
+	 * for one instrument, "percent" for several. */
+	change?: "percent" | "absolute" | "both";
+	/** Show the instrument's name rather than only its symbol. Default true. */
+	showName?: boolean;
+	/** Draw sparklines in the list, tiles and ticker. Default true. */
+	showSparkline?: boolean;
+	/** Show the spotlight's stats (day and 52-week range, open, volume).
+	 * Default true. */
+	showStats?: boolean;
+	/** Show whether the market is open. Default true. */
+	showMarketState?: boolean;
+	/** Show when the quotes were fetched. Default false. */
+	showUpdated?: boolean;
+	/** Scroll the ticker tape. Default true; forced off from the `reduced`
+	 * performance tier down. */
+	animate?: boolean;
+	/** Portfolio: the currency totals are shown in (ISO code, lowercase).
+	 * Undefined = the currency most of the holdings are in. */
+	baseCurrency?: string;
+	/** Auto-refresh interval in minutes. 0 = only when opened or refreshed by
+	 * hand. Default 5. */
+	refreshMin?: number;
+}
+
 /** Per-card configuration for a "clock" card. All fields are optional; omitted
  * fields fall back to the defaults that match the original clock behaviour. */
 export interface ClockConfig {
@@ -1645,6 +1749,8 @@ export interface DashboardCard {
 	jira?: JiraConfig;
 	/** kind === "weather": place, style, units and what to display. */
 	weather?: WeatherConfig;
+	/** kind === "market": instruments, holdings, style and what to display. */
+	market?: MarketConfig;
 	/** kind === "git": sections, action buttons and commit behaviour. */
 	git?: GitConfig;
 	/** kind === "operon": view, Operon filters and display options. */
