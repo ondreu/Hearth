@@ -110,6 +110,29 @@ export function installObsidianDom(): void {
 	root.createDiv = (o?: DomInfo | string, cb?: (el: HTMLElement) => void) => makeLoose("div", o, cb);
 	root.createSpan = (o?: DomInfo | string, cb?: (el: HTMLElement) => void) => makeLoose("span", o, cb);
 
+	// SVG children, created in the SVG namespace and appended. Obsidian hands
+	// `cls` straight to `classList.add()` here — unlike createDiv, which sets the
+	// class attribute — so a single string holding two classes throws
+	// InvalidCharacterError in Obsidian, and must throw here too. That exact
+	// difference shipped a weather card that could not render.
+	elProto.createSvg = function (
+		this: Element,
+		tag: string,
+		o?: { cls?: string | string[]; attr?: Record<string, string | number | boolean | null> } | string,
+		cb?: (el: SVGElement) => void,
+	) {
+		const doc = this.ownerDocument ?? document;
+		const el = doc.createElementNS("http://www.w3.org/2000/svg", tag);
+		const info = typeof o === "string" ? { cls: o } : (o ?? {});
+		if (info.cls) el.classList.add(...(Array.isArray(info.cls) ? info.cls : [info.cls]));
+		for (const [k, v] of Object.entries(info.attr ?? {})) {
+			if (v !== null && v !== false) el.setAttribute(k, String(v));
+		}
+		this.appendChild(el);
+		cb?.(el);
+		return el;
+	};
+
 	elProto.addClass = function (this: Element, ...cls: string[]) { this.classList.add(...cls); };
 	elProto.removeClass = function (this: Element, ...cls: string[]) { this.classList.remove(...cls); };
 	elProto.toggleClass = function (this: Element, cls: string, on: boolean) { this.classList.toggle(cls, on); };
