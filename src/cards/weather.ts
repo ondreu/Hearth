@@ -123,6 +123,11 @@ function resolveHour12(cfg: WeatherConfig): boolean | undefined {
 	return undefined;
 }
 
+/** The design a style is drawn in when the card doesn't say. */
+function defaultDesign(style: WeatherStyle): "classic" | "expressive" {
+	return style === "moon" || style === "daylight" ? "expressive" : "classic";
+}
+
 /** Apply every default, so the paint functions read one flat object. */
 export function resolveConfig(cfg: WeatherConfig, lowPower = false, density = 1): Resolved {
 	const style = cfg.style ?? "compact";
@@ -149,7 +154,9 @@ export function resolveConfig(cfg: WeatherConfig, lowPower = false, density = 1)
 		// exception, and it is the most expensive one on the board.
 		animate: (cfg.animate ?? true) && !lowPower,
 		moonLayout: cfg.moonLayout ?? "full",
-		expressive: cfg.design === "expressive",
+		// Moon and daylight were drawn expressively first, and default to it;
+		// every other style defaults to Classic.
+		expressive: cfg.design ? cfg.design === "expressive" : defaultDesign(style) === "expressive",
 		density,
 	};
 }
@@ -659,6 +666,7 @@ function astroOptions(snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved
 		animate: r.animate,
 		intro,
 		clean: r.moonLayout === "clean",
+		expressive: r.expressive,
 		now: r.showCondition
 			? {
 				icon: weatherIcon(snapshot.now.code, snapshot.now.isDay),
@@ -1285,21 +1293,21 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 		});
 
-	// The moon and daylight styles are drawn expressively whatever this says.
-	if (style !== "moon" && style !== "daylight") {
-		new Setting(containerEl)
-			.setName(strings.design)
-			.setDesc(strings.designDesc)
-			.addDropdown((d) => {
-				d.addOption("classic", strings.designClassic);
-				d.addOption("expressive", strings.designExpressive);
-				d.setValue(cfg.design ?? "classic").onChange((v) => {
-					cfg.design = v === "expressive" ? "expressive" : undefined;
-					ctx.opts.save();
-					ctx.opts.rerender();
-				});
+	// Stored only when it differs from the style's own default (see
+	// defaultDesign), so a card left alone follows whichever that is.
+	new Setting(containerEl)
+		.setName(strings.design)
+		.setDesc(strings.designDesc)
+		.addDropdown((d) => {
+			d.addOption("classic", strings.designClassic);
+			d.addOption("expressive", strings.designExpressive);
+			d.setValue(cfg.design ?? defaultDesign(style)).onChange((v) => {
+				const design = v === "expressive" ? "expressive" : "classic";
+				cfg.design = design === defaultDesign(style) ? undefined : design;
+				ctx.opts.save();
+				ctx.opts.rerender();
 			});
-	}
+		});
 
 	if (style === "moon") {
 		new Setting(containerEl)

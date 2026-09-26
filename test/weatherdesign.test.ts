@@ -26,11 +26,15 @@ describe("a weather card's design and moon layout", () => {
 		expect(card?.weather?.moonLayout).toBeUndefined();
 	});
 
-	it("resolve to Classic and the full moon when unset", () => {
+	it("resolve to the style's own design and the full moon when unset", () => {
 		const r = resolveConfig({});
 		expect(r.expressive).toBe(false);
 		expect(r.moonLayout).toBe("full");
 		expect(resolveConfig({ design: "expressive" }).expressive).toBe(true);
+		// Moon and daylight were expressive first, and stay so unless told.
+		expect(resolveConfig({ style: "moon" }).expressive).toBe(true);
+		expect(resolveConfig({ style: "daylight" }).expressive).toBe(true);
+		expect(resolveConfig({ style: "moon", design: "classic" }).expressive).toBe(false);
 	});
 });
 

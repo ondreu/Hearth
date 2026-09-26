@@ -4459,6 +4459,684 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 }
 
 /* ======================================================================
+ * Moon and Daylight styles: Classic
+ *
+ * The painted manner of the rest of the weather card, for readers who would
+ * rather not have Material: the moon shaded on a night-sky gradient with a
+ * glowing halo and a gradient track for the month, and the sun with rays
+ * trailing a gradient along a dashed arc. Everything here is scoped to
+ * `is-classic` and everything in the Expressive block below to
+ * `is-expressive`, so the two share the DOM (weatherastro.ts) and never each
+ * other's rules. The Classic keyframes carry `-classic` in their names for the
+ * same reason.
+ * ====================================================================== */
+
+.hearth-weather.is-moon.is-classic {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	padding: 14px 16px 12px;
+	gap: 10px;
+	color: #eef1fb;
+	background:
+		radial-gradient(110% 80% at 18% 30%, rgba(92, 116, 196, 0.35) 0%, transparent 60%),
+		radial-gradient(90% 70% at 100% 100%, rgba(60, 40, 110, 0.35) 0%, transparent 70%),
+		linear-gradient(165deg, #172042 0%, #0c1230 55%, #070a1c 100%);
+}
+
+.is-classic .hearth-moon-stars {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.is-classic .hearth-moon-main {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex: 1 1 0;
+	min-height: 0;
+}
+
+.is-classic .hearth-moon-disc {
+	flex: none;
+	height: 100%;
+	max-height: 150px;
+	min-height: 44px;
+	aspect-ratio: 1;
+}
+
+.is-classic .hearth-moon-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.is-classic .hearth-moon-dark {
+	fill: #252b42;
+}
+
+.is-classic .hearth-moon-maria ellipse {
+	fill: #6f6752;
+	opacity: 0.22;
+}
+
+/* Rimmed, not filled: a darker floor with a light lip reads as a crater where a
+ * plain dot reads as a spot. */
+.is-classic .hearth-moon-craters circle {
+	fill: rgba(95, 88, 70, 0.14);
+	stroke: rgba(255, 255, 255, 0.32);
+	stroke-width: 0.5;
+}
+
+.is-classic .hearth-moon-rim {
+	fill: none;
+	stroke: rgba(255, 255, 255, 0.1);
+	stroke-width: 0.6;
+}
+
+.is-classic .hearth-moon-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.is-classic .hearth-moon-place {
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0.62;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.is-classic .hearth-moon-name {
+	font-size: clamp(1.05rem, 12cqh, 1.85rem);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	line-height: 1.12;
+}
+
+.is-classic .hearth-moon-sub {
+	font-size: 0.8rem;
+	opacity: 0.72;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The month as a track, dark at both new moons and bright at the full one. */
+.is-classic .hearth-moon-cycle {
+	flex: none;
+	padding: 3px 0;
+}
+
+.is-classic .hearth-moon-track {
+	position: relative;
+	height: 5px;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #2b3353 0%, #9aa0b8 25%, #f5efd9 50%, #9aa0b8 75%, #2b3353 100%);
+}
+
+.is-classic .hearth-moon-tick {
+	position: absolute;
+	top: 50%;
+	width: 3px;
+	height: 3px;
+	margin-inline-start: -1.5px;
+	margin-top: -1.5px;
+	border-radius: 50%;
+	background: rgba(7, 10, 28, 0.55);
+}
+
+.is-classic .hearth-moon-marker {
+	position: absolute;
+	top: 50%;
+	width: 12px;
+	height: 12px;
+	margin-inline-start: -6px;
+	margin-top: -6px;
+	border-radius: 50%;
+	background: #fffaf0;
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0 12px 2px rgba(255, 240, 200, 0.7);
+}
+
+.is-classic .hearth-moon-facts {
+	flex: none;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.is-classic .hearth-moon-fact {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 6px 9px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.is-classic .hearth-moon-fact-icon {
+	display: flex;
+	flex: none;
+	opacity: 0.7;
+}
+
+.is-classic .hearth-moon-fact-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.is-classic .hearth-moon-fact-text {
+	min-width: 0;
+}
+
+.is-classic .hearth-moon-fact-label {
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	opacity: 0.58;
+}
+
+.is-classic .hearth-moon-fact-value {
+	font-size: 0.8rem;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.is-classic .hearth-moon-fact-note {
+	margin-inline-start: 6px;
+	font-size: 0.7rem;
+	font-weight: 400;
+	opacity: 0.6;
+}
+
+.is-classic .hearth-moon-updated {
+	font-size: 0.66rem;
+	opacity: 0.5;
+}
+
+/* Motion: the halo breathes, the moon hangs and sways a little, the marker
+ * glows. The entrance lifts the moon into place once, on the first reading. */
+.is-moon.is-classic.is-animated .hearth-moon-halo {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-moon-classic-breathe 7s ease-in-out infinite;
+}
+
+.is-moon.is-classic.is-animated .hearth-moon-svg {
+	animation: hearth-moon-classic-float 11s ease-in-out infinite;
+}
+
+.is-moon.is-classic.is-animated .hearth-moon-marker {
+	animation: hearth-moon-classic-pulse 3.5s ease-in-out infinite;
+}
+
+.is-moon.is-classic.is-intro .hearth-moon-disc {
+	animation: hearth-moon-classic-rise 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.is-moon.is-classic.is-intro .hearth-moon-text,
+.is-moon.is-classic.is-intro .hearth-moon-cycle,
+.is-moon.is-classic.is-intro .hearth-moon-facts {
+	animation: hearth-moon-classic-fade 0.9s ease-out 0.25s both;
+}
+
+@keyframes hearth-moon-classic-breathe {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.07);
+	}
+}
+
+@keyframes hearth-moon-classic-float {
+	0%,
+	100% {
+		transform: translateY(0) rotate(0deg);
+	}
+	50% {
+		transform: translateY(-3px) rotate(-2deg);
+	}
+}
+
+@keyframes hearth-moon-classic-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0 10px 1px rgba(255, 240, 200, 0.55);
+	}
+	50% {
+		box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.1), 0 0 16px 4px rgba(255, 240, 200, 0.85);
+	}
+}
+
+@keyframes hearth-moon-classic-rise {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.92);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes hearth-moon-classic-fade {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Wide: the four facts in one row. */
+@container (min-width: 460px) {
+	.is-classic .hearth-moon-facts {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+/* Short: the facts go first, then the track — the moon and its name stay. */
+@container (max-height: 210px) {
+	.is-classic .hearth-moon-facts {
+		display: none;
+	}
+}
+
+@container (max-height: 120px) {
+	.hearth-weather.is-moon.is-classic {
+		padding: 8px 12px;
+	}
+
+	.is-classic .hearth-moon-cycle,
+.is-classic .hearth-moon-sub,
+.is-classic .hearth-moon-updated {
+		display: none;
+	}
+}
+
+
+/* ======================================================================
+ * Daylight style: the sun's arc
+ *
+ * Follows the theme like the plain styles; only the sun and the stretch of sky
+ * it has already crossed are warm. The arc is laid out in script for whatever
+ * room the stage has, so it always spans the card's full width.
+ * ====================================================================== */
+.hearth-weather.is-daylight.is-classic {
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	gap: 6px;
+}
+
+.is-classic .hearth-sun-head {
+	flex: none;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.is-classic .hearth-sun-lead {
+	min-width: 0;
+}
+
+.is-classic .hearth-sun-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--text-muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.is-classic .hearth-sun-kicker-icon {
+	display: flex;
+	color: #f08a3c;
+}
+
+.is-classic.is-night .hearth-sun-kicker-icon {
+	color: var(--color-blue);
+}
+
+.is-classic .hearth-sun-kicker-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.is-classic .hearth-sun-time {
+	font-size: clamp(1.4rem, 15cqh, 2.5rem);
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.08;
+	font-variant-numeric: tabular-nums;
+}
+
+.is-classic .hearth-sun-until {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.is-classic .hearth-sun-side {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	min-width: 0;
+}
+
+.is-classic .hearth-sun-now {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px 3px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	font-size: 0.86rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.is-classic .hearth-sun-now-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.is-classic .hearth-sun-now-icon .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.is-classic .hearth-sun-place {
+	max-width: 100%;
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.is-classic .hearth-sun-stage {
+	flex: 1 1 0;
+	min-height: 36px;
+	position: relative;
+}
+
+/* Laid out in the stage's own pixels (see arcBox), so it simply fills it. */
+.is-classic .hearth-sun-arc {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.is-classic .hearth-sun-ground {
+	fill: var(--background-modifier-hover);
+	opacity: 0.7;
+}
+
+.is-classic .hearth-sun-track {
+	fill: none;
+	stroke: var(--text-faint);
+	stroke-width: 1.3;
+	stroke-dasharray: 2 4;
+	stroke-linecap: round;
+	opacity: 0.6;
+}
+
+.is-classic .hearth-sun-trail {
+	fill: none;
+	stroke-width: 2.6;
+	stroke-linecap: round;
+}
+
+.is-classic .hearth-sun-horizon {
+	stroke: var(--text-faint);
+	stroke-width: 1;
+	opacity: 0.55;
+}
+
+.is-classic .hearth-sun-mark {
+	fill: var(--background-primary);
+	stroke: var(--text-muted);
+	stroke-width: 1.2;
+}
+
+.is-classic .hearth-sun-plumb {
+	stroke: #f5a340;
+	stroke-width: 1;
+	stroke-dasharray: 2 3;
+	opacity: 0.55;
+}
+
+.is-classic .hearth-sun-rays line {
+	stroke: #ffbe45;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+}
+
+/* By night the sun is under the horizon: dimmed, without its rays, and the
+ * trail it left cools off. */
+.is-classic.is-night .hearth-sun-core {
+	filter: saturate(0.35) brightness(0.85);
+}
+
+.is-classic.is-night .hearth-sun-rays {
+	display: none;
+}
+
+.is-classic.is-night .hearth-sun-glow {
+	opacity: 0.3;
+}
+
+.is-classic.is-night .hearth-sun-trail,
+.is-classic.is-night .hearth-sun-plumb {
+	opacity: 0.7;
+}
+
+.is-classic .hearth-sun-foot {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--text-muted);
+	font-size: 0.76rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.is-classic .hearth-sun-foot-end {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.is-classic .hearth-sun-foot-icon {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.is-classic .hearth-sun-foot-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.is-classic .hearth-sun-length {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.is-daylight.is-classic.is-animated .hearth-sun-rays {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-sun-classic-spin 30s linear infinite;
+}
+
+.is-daylight.is-classic.is-animated .hearth-sun-glow {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-sun-classic-glow 4s ease-in-out infinite;
+}
+
+@keyframes hearth-sun-classic-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes hearth-sun-classic-glow {
+	0%,
+	100% {
+		transform: scale(0.9);
+	}
+	50% {
+		transform: scale(1.15);
+	}
+}
+
+@container (max-height: 150px) {
+	.is-classic .hearth-sun-length,
+.is-classic .hearth-sun-place {
+		display: none;
+	}
+}
+
+@container (max-height: 110px) {
+	.is-classic .hearth-sun-foot,
+.is-classic .hearth-sun-until {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-weather.is-moon.is-classic *,
+.hearth-weather.is-daylight.is-classic * {
+		animation: none !important;
+	}
+}
+
+
+
+/* ---- Classic: the pieces the two designs share in the DOM ---- */
+
+/* The headline's kicker and the foot's ends are chips in the markup; Classic
+ * draws them as plain words. */
+.is-classic .hearth-sun-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.is-classic .hearth-sun-chip.hearth-sun-kicker {
+	color: var(--text-muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.is-classic .hearth-sun-kicker .hearth-sun-chip-icon {
+	color: #f08a3c;
+}
+
+.is-classic.is-night .hearth-sun-kicker .hearth-sun-chip-icon {
+	color: var(--color-blue);
+}
+
+.is-classic .hearth-sun-chip.hearth-sun-end {
+	color: var(--text-muted);
+	font-size: 0.76rem;
+}
+
+.is-classic .hearth-sun-end .hearth-sun-chip-icon {
+	color: var(--text-faint);
+}
+
+.is-classic .hearth-sun-chip-icon {
+	display: flex;
+}
+
+.is-classic .hearth-sun-chip-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* The Classic moon's facts carry the same icon badge as Expressive's, bare. */
+.is-classic .hearth-moon-fact-icon.is-filled .svg-icon {
+	fill: none;
+}
+
+/* ---- Classic: the clean moon, on the card's own surface ---- */
+.hearth-weather.is-moon.is-classic.is-clean {
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+	padding: 4px 0;
+	color: var(--text-normal);
+	background: none;
+}
+
+.is-moon.is-classic.is-clean .hearth-moon-disc {
+	flex: 1 1 0;
+	height: auto;
+	max-height: 230px;
+	max-width: 100%;
+}
+
+.is-moon.is-classic.is-clean .hearth-moon-cycle {
+	width: min(100%, 240px);
+}
+
+/* On a light card the track's dark ends would be the only part showing: fade
+ * them to the card's own border grey and edge the whole track. */
+.is-moon.is-classic.is-clean .hearth-moon-track {
+	background: linear-gradient(
+		90deg,
+		var(--background-modifier-border) 0%,
+		#efe6c8 50%,
+		var(--background-modifier-border) 100%
+	);
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.is-moon.is-classic.is-clean .hearth-moon-marker {
+	background: var(--background-primary);
+	box-shadow: 0 0 0 2px var(--text-muted), 0 0 10px rgba(255, 240, 200, 0.6);
+}
+
+/* ======================================================================
  * Moon and Daylight styles: Material 3 Expressive
  *
  * Unlike the painted sky, these two are drawn in Material's expressive manner:
@@ -4470,7 +5148,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
  * ====================================================================== */
 
 /* ---- Moon: an indigo palette, a cream moon ---- */
-.hearth-weather.is-moon {
+.hearth-weather.is-moon.is-expressive {
 	--m-surface: #e8e7ff;
 	--m-on: #16174a;
 	--m-on-variant: #4a4b7c;
@@ -4488,7 +5166,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--m-star: #8f90d6;
 }
 
-.theme-dark .hearth-weather.is-moon {
+.theme-dark .hearth-weather.is-moon.is-expressive {
 	--m-surface: #1d1e42;
 	--m-on: #e4e3ff;
 	--m-on-variant: #b9b9e6;
@@ -4506,7 +5184,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--m-star: #8e90e0;
 }
 
-.hearth-weather.is-moon {
+.hearth-weather.is-moon.is-expressive {
 	position: relative;
 	isolation: isolate;
 	overflow: hidden;
@@ -4519,7 +5197,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background: var(--m-surface);
 }
 
-.hearth-moon-stars {
+.is-expressive .hearth-moon-stars {
 	position: absolute;
 	inset: 0;
 	z-index: -1;
@@ -4528,12 +5206,12 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	pointer-events: none;
 }
 
-.hearth-moon-stars circle {
+.is-expressive .hearth-moon-stars circle {
 	fill: var(--m-star);
 	opacity: 0.8;
 }
 
-.hearth-moon-main {
+.is-expressive .hearth-moon-main {
 	display: flex;
 	align-items: center;
 	gap: 16px;
@@ -4541,7 +5219,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	min-height: 0;
 }
 
-.hearth-moon-disc {
+.is-expressive .hearth-moon-disc {
 	flex: none;
 	height: 100%;
 	max-height: 156px;
@@ -4549,41 +5227,41 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	aspect-ratio: 1;
 }
 
-.hearth-moon-svg {
+.is-expressive .hearth-moon-svg {
 	display: block;
 	width: 100%;
 	height: 100%;
 	overflow: visible;
 }
 
-.hearth-moon-shape {
+.is-expressive .hearth-moon-shape {
 	fill: var(--m-shape);
 }
 
-.hearth-moon-dark {
+.is-expressive .hearth-moon-dark {
 	fill: var(--m-dark);
 }
 
-.hearth-moon-lit {
+.is-expressive .hearth-moon-lit {
 	fill: var(--m-moon);
 }
 
-.hearth-moon-mare {
+.is-expressive .hearth-moon-mare {
 	fill: var(--m-mare);
 }
 
-.hearth-moon-crater {
+.is-expressive .hearth-moon-crater {
 	fill: var(--m-crater);
 }
 
-.hearth-moon-text {
+.is-expressive .hearth-moon-text {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 	min-width: 0;
 }
 
-.hearth-moon-place {
+.is-expressive .hearth-moon-place {
 	color: var(--m-on-variant);
 	font-size: 0.76rem;
 	font-weight: 600;
@@ -4592,14 +5270,14 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	text-overflow: ellipsis;
 }
 
-.hearth-moon-name {
+.is-expressive .hearth-moon-name {
 	font-size: clamp(1.2rem, 13cqh, 2.05rem);
 	font-weight: 750;
 	letter-spacing: -0.025em;
 	line-height: 1.05;
 }
 
-.hearth-moon-sub {
+.is-expressive .hearth-moon-sub {
 	color: var(--m-on-variant);
 	font-size: 0.82rem;
 	font-variant-numeric: tabular-nums;
@@ -4608,34 +5286,34 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 /* The month as Material's expressive slider: a thick active track up to
  * tonight, a pill handle standing in a gap, the inactive track after it, and
  * stop dots at the quarters (the full moon's a little larger). */
-.hearth-moon-slider {
+.is-expressive .hearth-moon-slider {
 	--hearth-slider-gap: 6px;
 	position: relative;
 	flex: none;
 	height: 28px;
 }
 
-.hearth-moon-slider-active,
-.hearth-moon-slider-inactive {
+.is-expressive .hearth-moon-slider-active,
+.is-expressive .hearth-moon-slider-inactive {
 	position: absolute;
 	top: 50%;
 	height: 14px;
 	margin-top: -7px;
 }
 
-.hearth-moon-slider-active {
+.is-expressive .hearth-moon-slider-active {
 	inset-inline-start: 0;
 	border-radius: 7px 2px 2px 7px;
 	background: var(--m-primary);
 }
 
-.hearth-moon-slider-inactive {
+.is-expressive .hearth-moon-slider-inactive {
 	inset-inline-end: 0;
 	border-radius: 2px 7px 7px 2px;
 	background: var(--m-track);
 }
 
-.hearth-moon-slider-stop {
+.is-expressive .hearth-moon-slider-stop {
 	position: absolute;
 	top: 50%;
 	width: 4px;
@@ -4646,18 +5324,18 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background: var(--m-primary);
 }
 
-.hearth-moon-slider-stop.is-full {
+.is-expressive .hearth-moon-slider-stop.is-full {
 	width: 6px;
 	height: 6px;
 	margin-top: -3px;
 	margin-inline-start: -3px;
 }
 
-.hearth-moon-slider-stop.is-past {
+.is-expressive .hearth-moon-slider-stop.is-past {
 	background: var(--m-on-primary);
 }
 
-.hearth-moon-slider-handle {
+.is-expressive .hearth-moon-slider-handle {
 	position: absolute;
 	top: 0;
 	width: 4px;
@@ -4667,14 +5345,14 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background: var(--m-primary);
 }
 
-.hearth-moon-facts {
+.is-expressive .hearth-moon-facts {
 	flex: none;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
 }
 
-.hearth-moon-fact {
+.is-expressive .hearth-moon-fact {
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -4684,7 +5362,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background: var(--m-chip);
 }
 
-.hearth-moon-fact-icon {
+.is-expressive .hearth-moon-fact-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -4696,27 +5374,27 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	color: var(--m-on-badge);
 }
 
-.hearth-moon-fact-icon .svg-icon {
+.is-expressive .hearth-moon-fact-icon .svg-icon {
 	width: 16px;
 	height: 16px;
 	stroke-width: 2.5px;
 }
 
-.hearth-moon-fact-icon.is-filled .svg-icon {
+.is-expressive .hearth-moon-fact-icon.is-filled .svg-icon {
 	fill: currentColor;
 }
 
-.hearth-moon-fact-text {
+.is-expressive .hearth-moon-fact-text {
 	min-width: 0;
 }
 
-.hearth-moon-fact-label {
+.is-expressive .hearth-moon-fact-label {
 	color: var(--m-on-variant);
 	font-size: 0.68rem;
 	font-weight: 600;
 }
 
-.hearth-moon-fact-value {
+.is-expressive .hearth-moon-fact-value {
 	font-size: 0.88rem;
 	font-weight: 700;
 	font-variant-numeric: tabular-nums;
@@ -4725,20 +5403,20 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	text-overflow: ellipsis;
 }
 
-.hearth-moon-fact-note {
+.is-expressive .hearth-moon-fact-note {
 	margin-inline-start: 6px;
 	color: var(--m-on-variant);
 	font-size: 0.72rem;
 	font-weight: 500;
 }
 
-.hearth-moon-updated {
+.is-expressive .hearth-moon-updated {
 	color: var(--m-on-variant);
 	font-size: 0.66rem;
 }
 
 /* ---- The clean layout: the moon and its month, on the card's own surface ---- */
-.hearth-weather.is-moon.is-clean {
+.hearth-weather.is-moon.is-expressive.is-clean {
 	align-items: center;
 	justify-content: center;
 	gap: 14px;
@@ -4746,7 +5424,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background: none;
 }
 
-.is-moon.is-clean .hearth-moon-disc {
+.is-moon.is-expressive.is-clean .hearth-moon-disc {
 	flex: 1 1 0;
 	height: auto;
 	/* The cookie takes the outer part of the box, so the box runs larger. */
@@ -4754,7 +5432,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	max-width: 100%;
 }
 
-.is-moon.is-clean .hearth-moon-slider {
+.is-moon.is-expressive.is-clean .hearth-moon-slider {
 	width: min(100%, 260px);
 }
 
@@ -4762,40 +5440,40 @@ body.is-translucent .hearth-view.hearth-macos *::after {
  * sky's rule, `.is-animated .hearth-weather-stars circle`). The entrance, once:
  * the moon springs up into place, the cookie unfolds behind it and the slider
  * fills to tonight. */
-.is-moon.is-animated .hearth-moon-shape-wrap {
+.is-moon.is-expressive.is-animated .hearth-moon-shape-wrap {
 	transform-box: fill-box;
 	transform-origin: center;
 	animation: hearth-m3-spin 40s linear infinite;
 }
 
-.is-moon.is-animated .hearth-moon-body {
+.is-moon.is-expressive.is-animated .hearth-moon-body {
 	animation: hearth-moon-float 9s ease-in-out infinite;
 }
 
-.is-moon.is-intro .hearth-moon-disc {
+.is-moon.is-expressive.is-intro .hearth-moon-disc {
 	animation: hearth-moon-rise 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
-.is-moon.is-intro .hearth-moon-shape {
+.is-moon.is-expressive.is-intro .hearth-moon-shape {
 	transform-box: fill-box;
 	transform-origin: center;
 	animation: hearth-m3-unfold 1.1s cubic-bezier(0.34, 1.35, 0.64, 1) 0.1s both;
 }
 
-.is-moon.is-intro .hearth-moon-text,
-.is-moon.is-intro .hearth-moon-facts {
+.is-moon.is-expressive.is-intro .hearth-moon-text,
+.is-moon.is-expressive.is-intro .hearth-moon-facts {
 	animation: hearth-moon-fade 0.7s ease-out 0.25s both;
 }
 
-.is-moon.is-intro .hearth-moon-slider-active {
+.is-moon.is-expressive.is-intro .hearth-moon-slider-active {
 	animation: hearth-m3-fill 1.1s cubic-bezier(0.34, 1.2, 0.64, 1) 0.3s both;
 }
 
-.is-moon.is-intro .hearth-moon-slider-handle {
+.is-moon.is-expressive.is-intro .hearth-moon-slider-handle {
 	animation: hearth-m3-slide 1.1s cubic-bezier(0.34, 1.2, 0.64, 1) 0.3s both;
 }
 
-.is-moon.is-intro .hearth-moon-slider-inactive {
+.is-moon.is-expressive.is-intro .hearth-moon-slider-inactive {
 	animation: hearth-m3-slide-track 1.1s cubic-bezier(0.34, 1.2, 0.64, 1) 0.3s both;
 }
 
@@ -4856,32 +5534,32 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 
 /* Wide: the four facts in one row. */
 @container (min-width: 460px) {
-	.hearth-moon-facts {
+	.is-expressive .hearth-moon-facts {
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 }
 
 /* Short: the facts go first, then the slider — the moon and its name stay. */
 @container (max-height: 220px) {
-	.is-moon:not(.is-clean) .hearth-moon-facts {
+	.is-moon.is-expressive:not(.is-clean) .hearth-moon-facts {
 		display: none;
 	}
 }
 
 @container (max-height: 120px) {
-	.hearth-weather.is-moon:not(.is-clean) {
+	.hearth-weather.is-moon.is-expressive:not(.is-clean) {
 		padding: 8px 12px;
 	}
 
-	.is-moon:not(.is-clean) .hearth-moon-slider,
-	.hearth-moon-sub,
-	.hearth-moon-updated {
+	.is-moon.is-expressive:not(.is-clean) .hearth-moon-slider,
+.is-expressive .hearth-moon-sub,
+.is-expressive .hearth-moon-updated {
 		display: none;
 	}
 }
 
 /* ---- Daylight: an orange palette by day, the moon's indigo by night ---- */
-.hearth-weather.is-daylight {
+.hearth-weather.is-daylight.is-expressive {
 	--s-primary: #e0650b;
 	--s-container: #ffdcc4;
 	--s-on-container: #6b2f00;
@@ -4895,7 +5573,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--s-on-chip: #5c3517;
 }
 
-.theme-dark .hearth-weather.is-daylight {
+.theme-dark .hearth-weather.is-daylight.is-expressive {
 	--s-primary: #ffb784;
 	--s-container: #6f3510;
 	--s-on-container: #ffdcc4;
@@ -4909,7 +5587,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--s-on-chip: #ffdcc4;
 }
 
-.hearth-weather.is-daylight.is-night {
+.hearth-weather.is-daylight.is-expressive.is-night {
 	--s-primary: #4a4dc0;
 	--s-container: #e0e0ff;
 	--s-on-container: #20227a;
@@ -4923,7 +5601,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--s-on-chip: #2c2e8f;
 }
 
-.theme-dark .hearth-weather.is-daylight.is-night {
+.theme-dark .hearth-weather.is-daylight.is-expressive.is-night {
 	--s-primary: #c0c1ff;
 	--s-container: #33357a;
 	--s-on-container: #e0e0ff;
@@ -4937,14 +5615,14 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	--s-on-chip: #dcdcff;
 }
 
-.hearth-weather.is-daylight {
+.hearth-weather.is-daylight.is-expressive {
 	box-sizing: border-box;
 	height: 100%;
 	min-height: 0;
 	gap: 8px;
 }
 
-.hearth-sun-head {
+.is-expressive .hearth-sun-head {
 	flex: none;
 	display: flex;
 	justify-content: space-between;
@@ -4952,7 +5630,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	gap: 12px;
 }
 
-.hearth-sun-lead {
+.is-expressive .hearth-sun-lead {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
@@ -4960,7 +5638,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	min-width: 0;
 }
 
-.hearth-sun-chip {
+.is-expressive .hearth-sun-chip {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -4974,22 +5652,22 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	white-space: nowrap;
 }
 
-.hearth-sun-chip.hearth-sun-kicker {
+.is-expressive .hearth-sun-chip.hearth-sun-kicker {
 	background: var(--s-container);
 	color: var(--s-on-container);
 }
 
-.hearth-sun-chip-icon {
+.is-expressive .hearth-sun-chip-icon {
 	display: flex;
 }
 
-.hearth-sun-chip-icon .svg-icon {
+.is-expressive .hearth-sun-chip-icon .svg-icon {
 	width: 14px;
 	height: 14px;
 	stroke-width: 2.4px;
 }
 
-.hearth-sun-time {
+.is-expressive .hearth-sun-time {
 	font-size: clamp(1.6rem, 17cqh, 2.8rem);
 	font-weight: 750;
 	letter-spacing: -0.03em;
@@ -4997,13 +5675,13 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	font-variant-numeric: tabular-nums;
 }
 
-.hearth-sun-until {
+.is-expressive .hearth-sun-until {
 	color: var(--text-muted);
 	font-size: 0.82rem;
 	font-variant-numeric: tabular-nums;
 }
 
-.hearth-sun-side {
+.is-expressive .hearth-sun-side {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
@@ -5011,7 +5689,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	min-width: 0;
 }
 
-.hearth-sun-now {
+.is-expressive .hearth-sun-now {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -5024,17 +5702,17 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	font-variant-numeric: tabular-nums;
 }
 
-.hearth-sun-now-icon {
+.is-expressive .hearth-sun-now-icon {
 	display: flex;
 }
 
-.hearth-sun-now-icon .svg-icon {
+.is-expressive .hearth-sun-now-icon .svg-icon {
 	width: 16px;
 	height: 16px;
 	stroke-width: 2.4px;
 }
 
-.hearth-sun-place {
+.is-expressive .hearth-sun-place {
 	max-width: 100%;
 	color: var(--text-faint);
 	font-size: 0.74rem;
@@ -5044,14 +5722,14 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	text-overflow: ellipsis;
 }
 
-.hearth-sun-stage {
+.is-expressive .hearth-sun-stage {
 	flex: 1 1 0;
 	min-height: 36px;
 	position: relative;
 }
 
 /* Laid out in the stage's own pixels (see arcBox), so it simply fills it. */
-.hearth-sun-arc {
+.is-expressive .hearth-sun-arc {
 	position: absolute;
 	inset: 0;
 	display: block;
@@ -5060,51 +5738,51 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	overflow: hidden;
 }
 
-.hearth-sun-ground {
+.is-expressive .hearth-sun-ground {
 	fill: var(--s-ground);
 }
 
-.hearth-sun-area {
+.is-expressive .hearth-sun-area {
 	fill: var(--s-area);
 }
 
-.hearth-sun-track,
-.hearth-sun-trail {
+.is-expressive .hearth-sun-track,
+.is-expressive .hearth-sun-trail {
 	fill: none;
 	stroke-width: 5px;
 	stroke-linecap: round;
 	stroke-linejoin: round;
 }
 
-.hearth-sun-track {
+.is-expressive .hearth-sun-track {
 	stroke: var(--s-track);
 }
 
-.hearth-sun-trail {
+.is-expressive .hearth-sun-trail {
 	stroke: var(--s-primary);
 }
 
-.hearth-sun-horizon {
+.is-expressive .hearth-sun-horizon {
 	stroke: var(--s-horizon);
 	stroke-width: 2px;
 }
 
-.hearth-sun-mark {
+.is-expressive .hearth-sun-mark {
 	fill: var(--s-primary);
 	stroke: var(--background-primary);
 	stroke-width: 3px;
 }
 
-.hearth-sun-glow {
+.is-expressive .hearth-sun-glow {
 	fill: var(--s-glow);
 	opacity: 0.8;
 }
 
-.hearth-sun-shape {
+.is-expressive .hearth-sun-shape {
 	fill: var(--s-sun);
 }
 
-.hearth-sun-foot {
+.is-expressive .hearth-sun-foot {
 	flex: none;
 	display: flex;
 	align-items: center;
@@ -5112,7 +5790,7 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	gap: 8px;
 }
 
-.hearth-sun-length {
+.is-expressive .hearth-sun-length {
 	min-width: 0;
 	color: var(--text-faint);
 	font-size: 0.72rem;
@@ -5125,13 +5803,13 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 
 /* Motion: the sunny shape turns and its glow swells; the walk up to the hour
  * is script (the entrance in weatherastro.ts). */
-.is-daylight.is-animated .hearth-sun-spin {
+.is-daylight.is-expressive.is-animated .hearth-sun-spin {
 	transform-box: fill-box;
 	transform-origin: center;
 	animation: hearth-m3-spin 24s linear infinite;
 }
 
-.is-daylight.is-animated .hearth-sun-glow {
+.is-daylight.is-expressive.is-animated .hearth-sun-glow {
 	transform-box: fill-box;
 	transform-origin: center;
 	animation: hearth-sun-glow 4s ease-in-out infinite;
@@ -5148,22 +5826,22 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 }
 
 @container (max-height: 150px) {
-	.hearth-sun-length,
-	.hearth-sun-place {
+	.is-expressive .hearth-sun-length,
+.is-expressive .hearth-sun-place {
 		display: none;
 	}
 }
 
 @container (max-height: 110px) {
-	.hearth-sun-foot,
-	.hearth-sun-until {
+	.is-expressive .hearth-sun-foot,
+.is-expressive .hearth-sun-until {
 		display: none;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.hearth-weather.is-moon *,
-	.hearth-weather.is-daylight * {
+	.hearth-weather.is-moon.is-expressive *,
+.hearth-weather.is-daylight.is-expressive * {
 		animation: none !important;
 	}
 }

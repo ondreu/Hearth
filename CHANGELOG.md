@@ -24,7 +24,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   accent, thick range bars, metric tiles with round icon badges, a heavier
   curve and heavy, tight type. Interface parts take tonal steps of your accent
   colour; the weather drawings and the sky take their colours from the
-  weather.
+  weather. Moon and Daylight start Expressive and can be set to Classic — a
+  shaded moon on a night-sky gradient, a rayed sun on a dashed arc — for anyone
+  who would rather not have Material; every other style starts Classic.
 
   The *Artistic* style's sky, and the board's weather background under its own
   new *Design* setting, get a flat illustrated sky to match: a pastel sky with

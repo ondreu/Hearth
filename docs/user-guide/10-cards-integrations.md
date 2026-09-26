@@ -253,13 +253,15 @@ coordinates by hand still works.
 | *Moon* | Tonight's moon in its real phase on a night sky, with how much of it is lit, the next full and new moon, and today's moonrise and moonset |
 | *Daylight* | The sun on a parabola from sunrise to sunset, the time of the next sunset (or sunrise) and how long until it, and the day's length |
 
-*Design* (every style but *Moon* and *Daylight*, which are always drawn this
-way) chooses **Classic** — line icons and the painted sky — or **Expressive**, in
+*Design* chooses **Classic** — line icons and the painted sky — or **Expressive**, in
 Material 3 Expressive's manner: flat weather drawings (the big one on a cookie
 shape), feels-like, high / low and metrics as chips, the hours as pills, thick
 range bars, metric tiles with round badges, heavy type, and on *Artistic* the flat
 illustrated sky. The interface parts take tonal steps of your accent colour; the
-weather drawings and the sky take their colours from the weather.
+weather drawings and the sky take their colours from the weather. Every style
+starts Classic except *Moon* and *Daylight*, which start Expressive; set them to
+Classic for a shaded moon on a night-sky gradient and a rayed sun trailing a
+gradient along a dashed arc.
 
 *Moon* has a *Layout* setting: *Full* (the moon with its name, the month's
 slider and the next full and new moon, moonrise and moonset) or *Clean* (just the

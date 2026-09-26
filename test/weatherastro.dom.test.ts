@@ -76,6 +76,7 @@ function options(extra: Partial<AstroOptions> = {}): AstroOptions {
 		animate: true,
 		intro: true,
 		clean: false,
+		expressive: true,
 		now: { icon: "moon", temp: "17°" },
 		updated: "Updated 21:30",
 		...extra,
@@ -106,12 +107,35 @@ describe("drawing the moon", () => {
 });
 
 describe("drawing the sun's arc", () => {
-	it("draws by night and by day without throwing", () => {
-		for (const isDay of [false, true]) {
-			const wrap = document.body.createDiv("hearth-weather is-daylight");
-			expect(() => paintDaylight(wrap, snapshot(isDay), options({ intro: false }))).not.toThrow();
-			expect(wrap.querySelector(".hearth-sun-arc")).not.toBeNull();
-			expect(wrap.querySelector(".hearth-sun-body")).not.toBeNull();
+	it("draws by night and by day, in both designs, without throwing", () => {
+		for (const expressive of [true, false]) {
+			for (const isDay of [false, true]) {
+				const wrap = document.body.createDiv("hearth-weather is-daylight");
+				expect(() =>
+					paintDaylight(wrap, snapshot(isDay), options({ intro: false, expressive })),
+				).not.toThrow();
+				expect(wrap.querySelector(".hearth-sun-arc")).not.toBeNull();
+				// A turning sunny for Expressive; a rayed sun and a plumb line for Classic.
+				expect(wrap.querySelector(".hearth-sun-shape") !== null).toBe(expressive);
+				expect(wrap.querySelector(".hearth-sun-rays") !== null).toBe(!expressive);
+				expect(wrap.querySelector(".hearth-sun-plumb") !== null).toBe(!expressive);
+				expect(wrap.classList.contains("is-classic")).toBe(!expressive);
+			}
+		}
+	});
+});
+
+describe("the Classic moon", () => {
+	it("draws both layouts with the shaded moon and the gradient track", () => {
+		for (const clean of [false, true]) {
+			const wrap = document.body.createDiv("hearth-weather is-moon");
+			expect(() => paintMoon(wrap, snapshot(false), options({ clean, expressive: false }))).not.toThrow();
+			expect(wrap.classList.contains("is-classic")).toBe(true);
+			expect(wrap.querySelector(".hearth-moon-halo")).not.toBeNull();
+			expect(wrap.querySelector(".hearth-moon-marker")).not.toBeNull();
+			// None of the Expressive moon's pieces.
+			expect(wrap.querySelector(".hearth-moon-shape")).toBeNull();
+			expect(wrap.querySelector(".hearth-moon-slider")).toBeNull();
 		}
 	});
 });
