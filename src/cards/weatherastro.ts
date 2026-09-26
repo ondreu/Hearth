@@ -94,7 +94,14 @@ function daysBetween(from: string, to: string): number {
 const SVG_NS = { xmlns: "http://www.w3.org/2000/svg" };
 
 /** An `svg` element with a viewBox, in the SVG namespace. */
-function svgRoot(parent: HTMLElement, cls: string, viewBox: string, aspect = "xMidYMid meet"): SVGSVGElement {
+function svgRoot(
+	parent: HTMLElement,
+	// An array for more than one class: createSvg hands `cls` to classList.add(),
+	// which rejects a token containing a space (see drawCloud in sky.ts).
+	cls: string | string[],
+	viewBox: string,
+	aspect = "xMidYMid meet",
+): SVGSVGElement {
 	return parent.createSvg("svg", {
 		cls,
 		attr: { ...SVG_NS, viewBox, preserveAspectRatio: aspect, "aria-hidden": "true" },
@@ -344,7 +351,7 @@ export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: As
 	}
 
 	// A few stars behind everything, in the palette's own tone.
-	const sky = svgRoot(wrap, "hearth-moon-stars hearth-weather-stars", "0 0 200 120", "xMidYMid slice");
+	const sky = svgRoot(wrap, ["hearth-moon-stars", "hearth-weather-stars"], "0 0 200 120", "xMidYMid slice");
 	for (const star of starField(22, 200, 120, 0x3007, 0.5)) {
 		const c = sky.createSvg("circle", {
 			attr: { cx: String(star.x), cy: String(star.y), r: String(star.r * 0.6) },
