@@ -1262,6 +1262,7 @@ function sanitizeWeather(r: Record<string, unknown>): WeatherConfig {
 	for (const flag of flags) {
 		if (typeof r[flag] === "boolean") cfg[flag] = r[flag];
 	}
+	if (r.moonLayout === "full" || r.moonLayout === "clean") cfg.moonLayout = r.moonLayout;
 	if (typeof r.hourlyCount === "number") cfg.hourlyCount = clampNum(r.hourlyCount, 0, 48, 6);
 	if (typeof r.dailyCount === "number") cfg.dailyCount = clampNum(r.dailyCount, 0, 16, 4);
 	if (typeof r.refreshMin === "number") cfg.refreshMin = clampNum(r.refreshMin, 0, 24 * 60, 30);

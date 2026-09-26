@@ -15,20 +15,27 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Two new weather card styles: Moon and Daylight.** (#338)
+- **Two new weather card styles: Moon and Daylight.** (#338) Both are drawn in
+  the Material 3 Expressive manner — flat tonal colours for the light and the
+  dark theme, soft shapes from Material's shape library, pill chips and a
+  heavy headline.
 
-  *Moon* draws tonight's moon in its real phase on a night sky — the lit part
-  and a soft terminator computed for the moment, mirrored south of the equator
-  — with the phase's name, how much of it is lit, where tonight sits in the
-  lunar month, the dates of the next full and new moon, and today's moonrise
-  and moonset for the card's place. The halo breathes, the stars twinkle and
-  the moon rises into place on the first reading.
+  *Moon* draws tonight's moon in its real phase — the lit part computed for
+  the moment, mirrored south of the equator — on a slowly turning "cookie"
+  shape, with the phase's name, how much of it is lit, an expressive slider
+  showing where tonight sits in the lunar month, the dates of the next full
+  and new moon, and today's moonrise and moonset for the card's place. Its
+  *Layout* setting has a **Clean** option: just the moon and the slider, on the
+  card's own surface. The moon springs into place, floats, and the slider
+  fills to tonight on the first reading.
 
-  *Daylight* puts the sun on a parabola from sunrise to sunset over a horizon,
-  with a shallower one under it for the night. The stretch it has already
-  crossed is drawn in, the sun walks up to the hour when the card opens and
-  keeps moving minute by minute, and the headline is the next sunset (or, by
-  night, sunrise) with how long until it and the day's length beneath.
+  *Daylight* puts the sun — a turning "sunny" shape — on a parabola from
+  sunrise to sunset over a horizon, with a shallower one under it for the
+  night. The stretch it has already crossed is a thick wavy track, the rest a
+  flat one; the sun walks up to the hour when the card opens and keeps moving
+  minute by minute, and the headline is the next sunset (or, by night,
+  sunrise) with how long until it and the day's length beneath. By night the
+  palette turns from orange to indigo.
 
   Neither makes an extra request: the moon is worked out locally from the time
   and the card's coordinates, and the sun's arc from the forecast's own sunrise

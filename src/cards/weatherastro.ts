@@ -16,7 +16,6 @@ import {
 	formatDayDate,
 	formatHour,
 	formatPercent,
-	formatWeekday,
 	today,
 	type WeatherDay,
 	type WeatherSnapshot,
@@ -30,6 +29,13 @@ import {
 // coordinates (src/astro.ts), and the sun's arc from the day's sunrise and
 // sunset. Both read the *location's* clock, not the reader's, so a card set to
 // Tokyo shows Tokyo's moonrise and Tokyo's evening.
+//
+// They are drawn in the Material 3 Expressive manner rather than the painted
+// sky's: flat tonal fills from one palette per style (declared as tokens in
+// styles.css, light and dark), the shape library's soft polygons — a nine-lobed
+// "cookie" behind the moon, an eight-pointed "sunny" for the sun — a thick wavy
+// active track and a flat inactive one, and a slider with a pill handle. No
+// gradients and no blur: every colour here is a class the stylesheet fills.
 
 
 /** What both styles need from the card that paints them. */
@@ -39,11 +45,15 @@ export interface AstroOptions {
 	/** The place name, or "" when the card is set not to show it. */
 	place: string;
 	hour12: boolean | undefined;
-	/** Loop the glow, the stars and the rays. */
+	/** Loop the motion: the turning shapes, the floating moon, the stars. */
 	animate: boolean;
-	/** Play the one-off entrance too — the sun walking up to the hour. Only on a
-	 * card's first paint, so a refresh doesn't replay it. */
+	/** Play the one-off entrance too — the moon rising, the slider filling,
+	 * the sun walking up to the hour. Only on a card's first paint, so a
+	 * refresh doesn't replay it. */
 	intro: boolean;
+	/** The moon style's pared-down layout: the moon and the month's slider, on
+	 * the card's own surface, and nothing else. */
+	clean: boolean;
 	/** The current conditions as a glyph and a temperature, or null to leave
 	 * them off. */
 	now: { icon: string; temp: string } | null;
@@ -91,24 +101,56 @@ function svgRoot(parent: HTMLElement, cls: string, viewBox: string, aspect = "xM
 	});
 }
 
-/** A two-stop-or-more gradient in `defs`. */
-function gradient(
-	defs: SVGElement,
-	kind: "linearGradient" | "radialGradient",
-	id: string,
-	attr: Record<string, string>,
-	stops: [string, string, number?][],
-): void {
-	const g = defs.createSvg(kind, { attr: { id, ...attr } });
-	for (const [offset, color, opacity] of stops) {
-		g.createSvg("stop", {
-			attr: {
-				offset,
-				"stop-color": color,
-				...(opacity === undefined ? {} : { "stop-opacity": String(opacity) }),
-			},
-		});
+
+// ---- Shapes -------------------------------------------------------------
+
+/**
+ * A soft polygon from Material's shape library, as a path: a circle whose
+ * radius swells and dips `lobes` times round, by `depth` of the radius. Nine
+ * shallow lobes is the "cookie", eight deeper ones the "sunny". The first lobe
+ * points straight up. Exported for the tests.
+ */
+export function shapePath(cx: number, cy: number, r: number, lobes: number, depth: number): string {
+	const steps = Math.max(lobes, 3) * 12;
+	const points: string[] = [];
+	for (let i = 0; i < steps; i++) {
+		const a = (i / steps) * Math.PI * 2;
+		const radius = r * (1 + depth * Math.cos(lobes * a));
+		const x = cx + radius * Math.sin(a);
+		const y = cy - radius * Math.cos(a);
+		points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
 	}
+	return `M ${points.join(" L ")} Z`;
+}
+
+/**
+ * A polyline as a wave that runs along it: every point pushed off the line
+ * along its normal by a sine of the distance travelled. Material's wavy
+ * progress track, bent to follow the sun's arc. Exported for the tests.
+ */
+export function wavePath(
+	points: { x: number; y: number }[],
+	amplitude: number,
+	wavelength: number,
+): string {
+	if (points.length < 2) return "";
+	let travelled = 0;
+	const out: string[] = [];
+	for (let i = 0; i < points.length; i++) {
+		const p = points[i];
+		if (i > 0) travelled += Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y);
+		// The normal from the neighbours on either side, so a bend doesn't kink.
+		const a = points[Math.max(i - 1, 0)];
+		const b = points[Math.min(i + 1, points.length - 1)];
+		const dx = b.x - a.x;
+		const dy = b.y - a.y;
+		const len = Math.hypot(dx, dy) || 1;
+		const offset = amplitude * Math.sin((travelled / wavelength) * Math.PI * 2);
+		const x = p.x + (-dy / len) * offset;
+		const y = p.y + (dx / len) * offset;
+		out.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
+	}
+	return `M ${out.join(" L ")}`;
 }
 
 
@@ -138,118 +180,115 @@ export function litPath(phase: MoonPhase, cx: number, cy: number, r: number): st
 	);
 }
 
-/** The seas (maria) as ellipses in fractions of the radius — cx, cy, rx, ry,
- * tilt — placed by hand after the near side's big dark patches: a regular
- * pattern reads as a golf ball, a random one as a rash. */
-const MARIA: [number, number, number, number, number][] = [
-	[-0.28, -0.34, 0.3, 0.22, -20],
-	[0.12, -0.18, 0.24, 0.3, 15],
-	[0.36, 0.08, 0.18, 0.16, 0],
-	[-0.08, 0.2, 0.2, 0.14, 30],
-	[-0.46, 0.12, 0.14, 0.26, 10],
-	[0.2, 0.46, 0.12, 0.09, 0],
+/** The seas and the craters, as circles in fractions of the radius — flat
+ * spots in two tones, placed by hand after the near side's big patches: a
+ * regular pattern reads as a golf ball, a random one as a rash. */
+const MARIA: [number, number, number][] = [
+	[-0.3, -0.3, 0.26],
+	[0.14, -0.16, 0.22],
+	[-0.12, 0.24, 0.17],
+	[0.38, 0.14, 0.14],
+	[-0.5, 0.14, 0.12],
 ];
-
-/** Craters, cx, cy, r in fractions of the radius. Tycho's bright one sits low. */
 const CRATERS: [number, number, number][] = [
-	[0.1, 0.66, 0.07],
-	[-0.55, -0.1, 0.05],
-	[0.52, -0.42, 0.06],
-	[-0.2, 0.52, 0.045],
-	[0.6, 0.3, 0.04],
+	[0.12, 0.62, 0.09],
+	[0.52, -0.42, 0.08],
+	[-0.26, 0.58, 0.06],
+	[0.62, 0.36, 0.05],
+	[-0.6, -0.22, 0.05],
 ];
 
-/** The moon itself: halo, the dark disc under earthshine, the lit part with a
- * soft terminator, and its seas and craters over both. */
-function drawMoonDisc(parent: HTMLElement, phase: MoonPhase, southern: boolean): void {
+/** The moon itself: the unlit disc, the lit part with a crisp terminator, and
+ * its seas and craters on the lit side only. With `shape`, a cookie turns
+ * slowly behind it. */
+function drawMoonDisc(parent: HTMLElement, phase: MoonPhase, southern: boolean, shape: boolean): void {
 	const svg = svgRoot(parent, "hearth-moon-svg", "0 0 100 100");
 	const defs = svg.createSvg("defs");
-	const lit = uid("moon-lit");
-	const halo = uid("moon-halo");
-	const soft = uid("moon-soft");
-	const blur = uid("moon-blur");
-	const shade = uid("moon-shade");
 	const clip = uid("moon-clip");
 	const litClip = uid("moon-litclip");
-	const R = 36;
+	const R = shape ? 33 : 44;
 
-	gradient(defs, "radialGradient", lit, { cx: "40%", cy: "36%", r: "72%" }, [
-		["0%", "#fffdf6"],
-		["60%", "#efe8d4"],
-		["100%", "#cbc1a7"],
-	]);
-	gradient(defs, "radialGradient", halo, { cx: "50%", cy: "50%", r: "50%" }, [
-		["55%", "#fff6d8", 0.35],
-		["100%", "#fff6d8", 0],
-	]);
-	// Limb darkening: the disc is a ball, so its edge is dimmer than its face.
-	gradient(defs, "radialGradient", shade, { cx: "50%", cy: "50%", r: "50%" }, [
-		["70%", "#000", 0],
-		["100%", "#000", 0.28],
-	]);
-	const soften = (id: string, deviation: string): void => {
-		defs.createSvg("filter", {
-			attr: { id, x: "-20%", y: "-20%", width: "140%", height: "140%" },
-		}).createSvg("feGaussianBlur", { attr: { stdDeviation: deviation } });
-	};
-	soften(soft, "0.9");
-	soften(blur, "1.6");
+	if (shape) {
+		// Its own group, so the turn and the entrance don't fight over transform.
+		svg.createSvg("g", { cls: "hearth-moon-shape-wrap" }).createSvg("path", {
+			cls: "hearth-moon-shape",
+			attr: { d: shapePath(50, 50, 46, 9, 0.055) },
+		});
+	}
+
 	defs.createSvg("clipPath", { attr: { id: clip } }).createSvg("circle", {
 		attr: { cx: "50", cy: "50", r: String(R) },
 	});
-	// The seas and craters show on the lit part only; the rest is earthshine.
 	// South of the equator the moon is seen upside down: a waxing moon is lit
 	// on the left, so the lit shape is mirrored.
 	const mirror = southern ? "translate(100 0) scale(-1 1)" : null;
+	const lit = litPath(phase, 50, 50, R);
 	const litShape = defs.createSvg("clipPath", { attr: { id: litClip } }).createSvg("path", {
-		attr: { d: litPath(phase, 50, 50, R) },
+		attr: { d: lit },
 	});
 	if (mirror) litShape.setAttribute("transform", mirror);
 
-	// The halo brightens with the moon: a new moon has none to speak of.
-	const glow = svg.createSvg("circle", {
-		cls: "hearth-moon-halo",
-		attr: { cx: "50", cy: "50", r: "50", fill: `url(#${halo})` },
-	});
-	glow.style.opacity = String(0.2 + phase.illumination * 0.8);
-
 	const body = svg.createSvg("g", { cls: "hearth-moon-body", attr: { "clip-path": `url(#${clip})` } });
-	body.createSvg("circle", { cls: "hearth-moon-dark", attr: { cx: "50", cy: "50", r: String(R) } });
-	const litEl = body.createSvg("path", {
-		cls: "hearth-moon-lit",
-		attr: { d: litPath(phase, 50, 50, R), fill: `url(#${lit})`, filter: `url(#${soft})` },
-	});
+	// A hair smaller than the lit part, so a full moon has no dark rim where
+	// the two edges antialias over each other.
+	body.createSvg("circle", { cls: "hearth-moon-dark", attr: { cx: "50", cy: "50", r: String(R - 0.4) } });
+	const litEl = body.createSvg("path", { cls: "hearth-moon-lit", attr: { d: lit } });
 	if (mirror) litEl.setAttribute("transform", mirror);
 
 	const surface = body.createSvg("g", { attr: { "clip-path": `url(#${litClip})` } });
-	const maria = surface.createSvg("g", { cls: "hearth-moon-maria", attr: { filter: `url(#${blur})` } });
-	for (const [x, y, rx, ry, tilt] of MARIA) {
-		const cx = 50 + x * R;
-		const cy = 50 + y * R;
-		maria.createSvg("ellipse", {
-			attr: {
-				cx: cx.toFixed(2),
-				cy: cy.toFixed(2),
-				rx: (rx * R).toFixed(2),
-				ry: (ry * R).toFixed(2),
-				transform: `rotate(${tilt} ${cx.toFixed(2)} ${cy.toFixed(2)})`,
-			},
-		});
-	}
-	const craters = surface.createSvg("g", { cls: "hearth-moon-craters" });
-	for (const [x, y, r] of CRATERS) {
-		craters.createSvg("circle", {
-			attr: { cx: (50 + x * R).toFixed(2), cy: (50 + y * R).toFixed(2), r: (r * R).toFixed(2) },
-		});
-	}
-	body.createSvg("circle", { attr: { cx: "50", cy: "50", r: String(R), fill: `url(#${shade})` } });
-	svg.createSvg("circle", { cls: "hearth-moon-rim", attr: { cx: "50", cy: "50", r: String(R) } });
+	const spots = (list: [number, number, number][], cls: string): void => {
+		for (const [x, y, r] of list) {
+			surface.createSvg("circle", {
+				cls,
+				attr: { cx: (50 + x * R).toFixed(2), cy: (50 + y * R).toFixed(2), r: (r * R).toFixed(2) },
+			});
+		}
+	};
+	spots(MARIA, "hearth-moon-mare");
+	spots(CRATERS, "hearth-moon-crater");
 }
 
-/** One fact under the moon: a label, a value and an optional note. */
-function moonFact(parent: HTMLElement, icon: string, label: string, value: string, note = ""): void {
+/**
+ * Where tonight sits between one new moon and the next, as Material's
+ * expressive slider: a thick active track up to tonight, a pill handle with a
+ * gap either side of it, the inactive track after, and stop dots at the first
+ * quarter, the full moon and the last quarter.
+ */
+function cycleSlider(parent: HTMLElement, phase: MoonPhase): void {
+	const pct = Math.min(Math.max(phase.phase, 0), 1) * 100;
+	const slider = parent.createDiv({
+		cls: "hearth-moon-slider",
+		attr: { role: "img", "aria-label": `${t().cards.weather.moon.cycle}: ${moonSummary(Date.now())}` },
+	});
+	// The gap either side of the handle is the stylesheet's; see styles.css.
+	slider.createDiv("hearth-moon-slider-active").style.width = `max(0px, calc(${pct.toFixed(2)}% - var(--hearth-slider-gap)))`;
+	slider.createDiv("hearth-moon-slider-inactive").style.insetInlineStart =
+		`min(100%, calc(${pct.toFixed(2)}% + var(--hearth-slider-gap)))`;
+	for (const at of [0.25, 0.5, 0.75]) {
+		// A stop that would sit in the handle's gap is the handle's to show.
+		if (Math.abs(at * 100 - pct) < 3) continue;
+		const stop = slider.createDiv("hearth-moon-slider-stop");
+		stop.toggleClass("is-past", at * 100 < pct);
+		stop.toggleClass("is-full", at === 0.5);
+		stop.style.insetInlineStart = `${at * 100}%`;
+	}
+	slider.createDiv("hearth-moon-slider-handle").style.insetInlineStart = `${pct.toFixed(2)}%`;
+}
+
+/** One fact under the moon: an icon in a round tonal badge, a label, a value
+ * and an optional note. */
+function moonFact(
+	parent: HTMLElement,
+	icon: string,
+	label: string,
+	value: string,
+	note = "",
+	filled = false,
+): void {
 	const fact = parent.createDiv("hearth-moon-fact");
-	setIcon(fact.createDiv("hearth-moon-fact-icon"), icon);
+	const badge = fact.createDiv("hearth-moon-fact-icon");
+	badge.toggleClass("is-filled", filled);
+	setIcon(badge, icon);
 	const text = fact.createDiv("hearth-moon-fact-text");
 	text.createDiv({ cls: "hearth-moon-fact-label", text: label });
 	const line = text.createDiv({ cls: "hearth-moon-fact-value", text: value });
@@ -264,22 +303,24 @@ function phaseFact(
 	at: number,
 	todayDate: string,
 	snapshot: WeatherSnapshot,
+	filled: boolean,
 ): void {
 	const date = wallClockAt(at, offsetOf(snapshot, at)).slice(0, 10);
-	const strings = t().cards.weather.moon;
 	moonFact(
 		parent,
 		icon,
 		label,
-		`${formatWeekday(date)} ${formatDayDate(date)}`,
-		strings.inDays(daysBetween(todayDate, date)),
+		formatDayDate(date),
+		t().cards.weather.moon.inDays(daysBetween(todayDate, date)),
+		filled,
 	);
 }
 
 /**
- * Moon: tonight's moon in its real phase on a night sky, what it is called and
- * how much of it is lit, where tonight sits in the month, and the next full and
- * new moon with today's moonrise and moonset.
+ * Moon: tonight's moon in its real phase, what it is called and how much of it
+ * is lit, where tonight sits in the month, and the next full and new moon with
+ * today's moonrise and moonset. The clean layout keeps only the moon and the
+ * month's slider, on the card's own surface.
  */
 export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: AstroOptions): void {
 	const strings = t().cards.weather.moon;
@@ -291,18 +332,28 @@ export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: As
 
 	wrap.toggleClass("is-animated", opts.animate);
 	wrap.toggleClass("is-intro", opts.intro && opts.animate);
+	wrap.toggleClass("is-clean", opts.clean);
 
-	// The stars sit behind everything, over the whole card.
+	if (opts.clean) {
+		// Nothing is written on the card, so the phase is the hover text: the
+		// drawing says it, the tooltip names it.
+		const disc = wrap.createDiv({ cls: "hearth-moon-disc", attr: { title: moonSummary(ms) } });
+		drawMoonDisc(disc, phase, opts.lat < 0, false);
+		cycleSlider(wrap, phase);
+		return;
+	}
+
+	// A few stars behind everything, in the palette's own tone.
 	const sky = svgRoot(wrap, "hearth-moon-stars hearth-weather-stars", "0 0 200 120", "xMidYMid slice");
-	for (const star of starField(28, 200, 120, 0x3007, 0.5)) {
+	for (const star of starField(22, 200, 120, 0x3007, 0.5)) {
 		const c = sky.createSvg("circle", {
-			attr: { cx: String(star.x), cy: String(star.y), r: String(star.r * 0.55) },
+			attr: { cx: String(star.x), cy: String(star.y), r: String(star.r * 0.6) },
 		});
 		c.style.animationDelay = `${star.delay}s`;
 	}
 
 	const main = wrap.createDiv("hearth-moon-main");
-	drawMoonDisc(main.createDiv("hearth-moon-disc"), phase, opts.lat < 0);
+	drawMoonDisc(main.createDiv("hearth-moon-disc"), phase, opts.lat < 0, true);
 	const text = main.createDiv("hearth-moon-text");
 	if (opts.place) text.createDiv({ cls: "hearth-moon-place", text: opts.place });
 	text.createDiv({ cls: "hearth-moon-name", text: strings.phases[phase.key] });
@@ -314,24 +365,17 @@ export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: As
 		].join(" · "),
 	});
 
-	// Where tonight sits between one new moon and the next, with full in the
-	// middle: the track is dark at both ends and bright at its centre.
-	const cycle = wrap.createDiv({ cls: "hearth-moon-cycle", attr: { "aria-label": strings.cycle } });
-	const track = cycle.createDiv("hearth-moon-track");
-	for (const at of [0.25, 0.5, 0.75]) {
-		track.createDiv("hearth-moon-tick").style.insetInlineStart = `${at * 100}%`;
-	}
-	track.createDiv("hearth-moon-marker").style.insetInlineStart = `${phase.phase * 100}%`;
+	cycleSlider(wrap, phase);
 
 	// Searched from the start of the location's day, so a full moon that fell
 	// this morning still says "Today" rather than a month from now.
 	const dayStart = instantOf(todayDate, offset);
 	const facts = wrap.createDiv("hearth-moon-facts");
-	phaseFact(facts, "circle", strings.nextFull, nextMoonPhase(dayStart, 0.5), todayDate, snapshot);
-	phaseFact(facts, "circle-dashed", strings.nextNew, nextMoonPhase(dayStart, 0), todayDate, snapshot);
+	phaseFact(facts, "circle", strings.nextFull, nextMoonPhase(dayStart, 0.5), todayDate, snapshot, true);
+	phaseFact(facts, "circle", strings.nextNew, nextMoonPhase(dayStart, 0), todayDate, snapshot, false);
 	const times = moonTimes(dayStart, opts.lat, opts.lon);
-	moonFact(facts, "arrow-up-right", strings.moonrise, timeAt(times.rise, snapshot, opts.hour12));
-	moonFact(facts, "arrow-down-right", strings.moonset, timeAt(times.set, snapshot, opts.hour12));
+	moonFact(facts, "arrow-up", strings.moonrise, timeAt(times.rise, snapshot, opts.hour12));
+	moonFact(facts, "arrow-down", strings.moonset, timeAt(times.set, snapshot, opts.hour12));
 
 	if (opts.updated) wrap.createDiv({ cls: "hearth-moon-updated", text: opts.updated });
 }
@@ -369,25 +413,15 @@ export function arcBox(w: number, h: number): ArcBox {
 	const width = Math.max(w, 60);
 	const height = Math.max(h, 36);
 	const night = Math.min(Math.max(height * 0.14, 8), 18);
-	const horizon = height - night - 5;
-	// Clear of the top by the sun's radius and most of its glow.
+	const horizon = height - night - 6;
+	// Clear of the top by the sun's points and a little of its glow.
 	const day = Math.max(horizon - 20, 10);
-	return { w: width, h: height, pad: 14, horizon, day, night };
+	return { w: width, h: height, pad: 16, horizon, day, night };
 }
 
 /** Minutes past midnight to an x across the box. */
 function arcX(box: ArcBox, minute: number): number {
 	return box.pad + (minute / 1440) * (box.w - box.pad * 2);
-}
-
-/** A parabola over (or, with a negative height, under) the horizon between two
- * minutes, as a quadratic Bézier: a control point at twice the height puts the
- * vertex at the height. */
-function parabola(box: ArcBox, from: number, to: number, height: number): string {
-	const x1 = arcX(box, from);
-	const x2 = arcX(box, to);
-	const cy = box.horizon - 2 * height;
-	return `M ${x1.toFixed(1)} ${box.horizon.toFixed(1)} Q ${((x1 + x2) / 2).toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${box.horizon.toFixed(1)}`;
 }
 
 /** The day's sunrise, sunset and the next sunrise as minutes into it. */
@@ -423,10 +457,18 @@ function easeOut(x: number): number {
 	return 1 - Math.pow(1 - x, 3);
 }
 
+/** A pill with an icon and a label: the headline's kicker and the foot's ends. */
+function chip(parent: HTMLElement, cls: string, icon: string, text: string): HTMLElement {
+	const el = parent.createDiv(`hearth-sun-chip ${cls}`);
+	setIcon(el.createSpan("hearth-sun-chip-icon"), icon);
+	el.createSpan({ text });
+	return el;
+}
+
 /**
  * Daylight: the sun on a parabola from sunrise to sunset, the stretch it has
- * already travelled drawn in, and the time of the next sunset (or sunrise, by
- * night) above it with how long until it.
+ * already travelled drawn as a wave, and the time of the next sunset (or
+ * sunrise, by night) above it with how long until it.
  *
  * Returns a tick: call it with the time to walk the sun on without rebuilding
  * the card. It answers false when the drawing can't follow — the sun has
@@ -454,9 +496,7 @@ export function paintDaylight(
 	// ---- The headline: the next horizon crossing and how long until it ----
 	const head = wrap.createDiv("hearth-sun-head");
 	const lead = head.createDiv("hearth-sun-lead");
-	const kicker = lead.createDiv("hearth-sun-kicker");
-	setIcon(kicker.createSpan("hearth-sun-kicker-icon"), isDay ? "sunset" : "sunrise");
-	kicker.createSpan({ text: isDay ? strings.sunset : strings.sunrise });
+	chip(lead, "hearth-sun-kicker", isDay ? "sunset" : "sunrise", isDay ? strings.sunset : strings.sunrise);
 	const day = times.day;
 	const nextTime = (() => {
 		if (polar || !day) return "";
@@ -474,9 +514,9 @@ export function paintDaylight(
 	if (opts.now || opts.place) {
 		const side = head.createDiv("hearth-sun-side");
 		if (opts.now) {
-			const chip = side.createDiv("hearth-sun-now");
-			setIcon(chip.createSpan("hearth-sun-now-icon"), opts.now.icon);
-			chip.createSpan({ cls: "hearth-sun-now-temp", text: opts.now.temp });
+			const now = side.createDiv("hearth-sun-now");
+			setIcon(now.createSpan("hearth-sun-now-icon"), opts.now.icon);
+			now.createSpan({ cls: "hearth-sun-now-temp", text: opts.now.temp });
 		}
 		if (opts.place) side.createDiv({ cls: "hearth-sun-place", text: opts.place });
 	}
@@ -488,32 +528,10 @@ export function paintDaylight(
 		attr: { ...SVG_NS, role: "img", "aria-label": strings.daylight.arc },
 	});
 	const defs = svg.createSvg("defs");
-	const areaGrad = uid("sun-area");
-	const trailGrad = uid("sun-trail");
-	const coreGrad = uid("sun-core");
-	const glowGrad = uid("sun-glow");
 	const doneClip = uid("sun-done");
 	const aheadClip = uid("sun-ahead");
-	gradient(defs, "linearGradient", areaGrad, { x1: "0", y1: "0", x2: "0", y2: "1" }, [
-		["0%", "#ffb347", 0.38],
-		["100%", "#ffb347", 0.02],
-	]);
-	gradient(defs, "linearGradient", trailGrad, { x1: "0", y1: "0", x2: "1", y2: "0" }, [
-		["0%", "#ff8a3d"],
-		["50%", "#ffc247"],
-		["100%", "#ff7a59"],
-	]);
-	gradient(defs, "radialGradient", coreGrad, { cx: "40%", cy: "38%", r: "65%" }, [
-		["0%", "#fff6c9"],
-		["60%", "#ffd257"],
-		["100%", "#ff9f2e"],
-	]);
-	gradient(defs, "radialGradient", glowGrad, { cx: "50%", cy: "50%", r: "50%" }, [
-		["0%", "#ffc54d", 0.55],
-		["100%", "#ffc54d", 0],
-	]);
-	// The trail is the track clipped to what lies behind the sun; the dashed
-	// track is clipped to what lies ahead, so the two never overlap.
+	// The wave is the track clipped to what lies behind the sun; the flat track
+	// is clipped to what lies ahead, so the two never overlap.
 	const doneRect = defs
 		.createSvg("clipPath", { attr: { id: doneClip } })
 		.createSvg("rect", { attr: { x: "0", y: "0", width: "0", height: "0" } });
@@ -523,27 +541,25 @@ export function paintDaylight(
 
 	// Everything that depends on the box lives in here and is redrawn on resize.
 	const layer = svg.createSvg("g");
-	// A plumb line from the sun to the horizon marks "now" on the clock.
-	const plumb = svg.createSvg("line", { cls: "hearth-sun-plumb" });
 	const sun = svg.createSvg("g", { cls: "hearth-sun-body" });
-	sun.createSvg("circle", { cls: "hearth-sun-glow", attr: { r: "20", fill: `url(#${glowGrad})` } });
-	const rays = sun.createSvg("g", { cls: "hearth-sun-rays" });
-	for (let i = 0; i < 8; i++) {
-		const a = (i / 8) * Math.PI * 2;
-		rays.createSvg("line", {
-			attr: {
-				x1: (Math.cos(a) * 10).toFixed(2),
-				y1: (Math.sin(a) * 10).toFixed(2),
-				x2: (Math.cos(a) * 13.5).toFixed(2),
-				y2: (Math.sin(a) * 13.5).toFixed(2),
-			},
-		});
-	}
-	sun.createSvg("circle", { cls: "hearth-sun-core", attr: { r: "7", fill: `url(#${coreGrad})` } });
+	sun.createSvg("circle", { cls: "hearth-sun-glow", attr: { r: "20" } });
+	// The sunny shape turns in a group of its own; the body is moved by script.
+	sun.createSvg("g", { cls: "hearth-sun-spin" }).createSvg("path", {
+		cls: "hearth-sun-shape",
+		attr: { d: shapePath(0, 0, 12.5, 8, 0.12) },
+	});
 
 	let box = arcBox(300, 112);
 
-	/** Draw the horizon, the ground and the arcs for the current box. */
+	/** Height of the sun over (negative: under) the horizon at `minute`. */
+	const liftAt = (minute: number): number => {
+		if (polar) return isDay ? box.day : -box.night;
+		const arc = sunArc(minute, sunrise, sunset, times.nextSunrise);
+		const lift = 4 * arc.progress * (1 - arc.progress);
+		return arc.isDay ? box.day * lift : -box.night * lift;
+	};
+
+	/** Draw the ground, the tracks and the horizon for the current box. */
 	const draw = (): void => {
 		layer.empty();
 		const { w, h, horizon } = box;
@@ -553,24 +569,37 @@ export function paintDaylight(
 			attr: { x: "0", y: horizon.toFixed(1), width: String(w), height: (h - horizon).toFixed(1) },
 		});
 		if (!polar) {
-			const nextSunrise = times.nextSunrise ?? sunrise + 1440;
-			const dayPath = parabola(box, sunrise, sunset, box.day);
-			const track = [
-				parabola(box, sunset - 1440, sunrise, -box.night),
-				dayPath,
-				parabola(box, sunset, nextSunrise, -box.night),
-			].join(" ");
+			// The whole track, from yesterday's sunset to tomorrow's sunrise, a
+			// point every couple of pixels: flat ahead of the sun, a wave behind.
+			const from = sunset - 1440;
+			const to = times.nextSunrise ?? sunrise + 1440;
+			// Sampled finely: the wave is laid along the distance travelled, and
+			// the arc's steep flanks cover far more of it per minute than its top.
+			const step = 1440 / Math.max((w - box.pad * 2) * 3, 180);
+			const points: { x: number; y: number }[] = [];
+			for (let m = from; m <= to + step; m += step) {
+				const minute = Math.min(m, to);
+				points.push({ x: arcX(box, minute), y: horizon - liftAt(minute) });
+			}
+			const line = `M ${points.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ")}`;
+			// The day already had, as a flat tonal field under the arc.
+			const x1 = arcX(box, sunrise).toFixed(1);
+			const x2 = arcX(box, sunset).toFixed(1);
+			const top = (horizon - 2 * box.day).toFixed(1);
 			layer.createSvg("path", {
 				cls: "hearth-sun-area",
-				attr: { d: `${dayPath} Z`, fill: `url(#${areaGrad})`, "clip-path": `url(#${doneClip})` },
+				attr: {
+					d: `M ${x1} ${horizon} Q ${((arcX(box, sunrise) + arcX(box, sunset)) / 2).toFixed(1)} ${top} ${x2} ${horizon} Z`,
+					"clip-path": `url(#${doneClip})`,
+				},
 			});
 			layer.createSvg("path", {
 				cls: "hearth-sun-track",
-				attr: { d: track, "clip-path": `url(#${aheadClip})` },
+				attr: { d: line, "clip-path": `url(#${aheadClip})` },
 			});
 			layer.createSvg("path", {
 				cls: "hearth-sun-trail",
-				attr: { d: track, stroke: `url(#${trailGrad})`, "clip-path": `url(#${doneClip})` },
+				attr: { d: wavePath(points, 2.4, 26), "clip-path": `url(#${doneClip})` },
 			});
 		}
 		layer.createSvg("line", {
@@ -581,32 +610,22 @@ export function paintDaylight(
 			for (const minute of [sunrise, sunset]) {
 				layer.createSvg("circle", {
 					cls: "hearth-sun-mark",
-					attr: { cx: arcX(box, minute).toFixed(1), cy: horizon.toFixed(1), r: "3" },
+					attr: { cx: arcX(box, minute).toFixed(1), cy: horizon.toFixed(1), r: "4.5" },
 				});
 			}
 		}
 	};
 
 	let shown = minuteAt(ms0);
-	/** Stand the sun at `minute`, and draw the trail up to it. */
+	/** Stand the sun at `minute`, and draw the wave up to it. */
 	const place = (minute: number): void => {
 		shown = minute;
-		let y = box.horizon;
-		if (polar) y = isDay ? box.horizon - box.day : box.horizon + box.night;
-		else {
-			const arc = sunArc(minute, sunrise, sunset, times.nextSunrise);
-			const lift = 4 * arc.progress * (1 - arc.progress);
-			y = arc.isDay ? box.horizon - box.day * lift : box.horizon + box.night * lift;
-		}
 		const x = arcX(box, minute);
+		const y = box.horizon - liftAt(minute);
 		sun.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
 		doneRect.setAttribute("width", x.toFixed(1));
 		aheadRect.setAttribute("x", x.toFixed(1));
 		aheadRect.setAttribute("width", Math.max(box.w - x, 0).toFixed(1));
-		plumb.setAttribute("x1", x.toFixed(1));
-		plumb.setAttribute("x2", x.toFixed(1));
-		plumb.setAttribute("y1", y.toFixed(1));
-		plumb.setAttribute("y2", box.horizon.toFixed(1));
 	};
 
 	/** The "in 3 h 12 min" under the headline. */
@@ -637,18 +656,13 @@ export function paintDaylight(
 	// ---- The foot: sunrise, the length of the day, sunset ----
 	if (day && !polar) {
 		const foot = wrap.createDiv("hearth-sun-foot");
-		const end = (icon: string, text: string): void => {
-			const el = foot.createDiv("hearth-sun-foot-end");
-			setIcon(el.createSpan("hearth-sun-foot-icon"), icon);
-			el.createSpan({ text });
-		};
-		end("sunrise", formatHour(day.sunrise, opts.hour12));
+		chip(foot, "hearth-sun-end", "sunrise", formatHour(day.sunrise, opts.hour12));
 		const { h, m } = splitMinutes(sunset - sunrise);
 		foot.createDiv({
 			cls: "hearth-sun-length",
 			text: strings.daylight.dayLength(strings.duration(h, m)),
 		});
-		end("sunset", formatHour(day.sunset, opts.hour12));
+		chip(foot, "hearth-sun-end", "sunset", formatHour(day.sunset, opts.hour12));
 	}
 	if (opts.updated) wrap.createDiv({ cls: "hearth-weather-updated", text: opts.updated });
 
@@ -656,7 +670,7 @@ export function paintDaylight(
 	const target = minuteAt(ms0);
 	sayUntil(target);
 	// The entrance: the sun sets off from the horizon it last crossed and walks
-	// the arc up to the hour, drawing its trail behind it.
+	// the arc up to the hour, drawing its wave behind it.
 	const start = polar ? target : isDay ? sunrise : target < sunrise ? sunset - 1440 : sunset;
 	const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 	if (opts.animate && opts.intro && !reduced && target - start > 1) {

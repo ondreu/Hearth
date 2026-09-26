@@ -2867,9 +2867,13 @@ export const en = {
 			animateDesc:
 				"Drifting clouds, falling rain and twinkling stars. Always off in low power mode.",
 			animateMoonDesc:
-				"A glowing moon under twinkling stars. Always off in low power mode.",
+				"The moon rises into place and floats, its shape turns and the stars twinkle. Always off in low power mode.",
 			animateSunDesc:
-				"The sun walks its arc up to the hour and glows there. Always off in low power mode.",
+				"The sun walks its arc up to the hour and turns there. Always off in low power mode.",
+			moonLayout: "Layout",
+			moonLayoutDesc: "Everything about tonight's moon, or just the moon and where it is in the month.",
+			moonLayoutFull: "Full (night sky and details)",
+			moonLayoutClean: "Clean (moon and month)",
 
 			units: "Units",
 			tempUnit: "Temperature",

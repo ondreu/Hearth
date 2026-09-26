@@ -11,7 +11,7 @@ import {
 	SYNODIC_MONTH,
 	wallClockAt,
 } from "../src/astro";
-import { arcBox, litPath } from "../src/cards/weatherastro";
+import { arcBox, litPath, shapePath, wavePath } from "../src/cards/weatherastro";
 
 /**
  * The moon and daylight styles' clockwork. The low-precision series the moon
@@ -204,5 +204,46 @@ describe("arcBox", () => {
 			expect(box.horizon + box.night).toBeLessThanOrEqual(box.h);
 			expect(box.day).toBeGreaterThan(box.night);
 		}
+	});
+});
+
+/** Every point of a path written as "M x y L x y … [Z]". */
+function pointsOf(d: string): { x: number; y: number }[] {
+	const nums = d.replace(/[MLZ]/g, " ").trim().split(/\s+/).map(Number);
+	const out: { x: number; y: number }[] = [];
+	for (let i = 0; i + 1 < nums.length; i += 2) out.push({ x: nums[i], y: nums[i + 1] });
+	return out;
+}
+
+describe("shapePath", () => {
+	it("swells and dips around the radius by the depth, and closes", () => {
+		const d = shapePath(50, 50, 40, 9, 0.05);
+		expect(d.endsWith("Z")).toBe(true);
+		const radii = pointsOf(d).map((p) => Math.hypot(p.x - 50, p.y - 50));
+		expect(Math.max(...radii)).toBeCloseTo(42, 1);
+		expect(Math.min(...radii)).toBeGreaterThanOrEqual(37.9);
+	});
+
+	it("points its first lobe straight up", () => {
+		const [first] = pointsOf(shapePath(0, 0, 10, 8, 0.1));
+		expect(first.x).toBeCloseTo(0, 5);
+		expect(first.y).toBeCloseTo(-11, 5);
+	});
+});
+
+describe("wavePath", () => {
+	it("waves a straight line by no more than the amplitude, across it", () => {
+		const line = Array.from({ length: 101 }, (_, i) => ({ x: i, y: 10 }));
+		const wave = pointsOf(wavePath(line, 3, 20));
+		expect(wave).toHaveLength(101);
+		const offsets = wave.map((p) => p.y - 10);
+		expect(Math.max(...offsets)).toBeCloseTo(3, 1);
+		expect(Math.min(...offsets)).toBeCloseTo(-3, 1);
+		// Across the line, never along it.
+		wave.forEach((p, i) => expect(p.x).toBeCloseTo(i, 5));
+	});
+
+	it("draws nothing for fewer than two points", () => {
+		expect(wavePath([{ x: 0, y: 0 }], 3, 20)).toBe("");
 	});
 });

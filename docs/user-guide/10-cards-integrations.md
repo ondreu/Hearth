@@ -253,6 +253,10 @@ coordinates by hand still works.
 | *Moon* | Tonight's moon in its real phase on a night sky, with how much of it is lit, the next full and new moon, and today's moonrise and moonset |
 | *Daylight* | The sun on a parabola from sunrise to sunset, the time of the next sunset (or sunrise) and how long until it, and the day's length |
 
+*Moon* has a *Layout* setting: *Full* (the moon with its name, the month's
+slider and the next full and new moon, moonrise and moonset) or *Clean* (just the
+moon and the slider, with the phase as the hover text).
+
 *Moon* and *Daylight* make no extra request: the moon is worked out on your
 device from the time and the card's coordinates, and the sun's arc from the
 forecast's sunrise and sunset. Both use the place's own clock. On them, *What to
@@ -260,8 +264,9 @@ display* offers only the place name, last updated and — on *Daylight* — the
 condition, shown as a small glyph and temperature.
 
 *Animate the sky* adds drifting clouds, falling rain and twinkling stars; on
-*Moon* a breathing glow, and on *Daylight* the sun walking its arc up to the
-hour. It is always off in low power mode.
+*Moon* the moon rising into place, its shape turning and the slider filling, and
+on *Daylight* the sun walking its arc up to the hour. It is always off in low
+power mode.
 
 Clicking a card opens the full forecast, hour by hour.
 

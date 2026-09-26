@@ -2875,9 +2875,13 @@ export const de: Translations = {
 			animateDesc:
 				"Ziehende Wolken, fallender Regen und funkelnde Sterne. Im Stromsparmodus immer aus.",
 			animateMoonDesc:
-				"Ein leuchtender Mond unter funkelnden Sternen. Im Stromsparmodus immer aus.",
+				"Der Mond steigt auf und schwebt, seine Form dreht sich, die Sterne funkeln. Im Stromsparmodus immer aus.",
 			animateSunDesc:
-				"Die Sonne wandert ihren Bogen bis zur aktuellen Stunde und leuchtet dort. Im Stromsparmodus immer aus.",
+				"Die Sonne wandert ihren Bogen bis zur aktuellen Stunde und dreht sich dort. Im Stromsparmodus immer aus.",
+			moonLayout: "Aufbau",
+			moonLayoutDesc: "Alles über den heutigen Mond oder nur der Mond und wo er im Monat steht.",
+			moonLayoutFull: "Vollständig (Nachthimmel und Details)",
+			moonLayoutClean: "Schlicht (Mond und Monat)",
 
 			units: "Einheiten",
 			tempUnit: "Temperatur",

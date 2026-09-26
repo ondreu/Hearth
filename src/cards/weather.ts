@@ -74,6 +74,8 @@ interface Resolved {
 	hourlyCount: number;
 	dailyCount: number;
 	animate: boolean;
+	/** The moon style's layout. */
+	moonLayout: "full" | "clean";
 	/** Fraction of the painted sky's field to draw (see skyDensity in types.ts).
 	 * 1 on every tier but "balanced". */
 	density: number;
@@ -142,6 +144,7 @@ export function resolveConfig(cfg: WeatherConfig, lowPower = false, density = 1)
 		// A still tier stops every animation Hearth runs; the painted sky is no
 		// exception, and it is the most expensive one on the board.
 		animate: (cfg.animate ?? true) && !lowPower,
+		moonLayout: cfg.moonLayout ?? "full",
 		density,
 	};
 }
@@ -603,6 +606,7 @@ function astroOptions(snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved
 		hour12: r.hour12,
 		animate: r.animate,
 		intro,
+		clean: r.moonLayout === "clean",
 		now: r.showCondition
 			? {
 				icon: weatherIcon(snapshot.now.code, snapshot.now.isDay),
@@ -682,9 +686,11 @@ export function renderWeather(
 	// so a reading scales to the card's height as well as its width instead of
 	// being cut in half on a short card.
 	body.addClass("hearth-weather-host");
-	// The artistic sky and the moon's night are edge-to-edge; the others keep
-	// the card's own padding.
-	if (r.style === "artistic" || r.style === "moon") body.addClass("hearth-weather-flush");
+	// The artistic sky and the moon's night are edge-to-edge; the others — the
+	// clean moon among them — keep the card's own padding.
+	if (r.style === "artistic" || (r.style === "moon" && r.moonLayout !== "clean")) {
+		body.addClass("hearth-weather-flush");
+	}
 
 	// Async loads may resolve after the card is torn down and rebuilt; ignore them.
 	let destroyed = false;
@@ -1223,6 +1229,23 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 		});
 
+	if (style === "moon") {
+		new Setting(containerEl)
+			.setName(strings.moonLayout)
+			.setDesc(strings.moonLayoutDesc)
+			.addDropdown((d) => {
+				d.addOption("full", strings.moonLayoutFull);
+				d.addOption("clean", strings.moonLayoutClean);
+				d.setValue(cfg.moonLayout ?? "full").onChange((v) => {
+					cfg.moonLayout = v === "clean" ? "clean" : undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+					// The clean layout has nothing for the display toggles to show.
+					ctx.requestRender();
+				});
+			});
+	}
+
 	if (style === "artistic" || style === "moon" || style === "daylight") {
 		new Setting(containerEl)
 			.setName(strings.animate)
@@ -1293,7 +1316,9 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 		});
 
 	// ---- What to display ----
-	new Setting(containerEl).setName(strings.display).setHeading();
+	// The clean moon writes nothing on the card, so it has nothing to toggle.
+	const cleanMoon = style === "moon" && cfg.moonLayout === "clean";
+	if (!cleanMoon) new Setting(containerEl).setName(strings.display).setHeading();
 
 	/** One display toggle. `defaultOn` decides which way the stored value is
 	 * flipped, so the config only ever holds the non-default. */
@@ -1318,7 +1343,9 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 	// The moon and daylight styles are about the sky, not the forecast: the
 	// metric toggles and forecast strips have nowhere to go on them.
 	const skyClock = style === "moon" || style === "daylight";
-	toggle(strings.showLocation, "", () => cfg.showLocation, (v) => (cfg.showLocation = v), true);
+	if (!cleanMoon) {
+		toggle(strings.showLocation, "", () => cfg.showLocation, (v) => (cfg.showLocation = v), true);
+	}
 	if (style !== "moon") {
 		toggle(strings.showCondition, "", () => cfg.showCondition, (v) => (cfg.showCondition = v), true);
 	}
@@ -1332,7 +1359,9 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 		toggle(strings.showPressure, "", () => cfg.showPressure, (v) => (cfg.showPressure = v), false);
 		toggle(strings.showSun, "", () => cfg.showSun, (v) => (cfg.showSun = v), false);
 	}
-	toggle(strings.showUpdated, "", () => cfg.showUpdated, (v) => (cfg.showUpdated = v), false);
+	if (!cleanMoon) {
+		toggle(strings.showUpdated, "", () => cfg.showUpdated, (v) => (cfg.showUpdated = v), false);
+	}
 
 	if (style !== "minimal" && !skyClock) {
 		countSlider(ctx, containerEl, {

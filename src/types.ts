@@ -1228,6 +1228,10 @@ export interface WeatherConfig {
 	 * the moon's glow, or the sun's walk along its arc. Default true; forced off
 	 * from the `reduced` tier down. */
 	animate?: boolean;
+	/** The moon style's layout: "full" is the moon on a night sky with its
+	 * name, the month's track and the next full and new moon; "clean" is just
+	 * the moon and the track, on the card's own surface. Default "full". */
+	moonLayout?: "full" | "clean";
 
 	// ---- Refresh ----
 	/** Auto-refresh interval in minutes. 0 means "only when opened or refreshed
