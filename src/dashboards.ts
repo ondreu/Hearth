@@ -1430,6 +1430,22 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					dash.backgroundSkyAnimate = v;
 				},
 			);
+			const sky = t().settings.background;
+			const designs = {
+				classic: sky.skyDesignClassic,
+				expressive: sky.skyDesignExpressive,
+			};
+			this.overrideChoice(
+				containerEl,
+				t().dashboards.modal.skyDesign,
+				t().dashboards.modal.skyDesignDesc,
+				dash.backgroundSkyDesign,
+				designs,
+				designs[this.view.plugin.settings.backgroundSkyDesign ?? "classic"],
+				(v) => {
+					dash.backgroundSkyDesign = v;
+				},
+			);
 		}
 
 		if (!bg || bg.kind === "none") return;

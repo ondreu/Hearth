@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveConfig } from "../src/cards/weather";
-import { applySettings, sanitizeCard } from "../src/layout";
-import { DEFAULT_SETTINGS, type HomeSettings } from "../src/types";
+import { applySettings, sanitizeCard, sanitizeDashboard } from "../src/layout";
+import { DEFAULT_SETTINGS, effectiveSkyDesign, type HomeSettings } from "../src/types";
 
 /**
  * The weather card's *Design* (Classic or Expressive), the moon style's
@@ -51,5 +51,31 @@ describe("the weather background's design", () => {
 		applySettings(s, { backgroundSkyDesign: "neon" });
 		applySettings(s, {});
 		expect(s.backgroundSkyDesign).toBe("expressive");
+	});
+});
+
+describe("a board's own sky design", () => {
+	const vault = (): HomeSettings => {
+		const s = structuredClone(DEFAULT_SETTINGS);
+		s.dashboards = [{ id: "home", name: "Home", cards: [] }];
+		s.activeDashboardId = "home";
+		return s;
+	};
+
+	it("follows the vault until the board says otherwise", () => {
+		const s = vault();
+		expect(effectiveSkyDesign(s)).toBe("classic");
+		s.backgroundSkyDesign = "expressive";
+		expect(effectiveSkyDesign(s)).toBe("expressive");
+		s.dashboards[0].backgroundSkyDesign = "classic";
+		expect(effectiveSkyDesign(s)).toBe("classic");
+	});
+
+	it("survives a saved layout, and drops a value it doesn't know", () => {
+		const s = vault();
+		const kept = sanitizeDashboard({ id: "b", name: "B", cards: [], backgroundSkyDesign: "expressive" }, s, 0);
+		expect(kept?.backgroundSkyDesign).toBe("expressive");
+		const dropped = sanitizeDashboard({ id: "c", name: "C", cards: [], backgroundSkyDesign: "neon" }, s, 1);
+		expect(dropped?.backgroundSkyDesign).toBeUndefined();
 	});
 });

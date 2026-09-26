@@ -1732,6 +1732,8 @@ export function sanitizeDashboard(
 	}
 	if (typeof r.backgroundSkyAnimate === "boolean")
 		dash.backgroundSkyAnimate = r.backgroundSkyAnimate;
+	if (r.backgroundSkyDesign === "classic" || r.backgroundSkyDesign === "expressive")
+		dash.backgroundSkyDesign = r.backgroundSkyDesign;
 	// Only "plugin" is carried: anything else — including a mode from a newer
 	// Hearth this build can't render — is left off, so the board imports as the
 	// cards board it also is. Its `cards` came through above either way.

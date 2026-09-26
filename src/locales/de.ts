@@ -641,6 +641,9 @@ export const de: Translations = {
 			skyAnimateStateOff: "still",
 			skyAnimateOptionOn: "Animieren",
 			skyAnimateOptionOff: "Stillhalten",
+			skyDesign: "Himmel-Design",
+			skyDesignDesc:
+				"Der klassische gemalte Himmel oder der flache im Stil von Material 3 Expressive, auf diesem Board.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Standard auf einem Plugin-Board (${state})`,
 			visibilityShown: "angezeigt",

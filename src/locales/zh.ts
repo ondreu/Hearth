@@ -587,6 +587,8 @@ export const zh: Translations = {
 			skyAnimateStateOff: "静止",
 			skyAnimateOptionOn: "启用动画",
 			skyAnimateOptionOff: "保持静止",
+			skyDesign: "天空设计",
+			skyDesignDesc: "在此面板上使用经典手绘天空，或 Material 3 Expressive 风格的扁平天空。",
 			visibilityDefaultPlugin: (state: string) => `插件视图面板的默认值（${state}）`,
 			visibilityShown: "显示",
 			visibilityHidden: "隐藏",

@@ -56,6 +56,7 @@ import {
 	effectiveShowSearch,
 	effectiveShowTitle,
 	effectiveSkyAnimate,
+	effectiveSkyDesign,
 	effectiveStackOnNarrow,
 	effectiveSwitcherVisibility,
 	effectiveThemeColorTarget,
@@ -154,6 +155,7 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
 	out.bannerFade = bg.bannerFade;
 	out.bannerFullWidth = bg.bannerFullWidth;
 	out.backgroundSkyAnimate = effectiveSkyAnimate(snap);
+	out.backgroundSkyDesign = effectiveSkyDesign(snap);
 
 	// The title block
 	const header = { ...out.header };

@@ -2082,6 +2082,10 @@ export interface Dashboard extends BannerOverrides {
 	 * performance tier and the reader's reduced-motion preference both still
 	 * override it downwards; this can ask for motion, never insist on it. */
 	backgroundSkyAnimate?: boolean;
+	/** Override how the weather sky is drawn on this board (undefined = follow
+	 * {@link HomeSettings.backgroundSkyDesign}). Beside {@link background} for
+	 * the same reason as {@link backgroundSkyAnimate}. */
+	backgroundSkyDesign?: "classic" | "expressive";
 	/**
 	 * Identity of the *shared work* this board is a copy of, if it is one.
 	 *
@@ -2899,6 +2903,12 @@ function chromeVisibility(
  */
 export function effectiveSkyAnimate(s: HomeSettings): boolean {
 	return (activeDashboard(s).backgroundSkyAnimate ?? s.backgroundSkyAnimate) !== false;
+}
+
+/** How the weather sky is drawn on the active board: its own choice, else the
+ * vault's, else the classic painted sky. */
+export function effectiveSkyDesign(s: HomeSettings): "classic" | "expressive" {
+	return activeDashboard(s).backgroundSkyDesign ?? s.backgroundSkyDesign ?? "classic";
 }
 
 export const HEADER_SCALE_MIN = 0.6;

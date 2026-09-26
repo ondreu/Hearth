@@ -629,6 +629,9 @@ export const en = {
 			skyAnimateStateOff: "still",
 			skyAnimateOptionOn: "Animate",
 			skyAnimateOptionOff: "Hold still",
+			skyDesign: "Sky design",
+			skyDesignDesc:
+				"The classic painted sky, or the flat Material 3 Expressive one, on this board.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Default on a plugin board (${state})`,
 			visibilityShown: "shown",
