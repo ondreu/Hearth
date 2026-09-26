@@ -37,13 +37,14 @@ import {
 } from "../weather";
 import { configuredPlaces, renderPlacePicker } from "../placepicker";
 import { drawSky } from "../sky";
+import { type AstroOptions, moonSummary, paintDaylight, paintMoon } from "./weatherastro";
 import { makeClickable } from "../ui";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
 // ---- Weather ------------------------------------------------------------
 //
-// One card, five styles, from a single number on a transparent card to a
+// One card, seven styles, from a single number on a transparent card to a
 // painted sky that follows the real conditions. They all draw the same
 // snapshot (src/weather.ts) and honour the same "what to display" toggles;
 // what changes is how much of it reaches the surface. See `paintStyle` for the
@@ -593,14 +594,42 @@ function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 	updatedLine(bottom, snapshot, r);
 }
 
-/** Dispatch to the configured style. */
+/** What the moon and daylight styles need from the card (see weatherastro.ts). */
+function astroOptions(snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved, intro: boolean): AstroOptions {
+	return {
+		lat: cfg.place?.lat ?? 0,
+		lon: cfg.place?.lon ?? 0,
+		place: r.showLocation ? cfg.place?.name?.trim() ?? "" : "",
+		hour12: r.hour12,
+		animate: r.animate,
+		intro,
+		now: r.showCondition
+			? {
+				icon: weatherIcon(snapshot.now.code, snapshot.now.isDay),
+				temp: formatTemp(snapshot.now.temp, r.tempUnit),
+			}
+			: null,
+		updated: r.showUpdated ? updatedText(snapshot, r) : "",
+	};
+}
+
+/**
+ * Dispatch to the configured style. Returns the daylight style's tick — the
+ * one style that moves with the clock between fetches — or null.
+ */
 function paintStyle(
 	wrap: HTMLElement,
 	snapshot: WeatherSnapshot,
 	cfg: WeatherConfig,
 	r: Resolved,
-): void {
+	intro = false,
+): ((ms: number) => boolean) | null {
 	switch (r.style) {
+		case "moon":
+			paintMoon(wrap, snapshot, astroOptions(snapshot, cfg, r, intro));
+			return null;
+		case "daylight":
+			return paintDaylight(wrap, snapshot, astroOptions(snapshot, cfg, r, intro));
 		case "minimal":
 			paintMinimal(wrap, snapshot, cfg, r);
 			break;
@@ -618,6 +647,7 @@ function paintStyle(
 			paintCompact(wrap, snapshot, cfg, r);
 			break;
 	}
+	return null;
 }
 
 
@@ -652,8 +682,9 @@ export function renderWeather(
 	// so a reading scales to the card's height as well as its width instead of
 	// being cut in half on a short card.
 	body.addClass("hearth-weather-host");
-	// The artistic sky is edge-to-edge; the others keep the card's own padding.
-	if (r.style === "artistic") body.addClass("hearth-weather-flush");
+	// The artistic sky and the moon's night are edge-to-edge; the others keep
+	// the card's own padding.
+	if (r.style === "artistic" || r.style === "moon") body.addClass("hearth-weather-flush");
 
 	// Async loads may resolve after the card is torn down and rebuilt; ignore them.
 	let destroyed = false;
@@ -661,6 +692,10 @@ export function renderWeather(
 		destroyed = true;
 	});
 	let loading = false;
+	/** The entrance plays on the first reading only, not on every refresh. */
+	let introPlayed = false;
+	/** Walks the daylight style's sun on between repaints; null elsewhere. */
+	let tick: ((ms: number) => boolean) | null = null;
 
 	const wrap = body.createDiv(`hearth-weather is-${r.style}`);
 
@@ -676,9 +711,11 @@ export function renderWeather(
 		if (snapshot) {
 			wrap.setAttribute("role", "button");
 			wrap.setAttribute("tabindex", "0");
-			paintStyle(wrap, snapshot, cfg, r);
+			tick = paintStyle(wrap, snapshot, cfg, r, !introPlayed);
+			introPlayed = true;
 			return;
 		}
+		tick = null;
 		wrap.removeAttribute("role");
 		wrap.removeAttribute("tabindex");
 		if (loading) emptyState(wrap, "cloud-sun", t().cards.weather.loading);
@@ -724,6 +761,16 @@ export function renderWeather(
 	makeClickable(wrap, openDetail, t().cards.weather.detail.open);
 
 	load(false);
+
+	// The sun moves between fetches: walk it on once a minute, and repaint
+	// outright when it crosses the horizon or the day turns over.
+	if (r.style === "daylight") {
+		component.registerInterval(
+			window.setInterval(() => {
+				if (tick && !tick(Date.now())) paint();
+			}, 60_000),
+		);
+	}
 
 	// The TTL above still uses the configured interval; only the timer is
 	// suppressed on the minimal tier, so the card loads on open but never wakes
@@ -822,6 +869,7 @@ export function detailMetrics(snapshot: WeatherSnapshot, r: Resolved): Metric[] 
 			label: strings.sunset,
 			value: day ? formatHour(day.sunset, r.hour12) || "—" : "—",
 		},
+		{ icon: "moon", label: strings.moon.label, value: moonSummary(snapshot.fetched) },
 	];
 }
 
@@ -1164,6 +1212,8 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			d.addOption("detailed", strings.styleDetailed);
 			d.addOption("forecast", strings.styleForecast);
 			d.addOption("artistic", strings.styleArtistic);
+			d.addOption("moon", strings.styleMoon);
+			d.addOption("daylight", strings.styleDaylight);
 			d.setValue(style).onChange((v) => {
 				cfg.style = v as WeatherStyle;
 				ctx.opts.save();
@@ -1173,10 +1223,16 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 		});
 
-	if (style === "artistic") {
+	if (style === "artistic" || style === "moon" || style === "daylight") {
 		new Setting(containerEl)
 			.setName(strings.animate)
-			.setDesc(strings.animateDesc)
+			.setDesc(
+				style === "moon"
+					? strings.animateMoonDesc
+					: style === "daylight"
+						? strings.animateSunDesc
+						: strings.animateDesc,
+			)
 			.addToggle((tg) =>
 				tg.setValue(cfg.animate !== false).onChange((v) => {
 					cfg.animate = v ? undefined : false;
@@ -1259,9 +1315,14 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 		);
 	};
 
+	// The moon and daylight styles are about the sky, not the forecast: the
+	// metric toggles and forecast strips have nowhere to go on them.
+	const skyClock = style === "moon" || style === "daylight";
 	toggle(strings.showLocation, "", () => cfg.showLocation, (v) => (cfg.showLocation = v), true);
-	toggle(strings.showCondition, "", () => cfg.showCondition, (v) => (cfg.showCondition = v), true);
-	if (style !== "minimal") {
+	if (style !== "moon") {
+		toggle(strings.showCondition, "", () => cfg.showCondition, (v) => (cfg.showCondition = v), true);
+	}
+	if (style !== "minimal" && !skyClock) {
 		toggle(strings.showFeelsLike, "", () => cfg.showFeelsLike, (v) => (cfg.showFeelsLike = v), true);
 		toggle(strings.showHighLow, "", () => cfg.showHighLow, (v) => (cfg.showHighLow = v), true);
 		toggle(strings.showHumidity, "", () => cfg.showHumidity, (v) => (cfg.showHumidity = v), false);
@@ -1273,7 +1334,7 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 	}
 	toggle(strings.showUpdated, "", () => cfg.showUpdated, (v) => (cfg.showUpdated = v), false);
 
-	if (style !== "minimal") {
+	if (style !== "minimal" && !skyClock) {
 		countSlider(ctx, containerEl, {
 			name: strings.hourlyCount,
 			desc: strings.hourlyCountDesc,

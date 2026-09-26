@@ -2621,8 +2621,12 @@ export const zh: Translations = {
 			styleDetailed: "详细（指标网格）",
 			styleForecast: "预报（逐小时曲线）",
 			styleArtistic: "艺术（绘制的天空）",
+			styleMoon: "月亮（今晚的月相）",
+			styleDaylight: "日照（太阳的轨迹）",
 			animate: "让天空动起来",
 			animateDesc: "飘动的云、落下的雨与闪烁的星。低功耗模式下始终关闭。",
+			animateMoonDesc: "闪烁星空下发光的月亮。低功耗模式下始终关闭。",
+			animateSunDesc: "太阳沿轨迹走到当前时刻并在那里发光。低功耗模式下始终关闭。",
 
 			units: "单位",
 			tempUnit: "温度",
@@ -3015,6 +3019,36 @@ export const zh: Translations = {
 			/** Compass points, clockwise from north. Indexed by the bearing's
 			 * eighth — keep all eight, in this order. */
 			compass: ["北", "东北", "东", "东南", "南", "西南", "西", "西北"],
+			duration: (h: number, m: number) => (h ? `${h} 小时 ${m} 分钟` : `${m} 分钟`),
+			moon: {
+				label: "月亮",
+				phases: {
+					new: "新月",
+					waxingCrescent: "蛾眉月",
+					firstQuarter: "上弦月",
+					waxingGibbous: "盈凸月",
+					full: "满月",
+					waningGibbous: "亏凸月",
+					lastQuarter: "下弦月",
+					waningCrescent: "残月",
+				},
+				illuminated: (percent: string) => `照亮 ${percent}`,
+				age: (days: number) => `第 ${days} 天（共 29 天）`,
+				nextFull: "满月",
+				nextNew: "新月",
+				moonrise: "月出",
+				moonset: "月落",
+				inDays: (days: number) =>
+					days <= 0 ? "今天" : days === 1 ? "明天" : `${days} 天后`,
+				cycle: "今晚在朔望月中的位置",
+			},
+			daylight: {
+				until: (span: string) => `${span}后`,
+				dayLength: (span: string) => `日照 ${span}`,
+				polarDay: "今天太阳不落",
+				polarNight: "今天太阳不升",
+				arc: "太阳从日出到日落的轨迹",
+			},
 			/** The full-forecast dialog a weather card opens when it is clicked:
 			 * every reading the response carries, whatever the card shows. */
 			detail: {

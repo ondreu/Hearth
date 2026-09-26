@@ -34,6 +34,7 @@ import {
 function response(overrides: Record<string, unknown> = {}): unknown {
 	return {
 		timezone: "Europe/Prague",
+		utc_offset_seconds: 7200,
 		current: {
 			time: "2026-08-08T14:30",
 			temperature_2m: 21.4,
@@ -160,6 +161,7 @@ describe("parseForecast", () => {
 	it("normalises a full response", () => {
 		const snap = snapshot();
 		expect(snap.timezone).toBe("Europe/Prague");
+		expect(snap.utcOffset).toBe(7200);
 		expect(snap.fetched).toBe(1_000);
 		expect(snap.now).toMatchObject({
 			time: "2026-08-08T14:30",
@@ -251,6 +253,8 @@ describe("parseForecast", () => {
 		expect(snap!.hourly).toEqual([]);
 		expect(snap!.daily).toEqual([]);
 		expect(snap!.timezone).toBe("auto");
+		// No offset in the response means none on the snapshot, not a zero.
+		expect(snap!.utcOffset).toBeUndefined();
 	});
 
 	it("rejects anything that isn't a forecast", () => {

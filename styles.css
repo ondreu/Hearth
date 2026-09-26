@@ -4458,6 +4458,589 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	min-width: 0;
 }
 
+/* ======================================================================
+ * Moon style: tonight's moon on a night sky
+ *
+ * Edge-to-edge like the artistic style, and for the same reason: a pale moon
+ * needs a dark sky under it whatever the theme, so the style brings its own.
+ * The phase itself is geometry drawn in src/cards/weatherastro.ts; everything
+ * here is light and motion.
+ * ====================================================================== */
+.hearth-weather.is-moon {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	padding: 14px 16px 12px;
+	gap: 10px;
+	color: #eef1fb;
+	background:
+		radial-gradient(110% 80% at 18% 30%, rgba(92, 116, 196, 0.35) 0%, transparent 60%),
+		radial-gradient(90% 70% at 100% 100%, rgba(60, 40, 110, 0.35) 0%, transparent 70%),
+		linear-gradient(165deg, #172042 0%, #0c1230 55%, #070a1c 100%);
+}
+
+.hearth-moon-stars {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.hearth-moon-main {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex: 1 1 0;
+	min-height: 0;
+}
+
+.hearth-moon-disc {
+	flex: none;
+	height: 100%;
+	max-height: 150px;
+	min-height: 44px;
+	aspect-ratio: 1;
+}
+
+.hearth-moon-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.hearth-moon-dark {
+	fill: #252b42;
+}
+
+.hearth-moon-maria ellipse {
+	fill: #6f6752;
+	opacity: 0.22;
+}
+
+/* Rimmed, not filled: a darker floor with a light lip reads as a crater where a
+ * plain dot reads as a spot. */
+.hearth-moon-craters circle {
+	fill: rgba(95, 88, 70, 0.14);
+	stroke: rgba(255, 255, 255, 0.32);
+	stroke-width: 0.5;
+}
+
+.hearth-moon-rim {
+	fill: none;
+	stroke: rgba(255, 255, 255, 0.1);
+	stroke-width: 0.6;
+}
+
+.hearth-moon-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.hearth-moon-place {
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0.62;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-moon-name {
+	font-size: clamp(1.05rem, 12cqh, 1.85rem);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	line-height: 1.12;
+}
+
+.hearth-moon-sub {
+	font-size: 0.8rem;
+	opacity: 0.72;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The month as a track, dark at both new moons and bright at the full one. */
+.hearth-moon-cycle {
+	flex: none;
+	padding: 3px 0;
+}
+
+.hearth-moon-track {
+	position: relative;
+	height: 5px;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #2b3353 0%, #9aa0b8 25%, #f5efd9 50%, #9aa0b8 75%, #2b3353 100%);
+}
+
+.hearth-moon-tick {
+	position: absolute;
+	top: 50%;
+	width: 3px;
+	height: 3px;
+	margin-inline-start: -1.5px;
+	margin-top: -1.5px;
+	border-radius: 50%;
+	background: rgba(7, 10, 28, 0.55);
+}
+
+.hearth-moon-marker {
+	position: absolute;
+	top: 50%;
+	width: 12px;
+	height: 12px;
+	margin-inline-start: -6px;
+	margin-top: -6px;
+	border-radius: 50%;
+	background: #fffaf0;
+	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0 12px 2px rgba(255, 240, 200, 0.7);
+}
+
+.hearth-moon-facts {
+	flex: none;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 6px;
+}
+
+.hearth-moon-fact {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 6px 9px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hearth-moon-fact-icon {
+	display: flex;
+	flex: none;
+	opacity: 0.7;
+}
+
+.hearth-moon-fact-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-moon-fact-text {
+	min-width: 0;
+}
+
+.hearth-moon-fact-label {
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	opacity: 0.58;
+}
+
+.hearth-moon-fact-value {
+	font-size: 0.8rem;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-moon-fact-note {
+	margin-inline-start: 6px;
+	font-size: 0.7rem;
+	font-weight: 400;
+	opacity: 0.6;
+}
+
+.hearth-moon-updated {
+	font-size: 0.66rem;
+	opacity: 0.5;
+}
+
+/* Motion: the halo breathes, the moon hangs and sways a little, the marker
+ * glows. The entrance lifts the moon into place once, on the first reading. */
+.is-moon.is-animated .hearth-moon-halo {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-moon-breathe 7s ease-in-out infinite;
+}
+
+.is-moon.is-animated .hearth-moon-svg {
+	animation: hearth-moon-float 11s ease-in-out infinite;
+}
+
+.is-moon.is-animated .hearth-moon-marker {
+	animation: hearth-moon-pulse 3.5s ease-in-out infinite;
+}
+
+.is-moon.is-intro .hearth-moon-disc {
+	animation: hearth-moon-rise 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.is-moon.is-intro .hearth-moon-text,
+.is-moon.is-intro .hearth-moon-cycle,
+.is-moon.is-intro .hearth-moon-facts {
+	animation: hearth-moon-fade 0.9s ease-out 0.25s both;
+}
+
+@keyframes hearth-moon-breathe {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.07);
+	}
+}
+
+@keyframes hearth-moon-float {
+	0%,
+	100% {
+		transform: translateY(0) rotate(0deg);
+	}
+	50% {
+		transform: translateY(-3px) rotate(-2deg);
+	}
+}
+
+@keyframes hearth-moon-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0 10px 1px rgba(255, 240, 200, 0.55);
+	}
+	50% {
+		box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.1), 0 0 16px 4px rgba(255, 240, 200, 0.85);
+	}
+}
+
+@keyframes hearth-moon-rise {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.92);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes hearth-moon-fade {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Wide: the four facts in one row. */
+@container (min-width: 460px) {
+	.hearth-moon-facts {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+/* Short: the facts go first, then the track — the moon and its name stay. */
+@container (max-height: 210px) {
+	.hearth-moon-facts {
+		display: none;
+	}
+}
+
+@container (max-height: 120px) {
+	.hearth-weather.is-moon {
+		padding: 8px 12px;
+	}
+
+	.hearth-moon-cycle,
+	.hearth-moon-sub,
+	.hearth-moon-updated {
+		display: none;
+	}
+}
+
+
+/* ======================================================================
+ * Daylight style: the sun's arc
+ *
+ * Follows the theme like the plain styles; only the sun and the stretch of sky
+ * it has already crossed are warm. The arc is laid out in script for whatever
+ * room the stage has, so it always spans the card's full width.
+ * ====================================================================== */
+.hearth-weather.is-daylight {
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	gap: 6px;
+}
+
+.hearth-sun-head {
+	flex: none;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.hearth-sun-lead {
+	min-width: 0;
+}
+
+.hearth-sun-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--text-muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.hearth-sun-kicker-icon {
+	display: flex;
+	color: #f08a3c;
+}
+
+.is-night .hearth-sun-kicker-icon {
+	color: var(--color-blue);
+}
+
+.hearth-sun-kicker-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-sun-time {
+	font-size: clamp(1.4rem, 15cqh, 2.5rem);
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.08;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-sun-until {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-sun-side {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	min-width: 0;
+}
+
+.hearth-sun-now {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px 3px 8px;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	font-size: 0.86rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-sun-now-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-sun-now-icon .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.hearth-sun-place {
+	max-width: 100%;
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-sun-stage {
+	flex: 1 1 0;
+	min-height: 36px;
+	position: relative;
+}
+
+/* Laid out in the stage's own pixels (see arcBox), so it simply fills it. */
+.hearth-sun-arc {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.hearth-sun-ground {
+	fill: var(--background-modifier-hover);
+	opacity: 0.7;
+}
+
+.hearth-sun-track {
+	fill: none;
+	stroke: var(--text-faint);
+	stroke-width: 1.3;
+	stroke-dasharray: 2 4;
+	stroke-linecap: round;
+	opacity: 0.6;
+}
+
+.hearth-sun-trail {
+	fill: none;
+	stroke-width: 2.6;
+	stroke-linecap: round;
+}
+
+.hearth-sun-horizon {
+	stroke: var(--text-faint);
+	stroke-width: 1;
+	opacity: 0.55;
+}
+
+.hearth-sun-mark {
+	fill: var(--background-primary);
+	stroke: var(--text-muted);
+	stroke-width: 1.2;
+}
+
+.hearth-sun-plumb {
+	stroke: #f5a340;
+	stroke-width: 1;
+	stroke-dasharray: 2 3;
+	opacity: 0.55;
+}
+
+.hearth-sun-rays line {
+	stroke: #ffbe45;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+}
+
+/* By night the sun is under the horizon: dimmed, without its rays, and the
+ * trail it left cools off. */
+.is-night .hearth-sun-core {
+	filter: saturate(0.35) brightness(0.85);
+}
+
+.is-night .hearth-sun-rays {
+	display: none;
+}
+
+.is-night .hearth-sun-glow {
+	opacity: 0.3;
+}
+
+.is-night .hearth-sun-trail,
+.is-night .hearth-sun-plumb {
+	opacity: 0.7;
+}
+
+.hearth-sun-foot {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--text-muted);
+	font-size: 0.76rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-sun-foot-end {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.hearth-sun-foot-icon {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.hearth-sun-foot-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-sun-length {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.is-daylight.is-animated .hearth-sun-rays {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-sun-spin 30s linear infinite;
+}
+
+.is-daylight.is-animated .hearth-sun-glow {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: hearth-sun-glow 4s ease-in-out infinite;
+}
+
+@keyframes hearth-sun-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes hearth-sun-glow {
+	0%,
+	100% {
+		transform: scale(0.9);
+	}
+	50% {
+		transform: scale(1.15);
+	}
+}
+
+@container (max-height: 150px) {
+	.hearth-sun-length,
+	.hearth-sun-place {
+		display: none;
+	}
+}
+
+@container (max-height: 110px) {
+	.hearth-sun-foot,
+	.hearth-sun-until {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-weather.is-moon *,
+	.hearth-weather.is-daylight * {
+		animation: none !important;
+	}
+}
+
+
 /* ---- The full forecast ----
  *
  * A weather card is a glance at a snapshot the API sent in full, so clicking

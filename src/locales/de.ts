@@ -2869,9 +2869,15 @@ export const de: Translations = {
 			styleDetailed: "Detailliert (Kennzahlenraster)",
 			styleForecast: "Vorhersage (Stundenkurve)",
 			styleArtistic: "Künstlerisch (gemalter Himmel)",
+			styleMoon: "Mond (heutige Phase)",
+			styleDaylight: "Tageslicht (Sonnenbogen)",
 			animate: "Himmel animieren",
 			animateDesc:
 				"Ziehende Wolken, fallender Regen und funkelnde Sterne. Im Stromsparmodus immer aus.",
+			animateMoonDesc:
+				"Ein leuchtender Mond unter funkelnden Sternen. Im Stromsparmodus immer aus.",
+			animateSunDesc:
+				"Die Sonne wandert ihren Bogen bis zur aktuellen Stunde und leuchtet dort. Im Stromsparmodus immer aus.",
 
 			units: "Einheiten",
 			tempUnit: "Temperatur",
@@ -3283,6 +3289,36 @@ export const de: Translations = {
 			/** Himmelsrichtungen, im Uhrzeigersinn ab Norden. Über das Achtel
 			 * der Peilung indextiert - alle acht behalten, in dieser Reihenfolge. */
 			compass: ["N", "NO", "O", "SO", "S", "SW", "W", "NW"],
+			duration: (h: number, m: number) => (h ? `${h} Std. ${m} Min.` : `${m} Min.`),
+			moon: {
+				label: "Mond",
+				phases: {
+					new: "Neumond",
+					waxingCrescent: "Zunehmende Sichel",
+					firstQuarter: "Erstes Viertel",
+					waxingGibbous: "Zunehmender Mond",
+					full: "Vollmond",
+					waningGibbous: "Abnehmender Mond",
+					lastQuarter: "Letztes Viertel",
+					waningCrescent: "Abnehmende Sichel",
+				},
+				illuminated: (percent: string) => `${percent} beleuchtet`,
+				age: (days: number) => `Tag ${days} von 29`,
+				nextFull: "Vollmond",
+				nextNew: "Neumond",
+				moonrise: "Mondaufgang",
+				moonset: "Monduntergang",
+				inDays: (days: number) =>
+					days <= 0 ? "Heute" : days === 1 ? "Morgen" : `In ${days} Tagen`,
+				cycle: "Wo die heutige Nacht im Mondmonat steht",
+			},
+			daylight: {
+				until: (span: string) => `in ${span}`,
+				dayLength: (span: string) => `${span} Tageslicht`,
+				polarDay: "Die Sonne geht heute nicht unter",
+				polarNight: "Die Sonne geht heute nicht auf",
+				arc: "Der Weg der Sonne von Aufgang bis Untergang",
+			},
 			/** Der Vollvorhersage-Dialog, den eine Wetterkarte per Klick öffnet:
 			 * alle Messwerte aus der Antwort, egal was die Karte zeigt. */
 			detail: {

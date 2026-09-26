@@ -251,6 +251,10 @@ export interface WeatherSnapshot {
 	daily: WeatherDay[];
 	/** The IANA zone the times above are in. */
 	timezone: string;
+	/** That zone's offset from UTC at fetch time, in seconds. Lets the moon and
+	 * daylight styles read the location's clock between fetches. Absent on a
+	 * response that didn't carry it. */
+	utcOffset?: number;
 	/** Epoch ms when this snapshot was fetched. */
 	fetched: number;
 }
@@ -276,6 +280,7 @@ function at(series: unknown, i: number): unknown {
  * is narrowed by `num`/`str` as it is used. */
 interface RawForecast {
 	timezone?: unknown;
+	utc_offset_seconds?: unknown;
 	current?: Record<string, unknown>;
 	hourly?: Record<string, unknown>;
 	daily?: Record<string, unknown>;
@@ -348,7 +353,10 @@ export function parseForecast(json: unknown, fetched: number): WeatherSnapshot |
 		uv: hourAt(hourly, time)?.uv ?? null,
 	};
 
-	return { now, hourly, daily, timezone: str(raw.timezone) || "auto", fetched };
+	const snapshot: WeatherSnapshot = { now, hourly, daily, timezone: str(raw.timezone) || "auto", fetched };
+	const offset = num(raw.utc_offset_seconds);
+	if (offset !== null) snapshot.utcOffset = offset;
+	return snapshot;
 }
 
 /** The hourly entry covering `time`, matched on the wall clock down to the

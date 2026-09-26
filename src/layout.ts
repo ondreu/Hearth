@@ -1207,6 +1207,8 @@ const WEATHER_STYLES: readonly WeatherStyle[] = [
 	"detailed",
 	"forecast",
 	"artistic",
+	"moon",
+	"daylight",
 ];
 
 /** The place a weather card is set to. Coordinates are the whole value here, so

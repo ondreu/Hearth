@@ -2861,9 +2861,15 @@ export const en = {
 			styleDetailed: "Detailed (metrics grid)",
 			styleForecast: "Forecast (hourly curve)",
 			styleArtistic: "Artistic (painted sky)",
+			styleMoon: "Moon (tonight's phase)",
+			styleDaylight: "Daylight (the sun's arc)",
 			animate: "Animate the sky",
 			animateDesc:
 				"Drifting clouds, falling rain and twinkling stars. Always off in low power mode.",
+			animateMoonDesc:
+				"A glowing moon under twinkling stars. Always off in low power mode.",
+			animateSunDesc:
+				"The sun walks its arc up to the hour and glows there. Always off in low power mode.",
 
 			units: "Units",
 			tempUnit: "Temperature",
@@ -3276,6 +3282,40 @@ export const en = {
 			/** Compass points, clockwise from north. Indexed by the bearing's
 			 * eighth — keep all eight, in this order. */
 			compass: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+			/** A span of time: "3 h 12 min", or just "40 min" under an hour. */
+			duration: (h: number, m: number) => (h ? `${h} h ${m} min` : `${m} min`),
+			/** The moon style, and the moon's line in the full forecast. */
+			moon: {
+				label: "Moon",
+				/** One per phase; see `moonPhaseKey`. */
+				phases: {
+					new: "New moon",
+					waxingCrescent: "Waxing crescent",
+					firstQuarter: "First quarter",
+					waxingGibbous: "Waxing gibbous",
+					full: "Full moon",
+					waningGibbous: "Waning gibbous",
+					lastQuarter: "Last quarter",
+					waningCrescent: "Waning crescent",
+				},
+				illuminated: (percent: string) => `${percent} illuminated`,
+				age: (days: number) => `Day ${days} of 29`,
+				nextFull: "Full moon",
+				nextNew: "New moon",
+				moonrise: "Moonrise",
+				moonset: "Moonset",
+				inDays: (days: number) =>
+					days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`,
+				cycle: "Where tonight sits in the lunar month",
+			},
+			/** The daylight style: the sun on its arc. */
+			daylight: {
+				until: (span: string) => `in ${span}`,
+				dayLength: (span: string) => `${span} of daylight`,
+				polarDay: "The sun doesn't set today",
+				polarNight: "The sun doesn't rise today",
+				arc: "The sun's path from sunrise to sunset",
+			},
 			/** The full-forecast dialog a weather card opens when it is clicked:
 			 * every reading the response carries, whatever the card shows. */
 			detail: {

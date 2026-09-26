@@ -103,6 +103,7 @@ describe("detailMetrics", () => {
 			"UV",
 			"Sunrise",
 			"Sunset",
+			"Moon",
 		]);
 		expect(values.get("Feels like")).toBe("20°C");
 		expect(values.get("Humidity")).toBe("62%");
@@ -117,6 +118,8 @@ describe("detailMetrics", () => {
 		expect(values.get("UV")).toBe("4");
 		expect(values.get("Sunrise")).toBe("05:39");
 		expect(values.get("Sunset")).toBe("20:30");
+		// Worked out locally for the reading's own instant, not fetched.
+		expect(values.get("Moon")).toMatch(/^[A-Z][a-z ]+ · \d+%$/);
 	});
 
 	it("shows a dash for a reading the response left out, never a gap", () => {

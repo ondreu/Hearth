@@ -224,8 +224,8 @@ disabled)* rather than failing silently.
 
 ## Weather
 
-**What it shows:** current conditions and a forecast, in five styles up to a
-full painted sky.
+**What it shows:** current conditions and a forecast, in seven styles up to a
+full painted sky — plus tonight's moon and the sun's path across the day.
 
 **Requires:** network access. Forecasts come from
 [Open-Meteo](https://open-meteo.com) — free, key-less, no account. Only the
@@ -250,9 +250,18 @@ coordinates by hand still works.
 | *Detailed* | A grid of metrics |
 | *Forecast* | An hourly curve |
 | *Artistic* | An edge-to-edge painted sky that follows the real conditions and time of day |
+| *Moon* | Tonight's moon in its real phase on a night sky, with how much of it is lit, the next full and new moon, and today's moonrise and moonset |
+| *Daylight* | The sun on a parabola from sunrise to sunset, the time of the next sunset (or sunrise) and how long until it, and the day's length |
 
-*Animate the sky* adds drifting clouds, falling rain and twinkling stars. It is
-always off in low power mode.
+*Moon* and *Daylight* make no extra request: the moon is worked out on your
+device from the time and the card's coordinates, and the sun's arc from the
+forecast's sunrise and sunset. Both use the place's own clock. On them, *What to
+display* offers only the place name, last updated and — on *Daylight* — the
+condition, shown as a small glyph and temperature.
+
+*Animate the sky* adds drifting clouds, falling rain and twinkling stars; on
+*Moon* a breathing glow, and on *Daylight* the sun walking its arc up to the
+hour. It is always off in low power mode.
 
 Clicking a card opens the full forecast, hour by hour.
 
