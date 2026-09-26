@@ -4749,7 +4749,8 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 .is-moon.is-clean .hearth-moon-disc {
 	flex: 1 1 0;
 	height: auto;
-	max-height: 220px;
+	/* The cookie takes the outer part of the box, so the box runs larger. */
+	max-height: 250px;
 	max-width: 100%;
 }
 

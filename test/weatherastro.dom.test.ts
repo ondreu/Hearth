@@ -97,6 +97,8 @@ describe("drawing the moon", () => {
 		const wrap = document.body.createDiv("hearth-weather is-moon");
 		expect(() => paintMoon(wrap, snapshot(false), options({ clean: true }))).not.toThrow();
 		expect(wrap.querySelector(".hearth-moon-lit")).not.toBeNull();
+		// The same turning cookie behind the moon as the full layout's.
+		expect(wrap.querySelector(".hearth-moon-shape-wrap .hearth-moon-shape")).not.toBeNull();
 		expect(wrap.querySelector(".hearth-moon-slider")).not.toBeNull();
 		expect(wrap.querySelector(".hearth-moon-name")).toBeNull();
 		expect(wrap.querySelector(".hearth-moon-facts")).toBeNull();

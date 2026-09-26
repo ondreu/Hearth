@@ -43,8 +43,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   shape, with the phase's name, how much of it is lit, an expressive slider
   showing where tonight sits in the lunar month, the dates of the next full
   and new moon, and today's moonrise and moonset for the card's place. Its
-  *Layout* setting has a **Clean** option: just the moon and the slider, on the
-  card's own surface. The moon springs into place, floats, and the slider
+  *Layout* setting has a **Clean** option: just the moon on its turning cookie
+  and the slider, on the card's own surface. The moon springs into place, floats, and the slider
   fills to tonight on the first reading.
 
   *Daylight* puts the sun — a turning "sunny" shape — on a parabola from

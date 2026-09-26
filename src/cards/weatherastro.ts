@@ -154,23 +154,21 @@ const CRATERS: [number, number, number][] = [
 	[-0.6, -0.22, 0.05],
 ];
 
-/** The moon itself: the unlit disc, the lit part with a crisp terminator, and
- * its seas and craters on the lit side only. With `shape`, a cookie turns
- * slowly behind it. */
-function drawMoonDisc(parent: HTMLElement, phase: MoonPhase, southern: boolean, shape: boolean): void {
+/** The moon itself, on a cookie that turns slowly behind it: the unlit disc,
+ * the lit part with a crisp terminator, and its seas and craters on the lit
+ * side only. Both layouts draw it the same. */
+function drawMoonDisc(parent: HTMLElement, phase: MoonPhase, southern: boolean): void {
 	const svg = svgRoot(parent, "hearth-moon-svg", "0 0 100 100");
 	const defs = svg.createSvg("defs");
 	const clip = uid("moon-clip");
 	const litClip = uid("moon-litclip");
-	const R = shape ? 33 : 44;
+	const R = 33;
 
-	if (shape) {
-		// Its own group, so the turn and the entrance don't fight over transform.
-		svg.createSvg("g", { cls: "hearth-moon-shape-wrap" }).createSvg("path", {
-			cls: "hearth-moon-shape",
-			attr: { d: shapePath(50, 50, 46, 9, 0.055) },
-		});
-	}
+	// Its own group, so the turn and the entrance don't fight over transform.
+	svg.createSvg("g", { cls: "hearth-moon-shape-wrap" }).createSvg("path", {
+		cls: "hearth-moon-shape",
+		attr: { d: shapePath(50, 50, 46, 9, 0.055) },
+	});
 
 	defs.createSvg("clipPath", { attr: { id: clip } }).createSvg("circle", {
 		attr: { cx: "50", cy: "50", r: String(R) },
@@ -294,7 +292,7 @@ export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: As
 		// Nothing is written on the card, so the phase is the hover text: the
 		// drawing says it, the tooltip names it.
 		const disc = wrap.createDiv({ cls: "hearth-moon-disc", attr: { title: moonSummary(ms) } });
-		drawMoonDisc(disc, phase, opts.lat < 0, false);
+		drawMoonDisc(disc, phase, opts.lat < 0);
 		cycleSlider(wrap, phase);
 		return;
 	}
@@ -309,7 +307,7 @@ export function paintMoon(wrap: HTMLElement, snapshot: WeatherSnapshot, opts: As
 	}
 
 	const main = wrap.createDiv("hearth-moon-main");
-	drawMoonDisc(main.createDiv("hearth-moon-disc"), phase, opts.lat < 0, true);
+	drawMoonDisc(main.createDiv("hearth-moon-disc"), phase, opts.lat < 0);
 	const text = main.createDiv("hearth-moon-text");
 	if (opts.place) text.createDiv({ cls: "hearth-moon-place", text: opts.place });
 	text.createDiv({ cls: "hearth-moon-name", text: strings.phases[phase.key] });
