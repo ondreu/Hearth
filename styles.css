@@ -4199,8 +4199,11 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 /* The artistic style paints the whole card; drop the body's own padding and
- * clip the sky to the card's rounded corners. */
-.hearth-card-body.hearth-weather-flush {
+ * clip the sky to the card's rounded corners. Scoped through `.hearth-card`
+ * so it outranks the compact density's body padding (`.hearth-compact
+ * .hearth-card-body`), which comes later in this file and would otherwise
+ * put a gutter back around the sky. */
+.hearth-card > .hearth-card-body.hearth-weather-flush {
 	padding: 0;
 	overflow: hidden;
 }
