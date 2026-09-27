@@ -124,6 +124,24 @@ export const de: Translations = {
 		placeholder: "Vault durchsuchen",
 		noMatches: "Keine Treffer",
 		noMatchingCommands: "Keine passenden Befehle",
+		instant: {
+			copyHint: "Enter zum Kopieren",
+			openHint: "Enter für Details",
+			copied: (value: string) => `${value} kopiert`,
+			copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
+			loading: "Lädt…",
+			invalid: "Kein gültiger Ausdruck",
+			noQuote: (query: string) => `Keine Marktdaten für „${query}“`,
+			externalOff: "Externe Aufrufe sind in den Hearth-Einstellungen deaktiviert",
+			rate: (from: string, rate: string, to: string) => `1 ${from} = ${rate} ${to}`,
+			days: (n: number) => (Math.abs(n) === 1 ? `${n} Tag` : `${n} Tage`),
+			today: "Heute",
+			inDays: (n: number) => (n === 1 ? "Morgen" : `In ${n} Tagen`),
+			daysAgo: (n: number) => (n === 1 ? "Gestern" : `Vor ${n} Tagen`),
+			week: (n: number) => `KW ${n}`,
+			sameTime: "Gleiche Zeit wie hier",
+			offset: (hours: string) => `${hours} h gegenüber hier`,
+		},
 	},
 
 	// ---- Gemeinsamer Bestätigungsdialog -----------------------------------------
@@ -877,6 +895,13 @@ export const de: Translations = {
 			themeColorTitle: "Titel",
 			themeColorBoth: "Symbol und Titel",
 			searchPlaceholder: "Suchplatzhalter",
+			searchInstantAnswers: "Sofortantworten",
+			searchInstantAnswersDesc:
+				"Beantwortet die Suchanfrage selbst über den Notizen: Rechnungen und " +
+				"Einheiten (1+1, 10 km to mi), Währungen mit Chart (20 CZK to EUR), " +
+				"Kurse nach einem $ ($AAPL, $bitcoin), Daten (days until 2026-12-24) " +
+				"und die Uhrzeit anderswo (time in Tokyo). Währungen und Kurse werden " +
+				"nur auf Anfrage abgerufen.",
 			searchContents: "Notizinhalte durchsuchen",
 			searchContentsDesc:
 				"Finde auch Text in Notizinhalten, nicht nur Namen, Tags und " +

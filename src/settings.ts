@@ -773,6 +773,16 @@ export class HomeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t().settings.appearance.searchInstantAnswers)
+			.setDesc(t().settings.appearance.searchInstantAnswersDesc)
+			.addToggle((t) =>
+				t.setValue(s.searchInstantAnswers).onChange(async (v) => {
+					s.searchInstantAnswers = v;
+					this.save();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(t().settings.appearance.searchEngine)
 			.setDesc(t().settings.appearance.searchEngineDesc)
 			.addDropdown((d) => {

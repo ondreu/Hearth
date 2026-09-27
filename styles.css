@@ -1117,6 +1117,122 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	bottom: calc(100% + 6px);
 }
 
+/* ---- Instant answers (instantview.ts) -------------------------------
+ * A sum, a conversion, a quote, a date or a clock at the top of the results.
+ * The answer's value reads larger than a note name; a quote's move and chart
+ * take the market card's direction colours (`--m-dir`, swapped by
+ * `is-red-up` for readers who read red as a rise). */
+.hearth-instant {
+	--m-up: var(--color-green);
+	--m-down: var(--color-red);
+	--m-flat: var(--text-muted);
+	--m-dir: var(--m-flat);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 6px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-instant.is-red-up {
+	--m-up: var(--color-red);
+	--m-down: var(--color-green);
+}
+
+.hearth-instant .is-up {
+	--m-dir: var(--m-up);
+}
+
+.hearth-instant .is-down {
+	--m-dir: var(--m-down);
+}
+
+.hearth-instant .is-flat {
+	--m-dir: var(--m-flat);
+}
+
+.hearth-instant-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.hearth-instant-value {
+	color: var(--text-normal);
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+}
+
+.hearth-instant-note {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-instant-quote {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.hearth-instant-ccy {
+	color: var(--text-muted);
+	font-size: 0.78rem;
+}
+
+.hearth-instant-move {
+	color: var(--m-dir);
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+.hearth-instant-hint {
+	flex-shrink: 0;
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.hearth-instant-row:hover .hearth-instant-hint,
+.hearth-instant-row.is-selected .hearth-instant-hint {
+	opacity: 1;
+}
+
+.hearth-instant-chart-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 2px 12px 4px;
+}
+
+.hearth-instant-chart {
+	height: 96px;
+}
+
+.hearth-instant-chart-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-faint);
+	font-size: 0.78rem;
+}
+
+.hearth-instant-alt {
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+.hearth-instant-alt .hearth-result-name {
+	font-size: 0.85rem;
+}
+
 /* ---- Filters -------------------------------------------------------- */
 
 /* The chips share out the row's leftover space as gap, growing to at most 48px,

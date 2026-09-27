@@ -784,6 +784,28 @@ function evaluateExpression(input: string, opts: CalcOptions): number {
 }
 
 /**
+ * The two currencies a conversion query names — `20 CZK to EUR` → czk, eur —
+ * or null when the input isn't a currency conversion. A bare pair with no
+ * amount (`czk to eur`) counts too, with `hasAmount` false so the caller can
+ * ask for one unit. Read with the same grammar `evaluate` uses, so whatever
+ * this accepts, `evaluate` can answer once it has rates.
+ */
+export function currencyConversion(
+	rawInput: string,
+): { from: string; to: string; hasAmount: boolean } | null {
+	const input = stripFiller(normalizeCurrencySymbols(rawInput));
+	const m = CONVERSION_RE.exec(input);
+	if (!m) return null;
+	const to = lookupCurrency(m[2]);
+	if (!to) return null;
+	const lone = lookupCurrency(m[1]);
+	if (lone) return { from: lone, to, hasAmount: false };
+	const src = extractTrailingUnit(m[1]);
+	if (!src?.currency) return null;
+	return { from: src.currency, to, hasAmount: true };
+}
+
+/**
  * Evaluate a free-text query and return either a formatted result or an error.
  * This is the single entry point the calculator card calls.
  */

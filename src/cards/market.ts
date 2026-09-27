@@ -320,7 +320,7 @@ function sparkline(parent: HTMLElement, row: Row, r: Resolved): void {
 }
 
 /** The range switcher: one chip per span, the current one filled. */
-function rangeChips(parent: HTMLElement, current: MarketRange, onPick: (range: MarketRange) => void): void {
+export function rangeChips(parent: HTMLElement, current: MarketRange, onPick: (range: MarketRange) => void): void {
 	const row = parent.createDiv("hearth-market-ranges");
 	for (const range of MARKET_RANGES) {
 		const chip = row.createEl("button", {

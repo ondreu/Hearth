@@ -110,6 +110,24 @@ export const en = {
 		placeholder: "Search the vault",
 		noMatches: "No matches",
 		noMatchingCommands: "No matching commands",
+		instant: {
+			copyHint: "Enter to copy",
+			openHint: "Enter for details",
+			copied: (value: string) => `Copied ${value}`,
+			copyFailed: "Couldn't copy to the clipboard",
+			loading: "Loading…",
+			invalid: "Not a valid expression",
+			noQuote: (query: string) => `No market data for “${query}”`,
+			externalOff: "External calls are disabled in Hearth's settings",
+			rate: (from: string, rate: string, to: string) => `1 ${from} = ${rate} ${to}`,
+			days: (n: number) => (Math.abs(n) === 1 ? `${n} day` : `${n} days`),
+			today: "Today",
+			inDays: (n: number) => (n === 1 ? "Tomorrow" : `In ${n} days`),
+			daysAgo: (n: number) => (n === 1 ? "Yesterday" : `${n} days ago`),
+			week: (n: number) => `Week ${n}`,
+			sameTime: "Same time as here",
+			offset: (hours: string) => `${hours} h from here`,
+		},
 	},
 
 	// ---- Shared confirm dialog -----------------------------------------
@@ -866,6 +884,13 @@ export const en = {
 			themeColorTitle: "Title",
 			themeColorBoth: "Icon and title",
 			searchPlaceholder: "Search placeholder",
+			searchInstantAnswers: "Instant answers",
+			searchInstantAnswersDesc:
+				"Answer the query itself above the notes: sums and unit conversions " +
+				"(1+1, 10 km to mi), currencies with a chart (20 CZK to EUR), market " +
+				"quotes after a $ ($AAPL, $bitcoin), dates (days until 2026-12-24) " +
+				"and the time elsewhere (time in Tokyo). Currencies and quotes are " +
+				"fetched only when asked for.",
 			searchContents: "Search note contents",
 			searchContentsDesc:
 				"Also match text inside note bodies, not just names, tags and " +

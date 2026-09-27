@@ -95,6 +95,24 @@ export const zh: Translations = {
 		placeholder: "搜索仓库",
 		noMatches: "无匹配项",
 		noMatchingCommands: "无匹配命令",
+		instant: {
+			copyHint: "按 Enter 复制",
+			openHint: "按 Enter 查看详情",
+			copied: (value: string) => `已复制 ${value}`,
+			copyFailed: "无法复制到剪贴板",
+			loading: "加载中…",
+			invalid: "不是有效的表达式",
+			noQuote: (query: string) => `没有“${query}”的行情数据`,
+			externalOff: "Hearth 设置中已禁用外部请求",
+			rate: (from: string, rate: string, to: string) => `1 ${from} = ${rate} ${to}`,
+			days: (n: number) => `${n} 天`,
+			today: "今天",
+			inDays: (n: number) => (n === 1 ? "明天" : `${n} 天后`),
+			daysAgo: (n: number) => (n === 1 ? "昨天" : `${n} 天前`),
+			week: (n: number) => `第 ${n} 周`,
+			sameTime: "与本地时间相同",
+			offset: (hours: string) => `与本地相差 ${hours} 小时`,
+		},
 	},
 
 	// ---- Shared confirm dialog -----------------------------------------
@@ -806,6 +824,12 @@ export const zh: Translations = {
 			themeColorTitle: "标题",
 			themeColorBoth: "图标与标题",
 			searchPlaceholder: "搜索占位文本",
+			searchInstantAnswers: "即时答案",
+			searchInstantAnswersDesc:
+				"在笔记上方直接回答查询：计算与单位换算（1+1、10 km to mi）、" +
+				"带走势图的货币换算（20 CZK to EUR）、以 $ 开头的行情（$AAPL、$bitcoin）、" +
+				"日期（days until 2026-12-24）以及其他地方的时间（time in Tokyo）。" +
+				"货币和行情仅在查询时获取。",
 			searchContents: "搜索笔记内容",
 			searchContentsDesc:
 				"除名称、标签和属性外，也匹配笔记正文中的文本。正文匹配会带摘要显示在" +

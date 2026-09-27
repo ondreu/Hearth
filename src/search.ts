@@ -10,6 +10,8 @@ import {
 	searchFileContents,
 	slotsAboveBody,
 } from "./query";
+import { InstantAnswers, type InstantRow } from "./instantview";
+import { instantOnly } from "./instant";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { openFile as openInLeaf } from "./opener";
 import { renderHighlighted } from "./ui";
@@ -33,7 +35,9 @@ let resultsIdSeq = 0;
  * Searches the whole vault (Obsidian's vault index already excludes the
  * .obsidian config folder). A leading "#" searches tags, "key:value" searches
  * frontmatter, ">" runs commands; otherwise names/paths (and, optionally, note
- * bodies) are matched.
+ * bodies) are matched. A query that has an answer of its own — a sum, a
+ * currency conversion, a `$` market lookup, a date or a clock — gets it above
+ * the notes (see instant.ts).
  */
 export class SearchSection {
 	private view: HomeView;
@@ -50,9 +54,28 @@ export class SearchSection {
 	/** Bumped on every query so a slow async content search can't render results
 	 * for a query the user has already moved on from. */
 	private generation = 0;
+	/** The instant answer above the notes, when the query has one. */
+	private instant: InstantAnswers;
+	/** Redraws what the dropdown shows now; an instant answer calls it when
+	 * its rate, quote or chart arrives. */
+	private redraw: (() => void) | null = null;
+	/** The row Enter opens when none is selected. */
+	private defaultRow = 0;
 
 	constructor(view: HomeView) {
 		this.view = view;
+		this.instant = new InstantAnswers({
+			externalCallsDisabled: () => this.view.plugin.settings.disableExternalCalls,
+			changed: () => {
+				if (!this.redraw || !this.resultsEl?.isShown()) return;
+				this.redrawing = true;
+				try {
+					this.redraw();
+				} finally {
+					this.redrawing = false;
+				}
+			},
+		});
 	}
 
 	// resetTimer=true so it fires once typing pauses, not 140ms after the first key.
@@ -261,12 +284,26 @@ export class SearchSection {
 
 		// Command mode: a leading ">" runs any command-palette command.
 		if (query.startsWith(COMMAND_PREFIX)) {
+			this.instant.clear();
 			this.renderCommandRows(this.searchCommands(query.slice(1).trim()));
 			return;
 		}
 
 		if (!query && !this.activeFilter) {
+			this.instant.clear();
 			this.renderHistory();
+			return;
+		}
+
+		// An instant answer only answers the whole vault's query: with a file
+		// type picked, the reader is plainly looking for a file.
+		const intent =
+			this.view.plugin.settings.searchInstantAnswers && !this.activeFilter
+				? this.instant.setQuery(query)
+				: (this.instant.clear(), null);
+		// A `$` lookup or an `=` sum is a mode of its own, like ">" commands.
+		if (intent && instantOnly(intent)) {
+			this.renderFileRows([]);
 			return;
 		}
 
@@ -372,18 +409,38 @@ export class SearchSection {
 	// ---- Results rendering ---------------------------------------------
 
 	private beginResults(): void {
+		// Keep a selection across a redraw of the same list (an instant answer
+		// filling in), so a quote landing doesn't throw the reader's place.
+		const keep = this.redrawing ? this.selected : -1;
 		this.resultsEl.empty();
 		this.rows = [];
-		this.selected = -1;
+		this.selected = keep;
+		this.defaultRow = 0;
 		this.inputEl.removeAttribute("aria-activedescendant");
+		if (!this.redrawing) this.redraw = null;
+	}
+
+	private redrawing = false;
+
+	/** Draw the instant answer, if any, at the top of the list; returns how
+	 * many keyboard rows it added. */
+	private renderInstant(): number {
+		const rows: InstantRow[] = this.instant.render(this.resultsEl, this.resultsId);
+		this.rows.push(...rows);
+		return rows.length;
 	}
 
 	private renderFileRows(hits: QueryHit[]): void {
 		this.beginResults();
+		this.redraw = () => this.renderFileRows(hits);
+		const instantRows = this.renderInstant();
 		if (hits.length === 0) {
-			this.showEmpty();
+			if (instantRows) this.finishResults();
+			else this.showEmpty();
 			return;
 		}
+		// A date or a clock beside notes leaves Enter on the first note.
+		if (instantRows && !this.instant.takesEnter()) this.defaultRow = instantRows;
 		const icons = fileIconOptions(this.view.plugin.settings);
 		hits.forEach((hit, i) => {
 			// A badge icon says why the file matched, so it outranks the file's own.
@@ -445,6 +502,7 @@ export class SearchSection {
 	}
 
 	private showEmpty(text: string = t().search.noMatches): void {
+		this.selected = -1;
 		this.resultsEl.createDiv("hearth-search-empty").setText(text);
 		this.resultsEl.show();
 		this.placeResults();
@@ -453,6 +511,14 @@ export class SearchSection {
 	}
 
 	private finishResults(): void {
+		const kept = this.rows[this.selected]?.el;
+		if (kept) {
+			kept.addClass("is-selected");
+			kept.setAttribute("aria-selected", "true");
+			this.inputEl.setAttribute("aria-activedescendant", kept.id);
+		} else {
+			this.selected = -1;
+		}
 		this.resultsEl.show();
 		this.placeResults();
 		this.capResultsToViewport();
@@ -512,7 +578,7 @@ export class SearchSection {
 			this.move(-1);
 		} else if (e.key === "Enter") {
 			e.preventDefault();
-			const target = this.selected >= 0 ? this.selected : 0;
+			const target = this.selected >= 0 ? this.selected : this.defaultRow;
 			this.rows[target]?.open();
 		}
 	}

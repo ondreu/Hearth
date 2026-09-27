@@ -239,6 +239,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		newNoteFolder: s.newNoteFolder,
 		newNoteFilename: s.newNoteFilename,
 		searchContents: s.searchContents,
+		searchInstantAnswers: s.searchInstantAnswers,
 		searchEngine: s.searchEngine,
 		webSearchEngine: s.webSearchEngine,
 
@@ -2161,6 +2162,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	if (newNoteFilename !== undefined) s.newNoteFilename = newNoteFilename;
 	if (typeof data.searchContents === "boolean")
 		s.searchContents = data.searchContents;
+	if (typeof data.searchInstantAnswers === "boolean")
+		s.searchInstantAnswers = data.searchInstantAnswers;
 	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {
 		s.searchEngine = data.searchEngine;
 	}

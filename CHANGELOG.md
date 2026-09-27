@@ -15,6 +15,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Instant answers in the search bar.** A query that has an answer of its
+  own gets it above the notes: sums and unit conversions (`1+1`,
+  `20% of 150`, `10 km to mi`), currencies with the pair's chart
+  (`20 CZK to EUR`, `eur/usd`), market quotes with a chart after a `$`
+  (`$AAPL`, `$apple`, `$bitcoin`, `$sh510300`), dates (`days until
+  2026-12-24`, `today + 45 days`, `next friday`) and the time elsewhere
+  (`time in Tokyo`). A leading `=` forces the calculator. Enter copies the
+  answer, or opens a quote's page; a date or a clock leaves Enter on the first
+  note. Currencies and quotes use the calculator's and Markets card's cached
+  sources, are fetched only when asked for, and stop with **Disable external
+  calls**. Switch it off in **Settings → Appearance → Instant answers**.
+
 - **Material 3 Expressive: a second design for all of Hearth.** A new
   **Design** setting — *Classic* or *Expressive* — heads **Settings → Hearth →
   Appearance**. Expressive redraws everything Hearth draws in tonal steps of

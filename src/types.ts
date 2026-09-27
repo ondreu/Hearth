@@ -2386,6 +2386,10 @@ export interface HomeSettings {
 	newNoteFilename: string;
 	/** Also search inside note bodies (full-text), not just names/tags/properties. */
 	searchContents: boolean;
+	/** Answer queries that have an answer of their own — a sum, a currency
+	 * conversion, a `$` market lookup, a date, the time somewhere — above the
+	 * notes in the search results (see instant.ts). */
+	searchInstantAnswers: boolean;
 	/** Which engine powers the search bar: Hearth's built-in vault search, or the
 	 * Omnisearch community plugin (only usable when Omnisearch is installed and
 	 * enabled — Hearth falls back to the built-in engine otherwise). */
@@ -2724,6 +2728,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	newNoteFolder: "",
 	newNoteFilename: "",
 	searchContents: true,
+	searchInstantAnswers: true,
 	searchEngine: "builtin",
 	webSearchEngine: DEFAULT_WEB_SEARCH_ENGINE,
 
