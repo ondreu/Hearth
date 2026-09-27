@@ -20219,9 +20219,14 @@ body.hearth-snapshot-capturing .hearth-view {
 }
 
 /* A row on the container takes the container's padding; hairlines in the
- * dialog's own tone part the rows, as they do in the settings pane. */
-.hearth-x-modal .hearth-x-group-body > .setting-item {
+ * dialog's own tone part the rows, as they do in the settings pane. Every row
+ * keeps its breathing room above and below: Obsidian drops the top padding of
+ * a first row (and Hearth's notes drop theirs), which on a filled container
+ * would press the first line against its edge. */
+.hearth-x-modal .hearth-x-group-body > .setting-item,
+.hearth-x-settings .hearth-section-body > .setting-item {
 	border-top: none;
+	padding-block: 0.75em;
 }
 
 .hearth-x-modal .hearth-x-group-body > .setting-item + .setting-item {
