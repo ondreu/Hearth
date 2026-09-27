@@ -532,6 +532,9 @@ export interface CalendarSourcesConfig {
 	 * instances, timeblocks and TaskNotes' own calendar subscriptions, drawn on
 	 * this card alongside any ICS feeds. Off unless `enabled`. */
 	taskNotes?: TaskNotesSourceConfig;
+	/** Markdown checkbox tasks (`- [ ] … 📅 2026-10-01`) as an event source,
+	 * drawn on their due and scheduled dates. Off unless `enabled`. */
+	checkboxTasks?: CheckboxTasksSourceConfig;
 	/** Which chips each listed entry shows. Omitted (or an omitted field) keeps
 	 * the default set. */
 	chips?: CalendarChipConfig;
@@ -680,6 +683,31 @@ export interface TaskNotesSourceConfig {
 	/** Colour for timeblocks that don't carry their own. */
 	timeblockColor?: string;
 	/** Offer completing a task straight from the event popup. Default true. */
+	allowComplete?: boolean;
+}
+
+/**
+ * Per-card configuration for the checkbox-task calendar source: every
+ * `- [ ]` line carrying a Tasks-plugin due (📅) or scheduled (⏳) date.
+ */
+export interface CheckboxTasksSourceConfig {
+	/** Master switch. Off (the default) means the card reads no notes for
+	 * tasks at all. */
+	enabled?: boolean;
+	/** Draw tasks on their scheduled (⏳) date. Default true. */
+	scheduled?: boolean;
+	/** Draw tasks on their due (📅) date. Default true. */
+	due?: boolean;
+	/** Include finished tasks (shown struck through). Default true. */
+	completed?: boolean;
+	/** Only read notes inside these folders. Empty (the default) reads the
+	 * whole vault. */
+	folders?: string[];
+	/** Colour of the entries. Falls back to the accent colour. */
+	color?: string;
+	/** Separate colour for due-date entries. */
+	dueColor?: string;
+	/** Offer ticking a task off straight from the calendar. Default true. */
 	allowComplete?: boolean;
 }
 

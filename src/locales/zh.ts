@@ -1858,6 +1858,21 @@ export const zh: Translations = {
 			chipRecurringDesc: "重复任务上的“重复”标记。",
 			chipTimeblock: "时间块标记",
 			chipTimeblockDesc: "时间块上的“时间块”标记。",
+			checkboxHeading: "复选框任务",
+			checkboxDesc:
+				"按 Tasks 格式写在任务上的日期（📅 截止、⏳ 计划）在日历上显示 Markdown 复选框任务（- [ ] …）。没有日期的任务不会显示。",
+			checkboxEnabled: "使用复选框任务",
+			checkboxEnabledDesc: "从笔记中读取带日期的复选框任务。",
+			checkboxScheduled: "计划日期",
+			checkboxScheduledDesc: "在任务的 ⏳ 计划日期显示它。",
+			checkboxDue: "截止日期",
+			checkboxDueDesc: "在任务的 📅 截止日期显示它。",
+			checkboxCompletedDesc: "已勾选的任务以删除线保留在日历上。",
+			checkboxCompleteDesc: "在每个任务上显示一个复选框，可在其笔记中勾选完成。",
+			checkboxFolders: "文件夹",
+			checkboxFoldersDesc: "只读取这些文件夹中的笔记（以逗号分隔）。留空则读取整个库。",
+			checkboxColor: "颜色",
+			checkboxColorDesc: "复选框任务条目的颜色。",
 			taskNotesHeading: "TaskNotes",
 			taskNotesDesc:
 				"把 TaskNotes 作为事件来源。此卡片会镜像 TaskNotes 自己的日历所显示的内容 — 计划任务、到期日、重复发生、时间块以及在 TaskNotes 内订阅的日历 — 并使用 TaskNotes 自己的字段名、状态和颜色。",
@@ -3403,6 +3418,7 @@ export const zh: Translations = {
 			createEventNote: "创建笔记",
 			openEventNote: "打开笔记",
 			taskNotesSource: "TaskNotes",
+			checkboxSource: "任务",
 			taskDue: "到期",
 			taskTimeblock: "时间块",
 			taskComplete: "完成",
@@ -3411,6 +3427,7 @@ export const zh: Translations = {
 				minutes >= 60
 					? `${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分` : ""}`
 					: `${minutes} 分`,
+			openTaskLine: "在笔记中打开",
 			openTaskNote: "打开任务",
 		},
 		schedule: {

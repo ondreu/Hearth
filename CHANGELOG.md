@@ -88,6 +88,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Find it in the "Add card" picker's Fun section. Hearth's own *Pet* card is
   unchanged.
 
+- **Checkbox tasks on the calendars.** Both calendar cards can now draw
+  Markdown checkbox tasks (`- [ ] …`) by the dates written on them in the Tasks
+  format — 📅 due and ⏳ scheduled — the way they already draw TaskNotes. Turn
+  it on under **Checkbox tasks** in the card's settings; entries can be ticked
+  off from the calendar and open the note at the task's line. Optionally limit
+  it to some folders and pick its colours.
+
 ### Changed
 
 - **A shorter, visual setup wizard.** First-run setup is three steps instead of

@@ -26,6 +26,14 @@ import {
 	type EventNoteConfig,
 	type EventNoteInput,
 } from "./eventnote";
+import {
+	checkboxTaskEvents,
+	checkboxTaskMeta,
+	parseCheckboxTasks,
+	type CheckboxLayerOptions,
+	type CheckboxTask,
+} from "./checkboxtasks";
+import { setCheckboxTaskDone } from "./cards/tasks";
 import { t } from "./i18n";
 import { cachedCalendar, eventsByDay, expandEvents, loadCalendar, type IcsOccurrence } from "./ics";
 import { openFile } from "./opener";
@@ -54,6 +62,7 @@ import {
 import {
 	calendarChips,
 	type CalendarSourcesConfig,
+	type CheckboxTasksSourceConfig,
 	effectiveAutoRefreshMinutes,
 	type ResolvedChips,
 	type TaskNotesSourceConfig,
@@ -91,7 +100,8 @@ export interface IcsContext {
 	eventColor(ev: IcsOccurrence): string;
 	/** Friendly label for a source id. */
 	label(sourceId: string | undefined): string;
-	/** Whether any event source (ICS feed or TaskNotes) is configured. */
+	/** Whether any event source (ICS feed, TaskNotes or checkbox tasks) is
+	 * configured. */
 	readonly hasSources: boolean;
 	/** Whether more than one source is configured (badges shown only then,
 	 * since with a single source the label is redundant). */
@@ -100,6 +110,8 @@ export interface IcsContext {
 	readonly eventNote: EventNoteConfig | undefined;
 	/** The live TaskNotes source, or null when it's off/unavailable. */
 	readonly taskNotes: TaskNotesSource | null;
+	/** The live checkbox-task source, or null when it's off. */
+	readonly checkboxTasks: CheckboxSource | null;
 	/** The card is drawn in the Expressive design, and so are its dialogs. */
 	readonly expressive: boolean;
 	/** Which chips an entry may show, resolved from the card's config. */
@@ -119,6 +131,83 @@ interface TaskNotesSource {
 	layers: TaskNotesLayerOptions;
 	/** Offer a complete/reopen action in the event popup. */
 	allowComplete: boolean;
+}
+
+
+/** The resolved checkbox-task source for one card render. */
+interface CheckboxSource {
+	layers: CheckboxLayerOptions;
+	/** Folders read; empty reads the whole vault. */
+	folders: string[];
+	/** Offer a complete/reopen action on each entry. */
+	allowComplete: boolean;
+}
+
+
+/** Resolve the card's checkbox-task source, or null when it's off. */
+function buildCheckboxSource(cfg: CheckboxTasksSourceConfig | undefined): CheckboxSource | null {
+	if (cfg?.enabled !== true) return null;
+	return {
+		layers: {
+			scheduled: cfg.scheduled !== false,
+			due: cfg.due !== false,
+			completed: cfg.completed !== false,
+			color: cfg.color || "var(--interactive-accent)",
+			dueColor: cfg.dueColor || "",
+		},
+		folders: (cfg.folders ?? []).map((f) => f.trim().replace(/\/+$/, "")).filter(Boolean),
+		allowComplete: cfg.allowComplete !== false,
+	};
+}
+
+
+/** Source id given to every checkbox-task entry. */
+const CHECKBOX_SOURCE_ID = "hearth:checkbox";
+
+
+/** Parsed checkbox tasks per note, stamped with the mtime they were read at.
+ * The calendar cards are rebuilt on every vault change, so this keeps a
+ * rebuild from re-reading the whole vault: only notes whose mtime moved are
+ * read again, and until they are, their previous tasks stand in (no flicker). */
+const checkboxCache = new Map<string, { mtime: number; tasks: CheckboxTask[] }>();
+
+
+/** Every cached checkbox task in scope, plus the notes that need (re)reading. */
+function checkboxTasksNow(app: App, folders: string[]): { tasks: CheckboxTask[]; stale: TFile[] } {
+	const tasks: CheckboxTask[] = [];
+	const stale: TFile[] = [];
+	for (const file of app.vault.getMarkdownFiles()) {
+		if (folders.length && !folders.some((f) => file.path === f || file.path.startsWith(`${f}/`))) continue;
+		// The metadata cache already knows which notes hold task list items, so
+		// a note with none is skipped without a read. A note not indexed yet
+		// (no cache) is read anyway, the way the tasks card does.
+		const meta = app.metadataCache.getFileCache(file);
+		if (meta && !meta.listItems?.some((li) => li.task !== undefined)) {
+			checkboxCache.delete(file.path);
+			continue;
+		}
+		const cached = checkboxCache.get(file.path);
+		if (cached) tasks.push(...cached.tasks);
+		if (!cached || cached.mtime !== file.stat.mtime) stale.push(file);
+	}
+	return { tasks, stale };
+}
+
+
+/** Read and parse `files` into the checkbox cache. */
+async function readCheckboxFiles(app: App, files: TFile[]): Promise<void> {
+	await Promise.all(
+		files.map(async (file) => {
+			let tasks: CheckboxTask[] = [];
+			try {
+				tasks = parseCheckboxTasks(file.path, await app.vault.cachedRead(file));
+			} catch {
+				// Unreadable right now: cache it empty so the card doesn't retry
+				// in a loop; the next modify bumps the mtime and it's read again.
+			}
+			checkboxCache.set(file.path, { mtime: file.stat.mtime, tasks });
+		}),
+	);
 }
 
 
@@ -172,6 +261,7 @@ export function buildIcsContext(
 	});
 
 	const taskNotes = buildTaskNotesSource(view, cfg.taskNotes);
+	const checkboxes = buildCheckboxSource(cfg.checkboxTasks);
 	// TaskNotes' own calendar subscriptions, mirrored onto this card unless the
 	// user turned that off. They keep their TaskNotes colour and name. The list
 	// is re-read on every load: TaskNotes keeps it in its plugin data, which
@@ -186,9 +276,12 @@ export function buildIcsContext(
 	// vault change (liveness: "vault"), so month navigation costs nothing extra.
 	let tasksCache: ReturnType<typeof collectTaskNotesTasks> | null = null;
 	let timeblockCache: IcsOccurrence[] | null = null;
+	let checkboxList: CheckboxTask[] | null = null;
+	let checkboxReading = false;
 	const invalidate = (): void => {
 		tasksCache = null;
 		timeblockCache = null;
+		checkboxList = null;
 	};
 
 	const src = (id: string | undefined) => sources.find((s) => s.id === id);
@@ -198,12 +291,14 @@ export function buildIcsContext(
 			: undefined;
 	const color = (id: string | undefined): string => {
 		if (id === TASKNOTES_SOURCE_ID) return taskNotes?.layers.fallbackColor || "var(--interactive-accent)";
+		if (id === CHECKBOX_SOURCE_ID) return checkboxes?.layers.color || "var(--interactive-accent)";
 		return sub(id)?.color || src(id)?.color || "var(--interactive-accent)";
 	};
 	const eventColor = (ev: IcsOccurrence): string =>
 		taskNotesMeta(ev)?.color || color(ev.sourceId);
 	const label = (id: string | undefined): string => {
 		if (id === TASKNOTES_SOURCE_ID) return t().cards.calendar.taskNotesSource;
+		if (id === CHECKBOX_SOURCE_ID) return t().cards.calendar.checkboxSource;
 		const subscription = sub(id);
 		if (subscription) {
 			return (
@@ -243,6 +338,29 @@ export function buildIcsContext(
 		return out;
 	};
 
+	/** Every dated checkbox task inside the window. The notes are read
+	 * asynchronously, so a first render draws what the cache already holds and
+	 * redraws once the changed notes have been read. */
+	const checkboxOccurrences = (startMs: number, endMs: number): IcsOccurrence[] => {
+		if (!checkboxes) return [];
+		if (!checkboxList) {
+			const now = checkboxTasksNow(view.app, checkboxes.folders);
+			checkboxList = now.tasks;
+			if (now.stale.length && !checkboxReading) {
+				checkboxReading = true;
+				void readCheckboxFiles(view.app, now.stale).then(() => {
+					checkboxReading = false;
+					if (destroyed) return;
+					checkboxList = null;
+					redraw?.();
+				});
+			}
+		}
+		const out = checkboxTaskEvents(checkboxList, checkboxes.layers, startMs, endMs);
+		for (const o of out) o.sourceId = CHECKBOX_SOURCE_ID;
+		return out;
+	};
+
 	const expand = (startMs: number, endMs: number): void => {
 		const occ: IcsOccurrence[] = [];
 		for (const s of sources) {
@@ -262,6 +380,7 @@ export function buildIcsContext(
 			}
 		}
 		occ.push(...taskNotesOccurrences(startMs, endMs));
+		occ.push(...checkboxOccurrences(startMs, endMs));
 		byDay = eventsByDay(occ);
 	};
 
@@ -299,10 +418,11 @@ export function buildIcsContext(
 		color,
 		eventColor,
 		label,
-		hasSources: sources.length > 0 || taskNotes !== null,
-		multiSource: sources.length + subs.length + (taskNotes ? 1 : 0) > 1,
+		hasSources: sources.length > 0 || taskNotes !== null || checkboxes !== null,
+		multiSource: sources.length + subs.length + (taskNotes ? 1 : 0) + (checkboxes ? 1 : 0) > 1,
 		eventNote: cfg.eventNote,
 		taskNotes,
+		checkboxTasks: checkboxes,
 		expressive,
 		chips: calendarChips(cfg.chips),
 		onLoaded: (cb) => {
@@ -482,13 +602,15 @@ class EventDetailModal extends HearthModal {
 		open.createSpan({
 			text: task.kind === "timeblock"
 				? t().cards.calendar.openDailyNote
-				: t().cards.calendar.openTaskNote,
+				: checkboxTaskMeta(task)
+					? t().cards.calendar.openTaskLine
+					: t().cards.calendar.openTaskNote,
 		});
 		open.addEventListener("click", () => {
 			void this.openTaskTarget(task);
 		});
 
-		if (task.kind === "timeblock" || !this.ics.taskNotes?.allowComplete) return;
+		if (!canComplete(task, this.ics)) return;
 		const toggle = footer.createEl("button");
 		setIcon(toggle.createSpan("hearth-event-btnicon"), task.done ? "rotate-ccw" : "check");
 		toggle.createSpan({
@@ -503,6 +625,18 @@ class EventDetailModal extends HearthModal {
 	 * modal when the plugin can resolve it, a timeblock (and any task TaskNotes
 	 * won't open) falls back to the note itself. */
 	private async openTaskTarget(task: TaskNotesMeta): Promise<void> {
+		const checkbox = checkboxTaskMeta(task);
+		if (checkbox) {
+			// A checkbox task opens its note scrolled to the task's line.
+			const file = this.app.vault.getFileByPath(checkbox.path);
+			if (file) {
+				void openFile(this.view, file, "card", null, { eState: { line: checkbox.line } });
+				this.close();
+			} else {
+				new Notice(t().notices.couldNotOpenTaskNote);
+			}
+			return;
+		}
 		if (task.kind !== "timeblock" && (await openInTaskNotes(this.app, task.path))) {
 			this.close();
 			return;
@@ -708,9 +842,10 @@ export function showDayMenu(
 	}
 }
 
-/** The completion checkbox on a TaskNotes agenda row. Writes exactly what
- * TaskNotes writes — this day's entry in `complete_instances` for a recurring
- * task, the status for a one-off — then redraws the card. */
+/** The completion checkbox on a task's agenda row. For TaskNotes it writes
+ * exactly what TaskNotes writes — this day's entry in `complete_instances` for
+ * a recurring task, the status for a one-off; a checkbox task is ticked in its
+ * note — then redraws the card. */
 function renderTaskCompleteBox(
 	view: HomeView,
 	row: HTMLElement,
@@ -731,13 +866,33 @@ function renderTaskCompleteBox(
 }
 
 
-/** Complete (or reopen) one TaskNotes occurrence from the calendar. */
+/** Whether an entry can be ticked off from the calendar: a checkbox task when
+ * its source allows it, a TaskNotes task (never a timeblock) when TaskNotes'
+ * source does. */
+function canComplete(task: TaskNotesMeta, ics: IcsContext): boolean {
+	if (checkboxTaskMeta(task)) return ics.checkboxTasks?.allowComplete === true;
+	return task.kind !== "timeblock" && ics.taskNotes?.allowComplete === true;
+}
+
+
+/** Complete (or reopen) one task occurrence from the calendar: a checkbox task
+ * gets exactly the write the tasks card makes, a TaskNotes task what TaskNotes
+ * writes. */
 export async function toggleTaskCompletion(
 	view: HomeView,
 	task: TaskNotesMeta,
 	complete: boolean,
 	ics: IcsContext,
 ): Promise<void> {
+	const checkbox = checkboxTaskMeta(task);
+	if (checkbox) {
+		const file = view.app.vault.getFileByPath(checkbox.path);
+		if (!file || !(await setCheckboxTaskDone(view, file, checkbox.line, checkbox.raw, complete))) {
+			new Notice(t().notices.taskChangedOnDisk);
+		}
+		ics.refresh();
+		return;
+	}
 	const source = ics.taskNotes;
 	if (!source) return;
 	const current = readTaskAt(view.app, source.setup, task.path);
@@ -762,7 +917,7 @@ export function renderEventRow(
 
 	// A completable task swaps the bullet for a checkbox that writes straight
 	// back to the note (the whole occurrence for a recurring task).
-	if (task && task.kind !== "timeblock" && ics.taskNotes?.allowComplete) {
+	if (task && canComplete(task, ics)) {
 		renderTaskCompleteBox(view, row, task, ics);
 	} else {
 		const bullet = row.createDiv("hearth-agenda-evbullet");
@@ -813,8 +968,8 @@ export function renderEventRow(
 /** The "Entry details" section: pick which chips each listed entry carries.
  * On a narrow card the markers can crowd out the title, and not every vault
  * wants a priority or a calendar name on every line — so each is switchable.
- * The task-only chips are offered only when TaskNotes is a source, since
- * nothing else produces them.
+ * The task-only chips are offered only when a task source (TaskNotes or
+ * checkbox tasks) is on, since nothing else produces them.
  *
  * The caller decides whether the section applies at all: the chips ride on
  * listed entries, so the mini calendar offers them in its agenda layout only,
@@ -861,7 +1016,8 @@ export function calendarChipsEditor(
 		(on) => (chips.source = on ? undefined : false),
 	);
 
-	if (cfg.taskNotes?.enabled !== true) return;
+	const taskNotesOn = cfg.taskNotes?.enabled === true;
+	if (!taskNotesOn && cfg.checkboxTasks?.enabled !== true) return;
 
 	toggle(
 		strings.chipStatus,
@@ -887,6 +1043,8 @@ export function calendarChipsEditor(
 		() => chips.recurring !== false,
 		(on) => (chips.recurring = on ? undefined : false),
 	);
+	// Only TaskNotes produces timeblocks.
+	if (!taskNotesOn) return;
 	toggle(
 		strings.chipTimeblock,
 		strings.chipTimeblockDesc,
@@ -1101,6 +1259,127 @@ export function taskNotesSourceEditor(
 		strings.taskNotesTimeblockColorDesc,
 		() => tn.timeblockColor,
 		(v) => (tn.timeblockColor = v),
+	);
+}
+
+
+/** The "Checkbox tasks" section of the calendar editor: draw every Markdown
+ * `- [ ]` task that carries a due (📅) or scheduled (⏳) date, the format the
+ * tasks card reads and writes. */
+export function checkboxTasksSourceEditor(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: CalendarSourcesConfig,
+): void {
+	const strings = t().editors.calendar;
+	new Setting(containerEl).setName(strings.checkboxHeading).setHeading();
+	new Setting(containerEl).setDesc(strings.checkboxDesc);
+
+	const enabled = cfg.checkboxTasks?.enabled === true;
+	new Setting(containerEl)
+		.setName(strings.checkboxEnabled)
+		.setDesc(strings.checkboxEnabledDesc)
+		.addToggle((tg) =>
+			tg.setValue(enabled).onChange((v) => {
+				// Switching it off keeps the rest of the section's choices, so
+				// turning it back on restores them.
+				if (v) (cfg.checkboxTasks ??= {}).enabled = true;
+				else if (cfg.checkboxTasks) cfg.checkboxTasks.enabled = undefined;
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		);
+	if (!enabled || !cfg.checkboxTasks) return;
+	const cb = cfg.checkboxTasks;
+
+	const toggle = (
+		name: string,
+		desc: string,
+		read: () => boolean,
+		write: (on: boolean) => void,
+	): void => {
+		new Setting(containerEl)
+			.setName(name)
+			.setDesc(desc)
+			.addToggle((tg) =>
+				tg.setValue(read()).onChange((v) => {
+					write(v);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+			);
+	};
+	toggle(
+		strings.checkboxScheduled,
+		strings.checkboxScheduledDesc,
+		() => cb.scheduled !== false,
+		(on) => (cb.scheduled = on ? undefined : false),
+	);
+	toggle(
+		strings.checkboxDue,
+		strings.checkboxDueDesc,
+		() => cb.due !== false,
+		(on) => (cb.due = on ? undefined : false),
+	);
+	toggle(
+		strings.taskNotesCompleted,
+		strings.checkboxCompletedDesc,
+		() => cb.completed !== false,
+		(on) => (cb.completed = on ? undefined : false),
+	);
+	toggle(
+		strings.taskNotesComplete,
+		strings.checkboxCompleteDesc,
+		() => cb.allowComplete !== false,
+		(on) => (cb.allowComplete = on ? undefined : false),
+	);
+
+	new Setting(containerEl)
+		.setName(strings.checkboxFolders)
+		.setDesc(strings.checkboxFoldersDesc)
+		.addText((txt) =>
+			txt.setValue((cb.folders ?? []).join(", ")).onChange((v) => {
+				const folders = v
+					.split(",")
+					.map((f) => f.trim())
+					.filter(Boolean);
+				cb.folders = folders.length ? folders : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+
+	const colorRow = (
+		name: string,
+		desc: string,
+		read: () => string | undefined,
+		write: (v: string | undefined) => void,
+	): void => {
+		const setting = new Setting(containerEl).setName(name).setDesc(desc);
+		setting.addColorPicker((c) =>
+			c.setValue(read() || "#7c6cff").onChange((v) => {
+				write(v);
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+		setting.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					write(undefined);
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
+	};
+	colorRow(strings.checkboxColor, strings.checkboxColorDesc, () => cb.color, (v) => (cb.color = v));
+	colorRow(
+		strings.taskNotesDueColor,
+		strings.taskNotesDueColorDesc,
+		() => cb.dueColor,
+		(v) => (cb.dueColor = v),
 	);
 }
 

@@ -56,6 +56,7 @@ import {
 	taskFieldValues,
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
+import { readEmojiField, stripTaskMetadata, TASK_EMOJI_CLASS } from "../checkboxtasks";
 import {
 	applyInlineTags,
 	filterHashtagLabel,
@@ -3779,11 +3780,6 @@ async function collectKanbanTasks(
 }
 
 
-/** Every Tasks-plugin metadata emoji marker, used to strip metadata from a
- * card's display text and to compare cards ignoring their metadata. */
-const TASK_EMOJI_CLASS = "📅⏳🛫🔁✅❌➕⏫🔼🔽🔺⏬";
-
-
 /** The subset of metadata emoji Hearth's editor manages (due/scheduled/start/
  * recurrence/priority). Completion (✅), created (➕) and cancelled (❌) markers
  * are left untouched when rewriting a card's metadata. */
@@ -3811,16 +3807,6 @@ function readEmojiDate(text: string, emoji: string): string {
 	const expr = readEmojiField(text, emoji);
 	if (!expr) return "";
 	return resolveDate(expr) ?? "";
-}
-
-
-/** Strip all Tasks-plugin emoji metadata (each marker and its trailing value up
- * to the next marker) from a task's text, collapsing leftover whitespace. Used
- * for clean Kanban card display and for stable text comparison on writeback
- * (idempotent, so a raw and an already-stripped text compare equal). */
-function stripTaskMetadata(text: string): string {
-	const re = new RegExp(`[${TASK_EMOJI_CLASS}][^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
-	return text.replace(re, "").replace(/\s+/g, " ").trim();
 }
 
 
@@ -3904,6 +3890,34 @@ async function setLineRecurringInstanceDone(
 	lines[hit.line] = `${prefix}${body}`.trimEnd();
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
+}
+
+
+/** Complete (or reopen) a checkbox task from outside this card — the calendar
+ * cards' checkbox source — with exactly the write the list layout makes: a
+ * recurring task stamps ✅ and rolls its date forward, anything else flips the
+ * box and keeps its ✅ date in sync. `raw` is the line's text as read; the write
+ * bails (false) when the line no longer matches it. */
+export async function setCheckboxTaskDone(
+	view: HomeView,
+	file: TFile,
+	line: number,
+	raw: string,
+	done: boolean,
+): Promise<boolean> {
+	const recurrence = readEmojiField(raw, "🔁") ?? undefined;
+	const hit: TaskHit = {
+		file,
+		line,
+		text: raw,
+		done: !done,
+		due: null,
+		dueRaw: null,
+		scheduled: null,
+		created: file.stat.ctime,
+		recurrence,
+	};
+	return recurrence ? setLineRecurringInstanceDone(view, hit, done) : setKanbanCardDone(view, hit, done, true);
 }
 
 
@@ -4686,21 +4700,6 @@ function insertCardBlock(lines: string[], heading: string, block: string[]): boo
 	if (lines[insertAt] != null && lines[insertAt].trim() !== "") toInsert.push("");
 	lines.splice(insertAt, 0, ...toInsert);
 	return true;
-}
-
-
-/** Read the value of a Tasks-plugin emoji field from a checkbox line, e.g.
- * `📅 tomorrow` or `📅 2024-01-15`. Returns the trimmed value up to the next
- * known emoji marker or end of line, or null when the marker isn't present. */
-function readEmojiField(text: string, emoji: string): string | null {
-	const idx = text.indexOf(emoji);
-	if (idx < 0) return null;
-	let rest = text.slice(idx + emoji.length);
-	// Stop at the next emoji marker (any of the Tasks-plugin conventions).
-	const next = rest.search(new RegExp(`[${TASK_EMOJI_CLASS}]`, "u"));
-	if (next >= 0) rest = rest.slice(0, next);
-	const value = rest.trim();
-	return value || null;
 }
 
 

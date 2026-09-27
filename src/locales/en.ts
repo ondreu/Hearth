@@ -2042,6 +2042,21 @@ export const en = {
 			chipRecurringDesc: "The “Recurring” badge on a repeating task.",
 			chipTimeblock: "Timeblock marker",
 			chipTimeblockDesc: "The “Timeblock” badge on a timeblock.",
+			checkboxHeading: "Checkbox tasks",
+			checkboxDesc:
+				"Draw Markdown checkbox tasks (- [ ] …) on the calendar by the dates written on them in the Tasks format: 📅 due and ⏳ scheduled. Tasks without a date aren't shown.",
+			checkboxEnabled: "Use checkbox tasks",
+			checkboxEnabledDesc: "Read dated checkbox tasks from your notes.",
+			checkboxScheduled: "Scheduled date",
+			checkboxScheduledDesc: "Draw a task on its ⏳ scheduled date.",
+			checkboxDue: "Due date",
+			checkboxDueDesc: "Draw a task on its 📅 due date.",
+			checkboxCompletedDesc: "Keep ticked-off tasks on the calendar, struck through.",
+			checkboxCompleteDesc: "Show a checkbox on each task that ticks it off in its note.",
+			checkboxFolders: "Folders",
+			checkboxFoldersDesc: "Only read notes in these folders (comma-separated). Empty reads the whole vault.",
+			checkboxColor: "Colour",
+			checkboxColorDesc: "Colour of checkbox-task entries.",
 			taskNotesHeading: "TaskNotes",
 			taskNotesDesc:
 				"Use TaskNotes as an event source. The card mirrors what TaskNotes' own calendar shows — scheduled tasks, due dates, recurring occurrences, timeblocks and the calendars subscribed inside TaskNotes — using TaskNotes' own field names, statuses and colours.",
@@ -3677,6 +3692,7 @@ export const en = {
 			createEventNote: "Create note",
 			openEventNote: "Open note",
 			taskNotesSource: "TaskNotes",
+			checkboxSource: "Tasks",
 			taskDue: "Due",
 			taskTimeblock: "Timeblock",
 			taskComplete: "Complete",
@@ -3685,6 +3701,7 @@ export const en = {
 				minutes >= 60
 					? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
 					: `${minutes}m`,
+			openTaskLine: "Open in note",
 			openTaskNote: "Open task",
 		},
 		schedule: {

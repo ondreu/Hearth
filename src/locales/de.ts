@@ -2051,6 +2051,21 @@ export const de: Translations = {
 			chipRecurringDesc: "Das „Wiederkehrend“-Abzeichen an einer sich wiederholenden Aufgabe.",
 			chipTimeblock: "Zeitblock-Markierung",
 			chipTimeblockDesc: "Das „Zeitblock“-Abzeichen an einer Aufgabe mit Zeitblock.",
+			checkboxHeading: "Checkbox-Aufgaben",
+			checkboxDesc:
+				"Markdown-Checkbox-Aufgaben (- [ ] …) nach den Daten im Tasks-Format im Kalender anzeigen: 📅 fällig und ⏳ geplant. Aufgaben ohne Datum werden nicht angezeigt.",
+			checkboxEnabled: "Checkbox-Aufgaben verwenden",
+			checkboxEnabledDesc: "Checkbox-Aufgaben mit Datum aus deinen Notizen lesen.",
+			checkboxScheduled: "Geplantes Datum",
+			checkboxScheduledDesc: "Eine Aufgabe an ihrem ⏳ geplanten Datum anzeigen.",
+			checkboxDue: "Fälligkeitsdatum",
+			checkboxDueDesc: "Eine Aufgabe an ihrem 📅 Fälligkeitsdatum anzeigen.",
+			checkboxCompletedDesc: "Abgehakte Aufgaben durchgestrichen im Kalender behalten.",
+			checkboxCompleteDesc: "Bei jeder Aufgabe ein Kästchen zeigen, das sie in ihrer Notiz abhakt.",
+			checkboxFolders: "Ordner",
+			checkboxFoldersDesc: "Nur Notizen in diesen Ordnern lesen (durch Kommas getrennt). Leer liest den ganzen Vault.",
+			checkboxColor: "Farbe",
+			checkboxColorDesc: "Farbe der Checkbox-Aufgaben.",
 			taskNotesHeading: "TaskNotes",
 			taskNotesDesc:
 				"Nutze TaskNotes als Terminquelle. Die Karte spiegelt, was der eigene Kalender von TaskNotes zeigt - geplante Aufgaben, Fälligkeitsdaten, wiederkehrende Vorkommen, Zeitblöcke und die in TaskNotes abonnierten Kalender - mit den eigenen Feldnamen, Status und Farben von TaskNotes.",
@@ -3679,6 +3694,7 @@ export const de: Translations = {
 			createEventNote: "Notiz erstellen",
 			openEventNote: "Notiz öffnen",
 			taskNotesSource: "TaskNotes",
+			checkboxSource: "Aufgaben",
 			taskDue: "Fällig",
 			taskTimeblock: "Zeitblock",
 			taskComplete: "Abschließen",
@@ -3687,6 +3703,7 @@ export const de: Translations = {
 				minutes >= 60
 					? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}`
 					: `${minutes}m`,
+			openTaskLine: "In Notiz öffnen",
 			openTaskNote: "Aufgabe öffnen",
 		},
 		schedule: {

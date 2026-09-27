@@ -16,6 +16,7 @@ import {
 	openDailyNote,
 	renderEventRow,
 	showDayMenu,
+	checkboxTasksSourceEditor,
 	taskNotesSourceEditor,
 	type IcsContext,
 } from "../calendarsource";
@@ -51,11 +52,13 @@ export function renderCalendar(
 	const options = dailyNotesOptions(view);
 	const cfg = card.calendar ?? {};
 	const sources = (cfg.sources ?? []).filter((s) => s.url.trim() && s.enabled !== false);
-	const useTaskNotes = cfg.taskNotes?.enabled === true && taskNotesEnabled(view.app);
+	const useTasks =
+		(cfg.taskNotes?.enabled === true && taskNotesEnabled(view.app)) ||
+		cfg.checkboxTasks?.enabled === true;
 
 	// The card needs a reason to exist: daily notes (for the note grid), an
-	// external calendar to overlay, or TaskNotes as a source.
-	if (!options && sources.length === 0 && !useTaskNotes) {
+	// external calendar to overlay, or a task source (TaskNotes, checkboxes).
+	if (!options && sources.length === 0 && !useTasks) {
 		emptyState(body, "calendar-days", t().cards.empty.dailyEnable);
 		return;
 	}
@@ -594,6 +597,7 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	// The chips ride on agenda entries; the month grid draws dots instead.
 	if (cfg.view === "agenda") calendarChipsEditor(ctx, containerEl, cfg);
 	taskNotesSourceEditor(ctx, containerEl, cfg);
+	checkboxTasksSourceEditor(ctx, containerEl, cfg);
 	calendarSourcesEditor(ctx, containerEl, cfg);
 }
 
