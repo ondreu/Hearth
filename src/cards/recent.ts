@@ -86,7 +86,7 @@ function fitRowsToBody(body: HTMLElement, list: HTMLElement, component?: Compone
 
 	const fit = () => {
 		if (!list.isConnected) return;
-		for (const row of rows) row.removeClass("hearth-list-item-clipped");
+		for (const row of rows) row.removeClass("hearth-list-item-clipped", "is-last-unclipped");
 		// Rows are measured against the viewport, so a body left scrolled would
 		// read the list as starting higher than it does. Nothing is meant to
 		// scroll in this mode anyway — the whole point is that the list stops at
@@ -100,6 +100,8 @@ function fitRowsToBody(body: HTMLElement, list: HTMLElement, component?: Compone
 		const available = body.getBoundingClientRect().bottom - padBottom - first.top;
 		const visible = rowsThatFit(available, first.height, Math.max(0, step - first.height));
 		for (let i = visible; i < rows.length; i++) rows[i].addClass("hearth-list-item-clipped");
+		// The last row still showing closes the group, as the list's last row would.
+		if (visible > 0 && visible < rows.length) rows[visible - 1].addClass("is-last-unclipped");
 	};
 
 	// Fit before the first paint, so a tall card never flashes its full list and

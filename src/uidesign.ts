@@ -148,6 +148,28 @@ export function hearthMenu(): Menu {
 		const design = currentUiDesign();
 		dom.toggleClass(X_MENU_CLASS, design === "expressive");
 		stateDesign(dom, design);
+		if (design === "expressive") markMenuGroups(menu, dom);
 	}
 	return menu;
+}
+
+/**
+ * Mark an Expressive menu's groups for its CSS: `is-grouped` on a menu whose
+ * entries are split by separators, `is-group-end` on the entry closing each
+ * group. CSS could ask with `:has()`, but that selector is re-evaluated on
+ * every change anywhere in the menu. The entries are added after
+ * {@link hearthMenu} returns (and may be rebuilt on show), so the marks follow
+ * the element's children rather than being set once.
+ */
+function markMenuGroups(menu: Menu, dom: HTMLElement): void {
+	const mark = () => {
+		dom.toggleClass("is-grouped", dom.querySelector(".menu-separator") !== null);
+		for (const item of Array.from(dom.querySelectorAll(".menu-item"))) {
+			const next = item.nextElementSibling;
+			item.toggleClass("is-group-end", next !== null && next.hasClass("menu-separator"));
+		}
+	};
+	const observer = new MutationObserver(mark);
+	observer.observe(dom, { childList: true, subtree: true });
+	menu.register(() => observer.disconnect());
 }

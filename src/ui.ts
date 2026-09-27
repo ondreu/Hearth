@@ -69,17 +69,14 @@ export class ConfirmModal extends HearthModal {
 		new Setting(this.contentEl)
 			.addButton((b) => b.setButtonText(t().confirm.cancel).onClick(() => this.close()))
 			.addButton((b) => {
-			// setWarning() is deprecated in favour of setDestructive(), but that
-			// API is @since 1.13.0 and our declared minAppVersion is 1.8.7, so we
-			// keep setWarning() to stay within the supported API surface.
-			// The no-deprecated warning this raises is the cost of that, and it
-			// is the cheaper one: feature-detecting setDestructive() and falling
-			// back trades this single warning for two `obsidianmd/
-			// no-unsupported-api` *errors*, because that rule reads the call, not
-			// the guard around it. Retire this the release minAppVersion reaches
-			// 1.13.0, not before.
+			// The warning style, set as the class setWarning() itself adds.
+			// setWarning() is deprecated in favour of setDestructive(), which is
+			// @since 1.13.0 — past our minAppVersion of 1.8.7 — and feature-
+			// detecting it trips `obsidianmd/no-unsupported-api`, which reads the
+			// call, not the guard around it. Switch to setDestructive() the
+			// release minAppVersion reaches 1.13.0.
+			b.buttonEl.addClass("mod-warning");
 			b.setButtonText(this.confirmText)
-				.setWarning()
 				.onClick(() => {
 					// Set before close() so onClose can tell a confirmed dialog
 					// from a dismissed one — close() runs first.

@@ -3782,12 +3782,12 @@ button.hearth-kofi-btn:focus-visible {
 	overflow: hidden;
 }
 
-.hearth-clock-host .hearth-clock:not(:has(.hearth-clock-greeting, .hearth-clock-date)) {
+.hearth-clock-host .hearth-clock:not(.has-greeting):not(.has-date) {
 	--clock-room: calc(100cqh - 8px);
 }
 
-.hearth-clock-host .hearth-clock:has(.hearth-clock-greeting):not(:has(.hearth-clock-date)),
-.hearth-clock-host .hearth-clock:has(.hearth-clock-date):not(:has(.hearth-clock-greeting)) {
+.hearth-clock-host .hearth-clock.has-greeting:not(.has-date),
+.hearth-clock-host .hearth-clock.has-date:not(.has-greeting) {
 	--clock-room: calc(100cqh - 2rem);
 }
 
@@ -3797,7 +3797,7 @@ button.hearth-kofi-btn:focus-visible {
 	grid-template-columns: auto auto;
 	grid-template-rows: auto auto;
 	align-items: center;
-	column-gap: 8px;
+	gap: 0 8px;
 	--stack-size: clamp(1.6rem, min(30cqw, calc(var(--clock-room) * 0.46)), 7rem);
 }
 
@@ -3843,7 +3843,7 @@ button.hearth-kofi-btn:focus-visible {
 	perspective: 400px;
 }
 
-.hearth-clock-flip:has(.is-seconds) {
+.hearth-clock-flip.with-seconds {
 	--flip-h: clamp(2rem, min(24cqw, var(--clock-room)), 7rem);
 }
 
@@ -11153,11 +11153,18 @@ body.hearth-dv-resizing {
 	margin-left: auto;
 }
 
-/* Host for a board card's full-width fields (the description). `contents` keeps
-   the children as direct flex items of the card, so nothing about their layout
-   changes by being grouped. */
+/* Host for a board card's full-width fields (the description): a column with
+   the card's own spacing, so its fields sit exactly as they would as the card's
+   direct children. Empty, it takes no room — not even a gap. */
 .hearth-kanban-card-block {
-	display: contents;
+	display: flex;
+	flex-direction: column;
+	gap: inherit;
+	min-width: 0;
+}
+
+.hearth-kanban-card-block:empty {
+	display: none;
 }
 
 /* ---- Configurable task field chips ---------------------------------- */
@@ -16182,10 +16189,6 @@ body.hearth-snapshot-capturing .hearth-view {
 	background-color: var(--text-normal);
 	opacity: 0.22;
 	border-radius: 3px;
-	/* So a bar that wraps gets a rounded end on each line rather than one long
-	   ribbon with two corners. */
-	-webkit-box-decoration-break: clone;
-	box-decoration-break: clone;
 }
 
 /* Pictures inside cards are the other thing that can carry somebody's content.
@@ -16383,7 +16386,7 @@ body.hearth-snapshot-capturing .hearth-view {
 
    The browser is the page the card can't be — a breadcrumb, then the folder's
    contents with each subfolder shown one level deep. Its sections are laid out
-   with `column-width` rather than a fixed column count, so a folder of four
+   in auto-filling grid columns rather than a fixed count, so a folder of four
    files and a folder of forty both fill the dialog instead of one of them
    stranding two thirds of it.
    ========================================================================== */
@@ -16596,13 +16599,9 @@ body.hearth-snapshot-capturing .hearth-view {
 /* A block of files, or one folder's children: both flow into columns, so a
    wide dialog is used rather than filled with one tall list. */
 .hearth-folder-files {
-	column-width: 220px;
-	column-gap: 18px;
-}
-
-/* Rows must not be split down the middle of a column break. */
-.hearth-folder-files .hearth-list-item {
-	break-inside: avoid;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 0 18px;
 }
 
 .hearth-folder-section {
@@ -17793,7 +17792,7 @@ body.hearth-snapshot-capturing .hearth-view {
 
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item {
 	gap: 10px;
-	padding: 4px 12px 4px 5px;
+	padding: 4px 12px;
 	border-radius: 6px;
 	background: var(--x-surface);
 	transition: background 120ms ease, border-radius 160ms ease;
@@ -17806,7 +17805,7 @@ body.hearth-snapshot-capturing .hearth-view {
 }
 
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item:last-child,
-:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item:has(+ .hearth-list-item-clipped) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item.is-last-unclipped {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 }
@@ -17836,10 +17835,15 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 500;
 }
 
-/* A row without a leading icon (a task's check, a URL bookmark without its
- * favicon) keeps the badge's inset. */
-:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item:not(:has(.hearth-list-icon)) {
-	padding-left: 12px;
+/* A leading badge sits closer to the row's edge than text does: a row without
+ * one (a task's check, a URL bookmark without its favicon) keeps the full
+ * inset, and the badge pulls itself out into it. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item > .hearth-list-icon:first-child {
+	margin-left: -7px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item > .hearth-bookmark-chevron:first-child {
+	margin-left: -5px;
 }
 
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item.has-excerpt .hearth-list-icon {
@@ -20491,34 +20495,34 @@ body.hearth-snapshot-capturing .hearth-view {
  * menu. Inside a group the entries meet with small corners; the group's ends
  * take the large ones. The shadow follows the groups rather than a box round
  * all of them. */
-.menu.hearth-x-menu:has(.menu-separator) {
+.menu.hearth-x-menu.is-grouped {
 	padding: 0;
 	background: transparent;
 	box-shadow: none;
 	filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.18));
 }
 
-.menu.hearth-x-menu:has(.menu-separator) .menu-item {
+.menu.hearth-x-menu.is-grouped .menu-item {
 	margin: 0;
 	border-radius: 4px;
 	background: var(--x-dialog);
 }
 
-.menu.hearth-x-menu:has(.menu-separator) .menu-item:first-child,
-.menu.hearth-x-menu:has(.menu-separator) .menu-separator + .menu-item {
+.menu.hearth-x-menu.is-grouped .menu-item:first-child,
+.menu.hearth-x-menu.is-grouped .menu-separator + .menu-item {
 	border-top-left-radius: 20px;
 	border-top-right-radius: 20px;
 	padding-top: 10px;
 }
 
-.menu.hearth-x-menu:has(.menu-separator) .menu-item:last-child,
-.menu.hearth-x-menu:has(.menu-separator) .menu-item:has(+ .menu-separator) {
+.menu.hearth-x-menu.is-grouped .menu-item:last-child,
+.menu.hearth-x-menu.is-grouped .menu-item.is-group-end {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 	padding-bottom: 10px;
 }
 
-.menu.hearth-x-menu:has(.menu-separator) .menu-separator {
+.menu.hearth-x-menu.is-grouped .menu-separator {
 	height: 4px;
 	margin: 0;
 	border: none;

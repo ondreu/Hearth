@@ -236,6 +236,7 @@ function renderFlipClock(
 ): (now: Date) => void {
 	const parts = timePartsFormatter(cfg, "2-digit");
 	const face = wrap.createDiv("hearth-clock-face hearth-clock-flip");
+	face.toggleClass("with-seconds", seconds);
 	const tile = (cls: string) => {
 		const el = face.createDiv(`hearth-clock-flip-tile ${cls}`);
 		const set = textSetter(el.createSpan("hearth-clock-flip-num"));
@@ -454,6 +455,9 @@ export function renderClock(
 	}
 	const timeEl = face === "digital" ? wrap.createDiv("hearth-clock-time") : null;
 	const dateEl = dateMode === "none" ? null : wrap.createDiv("hearth-clock-date");
+	// What the face shares the card with, for the CSS that sizes it.
+	wrap.toggleClass("has-greeting", greetingEl !== null);
+	wrap.toggleClass("has-date", dateEl !== null);
 
 	const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 	const hour12 = resolveHour12(cfg);
