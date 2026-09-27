@@ -59,7 +59,7 @@ import {
 	type ResolvedChips,
 	type TaskNotesSourceConfig,
 } from "./types";
-import { makeClickable } from "./ui";
+import { dressModal, makeClickable } from "./ui";
 import { type HomeView } from "./view";
 import { type CardEditorContext } from "./cards/definition";
 
@@ -101,6 +101,8 @@ export interface IcsContext {
 	readonly eventNote: EventNoteConfig | undefined;
 	/** The live TaskNotes source, or null when it's off/unavailable. */
 	readonly taskNotes: TaskNotesSource | null;
+	/** The card is drawn in the Expressive design, and so are its dialogs. */
+	readonly expressive: boolean;
 	/** Which chips an entry may show, resolved from the card's config. */
 	readonly chips: ResolvedChips;
 	/** Register a redraw to run after a background fetch (or a write) resolves. */
@@ -158,6 +160,7 @@ export function buildIcsContext(
 	cfg: CalendarSourcesConfig,
 	sources: NonNullable<CalendarSourcesConfig["sources"]>,
 	component: Component,
+	expressive = false,
 ): IcsContext {
 	const disabled = view.plugin.settings.disableExternalCalls;
 	const refreshMin = cfg.refreshMin ?? 60;
@@ -301,6 +304,7 @@ export function buildIcsContext(
 		multiSource: sources.length + subs.length + (taskNotes ? 1 : 0) > 1,
 		eventNote: cfg.eventNote,
 		taskNotes,
+		expressive,
 		chips: calendarChips(cfg.chips),
 		onLoaded: (cb) => {
 			redraw = cb;
@@ -363,7 +367,7 @@ export function eventTimeLabel(ev: IcsOccurrence): string {
 /** Open the full event-details modal — the "view this event" action from the
  * day picker and the agenda. */
 export function showEventDetail(view: HomeView, ev: IcsOccurrence, ics: IcsContext): void {
-	new EventDetailModal(view, ev, ics).open();
+	dressModal(new EventDetailModal(view, ev, ics), ics.expressive).open();
 }
 
 

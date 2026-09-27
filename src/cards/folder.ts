@@ -22,8 +22,8 @@ import {
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import { FolderPickerModal } from "../pickers";
-import { type DashboardCard, type FolderCardConfig } from "../types";
-import { makeClickable } from "../ui";
+import { type DashboardCard, effectiveCardDesign, type FolderCardConfig } from "../types";
+import { dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -185,6 +185,7 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 			sort,
 			show,
 			counts: cfg.counts === true,
+			expressive: effectiveCardDesign(view.plugin.settings, card.design) === "expressive",
 			// The dialog is the same reader in the same card: where they walk to
 			// there is where the card reopens, and where an in-card card is.
 			remember: (to) => {
@@ -356,12 +357,14 @@ interface BrowseOptions {
 	/** Told where the reader walked to, so the card it came from reopens there
 	 * (and follows along when it navigates in place). */
 	remember?: (path: string) => void;
+	/** Draw the dialog in the Expressive design (see dressModal). */
+	expressive?: boolean;
 }
 
 /** Open the folder browser at a path. Exported for the card and for anything
  * else that wants to hand the user a folder. */
 export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
-	new FolderBrowserModal(view, opts).open();
+	dressModal(new FolderBrowserModal(view, opts), opts.expressive === true).open();
 }
 
 /**

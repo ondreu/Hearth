@@ -40,7 +40,7 @@ import {
 	type MarketStyle,
 	motionAllowed,
 } from "../types";
-import { designSetting, makeClickable } from "../ui";
+import { designSetting, dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -761,7 +761,7 @@ export function renderMarket(view: HomeView, card: DashboardCard, body: HTMLElem
 	wrap.toggleClass("is-red-up", r.redUp);
 
 	const openRow = (row: Row): void => {
-		new MarketDetailModal(view.app, {
+		const modal = new MarketDetailModal(view.app, {
 			row,
 			r,
 			disabled,
@@ -769,7 +769,8 @@ export function renderMarket(view: HomeView, card: DashboardCard, body: HTMLElem
 			onRefresh: () => {
 				if (!destroyed) paint();
 			},
-		}).open();
+		});
+		dressModal(modal, r.expressive).open();
 	};
 
 	/** The rows whose charts this style draws, and over which range. */

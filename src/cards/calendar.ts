@@ -22,7 +22,7 @@ import {
 import { formatRelativeDate } from "../dates";
 import { taskNotesEnabled, taskNotesMeta } from "../tasknotes";
 import { t } from "../i18n";
-import { type DashboardCard } from "../types";
+import { type DashboardCard, effectiveCardDesign } from "../types";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -64,7 +64,13 @@ export function renderCalendar(
 	// Activity counts are only needed for the heatmap tint.
 	const activity = cfg.heatmap ? activityByDay(view.app, cfg.heatmapMetric ?? "modified") : null;
 
-	const ics = buildIcsContext(view, cfg, sources, component);
+	const ics = buildIcsContext(
+		view,
+		cfg,
+		sources,
+		component,
+		effectiveCardDesign(view.plugin.settings, card.design) === "expressive",
+	);
 	const operon = buildOperonOverlay(view, cfg, component);
 	if (cfg.view === "agenda") {
 		const days = cfg.agendaDays && cfg.agendaDays > 0 ? Math.min(cfg.agendaDays, 60) : 14;

@@ -33,7 +33,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Style → Card design* for one board, and each card's *Style* tab can follow
   that or choose *Classic* or *Expressive* for itself. The weather and market
   cards follow the default too until they're told otherwise (moon and daylight
-  stay Expressive). A shared or published board carries its card design. Cards showing
+  stay Expressive). A shared or published board carries its card design.
+  The dialogs such a card opens follow it — a task and its filter and sort, an
+  event, the folder browser, the full forecast (with the flat weather
+  drawings), an instrument's chart, a confirmation: a tonal surface with large
+  corners, pill buttons, filled fields and the card's own rows and chips. Cards showing
   your own content — notes, embeds, web pages, Dataview and Datacore, the pets —
   are left as they are, and no card's frame changes.
 

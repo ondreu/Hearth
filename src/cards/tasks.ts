@@ -74,6 +74,7 @@ import {
 } from "../taskfilter";
 import {
 	type DashboardCard,
+	effectiveCardDesign,
 	type HomeSettings,
 	type TaskDueFilter,
 	type TaskFieldDef,
@@ -88,7 +89,7 @@ import {
 	type TaskSortRule,
 } from "../types";
 import { openInTaskNotes, readTaskNotesSetup, TASKNOTES_PLUGIN_ID } from "../tasknotes";
-import { confirmAction, makeClickable } from "../ui";
+import { confirmAction, dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -199,8 +200,22 @@ function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; do
 }
 
 
+/**
+ * Which task cards are drawn in the Expressive design, keyed by the config the
+ * card renders from — the one thing every dialog opener in this file already
+ * holds — so a task, the filter or the sort opens looking like its card
+ * without threading the card through every helper on the way.
+ */
+const expressiveConfigs = new WeakMap<TasksConfig, boolean>();
+
+/** Whether dialogs opened for this config should wear the Expressive design. */
+function tasksExpressive(cfg: TasksConfig): boolean {
+	return expressiveConfigs.get(cfg) === true;
+}
+
 export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.tasks ?? {};
+	expressiveConfigs.set(cfg, effectiveCardDesign(view.plugin.settings, card.design) === "expressive");
 	const container = body.createDiv("hearth-tasks-wrap");
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
 	refresh();
@@ -808,7 +823,7 @@ async function openTaskValuePicker(
 	// A date is picked from a calendar, not from a list of everything the vault
 	// happens to contain.
 	if (keyIsDate(key)) {
-		new TaskDatePickerModal(view.app, current, set).open();
+		dressModal(new TaskDatePickerModal(view.app, current, set), tasksExpressive(cfg)).open();
 		return;
 	}
 
@@ -838,7 +853,10 @@ async function openTaskValuePicker(
 			.setTitle(labels.valueCustom)
 			.setIcon("pencil")
 			.onClick(() => {
-				new TaskValuePromptModal(view.app, labels.valueCustomTitle, current, (v) => set(v)).open();
+				dressModal(
+					new TaskValuePromptModal(view.app, labels.valueCustomTitle, current, (v) => set(v)),
+					tasksExpressive(cfg),
+				).open();
 			}),
 	);
 	menu.addItem((mi) =>
@@ -1430,10 +1448,11 @@ function renderTaskListSortControl(
 				.setChecked(custom)
 				.setIcon("list-ordered")
 				.onClick(() => {
-					new TaskSortModal(view.app, cfg.sortRules ?? [], availableStatuses, (rules) => {
+					const modal = new TaskSortModal(view.app, cfg.sortRules ?? [], availableStatuses, (rules) => {
 						cfg.sortRules = rules.length ? rules : undefined;
 						persist();
-					}).open();
+					});
+					dressModal(modal, tasksExpressive(cfg)).open();
 				}),
 		);
 		menu.showAtMouseEvent(e);
@@ -1648,11 +1667,12 @@ function renderTaskFilterControl(
 	if (isTaskFilterActive(cfg.taskFilter)) btn.addClass("is-active");
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
+		const modal = new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
 			cfg.taskFilter = isTaskFilterActive(next) ? next : undefined;
 			void view.plugin.saveData(view.plugin.settings);
 			refresh();
-		}).open();
+		});
+		dressModal(modal, tasksExpressive(cfg)).open();
 	});
 }
 
@@ -3079,6 +3099,7 @@ class TaskDetailModal extends Modal {
 						title: t().cards.tasks.deleteTask,
 						message: t().cards.tasks.deleteTaskConfirm,
 						confirmText: t().cards.tasks.deleteTask,
+						expressive: tasksExpressive(cfg),
 						onConfirm: () => {
 							void deleteKanbanCard(view, hit).then((ok) => {
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
@@ -4100,12 +4121,13 @@ function attachKanbanCardMenu(
 						// metadata (frontmatter) is editable here; a card or checkbox on a
 						// line of its own edits both.
 						const ownsLines = hit.line >= 0 && !hit.linkedFile;
-						new TaskMetadataModal(view.app, current, hit.description ?? "", ownsLines, (meta, description) => {
+						const modal = new TaskMetadataModal(view.app, current, hit.description ?? "", ownsLines, (meta, description) => {
 							void setKanbanCardMetadata(view, hit, meta, description).then((ok) => {
 								if (!ok) new Notice(t().notices.taskChangedOnDisk);
 								refresh();
 							});
-						}).open();
+						});
+						dressModal(modal, tasksExpressive(cfg)).open();
 					}),
 			);
 		}
@@ -4967,7 +4989,7 @@ async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh:
 	// keep opening in their own editor. Storing `taskQuickView: false` restores
 	// the old open-on-click behaviour.
 	if (hit.line >= 0 && (cfg.taskQuickView ?? true)) {
-		new TaskDetailModal(view, cfg, hit, refresh).open();
+		dressModal(new TaskDetailModal(view, cfg, hit, refresh), tasksExpressive(cfg)).open();
 		return;
 	}
 	await openTaskFile(view, hit);

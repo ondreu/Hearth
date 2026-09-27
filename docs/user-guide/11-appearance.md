@@ -119,7 +119,12 @@ vault), then the card's own. Each card's *Style* tab has a *Design* — *Default
 *Classic* or *Expressive* — where *Default* names what the card inherits right
 now; the weather and market cards keep theirs in their *Content* tab, with the
 same *Default*. A synced card follows the board it is showing on, and a shared
-or published board carries its card design with it. The cards that have
+or published board carries its card design with it.
+
+The dialogs an Expressive card opens are Expressive too: a task, the task
+filter and sort, an event, the folder browser, the full forecast, an
+instrument's chart and a confirmation open on a tonal surface with large
+corners, pill buttons and filled fields, dressed like the card they came from. The cards that have
 an Expressive design are clock, mini calendar, full calendar, tasks, statistics,
 activity heatmap, links, commands, new note, favourites, bookmarks, recent
 files, folder, query, search bar, calculator, Git, RSS, Jira and Operon, plus

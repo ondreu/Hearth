@@ -6,7 +6,7 @@ import { FOLDER_SORT_DEFAULT } from "../foldercontents";
 import { t } from "../i18n";
 import { type BookmarksInstance } from "../obsidian-ext";
 import { openFile, openSearch, targetLeaf } from "../opener";
-import { makeClickable } from "../ui";
+import { inExpressiveCard, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition } from "./definition";
 import { openFolderBrowser } from "./folder";
@@ -161,7 +161,7 @@ function renderBookmarkLeaf(
 		setIcon(iconEl, icon);
 	}
 	row.createDiv({ cls: "hearth-list-label", text: label });
-	const open = () => openBookmark(view, item);
+	const open = () => openBookmark(view, item, inExpressiveCard(row));
 	row.addEventListener("click", open);
 	makeClickable(row, open, label);
 }
@@ -196,7 +196,7 @@ function renderFavicon(iconEl: HTMLElement, url: string): void {
  * need a core plugin say so when it is switched off, because silence is exactly
  * what the bug looked like.
  */
-function openBookmark(view: HomeView, item: BookmarkItem): void {
+function openBookmark(view: HomeView, item: BookmarkItem, expressive: boolean): void {
 	const target = bookmarkTarget(
 		item,
 		(path) => view.app.vault.getAbstractFileByPath(path) instanceof TFolder,
@@ -218,7 +218,7 @@ function openBookmark(view: HomeView, item: BookmarkItem): void {
 			// Hearth's own folder browser (#329) rather than core's reveal in the
 			// sidebar: the plugin already has its own answer to "show me this
 			// folder", and it is a better one on a board.
-			openFolder(view, target.path);
+			openFolder(view, target.path, expressive);
 			return;
 		case "file":
 			openNote(view, target.path, target.subpath);
@@ -251,12 +251,13 @@ function openNote(view: HomeView, path: string, subpath?: string): void {
 /** Hand a bookmarked folder to the folder browser. There is no card config to
  * read here — a bookmark is a path and nothing else — so the browser opens on
  * its own defaults: the explorer's order, everything shown, no counts. */
-function openFolder(view: HomeView, path: string): void {
+function openFolder(view: HomeView, path: string, expressive: boolean): void {
 	openFolderBrowser(view, {
 		path,
 		sort: FOLDER_SORT_DEFAULT,
 		show: "all",
 		counts: false,
+		expressive,
 	});
 }
 

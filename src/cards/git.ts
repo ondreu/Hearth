@@ -35,7 +35,7 @@ import {
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import { effectiveAutoRefreshMinutes, type DashboardCard } from "../types";
-import { confirmAction, makeClickable } from "../ui";
+import { confirmAction, inExpressiveCard, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -213,6 +213,7 @@ function renderGitBody(
 			confirmAction(view.app, {
 				title: t().cards.git.confirmTitle,
 				message: t().cards.git.confirmDiscard,
+				expressive: inExpressiveCard(body),
 				confirmText: t().cards.git.confirmDiscardButton,
 				onConfirm: start,
 			});
@@ -517,6 +518,7 @@ function paintChangeRow(
 						title: t().cards.git.confirmTitle,
 						message: t().cards.git.confirmDiscardFile(row.name),
 						confirmText: t().cards.git.confirmDiscardButton,
+						expressive: inExpressiveCard(el),
 						onConfirm: () => {
 							queueGitFileAction(plugin, "discard", row.path, refresh);
 						},
