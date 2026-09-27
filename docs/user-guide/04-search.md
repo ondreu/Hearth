@@ -50,6 +50,67 @@ A leading `>` turns the field into a command launcher. Every command registered
 in Obsidian — core, community plugin, or Hearth's own — can be found by name and
 run with Enter. This is the same set of commands as Obsidian's command palette.
 
+## Instant answers
+
+Some queries have an answer of their own. Hearth shows it at the top of the
+results, above the notes:
+
+| What you type | Answer |
+| --- | --- |
+| `1+1`, `20% of 150`, `10 km to mi`, `FF hex to decimal` | **Calculator** — the result |
+| `20 CZK to EUR`, `100 euros in dollars`, `eur/usd` | **Currencies** — the conversion at today's rate, and the pair's chart |
+| `$AAPL`, `apple stock`, `bitcoin price` | **Stocks, funds and crypto** — a live quote, a chart with range chips, and other matches |
+| `weather Prague`, `london forecast` | **Weather** — now, and the next five days |
+| `wiki Alan Turing`, `wiki:de Prag` | **Wikipedia** — the article's title, description and lead |
+| `coin flip`, `roll 2d6`, `d20`, `random 1-10` | **Coin, dice and random numbers** |
+| `days until 2026-12-24`, `today + 45 days`, `next friday` | **Dates** — a day count or a date |
+| `time in Tokyo`, `new york time` | **Time elsewhere** — the clock there and the offset from yours |
+
+The phrases are understood in the languages Hearth is translated into —
+English, German (`Siemens Aktie`, `Wetter Berlin`, `Tage bis …`, `Zeit in
+Tokio`, `100 CHF nach EUR`) and Chinese (`茅台股价`, `北京天气`, `东京时间`,
+`20美元换成人民币`).
+
+- A leading `=` forces the calculator, so `=2026-10` is a subtraction rather
+  than a date. A plain number, a date or a time of day is never treated as a
+  sum on its own.
+- A leading `$` is a market lookup on its own: the note results are left out.
+- **Enter** copies a result (a sum, a conversion, a date, a time), opens a quote
+  or an article in the browser, or draws the coin, dice or number again. For a
+  date or a clock, Enter stays on the first note, because `tomorrow` or a date
+  is as likely to be a note's name.
+- A Wikipedia lookup uses the wiki in Obsidian's language; `wiki:xx` picks
+  another (`wiki:cs Praha`).
+
+Currencies, quotes, the weather and Wikipedia are fetched only for a query that
+asks for them, through the same cached sources the Calculator, Markets and
+Weather cards use; see [chapter 17](17-privacy-and-network.md). With **Disable
+external calls** on, they say so instead of fetching.
+
+### Switching answers on and off
+
+- **Vault-wide**: **Settings → Hearth → Search → Search bar → Instant answers**
+  switches them all off, and the toggles under it switch single answers off.
+- **Per board**: *Dashboard settings → Header → Instant answers* switches
+  answers off for that board's search bars.
+- **Per Search bar card**: the card's settings switch answers off for that bar.
+
+A board or a card can only switch answers off on top of the vault's choice,
+never back on — so a board you install from someone else can't turn on an
+answer (and the requests it makes) that you have off.
+
+### Search tips
+
+Everything in this chapter is also one dialog away, with examples you can click
+to try:
+
+- type `?` into any search bar,
+- run the command **Hearth: Show search tips**, or
+- press *Show* beside *Search tips* in **Settings → Hearth → Search**.
+
+After the update that brought instant answers, an empty search bar offers the
+tips once, above your recent files, until you open or dismiss them.
+
 ## Filter chips
 
 Under the search field is a row of **filter chips** for file types. They are

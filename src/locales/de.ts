@@ -36,6 +36,7 @@ export const de: Translations = {
 		recordVoice: "Sprachaufnahme starten/stoppen",
 		openDailyNote: "Heutige Tagesnotiz öffnen",
 		runSetup: "Hearth einrichten (Ersteinrichtungs-Assistent)",
+		searchTips: "Suchtipps anzeigen",
 		switchDashboard: (n: number) => `Zu Dashboard ${n} wechseln`,
 		openDashboard: (n: number) => `Dashboard ${n} öffnen`,
 		nextDashboard: "Nächstes Dashboard",
@@ -124,6 +125,82 @@ export const de: Translations = {
 		placeholder: "Vault durchsuchen",
 		noMatches: "Keine Treffer",
 		noMatchingCommands: "Keine passenden Befehle",
+		tips: {
+			title: "Was die Suchleiste kann",
+			intro: "Tippe eines davon in eine Hearth-Suchleiste.",
+			introTry: "Klicke auf ein Beispiel, um es auszuprobieren.",
+			findHeading: "Notizen finden",
+			answersHeading: "Sofortantworten",
+			off: "Aus",
+			settingsHint:
+				"Antworten schaltest du unter Einstellungen → Suche ein oder aus, pro Board in dessen Einstellungen oder pro Suchleisten-Karte.",
+			tryAria: (example: string) => `„${example}“ ausprobieren`,
+			openRow: "Suchtipps",
+			openRowDesc: "Alles, was die Suchleiste kann",
+			newHint: "Neu: Die Suchleiste beantwortet Fragen",
+			newHintDesc: "Rechnungen, Währungen, Aktien, Wetter, Wikipedia und mehr — sieh dir an, was sie kann",
+			dismiss: "Ausblenden",
+			find: {
+				name: {
+					title: "Namen und Pfade",
+					desc: "Beliebiger Text findet Notizen, Dateien und Ordner nach Namen, auch mit ausgelassenen Buchstaben.",
+					examples: ["besprechung", "proj/notizen"],
+				},
+				tag: { title: "Tags", desc: "Beginne mit #, um Notizen nach Tag zu finden.", examples: ["#projekt"] },
+				property: {
+					title: "Eigenschaften",
+					desc: "schlüssel:wert findet Notizen nach einer Frontmatter-Eigenschaft.",
+					examples: ["status:done", "autor:ada"],
+				},
+				command: {
+					title: "Befehle",
+					desc: "Beginne mit >, um einen Befehl auszuführen.",
+					examples: [">tägliche Notiz", ">umschalten"],
+				},
+			},
+			features: {
+				calc: {
+					title: "Rechner",
+					desc: "Rechnungen, Prozente, Einheiten und Zahlensysteme. Mit = erzwingen.",
+					examples: ["1+1", "20% of 150", "10 km nach mi", "FF hex to decimal"],
+				},
+				currency: {
+					title: "Währungen",
+					desc: "Umrechnen mit aktuellen Kursen, mit Chart des Paares.",
+					examples: ["20 CZK in EUR", "100 CHF nach EUR", "eur/usd"],
+				},
+				market: {
+					title: "Aktien, Fonds und Krypto",
+					desc: "Aktueller Kurs und Chart. Mit $ oder einem Wort wie Aktie oder Kurs.",
+					examples: ["$SAP", "Siemens Aktie", "Kurs Allianz"],
+				},
+				weather: {
+					title: "Wetter",
+					desc: "Das Wetter jetzt und in den nächsten Tagen, überall.",
+					examples: ["Wetter Berlin", "Wetter in München"],
+				},
+				wiki: {
+					title: "Wikipedia",
+					desc: "Die Zusammenfassung eines Artikels. Mit :en, :fr… wählst du die Sprache.",
+					examples: ["wiki Alan Turing", "wiki:en Berlin"],
+				},
+				chance: {
+					title: "Münze, Würfel und Zufallszahlen",
+					desc: "Enter zieht neu.",
+					examples: ["Münzwurf", "würfel 2d6", "Zufallszahl 1-10"],
+				},
+				date: {
+					title: "Daten",
+					desc: "Tage zählen und mit Daten rechnen.",
+					examples: ["Tage bis 2026-12-24", "heute + 45 Tage", "nächsten Freitag"],
+				},
+				time: {
+					title: "Uhrzeit anderswo",
+					desc: "Die Uhrzeit in einer Stadt und wie weit sie vor- oder nachgeht.",
+					examples: ["Zeit in Tokio", "wie spät ist es in New York"],
+				},
+			},
+		},
 		instant: {
 			copyHint: "Enter zum Kopieren",
 			openHint: "Enter für Details",
@@ -624,6 +701,10 @@ export const de: Translations = {
 				count === 0
 					? "Folgt dem Vault, der keine ausblendet."
 					: `Folgt dem Vault, der ${count} ausblendet.`,
+			hiddenInstant: "Sofortantworten",
+			hiddenInstantDesc: "Schalte Antworten für die Suchleisten dieses Boards aus. Was im ganzen Tresor aus ist, bleibt aus.",
+			hiddenInstantOffVault: "Unter Einstellungen → Suche für den ganzen Tresor ausgeschaltet.",
+			hiddenInstantVaultOff: "Sofortantworten sind unter Einstellungen → Suche für den ganzen Tresor ausgeschaltet.",
 			stackOnNarrow: "Stapeln wenn schmal",
 			stackOnNarrowDesc:
 				"Bricht dieses Board in eine volle Spalte um, sobald der Bereich zu schmal für das freie Layout ist - ein Telefon oder ein schmaler Split.",
@@ -904,13 +985,12 @@ export const de: Translations = {
 			searchPlaceholder: "Suchplatzhalter",
 			searchInstantAnswers: "Sofortantworten",
 			searchInstantAnswersDesc:
-				"Beantwortet die Suchanfrage selbst über den Notizen: Rechnungen und " +
-				"Einheiten (1+1, 10 km nach mi), Währungen mit Chart (20 CZK in EUR), " +
-				"Kurse ($AAPL, Siemens Aktie), das Wetter (Wetter Berlin), Wikipedia " +
-				"(wiki Berlin), Münze, Würfel oder Zufallszahl (Münzwurf, würfel 2d6, " +
-				"Zufallszahl 1-10), Daten (Tage bis 24.12.2026) und die Uhrzeit " +
-				"anderswo (Zeit in Tokio). Online-Antworten werden nur für Anfragen " +
-				"abgerufen, die danach fragen.",
+				"Beantwortet die Suchanfrage selbst über den Notizen — Rechnung, Währung, " +
+				"Aktie, Wetter, Wikipedia und mehr. Unten wählst du, welche Antworten. " +
+				"Online-Antworten werden nur für Anfragen abgerufen, die danach fragen.",
+			searchTips: "Suchtipps",
+			searchTipsDesc: "Alles, was die Suchleiste versteht, mit Beispielen.",
+			searchTipsButton: "Anzeigen",
 			searchContents: "Notizinhalte durchsuchen",
 			searchContentsDesc:
 				"Finde auch Text in Notizinhalten, nicht nur Namen, Tags und " +
@@ -2322,6 +2402,11 @@ export const de: Translations = {
 				"Welche Chips diese Karte anbietet. Ein Chip erscheint nur, wenn der Vault " +
 				"tatsächlich diese Dateiart enthält.",
 			filterTypeGlobalOff: "Für jede Suchleiste unter Einstellungen → Filter ausgeblendet.",
+			instantAnswers: "Sofortantworten",
+			instantAnswersDesc:
+				"Schalte Antworten für diese Suchleiste aus. Was auf dem Board oder im ganzen Tresor aus ist, bleibt hier aus.",
+			instantAnswerOff: "Auf diesem Board oder im ganzen Tresor ausgeschaltet.",
+			instantAnswersVaultOff: "Sofortantworten sind unter Einstellungen → Suche für den ganzen Tresor ausgeschaltet.",
 			button: "Button",
 			buttonDesc:
 				"Ein Aktionsbutton neben dem Feld: Erstelle eine neue Notiz oder durchsuche das " +

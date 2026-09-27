@@ -108,6 +108,8 @@ Two sections: Search bar, Search filters.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | *Search placeholder* | `Search or command` | The greyed-out text in the empty field |
+| *Instant answers* | On | Answer the query itself above the notes — sums, currencies, stocks, weather, Wikipedia, chance, dates and the time elsewhere. One toggle per answer under it; boards and Search bar cards can switch more off. See [chapter 4](04-search.md#instant-answers) |
+| *Search tips* | — | Opens the dialog listing everything the search bar understands |
 | *Search note contents* | On | Also match text inside note bodies, not just names, tags and properties. Body matches appear after name matches with a snippet |
 | *Search engine* | Hearth (built-in) | **Hearth (built-in)** or **Omnisearch**. Omnisearch requires that community plugin to be installed and enabled |
 | *Show "New note" button* | On | Show the action button beside the search field |

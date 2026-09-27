@@ -47,6 +47,7 @@ offers, placed wherever you want it.
 | *Filter row* | Show the file-type chips under the field. They need a taller card to sit in |
 | *Filter chips* | Which chips this card offers. A chip only appears when the vault actually holds that kind of file |
 | *Button* | An action button beside the field: **None**, **New note**, or **Search online** |
+| *Instant answers* | Which instant answers this bar gives. Answers off on the board or vault-wide are shown as off and can't be switched on here |
 | *Seamless* | Drop the card frame — no border, background or title row — so this reads as a standalone search bar on the board rather than as a card |
 
 The field is as thick as the card is tall, so you set the bar's chunkiness by

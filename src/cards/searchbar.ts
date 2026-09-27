@@ -1,11 +1,13 @@
 import { Component, Setting } from "obsidian";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "../filetypes";
+import { INSTANT_FEATURES } from "../instant";
 import { createSearchBarButton } from "../header";
 import { t } from "../i18n";
 import { SearchSection } from "../search";
 import {
 	type DashboardCard,
 	effectiveHiddenFilters,
+	effectiveHiddenInstantAnswers,
 	effectiveSearchPlaceholder,
 	type SearchBarConfig,
 } from "../types";
@@ -50,6 +52,7 @@ export function renderSearchBar(
 	search.renderResultsAndFilters(wrap, wrap, component, {
 		filters: cfg.filters === true,
 		hiddenFilters: cfg.hiddenFilters,
+		hiddenInstantAnswers: cfg.hiddenInstantAnswers,
 	});
 }
 
@@ -81,6 +84,42 @@ function renderFilterTypes(
 				if (v) hidden.delete(group.id);
 				else hidden.add(group.id);
 				cfg.hiddenFilters = hidden.size ? Array.from(hidden) : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	}
+}
+
+
+/** One toggle per instant answer, scoped to this card. Like the chips, the
+ * card can only switch more off: an answer off on the board or vault-wide
+ * shows as off here and can't be switched back on. */
+function renderInstantAnswers(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: SearchBarConfig,
+): void {
+	const strings = t().editors.searchBar;
+	const heading = new Setting(containerEl).setName(strings.instantAnswers).setHeading();
+	if (!ctx.opts.settings.searchInstantAnswers) {
+		heading.setDesc(strings.instantAnswersVaultOff);
+		return;
+	}
+	heading.setDesc(strings.instantAnswersDesc);
+	const above = new Set(effectiveHiddenInstantAnswers(ctx.opts.settings));
+	const hidden = new Set(cfg.hiddenInstantAnswers ?? []);
+	for (const id of INSTANT_FEATURES) {
+		const off = above.has(id);
+		const setting = new Setting(containerEl).setName(t().search.tips.features[id].title);
+		if (off) setting.setDesc(strings.instantAnswerOff);
+		setting.addToggle((tg) => {
+			tg.setValue(!off && !hidden.has(id));
+			tg.setDisabled(off);
+			tg.onChange((v) => {
+				if (v) hidden.delete(id);
+				else hidden.add(id);
+				cfg.hiddenInstantAnswers = hidden.size ? Array.from(hidden) : undefined;
 				ctx.opts.save();
 				ctx.opts.rerender();
 			});
@@ -140,6 +179,7 @@ export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement
 				ctx.opts.rerender();
 			}),
 		);
+	renderInstantAnswers(ctx, containerEl, cfg);
 	// There is no thickness control: the bar fills the card, so its height is the
 	// card's. Say so here — it isn't discoverable from a settings pane that has
 	// no slider for it.
@@ -172,6 +212,9 @@ export const searchbarCard: CardDefinition<"searchbar"> = {
 			// original's row too.
 			if (source.searchBar.hiddenFilters) {
 				copy.searchBar.hiddenFilters = [...source.searchBar.hiddenFilters];
+			}
+			if (source.searchBar.hiddenInstantAnswers) {
+				copy.searchBar.hiddenInstantAnswers = [...source.searchBar.hiddenInstantAnswers];
 			}
 		}
 	},

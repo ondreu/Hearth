@@ -1,6 +1,7 @@
 import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
-import { HomeSettings, hydrateSettings, timersAllowed } from "./types";
+import { effectiveHiddenInstantAnswers, HomeSettings, hydrateSettings, timersAllowed } from "./types";
+import { SearchTipsModal } from "./searchtips";
 import { HomeSettingTab } from "./settings";
 import {
 	HEARTH_ICON_ID,
@@ -155,6 +156,16 @@ export default class HearthPlugin extends Plugin {
 			id: "run-setup",
 			name: t().commands.runSetup,
 			callback: () => openSetupWizard(this, { forceNewDashboard: true }),
+		});
+
+		this.addCommand({
+			id: "search-tips",
+			name: t().commands.searchTips,
+			callback: () =>
+				new SearchTipsModal(this.app, {
+					enabled: (id) =>
+						this.settings.searchInstantAnswers && !effectiveHiddenInstantAnswers(this.settings).includes(id),
+				}).open(),
 		});
 
 		this.registerDashboardCommands();

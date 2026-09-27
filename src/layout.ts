@@ -115,6 +115,7 @@ import {
 } from "./git";
 import { t } from "./i18n";
 import { isWebSearchEngineId } from "./websearch";
+import { isInstantFeature } from "./instant";
 
 /** Current dashboard-layout export schema version. v2 carries every dashboard
  * (with per-board overrides and backgrounds) plus pinned cards and globals;
@@ -240,6 +241,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		newNoteFilename: s.newNoteFilename,
 		searchContents: s.searchContents,
 		searchInstantAnswers: s.searchInstantAnswers,
+		hiddenInstantAnswers: s.hiddenInstantAnswers,
 		searchEngine: s.searchEngine,
 		webSearchEngine: s.webSearchEngine,
 
@@ -1168,6 +1170,8 @@ function sanitizeSearchBar(r: Record<string, unknown>): SearchBarConfig {
 	if (typeof r.filters === "boolean") cfg.filters = r.filters;
 	const hidden = sanitizeFileTypeGroups(r.hiddenFilters);
 	if (hidden) cfg.hiddenFilters = hidden;
+	const hiddenInstant = sanitizeInstantFeatures(r.hiddenInstantAnswers);
+	if (hiddenInstant?.length) cfg.hiddenInstantAnswers = hiddenInstant;
 	const placeholder = str(r.placeholder);
 	if (placeholder !== undefined) cfg.placeholder = placeholder;
 	if (r.button === "none" || r.button === "newNote" || r.button === "searchOnline") {
@@ -1175,6 +1179,13 @@ function sanitizeSearchBar(r: Record<string, unknown>): SearchBarConfig {
 	}
 	if (typeof r.seamless === "boolean") cfg.seamless = r.seamless;
 	return cfg;
+}
+
+/** Instant-answer feature ids that actually exist, deduplicated, in the order
+ * given; undefined when the value isn't a list at all. */
+function sanitizeInstantFeatures(value: unknown): string[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	return [...new Set(value.filter(isInstantFeature))];
 }
 
 /** File-type group ids that actually exist, in the order given. */
@@ -1786,6 +1797,8 @@ export function sanitizeDashboard(
 			(id): id is string => typeof id === "string",
 		);
 	}
+	const hiddenInstant = sanitizeInstantFeatures(r.hiddenInstantAnswers);
+	if (hiddenInstant?.length) dash.hiddenInstantAnswers = hiddenInstant;
 	if (typeof r.stackOnNarrow === "boolean") dash.stackOnNarrow = r.stackOnNarrow;
 	if (typeof r.narrowWidth === "number") {
 		dash.narrowWidth = clampNum(
@@ -2164,6 +2177,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.searchContents = data.searchContents;
 	if (typeof data.searchInstantAnswers === "boolean")
 		s.searchInstantAnswers = data.searchInstantAnswers;
+	const hiddenInstant = sanitizeInstantFeatures(data.hiddenInstantAnswers);
+	if (hiddenInstant) s.hiddenInstantAnswers = hiddenInstant;
 	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {
 		s.searchEngine = data.searchEngine;
 	}

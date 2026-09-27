@@ -1295,6 +1295,110 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	font-size: 0.85rem;
 }
 
+/* The "the bar can answer questions" hint and the "?" row (search.ts). */
+.hearth-result.hearth-tips-hint .hearth-result-icon {
+	color: var(--interactive-accent);
+}
+
+.hearth-result.hearth-tips-hint .hearth-result-text {
+	flex: 1;
+}
+
+.hearth-tips-dismiss {
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+/* ---- Search tips dialog (searchtips.ts) ---- */
+.hearth-tips-heading {
+	margin: 16px 0 6px;
+	font-size: var(--font-ui-medium);
+}
+
+.hearth-tips-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.hearth-tips-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.hearth-tips-row.is-off {
+	opacity: 0.55;
+}
+
+.hearth-tips-icon {
+	display: flex;
+	flex-shrink: 0;
+	margin-top: 2px;
+	color: var(--text-muted);
+}
+
+.hearth-tips-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.hearth-tips-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.hearth-tips-off {
+	padding: 0 6px;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	font-weight: 500;
+}
+
+.hearth-tips-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-tips-examples {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.hearth-tips-example {
+	padding: 1px 8px;
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: 0.78rem;
+}
+
+button.hearth-tips-example {
+	height: auto;
+	border: none;
+	box-shadow: none;
+	cursor: pointer;
+}
+
+button.hearth-tips-example:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.hearth-tips-footnote {
+	margin-top: 16px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
 /* ---- Filters -------------------------------------------------------- */
 
 /* The chips share out the row's leftover space as gap, growing to at most 48px,

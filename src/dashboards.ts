@@ -35,6 +35,7 @@ import {
 	NARROW_WIDTH_STEP,
 	newDashboardId,
 } from "./types";
+import { INSTANT_FEATURES } from "./instant";
 import { classicCardsInUse, cloneCard } from "./cards";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { openExportDashboard, pickAndImport } from "./exportimport";
@@ -777,6 +778,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		}
 
 		this.filterChipsOverride(containerEl);
+		this.instantAnswersOverride(containerEl);
 
 		this.overrideText(
 			containerEl,
@@ -945,6 +947,43 @@ class DashboardSettingsModal extends HearthTabbedModal {
 						this.commit();
 					}),
 				);
+		}
+	}
+
+	/**
+	 * The instant answers this board's search bars give. Unlike the chips, a
+	 * board can only switch answers off on top of the vault's choice — the
+	 * vault decides what may run at all, and an imported board can't widen it.
+	 */
+	private instantAnswersOverride(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
+		const strings = t().dashboards.modal;
+		const heading = new Setting(containerEl).setName(strings.hiddenInstant);
+		if (!s.searchInstantAnswers) {
+			heading.setDesc(strings.hiddenInstantVaultOff);
+			return;
+		}
+		heading.setDesc(strings.hiddenInstantDesc);
+		const vaultOff = new Set(s.hiddenInstantAnswers);
+		const hidden = new Set(dash.hiddenInstantAnswers ?? []);
+		for (const id of INSTANT_FEATURES) {
+			const off = vaultOff.has(id);
+			const row = new Setting(containerEl)
+				.setName(t().search.tips.features[id].title)
+				.setClass("hearth-setting-sub");
+			if (off) row.setDesc(strings.hiddenInstantOffVault);
+			row.addToggle((tg) =>
+				tg
+					.setValue(!off && !hidden.has(id))
+					.setDisabled(off)
+					.onChange((v) => {
+						if (v) hidden.delete(id);
+						else hidden.add(id);
+						dash.hiddenInstantAnswers = hidden.size ? Array.from(hidden) : undefined;
+						this.commit();
+					}),
+			);
 		}
 	}
 

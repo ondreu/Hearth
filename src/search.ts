@@ -11,12 +11,13 @@ import {
 	slotsAboveBody,
 } from "./query";
 import { InstantAnswers, type InstantRow } from "./instantview";
-import { instantOnly } from "./instant";
+import { type InstantFeature, instantOnly } from "./instant";
+import { markSearchTipsSeen, SearchTipsModal, searchTipsSeen } from "./searchtips";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { openFile as openInLeaf } from "./opener";
 import { renderHighlighted } from "./ui";
 import { t } from "./i18n";
-import { effectiveHiddenFilters, effectiveSearchPlaceholder } from "./types";
+import { effectiveHiddenFilters, effectiveHiddenInstantAnswers, effectiveSearchPlaceholder } from "./types";
 
 /** Recently opened-via-search files, kept in the vault's local storage (never
  * in settings/data.json) so it stays out of the settings UI and layout
@@ -27,6 +28,8 @@ const HISTORY_MAX = 6;
 const MAX_RESULTS = 40;
 /** A leading ">" switches the bar to command mode (run any command). */
 const COMMAND_PREFIX = ">";
+/** A lone "?" offers the search tips. */
+const TIPS_QUERY = "?";
 
 let resultsIdSeq = 0;
 
@@ -160,9 +163,10 @@ export class SearchSection {
 		overlayParent: HTMLElement,
 		boundary: HTMLElement,
 		component: Component,
-		opts: { filters?: boolean; hiddenFilters?: string[] } = {},
+		opts: { filters?: boolean; hiddenFilters?: string[]; hiddenInstantAnswers?: string[] } = {},
 	): void {
 		this.hiddenFilters = opts.hiddenFilters ?? [];
+		this.hiddenInstant = opts.hiddenInstantAnswers ?? [];
 		this.rootEl = boundary;
 		this.resultsEl = overlayParent.createDiv("hearth-search-results");
 		this.resultsEl.id = this.resultsId;
@@ -198,6 +202,33 @@ export class SearchSection {
 	/** Chips this instance leaves out on top of the vault-wide ones, set by the
 	 * search-bar card (which can hide them per card). */
 	private hiddenFilters: string[] = [];
+	/** Instant answers this instance switches off on top of the board's or the
+	 * vault's (the search-bar card can). */
+	private hiddenInstant: string[] = [];
+
+	/** Whether an instant answer is on here: on vault-wide, not off on this
+	 * board (or the vault), and not off on this search bar. */
+	private instantEnabled = (feature: InstantFeature): boolean => {
+		const s = this.view.plugin.settings;
+		return (
+			s.searchInstantAnswers &&
+			!effectiveHiddenInstantAnswers(s).includes(feature) &&
+			!this.hiddenInstant.includes(feature)
+		);
+	};
+
+	/** The search tips, with examples typed into this bar on a click. */
+	openTips(): void {
+		this.hide();
+		new SearchTipsModal(this.view.app, {
+			enabled: this.instantEnabled,
+			onTry: (example) => {
+				this.inputEl.value = example;
+				this.inputEl.focus();
+				this.update();
+			},
+		}).open();
+	}
 
 	private detectGroups(): FileTypeGroup[] {
 		const present = new Set<string>();
@@ -295,11 +326,17 @@ export class SearchSection {
 			return;
 		}
 
+		if (query === TIPS_QUERY) {
+			this.instant.clear();
+			this.renderTipsRow(false);
+			return;
+		}
+
 		// An instant answer only answers the whole vault's query: with a file
 		// type picked, the reader is plainly looking for a file.
 		const intent =
 			this.view.plugin.settings.searchInstantAnswers && !this.activeFilter
-				? this.instant.setQuery(query)
+				? this.instant.setQuery(query, this.instantEnabled)
 				: (this.instant.clear(), null);
 		// A `$` lookup or an `=` sum is a mode of its own, like ">" commands.
 		if (intent && instantOnly(intent)) {
@@ -380,11 +417,62 @@ export class SearchSection {
 		const files = this.getHistory()
 			.map((p) => this.view.app.vault.getAbstractFileByPath(p))
 			.filter((f): f is TFile => f instanceof TFile);
-		if (files.length === 0) {
+		// Until the reader has seen the tips once, an empty bar offers them —
+		// the one moment the question "what can I type here?" comes up.
+		const hint = this.view.plugin.settings.searchInstantAnswers && !searchTipsSeen(this.view.app);
+		if (files.length === 0 && !hint) {
 			this.hide();
 			return;
 		}
+		if (files.length === 0) {
+			this.renderTipsRow(true);
+			return;
+		}
 		this.renderFileRows(files.map((file) => ({ file, score: 0 })));
+		if (hint) this.prependTipsRow();
+	}
+
+	/** Only the tips row (a lone "?"). */
+	private renderTipsRow(isNew: boolean): void {
+		this.beginResults();
+		this.addTipsRow(isNew);
+		this.finishResults();
+	}
+
+	/** The one-time "the bar can answer questions" hint above the recents. */
+	private prependTipsRow(): void {
+		const first = this.resultsEl.firstChild;
+		const rowsBefore = this.rows;
+		this.rows = [];
+		const el = this.addTipsRow(true);
+		if (first) this.resultsEl.insertBefore(el, first);
+		this.rows.push(...rowsBefore);
+		this.rows.forEach((r, i) => {
+			if (r.el.id.includes("-opt-")) r.el.id = `${this.resultsId}-opt-${i}`;
+		});
+		// Enter still opens the most recent note, not the hint.
+		if (rowsBefore.length) this.defaultRow = 1;
+		this.finishResults();
+	}
+
+	private addTipsRow(isNew: boolean): HTMLElement {
+		const strings = t().search.tips;
+		const row = this.newRow(this.rows.length, isNew ? "sparkles" : "lightbulb");
+		row.addClass("hearth-tips-hint");
+		const text = row.createDiv("hearth-result-text");
+		text.createDiv({ cls: "hearth-result-name", text: isNew ? strings.newHint : strings.openRow });
+		text.createDiv({ cls: "hearth-result-path", text: isNew ? strings.newHintDesc : strings.openRowDesc });
+		if (isNew) {
+			const dismiss = row.createDiv({ cls: "hearth-tips-dismiss clickable-icon", attr: { "aria-label": strings.dismiss } });
+			setIcon(dismiss, "x");
+			dismiss.addEventListener("click", (e) => {
+				e.stopPropagation();
+				markSearchTipsSeen(this.view.app);
+				this.update();
+			});
+		}
+		this.commitRow(row, () => this.openTips());
+		return row;
 	}
 
 	private getHistory(): string[] {

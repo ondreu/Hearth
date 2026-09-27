@@ -789,6 +789,9 @@ export interface SearchBarConfig {
 	/** File-type group ids (see FILE_TYPE_GROUPS) this card leaves out of its
 	 * chip row, on top of the ones hidden vault-wide in Settings → Filters. */
 	hiddenFilters?: string[];
+	/** Instant answers (see INSTANT_FEATURES) this card switches off, on top of
+	 * the ones off on the board or vault-wide. */
+	hiddenInstantAnswers?: string[];
 	/** Placeholder shown in the empty field. Blank or omitted falls back to the
 	 * global one (Settings → Appearance → Search placeholder). */
 	placeholder?: string;
@@ -2234,6 +2237,9 @@ export interface Dashboard extends BannerOverrides {
 	 * (undefined = follow {@link HomeSettings.hiddenFilters}). An empty array is
 	 * a real override meaning "show every chip on this board". */
 	hiddenFilters?: string[];
+	/** Instant answers switched off on this board, on top of the ones off
+	 * vault-wide ({@link HomeSettings.hiddenInstantAnswers}). */
+	hiddenInstantAnswers?: string[];
 	/** Override whether this board reflows into one column when narrow
 	 * (undefined = follow {@link HomeSettings.stackOnNarrow}). */
 	stackOnNarrow?: boolean;
@@ -2390,6 +2396,10 @@ export interface HomeSettings {
 	 * conversion, a `$` market lookup, a date, the time somewhere — above the
 	 * notes in the search results (see instant.ts). */
 	searchInstantAnswers: boolean;
+	/** The instant answers switched off vault-wide (ids from INSTANT_FEATURES
+	 * in instant.ts). A board and a search-bar card can only switch more off,
+	 * so an imported board can't turn on an answer the vault has off. */
+	hiddenInstantAnswers: string[];
 	/** Which engine powers the search bar: Hearth's built-in vault search, or the
 	 * Omnisearch community plugin (only usable when Omnisearch is installed and
 	 * enabled — Hearth falls back to the built-in engine otherwise). */
@@ -2729,6 +2739,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	newNoteFilename: "",
 	searchContents: true,
 	searchInstantAnswers: true,
+	hiddenInstantAnswers: [],
 	searchEngine: "builtin",
 	webSearchEngine: DEFAULT_WEB_SEARCH_ENGINE,
 
@@ -3042,6 +3053,13 @@ export function effectiveNewNoteButtonLabel(s: HomeSettings): string {
  * wins over a global list: that is how one board shows every chip. */
 export function effectiveHiddenFilters(s: HomeSettings): string[] {
 	return activeDashboard(s).hiddenFilters ?? s.hiddenFilters;
+}
+
+/** The instant answers switched off on the active board: the vault's, plus
+ * any the board switches off itself. A board can't switch one back on. */
+export function effectiveHiddenInstantAnswers(s: HomeSettings): string[] {
+	const own = activeDashboard(s).hiddenInstantAnswers ?? [];
+	return own.length ? [...new Set([...s.hiddenInstantAnswers, ...own])] : s.hiddenInstantAnswers;
 }
 
 /** Whether the active board reflows into a single column once it is narrow. */

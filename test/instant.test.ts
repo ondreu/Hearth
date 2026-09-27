@@ -4,6 +4,9 @@ import {
 	daysBetween,
 	detectInstant,
 	formatOffset,
+	INSTANT_FEATURES,
+	instantFeature,
+	isInstantFeature,
 	instantOnly,
 	instantTakesEnter,
 	isoWeek,
@@ -262,5 +265,32 @@ describe("detectInstant — chance", () => {
 		expect(rollBetween(1, 6, () => 0)).toBe(1);
 		expect(rollBetween(1, 6, () => 0.9999)).toBe(6);
 		expect(rollBetween(-5, 5, () => 0.5)).toBe(0);
+	});
+});
+
+describe("detectInstant — answers switched off", () => {
+	it("skips a switched-off answer and reads the query another way", () => {
+		const noMarket = (f: string) => f !== "market";
+		expect(detectInstant("apple stock", [], noMarket)).toBeNull();
+		expect(detectInstant("$AAPL", [], noMarket)).toBeNull();
+		expect(detectInstant("1+1", [], noMarket)?.kind).toBe("calc");
+	});
+
+	it("with currencies off, a conversion is no answer at all", () => {
+		expect(detectInstant("20 CZK to EUR", [], (f) => f !== "currency")).toBeNull();
+	});
+
+	it("chance covers coins, dice and random numbers", () => {
+		const noChance = (f: string) => f !== "chance";
+		expect(detectInstant("coin flip", [], noChance)).toBeNull();
+		expect(detectInstant("roll 2d6", [], noChance)).toBeNull();
+		expect(instantFeature({ kind: "random", min: 1, max: 2 })).toBe("chance");
+		expect(instantFeature({ kind: "wiki", query: "x", lang: null })).toBe("wiki");
+	});
+
+	it("isInstantFeature guards stored ids", () => {
+		expect(INSTANT_FEATURES.every(isInstantFeature)).toBe(true);
+		expect(isInstantFeature("teleport")).toBe(false);
+		expect(isInstantFeature(1)).toBe(false);
 	});
 });

@@ -22,6 +22,7 @@ export const en = {
 		recordVoice: "Start/stop voice recording",
 		openDailyNote: "Open today's daily note",
 		runSetup: "Set up Hearth (first-run wizard)",
+		searchTips: "Show search tips",
 		switchDashboard: (n: number) => `Switch to dashboard ${n}`,
 		openDashboard: (n: number) => `Open dashboard ${n}`,
 		nextDashboard: "Next dashboard",
@@ -110,6 +111,82 @@ export const en = {
 		placeholder: "Search the vault",
 		noMatches: "No matches",
 		noMatchingCommands: "No matching commands",
+		tips: {
+			title: "What the search bar can do",
+			intro: "Type any of these into a Hearth search bar.",
+			introTry: "Click an example to try it.",
+			findHeading: "Find notes",
+			answersHeading: "Instant answers",
+			off: "Off",
+			settingsHint:
+				"Switch answers on or off in Settings → Search, per board in the board's settings, or per search-bar card.",
+			tryAria: (example: string) => `Try “${example}”`,
+			openRow: "Search tips",
+			openRowDesc: "Everything the search bar can do",
+			newHint: "New: the search bar answers questions",
+			newHintDesc: "Sums, currencies, stocks, weather, Wikipedia and more — see what it can do",
+			dismiss: "Dismiss",
+			find: {
+				name: {
+					title: "Names and paths",
+					desc: "Any text finds notes, files and folders by name, even with letters skipped.",
+					examples: ["meeting", "proj/notes"],
+				},
+				tag: { title: "Tags", desc: "Start with # to find notes by tag.", examples: ["#project"] },
+				property: {
+					title: "Properties",
+					desc: "key:value finds notes by a frontmatter property.",
+					examples: ["status:done", "author:ada"],
+				},
+				command: {
+					title: "Commands",
+					desc: "Start with > to run any command.",
+					examples: [">daily note", ">toggle"],
+				},
+			},
+			features: {
+				calc: {
+					title: "Calculator",
+					desc: "Sums, percentages, units and number bases. Start with = to force it.",
+					examples: ["1+1", "20% of 150", "10 km to mi", "FF hex to decimal"],
+				},
+				currency: {
+					title: "Currencies",
+					desc: "Convert with today's rates, and see the pair's chart.",
+					examples: ["20 CZK to EUR", "100 euros in dollars", "eur/usd"],
+				},
+				market: {
+					title: "Stocks, funds and crypto",
+					desc: "A live quote and chart. Use a $ or a word like stock or price.",
+					examples: ["$AAPL", "apple stock", "bitcoin price"],
+				},
+				weather: {
+					title: "Weather",
+					desc: "The weather now and the next days, anywhere.",
+					examples: ["weather Prague", "london forecast"],
+				},
+				wiki: {
+					title: "Wikipedia",
+					desc: "An article's summary. Add :de, :cs… to pick the wiki's language.",
+					examples: ["wiki Alan Turing", "wiki:de Prag"],
+				},
+				chance: {
+					title: "Coin, dice and random numbers",
+					desc: "Enter draws again.",
+					examples: ["coin flip", "roll 2d6", "random 1-10"],
+				},
+				date: {
+					title: "Dates",
+					desc: "Day counts and date sums.",
+					examples: ["days until 2026-12-24", "today + 45 days", "next friday"],
+				},
+				time: {
+					title: "Time elsewhere",
+					desc: "The clock in a city and how far ahead or behind it is.",
+					examples: ["time in Tokyo", "new york time"],
+				},
+			},
+		},
 		instant: {
 			copyHint: "Enter to copy",
 			openHint: "Enter for details",
@@ -612,6 +689,10 @@ export const en = {
 				count === 0
 					? "Following the vault, which hides none."
 					: `Following the vault, which hides ${count}.`,
+			hiddenInstant: "Instant answers",
+			hiddenInstantDesc: "Switch answers off for this board's search bars. Answers off vault-wide stay off.",
+			hiddenInstantOffVault: "Switched off vault-wide in Settings → Search.",
+			hiddenInstantVaultOff: "Instant answers are switched off vault-wide in Settings → Search.",
 			stackOnNarrow: "Stack when narrow",
 			stackOnNarrowDesc:
 				"Reflow this board into one full-width column once the pane is too narrow for the free-form layout — a phone, or a narrow split.",
@@ -893,13 +974,12 @@ export const en = {
 			searchPlaceholder: "Search placeholder",
 			searchInstantAnswers: "Instant answers",
 			searchInstantAnswersDesc:
-				"Answer the query itself above the notes: sums and unit conversions " +
-				"(1+1, 10 km to mi), currencies with a chart (20 CZK to EUR), market " +
-				"quotes ($AAPL, apple stock), the weather (weather Prague), Wikipedia " +
-				"(wiki Prague), a coin, dice or random number (coin flip, roll 2d6, " +
-				"random 1-10), dates (days until 2026-12-24) and the time elsewhere " +
-				"(time in Tokyo). Online answers are fetched only for queries that " +
-				"ask for them.",
+				"Answer the query itself above the notes — a sum, a currency, a stock, " +
+				"the weather, a Wikipedia summary and more. Choose which answers below. " +
+				"Online answers are fetched only for queries that ask for them.",
+			searchTips: "Search tips",
+			searchTipsDesc: "Everything the search bar understands, with examples.",
+			searchTipsButton: "Show",
 			searchContents: "Search note contents",
 			searchContentsDesc:
 				"Also match text inside note bodies, not just names, tags and " +
@@ -2303,7 +2383,7 @@ export const en = {
 			placeholder: "Placeholder",
 			placeholderDesc:
 				"Text shown in the empty field. Leave blank to use the one from " +
-				"Settings → Appearance.",
+				"Settings → Search.",
 			filters: "Filter row",
 			filtersDesc:
 				"Show the file-type chips under the field, the same ones the header " +
@@ -2313,6 +2393,11 @@ export const en = {
 				"Which chips this card offers. A chip only appears when the vault " +
 				"actually holds that kind of file.",
 			filterTypeGlobalOff: "Hidden for every search bar in Settings → Filters.",
+			instantAnswers: "Instant answers",
+			instantAnswersDesc:
+				"Switch answers off for this search bar. Answers off on the board or vault-wide stay off here.",
+			instantAnswerOff: "Switched off on this board or vault-wide.",
+			instantAnswersVaultOff: "Instant answers are switched off vault-wide in Settings → Search.",
 			button: "Button",
 			buttonDesc:
 				"An action button beside the field: create a new note, or search the " +

@@ -71,6 +71,8 @@ global default currently is.
 - *Button beside search* (shown or hidden), *What that button does* (new note or
   search online), *Button label*.
 - *Filter chips* — which file-type chips this board offers.
+- *Instant answers* — which instant answers this board's search bars give. A
+  board can switch answers off on top of the vault's choice, never back on.
 
 ### Layout tab
 

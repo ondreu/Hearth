@@ -42,6 +42,8 @@ import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
 import { stateDesign } from "./uidesign";
 import { isWebSearchEngineId, WEB_SEARCH_ENGINES, webSearchEngine } from "./websearch";
+import { INSTANT_FEATURES } from "./instant";
+import { SearchTipsModal } from "./searchtips";
 import {
 	destinationSummary,
 	isTemplaterAvailable,
@@ -779,6 +781,34 @@ export class HomeSettingTab extends PluginSettingTab {
 				t.setValue(s.searchInstantAnswers).onChange(async (v) => {
 					s.searchInstantAnswers = v;
 					this.save();
+					// The per-answer toggles only exist while the answers are on.
+					this.rerender();
+				}),
+			);
+		if (s.searchInstantAnswers) {
+			const hidden = new Set(s.hiddenInstantAnswers);
+			for (const id of INSTANT_FEATURES) {
+				new Setting(containerEl)
+					.setName(t().search.tips.features[id].title)
+					.setClass("hearth-setting-sub")
+					.addToggle((tg) =>
+						tg.setValue(!hidden.has(id)).onChange(async (v) => {
+							if (v) hidden.delete(id);
+							else hidden.add(id);
+							s.hiddenInstantAnswers = Array.from(hidden);
+							this.save();
+						}),
+					);
+			}
+		}
+		new Setting(containerEl)
+			.setName(t().settings.appearance.searchTips)
+			.setDesc(t().settings.appearance.searchTipsDesc)
+			.addButton((b) =>
+				b.setButtonText(t().settings.appearance.searchTipsButton).onClick(() => {
+					new SearchTipsModal(this.app, {
+						enabled: (id) => s.searchInstantAnswers && !s.hiddenInstantAnswers.includes(id),
+					}).open();
 				}),
 			);
 

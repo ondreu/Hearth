@@ -34,7 +34,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   again; a date or a clock leaves Enter on the first note. Online answers are
   fetched only for queries that ask for them, reuse the calculator's, Markets
   and Weather cards' cached sources, and stop with **Disable external calls**.
-  Switch it off in **Settings → Appearance → Instant answers**.
+
+  Each answer can be switched off vault-wide (**Settings → Search → Instant
+  answers**), per board (*Dashboard settings → Header*) and per Search bar card.
+  A board or card can only switch answers off, never back on, so an installed
+  board can't turn on requests you have off.
+
+- **Search tips.** One dialog lists everything the search bar understands —
+  `#tags`, `key:value`, `>commands` and every instant answer — with examples
+  that type themselves into the bar when clicked. Type `?` into any search
+  bar, run **Hearth: Show search tips**, or open it from Settings → Search. An
+  empty search bar offers it once after this update.
 
 - **Material 3 Expressive: a second design for all of Hearth.** A new
   **Design** setting — *Classic* or *Expressive* — heads **Settings → Hearth →

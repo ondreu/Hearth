@@ -18,6 +18,7 @@ import {
 	daysBetween,
 	detectInstant,
 	formatOffset,
+	type InstantFeature,
 	type InstantIntent,
 	instantTakesEnter,
 	isoWeek,
@@ -150,8 +151,8 @@ export class InstantAnswers {
 
 	/** Read a query; returns what it asks for (and starts fetching whatever
 	 * the answer needs), or null when it's only a search. */
-	setQuery(query: string): InstantIntent | null {
-		const intent = detectInstant(query, zones());
+	setQuery(query: string, enabled?: (feature: InstantFeature) => boolean): InstantIntent | null {
+		const intent = detectInstant(query, zones(), enabled);
 		const key = intent ? JSON.stringify(intent) : "";
 		if (key === this.key) return this.intent;
 		this.key = key;
@@ -438,17 +439,17 @@ export class InstantAnswers {
 		const strings = t().search.instant;
 		const market = this.market;
 		if (!market || market.status === "off") {
-			this.body(row("candlestick-chart", () => {}), `$${query}`, strings.externalOff);
+			this.body(row("trending-up", () => {}), `$${query}`, strings.externalOff);
 			return;
 		}
 		const quote = market.targets.length ? cachedQuote(market.targets) : null;
 		if (!quote) {
 			const text = market.status === "none" ? strings.noQuote(query) : strings.loading;
-			this.body(row("candlestick-chart", () => {}), `$${query}`, text);
+			this.body(row("trending-up", () => {}), `$${query}`, text);
 		} else {
 			const picked = market.results[market.pick];
 			const symbol = picked?.display ?? displaySymbol(quote.target);
-			const el = row("candlestick-chart", () => window.open(quotePageUrl(quote.target), "_blank"));
+			const el = row("trending-up", () => window.open(quotePageUrl(quote.target), "_blank"));
 			const text = el.createDiv("hearth-result-text hearth-instant-text");
 			const title = text.createDiv("hearth-instant-note");
 			title.setText([quote.name || symbol, quote.name && quote.name !== symbol ? symbol : "", quote.exchange]
@@ -473,7 +474,7 @@ export class InstantAnswers {
 		// The other matches, one click from taking the answer's place.
 		market.results.forEach((result, i) => {
 			if (i === market.pick || i > MAX_ALTERNATIVES) return;
-			const alt = row("trending-up", () => {
+			const alt = row("chevron-right", () => {
 				this.generation++;
 				this.pickMarket(i);
 				this.host.changed();

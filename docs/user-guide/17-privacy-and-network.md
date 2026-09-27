@@ -45,13 +45,14 @@ The gallery is also blocked, with a message saying exactly that.
 
 ## Everything Hearth can send, and to whom
 
-There are nine categories of outbound request. Nothing else exists.
+There are ten categories of outbound request. Nothing else exists.
 
 | Destination | Sent by | What is sent | Account or key |
 | --- | --- | --- | --- |
-| [Open-Meteo](https://open-meteo.com) | Weather cards, and the live weather sky background | Only the coordinates you picked | None. Free, key-less, no account |
-| [Frankfurter](https://www.frankfurter.app/) | The Calculator card, for currency conversion; Markets cards, for forex and portfolio totals | A rate request. Your sum is computed locally | None |
-| [Yahoo Finance](https://finance.yahoo.com), [Tencent](https://gu.qq.com), [Eastmoney](https://fund.eastmoney.com), [CoinGecko](https://www.coingecko.com) | Markets cards | The symbols on your cards, and what you type into a market search. Holdings and costs never leave your vault | None. Free, key-less |
+| [Open-Meteo](https://open-meteo.com) | Weather cards, the live weather sky background, and a search-bar weather answer | Only the coordinates you picked, or — for a weather query in the search bar — the place name you typed | None. Free, key-less, no account |
+| [Frankfurter](https://www.frankfurter.app/) | The Calculator card and the search bar, for currency conversion; Markets cards, for forex and portfolio totals | A rate request. Your sum is computed locally | None |
+| [Yahoo Finance](https://finance.yahoo.com), [Tencent](https://gu.qq.com), [Eastmoney](https://fund.eastmoney.com), [CoinGecko](https://www.coingecko.com) | Markets cards, and a market query in the search bar | The symbols on your cards, and what you type into a market search — in the search bar, the name before a word like *stock* or *price*, or after a `$`. Holdings and costs never leave your vault | None. Free, key-less |
+| [Wikipedia](https://www.wikipedia.org) | A `wiki …` query in the search bar | The words after *wiki* | None |
 | Your Jira Cloud or Server instance | Jira cards | A REST query, authenticated with the personal access token you entered on the card | Yours |
 | RSS and Atom feed hosts | RSS cards | A feed request | None |
 | ICS and webcal hosts | Mini calendar subscriptions | A feed request | The feed URL you entered |

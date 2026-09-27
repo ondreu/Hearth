@@ -17,6 +17,7 @@ export const zh: Translations = {
 		recordVoice: "开始/停止录音",
 		openDailyNote: "打开今天的日记",
 		runSetup: "设置 Hearth（首次运行向导）",
+		searchTips: "显示搜索技巧",
 		switchDashboard: (n: number) => `切换到面板 ${n}`,
 		openDashboard: (n: number) => `打开面板 ${n}`,
 		nextDashboard: "下一个面板",
@@ -95,6 +96,69 @@ export const zh: Translations = {
 		placeholder: "搜索仓库",
 		noMatches: "无匹配项",
 		noMatchingCommands: "无匹配命令",
+		tips: {
+			title: "搜索栏能做什么",
+			intro: "在任意 Hearth 搜索栏中输入以下内容。",
+			introTry: "点击示例即可试用。",
+			findHeading: "查找笔记",
+			answersHeading: "即时答案",
+			off: "已关闭",
+			settingsHint: "可在 设置 → 搜索 中开关答案，也可在看板设置或搜索栏卡片中单独设置。",
+			tryAria: (example: string) => `试用“${example}”`,
+			openRow: "搜索技巧",
+			openRowDesc: "搜索栏能做的一切",
+			newHint: "新功能：搜索栏可以回答问题",
+			newHintDesc: "计算、货币、股票、天气、维基百科等——看看它能做什么",
+			dismiss: "关闭",
+			find: {
+				name: {
+					title: "名称和路径",
+					desc: "任意文字都会按名称查找笔记、文件和文件夹，漏字也能找到。",
+					examples: ["会议", "项目/笔记"],
+				},
+				tag: { title: "标签", desc: "以 # 开头按标签查找笔记。", examples: ["#项目"] },
+				property: {
+					title: "属性",
+					desc: "键:值 按 frontmatter 属性查找笔记。",
+					examples: ["status:done"],
+				},
+				command: { title: "命令", desc: "以 > 开头运行任意命令。", examples: [">日记"] },
+			},
+			features: {
+				calc: {
+					title: "计算器",
+					desc: "算式、百分比、单位和进制。以 = 开头可强制计算。",
+					examples: ["1+1", "20% of 150", "10 km to mi"],
+				},
+				currency: {
+					title: "货币",
+					desc: "按今日汇率换算，并显示货币对走势图。",
+					examples: ["20美元换成人民币", "100 欧元兑换成日元", "usd/cny"],
+				},
+				market: {
+					title: "股票、基金和加密货币",
+					desc: "实时行情和走势图。使用 $ 或“股价”“行情”等词。",
+					examples: ["$AAPL", "茅台股价", "510300 行情"],
+				},
+				weather: { title: "天气", desc: "任何地方的当前天气和未来几天。", examples: ["北京天气", "天气 上海"] },
+				wiki: {
+					title: "维基百科",
+					desc: "条目摘要。加 :en、:de… 可选择语言。",
+					examples: ["维基 布拉格", "wiki:en Beijing"],
+				},
+				chance: {
+					title: "硬币、骰子和随机数",
+					desc: "按 Enter 重新抽取。",
+					examples: ["抛硬币", "掷 2d6", "随机数 1-10"],
+				},
+				date: {
+					title: "日期",
+					desc: "计算天数和日期。",
+					examples: ["距离2026-12-24还有几天", "今天+45天", "3天后"],
+				},
+				time: { title: "其他地方的时间", desc: "某个城市的时间及时差。", examples: ["东京时间", "纽约现在几点"] },
+			},
+		},
 		instant: {
 			copyHint: "按 Enter 复制",
 			openHint: "按 Enter 查看详情",
@@ -574,6 +638,10 @@ export const zh: Translations = {
 				"选择本仪表板在搜索栏下显示哪些文件类型标签，而不跟随全库设置。",
 			hiddenFiltersFollowing: (count: number) =>
 				count === 0 ? "跟随全库设置（未隐藏任何标签）。" : `跟随全库设置（已隐藏 ${count} 个）。`,
+			hiddenInstant: "即时答案",
+			hiddenInstantDesc: "为此看板的搜索栏关闭部分答案。在整个库中关闭的答案保持关闭。",
+			hiddenInstantOffVault: "已在 设置 → 搜索 中对整个库关闭。",
+			hiddenInstantVaultOff: "即时答案已在 设置 → 搜索 中对整个库关闭。",
 			stackOnNarrow: "变窄时堆叠",
 			stackOnNarrowDesc:
 				"当窗格窄到无法容纳自由布局时（手机，或窄分栏），将本仪表板重排为单列全宽。",
@@ -833,11 +901,11 @@ export const zh: Translations = {
 			searchPlaceholder: "搜索占位文本",
 			searchInstantAnswers: "即时答案",
 			searchInstantAnswersDesc:
-				"在笔记上方直接回答查询：计算与单位换算（1+1、10 km to mi）、" +
-				"带走势图的货币换算（20美元换成欧元）、行情（$AAPL、茅台股价）、" +
-				"天气（北京天气）、维基百科（维基 北京）、抛硬币、掷骰子或随机数" +
-				"（抛硬币、掷 2d6、随机数 1-10）、日期（距离2026-12-24还有几天）" +
-				"以及其他地方的时间（东京时间）。在线答案仅在查询需要时获取。",
+				"在笔记上方直接回答查询——计算、货币、股票、天气、维基百科等。" +
+				"在下方选择要启用的答案。在线答案仅在查询需要时获取。",
+			searchTips: "搜索技巧",
+			searchTipsDesc: "搜索栏能理解的所有内容，附示例。",
+			searchTipsButton: "显示",
 			searchContents: "搜索笔记内容",
 			searchContentsDesc:
 				"除名称、标签和属性外，也匹配笔记正文中的文本。正文匹配会带摘要显示在" +
@@ -2110,7 +2178,7 @@ export const zh: Translations = {
 		searchBar: {
 			placeholder: "占位文本",
 			placeholderDesc:
-				"输入框为空时显示的文本。留空则使用 设置 → 外观 中的设定。",
+				"输入框为空时显示的文本。留空则使用 设置 → 搜索 中的设定。",
 			filters: "筛选行",
 			filtersDesc:
 				"在输入框下方显示文件类型标签，与顶部搜索栏提供的相同。它们需要更高的卡片来容纳。",
@@ -2118,6 +2186,10 @@ export const zh: Translations = {
 			filterTypesDesc:
 				"此卡片提供哪些标签。只有仓库中确实存在该类文件时，对应标签才会出现。",
 			filterTypeGlobalOff: "已在 设置 → 筛选 中对所有搜索栏隐藏。",
+			instantAnswers: "即时答案",
+			instantAnswersDesc: "为此搜索栏关闭部分答案。在看板或整个库中关闭的答案在这里也保持关闭。",
+			instantAnswerOff: "已在此看板或整个库中关闭。",
+			instantAnswersVaultOff: "即时答案已在 设置 → 搜索 中对整个库关闭。",
 			button: "按钮",
 			buttonDesc:
 				"输入框旁的操作按钮：新建笔记，或用框中输入的内容搜索网络。",

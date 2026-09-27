@@ -60,6 +60,31 @@ export type InstantIntent =
 	/** The time somewhere: an IANA zone and the place as typed. */
 	| { kind: "time"; zone: string; place: string };
 
+/**
+ * The answers that can be switched off one by one — vault-wide, per board and
+ * per search-bar card (see effectiveHiddenInstantAnswers in types.ts). Chance
+ * covers the coin, dice and random numbers.
+ */
+export const INSTANT_FEATURES = ["calc", "currency", "market", "weather", "wiki", "chance", "date", "time"] as const;
+export type InstantFeature = (typeof INSTANT_FEATURES)[number];
+
+/** Whether a stored id names a feature (for sanitizing imported settings). */
+export function isInstantFeature(id: unknown): id is InstantFeature {
+	return typeof id === "string" && (INSTANT_FEATURES as readonly string[]).includes(id);
+}
+
+/** The switchable feature an answer belongs to. */
+export function instantFeature(intent: InstantIntent): InstantFeature {
+	switch (intent.kind) {
+		case "coin":
+		case "dice":
+		case "random":
+			return "chance";
+		default:
+			return intent.kind;
+	}
+}
+
 /** A leading `$` asks for a market lookup; a leading `=` forces the calculator. */
 export const MARKET_PREFIX = "$";
 export const CALC_PREFIX = "=";
@@ -459,44 +484,60 @@ function detectCurrency(query: string): InstantIntent | null {
  * the runtime's list of time zones (empty where the runtime can't list them;
  * aliases still work).
  */
-export function detectInstant(raw: string, zones: readonly string[] = []): InstantIntent | null {
-	const query = tidy(raw);
+export function detectInstant(
+	raw: string,
+	zones: readonly string[] = [],
+	enabled: (feature: InstantFeature) => boolean = () => true,
+): InstantIntent | null {
+	const intent = detectAny(tidy(raw), zones, enabled);
+	return intent && enabled(instantFeature(intent)) ? intent : null;
+}
+
+/** The first reading of a query whose feature is on. A switched-off feature
+ * is skipped rather than ending the search, so with the market answer off,
+ * `apple stock` is left to the notes but `1+1` still sums. */
+function detectAny(
+	query: string,
+	zones: readonly string[],
+	enabled: (feature: InstantFeature) => boolean,
+): InstantIntent | null {
 	if (!query) return null;
 
 	// `$` followed by a letter: a market lookup. `$5 to czk` stays a currency
 	// conversion — a dollar sign before a number is money, not a ticker.
 	if (query.startsWith(MARKET_PREFIX)) {
 		const rest = query.slice(MARKET_PREFIX.length).trim();
-		if (rest && !/^[\d.,]/.test(rest)) return { kind: "market", query: rest, keyword: false };
+		if (rest && !/^[\d.,]/.test(rest)) return enabled("market") ? { kind: "market", query: rest, keyword: false } : null;
 	}
 
 	if (query.startsWith(CALC_PREFIX)) {
 		const rest = query.slice(CALC_PREFIX.length).trim();
 		if (!rest) return null;
-		return detectCurrency(rest) ?? { kind: "calc", input: rest, forced: true };
+		const currency = enabled("currency") ? detectCurrency(rest) : null;
+		return currency ?? { kind: "calc", input: rest, forced: true };
 	}
 
-	const currency = detectCurrency(query);
+	const currency = enabled("currency") ? detectCurrency(query) : null;
 	if (currency) return currency;
 
-	const market = firstMatch(query, MARKET_RULES);
+	const market = enabled("market") ? firstMatch(query, MARKET_RULES) : null;
 	if (market && market[1].trim()) return { kind: "market", query: market[1].trim(), keyword: true };
 
-	const weather = firstMatch(query, WEATHER_RULES);
+	const weather = enabled("weather") ? firstMatch(query, WEATHER_RULES) : null;
 	if (weather && weather[1].trim()) return { kind: "weather", place: weather[1].trim() };
 
-	const wiki = detectWiki(query);
+	const wiki = enabled("wiki") ? detectWiki(query) : null;
 	if (wiki) return wiki;
 
-	const chance = detectChance(query);
+	const chance = enabled("chance") ? detectChance(query) : null;
 	if (chance) return chance;
 
-	const time = detectTime(query, zones);
+	const time = enabled("time") ? detectTime(query, zones) : null;
 	if (time) return time;
-	const date = detectDate(query);
+	const date = enabled("date") ? detectDate(query) : null;
 	if (date) return date;
 
-	if (!/\d/.test(query) || notMath(query)) return null;
+	if (!enabled("calc") || !/\d/.test(query) || notMath(query)) return null;
 	const res = evaluate(query);
 	if (!res.ok || !Number.isFinite(res.value)) return null;
 	return { kind: "calc", input: query, forced: false };
