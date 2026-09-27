@@ -167,6 +167,9 @@ interface TaskHit {
 	/** Checkbox source: the raw checkbox status symbol (the char inside `- [ ]`),
 	 * used to group the task into its status column on the Kanban board. */
 	checkboxStatus?: string;
+	/** Checkbox source: the label of {@link checkboxStatus} (To do, In progress,
+	 * …), the value the status filter and status sort compare. */
+	checkboxLabel?: string;
 	/** TaskNotes source: context tags from frontmatter (e.g. home, errands). */
 	contexts?: string[];
 	/** TaskNotes source: linked project names from frontmatter. */
@@ -1601,12 +1604,11 @@ class TaskSortModal extends HearthModal {
 
 // ---- List filter ---------------------------------------------------------
 
-/** The status-like value a task exposes for filtering: the TaskNotes status or
- * the Kanban column, whichever the source provides (checkbox tasks have neither
- * and so aren't offered status chips). */
 /** Build distinct filter chip choices from every task the card loaded, so the
- * options don't shift as the filter narrows the visible list. */
-function collectTaskFilterChoices(hits: TaskHit[], source: string): TaskFilterChoices {
+ * options don't shift as the filter narrows the visible list. `statusOrder`
+ * lists status values in their configured order (checkbox states), so their
+ * chips follow it instead of the order the tasks happen to be sorted in. */
+function collectTaskFilterChoices(hits: TaskHit[], source: string, statusOrder?: string[]): TaskFilterChoices {
 	const statuses: string[] = [];
 	const contexts: string[] = [];
 	const projects: string[] = [];
@@ -1644,6 +1646,13 @@ function collectTaskFilterChoices(hits: TaskHit[], source: string): TaskFilterCh
 		}
 	}
 	tags.sort((a, b) => a.localeCompare(b));
+	if (statusOrder) {
+		const rank = (v: string) => {
+			const i = statusOrder.findIndex((s) => s.toLowerCase() === v.toLowerCase());
+			return i < 0 ? statusOrder.length : i;
+		};
+		statuses.sort((a, b) => rank(a) - rank(b));
+	}
 	return { source, statuses, contexts, projects, tags };
 }
 
@@ -2015,7 +2024,11 @@ async function loadAndRenderTasks(
 
 	// Distinct filter values present, offered as chips (computed from all hits
 	// so the choices don't shift as the filter narrows the list or the board).
-	const filterChoices = collectTaskFilterChoices(hits, source);
+	const filterChoices = collectTaskFilterChoices(
+		hits,
+		source,
+		source === "checkbox" ? checkboxStatuses(cfg).map((s) => s.label) : undefined,
+	);
 
 	if (cfg.layout === "kanban") {
 		// The board filters the same way the list does — the columns stay, their
@@ -3154,6 +3167,8 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 			const raw = match[2].trim();
 			if (!raw) return; // ignore empty checkboxes ("- [ ]")
 			const done = st ? !!st.done : symbol.toLowerCase() === "x";
+			// A blank/done mark missing from a custom status set still gets a label.
+			const checkboxLabel = st ? st.label : done ? t().cards.tasks.done : t().cards.tasks.toDo;
 			// Lines nested under the task are its description, shown as sub-bullets
 			// exactly as a Kanban card's are. Structure, not metadata, so it is read
 			// in plain mode too.
@@ -3167,6 +3182,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 					text: raw,
 					done,
 					checkboxStatus: symbol,
+					checkboxLabel,
 					due: null,
 					dueRaw: null,
 					scheduled: null,
@@ -3196,6 +3212,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 				text: stripInlineTags(stripTaskMetadata(raw)),
 				done,
 				checkboxStatus: symbol,
+				checkboxLabel,
 				due,
 				dueRaw,
 				scheduled: readEmojiDate(raw, "⏳") || null,
@@ -3317,6 +3334,7 @@ function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 		scheduled: hit.scheduled,
 		status: hit.status,
 		boardColumn: hit.boardColumn,
+		checkboxLabel: hit.checkboxLabel,
 		priority: hit.priority,
 		contexts: hit.contexts,
 		projects: hit.projects,

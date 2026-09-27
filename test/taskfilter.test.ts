@@ -129,6 +129,13 @@ describe("isTaskFilterActive", () => {
 describe("taskMatchesFilter", () => {
 	const today = "2026-08-19";
 
+	it("filters checkbox tasks by their status label", () => {
+		const filter: TaskFilterConfig = { statuses: ["in progress"] };
+		expect(taskMatchesFilter(hit({ checkboxLabel: "In progress" }), filter, today)).toBe(true);
+		expect(taskMatchesFilter(hit({ checkboxLabel: "To do" }), filter, today)).toBe(false);
+		expect(taskMatchesFilter(hit(), filter, today)).toBe(false);
+	});
+
 	it("matches TaskNotes contexts with OR semantics inside the dimension", () => {
 		const filter: TaskFilterConfig = { contexts: ["home", "work"] };
 		expect(taskMatchesFilter(hit({ contexts: ["home"] }), filter, today)).toBe(true);

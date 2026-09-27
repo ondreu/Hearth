@@ -12,6 +12,9 @@ export interface TaskFilterHit {
 	scheduled: string | null;
 	status?: string;
 	boardColumn?: string;
+	/** Checkbox source: the label of the task's checkbox state (To do, In
+	 * progress, …), so checkbox tasks filter by status like the other sources. */
+	checkboxLabel?: string;
 	priority?: string;
 	contexts?: string[];
 	projects?: string[];
@@ -159,8 +162,8 @@ export function applyInlineTags(text: string, tags: string[]): string {
 }
 
 
-export function hitStatusValue(hit: Pick<TaskFilterHit, "status" | "boardColumn">): string | null {
-	return hit.status ?? hit.boardColumn ?? null;
+export function hitStatusValue(hit: Pick<TaskFilterHit, "status" | "boardColumn" | "checkboxLabel">): string | null {
+	return hit.status ?? hit.boardColumn ?? hit.checkboxLabel ?? null;
 }
 
 export function hitPriorityLevel(hit: Pick<TaskFilterHit, "priority">): TaskPriorityLevel {
