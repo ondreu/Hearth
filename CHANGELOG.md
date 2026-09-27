@@ -128,6 +128,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   whole board a few pixels wider than the screen and scrollable sideways
   (#326). It now fades and shrinks in place.
 
+- **A fit-to-page board follows the pane as you resize it.** Its cards stayed
+  at their old size until the pane edge stopped moving and then jumped into
+  place. On the *Full* performance tier they now follow the resize frame by
+  frame; the lower tiers keep the single re-fit at the end to save the work.
+
 
 ## [3.1.1]
 

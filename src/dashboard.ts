@@ -36,6 +36,7 @@ import {
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveRowHeight,
+	performanceTier,
 	removeCard,
 	renderCards,
 	resolveCardBlur,
@@ -326,7 +327,36 @@ export function renderDashboard(
 		// then snapped back once the debounced observer squeezed it. Fitting up
 		// front means the very first painted frame is already the final layout.
 		window.requestAnimationFrame(refit);
-		const observer = new ResizeObserver(debounce(refit, 60, true));
+		// A fitted card is placed in whole pixels, not in the percentages a
+		// scrolling board uses, so it does not follow a resize on its own: until
+		// the refit runs it keeps the width of the pane it was fitted to. The
+		// debounce resets on every call, so during a drag of the pane edge the
+		// refit waited for the pointer to stop and the cards then jumped into
+		// place all at once (#326).
+		//
+		// On the full tier the cards are therefore re-placed on every observer
+		// callback. That callback runs after layout and before paint, once a
+		// frame, and placing cards cannot resize the grid it observes (they are
+		// absolutely positioned and a fitted grid has no min-height), so it
+		// follows the pane frame for frame without looping. Only the edge merge
+		// — which measures every card and rebuilds the frosted glass — stays
+		// debounced, exactly as it is on a scrolling board. The lower tiers keep
+		// the single refit once the resize settles: a jump at the end of a drag
+		// is the price of not re-laying out the board sixty times a second.
+		const onResize =
+			performanceTier(view.plugin.settings) === "full"
+				? (() => {
+						const remerge = debounce(() => {
+							if (grid.isConnected) applyEdgeMerging(grid);
+						}, 120, true);
+						return () => {
+							if (!grid.isConnected) return;
+							applyFitLayout(grid, gridLayout);
+							remerge();
+						};
+					})()
+				: debounce(refit, 60, true);
+		const observer = new ResizeObserver(onResize);
 		observer.observe(grid);
 		component.register(() => observer.disconnect());
 	}
