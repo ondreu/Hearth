@@ -438,7 +438,7 @@ Location, Description, URL, Calendar — can be **ignored**, written as a
 
 | Setting | Meaning |
 | --- | --- |
-| *Style* | **Digital** or **Analog** |
+| *Style* | **Digital**, **Analog**, **Stacked** (hours over minutes), **Flip** (split tiles that turn over) or **Rings** (minutes, hours and seconds as progress rings). In the Expressive card design also **Shapes** (each digit on a shape of its own) and **Orbit** (the hour on a scalloped face, the minute a dot circling it); a Classic card draws Stacked or Analog in their place |
 | *Time format* | Automatic (from your locale), 12-hour, or 24-hour |
 | *Show seconds* | Include seconds, and on the analogue face a sweeping second hand |
 | *Show greeting* | Show a greeting line |
@@ -447,5 +447,9 @@ Location, Description, URL, Calendar — can be **ignored**, written as a
 | *Date* | Weekday-day-month; Weekday-day-month-year; Short (locale); ISO (2026-06-29); Weekday only; a custom format; or Hidden |
 | *Custom date format* | A moment.js format string, for example `ddd D MMM` or `YYYY/MM/DD` |
 
-On the **Reduced** and **Minimal** performance tiers, clock cards drop seconds
-and the sweeping second hand; see [chapter 12](12-performance.md).
+Every face has a Classic and an Expressive look, following the card's *Design*
+(see [chapter 11](11-appearance.md#card-design-classic-or-expressive)).
+
+On the **Reduced** and **Minimal** performance tiers, clock cards drop seconds,
+the sweeping second hand and the flip tiles' turn; see
+[chapter 12](12-performance.md).

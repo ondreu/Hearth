@@ -3506,6 +3506,210 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	fill: var(--interactive-accent);
 }
 
+/* ---- Clock faces: stacked, flip, rings (Classic) ----
+ * These faces size against the card body, the way the weather card does: the
+ * body is the size container, so a face is bounded by the card's height as
+ * well as its width. The greeting and date keep roughly 3.4rem between them. */
+.hearth-card-body.hearth-clock-host {
+	container-type: size;
+}
+
+.hearth-clock-host .hearth-clock {
+	--clock-room: calc(100cqh - 3.4rem);
+	min-height: 0;
+	overflow: hidden;
+}
+
+.hearth-clock-host .hearth-clock:not(:has(.hearth-clock-greeting, .hearth-clock-date)) {
+	--clock-room: calc(100cqh - 8px);
+}
+
+.hearth-clock-host .hearth-clock:has(.hearth-clock-greeting):not(:has(.hearth-clock-date)),
+.hearth-clock-host .hearth-clock:has(.hearth-clock-date):not(:has(.hearth-clock-greeting)) {
+	--clock-room: calc(100cqh - 2rem);
+}
+
+/* Stacked: hours over minutes, in large light type. */
+.hearth-clock-stacked {
+	display: grid;
+	grid-template-columns: auto auto;
+	grid-template-rows: auto auto;
+	align-items: center;
+	column-gap: 8px;
+	--stack-size: clamp(1.6rem, min(30cqw, calc(var(--clock-room) * 0.46)), 7rem);
+}
+
+.hearth-clock-stack-h,
+.hearth-clock-stack-m {
+	grid-column: 1;
+	font-size: var(--stack-size);
+	font-weight: 300;
+	line-height: 0.92;
+	letter-spacing: -0.03em;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+	text-align: center;
+}
+
+.hearth-clock-stack-m {
+	color: var(--text-muted);
+}
+
+.hearth-clock-stack-side {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	font-size: calc(var(--stack-size) * 0.2);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-clock-stack-side.is-empty,
+.hearth-clock-stack-p:empty {
+	display: none;
+}
+
+/* Flip: split tiles, the number turning over when it changes. */
+.hearth-clock-flip {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	--flip-h: clamp(2.2rem, min(34cqw, var(--clock-room)), 8rem);
+	perspective: 400px;
+}
+
+.hearth-clock-flip:has(.is-seconds) {
+	--flip-h: clamp(2rem, min(24cqw, var(--clock-room)), 7rem);
+}
+
+.hearth-clock-flip-tile {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--flip-h);
+	min-width: calc(var(--flip-h) * 1.05);
+	padding: 0 calc(var(--flip-h) * 0.1);
+	border-radius: calc(var(--flip-h) * 0.1);
+	background: linear-gradient(
+		var(--background-secondary-alt) 50%,
+		color-mix(in srgb, var(--background-secondary-alt) 88%, var(--text-normal)) 50%
+	);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), inset 0 0 0 1px var(--background-modifier-border);
+	overflow: hidden;
+}
+
+/* The hinge across the middle. */
+.hearth-clock-flip-tile::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 1px;
+	background: var(--background-primary);
+	opacity: 0.8;
+}
+
+.hearth-clock-flip-num {
+	font-size: calc(var(--flip-h) * 0.66);
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+}
+
+.hearth-clock-flip-tile.is-seconds {
+	height: calc(var(--flip-h) * 0.6);
+	min-width: calc(var(--flip-h) * 0.65);
+	align-self: flex-end;
+}
+
+.hearth-clock-flip-tile.is-seconds .hearth-clock-flip-num {
+	font-size: calc(var(--flip-h) * 0.4);
+}
+
+.hearth-clock-flip-tile.is-turning .hearth-clock-flip-num {
+	animation: hearth-clock-flip 380ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes hearth-clock-flip {
+	from {
+		transform: rotateX(-80deg);
+		opacity: 0.2;
+	}
+	to {
+		transform: none;
+		opacity: 1;
+	}
+}
+
+.hearth-clock-flip-p {
+	align-self: flex-end;
+	font-size: calc(var(--flip-h) * 0.2);
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.hearth-clock-flip-p:empty {
+	display: none;
+}
+
+/* Rings: minutes, hours and seconds as thin progress circles round the time. */
+.hearth-clock-ring {
+	width: clamp(64px, min(90cqw, var(--clock-room)), 260px);
+	aspect-ratio: 1;
+	flex: 0 0 auto;
+	overflow: visible;
+}
+
+.hearth-clock-ring-track {
+	fill: none;
+	stroke: var(--background-modifier-border);
+	stroke-width: 3;
+}
+
+.hearth-clock-ring-bar {
+	fill: none;
+	stroke: var(--interactive-accent);
+	stroke-width: 3;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.hearth-clock-ring-bar.is-hours {
+	stroke: var(--text-normal);
+}
+
+.hearth-clock-ring-bar.is-seconds {
+	stroke: var(--text-muted);
+	stroke-width: 2;
+}
+
+.hearth-clock-ring-track.is-seconds {
+	stroke-width: 2;
+}
+
+.hearth-clock-ring-bar.is-empty {
+	visibility: hidden;
+}
+
+.hearth-clock-ring-time {
+	fill: var(--text-normal);
+	font-size: 15px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.02em;
+}
+
+.hearth-clock-ring-time.is-small {
+	font-size: 11px;
+}
+
 /* RSS feed card */
 .hearth-rss {
 	display: flex;
@@ -17262,6 +17466,287 @@ body.hearth-snapshot-capturing .hearth-view {
 	r: 4.5px;
 }
 
+/* The newer faces add a second tone: the accent turned a sixth of the way
+ * round the colour wheel, Material's tertiary. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock {
+	--x-tertiary: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.8), var(--accent-l));
+	--x-tertiary-container: color-mix(in srgb, var(--x-tertiary) 24%, var(--background-primary));
+	--x-on-tertiary-container: color-mix(in srgb, var(--x-tertiary) 55%, var(--text-normal));
+}
+
+/* Stacked: each half of the time on a tonal block of its own. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stacked {
+	row-gap: 4px;
+	--stack-size: clamp(1.6rem, min(26cqw, calc(var(--clock-room) * 0.4)), 6.4rem);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stack-h,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stack-m {
+	padding: 0.06em 0.2em;
+	border-radius: calc(var(--stack-size) * 0.34);
+	font-weight: 800;
+	letter-spacing: -0.06em;
+	line-height: 1;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stack-h {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	border-bottom-left-radius: calc(var(--stack-size) * 0.12);
+	border-bottom-right-radius: calc(var(--stack-size) * 0.12);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stack-m {
+	background: var(--x-tertiary-container);
+	color: var(--x-on-tertiary-container);
+	border-top-left-radius: calc(var(--stack-size) * 0.12);
+	border-top-right-radius: calc(var(--stack-size) * 0.12);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-stack-side > span {
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 700;
+}
+
+/* Flip: soft tonal tiles, the hinge a gap in the card's own colour. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip {
+	gap: 8px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile {
+	border-radius: calc(var(--flip-h) * 0.26);
+	background: var(--x-container);
+	box-shadow: none;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile.is-minutes {
+	background: var(--x-tertiary-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile.is-seconds {
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile::after {
+	height: 3px;
+	margin-top: -1px;
+	background: var(--background-primary);
+	opacity: 1;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-num {
+	font-weight: 800;
+	letter-spacing: -0.05em;
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile.is-minutes .hearth-clock-flip-num {
+	color: var(--x-on-tertiary-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-tile.is-turning .hearth-clock-flip-num {
+	animation: hearth-clock-flip-x 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A springier turn that overshoots, the way Expressive motion settles. */
+@keyframes hearth-clock-flip-x {
+	from {
+		transform: rotateX(-90deg) scale(0.9);
+		opacity: 0;
+	}
+	to {
+		transform: none;
+		opacity: 1;
+	}
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-flip-p {
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 700;
+}
+
+/* Rings: thick strokes, each ring's progress Material's wavy indicator. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-track {
+	stroke: var(--x-surface-high);
+	stroke-width: 5;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-bar {
+	stroke: var(--x-primary);
+	stroke-width: 4;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-bar.is-hours {
+	stroke: var(--x-tertiary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-bar.is-seconds {
+	stroke: var(--x-on-container);
+	stroke-width: 3;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-track.is-seconds {
+	stroke-width: 4;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-ring-time {
+	fill: var(--x-on-container);
+	font-weight: 800;
+	letter-spacing: -0.05em;
+}
+
+/* Shapes (Expressive only): each digit on a shape of its own. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes {
+	display: grid;
+	grid-template-columns: repeat(4, auto);
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	--shape: clamp(34px, min(22cqw, var(--clock-room)), 120px);
+}
+
+/* A card nearer square than wide stacks the hours over the minutes. */
+@container (max-aspect-ratio: 5 / 3) {
+	:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes {
+		grid-template-columns: repeat(2, auto);
+		--shape: clamp(30px, min(40cqw, calc((var(--clock-room) - 6px) / 2)), 120px);
+	}
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--shape);
+	height: var(--shape);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape-bg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	fill: var(--x-container);
+	transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape:nth-child(odd) .hearth-clock-shape-bg {
+	transform: rotate(-12deg);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape.is-hours:first-child .hearth-clock-shape-bg {
+	fill: var(--x-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape.is-minutes .hearth-clock-shape-bg {
+	fill: var(--x-tertiary-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape:nth-child(4) .hearth-clock-shape-bg {
+	fill: var(--x-tertiary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape-num {
+	position: relative;
+	font-size: calc(var(--shape) * 0.56);
+	font-weight: 800;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape.is-hours:first-child .hearth-clock-shape-num {
+	color: var(--x-on-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape.is-minutes .hearth-clock-shape-num {
+	color: var(--x-on-tertiary-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shape:nth-child(4) .hearth-clock-shape-num {
+	color: var(--background-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes-extra {
+	grid-column: 1 / -1;
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes-extra.is-empty,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes-pill.is-empty {
+	display: none;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-shapes-pill {
+	padding: 1px 10px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-size: 0.78rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Orbit (Expressive only): the hour on a scalloped face, the minute a dot
+ * circling its edge. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit {
+	width: clamp(64px, min(90cqw, var(--clock-room)), 260px);
+	aspect-ratio: 1;
+	flex: 0 0 auto;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-face {
+	fill: var(--x-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-track {
+	fill: none;
+	stroke: var(--x-surface-high);
+	stroke-width: 1.2;
+	stroke-dasharray: 0 1;
+	stroke-linecap: round;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-min {
+	fill: var(--x-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-sec {
+	fill: var(--x-tertiary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-h {
+	fill: var(--x-on-container);
+	font-size: 34px;
+	font-weight: 800;
+	letter-spacing: -0.06em;
+	font-variant-numeric: tabular-nums;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-m {
+	fill: var(--x-on-tertiary-container);
+	font-size: 12px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-orbit-p {
+	fill: var(--x-on-container);
+	font-size: 7px;
+	font-weight: 700;
+	opacity: 0.8;
+}
+
 /* ---- Mini calendar -------------------------------------------------- */
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-label {
 	font-size: 1rem;
@@ -17580,6 +18065,25 @@ body.hearth-snapshot-capturing .hearth-view {
 	padding: 8px 10px;
 }
 
+/* A field drawn as a hue or a glow (see "Ambient field styles") colours the
+ * whole task. The rows and cards above set their fill with the `background`
+ * shorthand, which also clears the tint's background image, and they outrank
+ * the plain rule — so the tint and the ring are laid on again here. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task.is-hued,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-card.is-hued {
+	background-image: linear-gradient(
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent)
+	);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task.is-glowing,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-card.is-glowing {
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 1%), transparent),
+		0 0 8px -1px color-mix(in srgb, var(--hue-color) calc(var(--hue-alpha) * 0.6%), transparent);
+}
+
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-sort,
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-filter {
 	border-radius: 999px;
@@ -17711,6 +18215,362 @@ body.hearth-snapshot-capturing .hearth-view {
 
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-chip:not(.is-allday):hover {
 	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 34%, var(--background-primary));
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-chiptime {
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-wk,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-wk {
+	color: var(--x-on-container);
+	font-weight: 650;
+	opacity: 0.6;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-notedot {
+	background: var(--x-primary);
+}
+
+/* The dots layout: a little larger, so the colours read. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-dot {
+	width: 7px;
+	height: 7px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-more {
+	align-self: flex-start;
+	padding: 0 7px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-more:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	text-decoration: none;
+}
+
+/* Week and day: the days as tonal lanes with soft hour lines, today's lane in
+ * the accent's tone, events as rounded tonal blocks. The header, all-day band
+ * and lanes share one gap so the columns stay lined up. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headcols,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-alldaycols,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cols {
+	gap: 3px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-gridhead {
+	padding-bottom: 4px;
+	border-bottom: none;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headday {
+	align-items: center;
+	padding: 3px 0;
+	border-radius: 999px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headday:hover {
+	background: var(--x-surface-high);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headday.is-today {
+	background: var(--x-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headdow {
+	color: var(--x-on-container);
+	font-weight: 650;
+	opacity: 0.75;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headnum {
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-headday.is-today .hearth-sched-headnum {
+	min-width: 22px;
+	height: 22px;
+	padding: 0 5px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	font-weight: 800;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-allday {
+	margin-bottom: 4px;
+	padding: 4px 0;
+	border-bottom: none;
+	border-radius: 14px;
+	background: var(--x-surface);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-alldaylabel {
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-hourlabel {
+	color: var(--x-on-container);
+	font-weight: 600;
+	opacity: 0.7;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-col {
+	border-left: none;
+	border-radius: 12px;
+	background-color: var(--x-surface);
+	background-image: linear-gradient(
+		to bottom,
+		var(--x-surface-highest) 0,
+		var(--x-surface-highest) 1px,
+		transparent 1px
+	);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-col.is-today {
+	background-color: color-mix(in srgb, var(--x-primary) 12%, var(--background-primary));
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-block {
+	padding: 2px 7px;
+	border-left: none;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 30%, var(--background-primary));
+	color: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 35%, var(--text-normal));
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-block:hover {
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 44%, var(--background-primary));
+}
+
+/* A block cut off by the drawn window still squares off that side. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-block.is-clipped-start {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-block.is-clipped-end {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-blocktitle {
+	font-weight: 700;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-blocktime,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-blockplace {
+	color: inherit;
+	font-weight: 600;
+	opacity: 0.75;
+}
+
+/* Now: a thick rounded bar with a round knob. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-now {
+	height: 3px;
+	margin-top: -1.5px;
+	border-top: none;
+	border-radius: 999px;
+	background: var(--color-red);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-now::before {
+	top: -3.5px;
+	left: -4px;
+	width: 10px;
+	height: 10px;
+}
+
+/* List: each day's date a heavy heading (today's on an accent pill), its events
+ * a grouped list of tonal rows. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listday {
+	align-items: center;
+	padding: 9px 4px 5px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listdate {
+	font-size: 0.86rem;
+	font-weight: 750;
+	letter-spacing: -0.01em;
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listday.is-today .hearth-sched-listdate {
+	padding: 1px 10px;
+	border-radius: 999px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listday:not(.is-static):hover .hearth-sched-listdate {
+	text-decoration: none;
+	opacity: 0.85;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listrel {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-listevents {
+	gap: 3px;
+	padding: 0 0 4px;
+}
+
+/* ---- Agenda rows: the mini calendar's agenda and the full calendar's list --- */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda {
+	gap: 3px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-month {
+	color: var(--x-on-container);
+	font-weight: 750;
+	letter-spacing: 0.06em;
+	opacity: 0.8;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row {
+	border-radius: 18px;
+}
+
+@media (hover: hover) {
+	:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row:hover,
+	:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.has-heat:hover {
+		background-color: var(--x-surface-high);
+	}
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-static:hover {
+	background: transparent;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today.has-heat,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today.is-static:hover {
+	background-color: var(--x-container);
+}
+
+@media (hover: hover) {
+	:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today:hover,
+	:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today.has-heat:hover {
+		background-color: var(--x-surface-highest);
+	}
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-dow {
+	color: var(--x-on-container);
+	font-weight: 650;
+	opacity: 0.75;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-daynum {
+	font-weight: 750;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Today's number on the accent's cookie, as in the month grid. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today .hearth-agenda-daynum {
+	position: relative;
+	isolation: isolate;
+	width: 30px;
+	height: 30px;
+	background: none;
+	box-shadow: none;
+	color: var(--x-on-primary);
+	font-weight: 800;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today .hearth-agenda-daynum::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: var(--x-primary);
+	-webkit-mask: var(--x-cookie) center / contain no-repeat;
+	mask: var(--x-cookie) center / contain no-repeat;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-row.is-today .hearth-agenda-dow {
+	color: var(--x-on-container);
+	opacity: 1;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-label {
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-events {
+	gap: 3px;
+	padding-bottom: 6px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-event {
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 5px 10px;
+	border-radius: 6px;
+	background: var(--x-surface);
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-event:first-child {
+	border-top-left-radius: 16px;
+	border-top-right-radius: 16px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-event:last-child {
+	border-bottom-left-radius: 16px;
+	border-bottom-right-radius: 16px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-event:hover {
+	border-radius: 16px;
+	background: var(--x-surface-highest);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evbullet {
+	width: 9px;
+	height: 9px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-taskbullet {
+	border-radius: 3px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evtime {
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evtitle {
+	font-weight: 550;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evbadge {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evbadge.is-due {
+	background: var(--ev-color, var(--color-red));
+	color: var(--text-on-accent);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-agenda-evbadge.is-timeblock {
+	border: none;
+	background: var(--x-container);
+	color: var(--x-on-container);
 }
 
 /* ---- RSS ------------------------------------------------------------ */

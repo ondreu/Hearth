@@ -4,7 +4,9 @@ import {
 	type CalculatorConfig,
 	type CalendarConfig,
 	type CardKind,
+	CLOCK_FACES,
 	type ClockConfig,
+	type ClockFace,
 	type CommandItem,
 	type Dashboard,
 	type DashboardCard,
@@ -641,7 +643,9 @@ function sanitizeCommand(raw: unknown): CommandItem | null {
 
 function sanitizeClock(r: Record<string, unknown>): ClockConfig {
 	const clock: ClockConfig = {};
-	if (r.mode === "digital" || r.mode === "analog") clock.mode = r.mode;
+	if (typeof r.mode === "string" && (CLOCK_FACES as readonly string[]).includes(r.mode)) {
+		clock.mode = r.mode as ClockFace;
+	}
 	if (r.hourFormat === "auto" || r.hourFormat === "12" || r.hourFormat === "24") {
 		clock.hourFormat = r.hourFormat;
 	} else if (typeof r.use24Hour === "boolean") {

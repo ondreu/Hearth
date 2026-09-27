@@ -133,6 +133,21 @@ describe("a card's design in a saved layout", () => {
 	});
 });
 
+describe("a clock's face in a saved layout", () => {
+	const face = (mode: unknown) =>
+		sanitizeCard({ id: "c1", kind: "clock", x: 0, y: 0, w: 4, h: 2, clock: { mode } }, 0)?.clock?.mode;
+
+	it("keeps every face, the Expressive-only ones included", () => {
+		for (const mode of ["digital", "analog", "stacked", "flip", "ring", "shapes", "orbit"]) {
+			expect(face(mode)).toBe(mode);
+		}
+	});
+
+	it("drops one it doesn't know", () => {
+		expect(face("sundial")).toBeUndefined();
+	});
+});
+
 describe("the vault's card design in a backup", () => {
 	it("is exported", () => {
 		const s = vault();

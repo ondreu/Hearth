@@ -44,6 +44,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   your own content — notes, embeds, web pages, Dataview and Datacore, the pets —
   are left as they are, and no card's frame changes.
 
+- **Five new clock faces.** The Clock card's *Style* gains **Stacked** (hours
+  over minutes, large), **Flip** (split tiles that turn over as the number
+  changes), and **Rings** (minutes, hours and seconds as progress rings round
+  the time) — each with a Classic and an Expressive look: tonal blocks and
+  tiles in the accent and its complementary tone, and Material's wavy progress
+  for the rings. The Expressive design adds two faces of its own: **Shapes**,
+  every digit on a shape of its own (a clover, a cookie, a flower, a squircle),
+  and **Orbit**, the hour big on a scalloped face with the minute as a dot
+  circling its edge. A Classic card with one of those chosen draws Stacked or
+  Analog in its place. The newer faces size themselves to the card, and on the
+  Reduced and Minimal performance tiers they drop their seconds and animation.
+
 - **A Markets card: stocks, funds, forex and crypto.** (#337) Type or search a
   symbol — `AAPL`, `0700.HK`, `510300`, `EUR/USD`, `BTC-USD`, `fund:161725` —
   and the card finds where it trades, across Yahoo Finance (most of the world's
@@ -249,6 +261,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   same thing after switching to the other.
 
 ### Fixed
+
+- **Hue and glow task colours show in the Expressive design.** A task field
+  drawn as *Hue* or *Glow* — a priority tinting its Kanban card, say — lost its
+  colour on a card in the Expressive design, whose own fill cleared the tint.
+  Kanban cards and list rows now carry it in both designs.
+
+- **Every view of the calendars is Expressive.** The Expressive design had
+  reached the month grids only. The full calendar's week and day views now draw
+  the days as tonal lanes with rounded event blocks, a round-ended *now* bar and
+  today's date on an accent pill; its list view and the mini calendar's agenda
+  set each day as a heavy heading — today's number on the accent's cookie —
+  over a grouped list of tonal event rows with pill badges; and week numbers,
+  the "+ more" link and the dots layout follow along.
 
 - **Every bookmark on the Bookmarks card opens something now.** The card drew a
   clickable row for all five kinds of bookmark Obsidian stores, but only ever

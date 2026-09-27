@@ -1350,9 +1350,29 @@ export interface MarketConfig {
 
 /** Per-card configuration for a "clock" card. All fields are optional; omitted
  * fields fall back to the defaults that match the original clock behaviour. */
+/** The faces a clock card can draw. */
+export const CLOCK_FACES = ["digital", "analog", "stacked", "flip", "ring", "shapes", "orbit"] as const;
+export type ClockFace = (typeof CLOCK_FACES)[number];
+
+/** Faces drawn only in the Expressive design, each with the Classic face a
+ * Classic card draws in its place. */
+export const CLOCK_CLASSIC_FALLBACK: Partial<Record<ClockFace, ClockFace>> = {
+	shapes: "stacked",
+	orbit: "analog",
+};
+
+/** The face a clock actually draws: its chosen one, or — for an
+ * Expressive-only face on a Classic card — that face's Classic stand-in. */
+export function resolveClockFace(mode: ClockFace | undefined, expressive: boolean): ClockFace {
+	const face = mode ?? "digital";
+	return expressive ? face : CLOCK_CLASSIC_FALLBACK[face] ?? face;
+}
+
 export interface ClockConfig {
-	/** Digital (default) or analogue clock face. */
-	mode?: "digital" | "analog";
+	/** The clock face (default digital). Every face has a Classic and an
+	 * Expressive look; `shapes` and `orbit` exist only in the Expressive design
+	 * and fall back to {@link CLOCK_CLASSIC_FALLBACK} in a Classic card. */
+	mode?: ClockFace;
 	/** Time format: "auto" follows the locale default, "12"/"24" force a
 	 * 12- or 24-hour clock regardless of locale. Default "auto". */
 	hourFormat?: "auto" | "12" | "24";

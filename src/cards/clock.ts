@@ -1,7 +1,15 @@
 import { Component, Setting } from "obsidian";
 import { moment } from "../cardbodies";
 import { t } from "../i18n";
-import { type ClockConfig, type DashboardCard, motionAllowed } from "../types";
+import {
+	CLOCK_CLASSIC_FALLBACK,
+	type ClockConfig,
+	type ClockFace,
+	type DashboardCard,
+	effectiveCardDesign,
+	motionAllowed,
+	resolveClockFace,
+} from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -69,7 +77,9 @@ function svgEl(
 	attrs: Record<string, string>,
 	cls?: string,
 ): SVGElement {
-	return parent.createSvg(tag, { attr: attrs, cls });
+	// createSvg hands `cls` to classList.add(), which rejects a string holding
+	// two classes — so several go in as an array.
+	return parent.createSvg(tag, { attr: attrs, cls: cls?.split(" ") });
 }
 
 
@@ -131,6 +141,258 @@ function renderAnalogClock(
 }
 
 
+/** The pieces of a time, formatted for the clock's hour format. `period` is
+ * the AM/PM marker, empty on a 24-hour clock. */
+interface TimeParts {
+	hour: string;
+	minute: string;
+	second: string;
+	period: string;
+}
+
+
+/** A formatter for the separate pieces of the time. A forced 24-hour clock
+ * asks for the h23 cycle rather than `hour12: false`, which some engines
+ * answer with "24" at midnight. */
+function timePartsFormatter(cfg: ClockConfig, hourStyle: "2-digit" | "numeric"): (now: Date) => TimeParts {
+	const opts: Intl.DateTimeFormatOptions = { hour: hourStyle, minute: "2-digit", second: "2-digit" };
+	const hour12 = resolveHour12(cfg);
+	if (hour12 === false) opts.hourCycle = "h23";
+	else if (hour12 === true) opts.hour12 = true;
+	const fmt = new Intl.DateTimeFormat(undefined, opts);
+	return (now) => {
+		const out: TimeParts = { hour: "", minute: "", second: "", period: "" };
+		for (const p of fmt.formatToParts(now)) {
+			if (p.type === "hour") out.hour = p.value;
+			else if (p.type === "minute") out.minute = p.value;
+			else if (p.type === "second") out.second = p.value;
+			else if (p.type === "dayPeriod") out.period = p.value;
+		}
+		return out;
+	};
+}
+
+
+/** Set an element's text only when it changed, so a face that ticks every
+ * second writes nothing to the DOM between minutes. */
+function textSetter(el: Element): (text: string) => boolean {
+	let last: string | null = null;
+	return (text) => {
+		if (text === last) return false;
+		el.textContent = last = text;
+		return true;
+	};
+}
+
+
+/**
+ * A closed shape around (cx, cy) whose radius swings `amp` either side of `r`,
+ * `waves` times round: a wavy ring for the Expressive progress, a cookie or a
+ * clover for a tile. It starts at twelve o'clock and runs clockwise, so a
+ * dash along it (with `pathLength="100"`) fills like a clock hand sweeps.
+ */
+export function wavyPath(cx: number, cy: number, r: number, amp: number, waves: number): string {
+	const steps = Math.max(48, waves * 16);
+	let d = "";
+	for (let i = 0; i <= steps; i++) {
+		const a = (i / steps) * Math.PI * 2;
+		const rr = r + amp * Math.cos(waves * a);
+		const x = cx + Math.sin(a) * rr;
+		const y = cy - Math.cos(a) * rr;
+		d += `${i === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+	}
+	return `${d}Z`;
+}
+
+
+/** Hours over minutes, big. Classic in light type, Expressive on two tonal
+ * blocks. */
+function renderStackedClock(wrap: HTMLElement, cfg: ClockConfig, seconds: boolean): (now: Date) => void {
+	const parts = timePartsFormatter(cfg, "2-digit");
+	const face = wrap.createDiv("hearth-clock-face hearth-clock-stacked");
+	const setH = textSetter(face.createDiv("hearth-clock-stack-h"));
+	const setM = textSetter(face.createDiv("hearth-clock-stack-m"));
+	const side = face.createDiv("hearth-clock-stack-side");
+	const setS = seconds ? textSetter(side.createSpan("hearth-clock-stack-s")) : null;
+	const setP = textSetter(side.createSpan("hearth-clock-stack-p"));
+	return (now) => {
+		const p = parts(now);
+		setH(p.hour);
+		setM(p.minute);
+		setS?.(p.second);
+		setP(p.period);
+		side.toggleClass("is-empty", !seconds && !p.period);
+	};
+}
+
+
+/** A flip clock: a tile each for the hours, minutes and (optionally) seconds,
+ * split across the middle; a tile turns over when its number changes. */
+function renderFlipClock(
+	wrap: HTMLElement,
+	cfg: ClockConfig,
+	seconds: boolean,
+	animate: boolean,
+): (now: Date) => void {
+	const parts = timePartsFormatter(cfg, "2-digit");
+	const face = wrap.createDiv("hearth-clock-face hearth-clock-flip");
+	const tile = (cls: string) => {
+		const el = face.createDiv(`hearth-clock-flip-tile ${cls}`);
+		const set = textSetter(el.createSpan("hearth-clock-flip-num"));
+		// The first paint is not a change; nothing turns over on it.
+		let painted = false;
+		return (text: string) => {
+			const changed = set(text);
+			const wasPainted = painted;
+			painted = true;
+			if (!changed || !wasPainted || !animate) return;
+			// Restart the turn: drop the class, force a style flush, add it back.
+			el.removeClass("is-turning");
+			void el.offsetWidth;
+			el.addClass("is-turning");
+		};
+	};
+	const setH = tile("is-hours");
+	const setM = tile("is-minutes");
+	const setS = seconds ? tile("is-seconds") : null;
+	const setP = textSetter(face.createDiv("hearth-clock-flip-p"));
+	return (now) => {
+		const p = parts(now);
+		setH(p.hour);
+		setM(p.minute);
+		setS?.(p.second);
+		setP(p.period);
+	};
+}
+
+
+/** Concentric progress rings — minutes outside, hours inside them, seconds
+ * innermost — round the time. Expressive draws each ring's progress as
+ * Material's wavy indicator. */
+function renderRingClock(
+	wrap: HTMLElement,
+	cfg: ClockConfig,
+	seconds: boolean,
+	lowPower: boolean,
+	expressive: boolean,
+): (now: Date) => void {
+	const parts = timePartsFormatter(cfg, "2-digit");
+	const svg = svgEl(wrap, "svg", { viewBox: "0 0 100 100" }, "hearth-clock-face hearth-clock-ring");
+	const ring = (r: number, cls: string) => {
+		svgEl(svg, "circle", { cx: "50", cy: "50", r: String(r) }, `hearth-clock-ring-track ${cls}`);
+		// A wave of roughly the same length on every ring, whatever its radius.
+		const waves = Math.round((2 * Math.PI * r) / 22);
+		const d = expressive ? wavyPath(50, 50, r, 1.1, waves) : wavyPath(50, 50, r, 0, 1);
+		const bar = svgEl(svg, "path", { d, pathLength: "100" }, `hearth-clock-ring-bar ${cls}`);
+		let last = NaN;
+		return (fraction: number) => {
+			const pct = Math.round(fraction * 1000) / 10;
+			if (pct === last) return;
+			last = pct;
+			bar.setAttribute("stroke-dasharray", `${pct} ${100 - pct + 1}`);
+			bar.toggleClass("is-empty", pct === 0);
+		};
+	};
+	const setMin = ring(44, "is-minutes");
+	const setHour = ring(33, "is-hours");
+	const setSec = seconds ? ring(22, "is-seconds") : null;
+	const text = svgEl(
+		svg,
+		"text",
+		{ x: "50", y: "50", "text-anchor": "middle", "dominant-baseline": "central" },
+		"hearth-clock-ring-time",
+	);
+	text.toggleClass("is-small", seconds);
+	const setText = textSetter(text);
+	return (now) => {
+		const s = now.getSeconds();
+		const m = now.getMinutes();
+		setMin(lowPower ? m / 60 : (m + s / 60) / 60);
+		setHour(((now.getHours() % 12) + m / 60) / 12);
+		setSec?.(s / 60);
+		const p = parts(now);
+		setText(`${p.hour}:${p.minute}`);
+	};
+}
+
+
+/** The tile shapes the Shapes face puts its digits on, one per digit. */
+const SHAPE_TILES: { waves: number; amp: number }[] = [
+	{ waves: 4, amp: 7 }, // clover
+	{ waves: 9, amp: 2.6 }, // cookie
+	{ waves: 8, amp: 4 }, // flower
+	{ waves: 0, amp: 0 }, // squircle (drawn as a rounded square)
+];
+
+
+/** Expressive only: every digit on a shape of its own — hours in the accent,
+ * minutes in its complementary tone — in a 2×2 block, or a row on a wide card. */
+function renderShapesClock(wrap: HTMLElement, cfg: ClockConfig, seconds: boolean): (now: Date) => void {
+	const parts = timePartsFormatter(cfg, "2-digit");
+	const face = wrap.createDiv("hearth-clock-face hearth-clock-shapes");
+	const digits = SHAPE_TILES.map((shape, i) => {
+		const tile = face.createDiv(`hearth-clock-shape ${i < 2 ? "is-hours" : "is-minutes"}`);
+		const svg = svgEl(tile, "svg", { viewBox: "0 0 100 100", "aria-hidden": "true" }, "hearth-clock-shape-bg");
+		if (shape.waves === 0) {
+			svgEl(svg, "rect", { x: "4", y: "4", width: "92", height: "92", rx: "34" });
+		} else {
+			svgEl(svg, "path", { d: wavyPath(50, 50, 46 - shape.amp, shape.amp, shape.waves) });
+		}
+		return textSetter(tile.createSpan("hearth-clock-shape-num"));
+	});
+	const extra = face.createDiv("hearth-clock-shapes-extra");
+	const setS = seconds ? textSetter(extra.createSpan("hearth-clock-shapes-pill is-seconds")) : null;
+	const periodEl = extra.createSpan("hearth-clock-shapes-pill is-period");
+	const setP = textSetter(periodEl);
+	return (now) => {
+		const p = parts(now);
+		const text = `${p.hour}${p.minute}`;
+		digits.forEach((set, i) => set(text.charAt(i)));
+		setS?.(p.second);
+		setP(p.period);
+		periodEl.toggleClass("is-empty", !p.period);
+		extra.toggleClass("is-empty", !seconds && !p.period);
+	};
+}
+
+
+/** Expressive only: the hour, big, on a scalloped face, with the minute as a
+ * dot orbiting its edge (and the seconds as a smaller one inside). */
+function renderOrbitClock(
+	wrap: HTMLElement,
+	cfg: ClockConfig,
+	seconds: boolean,
+	lowPower: boolean,
+): (now: Date) => void {
+	const parts = timePartsFormatter(cfg, "numeric");
+	const svg = svgEl(wrap, "svg", { viewBox: "0 0 100 100" }, "hearth-clock-face hearth-clock-orbit");
+	svgEl(svg, "path", { d: wavyPath(50, 50, 38.5, 1.5, 12) }, "hearth-clock-orbit-face");
+	// Sixty minute marks: zero-length dashes whose round caps draw dots.
+	svgEl(svg, "circle", { cx: "50", cy: "50", r: "46", pathLength: "60" }, "hearth-clock-orbit-track");
+	const minDot = svgEl(svg, "circle", { cx: "50", cy: "4", r: "4" }, "hearth-clock-orbit-min");
+	const secDot = seconds && !lowPower
+		? svgEl(svg, "circle", { cx: "50", cy: "18", r: "1.8" }, "hearth-clock-orbit-sec")
+		: null;
+	const attrs = (y: string) => ({ x: "50", y, "text-anchor": "middle", "dominant-baseline": "central" });
+	const setP = textSetter(svgEl(svg, "text", attrs("27"), "hearth-clock-orbit-p"));
+	const setH = textSetter(svgEl(svg, "text", attrs("48"), "hearth-clock-orbit-h"));
+	const setM = textSetter(svgEl(svg, "text", attrs("71"), "hearth-clock-orbit-m"));
+	let lastMin = NaN;
+	let lastSec = NaN;
+	return (now) => {
+		const s = now.getSeconds();
+		const m = now.getMinutes();
+		const minDeg = lowPower ? m * 6 : (m + s / 60) * 6;
+		if (minDeg !== lastMin) minDot.setAttribute("transform", `rotate(${(lastMin = minDeg)} 50 50)`);
+		if (secDot && s !== lastSec) secDot.setAttribute("transform", `rotate(${(lastSec = s) * 6} 50 50)`);
+		const p = parts(now);
+		setP(p.period);
+		setH(p.hour);
+		setM(p.minute);
+	};
+}
+
+
 export function renderClock(
 	view: HomeView,
 	card: DashboardCard,
@@ -140,9 +402,12 @@ export function renderClock(
 	const cfg = card.clock ?? {};
 	const showGreeting = cfg.showGreeting !== false;
 	const dateMode = cfg.dateMode ?? "full";
-	const analog = cfg.mode === "analog";
+	const expressive = effectiveCardDesign(view.plugin.settings, card.design) === "expressive";
+	const face = resolveClockFace(cfg.mode, expressive);
 
-	const wrap = body.createDiv("hearth-clock");
+	// The newer faces size themselves against the card body.
+	body.toggleClass("hearth-clock-host", face !== "digital" && face !== "analog");
+	const wrap = body.createDiv(`hearth-clock is-face-${face}`);
 	const greetingEl = showGreeting ? wrap.createDiv("hearth-clock-greeting") : null;
 
 	// Pick the greeting once per time bucket so playful ones don't flicker.
@@ -165,8 +430,29 @@ export function renderClock(
 	// nothing to the DOM 59 times out of 60.
 	const lowPower = !motionAllowed(view.plugin.settings);
 
-	const tickAnalog = analog ? renderAnalogClock(wrap, cfg, lowPower) : null;
-	const timeEl = analog ? null : wrap.createDiv("hearth-clock-time");
+	const seconds = cfg.showSeconds === true && !lowPower;
+	let tickFace: ((now: Date) => void) | null = null;
+	switch (face) {
+		case "analog":
+			tickFace = renderAnalogClock(wrap, cfg, lowPower);
+			break;
+		case "stacked":
+			tickFace = renderStackedClock(wrap, cfg, seconds);
+			break;
+		case "flip":
+			tickFace = renderFlipClock(wrap, cfg, seconds, !lowPower);
+			break;
+		case "ring":
+			tickFace = renderRingClock(wrap, cfg, seconds, lowPower, expressive);
+			break;
+		case "shapes":
+			tickFace = renderShapesClock(wrap, cfg, seconds);
+			break;
+		case "orbit":
+			tickFace = renderOrbitClock(wrap, cfg, seconds, lowPower);
+			break;
+	}
+	const timeEl = face === "digital" ? wrap.createDiv("hearth-clock-time") : null;
 	const dateEl = dateMode === "none" ? null : wrap.createDiv("hearth-clock-date");
 
 	const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
@@ -179,7 +465,7 @@ export function renderClock(
 	const update = () => {
 		const now = new Date();
 		refreshGreeting(now.getHours());
-		if (tickAnalog) tickAnalog(now);
+		if (tickFace) tickFace(now);
 		if (timeEl) {
 			const text = now.toLocaleTimeString(undefined, timeOpts);
 			if (text !== lastTime) timeEl.setText((lastTime = text));
@@ -198,19 +484,44 @@ export function renderClock(
 export function clockEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.clock ??= {});
 
+	const expressive = effectiveCardDesign(ctx.opts.settings, ctx.card.design) === "expressive";
+	const mode = cfg.mode ?? "digital";
+	const labels: Record<ClockFace, string> = {
+		digital: t().editors.clock.styleDigital,
+		analog: t().editors.clock.styleAnalog,
+		stacked: t().editors.clock.styleStacked,
+		flip: t().editors.clock.styleFlip,
+		ring: t().editors.clock.styleRing,
+		shapes: t().editors.clock.styleShapes,
+		orbit: t().editors.clock.styleOrbit,
+	};
+	const fallback = CLOCK_CLASSIC_FALLBACK[mode];
 	new Setting(containerEl)
 		.setName(t().editors.clock.style)
+		.setDesc(
+			// An Expressive-only face on a Classic card says what it draws instead;
+			// otherwise a Classic card learns that more faces come with Expressive.
+			expressive
+				? ""
+				: fallback
+					? t().editors.clock.styleFallbackDesc(labels[fallback])
+					: t().editors.clock.styleExpressiveDesc,
+		)
 		.addDropdown((d) => {
-			d.addOption("digital", t().editors.clock.styleDigital);
-			d.addOption("analog", t().editors.clock.styleAnalog);
-			d.setValue(cfg.mode ?? "digital").onChange((v) => {
-				cfg.mode = v as NonNullable<ClockConfig["mode"]>;
+			for (const face of Object.keys(labels) as ClockFace[]) {
+				// Expressive-only faces are offered to an Expressive card, and kept
+				// in the list for a Classic one that already has one chosen.
+				if (!expressive && CLOCK_CLASSIC_FALLBACK[face] && face !== mode) continue;
+				d.addOption(face, labels[face]);
+			}
+			d.setValue(mode).onChange((v) => {
+				cfg.mode = v as ClockFace;
 				ctx.opts.save();
 				ctx.requestRender();
 			});
 		});
 
-	if (cfg.mode !== "analog") {
+	if (resolveClockFace(cfg.mode, expressive) !== "analog") {
 		new Setting(containerEl)
 			.setName(t().editors.clock.hourFormat)
 			.addDropdown((d) => {
