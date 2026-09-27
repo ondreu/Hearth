@@ -135,6 +135,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **The search results float more clearly above the board.** The dropdown
+  casts a deeper two-layer shadow, denser in dark themes, and in the
+  Expressive design takes Material 3's menu elevation with a tonal edge, so
+  it no longer reads as sitting flat on the cards below.
+
 - **A shorter, visual setup wizard.** First-run setup is three steps instead of
   six: what the vault is for (with the plugins Hearth found), the look — design
   (Expressive recommended), background and, for Classic, card style, each

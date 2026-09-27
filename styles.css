@@ -998,8 +998,21 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	background-image:
 		linear-gradient(var(--background-primary), var(--background-primary)),
 		linear-gradient(var(--background-primary), var(--background-primary));
-	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+	/* Two layers, as a raised surface casts them: a tight key shadow that
+	 * outlines the edge and a wide ambient one that lifts the sheet off the
+	 * board. Dark themes get denser shadows — the same alpha barely shows on a
+	 * dark board, which read as the list sitting flat on the cards below. */
+	--hearth-results-shadow:
+		0 2px 6px rgba(0, 0, 0, 0.14),
+		0 14px 36px -4px rgba(0, 0, 0, 0.26);
+	box-shadow: var(--hearth-results-shadow);
 	padding: 6px;
+}
+
+.theme-dark .hearth-search-results {
+	--hearth-results-shadow:
+		0 2px 6px rgba(0, 0, 0, 0.45),
+		0 16px 40px -4px rgba(0, 0, 0, 0.6);
 }
 
 /* On mobile keep the list short enough to stay above the on-screen keyboard
@@ -20281,11 +20294,24 @@ body.hearth-snapshot-capturing .hearth-view {
 	background-image:
 		linear-gradient(var(--x-dialog), var(--x-dialog)),
 		linear-gradient(var(--background-primary), var(--background-primary));
-	/* Classic's shadow, and a tonal edge where a dark board would swallow it. */
+	/* Material 3's level-3 elevation (a menu's): a key shadow and a spread
+	 * ambient one, deepened so the sheet clearly floats over tonal cards of a
+	 * similar colour, plus a tonal edge where a dark board would swallow even
+	 * that. */
 	box-shadow:
-		0 8px 28px rgba(0, 0, 0, 0.18),
+		0 1px 3px rgba(0, 0, 0, 0.3),
+		0 6px 12px 4px rgba(0, 0, 0, 0.14),
+		0 18px 40px -6px rgba(0, 0, 0, 0.22),
 		0 0 0 1px var(--x-surface-high);
 	padding: 8px;
+}
+
+.theme-dark :is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-search-results {
+	box-shadow:
+		0 1px 3px rgba(0, 0, 0, 0.55),
+		0 6px 12px 4px rgba(0, 0, 0, 0.35),
+		0 20px 44px -6px rgba(0, 0, 0, 0.55),
+		0 0 0 1px var(--x-surface-high);
 }
 
 :is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result {
