@@ -265,11 +265,11 @@
 	 * ~95), so the cards stand off the sky by tone alone, as Material's filled
 	 * cards do — at 93% the two met and the cards melted into it. The far shore
 	 * and the hill step down with it to stay apart from the sky. */
-	--hx-sky: hsl(var(--accent-h), calc(var(--accent-s) * 0.45), 89%);
+	--hx-sky: hsl(var(--accent-h), calc(var(--accent-s) * 0.5), 86%);
 	--hx-sun: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.75), 76%);
 	--hx-cloud: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 98%);
-	--hx-far: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.35), 82%);
-	--hx-hill: hsl(var(--accent-h), calc(var(--accent-s) * 0.4), 77%);
+	--hx-far: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.35), 79%);
+	--hx-hill: hsl(var(--accent-h), calc(var(--accent-s) * 0.4), 74%);
 	--hx-wall-a: hsl(var(--accent-h), calc(var(--accent-s) * 0.45), 91%);
 	--hx-wall-b: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.45), 89%);
 	--hx-wall-c: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.35), 95%);
