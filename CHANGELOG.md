@@ -64,6 +64,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the board, moving it in and out, and deleting it as three separate groups,
   and the destructive entry (delete, discard) is marked as such.
 
+- **A livelier Ko-fi button.** The tip button (About, *What's new*, the add-card
+  picker) is now a filled pill in Ko-fi's red with the cup on a white badge,
+  and the cup gives a little wobble under the pointer unless you've asked your
+  system for less motion.
+
 - **Choose Classic or Expressive in setup.** The setup wizard's *Look* step
   opens with the design, and the wizard redraws itself in the one you pick. The
   first setup makes it the vault's design and the drawn background's (so
@@ -294,6 +299,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   same thing after switching to the other.
 
 ### Fixed
+
+- **Category names in the gallery and the add-card picker are no longer cut
+  off.** A name too long for the rail wraps onto a second line instead of
+  ending in an ellipsis, and a theme's border and shadow on buttons no longer
+  box in every row.
 
 - **Hue and glow task colours show in the Expressive design.** A task field
   drawn as *Hue* or *Glow* — a priority tinting its Kanban card, say — lost its

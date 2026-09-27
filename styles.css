@@ -2594,9 +2594,9 @@ body.is-translucent .hearth-view.hearth-macos *::after {
    `hearth-about-btn` is the icon-beside-label button layout the About rows
    use; it is also worn by the Ko-fi tip button wherever that appears (About,
    the "What's new" dialog footer, the card picker's request page — see
-   `src/kofi.ts`), so the three can't drift apart. The tip button keeps the
-   brand's white/dark look (from the official widget) so it reads as a support
-   button, not a stock accent button. */
+   `src/kofi.ts`), so the three can't drift apart. The tip button wears
+   Ko-fi's own red rather than the accent, so it reads as a support button, not
+   one more action of Hearth's. */
 
 .hearth-about-btn {
 	display: inline-flex;
@@ -2613,20 +2613,81 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	height: 15px;
 }
 
-.hearth-kofi-btn {
-	background-color: #ffffff;
-	color: #323842;
-	font-weight: 600;
-	border: 1px solid rgba(0, 0, 0, 0.12);
+/* A filled pill in Ko-fi's red — deepened from the brand's #ff5e5b just enough
+ * for white text to read (4.5:1) — with the cup on a white badge. `button.` to
+ * outrank Obsidian's own button rule, which would otherwise repaint it. */
+button.hearth-kofi-btn {
+	gap: 8px;
+	min-height: 34px;
+	padding: 4px 16px 4px 4px;
+	border: none;
+	border-radius: 999px;
+	background-color: #d93a3a;
+	box-shadow: 0 2px 8px rgba(217, 58, 58, 0.35);
+	color: #ffffff;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease,
+		box-shadow 140ms ease,
+		transform 140ms ease;
 }
 
-.hearth-kofi-btn:hover {
-	background-color: #f2f2f2;
-	color: #323842;
+button.hearth-kofi-btn:hover {
+	background-color: #c42f30;
+	box-shadow: 0 4px 14px rgba(217, 58, 58, 0.45);
+	color: #ffffff;
+	transform: translateY(-1px);
+}
+
+button.hearth-kofi-btn:active {
+	transform: translateY(0) scale(0.97);
+}
+
+button.hearth-kofi-btn:focus-visible {
+	outline: 2px solid #ff5e5b;
+	outline-offset: 2px;
+}
+
+.hearth-kofi-btn .hearth-about-btn-icon {
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 26px;
+	height: 26px;
+	border-radius: 999px;
+	background: #ffffff;
 }
 
 .hearth-kofi-btn .svg-icon {
+	width: 15px;
+	height: 15px;
 	color: #ff5e5b;
+	stroke-width: 2.4px;
+}
+
+/* A little wobble of the cup on hover, for anyone who hasn't asked for less
+ * motion. */
+@media (prefers-reduced-motion: no-preference) {
+	button.hearth-kofi-btn:hover .hearth-about-btn-icon .svg-icon {
+		animation: hearth-kofi-wobble 600ms ease-in-out;
+	}
+}
+
+@keyframes hearth-kofi-wobble {
+	0%,
+	100% {
+		transform: rotate(0);
+	}
+
+	25% {
+		transform: rotate(-14deg);
+	}
+
+	60% {
+		transform: rotate(10deg);
+	}
 }
 
 /* Lists (bookmarks) */
@@ -13460,11 +13521,6 @@ body.hearth-dv-resizing {
 	height: 16px;
 }
 
-.hearth-picker-rail-label {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
 
 .hearth-picker-rail-sep {
 	height: 1px;
@@ -13483,8 +13539,7 @@ body.hearth-dv-resizing {
 .hearth-picker-rail-kofi {
 	width: 100%;
 	margin-top: 10px;
-	padding: 6px 10px;
-	justify-content: center;
+	justify-content: flex-start;
 	font-size: var(--font-ui-small);
 }
 
@@ -13888,11 +13943,16 @@ body.hearth-dv-resizing {
 		border-bottom: 1px solid var(--background-modifier-border);
 	}
 
-	.hearth-picker-rail-btn {
+	button.hearth-picker-rail-btn {
 		width: auto;
 		flex: none;
 		border: 1px solid var(--background-modifier-border);
 		border-radius: 999px;
+		white-space: nowrap;
+	}
+
+	.hearth-picker-rail-label {
+		display: block;
 		white-space: nowrap;
 	}
 
@@ -14794,10 +14854,27 @@ body.hearth-dv-resizing {
 	flex: none;
 }
 
-.hearth-gallery-rail-label {
+/* A category name is allowed two lines rather than cut off with an ellipsis:
+   the rail is narrow, and "Planning & calendar" or "Information-dense" in a
+   bold weight or a longer language don't fit one. The row grows to hold it —
+   Obsidian gives every button a fixed height, hence `height: auto`, and a
+   theme's border and shadow on buttons are dropped the same way. */
+.hearth-gallery-rail-label,
+.hearth-picker-rail-label {
+	display: -webkit-box;
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	line-height: 1.25;
+}
+
+button:is(.hearth-gallery-rail-btn, .hearth-gallery-rail-publish, .hearth-picker-rail-btn) {
+	height: auto;
+	min-height: var(--input-height, 30px);
+	border: none;
+	box-shadow: none;
 }
 
 .hearth-gallery-rail-sep {
@@ -19812,6 +19889,11 @@ body.hearth-snapshot-capturing .hearth-view {
 	border-right: none;
 }
 
+/* A little wider than Classic's: the rows are padded and set bold. */
+.hearth-x-modal .hearth-gallery-rail {
+	flex-basis: 214px;
+}
+
 .hearth-x-modal :is(.hearth-picker-rail-sep, .hearth-gallery-rail-sep) {
 	height: 0;
 	margin: 6px 0;
@@ -19822,6 +19904,7 @@ body.hearth-snapshot-capturing .hearth-view {
 	min-height: 40px;
 	padding: 8px 14px;
 	border: none;
+	box-shadow: none;
 	border-radius: 999px;
 	background: transparent;
 	color: var(--text-muted);
@@ -19852,8 +19935,9 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--x-on-container);
 }
 
-.hearth-x-modal .hearth-picker-rail-btn.is-request,
-.hearth-x-modal .hearth-gallery-rail-publish {
+/* One :is() with arguments as specific as the tonal rule's above, so this one,
+ * coming later, wins for both. */
+.hearth-x-modal :is(.hearth-picker-rail-btn.is-request, button.hearth-gallery-rail-publish) {
 	margin-top: 4px;
 	border-radius: 16px;
 	background: var(--x-primary);

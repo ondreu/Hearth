@@ -24,7 +24,7 @@ const KOFI_ICON = "coffee";
 
 /** The shared classes: `hearth-about-btn` is the icon+label button layout
  * (defined once in `styles.css`, not About-specific despite its name) and
- * `hearth-kofi-btn` paints it in Ko-fi's own white-and-red. */
+ * `hearth-kofi-btn` paints it in Ko-fi's own red, the cup on a white badge. */
 const KOFI_CLASSES = ["hearth-about-btn", "hearth-kofi-btn"];
 
 /**
