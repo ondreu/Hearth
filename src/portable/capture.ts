@@ -34,6 +34,7 @@ import {
 	effectiveBackground,
 	effectiveCardBlur,
 	effectiveCardBorderWidth,
+	effectiveCardDesign,
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
@@ -129,6 +130,7 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
 	out.cardBlur = effectiveCardBlur(snap);
 	out.cardRadius = effectiveCardRadius(snap);
 	out.cardBorderWidth = effectiveCardBorderWidth(snap);
+	out.cardDesign = effectiveCardDesign(snap, undefined);
 
 	// The search row and the chrome around the board
 	out.showSearch = effectiveShowSearch(snap);

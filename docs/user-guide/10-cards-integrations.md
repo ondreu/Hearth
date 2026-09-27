@@ -260,7 +260,7 @@ shape), feels-like, high / low and metrics as chips, the hours as pills, thick
 range bars, metric tiles with round badges, heavy type, and on *Artistic* the flat
 illustrated sky. The interface parts take tonal steps of your accent colour; the
 weather drawings and the sky take their colours from the weather. Every style
-follows the vault's *Card design* ([chapter 11](11-appearance.md)) except *Moon*
+follows the board's or vault's *Card design* ([chapter 11](11-appearance.md)) except *Moon*
 and *Daylight*, which start Expressive; set them to
 Classic for a shaded moon on a night-sky gradient and a rayed sun trailing a
 gradient along a dashed arc.
@@ -359,7 +359,7 @@ The arrows reorder the list; one-instrument styles show the first.
 | *Lookup* | A search field over the card's watchlist: look anything up, see its chart and stats, and add it with one click |
 
 *Design* chooses **Classic** or **Expressive** — the weather card's two — or
-follows the vault's *Card design*. In
+follows the board's or vault's *Card design*. In
 Expressive the move sits on a pill in its own colour, the single-instrument
 styles set a trend glyph on a cookie shape, chips and rows become tonal
 containers in your accent colour, tiles are tinted by their move and the chart

@@ -642,6 +642,9 @@ export const de: Translations = {
 			skyAnimateStateOff: "still",
 			skyAnimateOptionOn: "Animieren",
 			skyAnimateOptionOff: "Stillhalten",
+			cardDesign: "Kartendesign",
+			cardDesignDesc:
+				"Wie die Karten dieses Dashboards gezeichnet werden, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive.",
 			skyDesign: "Himmel-Design",
 			skyDesignDesc:
 				"Der klassische gemalte Himmel oder der flache im Stil von Material 3 Expressive, auf diesem Board.",
@@ -1565,7 +1568,7 @@ export const de: Translations = {
 				"Stärke des Kartenrahmens und der Kopfzeilentrennlinie, in Pixeln. 0 blendet den Rahmen aus.",
 			cardDesign: "Kartendesign",
 			cardDesignDesc:
-				"Wie Karten gezeichnet werden, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
+				"Wie Karten gezeichnet werden, sofern ein Dashboard oder eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
 			cards: "Karten",
 			cardsDesc:
 				"Füge Karten auf dem Dashboard selbst hinzu und richte sie ein: Öffne die Startansicht, " +
@@ -3148,7 +3151,7 @@ export const de: Translations = {
 			desc: "Klassisch oder Material 3 Expressive: tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen.",
 			classic: "Klassisch",
 			expressive: "Expressive",
-			followDefault: (design: string) => `Tresor-Voreinstellung (${design})`,
+			followDefault: (design: string) => `Voreinstellung (${design})`,
 		},
 		colors: {
 			heading: "Farben",

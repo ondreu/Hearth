@@ -1339,6 +1339,22 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				this.commit();
 			},
 		);
+
+		const designs = {
+			classic: t().editors.design.classic,
+			expressive: t().editors.design.expressive,
+		};
+		this.overrideChoice(
+			containerEl,
+			t().dashboards.modal.cardDesign,
+			t().dashboards.modal.cardDesignDesc,
+			dash.cardDesign,
+			designs,
+			designs[s.cardDesign ?? "classic"],
+			(v) => {
+				dash.cardDesign = v;
+			},
+		);
 	}
 
 	/** A labelled override: a toggle that, when on, reveals a slider. Off clears

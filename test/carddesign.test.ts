@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { CARD_DEFINITIONS } from "../src/cards";
 import { resolveMarket } from "../src/cards/market";
 import { resolveConfig } from "../src/cards/weather";
-import { applySettings, exportSettingsPayload, sanitizeCard } from "../src/layout";
+import { applySettings, exportSettingsPayload, sanitizeCard, sanitizeDashboard } from "../src/layout";
+import { flattenBoardLook } from "../src/portable/capture";
 import { type CardKind, DEFAULT_SETTINGS, effectiveCardDesign, type HomeSettings } from "../src/types";
 
 /**
@@ -50,14 +51,55 @@ describe("which kinds draw an Expressive design", () => {
 });
 
 describe("effectiveCardDesign", () => {
-	it("prefers the card, then the vault, then Classic", () => {
+	const boards = (): HomeSettings => {
 		const s = vault();
+		s.dashboards = [
+			{ id: "home", name: "Home", cards: [] },
+			{ id: "work", name: "Work", cards: [] },
+		];
+		s.activeDashboardId = "home";
+		return s;
+	};
+
+	it("prefers the card, then the board, then the vault, then Classic", () => {
+		const s = boards();
 		expect(effectiveCardDesign(s, undefined)).toBe("classic");
 		s.cardDesign = "expressive";
 		expect(effectiveCardDesign(s, undefined)).toBe("expressive");
-		expect(effectiveCardDesign(s, "classic")).toBe("classic");
-		s.cardDesign = undefined;
+		s.dashboards[0].cardDesign = "classic";
+		expect(effectiveCardDesign(s, undefined)).toBe("classic");
 		expect(effectiveCardDesign(s, "expressive")).toBe("expressive");
+		s.cardDesign = undefined;
+		s.dashboards[0].cardDesign = "expressive";
+		expect(effectiveCardDesign(s, undefined)).toBe("expressive");
+		expect(effectiveCardDesign(s, "classic")).toBe("classic");
+	});
+
+	it("follows the board that is showing", () => {
+		const s = boards();
+		s.dashboards[1].cardDesign = "expressive";
+		expect(effectiveCardDesign(s, undefined)).toBe("classic");
+		s.activeDashboardId = "work";
+		expect(effectiveCardDesign(s, undefined)).toBe("expressive");
+	});
+});
+
+describe("a board's own card design", () => {
+	it("survives a saved layout, and drops a value it doesn't know", () => {
+		const s = vault();
+		const kept = sanitizeDashboard({ id: "b", name: "B", cards: [], cardDesign: "expressive" }, s, 0);
+		expect(kept?.cardDesign).toBe("expressive");
+		const dropped = sanitizeDashboard({ id: "b", name: "B", cards: [], cardDesign: "neon" }, s, 0);
+		expect(dropped?.cardDesign).toBeUndefined();
+	});
+
+	it("is written into a shared board, so it arrives looking the same", () => {
+		const s = vault();
+		s.cardDesign = "expressive";
+		const board = { id: "b", name: "B", cards: [] };
+		s.dashboards = [board];
+		s.activeDashboardId = "b";
+		expect(flattenBoardLook(s, board).cardDesign).toBe("expressive");
 	});
 });
 

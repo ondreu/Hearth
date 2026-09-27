@@ -588,6 +588,9 @@ export const zh: Translations = {
 			skyAnimateStateOff: "静止",
 			skyAnimateOptionOn: "启用动画",
 			skyAnimateOptionOff: "保持静止",
+			cardDesign: "卡片设计",
+			cardDesignDesc:
+				"此面板上的卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive。",
 			skyDesign: "天空设计",
 			skyDesignDesc: "在此面板上使用经典手绘天空，或 Material 3 Expressive 风格的扁平天空。",
 			visibilityDefaultPlugin: (state: string) => `插件视图面板的默认值（${state}）`,
@@ -1414,7 +1417,7 @@ export const zh: Translations = {
 				"卡片边框和标题栏分隔线的粗细（像素）。0 表示隐藏边框。",
 			cardDesign: "卡片设计",
 			cardDesignDesc:
-				"卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
+				"面板或卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
 			cards: "卡片",
 			cardsDesc:
 				"卡片在面板上添加和配置：打开主页视图，点击“排列”，" +
@@ -2881,7 +2884,7 @@ export const zh: Translations = {
 			desc: "经典，或 Material 3 Expressive：强调色的色调容器、胶囊与柔和形状。",
 			classic: "经典",
 			expressive: "Expressive",
-			followDefault: (design: string) => `库默认（${design}）`,
+			followDefault: (design: string) => `默认（${design}）`,
 		},
 		colors: {
 			heading: "颜色",

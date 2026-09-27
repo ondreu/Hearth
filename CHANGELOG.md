@@ -28,10 +28,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   calendar, the analogue clock's face. Everything takes tonal steps of your
   accent colour, in light and dark themes.
 
-  **Settings → Hearth → Dashboard → Card surface → Card design** sets it for the whole vault;
-  each card's *Style* tab can follow it or choose *Classic* or *Expressive* for
-  itself. The weather and market cards follow the vault default too until
-  they're told otherwise (moon and daylight stay Expressive). Cards showing
+  It cascades vault → board → card: **Settings → Hearth → Dashboard → Card
+  surface → Card design** sets it for the whole vault, *Dashboard settings →
+  Style → Card design* for one board, and each card's *Style* tab can follow
+  that or choose *Classic* or *Expressive* for itself. The weather and market
+  cards follow the default too until they're told otherwise (moon and daylight
+  stay Expressive). A shared or published board carries its card design. Cards showing
   your own content — notes, embeds, web pages, Dataview and Datacore, the pets —
   are left as they are, and no card's frame changes.
 

@@ -2199,6 +2199,10 @@ export interface Dashboard extends BannerOverrides {
 	 * {@link HomeSettings.backgroundSkyDesign}). Beside {@link background} for
 	 * the same reason as {@link backgroundSkyAnimate}. */
 	backgroundSkyDesign?: "classic" | "expressive";
+	/** Override the design this board's cards are drawn in when a card doesn't
+	 * choose one itself (undefined = follow {@link HomeSettings.cardDesign}).
+	 * See {@link effectiveCardDesign}. */
+	cardDesign?: CardDesign;
 	/**
 	 * Identity of the *shared work* this board is a copy of, if it is one.
 	 *
@@ -3025,11 +3029,12 @@ export function effectiveSkyAnimate(s: HomeSettings): boolean {
 /** The two ways a card can be drawn. */
 export type CardDesign = "classic" | "expressive";
 
-/** The design a card is drawn in: its own choice, else the vault's, else
- * Classic. For the weather and market cards `own` is their config's `design`;
- * for every other kind it is the card's. */
-export function effectiveCardDesign(s: Pick<HomeSettings, "cardDesign">, own: CardDesign | undefined): CardDesign {
-	return own ?? s.cardDesign ?? "classic";
+/** The design a card is drawn in: its own choice, else the active board's,
+ * else the vault's, else Classic. For the weather and market cards `own` is
+ * their config's `design`; for every other kind it is the card's. A synced
+ * card follows whichever board it is showing on. */
+export function effectiveCardDesign(s: HomeSettings, own: CardDesign | undefined): CardDesign {
+	return own ?? activeDashboard(s)?.cardDesign ?? s.cardDesign ?? "classic";
 }
 
 /** How the weather sky is drawn on the active board: its own choice, else the

@@ -88,7 +88,9 @@ global default currently is.
 ### Style tab
 
 Per-board overrides of the card surface: *Card opacity*, *Card blur*, *Card
-corner radius*, *Card border*.
+corner radius*, *Card border*, and *Card design* — Classic or Material 3
+Expressive for the cards on this board that don't choose for themselves (see
+[chapter 11](11-appearance.md)).
 
 ### Background tab
 
