@@ -32,9 +32,12 @@ Per dashboard: *Dashboard settings → Background*.
 *Opacity* controls how much the background shows through; lower is more subtle.
 *Blur* is the background blur in pixels.
 
-The defaults are deliberately ambient: opacity 0.35 and blur 2. The background
-is visible but does not compete with the content, and the image is still
-recognisable rather than a wash of colour.
+The defaults suit Hearth's own wallpaper: opacity 0.8 and no blur. It is a flat,
+already muted drawing, so it needs little dimming and has no detail to soften;
+the card surfaces keep the content readable. Switching to a vault image or an
+image URL dims a photo to 0.35 and blurs it by 2, so text reads over it, and
+switching back lifts it again. Either way the sliders are right there to change
+it.
 
 ### Full background or banner
 

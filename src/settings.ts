@@ -8,7 +8,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, skyDensity, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -1103,18 +1103,13 @@ export class HomeSettingTab extends PluginSettingTab {
 					d.addOption(k, t().settings.background.labels[k]);
 				});
 				d.setValue(s.backgroundKind).onChange((v) => {
+					const tuned = retuneBackground(s.backgroundKind, v as BackgroundKind, {
+						opacity: s.backgroundOpacity,
+						blur: s.backgroundBlur,
+					});
 					s.backgroundKind = v as BackgroundKind;
-					// Opacity means different things to the two kinds of backdrop.
-					// For a photo it is "dim this so the text on top reads", and
-					// the default (0.35) is set for that. The weather sky is a
-					// gradient, not a photo — dimmed that far it is a grey slab
-					// with the weather invisible in it, and the contrast the
-					// reader needs comes from the card surfaces instead. So lift
-					// it once on the switch, only from a photo-ish value, with
-					// the slider right below to put it back.
-					if (v === "weather" && s.backgroundOpacity <= 0.5) {
-						s.backgroundOpacity = 1;
-					}
+					s.backgroundOpacity = tuned.opacity;
+					s.backgroundBlur = tuned.blur;
 					void this.save();
 					this.rerender();
 				});
@@ -1216,9 +1211,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				});
 				d.setValue(s.backgroundLayout).onChange((v) => {
 					s.backgroundLayout = v as BackgroundLayout;
-					// A wallpaper is dimmed and softened so the board on top of it
-					// stays readable — that is what the 0.35/2 defaults are for. A
-					// banner has nothing on top of it: it is the picture itself, and
+					// A photo wallpaper is dimmed and softened so the board on top
+					// of it stays readable. A banner has nothing on top of it: it is the picture itself, and
 					// at those values it arrives as a grey smear. So lift it once on
 					// the way in, only from wallpaper-ish values, with both sliders
 					// right above to put it back.

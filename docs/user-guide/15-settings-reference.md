@@ -78,8 +78,8 @@ The full effects of each tier are in [chapter 12](12-performance.md).
 | --- | --- | --- |
 | *Background type* | Hearth default | **Hearth default**, **None**, **Solid color**, **Vault image**, **Image URL**, **Live weather sky** |
 | *Background value* | — | A CSS colour, a vault image path, or a direct image URL, depending on the type |
-| *Opacity* | 0.35 | How much the background shows through |
-| *Blur* | 2 px | Background blur |
+| *Opacity* | 0.8 | How much the background shows through |
+| *Blur* | 0 px | Background blur |
 | *Background layout* | Full background | **Full background** or **Banner** |
 | *Banner height* | 220 px | How tall the banner strip is, in pixels |
 | *Fade the lower edge* | On | Let the banner dissolve into the page |

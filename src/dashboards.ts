@@ -4,6 +4,7 @@ import {
 	type BackgroundConfig,
 	type BackgroundKind,
 	backgroundIsRemote,
+	retuneBackground,
 	type BackgroundLayout,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
@@ -1412,15 +1413,18 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					if (v === "default") {
 						dash.background = undefined;
 					} else {
-						const opacity = bg?.opacity ?? DEFAULT_DASH_BG_OPACITY;
-						dash.background = {
-							kind: v === "hdefault" ? "default" : (v as BackgroundKind),
-							value: bg?.value ?? "",
-							// See the same lift in the global background settings:
-							// the photo default (0.35) mutes the sky to a slab.
-							opacity: v === "weather" && opacity <= 0.5 ? 1 : opacity,
-							blur: bg?.blur ?? DEFAULT_DASH_BG_BLUR,
-						};
+						const kind = v === "hdefault" ? "default" : (v as BackgroundKind);
+						// Retuned from the backdrop the board shows now — its own,
+						// or the vault's — as the global setting does.
+						const tuned = retuneBackground(
+							bg?.kind ?? this.view.plugin.settings.backgroundKind,
+							kind,
+							{
+								opacity: bg?.opacity ?? DEFAULT_DASH_BG_OPACITY,
+								blur: bg?.blur ?? DEFAULT_DASH_BG_BLUR,
+							},
+						);
+						dash.background = { kind, value: bg?.value ?? "", ...tuned };
 					}
 					this.commit();
 					this.render();

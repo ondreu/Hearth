@@ -119,11 +119,11 @@ export const SETUP_BACKGROUNDS: readonly SetupBackground[] = [
  * The backdrop's opacity and blur per choice.
  *
  * Not one set of numbers for all of them: a photograph needs to be pushed well
- * back to keep text legible, while a flat colour is *already* legible and
- * fading it only makes it muddy.
+ * back to keep text legible, while a flat colour — or Hearth's own flat, muted
+ * wallpaper — is *already* legible and fading it only makes it muddy.
  */
 const BACKGROUND_TUNING: Record<SetupBackground, { opacity: number; blur: number }> = {
-	default: { opacity: 0.35, blur: 2 },
+	default: { opacity: 0.8, blur: 0 },
 	weather: { opacity: 0.6, blur: 0 },
 	color: { opacity: 1, blur: 0 },
 	none: { opacity: 0.35, blur: 2 },

@@ -333,6 +333,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   **Settings → Hearth → Appearance → Background**, and a board can override
   it. Nothing is fetched, so it now shows with external calls off too.
 
+  Its opacity and blur are set for a drawing rather than a photo: a new vault
+  starts at opacity 0.8 with no blur (it was 0.35 and 2). Switching to
+  *Hearth default* lifts a photo's dimming, and switching to a vault image or
+  an image URL dims and softens the photo back to 0.35 and 2. Values you have
+  already saved are kept.
+
 - **A board set to *Hearth default* keeps it.** Choosing *Hearth default* in
   a board's own background settings painted nothing and was forgotten on the
   next restart; it now shows Hearth's wallpaper and is saved with the board.

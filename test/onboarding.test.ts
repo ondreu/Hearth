@@ -546,7 +546,7 @@ describe("applySetup", () => {
 
 		expect(built(settings, outcome).background).toMatchObject({
 			kind: "default",
-			opacity: 0.35,
+			opacity: 0.8,
 		});
 	});
 
