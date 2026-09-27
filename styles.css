@@ -14145,42 +14145,6 @@ body.hearth-dv-resizing {
 	color: var(--text-normal);
 }
 
-/* ---- Welcome bullets ---- */
-.hearth-setup-bullets {
-	display: flex;
-	flex-direction: column;
-	gap: 14px;
-}
-
-.hearth-setup-bullet {
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
-}
-
-.hearth-setup-bullet-icon {
-	display: inline-flex;
-	flex: none;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	border-radius: 8px;
-	background: var(--background-modifier-hover);
-	color: var(--text-accent);
-}
-
-.hearth-setup-bullet-title {
-	font-weight: 600;
-}
-
-.hearth-setup-bullet-desc {
-	margin-top: 2px;
-	color: var(--text-muted);
-	font-size: 0.88em;
-	line-height: 1.45;
-}
-
 /* ---- Option tiles ---- */
 .hearth-setup-options {
 	display: grid;
@@ -14293,42 +14257,326 @@ body.hearth-dv-resizing {
 	text-align: right;
 }
 
-/* ---- The board preview ---- */
-.hearth-setup-preview {
-	display: grid;
-	gap: 4px;
-	height: 190px;
-	padding: 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 10px;
-	background: var(--background-secondary);
+/* ---- Follow-up questions ----
+   A purpose that needs one more answer (a feed, a place) asks it right
+   under the tiles, indented off the accent so it reads as part of the
+   choice above it rather than a new section. */
+.hearth-setup-followup,
+.hearth-setup-followup-box {
+	margin-top: 12px;
+	padding: 4px 0 4px 14px;
+	border-left: 2px solid var(--interactive-accent);
 }
 
-.hearth-setup-preview-card {
+.hearth-setup-body .hearth-setup-followup.setting-item {
+	padding-left: 14px;
+	border-top: none;
+}
+
+.hearth-setup-followup-box .hearth-setup-grouplabel {
+	margin-top: 4px;
+}
+
+.hearth-setup-followup-hint {
+	margin-top: 4px;
+	color: var(--text-accent);
+	font-size: 0.85em;
+}
+
+.hearth-setup-followup-hint:empty {
+	display: none;
+}
+
+.hearth-setup-lead.is-small {
+	margin-bottom: 4px;
+	font-size: 0.85em;
+}
+
+.hearth-setup-note.is-quiet {
+	margin-top: 8px;
+	padding: 0;
+	background: none;
+	color: var(--text-faint);
+}
+
+/* ---- Picture tiles ----
+   The look step's choices, each painted in miniature: the backgrounds with
+   a card floating on them, the card surfaces over the chosen background. */
+.hearth-setup-swatches {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+	gap: 10px;
+}
+
+.hearth-setup-swatch {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 4px;
+	border: 2px solid transparent;
+	border-radius: 12px;
+	cursor: pointer;
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.hearth-setup-swatch:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-setup-swatch.is-selected {
+	border-color: var(--interactive-accent);
+}
+
+.hearth-setup-swatch-scene {
+	aspect-ratio: 16 / 10;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.hearth-setup-swatch-name {
+	padding: 0 2px 2px;
+	font-size: 0.82em;
+	font-weight: 600;
+	text-align: center;
+}
+
+.hearth-setup-swatch.is-selected .hearth-setup-swatch-name {
+	color: var(--text-accent);
+}
+
+/* A painted miniature: the backdrop as its own layer, content over it. */
+.hearth-setup-scene {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	background: var(--background-primary);
+}
+
+.hearth-setup-scene-bg {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.hearth-setup-scene-bg > .hearth-weather-sky {
+	position: absolute;
+	inset: 0;
+}
+
+/* Stand-in cards: a surface preset, scaled down. The preset arrives as
+   custom properties so one rule draws Frosted, Solid and Minimal alike. */
+.hearth-setup-sample-card,
+.hearth-setup-board-card {
+	min-width: 0;
+	overflow: hidden;
+	border: var(--sample-border, 1px) solid var(--background-modifier-border);
+	border-radius: var(--sample-radius, 6px);
+	background: color-mix(in srgb, var(--background-primary) var(--sample-opacity, 100%), transparent);
+	backdrop-filter: blur(var(--sample-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--sample-blur, 0px));
+}
+
+.hearth-setup-sample {
+	position: absolute;
+	inset: 24% 14%;
+	z-index: 1;
+	display: flex;
+	gap: 6px;
+}
+
+.hearth-setup-sample-card {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding: 7px;
+}
+
+.hearth-setup-sample-line,
+.hearth-setup-board-card-lines > div {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--text-faint);
+	opacity: 0.45;
+}
+
+.hearth-setup-sample-line.is-strong {
+	width: 60%;
+	background: var(--text-muted);
+	opacity: 0.8;
+}
+
+/* ---- The board preview ----
+   The finish step's centrepiece: the board about to be built, drawn to
+   scale — background, header, every card in place and in its surface. */
+.hearth-setup-board {
+	margin-bottom: 14px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	overflow: hidden;
+}
+
+/* A fixed height rather than an aspect ratio: the page inside is a flex
+   column the card grid shares out, and it needs a definite box to divide. */
+.hearth-setup-board-scene {
+	display: flex;
+	flex-direction: column;
+	height: 340px;
+}
+
+/* A banner board paints its picture as a strip across the top only. */
+.hearth-setup-board-scene.is-banner > .hearth-setup-scene-bg {
+	bottom: auto;
+	height: 24%;
+}
+
+.hearth-setup-board-page {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 0;
+	padding: 14px 20px;
+}
+
+.hearth-setup-board-header {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+	flex: none;
+}
+
+.hearth-setup-board-title {
+	max-width: 100%;
+	overflow: hidden;
+	font-size: 1em;
+	font-weight: 700;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.hearth-setup-board-search {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	min-width: 0;
-	padding: 2px 4px;
+	width: 42%;
+	height: 16px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--background-primary) 85%, transparent);
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 5px;
-	background: var(--background-primary);
+	color: var(--text-faint);
+}
+
+.hearth-setup-board-search-icon .svg-icon {
+	width: 9px;
+	height: 9px;
+}
+
+.hearth-setup-board-grid {
+	flex: 1 1 auto;
+	display: grid;
+	gap: 5px;
+	min-height: 0;
+}
+
+.hearth-setup-board-page.is-compact .hearth-setup-board-grid {
+	gap: 3px;
+}
+
+.hearth-setup-board-card {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 4px 6px;
+}
+
+.hearth-setup-board-card-head {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	color: var(--text-muted);
+}
+
+.hearth-setup-board-card-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--text-accent);
+}
+
+.hearth-setup-board-card-icon .svg-icon {
+	width: 10px;
+	height: 10px;
+}
+
+.hearth-setup-board-card-name {
+	overflow: hidden;
+	font-size: 0.62em;
+	font-weight: 600;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.hearth-setup-board-card-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-height: 0;
 	overflow: hidden;
 }
 
-.hearth-setup-preview-label {
-	font-size: 0.68em;
+.hearth-setup-board-card-lines > div:nth-child(odd) {
+	width: 70%;
+}
+
+/* ---- Folded groups ---- */
+.hearth-setup-fold {
+	margin-top: 6px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.hearth-setup-fold-summary {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 0;
+	list-style: none;
+	cursor: pointer;
 	color: var(--text-muted);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	font-size: 0.9em;
+	font-weight: 600;
+}
+
+.hearth-setup-fold-summary::-webkit-details-marker {
+	display: none;
+}
+
+.hearth-setup-fold-chevron {
+	display: inline-flex;
+	transition: transform 120ms ease;
+}
+
+.hearth-setup-fold-chevron .svg-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-setup-fold[open] .hearth-setup-fold-chevron {
+	transform: rotate(90deg);
+}
+
+.hearth-setup-fold-body {
+	padding-bottom: 6px;
 }
 
 /* ---- The plan list ---- */
 .hearth-setup-plan {
 	display: flex;
 	flex-direction: column;
-	margin-top: 12px;
 }
 
 .hearth-setup-plan-row {
@@ -14394,7 +14642,7 @@ body.hearth-dv-resizing {
    surface so it reads as the step's opening statement rather than an aside
    that can be skimmed past. */
 .hearth-setup-callout {
-	margin: 0 0 18px;
+	margin: 16px 0 4px;
 	padding: 14px 16px;
 	border-left: 3px solid var(--interactive-accent);
 	border-radius: 4px 10px 10px 4px;
@@ -14451,14 +14699,17 @@ body.hearth-dv-resizing {
 		grid-template-columns: 1fr;
 	}
 
-	/* The rail's labels are the first thing to go on a phone: the icons plus
-	   the step heading below already say where you are. */
-	.hearth-setup-rail-label {
-		display: none;
+
+	.hearth-setup-swatches {
+		grid-template-columns: repeat(2, 1fr);
 	}
 
-	.hearth-setup-preview {
-		height: 140px;
+	.hearth-setup-board-scene {
+		height: 240px;
+	}
+
+	.hearth-setup-board-page {
+		padding: 8px 10px;
 	}
 }
 
@@ -19875,6 +20126,20 @@ body.hearth-snapshot-capturing .hearth-view {
 
 .hearth-x-modal .hearth-setup-option.is-selected .hearth-setup-option-icon {
 	color: var(--x-primary);
+}
+
+.hearth-x-modal .hearth-setup-swatch {
+	border-radius: 20px;
+}
+
+.hearth-x-modal .hearth-setup-swatch.is-selected {
+	border-color: var(--x-primary);
+	background: var(--x-container);
+}
+
+.hearth-x-modal .hearth-setup-swatch-scene {
+	border: none;
+	border-radius: 14px;
 }
 
 /* ---- The card picker and the gallery -----------------------------------

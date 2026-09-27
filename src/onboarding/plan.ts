@@ -42,9 +42,12 @@ import {
 	type Dashboard,
 	type HomeSettings,
 	type TemplaterItem,
+	type WeatherPlace,
 	newDashboardId,
 } from "../types";
+import { parseSkyValue } from "../sky";
 import { templateDisplayName } from "../templater";
+import { t } from "../i18n";
 import type { SetupDetection, SetupIntegrationId } from "./detect";
 import { taskNotesImport } from "./detect";
 
@@ -138,6 +141,11 @@ const BACKGROUND_TUNING: Record<SetupBackground, { opacity: number; blur: number
 	none: { opacity: 0.35, blur: 2 },
 };
 
+/** The backdrop's opacity and blur for a background choice. */
+export function backgroundTuning(background: SetupBackground): { opacity: number; blur: number } {
+	return BACKGROUND_TUNING[background];
+}
+
 /** Where the built board goes. */
 export type SetupTarget = "replace" | "new";
 
@@ -172,6 +180,15 @@ export interface SetupAnswers {
 
 	// ---- Step: what for ----
 	purposes: SetupPurpose[];
+	/** Feed for the Reading card. The card is only planned once there is one:
+	 * an RSS card with no feed is an empty box on a brand-new board. */
+	feedUrl: string;
+	/** Where the Weather card forecasts for. Same rule as the feed — no place,
+	 * no card. A live-sky background's place stands in when this is unset. */
+	weatherPlace?: WeatherPlace;
+	/** Whether the board gets a clock. A small card in the side column, not the
+	 * full-width strip every board used to open with. */
+	clock: boolean;
 
 	// ---- Step: integrations ----
 	integrations: SetupIntegrationId[];
@@ -216,6 +233,8 @@ export function defaultAnswers(
 		backgroundLayout: "full",
 
 		purposes,
+		feedUrl: "",
+		clock: true,
 
 		integrations: detection.integrations.filter((i) => i.recommended).map((i) => i.id),
 
@@ -258,12 +277,43 @@ type CardDraft = Omit<DashboardCard, "id">;
  * board built here lines up with one built by hand. */
 const PLAN_COLUMNS = 12;
 
+/** The two columns a planned board is laid out in: the working cards on the
+ * left, small at-a-glance cards (the clock, a mini calendar, the weather) down
+ * the right. */
+const MAIN_COLUMNS = 8;
+const SIDE_COLUMNS = PLAN_COLUMNS - MAIN_COLUMNS;
+
+/** Which column a planned card belongs in. */
+type PlanSlot = "main" | "side";
+
+/** Main-column cards that read as well in the narrow side column, and so may
+ * move there to even the columns out. The day's note and the task list stay
+ * where the eye lands first. */
+const MOVABLE = new Set([
+	"recent",
+	"favorites",
+	"bookmarks",
+	"rss",
+	"dataview",
+	"datacore",
+	"operon",
+	"git",
+]);
+
 /**
  * Decide which cards the board gets, configured and laid out.
  *
- * Order matters twice over: it is the order the review step lists them in, and
- * — because the packer is a left-to-right shelf fill — it is what puts the
- * clock across the top and the big working cards on the second row.
+ * Two rules shape every board built here:
+ *
+ *  - **No card arrives empty.** A card that opens on "Add a feed in card
+ *    settings" reads as broken, and on a first board it reads as Hearth being
+ *    broken. So a card that needs something only the user can give (a feed, a
+ *    place) is planned only once it has it, and a launchpad is seeded with
+ *    actions that work on any vault.
+ *  - **The layout has no holes.** Working cards fill a main column, glanceable
+ *    ones a side column, and each card then stretches into any space beside or
+ *    just below it — so the result reads as a designed home screen rather than
+ *    a shelf of widgets.
  *
  * `newId` is injectable so tests get stable ids; it defaults to the same
  * scheme the card picker uses.
@@ -273,189 +323,85 @@ export function planCards(
 	detection: SetupDetection,
 	newId: (index: number) => string = defaultCardId,
 ): PlannedCard[] {
-	const drafts: { id: string; reason: string; card: CardDraft }[] = [];
-	const add = (id: string, reason: string, card: CardDraft): void => {
+	const drafts: { id: string; reason: string; slot: PlanSlot; card: CardDraft }[] = [];
+	const add = (
+		id: string,
+		reason: string,
+		slot: PlanSlot,
+		card: Omit<CardDraft, "x" | "y">,
+	): void => {
 		if (drafts.some((p) => p.id === id)) return;
-		drafts.push({ id, reason, card });
+		drafts.push({ id, reason, slot, card: { ...card, x: -1, y: -1 } });
 	};
 
-	// The clock spans the top on every board the wizard builds. It is the one
-	// card that is unambiguously good on a home screen regardless of what the
-	// vault is for, and a full-width strip is what makes the board read as a
-	// home screen rather than a grid of widgets.
-	add("clock", "always", { kind: "clock", title: "", x: -1, y: -1, w: 12, h: 2 });
+	if (answers.clock) {
+		add("clock", "clock", "side", { kind: "clock", title: "", w: 4, h: 2 });
+	}
 
 	if (wants(answers, "daily") || accepted(answers, "dailyNotes")) {
-		add("daily", wants(answers, "daily") ? "daily" : "dailyNotes", {
+		add("daily", wants(answers, "daily") ? "daily" : "dailyNotes", "main", {
 			kind: "daily",
 			title: "Today",
-			x: -1,
-			y: -1,
-			w: 6,
+			w: 4,
 			h: 5,
 		});
 	}
 
 	if (wants(answers, "tasks") || accepted(answers, "tasknotes") || accepted(answers, "kanban")) {
-		add("tasks", taskReason(answers), {
+		add("tasks", taskReason(answers), "main", {
 			kind: "tasks",
 			title: "Tasks",
-			x: -1,
-			y: -1,
-			w: 6,
+			w: 4,
 			h: 5,
 			tasks: planTasksConfig(answers, detection),
 		});
 	}
 
 	if (wants(answers, "planning")) {
-		add("schedule", "planning", {
+		add("schedule", "planning", "main", {
 			kind: "schedule",
 			title: "Calendar",
-			x: -1,
-			y: -1,
 			w: 8,
 			h: 6,
-			schedule: accepted(answers, "tasknotes")
-				? { taskNotes: { enabled: true } }
-				: {},
+			schedule: accepted(answers, "tasknotes") ? { taskNotes: { enabled: true } } : {},
 		});
 	} else if (wants(answers, "daily")) {
 		// No full calendar, but a board with a daily note on it still wants a
 		// month at a glance to move between days.
-		add("calendar", "daily", {
-			kind: "calendar",
-			title: "Calendar",
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 4,
-		});
+		add("calendar", "daily", "side", { kind: "calendar", title: "Calendar", w: 4, h: 4 });
 	}
 
-	if (wants(answers, "browsing")) {
-		add("recent", "browsing", {
-			kind: "recent",
-			title: "Recent",
-			count: 8,
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 4,
-		});
-		add("favorites", "browsing", {
-			kind: "favorites",
-			title: "Favorites",
-			x: -1,
-			y: -1,
+	const place = weatherPlace(answers);
+	if (wants(answers, "ambience") && place) {
+		add("weather", "ambience", "side", {
+			kind: "weather",
+			title: "Weather",
+			weather: { place },
 			w: 4,
 			h: 3,
-		});
-	}
-
-	if (accepted(answers, "bookmarks")) {
-		add("bookmarks", "bookmarks", {
-			kind: "bookmarks",
-			title: "Bookmarks",
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 3,
-		});
-	}
-
-	if (wants(answers, "capture")) {
-		// Both launchpads are new cards, so their buttons scale with the card
-		// (see `tileSizing` in types.ts).
-		add("links", "capture", {
-			kind: "links",
-			title: "Links",
-			links: [],
-			tileSizing: "scale",
-			x: -1,
-			y: -1,
-			w: 6,
-			h: 2,
-		});
-		add("commands", "capture", {
-			kind: "commands",
-			title: "Commands",
-			commands: [],
-			tileSizing: "scale",
-			x: -1,
-			y: -1,
-			w: 6,
-			h: 2,
 		});
 	}
 
 	if (wants(answers, "insights")) {
-		add("stats", "insights", { kind: "stats", title: "Vault", x: -1, y: -1, w: 4, h: 2 });
-		add("heatmap", "insights", {
-			kind: "heatmap",
-			title: "Activity",
-			heatmap: {},
-			x: -1,
-			y: -1,
+		add("stats", "insights", "side", { kind: "stats", title: "Vault", w: 4, h: 2 });
+	}
+
+	if (wants(answers, "capture")) {
+		// One launchpad of actions every vault has, rather than two empty ones
+		// waiting to be filled: it works on the first click and shows what the
+		// card is for, and adding your own is then an edit, not a chore.
+		add("commands", "capture", "main", {
+			kind: "commands",
+			title: "Quick actions",
+			commands: quickActions(detection),
+			tileSizing: "scale",
 			w: 8,
-			h: 3,
-		});
-	}
-
-	if (wants(answers, "reading")) {
-		add("rss", "reading", {
-			kind: "rss",
-			title: "Reading",
-			rss: { sources: [] },
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 5,
-		});
-	}
-
-	if (wants(answers, "ambience")) {
-		add("weather", "ambience", {
-			kind: "weather",
-			title: "Weather",
-			weather: {},
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 3,
-		});
-		add("pet", "ambience", { kind: "pet", title: "Pet", pet: {}, x: -1, y: -1, w: 3, h: 4 });
-	}
-
-	if (accepted(answers, "dataview")) {
-		add("dataview", "dataview", {
-			kind: "dataview",
-			title: "Dataview",
-			// Seeded with a query rather than left blank: an empty Dataview card
-			// is indistinguishable from a broken one, and "the notes I touched
-			// most recently" is both obviously useful and obviously editable.
-			dataview: { query: "LIST\nSORT file.mtime DESC\nLIMIT 10", language: "dql" },
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 4,
-		});
-	}
-
-	if (accepted(answers, "datacore")) {
-		add("datacore", "datacore", {
-			kind: "datacore",
-			title: "Datacore",
-			datacore: {},
-			x: -1,
-			y: -1,
-			w: 4,
-			h: 4,
+			h: 2,
 		});
 	}
 
 	if (accepted(answers, "templater") && detection.templaterTemplates.length > 0) {
-		add("templater", "templater", {
+		add("templater", "templater", "main", {
 			kind: "templater",
 			title: "New note",
 			// Seeded with the vault's own templates rather than left blank: an
@@ -463,10 +409,61 @@ export function planCards(
 			// destination is the one thing the user still has to fill in — which
 			// they can only do once there is a tile to fill it in on.
 			templater: { items: detection.templaterTemplates.map(templaterTile) },
-			x: -1,
-			y: -1,
-			w: 6,
+			w: 8,
 			h: 2,
+		});
+	}
+
+	if (wants(answers, "browsing")) {
+		add("recent", "browsing", "main", { kind: "recent", title: "Recent", count: 8, w: 4, h: 4 });
+		add("favorites", "browsing", "main", { kind: "favorites", title: "Favorites", w: 4, h: 4 });
+	}
+
+	if (accepted(answers, "bookmarks")) {
+		add("bookmarks", "bookmarks", "main", { kind: "bookmarks", title: "Bookmarks", w: 4, h: 4 });
+	}
+
+	if (wants(answers, "insights")) {
+		add("heatmap", "insights", "main", {
+			kind: "heatmap",
+			title: "Activity",
+			heatmap: {},
+			w: 8,
+			h: 3,
+		});
+	}
+
+	const feed = feedUrl(answers);
+	if (wants(answers, "reading") && feed) {
+		add("rss", "reading", "main", {
+			kind: "rss",
+			title: "Reading",
+			rss: { sources: [{ id: "feed-1", name: "", url: feed }] },
+			w: 4,
+			h: 5,
+		});
+	}
+
+	if (accepted(answers, "dataview")) {
+		add("dataview", "dataview", "main", {
+			kind: "dataview",
+			title: "Dataview",
+			// Seeded with a query rather than left blank: an empty Dataview card
+			// is indistinguishable from a broken one, and "the notes I touched
+			// most recently" is both obviously useful and obviously editable.
+			dataview: { query: "LIST\nSORT file.mtime DESC\nLIMIT 10", language: "dql" },
+			w: 4,
+			h: 4,
+		});
+	}
+
+	if (accepted(answers, "datacore")) {
+		add("datacore", "datacore", "main", {
+			kind: "datacore",
+			title: "Datacore",
+			datacore: {},
+			w: 4,
+			h: 4,
 		});
 	}
 
@@ -476,38 +473,195 @@ export function planCards(
 		// for the read capabilities Hearth requests by default. A board seeded
 		// with someone else's idea of which pipeline matters is a worse first
 		// impression than a list of what is due.
-		add("operon", "operon", {
+		add("operon", "operon", "main", {
 			kind: "operon",
 			title: "Operon",
 			operon: { view: "list" },
-			x: -1,
-			y: -1,
 			w: 4,
 			h: 4,
 		});
 	}
 
 	if (accepted(answers, "git")) {
-		add("git", "git", { kind: "git", title: "Git", git: {}, x: -1, y: -1, w: 4, h: 4 });
+		add("git", "git", "main", { kind: "git", title: "Git", git: {}, w: 4, h: 4 });
 	}
 
 	if (accepted(answers, "bases") && detection.basePath) {
-		add("base", "bases", {
+		add("base", "bases", "main", {
 			kind: "embed",
 			title: baseTitle(detection.basePath),
 			target: detection.basePath,
-			x: -1,
-			y: -1,
-			w: 6,
+			w: 8,
 			h: 5,
 		});
 	}
 
-	// Pack once, over the whole plan, so the geometry the review step previews
-	// is exactly the geometry the board is saved with.
+	if (wants(answers, "ambience")) {
+		add("pet", "ambience", "side", { kind: "pet", title: "Pet", pet: {}, w: 4, h: 3 });
+	}
+
+	// Lay out once, over the whole plan, so the geometry the review step
+	// previews is exactly the geometry the board is saved with.
 	const cards: DashboardCard[] = drafts.map((draft, i) => ({ ...draft.card, id: newId(i) }));
-	ensureLayout(cards, PLAN_COLUMNS);
+	layoutPlan(
+		cards,
+		drafts.map((d) => d.slot),
+		drafts.map((d) => MOVABLE.has(d.id)),
+	);
 	return drafts.map((draft, i) => ({ id: draft.id, reason: draft.reason, card: cards[i] }));
+}
+
+/** The place the Weather card forecasts for: the one picked for it, else the
+ * live sky's, so a user who has just told the background where they are isn't
+ * asked again. */
+export function weatherPlace(answers: SetupAnswers): WeatherPlace | undefined {
+	if (answers.weatherPlace) return answers.weatherPlace;
+	if (answers.background !== "weather") return undefined;
+	const sky = parseSkyValue(answers.skyValue);
+	return sky?.mode === "live" ? sky.place : undefined;
+}
+
+/** The feed URL, when it is one an RSS card can fetch. */
+export function feedUrl(answers: SetupAnswers): string {
+	const url = answers.feedUrl.trim();
+	return /^https?:\/\/\S+$/i.test(url) ? url : "";
+}
+
+/** The Quick actions card's buttons: core commands present in every vault,
+ * plus today's note when Daily notes is on. */
+function quickActions(detection: SetupDetection): NonNullable<DashboardCard["commands"]> {
+	const names = t().setup.plan.actions;
+	const actions: NonNullable<DashboardCard["commands"]> = [
+		{ id: "file-explorer:new-file", name: names.newNote, icon: "file-plus-2" },
+	];
+	if (detection.integrations.some((i) => i.id === "dailyNotes")) {
+		actions.push({ id: "daily-notes", name: names.today, icon: "calendar-check" });
+	}
+	actions.push(
+		{ id: "switcher:open", name: names.switcher, icon: "file-search" },
+		{ id: "global-search:open", name: names.search, icon: "search" },
+		{ id: "command-palette:open", name: names.palette, icon: "terminal-square" },
+	);
+	return actions;
+}
+
+/**
+ * Place the planned cards: the working cards in a main column, the glanceable
+ * ones down a side column beside it.
+ *
+ * A side column needs at least two cards to be worth its width — one lone
+ * clock beside a tall column of work is a strip of empty board — so with fewer
+ * everything shares one full-width grid instead, the working cards widened to
+ * match. With many cards the main column runs long, so narrow cards that can
+ * live anywhere move across while that makes the board shorter.
+ */
+function layoutPlan(cards: DashboardCard[], slots: PlanSlot[], movable: boolean[]): void {
+	const sizes = cards.map((card) => ({ w: card.w, h: card.h }));
+
+	const place = (side: Set<number>): number => {
+		cards.forEach((card, i) => {
+			card.x = -1;
+			card.y = -1;
+			card.w = sizes[i].w;
+			card.h = sizes[i].h;
+		});
+		const main = cards.filter((_, i) => !side.has(i));
+		const aside = cards.filter((_, i) => side.has(i));
+		if (main.length > 0 && aside.length >= 2) {
+			packColumn(main, MAIN_COLUMNS, 0);
+			packColumn(aside, SIDE_COLUMNS, MAIN_COLUMNS);
+		} else {
+			// Side cards first, so the clock still leads the board.
+			for (const card of main) card.w = Math.min(PLAN_COLUMNS, Math.round(card.w * 1.5));
+			packColumn([...aside, ...main], PLAN_COLUMNS, 0);
+		}
+		settleBottoms(cards);
+		return boardRows(cards);
+	};
+
+	let side = new Set(slots.flatMap((slot, i) => (slot === "side" ? [i] : [])));
+	let rows = place(side);
+	if (side.size >= 2) {
+		// Latest first: the cards a purpose adds last are the least central.
+		for (let i = cards.length - 1; i >= 0; i--) {
+			if (side.has(i) || !movable[i] || sizes[i].w > SIDE_COLUMNS) continue;
+			const trial = new Set(side).add(i);
+			const trialRows = place(trial);
+			if (trialRows < rows) {
+				side = trial;
+				rows = trialRows;
+			}
+		}
+	}
+	place(side);
+}
+
+/** Pack `cards` into a column `columns` wide starting at grid column `offset`,
+ * then let each card widen into free space on its right and grow down into a
+ * hole beside a taller neighbour. */
+function packColumn(cards: DashboardCard[], columns: number, offset: number): void {
+	ensureLayout(cards, columns);
+	const taken = occupancy(cards, columns);
+	for (const card of cards) {
+		while (card.x + card.w < columns && free(taken, card.x + card.w, card.y, 1, card.h)) {
+			mark(taken, card.x + card.w, card.y, 1, card.h);
+			card.w += 1;
+		}
+	}
+	for (const card of [...cards].sort((p, q) => p.y - q.y)) {
+		for (;;) {
+			const row = card.y + card.h;
+			// Only into a row something else in this column already uses: that
+			// is a hole, where an empty row is simply the end of the column.
+			const inUse = taken[row]?.some(Boolean) ?? false;
+			if (!inUse || !free(taken, card.x, row, card.w, 1)) break;
+			mark(taken, card.x, row, card.w, 1);
+			card.h += 1;
+		}
+	}
+	for (const card of cards) card.x += offset;
+}
+
+/** The most rows a card is stretched down to meet the board's bottom edge —
+ * enough to square off a ragged edge, not so many that a clock becomes a
+ * tower. */
+const SETTLE_ROWS = 3;
+
+/** Stretch the lowest card of each column down to the board's bottom edge when
+ * the gap is small, so the columns end level. */
+function settleBottoms(cards: DashboardCard[]): void {
+	const bottom = boardRows(cards);
+	const taken = occupancy(cards, PLAN_COLUMNS);
+	// Lowest cards first: a card can only grow into rows nothing sits in.
+	const order = [...cards].sort((a, b) => b.y + b.h - (a.y + a.h));
+	for (const card of order) {
+		const gap = bottom - (card.y + card.h);
+		if (gap <= 0 || gap > SETTLE_ROWS) continue;
+		if (!free(taken, card.x, card.y + card.h, card.w, gap)) continue;
+		mark(taken, card.x, card.y + card.h, card.w, gap);
+		card.h += gap;
+	}
+}
+
+/** Which cells of a `columns`-wide grid the cards cover, row by row. */
+function occupancy(cards: DashboardCard[], columns: number): boolean[][] {
+	const taken: boolean[][] = [];
+	for (const card of cards) mark(taken, card.x, card.y, Math.min(card.w, columns - card.x), card.h);
+	return taken;
+}
+
+function free(taken: boolean[][], x: number, y: number, w: number, h: number): boolean {
+	for (let r = y; r < y + h; r++) {
+		for (let c = x; c < x + w; c++) if (taken[r]?.[c]) return false;
+	}
+	return true;
+}
+
+function mark(taken: boolean[][], x: number, y: number, w: number, h: number): void {
+	for (let r = y; r < y + h; r++) {
+		taken[r] ??= [];
+		for (let c = x; c < x + w; c++) taken[r][c] = true;
+	}
 }
 
 /**
@@ -703,7 +857,7 @@ export function applyDesign(
  * choice: a photograph needs pushing well back to keep text legible, while a
  * flat colour is *already* legible and fading it only makes it muddy.
  */
-function plannedBackground(answers: SetupAnswers): BackgroundConfig {
+export function plannedBackground(answers: SetupAnswers): BackgroundConfig {
 	const tuning = BACKGROUND_TUNING[answers.background];
 	switch (answers.background) {
 		case "color":

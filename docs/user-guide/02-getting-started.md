@@ -65,42 +65,9 @@ you and about your vault, then lays out a board from the answers.
 You can run it at any later time from **Settings → Hearth → About → Build a
 dashboard**, or with the command **Set up Hearth**.
 
-### The six steps
+### The three steps
 
-**Step 1 — Welcome.** Explains what the wizard will do and lists any supported
-plugins it has already detected in your vault. If it finds none, that is fine:
-Hearth works entirely on its own.
-
-**Step 2 — Your vault.** Names the board. You set the *Title* shown large across
-the top, whether the title is shown at all, the *Title icon* beside it (an
-emoji, a couple of characters, a Lucide icon id, a vault image path, or an image
-URL — leave it empty for the Hearth crystal), whether the title and/or icon
-should follow your theme's accent colour, and whether the search bar is shown.
-
-**Step 3 — Look.** Chooses the design, a card surface and a background.
-
-The design is *Classic* or *Expressive* (Material 3 Expressive, in tones of your
-accent colour), and the wizard redraws itself in the one you pick. On the first
-setup it becomes the vault's design — the cards, every Hearth dialog and menu,
-the board's buttons and the settings pane — and the design of the drawn
-backgrounds with it; running setup again later puts it on the new board only.
-You can change it any time in *Settings → Hearth → Appearance → Design*.
-
-The three card surfaces are *Frosted* (translucent cards over a soft blur of the
-background), *Solid* (opaque panels, easiest to read over a busy photograph) and
-*Minimal* (no card surface at all, content floating on the background).
-
-The five backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
-morning or a moonlit night with your theme — or, in the Expressive design, soft
-shapes in your accent colour), *A harbour town* (a lighthouse, boats and houses
-on a hill, in Expressive shapes), *Live sky* (a painted sky drawn from real weather over a place you
-pick, or one condition pinned and kept), *A flat colour* (the lightest option
-there is), and *None* (your theme's own background, untouched).
-
-You also choose whether the background sits behind everything or is worn as a
-*banner* strip across the top of the board, and whether spacing is compact.
-
-**Step 4 — What for.** Pick as many purposes as apply. Each one adds cards:
+**Step 1 — What for.** Pick as many purposes as apply. Each one adds cards:
 
 | Purpose | What it adds |
 | --- | --- |
@@ -108,15 +75,19 @@ You also choose whether the background sits behind everything or is worn as a
 | Tasks & to-dos | A task list, read from your checkboxes or from a task plugin |
 | Planning & calendar | A full month/week/day calendar, including any subscribed feeds |
 | Finding my notes | What you touched recently, plus a shelf of favourites |
-| Quick capture & launching | Tiles for the notes and commands you reach for constantly |
+| Quick capture & launching | A card of ready actions: new note, today's note, quick switcher, search, the command palette |
 | Vault statistics | How big the vault is and how active you have been |
-| Reading & feeds | An RSS card for the sites you follow |
-| A bit of life | Weather, and a small pet that lives on your board |
+| Reading & feeds | An RSS card for a site you follow |
+| A bit of life | Weather where you are, and a small pet that lives on your board |
 
-A running count tells you how many cards the board is up to.
+The wizard never builds a card that would open empty and waiting to be set up.
+So *Reading & feeds* asks for a feed address right under the tiles, and *A bit
+of life* for a place; each card joins the board once it has its answer. A place
+already set on a weather card elsewhere in the vault, or picked for a *Live
+sky* background in step 2, is used without asking again.
 
-**Step 5 — Integrations.** Hearth lists the supported plugins it found installed
-and enabled, each with the single thing accepting it will do:
+Under the purposes, Hearth lists the supported plugins it found installed and
+enabled, each with the single thing accepting it will do:
 
 | Plugin found | What Hearth does with it |
 | --- | --- |
@@ -142,10 +113,49 @@ first render. The wizard shows you the values it read before it uses them.
 Nothing is installed, enabled or changed in the other plugin. The wizard only
 adds a card to the board it is building.
 
-**Step 6 — Finish.** Shows a preview: a scale drawing of the board, plus a list
-of every card with the reason it is there ("Daily notes is enabled", "Reading &
-feeds", "Templater templates were found"). You name the dashboard, and choose
-whether it replaces the board you are on or is added as a new one.
+A running count tells you how many cards the board is up to.
+
+**Step 2 — Look.** Chooses the design, a background and a card surface. Every
+background and surface is shown as a small painting of itself, so you choose by
+looking rather than by reading a description.
+
+The design is *Classic* or *Expressive* (Material 3 Expressive, in tones of your
+accent colour), and the wizard redraws itself in the one you pick. On the first
+setup it becomes the vault's design — the cards, every Hearth dialog and menu,
+the board's buttons and the settings pane — and the design of the drawn
+backgrounds with it; running setup again later puts it on the new board only.
+You can change it any time in *Settings → Hearth → Appearance → Design*.
+
+The five backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
+morning or a moonlit night with your theme — or, in the Expressive design, soft
+shapes in your accent colour), *A harbour town* (a lighthouse, boats and houses
+on a hill, in Expressive shapes), *Live sky* (a painted sky drawn from real weather over a place you
+pick, or one condition pinned and kept), *A flat colour* (the lightest option
+there is), and *None* (your theme's own background, untouched).
+
+The three card surfaces are *Frosted* (translucent cards over a soft blur of the
+background), *Solid* (opaque panels, easiest to read over a busy photograph) and
+*Minimal* (no card surface at all, content floating on the background).
+
+You also choose whether the background sits behind everything or is worn as a
+*banner* strip across the top of the board, and whether spacing is compact.
+
+**Step 3 — Your board.** A scale drawing of the board about to be built: the
+chosen background, the header, and every card in its place and in the chosen
+surface. The working cards fill a main column and the small ones — the clock, a
+mini calendar, the weather, statistics — a column down the right, with each card
+stretched to close the gaps around it.
+
+Below the drawing you set the *Title* (the drawing follows as you type), whether
+the board has a *Clock* (a small card at the top of the side column), and
+whether the search bar is shown. *Title and header* folds away the rest: whether
+the title is shown at all, the *Title icon* beside it (an emoji, a couple of
+characters, a Lucide icon id, a vault image path, or an image URL — leave it
+empty for the Hearth crystal), and whether the title and/or icon follow your
+theme's accent colour. You name the dashboard and choose whether it replaces the
+board you are on or is added as a new one; *Why these cards* lists every card
+with the reason it is there ("Daily notes is enabled", "Reading & feeds",
+"Templater templates were found").
 
 Nothing is written to your vault until you press **Build my dashboard**.
 

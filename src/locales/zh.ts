@@ -139,67 +139,27 @@ export const zh: Translations = {
 	setup: {
 		/** Short labels on the progress rail. */
 		stepNames: {
-			welcome: "欢迎",
-			vault: "您的仓库",
-			look: "外观",
 			purpose: "用途",
-			integrations: "集成",
-			finish: "完成",
+			look: "外观",
+			finish: "您的面板",
 		},
 		/** The heading at the top of each step. */
 		stepTitles: {
-			welcome: "欢迎使用 Hearth",
-			vault: "为主屏幕命名",
-			look: "选择外观",
 			purpose: "您用仓库做什么？",
-			integrations: "在您的仓库中找到",
-			finish: "这就是您的面板",
+			look: "选择外观",
+			finish: "这就是您的主屏幕",
 		},
 		/** The line under each heading. */
 		stepDescs: {
-			welcome: "回答几个问题，Hearth 就会为您搭建第一个面板。",
-			vault: "面板顶部的标题与图标。",
-			look:
-				"这只影响正在搭建的面板 — 其他每个面板都保留自己的外观。" +
-				"之后都可以在该面板自己的设置中修改。",
-			purpose: "可以任选多项 — 每一项都会为面板添加卡片。",
-			integrations: "Hearth 发现这些插件已安装。请开启希望它使用的项目。",
-			finish:
-				"目前尚未更改任何内容。以下是将要搭建的面板 — 作为一个面板创建，" +
-				"不会影响仓库的全局设置。",
+			purpose: "可任选多项，Hearth 会据此挑选卡片。只需三步，之后一切都可以修改。",
+			look: "只作用于正在搭建的面板，其他面板保留各自的外观。",
+			finish: "目前尚未更改任何内容。以下就是将要搭建的面板。",
 		},
 		nav: {
 			back: "上一步",
 			next: "下一步",
 			finish: "搭建我的面板",
 			skip: "跳过设置",
-		},
-		welcome: {
-			lead:
-				"Hearth 把一个标签页变成仓库的主屏幕 — 搜索、卡片面板和启动器。" +
-				"这个向导会搭建一个契合您实际工作方式的面板，让您不必从空白网格开始。",
-			bullets: [
-				{
-					icon: "layout-dashboard",
-					title: "为您量身搭建的面板",
-					desc: "告诉 Hearth 您用仓库做什么，它会挑好卡片。",
-				},
-				{
-					icon: "plug",
-					title: "您的插件，已经接好线",
-					desc:
-						"Hearth 会查找 TaskNotes、Dataview、Git 等插件并主动连接 — " +
-						"读取它们各自的设置，让卡片立刻正常工作。",
-				},
-				{
-					icon: "palette",
-					title: "由您选择的外观",
-					desc: "背景、卡片样式与密度，一步设定。",
-				},
-			],
-			detected: (names: string) => `在此仓库中找到：${names}。`,
-			detectedNone:
-				"暂未检测到受支持的插件 — 没关系，Hearth 独立也能用，之后再连接即可。",
 		},
 		vault: {
 			title: "标题",
@@ -312,7 +272,7 @@ export const zh: Translations = {
 			},
 			capture: {
 				name: "快速记录与启动",
-				desc: "为您经常使用的笔记和命令准备的磁贴。",
+				desc: "一排快捷操作：新建笔记、搜索、命令面板。",
 			},
 			insights: {
 				name: "仓库统计",
@@ -320,15 +280,21 @@ export const zh: Translations = {
 			},
 			reading: {
 				name: "阅读与订阅",
-				desc: "为您关注的网站准备的 RSS 卡片。",
+				desc: "一张订阅您关注网站的 RSS 卡片。",
 			},
 			ambience: {
 				name: "一点生机",
-				desc: "天气，以及一只住在面板上的小宠物。",
+				desc: "您所在地的天气，以及一只住在面板上的小宠物。",
 			},
 		},
 		purpose: {
 			count: (n: number) => `目前共 ${n} 张卡片。`,
+			integrationsHeading: "在您的仓库中找到",
+			feed: "要订阅的源",
+			feedDesc: "您常读网站的 RSS 或 Atom 地址。之后可在卡片上添加更多。",
+			feedMissing: "填入订阅地址后，阅读卡片就会加入面板。",
+			weatherPlace: "天气地点",
+			weatherMissing: "选择一个地点后，天气卡片就会加入面板。",
 		},
 		integrations: {
 			lead:
@@ -375,16 +341,13 @@ export const zh: Translations = {
 			/** Seed for the new dashboard's name; numbered if already taken. */
 			defaultName: "主页",
 			calloutTitle: "这是起点，不是预设",
-			calloutLead:
-				"这个面板应当是一个扎实的起点 — 足以让您看到 Hearth 能为您做什么。",
-			calloutBody:
-				"但 Hearth 首先是为高度自定义而生的，而这个向导只触及了其中一小部分。" +
-				"每张卡片都可以移动、缩放、改标题、换颜色、重新配置或删除，面板可以添加" +
-				"和切换，设置里还有远比这里问到的更多内容。请到设置中翻一翻，随心修改 — " +
-				"这正是 Hearth 的意义所在。",
 			calloutHint:
-				"“排列”（面板右上角）用于编辑卡片；其余内容在 设置 → Hearth 中。" +
-				"您随时可以从 设置 → 关于 再次运行此向导。",
+				"每张卡片都可以通过“排列”（面板右上角）移动、缩放、重新配置或删除；" +
+				"其余内容在 设置 → Hearth 中。您随时可以从 设置 → 关于 再次运行此向导。",
+			clock: "时钟",
+			clockDesc: "侧栏顶部的一个小时钟和问候语。",
+			more: "标题与页眉",
+			why: "为什么是这些卡片",
 		},
 		plan: {
 			/** Fallback names for planned cards that carry no title of their own. */
@@ -397,7 +360,6 @@ export const zh: Translations = {
 				recent: "最近文件",
 				favorites: "收藏",
 				bookmarks: "书签",
-				links: "链接",
 				commands: "命令",
 				stats: "仓库统计",
 				heatmap: "活跃度",
@@ -409,9 +371,17 @@ export const zh: Translations = {
 				git: "Git",
 				base: "Base",
 			},
+			/** The Quick actions card's seeded buttons. */
+			actions: {
+				newNote: "新建笔记",
+				today: "今天的笔记",
+				switcher: "快速切换",
+				search: "搜索",
+				palette: "命令",
+			},
 			/** Why each card is on the board, shown beside it in the review list. */
 			reasons: {
-				always: "每个 Hearth 面板都以它开始",
+				clock: "您选择了时钟",
 				daily: "日记与随笔",
 				dailyNotes: "已启用日记插件",
 				tasks: "任务与待办",

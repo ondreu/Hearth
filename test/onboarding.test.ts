@@ -13,6 +13,7 @@ import {
 import type { SetupDetection } from "../src/onboarding/detect";
 import { DEFAULT_SETTINGS, migrateSettings, type HomeSettings } from "../src/types";
 import { parseTaskNotesSettings } from "../src/tasknotes";
+import { formatSkyValue } from "../src/sky";
 
 /**
  * The first-run setup wizard.
@@ -316,11 +317,72 @@ describe("planCards", () => {
 	const ids = (answers: SetupAnswers, detection = emptyDetection()): string[] =>
 		planCards(answers, detection, (i) => `c${i}`).map((p) => p.id);
 
-	it("always starts with a full-width clock", () => {
-		const [first] = planCards(blankAnswers(), emptyDetection(), (i) => `c${i}`);
+	it("keeps the clock small, at the head of a side column", () => {
+		const planned = planCards(
+			blankAnswers({ purposes: ["daily", "browsing"] }),
+			emptyDetection(),
+			(i) => `c${i}`,
+		);
+		const clock = planned.find((p) => p.id === "clock")!;
 
-		expect(first.id).toBe("clock");
-		expect(first.card).toMatchObject({ kind: "clock", x: 0, y: 0, w: 12 });
+		expect(clock.card).toMatchObject({ kind: "clock", x: 8, y: 0, w: 4, h: 2 });
+	});
+
+	it("leaves the clock off when asked", () => {
+		expect(ids(blankAnswers({ purposes: ["daily"], clock: false }))).not.toContain("clock");
+	});
+
+	it("fills a board with no holes beside or below its cards", () => {
+		const planned = planCards(
+			blankAnswers({ purposes: ["daily", "browsing"] }),
+			emptyDetection(),
+			(i) => `c${i}`,
+		);
+		const rows = planned.reduce((m, p) => Math.max(m, p.card.y + p.card.h), 0);
+		let covered = 0;
+		for (const { card } of planned) covered += card.w * card.h;
+
+		expect(covered).toBe(rows * 12);
+	});
+
+	it("never plans a card that would open empty", () => {
+		// No feed and no place: the purpose is chosen but its card waits.
+		const bare = ids(blankAnswers({ purposes: ["reading", "ambience"] }));
+		expect(bare).not.toContain("rss");
+		expect(bare).not.toContain("weather");
+		expect(bare).toContain("pet");
+
+		const capture = planCards(blankAnswers({ purposes: ["capture"] }), emptyDetection());
+		const actions = capture.find((p) => p.id === "commands")!.card.commands ?? [];
+		expect(actions.length).toBeGreaterThanOrEqual(4);
+		expect(capture.some((p) => p.card.kind === "links")).toBe(false);
+	});
+
+	it("adds the Reading card once there is a feed to read", () => {
+		const planned = planCards(
+			blankAnswers({ purposes: ["reading"], feedUrl: " https://example.com/feed.xml " }),
+			emptyDetection(),
+		);
+		const rss = planned.find((p) => p.id === "rss")!;
+
+		expect(rss.card.rss?.sources).toEqual([
+			{ id: "feed-1", name: "", url: "https://example.com/feed.xml" },
+		]);
+		expect(ids(blankAnswers({ purposes: ["reading"], feedUrl: "not a url" }))).not.toContain("rss");
+	});
+
+	it("gives the Weather card the live sky's place when none was picked for it", () => {
+		const place = { name: "Brno", lat: 49.19, lon: 16.61 };
+		const planned = planCards(
+			blankAnswers({
+				purposes: ["ambience"],
+				background: "weather",
+				skyValue: formatSkyValue({ mode: "live", place }),
+			}),
+			emptyDetection(),
+		);
+
+		expect(planned.find((p) => p.id === "weather")?.card.weather?.place).toMatchObject(place);
 	});
 
 	it("adds a card group per chosen purpose", () => {

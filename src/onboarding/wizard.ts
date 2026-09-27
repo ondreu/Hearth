@@ -23,8 +23,16 @@ import { applyModalDesign, HearthModal } from "../uidesign";
 import type { CardDesign } from "../types";
 import { t } from "../i18n";
 import type HearthPlugin from "../main";
-import { configuredPlaces, renderSkySource } from "../placepicker";
-import { formatSkyValue, parseSkyValue } from "../sky";
+import { configuredPlaces, renderPlacePicker, renderSkySource } from "../placepicker";
+import {
+	daylightFromHour,
+	drawSky,
+	formatSkyValue,
+	parseSkyValue,
+	resolveDaylight,
+	skyGroupCode,
+} from "../sky";
+import { drawHarbour, drawWallpaper } from "../wallpaper";
 import { addTitleIconPicker } from "../titleicon";
 import { makeClickable } from "../ui";
 import { galleryConfigured } from "../gallery";
@@ -32,48 +40,69 @@ import { openGallery } from "../gallerybrowse";
 import { detectSetup, type DetectedIntegration, type SetupDetection } from "./detect";
 import {
 	applySetup,
+	backgroundTuning,
 	defaultAnswers,
+	feedUrl,
 	isUntouchedStarterBoard,
 	planCards,
+	plannedBackground,
 	PURPOSE_ICONS,
 	SETUP_BACKGROUNDS,
 	SETUP_PURPOSES,
 	SETUP_SURFACES,
+	SURFACE_PRESETS,
+	weatherPlace,
 	type PlannedCard,
 	type SetupAnswers,
-	type SetupBackground,
 	type SetupPurpose,
 	type SetupSurface,
 } from "./plan";
 
-/** The wizard's steps, in order. `integrations` is dropped when the vault has
- * none to offer, so nobody is walked through an empty page. */
-type SetupStepId =
-	| "welcome"
-	| "vault"
-	| "look"
-	| "purpose"
-	| "integrations"
-	| "finish";
+/** The wizard's steps, in order. Three, and the first one already builds
+ * the board: every question after it is about how it looks. */
+type SetupStepId = "purpose" | "look" | "finish";
+
+const SETUP_STEPS: readonly SetupStepId[] = ["purpose", "look", "finish"];
 
 /** The Lucide icon shown beside each step on the progress rail. */
 const STEP_ICONS: Record<SetupStepId, string> = {
-	welcome: "flame",
-	vault: "book-open",
-	look: "palette",
 	purpose: "compass",
-	integrations: "plug",
-	finish: "check",
+	look: "palette",
+	finish: "layout-dashboard",
+};
+
+/** The icon each planned card wears in the board preview, by blueprint id. */
+const PLAN_ICONS: Record<string, string> = {
+	clock: "clock",
+	daily: "calendar-days",
+	tasks: "list-todo",
+	schedule: "calendar-range",
+	calendar: "calendar",
+	weather: "cloud-sun",
+	stats: "bar-chart-3",
+	commands: "zap",
+	templater: "file-plus-2",
+	recent: "history",
+	favorites: "star",
+	bookmarks: "bookmark",
+	heatmap: "activity",
+	rss: "rss",
+	dataview: "table",
+	datacore: "database",
+	operon: "workflow",
+	git: "git-branch",
+	base: "layout-grid",
+	pet: "cat",
 };
 
 /** Grid columns the finish step's board preview is drawn against — the same
  * width `planCards` lays out to. */
 const PREVIEW_COLUMNS = 12;
 
-/** How a particular run of the wizard behaves. */
 /** The two designs, in the order the look step offers them. */
 const DESIGNS: readonly CardDesign[] = ["classic", "expressive"];
 
+/** How a particular run of the wizard behaves. */
 export interface SetupWizardOptions {
 	/**
 	 * Force the built board onto a *new* dashboard, with no option to replace
@@ -112,6 +141,9 @@ export class SetupWizardModal extends HearthModal {
 		this.options = options;
 		this.detection = detectSetup(plugin.app);
 		this.answers = defaultAnswers(plugin.settings, this.detection);
+		// A place already set on a weather card elsewhere is where the new
+		// board's weather is most likely wanted too.
+		this.answers.weatherPlace = configuredPlaces(plugin.settings)[0];
 		// Drawn in the design it is about to offer as chosen, so the first look
 		// at the choice is also a preview of it.
 		applyModalDesign(this, this.answers.design);
@@ -157,12 +189,9 @@ export class SetupWizardModal extends HearthModal {
 
 	// ---- Shell ---------------------------------------------------------
 
-	/** The steps this run actually has. */
+	/** The steps this run has. */
 	private wizardSteps(): SetupStepId[] {
-		const steps: SetupStepId[] = ["welcome", "vault", "look", "purpose"];
-		if (this.detection.integrations.length > 0) steps.push("integrations");
-		steps.push("finish");
-		return steps;
+		return [...SETUP_STEPS];
 	}
 
 	private currentStep(): SetupStepId {
@@ -305,20 +334,11 @@ export class SetupWizardModal extends HearthModal {
 
 	private renderStepBody(body: HTMLElement, step: SetupStepId): void {
 		switch (step) {
-			case "welcome":
-				this.renderWelcomeStep(body);
-				break;
-			case "vault":
-				this.renderVaultStep(body);
-				break;
-			case "look":
-				this.renderLookStep(body);
-				break;
 			case "purpose":
 				this.renderPurposeStep(body);
 				break;
-			case "integrations":
-				this.renderIntegrationsStep(body);
+			case "look":
+				this.renderLookStep(body);
 				break;
 			case "finish":
 				this.renderFinishStep(body);
@@ -326,193 +346,15 @@ export class SetupWizardModal extends HearthModal {
 		}
 	}
 
-	private renderWelcomeStep(body: HTMLElement): void {
-		const strings = t().setup.welcome;
-		body.createEl("p", { cls: "hearth-setup-lead", text: strings.lead });
-
-		const list = body.createDiv("hearth-setup-bullets");
-		for (const bullet of strings.bullets) {
-			const row = list.createDiv("hearth-setup-bullet");
-			setIcon(row.createSpan("hearth-setup-bullet-icon"), bullet.icon);
-			const text = row.createDiv("hearth-setup-bullet-text");
-			text.createDiv({ cls: "hearth-setup-bullet-title", text: bullet.title });
-			text.createDiv({ cls: "hearth-setup-bullet-desc", text: bullet.desc });
-		}
-
-		const found = this.detection.integrations;
-		body.createDiv({
-			cls: "hearth-setup-note",
-			text: found.length
-				? strings.detected(found.map((i) => i.name).join(", "))
-				: strings.detectedNone,
-		});
-	}
-
-	private renderVaultStep(body: HTMLElement): void {
-		const strings = t().setup.vault;
-		const a = this.answers;
-
-		new Setting(body)
-			.setName(strings.title)
-			.setDesc(strings.titleDesc)
-			.addText((text) =>
-				text
-					.setPlaceholder(this.detection.vaultName || "Obsidian")
-					.setValue(a.title)
-					.onChange((v) => {
-						a.title = v;
-					}),
-			);
-
-		new Setting(body)
-			.setName(strings.showTitle)
-			.setDesc(strings.showTitleDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.showTitle).onChange((v) => {
-					a.showTitle = v;
-				}),
-			);
-
-		addTitleIconPicker(
-			new Setting(body).setName(strings.titleIcon).setDesc(strings.titleIconDesc),
-			this.app,
-			a.titleIcon,
-			(v) => {
-				a.titleIcon = v;
-			},
-			this.plugin.settings.disableExternalCalls,
-		);
-
-		new Setting(body)
-			.setName(strings.themeColor)
-			.setDesc(strings.themeColorDesc)
-			.addDropdown((d) => {
-				const labels = t().setup.vault.themeColorOptions;
-				d.addOption("none", labels.none);
-				d.addOption("icon", labels.icon);
-				d.addOption("title", labels.title);
-				d.addOption("both", labels.both);
-				d.setValue(a.themeColorTarget).onChange((v) => {
-					a.themeColorTarget = v as SetupAnswers["themeColorTarget"];
-				});
-			});
-
-		new Setting(body)
-			.setName(strings.showSearch)
-			.setDesc(strings.showSearchDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.showSearch).onChange((v) => {
-					a.showSearch = v;
-				}),
-			);
-	}
-
-	private renderLookStep(body: HTMLElement): void {
-		const strings = t().setup.look;
-		const a = this.answers;
-
-		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.designHeading });
-		this.optionGrid(
-			body,
-			DESIGNS,
-			(design: CardDesign) => ({
-				icon: t().setup.designs[design].icon,
-				name: t().setup.designs[design].name,
-				desc: t().setup.designs[design].desc,
-				selected: a.design === design,
-			}),
-			(design) => {
-				a.design = design;
-				// The wizard is Hearth's interface too, so it shows the choice at
-				// once rather than after the board is built.
-				applyModalDesign(this, design);
-				this.renderWizard();
-			},
-		);
-		// Only the first setup makes the choice vault-wide (see applyDesign), so
-		// only that one says so.
-		if (this.plugin.settings.setupStatus !== "done") {
-			body.createDiv({ cls: "hearth-setup-note", text: strings.designNote });
-		}
-
-		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.surfaceHeading });
-		this.optionGrid(
-			body,
-			SETUP_SURFACES,
-			(surface: SetupSurface) => ({
-				icon: t().setup.surfaces[surface].icon,
-				name: t().setup.surfaces[surface].name,
-				desc: t().setup.surfaces[surface].desc,
-				selected: a.surface === surface,
-			}),
-			(surface) => {
-				a.surface = surface;
-				this.renderWizard();
-			},
-		);
-
-		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.backgroundHeading });
-		this.optionGrid(
-			body,
-			SETUP_BACKGROUNDS,
-			(background: SetupBackground) => ({
-				icon: t().setup.backgrounds[background].icon,
-				name: t().setup.backgrounds[background].name,
-				desc: t().setup.backgrounds[background].desc,
-				selected: a.background === background,
-			}),
-			(background) => {
-				a.background = background;
-				this.renderWizard();
-			},
-		);
-
-		if (a.background === "color") {
-			new Setting(body).setName(strings.color).setDesc(strings.colorDesc).addColorPicker((c) =>
-				c.setValue(a.backgroundColor).onChange((v) => {
-					a.backgroundColor = v;
-				}),
-			);
-		}
-
-		if (a.background === "weather") {
-			const sky = parseSkyValue(a.skyValue);
-			body.createDiv({ cls: "hearth-setup-note", text: strings.weatherDesc });
-			renderSkySource(body, {
-				current: sky,
-				onChange: (next) => {
-					a.skyValue = next ? formatSkyValue(next) : "";
-				},
-				rerender: () => this.renderWizard(),
-				disabled: this.plugin.settings.disableExternalCalls,
-				session: this.placeSession,
-				suggestions: configuredPlaces(this.plugin.settings),
-			});
-		}
-
-		if (a.background !== "none") {
-			new Setting(body)
-				.setName(strings.layout)
-				.setDesc(strings.layoutDesc)
-				.addDropdown((d) => {
-					d.addOption("full", strings.layoutFull);
-					d.addOption("banner", strings.layoutBanner);
-					d.setValue(a.backgroundLayout).onChange((v) => {
-						a.backgroundLayout = v as SetupAnswers["backgroundLayout"];
-					});
-				});
-		}
-
-		new Setting(body)
-			.setName(strings.compact)
-			.setDesc(strings.compactDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.compact).onChange((v) => {
-					a.compact = v;
-				}),
-			);
-	}
-
+	/**
+	 * What the vault is for, and what it already has.
+	 *
+	 * The first step is the one that decides the board, so it comes first —
+	 * there used to be a welcome page and a page of title fields in front of
+	 * it, two screens of reading and typing before a new user had told Hearth
+	 * anything that mattered. The detected plugins sit here too: they add cards
+	 * exactly the way a purpose does, so they belong beside the purposes.
+	 */
 	private renderPurposeStep(body: HTMLElement): void {
 		const a = this.answers;
 		this.optionGrid(
@@ -533,15 +375,79 @@ export class SetupWizardModal extends HearthModal {
 			"is-multi",
 		);
 
-		const count = planCards(a, this.detection, (i) => `preview-${i}`).length;
-		body.createDiv({ cls: "hearth-setup-note", text: t().setup.purpose.count(count) });
+		const count = body.createDiv("hearth-setup-note");
+		const refreshCount = (): void => {
+			const n = planCards(a, this.detection, (i) => `preview-${i}`).length;
+			count.setText(t().setup.purpose.count(n));
+		};
+
+		// Two purposes need one answer only the user has — a feed, a place — and
+		// their card waits for it rather than arriving empty.
+		if (a.purposes.includes("reading")) this.renderFeedField(body, refreshCount);
+		if (a.purposes.includes("ambience")) this.renderWeatherPlace(body);
+
+		if (this.detection.integrations.length > 0) this.renderIntegrations(body);
+
+		// Last, so it counts everything above it.
+		body.appendChild(count);
+		refreshCount();
 	}
 
-	private renderIntegrationsStep(body: HTMLElement): void {
+	/** The Reading card's feed. Typing updates the card count in place — no
+	 * redraw, so the field keeps its focus. */
+	private renderFeedField(body: HTMLElement, refreshCount: () => void): void {
+		const strings = t().setup.purpose;
+		const a = this.answers;
+		const setting = new Setting(body).setName(strings.feed).setDesc(strings.feedDesc);
+		setting.settingEl.addClass("hearth-setup-followup");
+		const hint = setting.descEl.createDiv("hearth-setup-followup-hint");
+		const refreshHint = (): void => {
+			hint.setText(feedUrl(a) ? "" : strings.feedMissing);
+			refreshCount();
+		};
+		setting.addText((text) =>
+			text
+				.setPlaceholder("https://example.com/feed.xml")
+				.setValue(a.feedUrl)
+				.onChange((v) => {
+					a.feedUrl = v;
+					refreshHint();
+				}),
+		);
+		refreshHint();
+	}
+
+	/** Where the Weather card forecasts for — the same picker the card uses. */
+	private renderWeatherPlace(body: HTMLElement): void {
+		const strings = t().setup.purpose;
+		const a = this.answers;
+		const box = body.createDiv("hearth-setup-followup-box");
+		box.createDiv({ cls: "hearth-setup-grouplabel", text: strings.weatherPlace });
+		renderPlacePicker(box, {
+			current: weatherPlace(a),
+			onPick: (place) => {
+				a.weatherPlace = place;
+				this.renderWizard();
+			},
+			rerender: () => this.renderWizard(),
+			disabled: this.plugin.settings.disableExternalCalls,
+			session: this.placeSession,
+			suggestions: configuredPlaces(this.plugin.settings),
+		});
+		if (!weatherPlace(a)) {
+			box.createDiv({ cls: "hearth-setup-followup-hint", text: strings.weatherMissing });
+		}
+	}
+
+	private renderIntegrations(body: HTMLElement): void {
 		const strings = t().setup.integrations;
 		const a = this.answers;
 
-		body.createDiv({ cls: "hearth-setup-note", text: strings.lead });
+		body.createDiv({
+			cls: "hearth-setup-grouplabel",
+			text: t().setup.purpose.integrationsHeading,
+		});
+		body.createDiv({ cls: "hearth-setup-lead is-small", text: strings.lead });
 
 		for (const found of this.detection.integrations) {
 			const setting = new Setting(body)
@@ -552,9 +458,8 @@ export class SetupWizardModal extends HearthModal {
 						a.integrations = v
 							? [...a.integrations, found.id]
 							: a.integrations.filter((id) => id !== found.id);
-						// The Tasks card's configuration and the plan's card count
-						// both hinge on this, so redraw rather than let the summary
-						// go stale.
+						// The Tasks card's configuration and the card count both
+						// hinge on this, so redraw rather than let them go stale.
 						this.renderWizard();
 					}),
 				);
@@ -590,31 +495,220 @@ export class SetupWizardModal extends HearthModal {
 
 	/** What accepting an integration will actually do, in one line. */
 	private integrationEffect(found: DetectedIntegration): string {
-		const effects = t().setup.integrations.effects;
-		return effects[found.id];
+		return t().setup.integrations.effects[found.id];
 	}
 
+	/**
+	 * The look, chosen by looking.
+	 *
+	 * Every visual choice is a picture of itself: each background is painted in
+	 * miniature with a card floating on it, and each card surface is shown over
+	 * the background already picked. "Frosted" means nothing written down and
+	 * everything next to "Solid" when both are in front of you.
+	 */
+	private renderLookStep(body: HTMLElement): void {
+		const strings = t().setup.look;
+		const a = this.answers;
+
+		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.designHeading });
+		this.optionGrid(
+			body,
+			DESIGNS,
+			(design: CardDesign) => ({
+				icon: t().setup.designs[design].icon,
+				name: t().setup.designs[design].name,
+				desc: t().setup.designs[design].desc,
+				selected: a.design === design,
+			}),
+			(design) => {
+				a.design = design;
+				// The wizard is Hearth's interface too, so it shows the choice at
+				// once rather than after the board is built.
+				applyModalDesign(this, design);
+				this.renderWizard();
+			},
+		);
+		// Only the first setup makes the choice vault-wide (see applyDesign), so
+		// only that one says so.
+		if (this.plugin.settings.setupStatus !== "done") {
+			body.createDiv({ cls: "hearth-setup-note is-quiet", text: strings.designNote });
+		}
+
+		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.backgroundHeading });
+		this.swatchGrid(
+			body,
+			SETUP_BACKGROUNDS,
+			(background) => ({
+				name: t().setup.backgrounds[background].name,
+				desc: t().setup.backgrounds[background].desc,
+				selected: a.background === background,
+				paint: (scene) => {
+					this.paintScene(scene, { ...a, background });
+					this.sampleCards(scene, a.surface, 1);
+				},
+			}),
+			(background) => {
+				a.background = background;
+				this.renderWizard();
+			},
+		);
+
+		if (a.background === "color") {
+			new Setting(body).setName(strings.color).setDesc(strings.colorDesc).addColorPicker((c) =>
+				c.setValue(a.backgroundColor).onChange((v) => {
+					a.backgroundColor = v;
+					// Repaint the swatches in place: redrawing the step would
+					// throw the picker away mid-drag.
+					body
+						.querySelectorAll<HTMLElement>(".hearth-setup-scene-bg.is-color")
+						.forEach((el) => (el.style.background = v));
+				}),
+			);
+		}
+
+		if (a.background === "weather") {
+			const sky = parseSkyValue(a.skyValue);
+			body.createDiv({ cls: "hearth-setup-note is-quiet", text: strings.weatherDesc });
+			renderSkySource(body, {
+				current: sky,
+				onChange: (next) => {
+					a.skyValue = next ? formatSkyValue(next) : "";
+				},
+				rerender: () => this.renderWizard(),
+				disabled: this.plugin.settings.disableExternalCalls,
+				session: this.placeSession,
+				suggestions: configuredPlaces(this.plugin.settings),
+			});
+		}
+
+		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.surfaceHeading });
+		this.swatchGrid(
+			body,
+			SETUP_SURFACES,
+			(surface) => ({
+				name: t().setup.surfaces[surface].name,
+				desc: t().setup.surfaces[surface].desc,
+				selected: a.surface === surface,
+				paint: (scene) => {
+					this.paintScene(scene, a);
+					this.sampleCards(scene, surface, 2);
+				},
+			}),
+			(surface) => {
+				a.surface = surface;
+				this.renderWizard();
+			},
+		);
+
+		if (a.background !== "none") {
+			new Setting(body)
+				.setName(strings.layout)
+				.setDesc(strings.layoutDesc)
+				.addDropdown((d) => {
+					d.addOption("full", strings.layoutFull);
+					d.addOption("banner", strings.layoutBanner);
+					d.setValue(a.backgroundLayout).onChange((v) => {
+						a.backgroundLayout = v as SetupAnswers["backgroundLayout"];
+					});
+				});
+		}
+
+		new Setting(body)
+			.setName(strings.compact)
+			.setDesc(strings.compactDesc)
+			.addToggle((tg) =>
+				tg.setValue(a.compact).onChange((v) => {
+					a.compact = v;
+				}),
+			);
+	}
+
+	/**
+	 * The board as it will be built, drawn — then the few things worth naming.
+	 *
+	 * The preview is the step: the chosen background, the header, and every
+	 * planned card in its real position wearing the chosen surface. The title
+	 * field writes straight into it as you type, and the clock and search
+	 * toggles redraw it, so what is on screen is always what "Build" makes.
+	 */
 	private renderFinishStep(body: HTMLElement): void {
 		const strings = t().setup.finish;
+		const vault = t().setup.vault;
 		const a = this.answers;
 		const planned = planCards(a, this.detection, (i) => `preview-${i}`);
 
-		// First, above the preview: the step's body scrolls, and everything below
-		// is a list the reader is about to scroll through and then press a button.
-		// A note at the bottom of that is a note nobody reads.
-		this.renderCustomizeCallout(body);
-
+		const titleEl = this.renderBoardPreview(body, planned);
 		if (planned.length === 0) {
 			body.createDiv({ cls: "hearth-setup-note", text: strings.empty });
-		} else {
-			this.renderBoardPreview(body, planned);
-			const list = body.createDiv("hearth-setup-plan");
-			for (const entry of planned) {
-				const row = list.createDiv("hearth-setup-plan-row");
-				row.createSpan({ cls: "hearth-setup-plan-name", text: plannedName(entry) });
-				row.createSpan({ cls: "hearth-setup-plan-why", text: plannedReason(entry) });
-			}
 		}
+
+		new Setting(body)
+			.setName(vault.title)
+			.setDesc(vault.titleDesc)
+			.addText((text) =>
+				text
+					.setPlaceholder(this.detection.vaultName || "Obsidian")
+					.setValue(a.title)
+					.onChange((v) => {
+						a.title = v;
+						titleEl?.setText(this.previewTitle());
+					}),
+			);
+
+		new Setting(body)
+			.setName(strings.clock)
+			.setDesc(strings.clockDesc)
+			.addToggle((tg) =>
+				tg.setValue(a.clock).onChange((v) => {
+					a.clock = v;
+					this.renderWizard();
+				}),
+			);
+
+		new Setting(body)
+			.setName(vault.showSearch)
+			.setDesc(vault.showSearchDesc)
+			.addToggle((tg) =>
+				tg.setValue(a.showSearch).onChange((v) => {
+					a.showSearch = v;
+					this.renderWizard();
+				}),
+			);
+
+		// The finer points of the header, folded: they matter to someone
+		// tuning a board, not to someone deciding whether they like it.
+		const more = this.fold(body, strings.more);
+		new Setting(more)
+			.setName(vault.showTitle)
+			.setDesc(vault.showTitleDesc)
+			.addToggle((tg) =>
+				tg.setValue(a.showTitle).onChange((v) => {
+					a.showTitle = v;
+					this.renderWizard();
+				}),
+			);
+		addTitleIconPicker(
+			new Setting(more).setName(vault.titleIcon).setDesc(vault.titleIconDesc),
+			this.app,
+			a.titleIcon,
+			(v) => {
+				a.titleIcon = v;
+			},
+			this.plugin.settings.disableExternalCalls,
+		);
+		new Setting(more)
+			.setName(vault.themeColor)
+			.setDesc(vault.themeColorDesc)
+			.addDropdown((d) => {
+				const labels = vault.themeColorOptions;
+				d.addOption("none", labels.none);
+				d.addOption("icon", labels.icon);
+				d.addOption("title", labels.title);
+				d.addOption("both", labels.both);
+				d.setValue(a.themeColorTarget).onChange((v) => {
+					a.themeColorTarget = v as SetupAnswers["themeColorTarget"];
+				});
+			});
 
 		if (this.options.forceNewDashboard) {
 			// No dropdown at all: an option that is never selectable is noise, and
@@ -644,64 +738,139 @@ export class SetupWizardModal extends HearthModal {
 						a.dashboardName = v;
 					}),
 			);
-	}
 
-	/**
-	 * The most important thing on the step, and so the first thing on it.
-	 *
-	 * A wizard that builds a board for you invites exactly the wrong conclusion —
-	 * that the board it built is *the* board, and that Hearth is a plugin with a
-	 * few presets. It is the opposite: nearly everything here is adjustable, and
-	 * the generated board is a demonstration of that rather than a destination.
-	 *
-	 * Which is why it leads the step rather than closing it. Below this sit a
-	 * board preview, a card list and two controls — a reader working down that
-	 * and pressing "Build my dashboard" would never reach a footnote, and this is
-	 * the one thing on the step that must not be missed.
-	 */
-	private renderCustomizeCallout(body: HTMLElement): void {
-		const strings = t().setup.finish;
+		if (planned.length > 0) {
+			const why = this.fold(body, strings.why);
+			const list = why.createDiv("hearth-setup-plan");
+			for (const entry of planned) {
+				const row = list.createDiv("hearth-setup-plan-row");
+				row.createSpan({ cls: "hearth-setup-plan-name", text: plannedName(entry) });
+				row.createSpan({ cls: "hearth-setup-plan-why", text: plannedReason(entry) });
+			}
+		}
+
+		// The board is a starting point, and the one place that says so is the
+		// last thing before the button.
 		const callout = body.createDiv("hearth-setup-callout");
-
 		const head = callout.createDiv("hearth-setup-callout-head");
 		setIcon(head.createSpan("hearth-setup-callout-icon"), "sliders-horizontal");
 		head.createSpan({ cls: "hearth-setup-callout-title", text: strings.calloutTitle });
+		callout.createDiv({ cls: "hearth-setup-callout-text", text: strings.calloutHint });
+	}
 
-		callout.createEl("p", { cls: "hearth-setup-callout-text", text: strings.calloutLead });
-		callout.createEl("p", { cls: "hearth-setup-callout-text", text: strings.calloutBody });
-		callout.createDiv({ cls: "hearth-setup-callout-hint", text: strings.calloutHint });
+	/** A collapsed group of rows under a one-line summary. */
+	private fold(parent: HTMLElement, label: string): HTMLElement {
+		const details = parent.createEl("details", { cls: "hearth-setup-fold" });
+		const summary = details.createEl("summary", { cls: "hearth-setup-fold-summary" });
+		setIcon(summary.createSpan("hearth-setup-fold-chevron"), "chevron-right");
+		summary.createSpan({ text: label });
+		return details.createDiv("hearth-setup-fold-body");
+	}
+
+	/** The header title the board will show. */
+	private previewTitle(): string {
+		return this.answers.title.trim() || this.detection.vaultName || "Obsidian";
 	}
 
 	/**
-	 * A scale drawing of the board about to be built: the planned cards in their
-	 * packed positions, labelled.
+	 * A scale model of the board about to be built: background, header and
+	 * every card in place, in the chosen surface.
 	 *
-	 * Worth the few lines it costs. "Clock, Today, Tasks, Recent…" as a list says
-	 * nothing about whether the result will look like a home screen; the same
-	 * information as boxes says it immediately.
+	 * Returns the title element so the title field can write into it live.
 	 */
-	private renderBoardPreview(body: HTMLElement, planned: PlannedCard[]): void {
+	private renderBoardPreview(body: HTMLElement, planned: PlannedCard[]): HTMLElement | null {
+		const a = this.answers;
+		const surface = SURFACE_PRESETS[a.surface];
+		const banner = a.backgroundLayout === "banner" && a.background !== "none";
+
+		const frame = body.createDiv("hearth-setup-board");
+		const scene = frame.createDiv("hearth-setup-board-scene");
+		scene.toggleClass("is-banner", banner);
+		this.paintScene(scene, a);
+
+		const page = scene.createDiv("hearth-setup-board-page");
+		page.toggleClass("is-compact", a.compact);
+
+		let titleEl: HTMLElement | null = null;
+		if (a.showTitle || a.showSearch) {
+			const header = page.createDiv("hearth-setup-board-header");
+			if (a.showTitle) {
+				titleEl = header.createDiv({
+					cls: "hearth-setup-board-title",
+					text: this.previewTitle(),
+				});
+			}
+			if (a.showSearch) {
+				const search = header.createDiv("hearth-setup-board-search");
+				setIcon(search.createSpan("hearth-setup-board-search-icon"), "search");
+			}
+		}
+
 		const rows = planned.reduce((max, p) => Math.max(max, p.card.y + p.card.h), 0);
-		const preview = body.createDiv("hearth-setup-preview");
-		preview.style.gridTemplateColumns = `repeat(${PREVIEW_COLUMNS}, 1fr)`;
-		preview.style.gridTemplateRows = `repeat(${Math.max(1, rows)}, 1fr)`;
+		const grid = page.createDiv("hearth-setup-board-grid");
+		grid.style.gridTemplateColumns = `repeat(${PREVIEW_COLUMNS}, 1fr)`;
+		grid.style.gridTemplateRows = `repeat(${Math.max(1, rows)}, minmax(0, 1fr))`;
 		for (const entry of planned) {
-			const cell = preview.createDiv("hearth-setup-preview-card");
+			const cell = grid.createDiv("hearth-setup-board-card");
+			styleSampleCard(cell, surface, banner);
 			cell.style.gridColumn = `${entry.card.x + 1} / span ${entry.card.w}`;
 			cell.style.gridRow = `${entry.card.y + 1} / span ${entry.card.h}`;
-			cell.createSpan({ cls: "hearth-setup-preview-label", text: plannedName(entry) });
+			const head = cell.createDiv("hearth-setup-board-card-head");
+			setIcon(head.createSpan("hearth-setup-board-card-icon"), PLAN_ICONS[entry.id] ?? "square");
+			head.createSpan({ cls: "hearth-setup-board-card-name", text: plannedName(entry) });
+			// A few lines of stand-in content, as many as the card is tall.
+			const lines = cell.createDiv("hearth-setup-board-card-lines");
+			for (let i = 0; i < Math.min(4, entry.card.h - 1); i++) lines.createDiv();
+		}
+		return titleEl;
+	}
+
+	/**
+	 * Paint a background into `scene` the way the board will: Hearth's own
+	 * wallpaper and the harbour are the real drawings, the sky is the real sky
+	 * (a clear one until a condition or place is picked), a colour is that
+	 * colour, and "none" is the theme's own surface.
+	 */
+	private paintScene(scene: HTMLElement, a: SetupAnswers): void {
+		scene.addClass("hearth-setup-scene");
+		const bg = scenePaint(a);
+		const layer = scene.createDiv("hearth-setup-scene-bg");
+		layer.addClass(`is-${a.background}`);
+		layer.style.opacity = String(bg.opacity);
+		switch (a.background) {
+			case "default":
+				drawWallpaper(layer, a.design);
+				break;
+			case "harbour":
+				drawHarbour(layer);
+				break;
+			case "weather":
+				drawSky(layer, { ...bg.sky, animate: false, spread: "board", design: a.design });
+				break;
+			case "color":
+				layer.style.background = a.backgroundColor;
+				break;
+			case "none":
+				break;
+		}
+	}
+
+	/** One or two stand-in cards over a swatch's scene, in `surface`. */
+	private sampleCards(scene: HTMLElement, surface: SetupSurface, count: number): void {
+		const stack = scene.createDiv("hearth-setup-sample");
+		for (let i = 0; i < count; i++) {
+			const card = stack.createDiv("hearth-setup-sample-card");
+			styleSampleCard(card, SURFACE_PRESETS[surface], false);
+			card.createDiv("hearth-setup-sample-line is-strong");
+			card.createDiv("hearth-setup-sample-line");
 		}
 	}
 
 	// ---- Option tiles --------------------------------------------------
 
 	/**
-	 * A grid of selectable tiles — the wizard's main input.
-	 *
-	 * Deliberately not a dropdown or a row of toggles: every choice the wizard
-	 * asks about is one where the *description* is the question. "Frosted" means
-	 * nothing on its own and everything next to "translucent cards over the
-	 * wallpaper", and a tile has room for both.
+	 * A grid of selectable tiles — the wizard's main input for choices whose
+	 * *description* is the question.
 	 */
 	private optionGrid<T extends string>(
 		parent: HTMLElement,
@@ -720,6 +889,34 @@ export class SetupWizardModal extends HearthModal {
 			const text = tile.createDiv("hearth-setup-option-text");
 			text.createDiv({ cls: "hearth-setup-option-name", text: info.name });
 			text.createDiv({ cls: "hearth-setup-option-desc", text: info.desc });
+			const pick = () => onPick(option);
+			makeClickable(tile, pick, info.name);
+			tile.setAttribute("aria-pressed", String(info.selected));
+			tile.addEventListener("click", pick);
+		}
+	}
+
+	/** A grid of picture tiles: a painted miniature above a name, for choices
+	 * that are about how something looks. */
+	private swatchGrid<T extends string>(
+		parent: HTMLElement,
+		options: readonly T[],
+		describe: (option: T) => {
+			name: string;
+			desc: string;
+			selected: boolean;
+			paint: (scene: HTMLElement) => void;
+		},
+		onPick: (option: T) => void,
+	): void {
+		const grid = parent.createDiv("hearth-setup-swatches");
+		for (const option of options) {
+			const info = describe(option);
+			const tile = grid.createDiv("hearth-setup-swatch");
+			tile.toggleClass("is-selected", info.selected);
+			info.paint(tile.createDiv("hearth-setup-swatch-scene"));
+			tile.createDiv({ cls: "hearth-setup-swatch-name", text: info.name });
+			tile.setAttribute("title", info.desc);
 			const pick = () => onPick(option);
 			makeClickable(tile, pick, info.name);
 			tile.setAttribute("aria-pressed", String(info.selected));
@@ -746,6 +943,43 @@ export class SetupWizardModal extends HearthModal {
 		new Notice(t().setup.notice.done(outcome.cardCount));
 		await this.plugin.activateView();
 	}
+}
+
+/** Dress a stand-in card in a surface preset, scaled to the miniature. On a
+ * banner board the cards sit on the theme's surface, not the picture, so they
+ * are drawn opaque there. */
+function styleSampleCard(
+	el: HTMLElement,
+	surface: (typeof SURFACE_PRESETS)[SetupSurface],
+	opaque: boolean,
+): void {
+	const opacity = opaque ? Math.max(surface.cardOpacity, 0.9) : surface.cardOpacity;
+	el.style.setProperty("--sample-opacity", `${Math.round(opacity * 100)}%`);
+	el.style.setProperty("--sample-blur", `${Math.round(surface.cardBlur / 2)}px`);
+	el.style.setProperty("--sample-radius", `${Math.max(2, Math.round(surface.cardRadius / 2))}px`);
+	el.style.setProperty("--sample-border", `${surface.cardBorderWidth}px`);
+}
+
+/** How a miniature paints its background: the board's own opacity for the
+ * choice, and for a sky the condition to draw — the pinned one, else a clear
+ * sky at the reader's hour, since a live forecast would be a request made just
+ * to draw a thumbnail. */
+function scenePaint(a: SetupAnswers): {
+	opacity: number;
+	sky: { code: number; isDay: boolean };
+} {
+	const hour = new Date().getHours();
+	const sky = parseSkyValue(a.skyValue);
+	const planned = a.background === "weather" && a.skyValue ? plannedBackground(a) : null;
+	const opacity =
+		a.background === "none" ? 0 : (planned?.opacity ?? backgroundTuning(a.background).opacity);
+	return {
+		opacity,
+		sky:
+			sky?.mode === "fixed"
+				? { code: skyGroupCode(sky.group), isDay: resolveDaylight(sky.daylight, hour) }
+				: { code: 0, isDay: daylightFromHour(hour) },
+	};
 }
 
 /** What a planned card is called in the review list: its own title, or the

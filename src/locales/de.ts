@@ -168,70 +168,29 @@ export const de: Translations = {
 	setup: {
 		/** Kurze Bezeichnungen auf der Fortschrittsleiste. */
 		stepNames: {
-			welcome: "Willkommen",
-			vault: "Dein Vault",
-			look: "Aussehen",
 			purpose: "Wofür",
-			integrations: "Integrationen",
-			finish: "Fertig",
+			look: "Aussehen",
+			finish: "Dein Board",
 		},
 		/** Die Überschrift oben auf jedem Schritt. */
 		stepTitles: {
-			welcome: "Willkommen bei Hearth",
-			vault: "Benenne deinen Startbildschirm",
-			look: "Wähle ein Aussehen",
 			purpose: "Wofür nutzt du deinen Vault?",
-			integrations: "In deinem Vault gefunden",
-			finish: "Hier ist dein Dashboard",
+			look: "Wähle ein Aussehen",
+			finish: "Das ist dein Startbildschirm",
 		},
 		/** Die Zeile unter jeder Überschrift. */
 		stepDescs: {
-			welcome: "Ein paar Fragen, dann erstellt Hearth dein erstes Dashboard.",
-			vault: "Der Titel und sein Symbol oben auf diesem Board.",
-			look:
-				"Das gilt für das Board, das gerade erstellt wird - jedes andere Board behält sein " +
-				"eigenes Aussehen. Du kannst alles später in den Einstellungen des Boards ändern.",
-			purpose: "Wähle so viele du willst - jede Auswahl fügt deinem Board Karten hinzu.",
-			integrations:
-				"Hearth hat diese bereits installiert gefunden. Schalte die ein, die es nutzen soll.",
-			finish:
-				"Es wurde noch nichts geändert. Das wird erstellt - als ein " +
-				"Dashboard, deine Vault-weiten Einstellungen bleiben unverändert.",
+			purpose:
+				"Wähle so viele du willst, Hearth sucht die Karten aus. Drei kurze Schritte, " +
+				"und alles lässt sich später ändern.",
+			look: "Für das Board, das gerade entsteht. Jedes andere Board behält sein Aussehen.",
+			finish: "Es wurde noch nichts geändert. Das hier wird erstellt.",
 		},
 		nav: {
 			back: "Zurück",
 			next: "Weiter",
 			finish: "Mein Dashboard erstellen",
 			skip: "Einrichtung überspringen",
-		},
-		welcome: {
-			lead:
-				"Hearth verwandelt einen Tab in einen Startbildschirm für deinen Vault - Suche, ein Dashboard " +
-				"aus Karten und eine Startzentrale. Dieser Assistent richtet ein Board ein, das zu deiner " +
-				"Arbeitsweise passt, damit du nicht mit einem leeren Raster beginnst.",
-			bullets: [
-				{
-					icon: "layout-dashboard",
-					title: "Ein Dashboard für dich",
-					desc: "Sag Hearth, wofür du deinen Vault nutzt, und es wählt die Karten.",
-				},
-				{
-					icon: "plug",
-					title: "Deine Plugins, schon verbunden",
-					desc:
-						"Hearth sucht nach TaskNotes, Dataview, Git und mehr und bietet an, " +
-						"sie zu verbinden - liest deren eigene Einstellungen, damit Karten sofort funktionieren.",
-				},
-				{
-					icon: "palette",
-					title: "Ein Aussehen nach deiner Wahl",
-					desc: "Hintergrund, Kartenstil und Dichte, in einem Schritt eingestellt.",
-				},
-			],
-			detected: (names: string) => `In diesem Vault gefunden: ${names}.`,
-			detectedNone:
-				"Noch keine unterstützten Plugins erkannt - kein Problem, Hearth funktioniert auch allein " +
-				"und du kannst sie später verbinden.",
 		},
 		vault: {
 			title: "Titel",
@@ -347,7 +306,7 @@ export const de: Translations = {
 			},
 			capture: {
 				name: "Schnelles Erfassen & Starten",
-				desc: "Kacheln für die Notizen und Befehle, die du ständig brauchst.",
+				desc: "Eine Reihe Schnellaktionen: neue Notiz, Suche, die Befehlspalette.",
 			},
 			insights: {
 				name: "Vault-Statistiken",
@@ -355,16 +314,22 @@ export const de: Translations = {
 			},
 			reading: {
 				name: "Lesen & Feeds",
-				desc: "Eine RSS-Karte für die Seiten, denen du folgst.",
+				desc: "Eine RSS-Karte für eine Seite, der du folgst.",
 			},
 			ambience: {
 				name: "Ein bisschen Leben",
-				desc: "Wetter und ein kleines Haustier, das auf deinem Board lebt.",
+				desc: "Das Wetter bei dir und ein kleines Haustier, das auf deinem Board lebt.",
 			},
 		},
 		purpose: {
 			count: (n: number) =>
 				n === 1 ? "Das ist bisher 1 Karte." : `Das sind bisher ${n} Karten.`,
+			integrationsHeading: "In deinem Vault gefunden",
+			feed: "Feed zum Folgen",
+			feedDesc: "Die RSS- oder Atom-Adresse einer Seite, die du liest. Weitere kannst du auf der Karte ergänzen.",
+			feedMissing: "Gib eine Feed-Adresse ein, dann kommt die Lesen-Karte aufs Board.",
+			weatherPlace: "Wetter für",
+			weatherMissing: "Wähle einen Ort, dann kommt die Wetter-Karte aufs Board.",
 		},
 		integrations: {
 			lead:
@@ -415,19 +380,14 @@ export const de: Translations = {
 			/** Ausgangsname für das neue Dashboard; nummeriert, falls schon vergeben. */
 			defaultName: "Start",
 			calloutTitle: "Ein Startpunkt, keine Vorgabe",
-			calloutLead:
-				"Dieses Board soll ein solider Anfang sein - genug, um zu zeigen, was Hearth " +
-				"für dich tun kann.",
-			calloutBody:
-				"Aber Hearth ist vor allem gebaut, um stark anpassbar zu sein, und dieser Assistent " +
-				"berührt nur einen Bruchteil davon. Jede Karte kann verschoben, in der Größe geändert, umbenannt, " +
-				"umgefärbt, neu eingerichtet oder entfernt werden, Boards können hinzugefügt und gewechselt " +
-				"werden, und in den Einstellungen steckt viel mehr, als hier gefragt wurde. " +
-				"Schau dich dort um und bearbeite alles nach deinen Wünschen - dafür " +
-				"ist Hearth da.",
 			calloutHint:
-				"Anordnen (oben rechts auf dem Board) bearbeitet die Karten; Einstellungen → Hearth enthält den " +
-				"Rest. Du kannst diesen Assistenten jederzeit erneut über Einstellungen → Über ausführen.",
+				"Jede Karte lässt sich mit Anordnen (oben rechts auf dem Board) verschieben, " +
+				"in der Größe ändern, neu einrichten oder entfernen; Einstellungen → Hearth enthält " +
+				"den Rest. Du kannst diesen Assistenten jederzeit über Einstellungen → Über erneut ausführen.",
+			clock: "Uhr",
+			clockDesc: "Eine kleine Uhr mit Begrüßung oben in der Seitenspalte.",
+			more: "Titel und Kopfzeile",
+			why: "Warum diese Karten",
 		},
 		plan: {
 			/** Ersatznamen für geplante Karten ohne eigenen Titel. */
@@ -440,7 +400,6 @@ export const de: Translations = {
 				recent: "Zuletzt verwendete Dateien",
 				favorites: "Favoriten",
 				bookmarks: "Lesezeichen",
-				links: "Links",
 				commands: "Befehle",
 				stats: "Vault-Statistiken",
 				heatmap: "Aktivität",
@@ -452,9 +411,17 @@ export const de: Translations = {
 				git: "Git",
 				base: "Base",
 			},
+			/** Die vorbelegten Schaltflächen der Schnellaktionen-Karte. */
+			actions: {
+				newNote: "Neue Notiz",
+				today: "Heutige Notiz",
+				switcher: "Schnellwechsler",
+				search: "Suche",
+				palette: "Befehle",
+			},
 			/** Warum jede Karte auf dem Board ist, daneben in der Überprüfungsliste angezeigt. */
 			reasons: {
-				always: "Jedes Hearth-Board beginnt mit einer",
+				clock: "Du wolltest eine Uhr",
 				daily: "Tägliche Notizen & Tagebuch",
 				dailyNotes: "Tägliche Notizen sind aktiviert",
 				tasks: "Aufgaben & To-dos",

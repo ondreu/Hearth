@@ -155,70 +155,29 @@ export const en = {
 	setup: {
 		/** Short labels on the progress rail. */
 		stepNames: {
-			welcome: "Welcome",
-			vault: "Your vault",
-			look: "Look",
 			purpose: "What for",
-			integrations: "Integrations",
-			finish: "Finish",
+			look: "Look",
+			finish: "Your board",
 		},
 		/** The heading at the top of each step. */
 		stepTitles: {
-			welcome: "Welcome to Hearth",
-			vault: "Name your home screen",
+			purpose: "What's your vault for?",
 			look: "Pick a look",
-			purpose: "What do you use your vault for?",
-			integrations: "Found in your vault",
-			finish: "Here's your dashboard",
+			finish: "Here's your home screen",
 		},
 		/** The line under each heading. */
 		stepDescs: {
-			welcome: "A few questions, then Hearth builds your first dashboard.",
-			vault: "The title and its icon across the top of this board.",
-			look:
-				"This applies to the board being built — every other board keeps its " +
-				"own look. You can change any of it later from the board's own settings.",
-			purpose: "Pick as many as you like — each one adds cards to your board.",
-			integrations:
-				"Hearth found these already installed. Turn on the ones you'd like it to use.",
-			finish:
-				"Nothing has been changed yet. Here's what will be built — as one " +
-				"dashboard, leaving your vault-wide settings alone.",
+			purpose:
+				"Pick as many as you like and Hearth picks the cards. Three quick steps, " +
+				"and all of it can be changed later.",
+			look: "For the board being built. Every other board keeps its own look.",
+			finish: "Nothing has been changed yet. This is what will be built.",
 		},
 		nav: {
 			back: "Back",
 			next: "Next",
 			finish: "Build my dashboard",
 			skip: "Skip setup",
-		},
-		welcome: {
-			lead:
-				"Hearth turns a tab into a home screen for your vault — search, a dashboard " +
-				"of cards, and a launcher. This wizard sets up a board that fits how you " +
-				"actually work, so you're not starting from a blank grid.",
-			bullets: [
-				{
-					icon: "layout-dashboard",
-					title: "A dashboard built for you",
-					desc: "Tell Hearth what you use your vault for and it picks the cards.",
-				},
-				{
-					icon: "plug",
-					title: "Your plugins, already wired up",
-					desc:
-						"Hearth looks for TaskNotes, Dataview, Git and more, and offers to " +
-						"connect them — reading their own settings so cards work right away.",
-				},
-				{
-					icon: "palette",
-					title: "A look you choose",
-					desc: "Background, card style and density, set in one step.",
-				},
-			],
-			detected: (names: string) => `Found in this vault: ${names}.`,
-			detectedNone:
-				"No supported plugins detected yet — that's fine, Hearth works on its own " +
-				"and you can connect them later.",
 		},
 		vault: {
 			title: "Title",
@@ -334,7 +293,7 @@ export const en = {
 			},
 			capture: {
 				name: "Quick capture & launching",
-				desc: "Tiles for the notes and commands you reach for constantly.",
+				desc: "A row of quick actions: new note, search, the command palette.",
 			},
 			insights: {
 				name: "Vault statistics",
@@ -342,16 +301,22 @@ export const en = {
 			},
 			reading: {
 				name: "Reading & feeds",
-				desc: "An RSS card for the sites you follow.",
+				desc: "An RSS card for a site you follow.",
 			},
 			ambience: {
 				name: "A bit of life",
-				desc: "Weather, and a small pet that lives on your board.",
+				desc: "Weather where you are, and a small pet that lives on your board.",
 			},
 		},
 		purpose: {
 			count: (n: number) =>
 				n === 1 ? "That's 1 card so far." : `That's ${n} cards so far.`,
+			integrationsHeading: "Found in your vault",
+			feed: "Feed to follow",
+			feedDesc: "The RSS or Atom address of a site you read. More can be added on the card.",
+			feedMissing: "Add a feed address and the Reading card joins the board.",
+			weatherPlace: "Weather for",
+			weatherMissing: "Pick a place and the Weather card joins the board.",
 		},
 		integrations: {
 			lead:
@@ -402,19 +367,14 @@ export const en = {
 			/** Seed for the new dashboard's name; numbered if already taken. */
 			defaultName: "Home",
 			calloutTitle: "A starting point, not a preset",
-			calloutLead:
-				"This board should be a solid start — enough to show you what Hearth can " +
-				"do for you.",
-			calloutBody:
-				"But Hearth is built above all to be heavily customizable, and this wizard " +
-				"only touches a fraction of it. Every card can be moved, resized, retitled, " +
-				"recoloured, reconfigured or thrown out, boards can be added and switched " +
-				"between, and there is a great deal more in the settings than was asked " +
-				"about here. Dig around in there and edit everything to your liking — that " +
-				"is what Hearth is for.",
 			calloutHint:
-				"Arrange (top-right of the board) edits the cards; Settings → Hearth has the " +
-				"rest. You can run this wizard again any time from Settings → About.",
+				"Every card can be moved, resized, reconfigured or removed with Arrange " +
+				"(top-right of the board); Settings → Hearth has the rest. You can run this " +
+				"wizard again any time from Settings → About.",
+			clock: "Clock",
+			clockDesc: "A small clock and greeting at the top of the side column.",
+			more: "Title and header",
+			why: "Why these cards",
 		},
 		plan: {
 			/** Fallback names for planned cards that carry no title of their own. */
@@ -427,7 +387,6 @@ export const en = {
 				recent: "Recent files",
 				favorites: "Favorites",
 				bookmarks: "Bookmarks",
-				links: "Links",
 				commands: "Commands",
 				stats: "Vault statistics",
 				heatmap: "Activity",
@@ -439,9 +398,17 @@ export const en = {
 				git: "Git",
 				base: "Base",
 			},
+			/** The Quick actions card's seeded buttons. */
+			actions: {
+				newNote: "New note",
+				today: "Today's note",
+				switcher: "Quick switcher",
+				search: "Search",
+				palette: "Commands",
+			},
 			/** Why each card is on the board, shown beside it in the review list. */
 			reasons: {
-				always: "Every Hearth board starts with one",
+				clock: "You asked for a clock",
 				daily: "Daily notes & journaling",
 				dailyNotes: "Daily notes is enabled",
 				tasks: "Tasks & to-dos",

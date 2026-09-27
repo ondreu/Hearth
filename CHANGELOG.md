@@ -300,6 +300,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Settings and dialogs stay where you were scrolled.** Flipping a toggle,
+  picking from a dropdown or editing a list halfway down Hearth's settings, a
+  card's or a board's settings, or the setup wizard rebuilt the pane and threw
+  it back to the top. It now keeps its place; only moving to another page, tab
+  or step starts at the top. The integrations list's *Show* button scrolls
+  straight to its section without that jump first, and Operon's lands on the
+  Operon section rather than on File icons.
+
 - **Category names in the gallery and the add-card picker are no longer cut
   off.** A name too long for the rail wraps onto a second line instead of
   ending in an ellipsis, and a theme's border and shadow on buttons no longer
@@ -387,6 +395,26 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   ([#326](https://github.com/ondreu/Hearth/issues/326)).
 
 ### Changed
+
+- **A shorter, visual setup wizard.** First-run setup is three steps instead of
+  six. It opens on what the vault is for, with the plugins Hearth found beside
+  those choices, rather than on a welcome page and a form of title fields. The
+  look step shows every background and card style as a small painting of
+  itself instead of describing it. The last step is a scale drawing of the
+  board about to be built — the real background, the header, every card in
+  place and in its style — which follows the title field as you type. The
+  finer header settings are folded away under it.
+
+- **Setup builds boards with no empty cards and no holes.** The working cards
+  fill a main column and the small ones — clock, mini calendar, weather,
+  statistics — a side column, with each card stretched to close the gaps
+  around it. The clock is a small card at the top of that column, and can be
+  switched off, instead of a strip across the full width of every board. A
+  card that would open waiting to be configured now waits for its answer in
+  the wizard instead: *Reading* asks for a feed and *A bit of life* for a
+  place, and their cards join the board once they have one. *Quick capture*
+  gives one card of ready actions (new note, today's note, quick switcher,
+  search, the command palette) in place of two empty launchpads.
 
 - **Hearth's wallpaper is drawn, not downloaded.** The *Hearth default*
   background used to be a 1.5 MB picture fetched from GitHub on every first
