@@ -123,6 +123,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **A board set to *Hearth default* keeps it.** Choosing it in a board's own
   background settings painted nothing and was forgotten on restart.
 
+- **No more sideways wobble on a phone with the Arrange button on hover.**
+  The hidden button was nudged past the board's right edge, which left the
+  whole board a few pixels wider than the screen and scrollable sideways
+  (#326). It now fades and shrinks in place.
+
 
 ## [3.1.1]
 

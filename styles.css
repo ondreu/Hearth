@@ -8826,18 +8826,33 @@ button.hearth-kofi-btn:focus-visible {
  * stays laid out (opacity:0, not display:none), so its own box is the hover
  * target and revealing it shifts nothing. Do NOT add in-flow padding/margin to
  * the auto-hide zone — that grew the zone only in hover mode and pushed the
- * whole board down (see the switcher zone below for the same rule). */
+ * whole board down (see the switcher zone below for the same rule).
+ *
+ * The hidden state shrinks the button toward its right edge rather than
+ * sliding it right. The button sits flush with the board's right edge, so a
+ * `translateX` pushed it past the pane: a transformed box still counts as
+ * scrollable overflow, and on Android that made the whole board a few pixels
+ * wider than the screen — it wobbled sideways under the thumb and showed a
+ * scrollbar (#326). A scale anchored at the right edge never leaves the box it
+ * was laid out in. */
 .hearth-arrange-zone.is-auto-hide .hearth-tool-btn {
 	opacity: 0;
 	pointer-events: none;
-	transform: translateX(8px);
+	transform: scale(0.85);
+	transform-origin: right center;
+	transition:
+		color 120ms ease,
+		border-color 120ms ease,
+		background-color 120ms ease,
+		opacity 120ms ease,
+		transform 120ms ease;
 }
 
 .hearth-arrange-zone.is-auto-hide:hover .hearth-tool-btn,
 .hearth-arrange-zone.is-auto-hide:focus-within .hearth-tool-btn {
 	opacity: 1;
 	pointer-events: auto;
-	transform: translateX(0);
+	transform: none;
 }
 
 /* ---- Dashboard switcher (top-left) ---------------------------------- */
