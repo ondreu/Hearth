@@ -3143,6 +3143,21 @@ button.hearth-kofi-btn:focus-visible {
 	display: none;
 }
 
+/* Obsidian's editor scrolls past the end of the note: it pads the content with
+ * an inline bottom padding sized from the editor's own height, and reading mode
+ * does the same on its sizer. In a full tab that lets the last line reach the
+ * top; in a card it means the note always overflows, however short it is and
+ * however tall the card — a scrollbar that just rescales as the card grows.
+ * !important because the padding is an inline style the editor rewrites. */
+.hearth-jot-live .cm-content,
+.hearth-jot-live .markdown-preview-sizer {
+	padding-bottom: 0 !important;
+}
+
+.hearth-jot-live .markdown-preview-sizer {
+	min-height: 0 !important;
+}
+
 /* Calculator */
 .hearth-calc {
 	height: 100%;
