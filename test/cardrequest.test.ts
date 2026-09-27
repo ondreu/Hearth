@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import featureRequestForm from "../.github/ISSUE_TEMPLATE/feature_request.yml?raw";
 import {
 	CARD_REQUEST_EMAIL,
 	CARD_REQUEST_TITLE,
@@ -34,7 +34,7 @@ describe("cardRequestGithubUrl", () => {
 	});
 
 	it("prefills field ids the issue form actually declares", () => {
-		const form = readFileSync(".github/ISSUE_TEMPLATE/feature_request.yml", "utf8");
+		const form = featureRequestForm;
 		const declared = [...form.matchAll(/^\s+id:\s*(\S+)/gm)].map((m) => m[1]);
 		const url = new URL(cardRequestGithubUrl(ctx));
 		const prefilled = [...url.searchParams.keys()].filter(

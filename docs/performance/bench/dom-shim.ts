@@ -74,4 +74,7 @@ export function installDomShim(): void {
 	proto.setText = function (this: Element, text: string) {
 		this.textContent = text;
 	};
+	proto.setCssProps = function (this: HTMLElement, props: Record<string, string>) {
+		for (const [k, v] of Object.entries(props)) this.style.setProperty(k, v);
+	};
 }

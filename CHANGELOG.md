@@ -67,6 +67,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Expressive design takes Material 3's menu elevation with a tonal edge, so
   it no longer reads as sitting flat on the cards below.
 
+- **The README has a Privacy & network section.** It lists every service
+  Hearth can contact, what triggers each request and what is sent, and what
+  Hearth does with your vault and clipboard.
+
 ### Fixed
 
 - **No more sideways wobble on a phone with the Arrange button on hover.**
@@ -78,6 +82,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   at their old size until the pane edge stopped moving and then jumped into
   place. On the *Full* performance tier they now follow the resize frame by
   frame; the lower tiers keep the single re-fit at the end to save the work.
+
+- **Disable external calls now covers bookmark icons too.** A URL bookmark's
+  favicon was still fetched from Google's favicon service with the switch on.
+  It now shows the globe icon instead.
 
 
 ## [3.2.0]

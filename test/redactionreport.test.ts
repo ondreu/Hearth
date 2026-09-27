@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import bugReportForm from "../.github/ISSUE_TEMPLATE/bug_report.yml?raw";
 import {
 	REDACTION_REPORT_TITLE,
 	redactionReportGithubUrl,
@@ -32,7 +32,7 @@ describe("redactionReportGithubUrl", () => {
 	});
 
 	it("prefills field ids the issue form actually declares", () => {
-		const form = readFileSync(".github/ISSUE_TEMPLATE/bug_report.yml", "utf8");
+		const form = bugReportForm;
 		const declared = [...form.matchAll(/^\s+id:\s*(\S+)/gm)].map((m) => m[1]);
 		const url = new URL(redactionReportGithubUrl(ctx));
 		const prefilled = [...url.searchParams.keys()].filter(

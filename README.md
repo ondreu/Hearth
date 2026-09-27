@@ -50,7 +50,8 @@ of your accent color.
 [Quick start](#quick-start) · [Setup wizard](#setup-wizard) ·
 [Search](#search) · [Cards](#cards) · [Integrations](#integrations) ·
 [Layout](#layout) · [Appearance](#appearance) · [Mobile](#mobile) ·
-[Settings & shortcuts](#settings--shortcuts) · [Development](#development) ·
+[Settings & shortcuts](#settings--shortcuts) · [Privacy & network](#privacy--network) ·
+[Development](#development) ·
 [Contributing](#contributing)
 
 > **Looking for more detail?** The [Hearth User Guide](docs/user-guide/) is a
@@ -506,6 +507,38 @@ Bindable under **Settings → Hotkeys**:
 - **Switch to next / previous dashboard**
 
 In the search field: `↑`/`↓` to move, `Enter` to open, `Esc` to dismiss.
+
+## Privacy & network
+
+Hearth has **no telemetry, no analytics and no ads**, and it never sends your
+notes anywhere. Out of the box it makes no network requests at all: every call
+below happens only because you added the card, typed the query or opened the
+screen that needs it, and **Settings → Behaviour → Disable external calls**
+switches all of them off at once.
+
+| What you use | Who it contacts | What is sent |
+| --- | --- | --- |
+| **Weather** card | `api.open-meteo.com`, `geocoding-api.open-meteo.com` | The coordinates or place name you set |
+| **Markets** card | `query1/query2.finance.yahoo.com`, `api.coingecko.com`, `qt.gtimg.cn`, `web.ifzq.gtimg.cn`, `smartbox.gtimg.cn`, `fundgz.1234567.com.cn`, `fund.eastmoney.com`, `api.frankfurter.app` | The symbols on your watchlist or the name you search for |
+| **Calculator** card and currency answers in search | `api.frankfurter.app` | Nothing but the request for today's rates |
+| `wiki …` answers in search | `<language>.wikipedia.org` | The term you look up |
+| **RSS feed**, **Mini calendar** (ICS/iCal), **Web page** cards | Only the addresses you enter | A plain request for that feed, calendar or page |
+| **Jira filter** card | Only the Jira instance you enter | Your filter or JQL, with the token you enter on the card |
+| **Bookmarks** card, URL bookmarks | `www.google.com/s2/favicons` | The bookmark's domain, to fetch its icon |
+| **Dashboard gallery** (browse, import, publish) | `gallery.o-uhnavy.com`, or the gallery server you set | What you choose to publish; browsing sends only the search |
+| A background image or title icon given as a web address | That address | A plain request for the image |
+
+Links in the settings and in *What's new* (GitHub issues, Ko-fi) open in your
+browser only when you click them.
+
+**Your vault.** Search, the statistics and heatmap cards and the tasks cards
+list the files in your vault and read notes to show them on the board. That
+stays on your device. Hearth writes to your vault only when you act: a note
+created from a card or template, a checkbox ticked, an event note, an imported
+picture.
+
+**Clipboard.** Hearth writes to the clipboard when you press a copy button (an
+instant answer, a publishing key). It never reads the clipboard.
 
 ## Disclaimer
 

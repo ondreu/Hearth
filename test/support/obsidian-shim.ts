@@ -16,7 +16,6 @@
  *     functions that would call them (vault queries, network fetches, DOM work)
  *     are intentionally left untested, per the "no Obsidian API mocks" rule.
  */
-import { Buffer } from "node:buffer";
 import moment from "moment";
 
 export { moment };
@@ -40,13 +39,18 @@ export function requestUrl(): unknown {
 // Obsidian's own base64 helpers. Real implementations rather than placeholders:
 // they are pure functions over an ArrayBuffer, the portable-package engine's
 // asset handling is pure logic built on them, and a test that embeds a picture
-// wants the actual bytes to come back out. Node's Buffer is the same base64.
+// wants the actual bytes to come back out. btoa/atob are the same base64, and
+// unlike Node's Buffer they exist on every platform the plugin runs on.
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-	return Buffer.from(buffer).toString("base64");
+	let binary = "";
+	for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte);
+	return btoa(binary);
 }
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-	const bytes = Buffer.from(base64, "base64");
-	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+	const binary = atob(base64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	return bytes.buffer;
 }
 
 export class TAbstractFile {}

@@ -1,5 +1,4 @@
 import { defineConfig } from "vitest/config";
-import { fileURLToPath } from "node:url";
 
 export default defineConfig({
 	test: {
@@ -13,7 +12,8 @@ export default defineConfig({
 		alias: {
 			// The `obsidian` package is types-only; point it at a tiny shim that
 			// re-exports the real moment.js and inert placeholders (see the file).
-			obsidian: fileURLToPath(new URL("./test/support/obsidian-shim.ts", import.meta.url)),
+			// A leading "/" is the project root to Vite, so this needs no Node path API.
+			obsidian: "/test/support/obsidian-shim.ts",
 		},
 	},
 });

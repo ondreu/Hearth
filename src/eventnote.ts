@@ -83,6 +83,10 @@ export interface BuiltEventNote {
 	frontmatter: Record<string, string>;
 }
 
+/** Frontmatter property that stores the event UID when
+ * {@link EventNoteConfig.linkKey} is unset. */
+export const DEFAULT_EVENT_LINK_KEY = "event_uid";
+
 /** Sensible out-of-the-box routing so the feature works before any tuning:
  * date and time as frontmatter, description into the body, location/url/calendar
  * as frontmatter. The name is always the filename, so it needs no rule. */
@@ -183,7 +187,7 @@ export function buildEventNote(
 	}
 
 	// The link key ties the event to its note (one note per UID). Empty disables.
-	const linkKey = cfg.linkKey === undefined ? "event_uid" : cfg.linkKey.trim();
+	const linkKey = cfg.linkKey === undefined ? DEFAULT_EVENT_LINK_KEY : cfg.linkKey.trim();
 	if (linkKey && ev.uid) frontmatter[linkKey] = ev.uid;
 
 	let body = templateContent ? applyEventPlaceholders(templateContent, ev) : "";

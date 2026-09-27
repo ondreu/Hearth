@@ -19,20 +19,6 @@ export default tseslint.config(
 			// Vyžaduje Obsidian API 1.13.0+; minAppVersion je 1.8.7.
 			// Zapnout zpět, až se minAppVersion zvedne.
 			"obsidianmd/settings-tab/prefer-setting-definitions": "off",
-			// Sentence case is for prose. Some UI strings are literal property
-			// keys instead — e.g. the `event_uid` placeholder in the calendar
-			// event-note settings, which is the actual frontmatter key written
-			// by eventnote.ts. Sentence-casing those to `Event_uid` would show
-			// users a key that does not match the one the plugin writes, so
-			// exempt snake_case identifiers. `enforceCamelCaseLower` is
-			// repeated from the preset because options replace, not merge.
-			"obsidianmd/ui/sentence-case": [
-				"warn",
-				{
-					enforceCamelCaseLower: true,
-					ignoreRegex: ["^[a-z0-9]+(?:_[a-z0-9]+)+$"],
-				},
-			],
 		},
 	},
 	// The file that *implements* Obsidian's `createEl` for jsdom has to reach
@@ -44,24 +30,16 @@ export default tseslint.config(
 			"obsidianmd/prefer-create-el": "off",
 		},
 	},
-	// The test suite is not part of the shipped plugin bundle, so the rules
-	// about what a plugin may import do not apply to it. In particular,
 	// test/support/obsidian-shim.ts is what *provides* the `moment` export that
 	// the "import moment from 'obsidian' instead" rule points at — following
 	// that advice here would be circular, and the shim documents the choice.
+	// Everything else in test/ is held to the same rules as the plugin, because
+	// the community directory's scorecard lints the whole repository and does
+	// not read these overrides.
 	{
-		files: ["test/**"],
+		files: ["test/support/obsidian-shim.ts"],
 		rules: {
 			"@typescript-eslint/no-restricted-imports": "off",
-			// Same reason: tests run in Node, never on a phone, and a couple of
-			// them read repository files (test/cardrequest.test.ts checks the
-			// picker's prefilled issue URL against the real issue-form template).
-			"obsidianmd/no-nodejs-modules": "off",
-			// The rule is right about the plugin: the config folder is read from
-			// Vault#configDir, never assumed. A test of the code that builds a
-			// path *out of* that value has to write a folder name down somewhere,
-			// and test/settingssync.test.ts covers a renamed one explicitly.
-			"obsidianmd/hardcoded-config-path": "off",
 		},
 	},
 );

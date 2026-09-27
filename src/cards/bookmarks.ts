@@ -150,7 +150,10 @@ function renderBookmarkLeaf(
 			? view.app.vault.getAbstractFileByPath(item.path)
 			: null;
 	if (item.type === "url" && item.url) {
-		renderFavicon(iconEl, item.url);
+		// The favicon comes from Google's favicon service, so it is a network
+		// request like any other and stays off under Disable external calls.
+		if (view.plugin.settings.disableExternalCalls) setIcon(iconEl, "globe");
+		else renderFavicon(iconEl, item.url);
 	} else if (target) {
 		applyFileIcon(iconEl, resolveFileIcon(view.app, target, fileIconOptions(view.plugin.settings)));
 	} else {

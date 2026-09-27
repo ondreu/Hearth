@@ -53,12 +53,13 @@ function makeBoard(root: HTMLElement, s: Scenario): void {
 		layer.style.opacity = String(DEFAULTS.backgroundOpacity);
 		if (s.bgBlur > 0) layer.style.filter = `blur(${s.bgBlur}px)`;
 		if (s.bg === "color") {
-			layer.style.background = "#101014";
+			layer.setCssProps({ background: "#101014" });
 		} else if (s.bg === "image") {
 			// A local gradient stands in for the wallpaper: same compositing shape
 			// as a bitmap, with no network in the measurement.
-			layer.style.background =
-				"linear-gradient(135deg,#2b3a55 0%,#7b4b6e 40%,#c98a5e 70%,#22303f 100%)";
+			layer.setCssProps({
+				background: "linear-gradient(135deg,#2b3a55 0%,#7b4b6e 40%,#c98a5e 70%,#22303f 100%)",
+			});
 		} else {
 			drawSky(layer, {
 				code: s.skyCode,
@@ -74,19 +75,23 @@ function makeBoard(root: HTMLElement, s: Scenario): void {
 	const inner = scroll.createDiv("hearth-inner");
 	const dash = inner.createDiv("hearth-dashboard");
 	const grid = dash.createDiv("hearth-grid");
-	grid.style.setProperty("--card-opacity", String(DEFAULTS.cardOpacity));
-	grid.style.setProperty("--hearth-card-radius", `${DEFAULTS.cardRadius}px`);
-	grid.style.setProperty("--card-border-width", "1px");
-	grid.style.position = "relative";
-	grid.style.height = "600px";
+	grid.setCssProps({
+		"--card-opacity": String(DEFAULTS.cardOpacity),
+		"--hearth-card-radius": `${DEFAULTS.cardRadius}px`,
+		"--card-border-width": "1px",
+		position: "relative",
+		height: "600px",
+	});
 
 	for (const c of CARDS) {
 		const el = grid.createDiv("hearth-card");
-		el.style.position = "absolute";
-		el.style.left = `${c.x}px`;
-		el.style.top = `${c.y}px`;
-		el.style.width = `${c.w}px`;
-		el.style.height = `${c.h}px`;
+		el.setCssProps({
+			position: "absolute",
+			left: `${c.x}px`,
+			top: `${c.y}px`,
+			width: `${c.w}px`,
+			height: `${c.h}px`,
+		});
 		if (s.cardBlur > 0) {
 			el.addClass("has-blur");
 			el.dataset.blur = String(s.cardBlur);

@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer";
+import { arrayBufferToBase64, base64ToArrayBuffer } from "obsidian";
 import { describe, expect, it } from "vitest";
 import {
 	type Dashboard,
@@ -1363,29 +1363,15 @@ describe("carrying the wallpaper", () => {
 			written,
 			read: (path) => {
 				if (!(path in files)) return Promise.resolve(null);
-				const bytes = Buffer.from(files[path]);
-				// The slice matters: `.buffer` alone is Node's whole allocation
-				// pool, not these bytes.
-				return Promise.resolve(
-					bytes.buffer.slice(
-						bytes.byteOffset,
-						bytes.byteOffset + bytes.byteLength,
-					),
-				);
+				return Promise.resolve(new TextEncoder().encode(files[path]).buffer);
 			},
 			write: (folder, name, data) => {
 				const path = folder ? `${folder}/${name}` : name;
-				written[path] = Buffer.from(data).toString();
+				written[path] = new TextDecoder().decode(data);
 				return Promise.resolve(path);
 			},
-			encode: (data) => Buffer.from(data).toString("base64"),
-			decode: (b64) => {
-				const bytes = Buffer.from(b64, "base64");
-				return bytes.buffer.slice(
-					bytes.byteOffset,
-					bytes.byteOffset + bytes.byteLength,
-				);
-			},
+			encode: arrayBufferToBase64,
+			decode: base64ToArrayBuffer,
 		};
 	}
 
@@ -1541,7 +1527,7 @@ describe("carrying the wallpaper", () => {
 		const s = opinionatedVault();
 		const pkg = captureDashboard(s, s.dashboards[0]);
 		await embedAssets(pkg, fakeStore({ "Attachments/wall.png": "PNGDATA" }));
-		pkg.assets![0].name = "../../../.obsidian/plugins/hearth/main.js";
+		pkg.assets![0].name = "../../../.config/plugins/hearth/main.js";
 
 		const target = fakeStore({});
 		const report = await materializeAssets(pkg, target, "Hearth/imported");
@@ -1556,7 +1542,7 @@ describe("carrying the wallpaper", () => {
 		// A name whose extension doesn't match the mime sends safeAssetName down
 		// its fallback branch, which is the one that reads the id.
 		pkg.assets![0].name = "x";
-		pkg.assets![0].id = "../../../.obsidian/plugins/hearth/evil";
+		pkg.assets![0].id = "../../../.config/plugins/hearth/evil";
 
 		const target = fakeStore({});
 		const report = await materializeAssets(pkg, target, "Hearth/imported");

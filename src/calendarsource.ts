@@ -20,6 +20,7 @@ import {
 import { moveItem } from "./editors";
 import {
 	buildEventNote,
+	DEFAULT_EVENT_LINK_KEY,
 	DEFAULT_EVENT_NOTE_FIELDS,
 	type EventField,
 	type EventFieldAction,
@@ -654,7 +655,7 @@ class EventDetailModal extends HearthModal {
 	 * already exists, matched by the event UID in frontmatter). */
 	private renderNoteAction(): void {
 		const cfg = this.ics.eventNote ?? {};
-		const linkKey = cfg.linkKey === undefined ? "event_uid" : cfg.linkKey.trim();
+		const linkKey = cfg.linkKey === undefined ? DEFAULT_EVENT_LINK_KEY : cfg.linkKey.trim();
 		const existing = findEventNote(this.app, this.ev.uid, linkKey);
 
 		const footer = this.contentEl.createDiv("hearth-event-footer");
@@ -1656,7 +1657,7 @@ export function eventNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		.setDesc(t().editors.calendar.eventNoteLinkKeyDesc)
 		.addText((txt) =>
 			txt
-				.setPlaceholder("event_uid")
+				.setPlaceholder(DEFAULT_EVENT_LINK_KEY)
 				.setValue(note.linkKey ?? "")
 				.onChange((v) => {
 					// Distinguish "unset (use default)" from "explicitly empty".
