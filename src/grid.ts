@@ -1049,9 +1049,10 @@ export function updateFrostLayers(gridEl: HTMLElement): void {
 				layer = root.createDiv("hearth-frost");
 				layer.dataset.frost = key;
 			}
-			const filter = `blur(${blur}px)`;
-			layer.style.setProperty("backdrop-filter", filter);
-			layer.style.setProperty("-webkit-backdrop-filter", filter);
+			// The radius goes in as a variable, not as an inline backdrop-filter:
+			// styles.css applies it, so the kill switches there (no frost, macOS
+			// translucency) can still turn the blur off by specificity alone.
+			layer.style.setProperty("--hearth-frost-blur", `${blur}px`);
 
 			// Size the layer to its own run, and to EXACTLY that run — no padding.
 			//

@@ -2,6 +2,18 @@
 /*  Hearth — home dashboard                                              */
 /* ===================================================================== */
 
+/* A note on `:not(#hearth-boost)`.
+ *
+ * No element has that id, so the selector always matches; what it adds is an
+ * id's worth of specificity. It stands in for `!important` on the few rules
+ * that must win against CSS Hearth does not control — a theme, Obsidian's own
+ * stylesheet, a hosted plugin view — or against every other rule in this file
+ * at once (the motion and frost kill switches). Themes and Obsidian style by
+ * class, so one id outranks them without taking the rule out of the cascade
+ * altogether the way `!important` does: a snippet can still override it, and
+ * an inline style still wins. Use it only where a plain selector demonstrably
+ * loses, and say why next to the rule. */
+
 .hearth-view {
 	position: relative;
 	height: 100%;
@@ -529,12 +541,12 @@
  *
  * Nothing in this block changes layout, so toggling either class never moves
  * anything on the board — it only stops it from being animated or filtered. */
-.hearth-view.hearth-no-motion *,
-.hearth-view.hearth-no-motion *::before,
-.hearth-view.hearth-no-motion *::after {
-	transition: none !important;
-	animation: none !important;
-	box-shadow: none !important;
+.hearth-view.hearth-no-motion *:not(#hearth-boost),
+.hearth-view.hearth-no-motion *:not(#hearth-boost)::before,
+.hearth-view.hearth-no-motion *:not(#hearth-boost)::after {
+	transition: none;
+	animation: none;
+	box-shadow: none;
 }
 
 /* ---- The motion gates (src/motion.ts) --------------------------------
@@ -553,24 +565,24 @@
  * Transitions are left alone. They are short, they only run in response to
  * something the reader just did, and a transition frozen halfway is a control
  * stuck mid-hover. */
-.hearth-view.hearth-motion-paused *,
-.hearth-view.hearth-motion-paused *::before,
-.hearth-view.hearth-motion-paused *::after,
-.hearth-view .hearth-card.is-motion-paused *,
-.hearth-view .hearth-card.is-motion-paused *::before,
-.hearth-view .hearth-card.is-motion-paused *::after {
-	animation-play-state: paused !important;
+.hearth-view.hearth-motion-paused *:not(#hearth-boost),
+.hearth-view.hearth-motion-paused *:not(#hearth-boost)::before,
+.hearth-view.hearth-motion-paused *:not(#hearth-boost)::after,
+.hearth-view .hearth-card.is-motion-paused *:not(#hearth-boost),
+.hearth-view .hearth-card.is-motion-paused *:not(#hearth-boost)::before,
+.hearth-view .hearth-card.is-motion-paused *:not(#hearth-boost)::after {
+	animation-play-state: paused;
 }
 
 /* Belt and braces: with every resolved blur at 0 the frost layers are never
  * built, but hard-coded backdrop filters elsewhere (the arrange-mode card
  * header) are switched off here too — each one is a separate backdrop root the
  * compositor has to re-filter on scroll. */
-.hearth-view.hearth-no-frost *,
-.hearth-view.hearth-no-frost *::before,
-.hearth-view.hearth-no-frost *::after {
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
+.hearth-view.hearth-no-frost *:not(#hearth-boost),
+.hearth-view.hearth-no-frost *:not(#hearth-boost)::before,
+.hearth-view.hearth-no-frost *:not(#hearth-boost)::after {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
 }
 
 /* The same switch, thrown for a reason that has nothing to do with the tier:
@@ -589,19 +601,19 @@
  * translucent window off and the frosted glass comes straight back at whatever
  * radius it was already set to. The paired note in Settings -> Dashboard ->
  * Card surface says so, so a missing blur is never a mystery. */
-body.is-translucent .hearth-view.hearth-macos *,
-body.is-translucent .hearth-view.hearth-macos *::before,
-body.is-translucent .hearth-view.hearth-macos *::after {
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
+body.is-translucent .hearth-view.hearth-macos *:not(#hearth-boost),
+body.is-translucent .hearth-view.hearth-macos *:not(#hearth-boost)::before,
+body.is-translucent .hearth-view.hearth-macos *:not(#hearth-boost)::after {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
 }
 
 /* Loading spinners are the one animation the tier keeps: frozen mid-spin they
  * read as a broken card rather than a calm one. The gates above still pause
  * them, which is right — a spinner nobody can see is the clearest case of
  * animating for no one, and it resumes the moment anyone looks. */
-.hearth-view.hearth-no-motion .is-loading {
-	animation: hearth-rss-spin 0.9s linear infinite !important;
+.hearth-view.hearth-no-motion .is-loading:not(#hearth-boost) {
+	animation: hearth-rss-spin 0.9s linear infinite;
 }
 
 /* Hover lift on cards and tiles: a transform promotes the element to its own
@@ -631,15 +643,15 @@ body.is-translucent .hearth-view.hearth-macos *::after {
  * reads as a hung card, and the preference is about motion that decorates,
  * not motion that reports. */
 @media (prefers-reduced-motion: reduce) {
-	.hearth-view *,
-	.hearth-view *::before,
-	.hearth-view *::after {
-		transition: none !important;
-		animation: none !important;
+	.hearth-view *:not(#hearth-boost),
+	.hearth-view *:not(#hearth-boost)::before,
+	.hearth-view *:not(#hearth-boost)::after {
+		transition: none;
+		animation: none;
 	}
 
-	.hearth-view .is-loading {
-		animation: hearth-rss-spin 0.9s linear infinite !important;
+	.hearth-view .is-loading:not(#hearth-boost) {
+		animation: hearth-rss-spin 0.9s linear infinite;
 	}
 
 	.hearth-view .hearth-card:hover,
@@ -1791,6 +1803,9 @@ button.hearth-tips-example:hover {
 .hearth-frost {
 	position: absolute;
 	pointer-events: none;
+	/* The radius is set per layer by updateFrostLayers(). */
+	backdrop-filter: blur(var(--hearth-frost-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--hearth-frost-blur, 0px));
 	-webkit-mask-repeat: no-repeat;
 	mask-repeat: no-repeat;
 }
@@ -2115,13 +2130,14 @@ button.hearth-tips-example:hover {
 
 /* Belt-and-braces: also clear the standard chrome wrappers directly, in case a
  * theme hard-codes their background to a literal colour instead of the variable
- * neutralised above. !important because plugin CSS and theme CSS load order
- * isn't guaranteed and this transparency is the whole point of the card. */
-.hearth-leaf-host .workspace-leaf,
-.hearth-leaf-host .workspace-leaf-content,
-.hearth-leaf-host .view-content,
-.hearth-leaf-host .view-header {
-	background: transparent !important;
+ * neutralised above. Boosted (see the top of this file) because plugin CSS
+ * and theme CSS load order isn't guaranteed and this transparency is the whole
+ * point of the card. */
+.hearth-leaf-host .workspace-leaf:not(#hearth-boost),
+.hearth-leaf-host .workspace-leaf-content:not(#hearth-boost),
+.hearth-leaf-host .view-content:not(#hearth-boost),
+.hearth-leaf-host .view-header:not(#hearth-boost) {
+	background: transparent;
 }
 
 /* Optionally drop the hosted view's own header (breadcrumbs, back/forward and
@@ -3422,12 +3438,12 @@ button.hearth-kofi-btn:focus-visible {
  * to edit it. Same reasoning as the focus-ring guard near the end of this file:
  * this control owns its own surface (it stands in for the rendered preview),
  * whatever a theme writes. Focus outline/box-shadow are handled there. */
-.hearth-text,
-.hearth-text:hover,
-.hearth-text:active,
-.hearth-text:focus {
-	background: transparent !important;
-	border: none !important;
+.hearth-text:not(#hearth-boost),
+.hearth-text:hover:not(#hearth-boost),
+.hearth-text:active:not(#hearth-boost),
+.hearth-text:focus:not(#hearth-boost) {
+	background: transparent;
+	border: none;
 }
 
 /* Live-preview note card: Obsidian's real editor hosted in the card body. The
@@ -5333,8 +5349,8 @@ button.hearth-kofi-btn:focus-visible {
  * stay where sky.ts placed them (drops are spread down the field for exactly
  * this case), so nothing disappears — it simply stops moving. */
 @media (prefers-reduced-motion: reduce) {
-	.hearth-weather-sky.is-animated * {
-		animation: none !important;
+	.hearth-weather-sky.is-animated *:not(#hearth-boost) {
+		animation: none;
 	}
 }
 
@@ -6054,9 +6070,9 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.hearth-weather.is-moon.is-classic *,
-.hearth-weather.is-daylight.is-classic * {
-		animation: none !important;
+	.hearth-weather.is-moon.is-classic *:not(#hearth-boost),
+	.hearth-weather.is-daylight.is-classic *:not(#hearth-boost) {
+		animation: none;
 	}
 }
 
@@ -6855,9 +6871,9 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.hearth-weather.is-moon.is-expressive *,
-.hearth-weather.is-daylight.is-expressive * {
-		animation: none !important;
+	.hearth-weather.is-moon.is-expressive *:not(#hearth-boost),
+	.hearth-weather.is-daylight.is-expressive *:not(#hearth-boost) {
+		animation: none;
 	}
 }
 
@@ -7487,8 +7503,8 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.hearth-weather.is-expressive * {
-		animation: none !important;
+	.hearth-weather.is-expressive *:not(#hearth-boost) {
+		animation: none;
 	}
 }
 
@@ -10877,12 +10893,12 @@ body.hearth-dv-resizing {
 /* Selected fill. Prism remaps --interactive-accent to a faint tint and forces
  * `.modal button` backgrounds transparent, so chips are non-button elements
  * and the fill uses the stronger accent-base / accent-text tokens when present. */
-.hearth-taskfilter-chip.is-on {
-	background-color: var(--interactive-accent-base, var(--interactive-accent)) !important;
-	background: var(--interactive-accent-base, var(--interactive-accent)) !important;
-	border-color: var(--interactive-accent-base, var(--interactive-accent)) !important;
-	color: var(--interactive-accent-text, var(--text-on-accent, var(--highlight-text-normal))) !important;
-	box-shadow: none !important;
+.hearth-taskfilter-chip.is-on:not(#hearth-boost) {
+	background-color: var(--interactive-accent-base, var(--interactive-accent));
+	background: var(--interactive-accent-base, var(--interactive-accent));
+	border-color: var(--interactive-accent-base, var(--interactive-accent));
+	color: var(--interactive-accent-text, var(--text-on-accent, var(--highlight-text-normal)));
+	box-shadow: none;
 }
 
 /* ---- Task custom-sort modal ----------------------------------------- */
@@ -10921,9 +10937,9 @@ body.hearth-dv-resizing {
  * the outer .bases-header collapses its space; the inner selector is a fallback
  * in case a future Bases build drops the wrapper. Scoped to the opted-in host so
  * no other embed is affected. */
-.hearth-embed-hide-base-header .bases-header,
-.hearth-embed-hide-base-header .bases-toolbar {
-	display: none !important;
+.hearth-embed-hide-base-header .bases-header:not(#hearth-boost),
+.hearth-embed-hide-base-header .bases-toolbar:not(#hearth-boost) {
+	display: none;
 }
 
 /* Embedded Bases: let the view show the card's translucent surface (#opacity).
@@ -10961,11 +10977,11 @@ body.hearth-dv-resizing {
  * directly in case a theme hard-codes their fill to a literal colour instead of
  * the variables neutralised above. Deliberately limited to containers — cells
  * and rows are left alone so hover/selection highlights still paint. */
-.hearth-embed-base .bases-view,
-.hearth-embed-base .bases-table-container,
-.hearth-embed-base .bases-table,
-.hearth-embed-base .bases-tbody {
-	background: transparent !important;
+.hearth-embed-base .bases-view:not(#hearth-boost),
+.hearth-embed-base .bases-table-container:not(#hearth-boost),
+.hearth-embed-base .bases-table:not(#hearth-boost),
+.hearth-embed-base .bases-tbody:not(#hearth-boost) {
+	background: transparent;
 }
 
 /* ---- Embed second-view switcher ------------------------------------- */
@@ -12879,25 +12895,26 @@ body.hearth-dv-resizing {
    Out-specifying that per control would mean leaning on each one's ancestors
    — awkward, since the task-detail editor lives in a modal rather than in
    .hearth-view — and would still only hold against this one theme's exact
-   selector. !important states the rule these controls actually follow: they
-   own their focus affordance, whatever a theme writes.
+   selector. The boost (see the top of this file) states the rule these
+   controls actually follow: they own their focus affordance, whatever a
+   theme writes.
 
    Deliberately limited to the controls that already set `outline: none`.
    Inputs drawn with an ordinary border (the Kanban editors, the task-detail
    description and interval fields, the Jira filter search) keep the theme's
    focus ring, because for them it is the affordance. */
-.hearth-search-input:focus,
-.hearth-search-input:focus-visible,
-.hearth-text:focus,
-.hearth-text:focus-visible,
-.hearth-calc-input:focus,
-.hearth-calc-input:focus-visible,
-.hearth-card-title-input:focus,
-.hearth-card-title-input:focus-visible,
-.hearth-taskdetail-title-edit:focus,
-.hearth-taskdetail-title-edit:focus-visible {
-	outline: none !important;
-	box-shadow: none !important;
+.hearth-search-input:focus:not(#hearth-boost),
+.hearth-search-input:focus-visible:not(#hearth-boost),
+.hearth-text:focus:not(#hearth-boost),
+.hearth-text:focus-visible:not(#hearth-boost),
+.hearth-calc-input:focus:not(#hearth-boost),
+.hearth-calc-input:focus-visible:not(#hearth-boost),
+.hearth-card-title-input:focus:not(#hearth-boost),
+.hearth-card-title-input:focus-visible:not(#hearth-boost),
+.hearth-taskdetail-title-edit:focus:not(#hearth-boost),
+.hearth-taskdetail-title-edit:focus-visible:not(#hearth-boost) {
+	outline: none;
+	box-shadow: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -13673,11 +13690,11 @@ body.hearth-dv-resizing {
  * colors — only the movement and the frame cycling stop, on the frame the
  * mood leads with. */
 @media (prefers-reduced-motion: reduce) {
-	.hearth-pet-sprite,
-	.hearth-pet-frame,
-	.hearth-pet-z,
-	.hearth-pet-heart {
-		animation: none !important;
+	.hearth-pet-sprite:not(#hearth-boost),
+	.hearth-pet-frame:not(#hearth-boost),
+	.hearth-pet-z:not(#hearth-boost),
+	.hearth-pet-heart:not(#hearth-boost) {
+		animation: none;
 	}
 
 	.hearth-pet-frame[data-f="0"] {
@@ -13815,9 +13832,12 @@ body.hearth-dv-resizing {
 	min-width: 0;
 	width: 100%;
 	box-sizing: border-box;
-	/* See the gallery's field: the theme's own input rule outranks this one. */
-	padding-left: 32px !important;
 	font-size: var(--font-ui-medium);
+}
+
+/* See the gallery's field: the theme's own input rule outranks a class. */
+.hearth-picker-search-input:not(#hearth-boost) {
+	padding-left: 32px;
 }
 
 .hearth-picker-rail {
@@ -15400,11 +15420,14 @@ body.hearth-dv-resizing {
 	min-width: 0;
 	width: 100%;
 	box-sizing: border-box;
-	/* `!important` because it has to win, and cannot by specificity: themes
-	   style the field through `.modal input[type="text"]`, which outranks a
-	   class and loads after the plugin's stylesheet. Without it the padding is
-	   dropped and the placeholder starts underneath the magnifier. */
-	padding-left: 32px !important;
+}
+
+/* Boosted (see the top of this file) because it has to win: themes style the
+   field through `.modal input[type="text"]`, which outranks a class and loads
+   after the plugin's stylesheet. Without it the padding is dropped and the
+   placeholder starts underneath the magnifier. */
+.hearth-gallery-search-input:not(#hearth-boost) {
+	padding-left: 32px;
 }
 
 .hearth-gallery-sort {
@@ -16524,24 +16547,24 @@ button:is(.hearth-gallery-rail-btn, .hearth-gallery-rail-publish, .hearth-picker
    `display: none`, not `visibility: hidden`: a hidden element still
    participates in a theme's `backdrop-filter`, and the point here is that the
    dialog leaves no trace in the frame at all. */
-.hearth-snapshot-hidden {
-	display: none !important;
+.hearth-snapshot-hidden:not(#hearth-boost) {
+	display: none;
 }
 
 /* Themes are entitled to blur the workspace while a modal is open, and several
    do. Capturing photographs the window, so that blur would land in the
    published picture — of a board whose author never saw it blurred. Off for the
-   duration, and `!important` because it has to outrank whatever the theme
-   wrote. */
-body.hearth-snapshot-capturing .workspace,
-body.hearth-snapshot-capturing .workspace-leaf,
-body.hearth-snapshot-capturing .workspace-split,
-body.hearth-snapshot-capturing .view-content,
-body.hearth-snapshot-capturing .hearth-view {
-	filter: none !important;
-	backdrop-filter: none !important;
-	transform: none !important;
-	opacity: 1 !important;
+   duration, and boosted (see the top of this file) because it has to outrank
+   whatever the theme wrote. */
+body.hearth-snapshot-capturing .workspace:not(#hearth-boost),
+body.hearth-snapshot-capturing .workspace-leaf:not(#hearth-boost),
+body.hearth-snapshot-capturing .workspace-split:not(#hearth-boost),
+body.hearth-snapshot-capturing .view-content:not(#hearth-boost),
+body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
+	filter: none;
+	backdrop-filter: none;
+	transform: none;
+	opacity: 1;
 }
 
 /* A card's contents, replaced with blocks and then drawn as soft rounded bars
@@ -16549,20 +16572,18 @@ body.hearth-snapshot-capturing .hearth-view {
    that reads as a rendering fault. The characters are gone from the DOM either
    way; this is only how the gap looks. */
 .hearth-snapshot-bar {
-	color: transparent !important;
 	background-color: var(--text-normal);
 	opacity: 0.22;
 	border-radius: 3px;
 }
 
-/* Pictures inside cards are the other thing that can carry somebody's content.
-   The wallpaper is behind the grid and survives, because it is already
-   published as an asset. */
-.hearth-snapshot-redacted .hearth-card-body img,
-.hearth-snapshot-redacted .hearth-card-body video,
-.hearth-snapshot-redacted .hearth-card-body iframe {
-	filter: blur(10px) !important;
+.hearth-snapshot-bar:not(#hearth-boost) {
+	color: transparent;
 }
+
+/* Pictures, video, frames and canvases inside cards are blurred by
+   src/gallery/snapshot.ts itself, as an inline style: a picture in a note can
+   carry an inline `filter` of its own, which no stylesheet rule outranks. */
 
 /* What is blanked rather than rewritten: a hosted editor (a live-preview note
    card) and every form field holding a value (a calculator's sum, a search
@@ -16576,24 +16597,27 @@ body.hearth-snapshot-capturing .hearth-view {
    the card keeps its shape), text is drawn in nothing, and the region goes
    through a blur as a backstop against anything a theme un-hides. See
    src/gallery/snapshot.ts. */
-.hearth-snapshot-redacted .hearth-snapshot-blank > * {
-	visibility: hidden !important;
+.hearth-snapshot-redacted .hearth-snapshot-blank > *:not(#hearth-boost) {
+	visibility: hidden;
 }
 
-.hearth-snapshot-redacted .hearth-snapshot-blank,
-.hearth-snapshot-redacted .hearth-snapshot-blank * {
-	color: transparent !important;
-	-webkit-text-fill-color: transparent !important;
-	text-shadow: none !important;
-	caret-color: transparent !important;
+.hearth-snapshot-redacted .hearth-snapshot-blank:not(#hearth-boost),
+.hearth-snapshot-redacted .hearth-snapshot-blank *:not(#hearth-boost) {
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	text-shadow: none;
+	caret-color: transparent;
 }
 
 .hearth-snapshot-redacted .hearth-snapshot-blank {
-	filter: blur(8px) !important;
 	/* So the region still reads as "content lives here" rather than as an empty
 	   card — the same soft ink the bars are drawn in. */
 	background-color: var(--text-normal);
 	opacity: 0.16;
+}
+
+.hearth-snapshot-redacted .hearth-snapshot-blank:not(#hearth-boost) {
+	filter: blur(8px);
 }
 
 /* When the editor's line rhythm was measured and drawn back over it (see
@@ -16627,16 +16651,6 @@ body.hearth-snapshot-capturing .hearth-view {
 	   drawn at the full height read as a solid block, so they are inset to the
 	   weight of the writing they stand for. */
 	transform: scaleY(0.56);
-}
-
-/* A canvas is blurred a little less than a picture, because the graph view's
-   *shape* is worth publishing and a heavy blur turns it to fog. Not much less:
-   nothing inside a canvas is text to the redactor — it is pixels — so this blur
-   is the only thing standing between an Excalidraw heading, an Obsidian Canvas
-   note or a graph's node labels and everyone who installs the board. A graph
-   still reads as a graph at this radius; a word does not. */
-.hearth-snapshot-redacted .hearth-card-body canvas {
-	filter: blur(8px) !important;
 }
 
 /* What publishing takes out, and what it keeps. A block rather than a settings

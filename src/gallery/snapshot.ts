@@ -105,6 +105,30 @@ const REDACT_INSIDE = ".hearth-card-body";
  */
 const OPEN_KINDS = new Set(["clock"]);
 
+/**
+ * Pictures inside cards, and how hard each is blurred.
+ *
+ * Pictures are the other thing that can carry somebody's content. The
+ * wallpaper is behind the grid and survives, because it is already published as
+ * an asset.
+ *
+ * A canvas is blurred a little less than a picture, because the graph view's
+ * *shape* is worth publishing and a heavy blur turns it to fog. Not much less:
+ * nothing inside a canvas is text to the redactor — it is pixels — so this blur
+ * is the only thing standing between an Excalidraw heading, an Obsidian Canvas
+ * note or a graph's node labels and everyone who installs the board. A graph
+ * still reads as a graph at this radius; a word does not.
+ *
+ * Applied as an inline style rather than from `styles.css`: a picture in a note
+ * can carry an inline `filter` of its own (`<img style="filter: grayscale(1)">`),
+ * and no stylesheet rule short of `!important` outranks that. Writing the blur
+ * into the same attribute replaces it for the duration instead.
+ */
+const MEDIA_BLURS: readonly (readonly [selector: string, filter: string])[] = [
+	[`${REDACT_INSIDE} img, ${REDACT_INSIDE} video, ${REDACT_INSIDE} iframe`, "blur(10px)"],
+	[`${REDACT_INSIDE} canvas`, "blur(8px)"],
+];
+
 /** Class the wrapper carries, so `styles.css` can draw the bars. */
 const REDACTED_CLASS = "hearth-snapshot-bar";
 
@@ -394,6 +418,8 @@ export function redact(root: HTMLElement): Redaction {
 	/** Editors among `blanked`: the ones whose line rhythm can be drawn back. A
 	 * field's value is not reachable as text nodes, so it keeps the slab. */
 	const editors: HTMLElement[] = [];
+	/** Each blurred picture with the inline `filter` it had before, to put back. */
+	const blurred = new Map<HTMLElement, { value: string; priority: string }>();
 	let overlays: HTMLElement[] = [];
 
 	/** Take the bars down. Called before every re-measure and once at the end;
@@ -416,7 +442,23 @@ export function redact(root: HTMLElement): Redaction {
 		}
 	};
 
+	const blurMedia = (): void => {
+		for (const [selector, filter] of MEDIA_BLURS) {
+			for (const el of Array.from(root.querySelectorAll<HTMLElement>(selector))) {
+				if (blurred.has(el)) continue;
+				blurred.set(el, {
+					value: el.style.getPropertyValue("filter"),
+					priority: el.style.getPropertyPriority("filter"),
+				});
+				el.style.setProperty("filter", filter);
+			}
+		}
+	};
+
 	const pass = (): void => {
+		// Every picture in every card, the open ones included: what a picture
+		// shows is not something the card's kind can vouch for.
+		blurMedia();
 		// **Only the insides of cards.** The board's chrome — the vault name,
 		// the header, the toolbar, the dashboard switcher, and each card's own
 		// title — is not the author's content: it is the thing being published,
@@ -518,7 +560,8 @@ export function redact(root: HTMLElement): Redaction {
 	 * idempotent and only touches what is not already covered, so re-entering
 	 * through the records of its own writes settles immediately instead of
 	 * looping. Attributes are deliberately not watched — the blanking works by
-	 * adding classes, and watching them would be nothing but that loop.
+	 * adding classes and inline blurs, and watching them would be nothing but
+	 * that loop.
 	 */
 	let scheduled = false;
 	let changed = false;
@@ -556,6 +599,10 @@ export function redact(root: HTMLElement): Redaction {
 			for (const [node, value] of originals) node.data = value;
 			clearLines();
 			for (const region of blanked) region.classList.remove(BLANKED_CLASS);
+			for (const [el, before] of blurred) {
+				if (before.value) el.style.setProperty("filter", before.value, before.priority);
+				else el.style.removeProperty("filter");
+			}
 			root.removeClass("hearth-snapshot-redacted");
 		},
 	};

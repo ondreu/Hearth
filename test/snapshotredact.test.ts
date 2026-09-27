@@ -143,4 +143,34 @@ describe("redact", () => {
 		redaction.restore();
 		expect(results.textContent).toBe("A row nobody asked to publish");
 	});
+
+	it("blurs a picture over the note's own inline filter, and gives that back", () => {
+		// A stylesheet rule loses to an inline style, so a picture written as
+		// `<img style="filter: grayscale(1)">` would have been published sharp
+		// had the blur lived in styles.css. It is written into the same attribute.
+		const { root, body } = board();
+		// Set as markup, the way a note's own HTML arrives.
+		const img = body.createEl("img", { attr: { style: "filter: grayscale(1)" } });
+		const canvas = body.createEl("canvas");
+		const redaction = redact(root);
+
+		expect(img.style.getPropertyValue("filter")).toBe("blur(10px)");
+		expect(canvas.style.getPropertyValue("filter")).toBe("blur(8px)");
+
+		redaction.restore();
+		expect(img.style.getPropertyValue("filter")).toBe("grayscale(1)");
+		expect(canvas.style.getPropertyValue("filter")).toBe("");
+	});
+
+	it("blurs a picture that arrives after the first pass", () => {
+		const { root, body } = board();
+		const redaction = redact(root);
+
+		const img = body.createEl("img");
+		redaction.reapply();
+
+		expect(img.style.getPropertyValue("filter")).toBe("blur(10px)");
+		redaction.restore();
+		expect(img.style.getPropertyValue("filter")).toBe("");
+	});
 });
