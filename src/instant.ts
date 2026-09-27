@@ -31,7 +31,7 @@
  * from it: a `$` or a "stock"/"Aktie"/"股价" lookup, the weather, a wiki
  * summary, or a currency conversion (which needs rates).
  */
-import { moment } from "obsidian";
+import { moment as createMoment } from "obsidian";
 import { currencyConversion, evaluate } from "./calculator";
 import { CURRENCY_CODES } from "./currency";
 import { parseNaturalDate } from "./dates";
@@ -331,6 +331,14 @@ const COUNT_SINCE: readonly RegExp[] = [
 ];
 const SHIFT_RE =
 	/^(today|now|tomorrow|yesterday|\d{4}-\d{2}-\d{2})\s*([+-])\s*(\d+)\s*(d|days?|w|wks?|weeks?|m|mos?|months?|y|yrs?|years?)$/;
+/** The one call this module makes on moment, typed here as in dates.ts: some
+ * toolchains cannot resolve the type of the moment Obsidian re-exports, which
+ * would leave the call untyped. */
+interface ShiftMoment {
+	add(amount: number, unit: string): ShiftMoment;
+	format(fmt: string): string;
+}
+const moment = createMoment as unknown as (input: string, format: string) => ShiftMoment;
 const SHIFT_UNITS: Record<string, "day" | "week" | "month" | "year"> = { d: "day", w: "week", m: "month", y: "year" };
 /** Phrases worth answering with a date on their own. A bare ISO date or a
  * weekday is left alone: typed into a vault search, that is far more often
