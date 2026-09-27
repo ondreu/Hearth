@@ -7,7 +7,7 @@
 [![Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24.hearth.downloads&label=downloads)](https://obsidian.md/plugins?id=hearth)
 [![License](https://img.shields.io/github/license/ondreu/Hearth)](LICENSE)
 
-![Hearth — 可自定义的 Obsidian 面板、搜索与启动器](assets/2.png)
+![Hearth — 可自定义的 Obsidian 面板、搜索与启动器](assets/Header.png)
 
 **Hearth 把您的 Obsidian 仓库变成一个温暖的首页。** 一个快速的模糊搜索栏、
 便捷的文件类型筛选，以及一片可自由排布的实时小组件网格 —— 笔记、任务、看板、
@@ -19,6 +19,7 @@
 - 🧩 **35+ 种卡片** —— 嵌入、任务、日历、Dataview、Git、Jira、Operon 等等
 - 🔌 **26 项集成** —— 插件启用后自动识别
 - 🎛️ **自由布局** —— 卡片可任意拖动、缩放与吸附
+- 🎨 **两种设计** —— 经典（Classic）或以强调色调绘制的 Material 3 Expressive
 - 🪟 **毛玻璃** —— 每张卡片可单独设置不透明度、模糊、颜色和圆角
 - 🗂️ **多个面板** —— 一次点击或一个快捷键即可切换
 - 🪄 **插件视图面板** —— 把整个面板交给某个插件的视图
@@ -29,9 +30,18 @@
 | | |
 | --- | --- |
 | ![完整面板](assets/Full_Dash.png) | ![纯搜索启动器](assets/Just_search.png) |
-| ![面板变体](assets/Full_Dash2.png) | ![卡片一览](assets/cards.png) |
+| ![面板变体](assets/Full_Dash2.png) | ![经典设计的面板](assets/Dash311.png) |
 
-<img src="assets/mobile.png" width="280" alt="移动端上的 Hearth" />
+### Material 3 Expressive
+
+同一个面板的 Expressive 设计 —— 所有界面都以您强调色的不同色调绘制。
+
+| | |
+| --- | --- |
+| ![Expressive 设计，绿色强调色](assets/M3_Green.png) | ![Expressive 设计，紫色强调色](assets/M3_Purple.png) |
+| ![Expressive 设计，红色强调色](assets/M3_Red.png) | ![Expressive 设计，青绿色强调色](assets/M3_Torq.png) |
+
+<img src="assets/phone.png" width="280" alt="移动端上的 Hearth" />
 
 ## 目录
 

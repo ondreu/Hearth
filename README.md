@@ -20,6 +20,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 - 🧩 **40+ cards** — embeds, tasks, calendars, Dataview, Git, Jira, Operon, and more
 - 🔌 **26 integrations** — picked up automatically when the plugin is enabled
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
+- 🎨 **Two designs** — Classic, or Material 3 Expressive in tones of your accent
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
 - 🗂️ **Multiple dashboards** — switch with a click or a hotkey
 - 🪄 **Plugin view dashboards** — give a whole board to one plugin's view
@@ -30,14 +31,17 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 | | |
 | --- | --- |
 | ![Full dashboard](assets/Full_Dash.png) | ![Search-only launcher](assets/Just_search.png) |
-| ![Dashboard variant](assets/Full_Dash2.png) | ![Dashboard](assets/Dash311.png) |
+| ![Dashboard variant](assets/Full_Dash2.png) | ![Dashboard in the Classic design](assets/Dash311.png) |
 
-### Material you 3 Expressive
+### Material 3 Expressive
+
+The same board in the Expressive design — every surface drawn in tonal steps
+of your accent color.
 
 | | |
 | --- | --- |
-| ![Green_Dash](assets/M3_Green.png) | ![Purple_Dash](assets/M3_Purple.png) |
-| ![Red_Dash](assets/M3_Red.png) | ![Torq_Dash](assets/M3_Torq.png) |
+| ![Expressive design, green accent](assets/M3_Green.png) | ![Expressive design, purple accent](assets/M3_Purple.png) |
+| ![Expressive design, red accent](assets/M3_Red.png) | ![Expressive design, turquoise accent](assets/M3_Torq.png) |
 
 <img src="assets/phone.png" width="280" alt="Hearth on mobile" />
 
@@ -68,9 +72,13 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 
 ## Setup wizard
 
-On a fresh install Hearth offers to build your first dashboard for you. It asks
-a handful of questions — a title, a look, what you use your vault for — and lays
-out a board from the answers rather than dropping you on a generic starter grid.
+On a fresh install Hearth offers to build your first dashboard for you, in
+three steps: what the vault is for (with the plugins Hearth found), the look —
+design, background and, for Classic, card style, each shown as a small
+painting — and a preview of the board. It lays out a board from the answers
+rather than dropping you on a generic starter grid: working cards in a main
+column, small ones (clock, calendar, weather, statistics) beside them, and no
+empty cards — anything that needs a feed or a place asks for it in the wizard.
 
 It also **looks at what you already have**. Every plugin below that is installed
 and enabled is offered with the one thing accepting it will do:
@@ -157,15 +165,15 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
 | --- | --- | --- |
 | **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom, optional in-place editing (raw or Live Preview) and a second view you can flip to | — |
 | **Daily note** | Always today's note, created on first click | Daily notes (core) |
-| **Periodic note** | Always the current week's, month's, quarter's or year's note, created on first click from your own template | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) |
+| **Periodic note** | Always the current week's, month's, quarter's or year's note, created on first click from your own template | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) or [Journals](https://github.com/srg-kostyrko/obsidian-journal) |
 | **Embedded image** | A picture from the vault — fill and crop, fit, stretch or scroll, anchored to any of nine points | — |
 | **Slideshow** | Pictures from a list or a folder: on a timer, one a day (or every few days, worked out from the date) or only by hand, with captions, sort order, transition and length, slow zoom and hover controls | — |
 | **Embedded canvas** | A canvas you can pan around in place | Canvas (core) |
 | **Excalidraw drawing** | A drawing with native pan and zoom | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) |
 | **Embedded base** | A `.base` file, rendered by Obsidian's Bases | Bases (core) |
-| **Recent files** | The files you opened most recently | — |
+| **Recent files** | The files you opened most recently, as a list or tiles | — |
 | **Folder** | What is in a folder, one level down, in the file explorer's own order — with a browser behind it: a breadcrumb, every subfolder opened one level, and any folder on the page steppable into | — |
-| **Favorites** | The notes you starred in Hearth | — |
+| **Favorites** | The notes you starred in Hearth, as a list or tiles | — |
 | **Bookmarks** | Your Obsidian bookmarks, with site favicons | Bookmarks (core) |
 
 ### Planning
@@ -173,9 +181,9 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
 | Card | What it shows | Needs |
 | --- | --- | --- |
 | **Tasks** | Markdown checkboxes, TaskNotes task notes or a [Kanban](https://github.com/obsidian-community/obsidian-kanban) board — as a list or a drag-and-drop board | — |
-| **Calendar** | Month, week, day and list views over the same sources, with a scrolling time grid, overlapping-event columns and an all-day band | — |
+| **Calendar** | Month, week, day and list views over the same sources — plus Markdown checkbox tasks by their 📅 / ⏳ dates — with a scrolling time grid, overlapping-event columns and an all-day band | — |
 | **Mini calendar** | A month grid or agenda with dots for existing notes, ISO week numbers and an edit heatmap | Daily notes (core) |
-| **Clock & greeting** | Digital or analogue face, custom date formats, optional playful greeting | — |
+| **Clock & greeting** | Seven faces — digital, analogue, stacked, flip and rings, plus shapes and orbit in the Expressive design — custom date formats, optional playful greeting | — |
 
 **Inside the Tasks card**
 
@@ -187,7 +195,10 @@ the bottom of the rail opens a pre-filled GitHub issue or email.
   natural-language input (`📅 in 3 days`), and per-occurrence completion for
   recurring tasks.
 - **Sorting & filtering** — smart chain (due → scheduled → priority → created)
-  or a custom multi-rule sort, per list and per Kanban column.
+  or a custom multi-rule sort, per list and per Kanban column; filter by status,
+  priority or tag, on the list and on the Kanban board alike.
+- **Tags & descriptions** — `#tags` show as chips, and lines indented under a
+  checkbox show (and edit) as the task's description.
 - **Custom task fields** *(opt-in)* — name a field, pick how it's drawn (chip,
   dot, text, row tint or glow), and map any frontmatter or built-in key to
   labels and colors. Click a value to change it.
@@ -231,7 +242,7 @@ Categorized as **Integrations** in the picker.
 | **Git** | Branch, staged and changed files, unpushed commits and recent log, with commit / sync / push / pull / stage / discard buttons and per-file diffs | [Git](https://github.com/Vinzent03/obsidian-git) |
 | **Jira filter** | Issues from a saved Jira filter or JQL search, filtered by status, assignee, priority, type, sprint and version | Jira over HTTPS |
 | **RSS feed** | Headlines from any RSS 2.0 or Atom feed you follow | Network |
-| **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in seven styles, up to an edge-to-edge painted sky that follows real conditions and time of day, tonight's moon phase and the sun's arc from sunrise to sunset — click a card for the full forecast, hour by hour | Network |
+| **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in seven styles, up to an edge-to-edge painted sky that follows real conditions and time of day, tonight's moon in its real phase (*Moon*) and the sun's arc from sunrise to sunset (*Daylight*) — click a card for the full forecast, hour by hour | Network |
 | **Markets** | Stocks, ETFs, funds, indices, forex and crypto from most of the world's exchanges — Chinese on- and off-exchange funds included — as a single price, a spotlight with a chart, an edge-to-edge chart, a watchlist, tiles, a ticker tape, a portfolio with gains in one currency, or a search field on the card. Classic or Material 3 Expressive; red-up or green-up. Click anything for the full chart and stats | Network |
 | **Operon tasks / board / agenda / timer** | Four cards on [Operon](https://github.com/hasanyilmaz/operon)'s own API — a task list, a pipeline board, a few days' agenda, and the running time tracker | Operon (desktop) |
 | **Plugin view** *(beta)* | Another plugin's side-panel view (calendar, outline, tag pane, Kanban…) hosted in a card, optionally pinned to one file | A plugin with a view |
@@ -277,6 +288,7 @@ full list, with live status and where each one's settings live, is under
 | [Datacore](https://github.com/blacksmithgu/datacore) | The Datacore card: queries and JS/JSX/TS/TSX scripts | The card |
 | [Templater](https://github.com/SilentVoid13/Templater) | The "New note from template" launchpad | The card |
 | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) | The Periodic note card: this week's, month's, quarter's or year's note, resolved and created by the plugin itself | The card |
+| [Journals](https://github.com/srg-kostyrko/obsidian-journal) | An alternative source for the Periodic note card — pick a journal by name, custom cadences included | The card |
 | [Git](https://github.com/Vinzent03/obsidian-git) | The Git card, acting through the plugin's own task queue | The card |
 | [Operon](https://github.com/hasanyilmaz/operon) | Four cards on Operon's Developer API — [details below](#operon) | Integrations tab |
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | Your per-file icons show wherever Hearth lists a file | Integrations tab |
@@ -397,7 +409,16 @@ Before you add one:
 
 ## Appearance
 
-- **Background** — solid color, vault image, URL, or a **live weather sky**:
+- **Design: Classic or Material 3 Expressive** — Expressive redraws everything
+  Hearth draws in tonal steps of your accent color, in light and dark themes:
+  opaque tonal cards with large rounded corners, grouped lists, pills and
+  button groups, and the same look on the search row, dialogs, menus and
+  Hearth's settings. Obsidian's own interface is left to your theme. The choice
+  cascades vault → board → card (**Settings → Hearth → Appearance → Design**).
+- **Background** — solid color, vault image, URL, a background **drawn by
+  Hearth** (*Hearth default* — hills and a cabin, or Material's soft shapes in
+  Expressive — and *Harbour town*, both following your light or dark theme and
+  never going online), or a **live weather sky**:
   the board's backdrop becomes the painted sky the weather card's artistic style
   draws, spread across the whole window and following the real conditions and
   time of day over a place you pick. Or pin one sky — clear night, snow,
@@ -432,7 +453,7 @@ Before you add one:
 ## Mobile
 
 Hearth's board is laid out freely — cards sit where you drop them, at a
-fraction of the board's width. Below about **600px** that stops meaning
+fraction of the board's width. Below **700px** by default that stops meaning
 anything, so the board **reflows into a single full-width column**, top to
 bottom, in the order the desktop board reads in. Your layout is never
 rewritten: the same board is a launcher on your phone and a wall of cards on
@@ -443,7 +464,9 @@ narrow desktop pane gets the same treatment, and you can see the phone layout
 by dragging a pane narrow.
 
 - **Stacked column** — cards full width, one per row. Turn it off in
-  **Settings → Hearth → Mobile** to keep the free-form layout.
+  **Settings → Hearth → Mobile** to keep the free-form layout, or move the
+  threshold with **Narrow below** (vault-wide, or per board in
+  **Dashboard settings → Layout**).
 - **Per-card overrides** — in a card's settings (Layout → *On a narrow board*):
   **hide** it, give it a **position** in the column, set its **height**, or
   **start it collapsed** as a title row that builds the card only when tapped —
@@ -504,9 +527,10 @@ npm run typecheck
 To test in a vault, symlink or copy `main.js`, `manifest.json` and `styles.css`
 into `<vault>/.obsidian/plugins/hearth/`.
 
-**Translations** — user-facing strings live in [`src/locales/`](src/locales/).
-English (`en.ts`) is the source of truth; copy it, translate the values and
-register the file. See [`src/locales/README.md`](src/locales/README.md).
+**Translations** — Hearth speaks English, Simplified Chinese and German,
+following Obsidian's display language. User-facing strings live in
+[`src/locales/`](src/locales/). English (`en.ts`) is the source of truth; copy
+it, translate the values and register the file. See [`src/locales/README.md`](src/locales/README.md).
 
 ## Contributing
 
