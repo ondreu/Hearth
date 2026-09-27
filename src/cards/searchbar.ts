@@ -185,5 +185,6 @@ export const searchbarCard: CardDefinition<"searchbar"> = {
 	// under the user's hands. Nothing here goes stale in the meantime either:
 	// results are computed per keystroke, and the chip row (derived from the
 	// file types present in the vault) is rebuilt on the next board render.
+	expressive: true,
 	liveness: { mode: "static" },
 };

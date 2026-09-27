@@ -236,3 +236,34 @@ export function pickTextFile(accept = "application/json,.json"): Promise<string 
 		input.click();
 	});
 }
+
+/**
+ * The card's *Design* row: follow the vault's default, or pin Classic or
+ * Expressive. `fallback` is what the card draws while it follows — the vault's
+ * choice, or a style's own default — and is named in the first option so the
+ * reader sees what "default" means right now. `set(undefined)` means follow.
+ */
+export function designSetting(
+	containerEl: HTMLElement,
+	opts: {
+		name: string;
+		desc: string;
+		own: "classic" | "expressive" | undefined;
+		fallback: "classic" | "expressive";
+		set: (design: "classic" | "expressive" | undefined) => void;
+	},
+): Setting {
+	const strings = t().editors.design;
+	const label = { classic: strings.classic, expressive: strings.expressive };
+	return new Setting(containerEl)
+		.setName(opts.name)
+		.setDesc(opts.desc)
+		.addDropdown((d) => {
+			d.addOption("default", strings.followDefault(label[opts.fallback]));
+			d.addOption("classic", label.classic);
+			d.addOption("expressive", label.expressive);
+			d.setValue(opts.own ?? "default").onChange((v) => {
+				opts.set(v === "classic" || v === "expressive" ? v : undefined);
+			});
+		});
+}

@@ -180,5 +180,6 @@ export const searchCard: CardDefinition<"search"> = {
 	cloneConfig: (source, copy) => {
 		if (source.savedSearch) copy.savedSearch = { ...source.savedSearch };
 	},
+	expressive: true,
 	liveness: { mode: "vault" },
 };

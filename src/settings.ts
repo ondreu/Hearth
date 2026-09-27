@@ -2172,6 +2172,19 @@ export class HomeSettingTab extends PluginSettingTab {
 				});
 			this.addSliderReset(cardBorderWidth, sl, "cardBorderWidth");
 		});
+
+		new Setting(containerEl)
+			.setName(t().settings.dashboard.cardDesign)
+			.setDesc(t().settings.dashboard.cardDesignDesc)
+			.addDropdown((d) => {
+				d.addOption("classic", t().editors.design.classic);
+				d.addOption("expressive", t().editors.design.expressive);
+				// Classic, the default, is stored as absence.
+				d.setValue(s.cardDesign ?? "classic").onChange((v) => {
+					s.cardDesign = v === "expressive" ? "expressive" : undefined;
+					this.save();
+				});
+			});
 	}
 
 	// ---- Layout import / export ----------------------------------------

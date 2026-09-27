@@ -1412,6 +1412,9 @@ export const zh: Translations = {
 			cardBorderWidth: "卡片边框",
 			cardBorderWidthDesc:
 				"卡片边框和标题栏分隔线的粗细（像素）。0 表示隐藏边框。",
+			cardDesign: "卡片设计",
+			cardDesignDesc:
+				"卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
 			cards: "卡片",
 			cardsDesc:
 				"卡片在面板上添加和配置：打开主页视图，点击“排列”，" +
@@ -2872,6 +2875,13 @@ export const zh: Translations = {
 			showHeaderDesc: "承载视图自带的标题栏默认隐藏 —— 卡片本身已经有一个。",
 			openButton: "“打开宠物小屋”按钮",
 			openButtonDesc: "卡片角落的一个按钮，像它的功能区图标一样在侧边栏打开 Vault Pet 的小屋。",
+		},
+		design: {
+			name: "设计",
+			desc: "经典，或 Material 3 Expressive：强调色的色调容器、胶囊与柔和形状。",
+			classic: "经典",
+			expressive: "Expressive",
+			followDefault: (design: string) => `库默认（${design}）`,
 		},
 		colors: {
 			heading: "颜色",

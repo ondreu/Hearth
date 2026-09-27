@@ -209,5 +209,6 @@ export const recentCard: CardDefinition<"recent"> = {
 	],
 	render: (view, card, body, component) => renderRecent(view, card, body, component),
 	renderEditor: (container, ctx) => recentEditor(ctx, container),
+	expressive: true,
 	liveness: { mode: "static" },
 };

@@ -16776,3 +16776,1000 @@ body.hearth-snapshot-capturing .hearth-view {
 		animation: none;
 	}
 }
+
+/* ======================================================================
+ * The Expressive design, for the rest of the cards
+ *
+ * The weather and market cards' recipe, lent to every card whose content
+ * Hearth draws itself: `is-expressive` on the card (its Design, else the
+ * vault's Card design — see effectiveCardDesign and CardDefinition.expressive).
+ * The interface takes tonal steps of Obsidian's accent colour, the way Material
+ * You derives a scheme from a seed: rows and tiles sit on tonal containers
+ * instead of rules and borders, controls are pills, the one thing that matters
+ * (today, the answer, the time) is heavy and tight or sits on a cookie.
+ * Nothing here changes a card's frame, which stays the board's.
+ * ====================================================================== */
+.hearth-card.is-expressive {
+	--x-primary: var(--interactive-accent);
+	--x-on-primary: var(--text-on-accent);
+	--x-container: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
+	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
+	--x-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 13%, var(--background-primary));
+	--x-surface-highest: color-mix(in srgb, var(--interactive-accent) 18%, var(--background-primary));
+	/* Nine shallow lobes (the weather and market cards' cookie) and twelve
+	 * shallower ones for a clock face, as masks: a shape any element can take. */
+	--x-cookie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0 0.0L26.0 0.6L27.9 2.1L29.4 3.7L31.0 4.8L32.9 5.0L35.1 4.8L37.5 4.8L39.4 5.6L40.6 7.4L41.0 9.7L41.2 12.0L41.7 13.8L43.0 15.1L44.9 16.4L46.7 17.9L47.6 19.8L47.4 22.0L46.2 24.0L44.9 25.8L44.1 27.6L44.3 29.4L44.9 31.6L45.3 33.9L44.8 36.0L43.2 37.5L41.0 38.3L38.8 38.8L37.1 39.7L36.0 41.2L35.1 43.2L33.9 45.3L32.2 46.6L30.1 46.7L27.9 45.9L25.8 44.9L24.0 44.4L22.2 44.9L20.1 45.9L17.9 46.7L15.8 46.6L14.1 45.3L12.9 43.2L12.0 41.2L10.9 39.7L9.2 38.8L7.0 38.3L4.8 37.5L3.2 36.0L2.7 33.9L3.1 31.6L3.7 29.4L3.9 27.6L3.1 25.8L1.8 24.0L0.6 22.0L0.4 19.8L1.3 17.9L3.1 16.4L5.0 15.1L6.3 13.8L6.8 12.0L7.0 9.7L7.4 7.4L8.6 5.6L10.5 4.8L12.9 4.8L15.1 5.0L17.0 4.8L18.6 3.7L20.1 2.1L22.0 0.6Z'/%3E%3C/svg%3E");
+	--x-clock-cookie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50.0 0.0L54.3 1.1L58.2 3.6L61.9 5.4L66.1 5.7L70.7 5.6L75.0 6.7L78.1 9.8L80.3 13.9L82.6 17.4L86.1 19.7L90.2 21.9L93.3 25.0L94.4 29.3L94.3 33.9L94.6 38.1L96.4 41.8L98.9 45.7L100.0 50.0L98.9 54.3L96.4 58.2L94.6 61.9L94.3 66.1L94.4 70.7L93.3 75.0L90.2 78.1L86.1 80.3L82.6 82.6L80.3 86.1L78.1 90.2L75.0 93.3L70.7 94.4L66.1 94.3L61.9 94.6L58.2 96.4L54.3 98.9L50.0 100.0L45.7 98.9L41.8 96.4L38.1 94.6L33.9 94.3L29.3 94.4L25.0 93.3L21.9 90.2L19.7 86.1L17.4 82.6L13.9 80.3L9.8 78.1L6.7 75.0L5.6 70.7L5.7 66.1L5.4 61.9L3.6 58.2L1.1 54.3L0.0 50.0L1.1 45.7L3.6 41.8L5.4 38.1L5.7 33.9L5.6 29.3L6.7 25.0L9.8 21.9L13.9 19.7L17.4 17.4L19.7 13.9L21.9 9.8L25.0 6.7L29.3 5.6L33.9 5.7L38.1 5.4L41.8 3.6L45.7 1.1Z'/%3E%3C/svg%3E");
+}
+
+/* ---- Lists: recent, folder, query, bookmarks, tasks -------------------
+ * Material's grouped list: every row its own tonal container, a hairline
+ * apart, the group rounded at its ends. The leading icon sits on a round
+ * badge in the accent's container. */
+.hearth-card.is-expressive .hearth-list {
+	gap: 3px;
+}
+
+.hearth-card.is-expressive .hearth-list-item {
+	gap: 10px;
+	padding: 4px 12px 4px 5px;
+	border-radius: 6px;
+	background: var(--x-surface);
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-list > .hearth-list-item:first-child,
+.hearth-card.is-expressive .hearth-list > .hearth-bookmark-group:first-child > .hearth-bookmark-group-header {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-list > .hearth-list-item:last-child,
+.hearth-card.is-expressive .hearth-list > .hearth-list-item:has(+ .hearth-list-item-clipped) {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-list-item:hover {
+	background: var(--x-surface-highest);
+	border-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-list-icon {
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-list-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+	stroke-width: 2.1px;
+}
+
+.hearth-card.is-expressive .hearth-list-label {
+	font-weight: 500;
+}
+
+/* A row without a leading icon (a task's check, a URL bookmark without its
+ * favicon) keeps the badge's inset. */
+.hearth-card.is-expressive .hearth-list-item:not(:has(.hearth-list-icon)) {
+	padding-left: 12px;
+}
+
+.hearth-card.is-expressive .hearth-list-item.has-excerpt .hearth-list-icon {
+	margin-top: 0;
+}
+
+/* Bookmark groups: the header a row like the others, its chevron on the badge's
+ * side of it; nested rows step in. */
+.hearth-card.is-expressive .hearth-bookmark-group,
+.hearth-card.is-expressive .hearth-bookmark-group-children {
+	gap: 3px;
+}
+
+.hearth-card.is-expressive .hearth-bookmark-group-header {
+	gap: 6px;
+}
+
+.hearth-card.is-expressive .hearth-bookmark-group-header .hearth-list-label {
+	font-weight: 700;
+}
+
+.hearth-card.is-expressive .hearth-bookmark-chevron {
+	width: 18px;
+	margin-left: 2px;
+	background: none;
+	color: var(--x-on-container);
+}
+
+/* ---- Tiles: links, commands, templater, favourites -------------------- */
+.hearth-card.is-expressive .hearth-link-tile,
+.hearth-card.is-expressive .hearth-fav-card {
+	border: none;
+	border-radius: 24px;
+	background: var(--x-surface-high);
+	transition: background 120ms ease, border-radius 180ms ease;
+}
+
+.hearth-card.is-expressive .hearth-links.is-tile-scaled .hearth-link-tile {
+	border-radius: clamp(12px, calc(var(--hearth-tile-cell) * 0.28), 32px);
+}
+
+/* Pressed-in on hover, the way an Expressive button morphs its corners. */
+.hearth-card.is-expressive .hearth-link-tile:hover,
+.hearth-card.is-expressive .hearth-fav-card:hover {
+	background: var(--x-container);
+	border-radius: 14px;
+}
+
+.hearth-card.is-expressive .hearth-link-icon,
+.hearth-card.is-expressive .hearth-fav-icon {
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-link-icon .svg-icon {
+	stroke-width: 2.1px;
+}
+
+.hearth-card.is-expressive .hearth-link-label,
+.hearth-card.is-expressive .hearth-fav-name {
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-link-tile.hearth-tile-has-image .hearth-link-label {
+	border-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-favorites {
+	gap: 8px;
+}
+
+.hearth-card.is-expressive .hearth-fav-card {
+	padding: 10px 12px;
+}
+
+.hearth-card.is-expressive .hearth-fav-icon {
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 999px;
+	background: var(--x-container);
+}
+
+.hearth-card.is-expressive .hearth-fav-icon .svg-icon {
+	width: 17px;
+	height: 17px;
+}
+
+.hearth-card.is-expressive .hearth-fav-card:hover .hearth-fav-icon {
+	background: var(--background-primary);
+}
+
+/* ---- Clock ---------------------------------------------------------- */
+.hearth-card.is-expressive .hearth-clock {
+	gap: 6px;
+}
+
+.hearth-card.is-expressive .hearth-clock-time {
+	font-size: clamp(2.2rem, 7.5vw, 3.4rem);
+	font-weight: 800;
+	letter-spacing: -0.05em;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-card.is-expressive .hearth-clock-greeting {
+	padding: 3px 12px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+.hearth-card.is-expressive .hearth-clock-date {
+	font-weight: 600;
+}
+
+/* The analogue face on a twelve-lobed cookie, hands as thick round strokes. */
+.hearth-card.is-expressive .hearth-analog {
+	background: var(--x-surface-high);
+	-webkit-mask: var(--x-clock-cookie) center / contain no-repeat;
+	mask: var(--x-clock-cookie) center / contain no-repeat;
+}
+
+.hearth-card.is-expressive .hearth-analog-face,
+.hearth-card.is-expressive .hearth-analog-tick {
+	display: none;
+}
+
+.hearth-card.is-expressive .hearth-analog-tick-major {
+	stroke: var(--x-on-container);
+	stroke-width: 3.2;
+	stroke-linecap: round;
+	opacity: 0.45;
+}
+
+.hearth-card.is-expressive .hearth-analog-hour {
+	stroke: var(--x-on-container);
+	stroke-width: 7;
+}
+
+.hearth-card.is-expressive .hearth-analog-min {
+	stroke: var(--x-primary);
+	stroke-width: 4.6;
+}
+
+.hearth-card.is-expressive .hearth-analog-sec {
+	stroke-width: 1.8;
+}
+
+.hearth-card.is-expressive .hearth-analog-pin {
+	fill: var(--x-primary);
+	r: 4.5px;
+}
+
+/* ---- Mini calendar -------------------------------------------------- */
+.hearth-card.is-expressive .hearth-calendar-label {
+	font-size: 1rem;
+	font-weight: 750;
+	letter-spacing: -0.01em;
+}
+
+.hearth-card.is-expressive .hearth-calendar-nav {
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	box-shadow: none;
+}
+
+.hearth-card.is-expressive .hearth-calendar-nav:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-calendar-dow {
+	color: var(--x-on-container);
+	font-weight: 650;
+	opacity: 0.75;
+}
+
+.hearth-card.is-expressive .hearth-calendar-day {
+	position: relative;
+	isolation: isolate;
+	border-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-calendar-day:hover {
+	background: var(--x-surface-high);
+}
+
+.hearth-card.is-expressive .hearth-calendar-daynum {
+	font-weight: 550;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Today: no ring — the number on the accent's cookie. */
+.hearth-card.is-expressive .hearth-calendar-day.is-today {
+	outline: none;
+}
+
+.hearth-card.is-expressive .hearth-calendar-day.is-today::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: 50%;
+	left: 50%;
+	width: min(100%, 38px);
+	aspect-ratio: 1;
+	transform: translate(-50%, -50%);
+	background: var(--x-primary);
+	-webkit-mask: var(--x-cookie) center / contain no-repeat;
+	mask: var(--x-cookie) center / contain no-repeat;
+}
+
+.hearth-card.is-expressive .hearth-calendar-day.is-today .hearth-calendar-daynum {
+	width: auto;
+	height: auto;
+	background: none;
+	color: var(--x-on-primary);
+	font-weight: 800;
+}
+
+.hearth-card.is-expressive .hearth-calendar-day.is-today .hearth-calendar-dot {
+	background: var(--x-on-primary);
+}
+
+.hearth-card.is-expressive .hearth-calendar-day.has-heat {
+	border-radius: 12px;
+}
+
+/* ---- Vault statistics ----------------------------------------------- */
+.hearth-card.is-expressive .hearth-stats {
+	gap: 6px;
+}
+
+.hearth-card.is-expressive .hearth-stat {
+	gap: 0;
+	padding: 5px 4px;
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-stat-icon {
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-bottom: 2px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-stat-icon .svg-icon {
+	width: 14px;
+	height: 14px;
+	stroke-width: 2.1px;
+}
+
+.hearth-card.is-expressive .hearth-stat-value {
+	font-size: 1.4rem;
+	font-weight: 800;
+	letter-spacing: -0.04em;
+	line-height: 1.05;
+}
+
+.hearth-card.is-expressive .hearth-stat-label {
+	color: var(--text-muted);
+	font-weight: 600;
+}
+
+/* ---- Activity heatmap ----------------------------------------------- */
+.hearth-card.is-expressive .hearth-heatmap-grid {
+	gap: 4px;
+}
+
+.hearth-card.is-expressive .hearth-heatmap-cell {
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.hearth-card.is-expressive .hearth-heatmap-cell.is-empty {
+	background: transparent;
+}
+
+.hearth-card.is-expressive .hearth-heatmap-cell.has-heat {
+	background-color: color-mix(
+		in srgb,
+		var(--x-primary) calc(25% + var(--heat, 0) * 18.75%),
+		var(--background-primary)
+	);
+}
+
+.hearth-card.is-expressive .hearth-heatmap-legend {
+	gap: 4px;
+	font-weight: 600;
+}
+
+/* ---- Calculator ----------------------------------------------------- */
+.hearth-card.is-expressive .hearth-calc {
+	gap: 6px;
+}
+
+.hearth-card.is-expressive .hearth-calc-input {
+	height: auto;
+	padding: 10px 16px;
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.hearth-card.is-expressive .hearth-calc-input:focus {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.hearth-card.is-expressive .hearth-calc-result {
+	padding: 0 6px;
+	font-size: clamp(1.8rem, 6vw, 2.8rem);
+	font-weight: 800;
+	letter-spacing: -0.045em;
+	text-align: right;
+}
+
+.hearth-card.is-expressive .hearth-calc-note {
+	padding: 0 6px;
+	text-align: right;
+}
+
+.hearth-card.is-expressive .hearth-calc-keys {
+	gap: 6px;
+}
+
+.hearth-card.is-expressive .hearth-calc-key {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+	font-family: inherit;
+	font-size: 1.1rem;
+	font-weight: 600;
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-calc-key:hover {
+	background: var(--x-surface-highest);
+	border-radius: 14px;
+}
+
+.hearth-card.is-expressive .hearth-calc-key.is-op {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+.hearth-card.is-expressive .hearth-calc-key.is-fn {
+	background: var(--x-surface);
+	color: var(--x-on-container);
+	font-size: 0.95rem;
+}
+
+.hearth-card.is-expressive .hearth-calc-key.is-eq {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	font-weight: 800;
+}
+
+.hearth-card.is-expressive .hearth-calc-key.is-eq:hover {
+	background: var(--interactive-accent-hover);
+}
+
+/* ---- Search bar ----------------------------------------------------- */
+.hearth-card.is-expressive .hearth-search-bar {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+}
+
+.hearth-card.is-expressive .hearth-search-bar:focus-within {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.hearth-card.is-expressive .hearth-search-icon {
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-newnote {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+/* ---- Tasks ---------------------------------------------------------- */
+.hearth-card.is-expressive .hearth-list-item.hearth-task {
+	padding: 6px 12px;
+}
+
+/* A round check, the accent's when ticked. */
+.hearth-card.is-expressive .hearth-task-check {
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--x-on-container);
+	border-radius: 999px;
+	background: transparent;
+}
+
+.hearth-card.is-expressive .hearth-task-check:checked {
+	border-color: var(--x-primary);
+	background-color: var(--x-primary);
+}
+
+.hearth-card.is-expressive .hearth-task-metas {
+	gap: 5px;
+}
+
+.hearth-card.is-expressive .hearth-task-due,
+.hearth-card.is-expressive .hearth-task-meta,
+.hearth-card.is-expressive .hearth-task-priority:not(.is-dot-only) {
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+.hearth-card.is-expressive .hearth-task-due.is-overdue {
+	background: color-mix(in srgb, var(--color-red) 16%, var(--background-primary));
+	color: color-mix(in srgb, var(--color-red) 80%, var(--text-normal));
+}
+
+.hearth-card.is-expressive .hearth-task-priority:not(.is-dot-only) {
+	background: color-mix(in srgb, var(--level-color) 16%, var(--background-primary));
+	color: color-mix(in srgb, var(--level-color) 75%, var(--text-normal));
+}
+
+.hearth-card.is-expressive .hearth-task-tag {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+/* Kanban: columns as tonal containers, cards as surfaces on them. */
+.hearth-card.is-expressive .hearth-kanban-col {
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-kanban-col-head {
+	padding: 8px 12px;
+	border-bottom: none;
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+.hearth-card.is-expressive .hearth-kanban-col-count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 700;
+	text-align: center;
+}
+
+.hearth-card.is-expressive .hearth-kanban-card {
+	border: none;
+	border-radius: 14px;
+	background: var(--background-primary);
+	padding: 8px 10px;
+}
+
+.hearth-card.is-expressive .hearth-tasks-sort,
+.hearth-card.is-expressive .hearth-tasks-filter {
+	border-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-tasks-sort:hover,
+.hearth-card.is-expressive .hearth-tasks-filter:hover,
+.hearth-card.is-expressive .hearth-tasks-filter.is-active {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+/* ---- Full calendar (schedule) --------------------------------------- */
+.hearth-card.is-expressive .hearth-sched-title {
+	font-size: 1rem;
+	font-weight: 750;
+	letter-spacing: -0.01em;
+}
+
+.hearth-card.is-expressive .hearth-sched-navbtn {
+	border-radius: 999px;
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-sched-navbtn:hover,
+.hearth-card.is-expressive .hearth-sched-today:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-sched-today {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+/* The view switcher as a connected button group: pills that touch, the
+ * chosen one fully round in the accent. */
+.hearth-card.is-expressive .hearth-sched-views {
+	gap: 2px;
+	border: none;
+	border-radius: 999px;
+	overflow: visible;
+}
+
+.hearth-card.is-expressive .hearth-sched-view {
+	border-radius: 6px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-sched-view + .hearth-sched-view {
+	border-left: none;
+}
+
+.hearth-card.is-expressive .hearth-sched-view:first-child {
+	border-top-left-radius: 999px;
+	border-bottom-left-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-sched-view:last-child {
+	border-top-right-radius: 999px;
+	border-bottom-right-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-sched-view:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-sched-view.is-active {
+	border-radius: 999px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	font-weight: 750;
+}
+
+.hearth-card.is-expressive .hearth-sched-dow {
+	color: var(--x-on-container);
+	font-weight: 650;
+	opacity: 0.75;
+}
+
+.hearth-card.is-expressive .hearth-sched-cell {
+	padding: 4px;
+	border-radius: 14px;
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-sched-cell:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-card.is-expressive .hearth-sched-cell.is-outside {
+	background: transparent;
+}
+
+.hearth-card.is-expressive .hearth-sched-cell.is-today {
+	outline: none;
+	background: var(--x-container);
+}
+
+.hearth-card.is-expressive .hearth-sched-daynum {
+	min-width: 22px;
+	height: 22px;
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-sched-cell.is-today .hearth-sched-daynum {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	font-weight: 800;
+}
+
+.hearth-card.is-expressive .hearth-sched-chip {
+	padding: 1px 8px;
+	border-left: none;
+	border-radius: 999px;
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-sched-chip:not(.is-allday) {
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 22%, var(--background-primary));
+}
+
+.hearth-card.is-expressive .hearth-sched-chip:not(.is-allday):hover {
+	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 34%, var(--background-primary));
+}
+
+/* ---- RSS ------------------------------------------------------------ */
+.hearth-card.is-expressive .hearth-rss-tab {
+	padding: 3px 12px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-rss-tab.is-active {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-card.is-expressive .hearth-rss-refresh,
+.hearth-card.is-expressive .hearth-jira-refresh,
+.hearth-card.is-expressive .hearth-git-refresh {
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	box-shadow: none;
+}
+
+.hearth-card.is-expressive .hearth-rss-refresh:hover,
+.hearth-card.is-expressive .hearth-jira-refresh:hover,
+.hearth-card.is-expressive .hearth-git-refresh:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+/* Items as the grouped list's tonal rows. */
+.hearth-card.is-expressive .hearth-rss-content {
+	gap: 3px;
+}
+
+.hearth-card.is-expressive .hearth-rss-item {
+	padding: 8px 12px;
+	border-bottom: none;
+	border-radius: 6px;
+	background: var(--x-surface);
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-rss-item:first-child {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-rss-item:last-child {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-rss-item:hover {
+	background: var(--x-surface-highest);
+	border-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-rss-title {
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.hearth-card.is-expressive .hearth-rss-meta {
+	color: var(--x-on-container);
+	font-weight: 600;
+	opacity: 0.8;
+}
+
+.hearth-card.is-expressive .hearth-rss-thumb {
+	border-radius: 16px;
+}
+
+/* ---- Jira ----------------------------------------------------------- */
+.hearth-card.is-expressive .hearth-jira-filter > summary {
+	padding: 4px 12px;
+	border: none;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-jira-filter[open] > summary,
+.hearth-card.is-expressive .hearth-jira-filter > summary:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-jira-filter-menu {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-jira-filter-search {
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-jira-filter-search input {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.hearth-card.is-expressive .hearth-jira-filter-option {
+	border-radius: 999px;
+}
+
+.hearth-card.is-expressive .hearth-jira-filter-option:hover {
+	background: var(--x-surface-high);
+}
+
+.hearth-card.is-expressive .hearth-jira-issues {
+	gap: 3px;
+	margin-top: 4px;
+}
+
+.hearth-card.is-expressive .hearth-jira-issue {
+	height: auto;
+	padding: 7px 12px 7px 6px;
+	border-bottom: none;
+	border-radius: 6px;
+	background: var(--x-surface);
+	box-shadow: none;
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-jira-issue:first-child {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-jira-issue:last-child {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-jira-issue:hover {
+	background: var(--x-surface-highest);
+	border-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-jira-type {
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-jira-key {
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+.hearth-card.is-expressive .hearth-jira-status {
+	padding: 2px 9px;
+	font-weight: 700;
+}
+
+/* ---- Git ------------------------------------------------------------ */
+.hearth-card.is-expressive .hearth-git-branch {
+	padding: 4px 12px 4px 8px;
+	border: none;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
+.hearth-card.is-expressive .hearth-git-branch:hover {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.hearth-card.is-expressive .hearth-git-branch-icon {
+	color: inherit;
+}
+
+.hearth-card.is-expressive .hearth-git-chips {
+	gap: 4px;
+}
+
+.hearth-card.is-expressive .hearth-git-chip {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	font-weight: 700;
+}
+
+.hearth-card.is-expressive .hearth-git-chip.is-staged {
+	background: color-mix(in srgb, var(--color-green) 16%, var(--background-primary));
+	color: color-mix(in srgb, var(--color-green) 80%, var(--text-normal));
+}
+
+.hearth-card.is-expressive .hearth-git-chip.is-unpushed {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-git-chip.is-conflicted {
+	background: color-mix(in srgb, var(--color-red) 16%, var(--background-primary));
+	color: color-mix(in srgb, var(--color-red) 80%, var(--text-normal));
+}
+
+/* Actions as a row of round tonal buttons; commit-and-sync the filled one. */
+.hearth-card.is-expressive .hearth-git-action {
+	height: 36px;
+	min-width: 36px;
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+.hearth-card.is-expressive .hearth-git-action:hover:not(:disabled) {
+	background: var(--x-container);
+	border-radius: 12px;
+}
+
+.hearth-card.is-expressive .hearth-git-action.is-commitAndSync {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-card.is-expressive .hearth-git-action.is-commitAndSync:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.hearth-card.is-expressive .hearth-git-action-icon .svg-icon {
+	stroke-width: 2.2px;
+}
+
+/* A file's letter as the row's round badge, tinted by what happened to it. */
+.hearth-card.is-expressive .hearth-git-file {
+	padding: 4px 12px 4px 5px;
+}
+
+.hearth-card.is-expressive .hearth-git-file.is-staged {
+	box-shadow: none;
+}
+
+.hearth-card.is-expressive .hearth-git-letter {
+	--git-tone: var(--interactive-accent);
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--git-tone) 20%, var(--background-primary));
+	color: color-mix(in srgb, var(--git-tone) 70%, var(--text-normal));
+	font-family: inherit;
+	font-size: 0.78rem;
+	font-weight: 800;
+}
+
+.hearth-card.is-expressive .hearth-git-file.is-untracked .hearth-git-letter,
+.hearth-card.is-expressive .hearth-git-file.is-added .hearth-git-letter {
+	--git-tone: var(--color-green);
+}
+
+.hearth-card.is-expressive .hearth-git-file.is-deleted .hearth-git-letter,
+.hearth-card.is-expressive .hearth-git-file.is-conflicted .hearth-git-letter {
+	--git-tone: var(--color-red);
+}
+
+/* A staged file's badge is filled, the way the chip above counts it. */
+.hearth-card.is-expressive .hearth-git-file.is-staged .hearth-git-letter {
+	background: var(--git-tone);
+	color: var(--background-primary);
+}
+
+.hearth-card.is-expressive .hearth-git-log {
+	gap: 3px;
+}
+
+.hearth-card.is-expressive .hearth-git-commit {
+	padding: 4px 12px;
+	border-radius: 6px;
+	background: var(--x-surface);
+}
+
+.hearth-card.is-expressive .hearth-git-commit:first-child {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-git-commit:last-child {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-git-commit:hover {
+	background: var(--x-surface-highest);
+	border-radius: 20px;
+}
+
+.hearth-card.is-expressive .hearth-git-commit-hash {
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-git-commit-message {
+	font-weight: 600;
+}

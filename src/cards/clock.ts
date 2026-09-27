@@ -300,5 +300,6 @@ export const clockCard: CardDefinition<"clock"> = {
 	cloneConfig: (source, copy) => {
 		if (source.clock) copy.clock = { ...source.clock };
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 };

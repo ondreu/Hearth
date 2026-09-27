@@ -622,5 +622,6 @@ export const calendarCard: CardDefinition<"calendar"> = {
 					: undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "vault" },
 };

@@ -535,5 +535,6 @@ export const rssCard: CardDefinition<"rss"> = {
 				sources: source.rss.sources ? source.rss.sources.map((s) => ({ ...s })) : undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 };

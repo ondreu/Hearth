@@ -692,6 +692,7 @@ export const folderCard: CardDefinition<"folder"> = {
 	// A folder card is about the folder, not the vault: a note edited three
 	// folders away can't change what it lists, and redrawing on it would mean
 	// rebuilding every folder card in the vault on every keystroke elsewhere.
+	expressive: true,
 	liveness: { mode: "vault", shouldRedraw: (card, ev) => folderReactsTo(card, ev) },
 };
 

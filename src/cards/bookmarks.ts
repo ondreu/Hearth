@@ -312,5 +312,6 @@ export const bookmarksCard: CardDefinition<"bookmarks"> = {
 	render: (view, _card, body, component) => renderBookmarks(view, body, component),
 	// Not `static` any more in spirit — the card follows the bookmark store
 	// itself (see `watchBookmarks`), which no liveness mode can express.
+	expressive: true,
 	liveness: { mode: "static" },
 };

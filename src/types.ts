@@ -1874,6 +1874,13 @@ export interface DashboardCard {
 	/** Override the card border width for this card, in pixels (undefined =
 	 * dashboard / global). 0 removes the visible border and the header rule. */
 	cardBorderWidth?: number;
+	/** How the card's content is drawn: "classic", or "expressive" (Material 3
+	 * Expressive — tonal containers in the accent colour, pills and soft
+	 * shapes, heavy tight type). Undefined follows the vault's
+	 * {@link HomeSettings.cardDesign}. Only kinds whose definition declares
+	 * `expressive` read it; the weather and market cards keep theirs in their
+	 * own config. See {@link effectiveCardDesign}. */
+	design?: CardDesign;
 
 	// ---- Layout (legacy grid cell units) ----
 	// Kept as the seed for the free-form coordinates below: older layouts (and
@@ -2468,6 +2475,10 @@ export interface HomeSettings {
 	/** Card border width in pixels. 0 removes the visible card border and the
 	 * header divider line. */
 	cardBorderWidth: number;
+	/** The design a card is drawn in when it doesn't choose one itself —
+	 * "classic", or Material 3 "expressive". Default (absent) "classic". Read
+	 * through {@link effectiveCardDesign}. */
+	cardDesign?: CardDesign;
 
 	// ---- Search filters ----
 	/** Group ids the user has hidden from the auto-detected filter row. */
@@ -3009,6 +3020,16 @@ function chromeVisibility(
  */
 export function effectiveSkyAnimate(s: HomeSettings): boolean {
 	return (activeDashboard(s).backgroundSkyAnimate ?? s.backgroundSkyAnimate) !== false;
+}
+
+/** The two ways a card can be drawn. */
+export type CardDesign = "classic" | "expressive";
+
+/** The design a card is drawn in: its own choice, else the vault's, else
+ * Classic. For the weather and market cards `own` is their config's `design`;
+ * for every other kind it is the card's. */
+export function effectiveCardDesign(s: Pick<HomeSettings, "cardDesign">, own: CardDesign | undefined): CardDesign {
+	return own ?? s.cardDesign ?? "classic";
 }
 
 /** How the weather sky is drawn on the active board: its own choice, else the

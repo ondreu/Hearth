@@ -18,12 +18,13 @@ import {
 import {
 	CARD_BORDER_WIDTH_MAX,
 	effectiveCardBorderWidth,
+	effectiveCardDesign,
 	type CardKind,
 	type DashboardCard,
 	type HomeSettings,
 	type MobileCardOptions,
 } from "./types";
-import { confirmAction } from "./ui";
+import { confirmAction, designSetting } from "./ui";
 
 
 export interface CardSettingsOptions {
@@ -201,6 +202,19 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	private colorsSection(containerEl: HTMLElement): void {
 		const card = this.card;
+		if (cardDefinition(card).expressive) {
+			designSetting(containerEl, {
+				name: t().editors.design.name,
+				desc: t().editors.design.desc,
+				own: card.design,
+				fallback: effectiveCardDesign(this.opts.settings, undefined),
+				set: (design) => {
+					card.design = design;
+					this.opts.save();
+					this.opts.rerender();
+				},
+			});
+		}
 		const row = new Setting(containerEl)
 			.setName(t().editors.colors.heading)
 			.setDesc(t().editors.colors.headingDesc);

@@ -30,15 +30,17 @@ import {
 import { cachedQuote, cachedSeries, loadQuotes, loadSeries, searchMarkets } from "../marketfeed";
 import { shapePath } from "../shapes";
 import {
+	type CardDesign,
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
+	effectiveCardDesign,
 	type MarketConfig,
 	type MarketItem,
 	type MarketRange,
 	type MarketStyle,
 	motionAllowed,
 } from "../types";
-import { makeClickable } from "../ui";
+import { designSetting, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -74,11 +76,16 @@ export function isSingleStyle(style: MarketStyle): boolean {
 	return style === "minimal" || style === "spotlight" || style === "chart";
 }
 
-export function resolveMarket(cfg: MarketConfig, lowPower = false, lang = detectLanguage()): Resolved {
+export function resolveMarket(
+	cfg: MarketConfig,
+	lowPower = false,
+	lang = detectLanguage(),
+	vaultDesign: CardDesign = "classic",
+): Resolved {
 	const style = cfg.style ?? "list";
 	return {
 		style,
-		expressive: cfg.design === "expressive",
+		expressive: (cfg.design ?? vaultDesign) === "expressive",
 		redUp: cfg.upColor ? cfg.upColor === "red" : redUpForLanguage(lang),
 		range: cfg.range ?? "1d",
 		change: cfg.change ?? (isSingleStyle(style) ? "both" : "percent"),
@@ -724,7 +731,12 @@ async function inBatches<T>(items: T[], size: number, fn: (item: T) => Promise<u
 
 export function renderMarket(view: HomeView, card: DashboardCard, body: HTMLElement, component: Component): void {
 	const cfg = card.market ?? {};
-	const r = resolveMarket(cfg, !motionAllowed(view.plugin.settings));
+	const r = resolveMarket(
+		cfg,
+		!motionAllowed(view.plugin.settings),
+		detectLanguage(),
+		effectiveCardDesign(view.plugin.settings, undefined),
+	);
 	const rows = rowsFor(cfg);
 	if (!rows.length && r.style !== "lookup") {
 		emptyState(body, "trending-up", t().cards.empty.marketNoSymbols);
@@ -1424,18 +1436,17 @@ export function marketEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 				ctx.requestRender();
 			});
 		});
-	new Setting(containerEl)
-		.setName(strings.design)
-		.setDesc(strings.designDesc)
-		.addDropdown((d) => {
-			d.addOption("classic", strings.designClassic);
-			d.addOption("expressive", strings.designExpressive);
-			d.setValue(cfg.design ?? "classic").onChange((v) => {
-				cfg.design = v === "expressive" ? "expressive" : undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			});
-		});
+	designSetting(containerEl, {
+		name: strings.design,
+		desc: strings.designDesc,
+		own: cfg.design,
+		fallback: effectiveCardDesign(ctx.opts.settings, undefined),
+		set: (design) => {
+			cfg.design = design;
+			ctx.opts.save();
+			ctx.opts.rerender();
+		},
+	});
 	new Setting(containerEl)
 		.setName(strings.upColor)
 		.setDesc(strings.upColorDesc)

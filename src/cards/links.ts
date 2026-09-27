@@ -220,6 +220,7 @@ export const linksCard: CardDefinition<"links"> = {
 	cloneConfig: (source, copy) => {
 		if (source.links) copy.links = source.links.map((l) => ({ ...l }));
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
 	tileButtons: true,

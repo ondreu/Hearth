@@ -247,5 +247,6 @@ export const calculatorCard: CardDefinition<"calculator"> = {
 	cloneConfig: (source, copy) => {
 		if (source.calculator) copy.calculator = { ...source.calculator };
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 };

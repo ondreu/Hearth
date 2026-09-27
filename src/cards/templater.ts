@@ -428,6 +428,7 @@ export const templaterCard: CardDefinition<"templater"> = {
 				items: source.templater.items?.map((i) => ({ ...i })),
 			};
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
 	tileButtons: true,

@@ -286,6 +286,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		cardBlur: s.cardBlur,
 		cardRadius: s.cardRadius,
 		cardBorderWidth: s.cardBorderWidth,
+		cardDesign: s.cardDesign,
 
 		// Search filters
 		hiddenFilters: s.hiddenFilters,
@@ -521,6 +522,7 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	if (typeof r.pinned === "boolean") card.pinned = r.pinned;
 	if (typeof r.cardOpacity === "number") card.cardOpacity = r.cardOpacity;
 	if (typeof r.cardBlur === "number") card.cardBlur = r.cardBlur;
+	if (r.design === "classic" || r.design === "expressive") card.design = r.design;
 	if (typeof r.cardBorderWidth === "number") {
 		card.cardBorderWidth = clampNum(
 			r.cardBorderWidth,
@@ -2210,6 +2212,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	// absence.
 	if (data.backgroundSkyDesign === "expressive") s.backgroundSkyDesign = "expressive";
 	else if (data.backgroundSkyDesign === "classic") s.backgroundSkyDesign = undefined;
+	if (data.cardDesign === "expressive") s.cardDesign = "expressive";
+	else if (data.cardDesign === "classic") s.cardDesign = undefined;
 	const lowPowerColor = str(data.lowPowerBackgroundColor)?.trim();
 	if (lowPowerColor) s.lowPowerBackgroundColor = lowPowerColor;
 	if (typeof data.pauseWhenUnfocused === "boolean") {

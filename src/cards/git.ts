@@ -817,5 +817,6 @@ export const gitCard: CardDefinition<"git"> = {
 	},
 	// The card drives its own updates off obsidian-git's events, which say far
 	// more precisely than a vault event whether anything git-visible changed.
+	expressive: true,
 	liveness: { mode: "static" },
 };

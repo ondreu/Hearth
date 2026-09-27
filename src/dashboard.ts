@@ -29,6 +29,7 @@ import {
 	type DashboardCard,
 	effectiveArrangeButtonVisibility,
 	effectiveCardBorderWidth,
+	effectiveCardDesign,
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
@@ -164,6 +165,9 @@ export function renderDashboard(
 		el.dataset.kind = card.kind;
 		const kindClasses = cardClasses(card);
 		if (kindClasses.length) el.addClass(...kindClasses);
+		if (cardDefinition(card).expressive && effectiveCardDesign(s, card.design) === "expressive") {
+			el.addClass("is-expressive");
+		}
 		if (card.accent) {
 			el.style.setProperty("--card-accent", card.accent);
 			el.addClass("has-accent");

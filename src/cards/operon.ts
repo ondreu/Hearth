@@ -1283,5 +1283,6 @@ export const operonCard: CardDefinition<"operon"> = {
 	// Operon persists to Markdown, so any vault or metadata change may have
 	// moved a task. The board's own hub debounce keeps that to one redraw per
 	// burst, and each redraw is a single bounded read.
+	expressive: true,
 	liveness: { mode: "vault" },
 };

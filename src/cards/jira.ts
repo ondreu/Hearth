@@ -229,5 +229,6 @@ export const jiraCard: CardDefinition<"jira"> = {
 					: undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 };

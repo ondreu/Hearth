@@ -333,5 +333,6 @@ export const statsCard: CardDefinition<"stats"> = {
 				queries: source.stats.queries ? source.stats.queries.map((q) => ({ ...q })) : undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "vault" },
 };

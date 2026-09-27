@@ -1025,5 +1025,6 @@ export const scheduleCard: CardDefinition<"schedule"> = {
 					: undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "vault" },
 };

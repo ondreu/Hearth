@@ -140,6 +140,12 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 		head: HTMLElement,
 		redraw: () => void,
 	): void;
+	/** The kind has a Material 3 Expressive design, drawn by styles.css under
+	 * `.hearth-card.is-expressive` and switched by the card's `design` (else the
+	 * vault's `cardDesign`). The editor's Style tab offers the choice to such a
+	 * kind. Weather and market leave it unset: their design lives in their own
+	 * config and editor. */
+	expressive?: boolean;
 	/** The card's body is a launchpad — a grid of buttons the user arranges
 	 * (links, commands, templater). The Layout tab offers such a kind the
 	 * button-sizing settings (`tileSizingSettings`), since how big the buttons

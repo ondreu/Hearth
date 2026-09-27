@@ -399,5 +399,6 @@ export const heatmapCard: CardDefinition<"heatmap"> = {
 				rules: source.heatmap.rules ? source.heatmap.rules.map((r) => ({ ...r })) : undefined,
 			};
 	},
+	expressive: true,
 	liveness: { mode: "vault" },
 };

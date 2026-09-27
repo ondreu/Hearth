@@ -185,6 +185,7 @@ export const commandsCard: CardDefinition<"commands"> = {
 	cloneConfig: (source, copy) => {
 		if (source.commands) copy.commands = source.commands.map((c) => ({ ...c }));
 	},
+	expressive: true,
 	liveness: { mode: "static" },
 	cardClass: "is-tile-card",
 	tileButtons: true,

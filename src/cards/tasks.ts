@@ -6228,6 +6228,7 @@ export const tasksCard: CardDefinition<"tasks"> = {
 					: undefined,
 			};
 	},
+	expressive: true,
 	liveness: {
 		mode: "vault",
 		shouldRedraw: (card, ev) => tasksEventRelevant(card.tasks, ev.file, ev.oldPath),

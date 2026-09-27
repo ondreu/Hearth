@@ -145,5 +145,6 @@ export const favoritesCard: CardDefinition<"favorites"> = {
 		if (source.favorites) copy.favorites = [...source.favorites];
 	},
 	renderEditor: (container, ctx) => favoritesEditor(ctx, container),
+	expressive: true,
 	liveness: { mode: "static" },
 };

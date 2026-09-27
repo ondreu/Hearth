@@ -1563,6 +1563,9 @@ export const de: Translations = {
 			cardBorderWidth: "Kartenrahmen",
 			cardBorderWidthDesc:
 				"Stärke des Kartenrahmens und der Kopfzeilentrennlinie, in Pixeln. 0 blendet den Rahmen aus.",
+			cardDesign: "Kartendesign",
+			cardDesignDesc:
+				"Wie Karten gezeichnet werden, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
 			cards: "Karten",
 			cardsDesc:
 				"Füge Karten auf dem Dashboard selbst hinzu und richte sie ein: Öffne die Startansicht, " +
@@ -3139,6 +3142,13 @@ export const de: Translations = {
 			openButtonDesc:
 				"Eine Schaltfläche in der Ecke der Karte, die das Haus von Vault Pet in " +
 				"der Seitenleiste öffnet - wie sein Symbol in der Seitenleiste.",
+		},
+		design: {
+			name: "Design",
+			desc: "Klassisch oder Material 3 Expressive: tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen.",
+			classic: "Klassisch",
+			expressive: "Expressive",
+			followDefault: (design: string) => `Tresor-Voreinstellung (${design})`,
 		},
 		colors: {
 			heading: "Farben",

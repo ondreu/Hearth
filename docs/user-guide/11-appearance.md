@@ -101,6 +101,28 @@ Per card: that card's *Style* tab.
 | *Card blur* | 0 (off) | Frosted-glass blur behind translucent cards. Needs card opacity below 100% to show |
 | *Card corner radius* | 14 px | How rounded card corners are. 14 is both the default and the maximum; lower makes corners sharper, down to 0 |
 | *Card border* | 1 px | Thickness of the card border and the header divider. 0 hides the border |
+| *Card design* | Classic | How cards draw their content — see below. Vault-wide only; each card can choose for itself |
+
+### Card design: Classic or Expressive
+
+*Card design* sets how cards draw what's inside them: **Classic**, or
+**Expressive**, in Material 3 Expressive's manner — the look the weather and
+market cards introduced. In Expressive, rows and tiles sit on tonal containers
+in your accent colour instead of on rules and borders, icons sit on round
+badges, controls become pills, and the thing each card is about is set heavy
+and tight or on a cookie shape: the time, today in the calendar, the
+calculator's answer, the statistics.
+
+It is a default. Each card's *Style* tab has its own *Design* — *Vault default*,
+*Classic* or *Expressive* — and the weather and market cards keep theirs in
+their *Content* tab, where *Vault default* is also offered. The cards that have
+an Expressive design are clock, mini calendar, full calendar, tasks, statistics,
+activity heatmap, links, commands, new note, favourites, bookmarks, recent
+files, folder, query, search bar, calculator, Git, RSS, Jira and Operon, plus
+weather and markets. Cards whose content is your own — notes, embeds, web pages,
+Dataview and Datacore, hosted views, the slideshow and the pets — stay as they
+are. Nothing changes the card's frame: its corners, border and surface are still
+the board's.
 
 ### Why frosted glass is off by default
 
