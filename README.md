@@ -30,7 +30,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 | | |
 | --- | --- |
 | ![Full dashboard](assets/Full_Dash.png) | ![Search-only launcher](assets/Just_search.png) |
-| ![Dashboard variant](assets/Full_Dash2.png) | ![Card gallery](assets/cards.png) |
+| ![Dashboard variant](assets/Full_Dash2.png) | ![Dashboard](assets/Dash311.png) |
 
 ### Material you 3 Expressive
 
@@ -39,7 +39,7 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 | ![Green_Dash](assets/M3_Green.png) | ![Purple_Dash](assets/M3_Purple.png) |
 | ![Red_Dash](assets/M3_Red.png) | ![Torq_Dash](assets/M3_Torq.png) |
 
-<img src="assets/mobile.png" width="280" alt="Hearth on mobile" />
+<img src="assets/phone.png" width="280" alt="Hearth on mobile" />
 
 ## Contents
 
