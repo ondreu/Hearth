@@ -66,6 +66,36 @@ const fakeRequestUrl = vi.fn(async ({ url }: { url: string }) => {
 		if (symbol === "CZKEUR=X") return response(yahooChart(symbol, 0.0405, 0.0404, "CURRENCY", "EUR"));
 		return response(yahooChart(symbol, 227.52, 226.37));
 	}
+	if (u.host === "geocoding-api.open-meteo.com") {
+		return response({
+			results: [{ name: "Prague", admin1: "Prague", country: "Czechia", latitude: 50.08, longitude: 14.42 }],
+		});
+	}
+	if (u.host === "api.open-meteo.com") {
+		const today = new Date().toISOString().slice(0, 10);
+		const days = [0, 1, 2, 3, 4].map((i) => new Date(Date.now() + i * 86_400_000).toISOString().slice(0, 10));
+		return response({
+			timezone: "Europe/Prague",
+			current: { time: `${today}T12:00`, temperature_2m: 18.4, apparent_temperature: 16.2, weather_code: 2, is_day: 1 },
+			daily: {
+				time: days,
+				weather_code: [2, 3, 61, 0, 1],
+				temperature_2m_max: [20, 17, 14, 22, 21],
+				temperature_2m_min: [11, 9, 8, 10, 12],
+			},
+		});
+	}
+	if (u.host === "en.wikipedia.org" && u.pathname === "/w/rest.php/v1/search/title") {
+		return response({ pages: [{ key: "Prague", title: "Prague" }] });
+	}
+	if (u.host === "en.wikipedia.org" && u.pathname === "/api/rest_v1/page/summary/Prague") {
+		return response({
+			title: "Prague",
+			description: "Capital of the Czech Republic",
+			extract: "Prague is the capital and largest city of the Czech Republic.",
+			content_urls: { desktop: { page: "https://en.wikipedia.org/wiki/Prague" } },
+		});
+	}
 	if (u.host === "api.frankfurter.app" && u.pathname === "/latest") {
 		return response({ base: "EUR", rates: { CZK: 25, USD: 1.1 } });
 	}
@@ -166,5 +196,43 @@ describe("instant answers panel", () => {
 		expect(draw().querySelector(".hearth-instant-value")?.textContent).toMatch(/^\d+ days$/);
 		answers.setQuery("tomorrow");
 		expect(draw().querySelector(".hearth-instant-note")?.textContent).toMatch(/^Tomorrow · Week \d+$/);
+	});
+
+	it("answers a stock asked for by name", async () => {
+		const { answers, draw } = panel();
+		answers.setQuery("apple stock");
+		expect(answers.takesEnter()).toBe(true);
+		await settle();
+		expect(draw().querySelector(".hearth-instant-value")?.textContent).toBe("227.52");
+	});
+
+	it("shows the weather and the next days", async () => {
+		const { answers, draw } = panel();
+		answers.setQuery("weather Prague");
+		await settle();
+		const el = draw();
+		expect(el.querySelector(".hearth-instant-value")?.textContent).toMatch(/^18°[CF] · /);
+		expect(el.querySelector(".hearth-instant-note")?.textContent).toContain("Prague, Prague, Czechia");
+		expect(el.querySelectorAll(".hearth-instant-day").length).toBeGreaterThan(0);
+	});
+
+	it("summarises a Wikipedia article", async () => {
+		const { answers, draw } = panel();
+		answers.setQuery("wiki prague");
+		await settle();
+		const el = draw();
+		expect(el.querySelector(".hearth-instant-value")?.textContent).toBe("Prague");
+		expect(el.querySelector(".hearth-instant-extract")?.textContent).toContain("capital");
+	});
+
+	it("flips a coin and rolls dice without a request", () => {
+		const { answers, draw } = panel();
+		answers.setQuery("coin flip");
+		expect(["Heads", "Tails"]).toContain(draw().querySelector(".hearth-instant-value")?.textContent);
+		answers.setQuery("roll 3d6");
+		const sum = Number(draw().querySelector(".hearth-instant-value")?.textContent);
+		expect(sum).toBeGreaterThanOrEqual(3);
+		expect(sum).toBeLessThanOrEqual(18);
+		expect(calls).toEqual([]);
 	});
 });

@@ -127,6 +127,13 @@ export const en = {
 			week: (n: number) => `Week ${n}`,
 			sameTime: "Same time as here",
 			offset: (hours: string) => `${hours} h from here`,
+			noPlace: (place: string) => `No place called “${place}” found`,
+			noArticle: (query: string) => `No Wikipedia article for “${query}”`,
+			heads: "Heads",
+			tails: "Tails",
+			coin: "Coin flip",
+			between: (min: string, max: string) => `Random number from ${min} to ${max}`,
+			againHint: "Enter to roll again",
 		},
 	},
 
@@ -888,9 +895,11 @@ export const en = {
 			searchInstantAnswersDesc:
 				"Answer the query itself above the notes: sums and unit conversions " +
 				"(1+1, 10 km to mi), currencies with a chart (20 CZK to EUR), market " +
-				"quotes after a $ ($AAPL, $bitcoin), dates (days until 2026-12-24) " +
-				"and the time elsewhere (time in Tokyo). Currencies and quotes are " +
-				"fetched only when asked for.",
+				"quotes ($AAPL, apple stock), the weather (weather Prague), Wikipedia " +
+				"(wiki Prague), a coin, dice or random number (coin flip, roll 2d6, " +
+				"random 1-10), dates (days until 2026-12-24) and the time elsewhere " +
+				"(time in Tokyo). Online answers are fetched only for queries that " +
+				"ask for them.",
 			searchContents: "Search note contents",
 			searchContentsDesc:
 				"Also match text inside note bodies, not just names, tags and " +

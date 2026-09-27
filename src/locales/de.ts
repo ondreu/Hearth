@@ -141,6 +141,13 @@ export const de: Translations = {
 			week: (n: number) => `KW ${n}`,
 			sameTime: "Gleiche Zeit wie hier",
 			offset: (hours: string) => `${hours} h gegenüber hier`,
+			noPlace: (place: string) => `Kein Ort namens „${place}“ gefunden`,
+			noArticle: (query: string) => `Kein Wikipedia-Artikel zu „${query}“`,
+			heads: "Kopf",
+			tails: "Zahl",
+			coin: "Münzwurf",
+			between: (min: string, max: string) => `Zufallszahl von ${min} bis ${max}`,
+			againHint: "Enter für einen neuen Wurf",
 		},
 	},
 
@@ -898,10 +905,12 @@ export const de: Translations = {
 			searchInstantAnswers: "Sofortantworten",
 			searchInstantAnswersDesc:
 				"Beantwortet die Suchanfrage selbst über den Notizen: Rechnungen und " +
-				"Einheiten (1+1, 10 km to mi), Währungen mit Chart (20 CZK to EUR), " +
-				"Kurse nach einem $ ($AAPL, $bitcoin), Daten (days until 2026-12-24) " +
-				"und die Uhrzeit anderswo (time in Tokyo). Währungen und Kurse werden " +
-				"nur auf Anfrage abgerufen.",
+				"Einheiten (1+1, 10 km nach mi), Währungen mit Chart (20 CZK in EUR), " +
+				"Kurse ($AAPL, Siemens Aktie), das Wetter (Wetter Berlin), Wikipedia " +
+				"(wiki Berlin), Münze, Würfel oder Zufallszahl (Münzwurf, würfel 2d6, " +
+				"Zufallszahl 1-10), Daten (Tage bis 24.12.2026) und die Uhrzeit " +
+				"anderswo (Zeit in Tokio). Online-Antworten werden nur für Anfragen " +
+				"abgerufen, die danach fragen.",
 			searchContents: "Notizinhalte durchsuchen",
 			searchContentsDesc:
 				"Finde auch Text in Notizinhalten, nicht nur Namen, Tags und " +

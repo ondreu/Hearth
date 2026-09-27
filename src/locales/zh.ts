@@ -112,6 +112,13 @@ export const zh: Translations = {
 			week: (n: number) => `第 ${n} 周`,
 			sameTime: "与本地时间相同",
 			offset: (hours: string) => `与本地相差 ${hours} 小时`,
+			noPlace: (place: string) => `找不到名为“${place}”的地点`,
+			noArticle: (query: string) => `没有关于“${query}”的维基百科条目`,
+			heads: "正面",
+			tails: "反面",
+			coin: "抛硬币",
+			between: (min: string, max: string) => `${min} 到 ${max} 之间的随机数`,
+			againHint: "按 Enter 重新抽取",
 		},
 	},
 
@@ -827,9 +834,10 @@ export const zh: Translations = {
 			searchInstantAnswers: "即时答案",
 			searchInstantAnswersDesc:
 				"在笔记上方直接回答查询：计算与单位换算（1+1、10 km to mi）、" +
-				"带走势图的货币换算（20 CZK to EUR）、以 $ 开头的行情（$AAPL、$bitcoin）、" +
-				"日期（days until 2026-12-24）以及其他地方的时间（time in Tokyo）。" +
-				"货币和行情仅在查询时获取。",
+				"带走势图的货币换算（20美元换成欧元）、行情（$AAPL、茅台股价）、" +
+				"天气（北京天气）、维基百科（维基 北京）、抛硬币、掷骰子或随机数" +
+				"（抛硬币、掷 2d6、随机数 1-10）、日期（距离2026-12-24还有几天）" +
+				"以及其他地方的时间（东京时间）。在线答案仅在查询需要时获取。",
 			searchContents: "搜索笔记内容",
 			searchContentsDesc:
 				"除名称、标签和属性外，也匹配笔记正文中的文本。正文匹配会带摘要显示在" +

@@ -45,6 +45,49 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 	"₺": "try",
 };
 
+/** Currency names as they're typed in the languages Hearth speaks (English,
+ * German, Chinese), mapped to their ISO code: `20 euros to dollars`,
+ * `100 美元换成人民币`. Only names that belong to one currency are listed —
+ * "pound" is a unit of mass to the calculator, and "Krone" is four currencies. */
+export const CURRENCY_NAMES: Record<string, string> = {
+	euro: "eur",
+	euros: "eur",
+	dollar: "usd",
+	dollars: "usd",
+	yen: "jpy",
+	yuan: "cny",
+	renminbi: "cny",
+	franc: "chf",
+	francs: "chf",
+	franken: "chf",
+	rupee: "inr",
+	rupees: "inr",
+	rupie: "inr",
+	rupien: "inr",
+	zloty: "pln",
+	forint: "huf",
+	美元: "usd",
+	美金: "usd",
+	欧元: "eur",
+	人民币: "cny",
+	日元: "jpy",
+	英镑: "gbp",
+	港币: "hkd",
+	港元: "hkd",
+	瑞士法郎: "chf",
+	瑞郎: "chf",
+	加元: "cad",
+	澳元: "aud",
+	新西兰元: "nzd",
+	新加坡元: "sgd",
+	新元: "sgd",
+	韩元: "krw",
+	卢比: "inr",
+	泰铢: "thb",
+	捷克克朗: "czk",
+	波兰兹罗提: "pln",
+};
+
 let cache: CurrencyRates | null = null;
 let inflight: Promise<CurrencyRates | null> | null = null;
 

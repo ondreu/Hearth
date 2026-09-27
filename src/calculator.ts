@@ -14,7 +14,7 @@
  * cached by src/currency.ts); without them a currency query reports that rates
  * are unavailable rather than guessing.
  */
-import { CURRENCY_CODES, CURRENCY_SYMBOLS } from "./currency";
+import { CURRENCY_CODES, CURRENCY_NAMES, CURRENCY_SYMBOLS } from "./currency";
 
 /** Options that tune how an expression is evaluated. */
 export interface CalcOptions {
@@ -32,7 +32,7 @@ const CURRENCY_SET = new Set(CURRENCY_CODES);
 /** Resolve a raw token to an ISO currency code, or null if it isn't one. */
 function lookupCurrency(raw: string): string | null {
 	const key = raw.trim().toLowerCase();
-	return CURRENCY_SET.has(key) ? key : null;
+	return CURRENCY_SET.has(key) ? key : CURRENCY_NAMES[key] ?? null;
 }
 
 /** A successful evaluation. */
@@ -590,9 +590,19 @@ function normalizeCurrencySymbols(input: string): string {
 	return s.replace(/\s+/g, " ").trim();
 }
 
+/** "Into" as German and Chinese say it: `10 km nach mi`, `20美元换成欧元` both
+ * become the "… to …" the conversion parser reads. Chinese needs no spaces
+ * around the word, so it is matched anywhere; German only as a whole word. */
+function normalizeConnectors(input: string): string {
+	return input
+		.replace(/\s*(?:兑换成|换算成|转换成|兑换为|换成|兑成|转成|兑换|等于多少|是多少)\s*/g, " to ")
+		.replace(/\s+nach\s+/gi, " to ")
+		.trim();
+}
+
 /** Strip conversational lead-ins/trailers ("what is …", "= "). */
 function stripFiller(input: string): string {
-	let s = input.trim();
+	let s = normalizeConnectors(input.trim());
 	s = s.replace(/^\s*(what\s+is|whats|what's|calculate|compute|convert|how\s+much\s+is|evaluate)\s+/i, "");
 	s = s.replace(/^=\s*/, "");
 	s = s.replace(/[=?]+\s*$/, "");
@@ -759,7 +769,7 @@ function extractTrailingUnit(
 	// Match a trailing unit token as the candidate unit. The token must start
 	// with a letter/symbol (so a bare number isn't mistaken for a unit) but may
 	// carry trailing digits/superscripts so area aliases (m2, ft2, m², cm3) match.
-	const m = /^(.*?)([a-zµπ°][a-z0-9µπ°/²³]*)\s*$/i.exec(trimmed);
+	const m = /^(.*?)([a-zµπ°\p{Script=Han}][a-z0-9µπ°/²³\p{Script=Han}]*)\s*$/iu.exec(trimmed);
 	if (!m) return null;
 	const unitRaw = m[2];
 	const exprPart = m[1].trim();

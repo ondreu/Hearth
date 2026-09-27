@@ -16,16 +16,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 ### Added
 
 - **Instant answers in the search bar.** A query that has an answer of its
-  own gets it above the notes: sums and unit conversions (`1+1`,
-  `20% of 150`, `10 km to mi`), currencies with the pair's chart
-  (`20 CZK to EUR`, `eur/usd`), market quotes with a chart after a `$`
-  (`$AAPL`, `$apple`, `$bitcoin`, `$sh510300`), dates (`days until
-  2026-12-24`, `today + 45 days`, `next friday`) and the time elsewhere
-  (`time in Tokyo`). A leading `=` forces the calculator. Enter copies the
-  answer, or opens a quote's page; a date or a clock leaves Enter on the first
-  note. Currencies and quotes use the calculator's and Markets card's cached
-  sources, are fetched only when asked for, and stop with **Disable external
-  calls**. Switch it off in **Settings → Appearance → Instant answers**.
+  own gets it above the notes:
+  - sums and unit conversions — `1+1`, `20% of 150`, `10 km to mi`
+  - currencies with the pair's chart — `20 CZK to EUR`, `20 euros in
+    dollars`, `100 CHF nach EUR`, `20美元换成人民币`, `eur/usd`
+  - market quotes with a chart — `$AAPL`, or by name: `apple stock`,
+    `bitcoin price`, `Siemens Aktie`, `茅台股价`
+  - the weather — `weather Prague`, `Wetter Berlin`, `北京天气`
+  - Wikipedia summaries — `wiki Alan Turing`, `wiki:de Prag`, `维基 布拉格`
+  - chance — `coin flip`, `roll 2d6`, `d20`, `random 1-10`
+  - dates — `days until 2026-12-24`, `today + 45 days`, `Tage bis …`,
+    `距离2026-12-24还有几天`
+  - the time elsewhere — `time in Tokyo`, `Zeit in Prag`, `东京时间`
+
+  Phrases work in English, German and Chinese; a leading `=` forces the
+  calculator. Enter copies the answer, opens a quote or article, or rolls
+  again; a date or a clock leaves Enter on the first note. Online answers are
+  fetched only for queries that ask for them, reuse the calculator's, Markets
+  and Weather cards' cached sources, and stop with **Disable external calls**.
+  Switch it off in **Settings → Appearance → Instant answers**.
 
 - **Material 3 Expressive: a second design for all of Hearth.** A new
   **Design** setting — *Classic* or *Expressive* — heads **Settings → Hearth →

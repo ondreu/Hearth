@@ -21,6 +21,7 @@ import {
 	type InstantIntent,
 	instantTakesEnter,
 	isoWeek,
+	rollBetween,
 	zoneOffsetMinutes,
 } from "./instant";
 import {
@@ -38,11 +39,48 @@ import {
 } from "./market";
 import { cachedQuote, cachedSeries, loadQuotes, loadSeries, searchMarkets } from "./marketfeed";
 import type { MarketRange } from "./types";
+import {
+	formatTemp,
+	formatWeekday,
+	type GeoResult,
+	loadWeather,
+	searchPlaces,
+	upcomingDays,
+	type WeatherRequest,
+	type WeatherSnapshot,
+	weatherIcon,
+	weatherLabelKey,
+} from "./weather";
+import { lookupWiki, type WikiSummary, wikiLang } from "./wiki";
 
 /** One keyboard-reachable row the panel adds to the results. */
 export interface InstantRow {
 	el: HTMLElement;
 	open: () => void;
+}
+
+/** A forecast stays fresh this long, as on the weather card. */
+const WEATHER_TTL_MS = 30 * 60_000;
+/** Days in the forecast strip under the weather answer. */
+const WEATHER_DAYS = 5;
+/** Places already looked up this session, by language and name. */
+const placeCache = new Map<string, GeoResult | null>();
+
+/** Obsidian's language as a wiki / geocoder language code. */
+function uiLang(): string {
+	return wikiLang(detectLanguage()) ?? "en";
+}
+
+/** Imperial units where the reader's locale uses them. */
+function weatherRequest(place: GeoResult): WeatherRequest {
+	const us = /-(?:US|LR|MM)$/i.test(navigator.language);
+	return {
+		lat: place.lat,
+		lon: place.lon,
+		tempUnit: us ? "f" : "c",
+		windUnit: us ? "mph" : "kmh",
+		precipUnit: us ? "inch" : "mm",
+	};
 }
 
 /** A quote or a chart stays fresh this long; the market card's default. */
@@ -100,6 +138,11 @@ export class InstantAnswers {
 	private generation = 0;
 	private range: MarketRange = "1mo";
 	private market: MarketState | null = null;
+	private weather: { status: "loading" | "ready" | "none" | "off"; place?: GeoResult; snapshot?: WeatherSnapshot } | null =
+		null;
+	private wiki: { status: "loading" | "ready" | "none" | "off"; summary?: WikiSummary } | null = null;
+	/** The current coin, dice or random draw. */
+	private rolls: number[] = [];
 
 	constructor(host: InstantHost) {
 		this.host = host;
@@ -115,9 +158,14 @@ export class InstantAnswers {
 		this.intent = intent;
 		this.generation++;
 		this.market = null;
+		this.weather = null;
+		this.wiki = null;
 		this.range = "1mo";
 		if (intent?.kind === "currency") this.loadCurrency(intent);
 		if (intent?.kind === "market") this.loadMarket(intent.query);
+		if (intent?.kind === "weather") this.loadWeather(intent.place);
+		if (intent?.kind === "wiki") this.loadWiki(intent.query, intent.lang ?? uiLang());
+		this.roll();
 		return intent;
 	}
 
@@ -190,6 +238,59 @@ export class InstantAnswers {
 		});
 	}
 
+	private loadWeather(placeName: string): void {
+		if (this.host.externalCallsDisabled()) {
+			this.weather = { status: "off" };
+			return;
+		}
+		const state: NonNullable<InstantAnswers["weather"]> = { status: "loading" };
+		this.weather = state;
+		const lang = uiLang();
+		const key = `${lang}|${placeName.toLowerCase()}`;
+		const geocode = placeCache.has(key)
+			? Promise.resolve(placeCache.get(key) ?? null)
+			: searchPlaces(placeName, { language: lang }).then((found) => {
+					const place = found[0] ?? null;
+					placeCache.set(key, place);
+					return place;
+				});
+		this.after(geocode, (place) => {
+			if (!place) {
+				state.status = "none";
+				return;
+			}
+			state.place = place;
+			this.after(loadWeather(weatherRequest(place), { ttlMs: WEATHER_TTL_MS }), (snapshot) => {
+				state.snapshot = snapshot ?? undefined;
+				state.status = snapshot ? "ready" : "none";
+			});
+		});
+	}
+
+	private loadWiki(query: string, lang: string): void {
+		if (this.host.externalCallsDisabled()) {
+			this.wiki = { status: "off" };
+			return;
+		}
+		const state: NonNullable<InstantAnswers["wiki"]> = { status: "loading" };
+		this.wiki = state;
+		this.after(lookupWiki(query, lang), (summary) => {
+			state.summary = summary ?? undefined;
+			state.status = summary ? "ready" : "none";
+		});
+	}
+
+	/** Draw again: a new coin, dice or number for a chance query. */
+	private roll(): void {
+		const intent = this.intent;
+		const rnd = Math.random;
+		if (intent?.kind === "coin") this.rolls = [rollBetween(0, 1, rnd)];
+		else if (intent?.kind === "dice") {
+			this.rolls = Array.from({ length: intent.count }, () => rollBetween(1, intent.sides, rnd));
+		} else if (intent?.kind === "random") this.rolls = [rollBetween(intent.min, intent.max, rnd)];
+		else this.rolls = [];
+	}
+
 	private pickMarket(index: number): void {
 		const result = this.market?.results[index];
 		if (!result) return;
@@ -256,6 +357,17 @@ export class InstantAnswers {
 				break;
 			case "time":
 				this.renderTime(intent, row);
+				break;
+			case "weather":
+				this.renderWeather(intent.place, row, wrap);
+				break;
+			case "wiki":
+				this.renderWiki(intent.query, row);
+				break;
+			case "coin":
+			case "dice":
+			case "random":
+				this.renderChance(intent, row);
 				break;
 		}
 		if (!rows.length) wrap.remove();
@@ -398,6 +510,110 @@ export class InstantAnswers {
 			});
 		}
 		rangeChips(box, this.range, (range) => this.setRange(range));
+	}
+
+	private renderWeather(
+		placeName: string,
+		row: (icon: string, open: () => void) => HTMLElement,
+		wrap: HTMLElement,
+	): void {
+		const strings = t().search.instant;
+		const state = this.weather;
+		const snapshot = state?.status === "ready" ? state.snapshot : undefined;
+		const place = state?.place;
+		if (!snapshot || !place) {
+			const note =
+				state?.status === "off"
+					? strings.externalOff
+					: state?.status === "none"
+						? strings.noPlace(placeName)
+						: strings.loading;
+			this.body(row("cloud-sun", () => {}), placeName, note);
+			return;
+		}
+		const req = weatherRequest(place);
+		const now = snapshot.now;
+		const condition = t().cards.weather.conditions[weatherLabelKey(now.code)];
+		const days = upcomingDays(snapshot, WEATHER_DAYS);
+		const today = days[0];
+		const value = `${formatTemp(now.temp, req.tempUnit, true)} · ${condition}`;
+		const where = [place.name, place.region].filter(Boolean).join(", ");
+		const note = [
+			where,
+			t().cards.weather.feelsLike(formatTemp(now.apparent, req.tempUnit)),
+			today ? `↑${formatTemp(today.max, req.tempUnit)} ↓${formatTemp(today.min, req.tempUnit)}` : "",
+		]
+			.filter(Boolean)
+			.join(" · ");
+		const el = row(weatherIcon(now.code, now.isDay), () => copy(`${where}: ${value}`));
+		this.body(el, value, note, strings.copyHint);
+
+		const strip = wrap.createDiv("hearth-instant-days");
+		for (const day of days) {
+			const cell = strip.createDiv("hearth-instant-day");
+			cell.createDiv({ cls: "hearth-instant-day-name", text: formatWeekday(day.date) });
+			setIcon(cell.createDiv("hearth-instant-day-icon"), weatherIcon(day.code, true));
+			cell.createDiv({
+				cls: "hearth-instant-day-temp",
+				text: `${formatTemp(day.max, req.tempUnit)} ${formatTemp(day.min, req.tempUnit)}`,
+			});
+		}
+	}
+
+	private renderWiki(query: string, row: (icon: string, open: () => void) => HTMLElement): void {
+		const strings = t().search.instant;
+		const state = this.wiki;
+		const summary = state?.status === "ready" ? state.summary : undefined;
+		if (!summary) {
+			const note =
+				state?.status === "off"
+					? strings.externalOff
+					: state?.status === "none"
+						? strings.noArticle(query)
+						: strings.loading;
+			this.body(row("book-open", () => {}), query, note);
+			return;
+		}
+		const el = row("book-open", () => window.open(summary.url, "_blank"));
+		el.addClass("hearth-instant-wiki");
+		const text = this.body(el, summary.title, summary.description, strings.openHint);
+		text.createDiv({ cls: "hearth-instant-extract", text: summary.extract });
+		if (summary.thumbnail) {
+			el.createEl("img", {
+				cls: "hearth-instant-thumb",
+				attr: { src: summary.thumbnail, alt: "", loading: "lazy", referrerpolicy: "no-referrer" },
+			});
+		}
+	}
+
+	private renderChance(
+		intent: Extract<InstantIntent, { kind: "coin" | "dice" | "random" }>,
+		row: (icon: string, open: () => void) => HTMLElement,
+	): void {
+		const strings = t().search.instant;
+		if (!this.rolls.length) return;
+		const again = () => {
+			this.roll();
+			this.host.changed();
+		};
+		let icon: string;
+		let value: string;
+		let note: string;
+		if (intent.kind === "coin") {
+			icon = "coins";
+			value = this.rolls[0] ? strings.heads : strings.tails;
+			note = strings.coin;
+		} else if (intent.kind === "dice") {
+			icon = "dices";
+			const sum = this.rolls.reduce((a, b) => a + b, 0);
+			value = String(sum);
+			note = `${intent.count}d${intent.sides}${this.rolls.length > 1 ? ` · ${this.rolls.join(" + ")}` : ""}`;
+		} else {
+			icon = "shuffle";
+			value = this.rolls[0].toLocaleString();
+			note = strings.between(intent.min.toLocaleString(), intent.max.toLocaleString());
+		}
+		this.body(row(icon, again), value, note, strings.againHint);
 	}
 
 	private renderDate(

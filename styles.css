@@ -1224,6 +1224,68 @@ body.is-translucent .hearth-view.hearth-macos *::after {
 	font-size: 0.78rem;
 }
 
+/* A Wikipedia summary: the lead under the title, and the subject's picture. */
+.hearth-instant-row.hearth-instant-wiki {
+	align-items: flex-start;
+}
+
+.hearth-instant-extract {
+	margin-top: 4px;
+	color: var(--text-normal);
+	font-size: 0.82rem;
+	line-height: 1.4;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	line-clamp: 4;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+
+.hearth-instant-thumb {
+	flex-shrink: 0;
+	width: 64px;
+	height: 64px;
+	border-radius: var(--radius-s);
+	object-fit: cover;
+}
+
+/* The weather answer's next days. */
+.hearth-instant-days {
+	display: flex;
+	gap: 4px;
+	padding: 2px 12px 4px;
+}
+
+.hearth-instant-day {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 0;
+	font-size: 0.72rem;
+}
+
+.hearth-instant-day-name {
+	color: var(--text-muted);
+}
+
+.hearth-instant-day-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.hearth-instant-day-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-instant-day-temp {
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
 .hearth-instant-alt {
 	padding-top: 5px;
 	padding-bottom: 5px;

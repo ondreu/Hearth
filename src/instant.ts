@@ -4,15 +4,21 @@
  *
  * Typed into the vault search, some queries have an answer of their own:
  *
- * | typed                              | answer                                   |
- * | ---------------------------------- | ---------------------------------------- |
- * | `1+1`, `20% of 150`, `10 km to mi` | the calculator's result                  |
- * | `20 CZK to EUR`, `eur/usd`         | the conversion, plus the pair's chart    |
- * | `$AAPL`, `$apple`, `$btc`          | a live quote and chart (market lookup)   |
- * | `time in Tokyo`, `tokyo time`      | the clock there, and the offset to here  |
- * | `days until 2026-12-24`            | a day count                              |
- * | `today + 45 days`, `next friday`   | the date                                 |
- * | `=…`                               | forces the calculator                    |
+ * | typed                                  | answer                                |
+ * | -------------------------------------- | ------------------------------------- |
+ * | `1+1`, `20% of 150`, `10 km to mi`     | the calculator's result               |
+ * | `20 CZK to EUR`, `20美元换成欧元`, `eur/usd` | the conversion and the pair's chart |
+ * | `$AAPL`, `apple stock`, `Siemens Aktie`  | a live quote and chart                |
+ * | `weather Prague`, `Wetter Berlin`      | the weather there                     |
+ * | `wiki Prague`, `wiki:de Prag`          | the Wikipedia article's summary       |
+ * | `coin flip`, `roll 2d6`, `random 1-10` | a coin, dice, a random number         |
+ * | `time in Tokyo`, `东京时间`             | the clock there, and the offset       |
+ * | `days until 2026-12-24`, `Tage bis …`  | a day count                           |
+ * | `today + 45 days`, `next friday`       | the date                              |
+ * | `=…`                                   | forces the calculator                 |
+ *
+ * Phrases are understood in the languages Hearth has a translation for —
+ * English, German and Chinese.
  *
  * This file only decides which of those a query is. It is pure — no DOM, no
  * network — so the rules are tested directly (test/instant.test.ts); the
@@ -21,8 +27,9 @@
  * Detection is deliberately conservative: the answer sits above the ordinary
  * note results, so a false positive costs a row, but a missed note name costs
  * more. A bare number, a date or a time of day is never a calculation, and
- * nothing here reaches the network unless the reader typed the `$` that asks
- * for a market lookup (or a currency conversion, which needs rates).
+ * the network is reached only for a query that plainly asks for something
+ * from it: a `$` or a "stock"/"Aktie"/"股价" lookup, the weather, a wiki
+ * summary, or a currency conversion (which needs rates).
  */
 import { moment } from "obsidian";
 import { currencyConversion, evaluate } from "./calculator";
@@ -37,8 +44,17 @@ export type InstantIntent =
 	/** A currency conversion: `input` is what the calculator evaluates once it
 	 * has rates, `from`/`to` name the pair (ISO, lower case) for the chart. */
 	| { kind: "currency"; input: string; from: string; to: string }
-	/** A market lookup (`$…`): a ticker, a fund code or a name to search. */
-	| { kind: "market"; query: string }
+	/** A market lookup: a ticker, a fund code or a name to search. `keyword`
+	 * when asked for in words (`apple stock`) rather than with `$`. */
+	| { kind: "market"; query: string; keyword: boolean }
+	/** The weather at a place, as typed. */
+	| { kind: "weather"; place: string }
+	/** A Wikipedia summary; `lang` picks the wiki, null for Obsidian's. */
+	| { kind: "wiki"; query: string; lang: string | null }
+	/** Chance: a coin, dice, or a whole number in a range. */
+	| { kind: "coin" }
+	| { kind: "dice"; count: number; sides: number }
+	| { kind: "random"; min: number; max: number }
 	/** A date (YYYY-MM-DD), optionally as a count of days to or from it. */
 	| { kind: "date"; date: string; count?: "until" | "since" }
 	/** The time somewhere: an IANA zone and the place as typed. */
@@ -50,7 +66,8 @@ export const CALC_PREFIX = "=";
 
 const CURRENCIES = new Set(CURRENCY_CODES);
 
-/** Places whose zone isn't named after them (or is named in another language). */
+/** Places whose zone isn't named after them, or is named in another of the
+ * languages Hearth speaks (English, German, Chinese). */
 const ZONE_ALIASES: Record<string, string> = {
 	utc: "UTC",
 	gmt: "UTC",
@@ -65,11 +82,11 @@ const ZONE_ALIASES: Record<string, string> = {
 	seattle: "America/Los_Angeles",
 	"silicon valley": "America/Los_Angeles",
 	la: "America/Los_Angeles",
+	"los angeles": "America/Los_Angeles",
 	houston: "America/Chicago",
 	dallas: "America/Chicago",
 	austin: "America/Chicago",
 	beijing: "Asia/Shanghai",
-	peking: "Asia/Shanghai",
 	shenzhen: "Asia/Shanghai",
 	hongkong: "Asia/Hong_Kong",
 	delhi: "Asia/Kolkata",
@@ -78,50 +95,52 @@ const ZONE_ALIASES: Record<string, string> = {
 	bangalore: "Asia/Kolkata",
 	india: "Asia/Kolkata",
 	japan: "Asia/Tokyo",
-	tokio: "Asia/Tokyo",
 	kyiv: "Europe/Kyiv",
 	kiev: "Europe/Kyiv",
-	kyjev: "Europe/Kyiv",
-	// Czech and German names for the places people most often ask about.
-	praha: "Europe/Prague",
-	prag: "Europe/Prague",
-	brno: "Europe/Prague",
-	londyn: "Europe/London",
-	london: "Europe/London",
-	pariz: "Europe/Paris",
-	paris: "Europe/Paris",
-	berlin: "Europe/Berlin",
-	mnichov: "Europe/Berlin",
-	munchen: "Europe/Berlin",
 	munich: "Europe/Berlin",
-	viden: "Europe/Vienna",
-	wien: "Europe/Vienna",
-	rim: "Europe/Rome",
-	rom: "Europe/Rome",
-	varsava: "Europe/Warsaw",
-	warschau: "Europe/Warsaw",
-	moskva: "Europe/Moscow",
-	moskau: "Europe/Moscow",
-	madrid: "Europe/Madrid",
-	zurich: "Europe/Zurich",
-	curych: "Europe/Zurich",
-	// Czech after "čas v …" takes the locative.
-	praze: "Europe/Prague",
-	brne: "Europe/Prague",
-	londyne: "Europe/London",
-	parizi: "Europe/Paris",
-	berline: "Europe/Berlin",
-	vidni: "Europe/Vienna",
-	rime: "Europe/Rome",
-	varsave: "Europe/Warsaw",
-	moskve: "Europe/Moscow",
-	tokiu: "Asia/Tokyo",
-	pekingu: "Asia/Shanghai",
-	"new yorku": "America/New_York",
-	"san franciscu": "America/Los_Angeles",
-	"los angeles": "America/Los_Angeles",
 	sydney: "Australia/Sydney",
-	dubaji: "Asia/Dubai",
+	// German names.
+	peking: "Asia/Shanghai",
+	tokio: "Asia/Tokyo",
+	prag: "Europe/Prague",
+	wien: "Europe/Vienna",
+	rom: "Europe/Rome",
+	warschau: "Europe/Warsaw",
+	moskau: "Europe/Moscow",
+	munchen: "Europe/Berlin",
+	koln: "Europe/Berlin",
+	hamburg: "Europe/Berlin",
+	frankfurt: "Europe/Berlin",
+	kopenhagen: "Europe/Copenhagen",
+	kairo: "Africa/Cairo",
+	"neu-delhi": "Asia/Kolkata",
+	// Chinese names.
+	北京: "Asia/Shanghai",
+	上海: "Asia/Shanghai",
+	深圳: "Asia/Shanghai",
+	广州: "Asia/Shanghai",
+	香港: "Asia/Hong_Kong",
+	台北: "Asia/Taipei",
+	东京: "Asia/Tokyo",
+	首尔: "Asia/Seoul",
+	新加坡: "Asia/Singapore",
+	悉尼: "Australia/Sydney",
+	迪拜: "Asia/Dubai",
+	莫斯科: "Europe/Moscow",
+	伦敦: "Europe/London",
+	巴黎: "Europe/Paris",
+	柏林: "Europe/Berlin",
+	布拉格: "Europe/Prague",
+	维也纳: "Europe/Vienna",
+	罗马: "Europe/Rome",
+	马德里: "Europe/Madrid",
+	纽约: "America/New_York",
+	华盛顿: "America/New_York",
+	芝加哥: "America/Chicago",
+	洛杉矶: "America/Los_Angeles",
+	旧金山: "America/Los_Angeles",
+	多伦多: "America/Toronto",
+	温哥华: "America/Vancouver",
 };
 
 /** Lower case, accents off, separators as spaces: "São_Paulo" → "sao paulo". */
@@ -207,18 +226,84 @@ export function isoWeek(date: string): number {
 	return 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
 }
 
-const TIME_RE = /^(?:time|current time|what time is it|cas|kolik je hodin)\s+(?:in|at|v|ve)\s+(.+?)\??$/;
-const TIME_SUFFIX_RE = /^(.+?)\s+time$/;
+/** Collapse whitespace; the phrase rules below match case-insensitively. */
+function tidy(text: string): string {
+	return text.trim().replace(/\s+/g, " ");
+}
 
-function detectTime(folded: string, zones: readonly string[]): InstantIntent | null {
-	const m = TIME_RE.exec(folded) ?? TIME_SUFFIX_RE.exec(folded);
+/** The first rule that matches, and its capture groups. */
+function firstMatch(text: string, rules: readonly RegExp[]): RegExpExecArray | null {
+	for (const rule of rules) {
+		const m = rule.exec(text);
+		if (m) return m;
+	}
+	return null;
+}
+
+// ---- Time somewhere ------------------------------------------------------
+
+const TIME_RULES: readonly RegExp[] = [
+	/^(?:time|current time|local time|what time is it)\s+(?:in|at)\s+(.+?)\??$/i,
+	/^(.+?)\s+(?:time|local time)$/i,
+	/^(?:zeit|uhrzeit|wie sp(?:ä|a)t ist es)\s+in\s+(.+?)\??$/i,
+	/^(.+?)\s+(?:zeit|uhrzeit)$/i,
+	/^(.+?)\s*(?:现在几点|几点了|时间)[?？]?$/,
+];
+
+function detectTime(q: string, zones: readonly string[]): InstantIntent | null {
+	const m = firstMatch(q, TIME_RULES);
 	if (!m) return null;
 	const zone = resolveZone(m[1], zones);
 	return zone ? { kind: "time", zone, place: m[1] } : null;
 }
 
-const COUNT_RE = /^(?:days?|dny|dnu)\s+(until|till|to|before|since|from|after|do|od)\s+(.+)$/;
-const UNTIL_WORDS = new Set(["until", "till", "to", "before", "do"]);
+// ---- Dates ---------------------------------------------------------------
+
+/** German and Chinese date words, in the English the date parser reads. */
+function englishDate(text: string): string {
+	return text
+		.toLowerCase()
+		.replace(/(\d+)\s*天后/g, "in $1 days")
+		.replace(/(\d+)\s*(?:周|星期)后/g, "in $1 weeks")
+		.replace(/(\d+)\s*个月后/g, "in $1 months")
+		.replace(/(\d+)\s*年后/g, "in $1 years")
+		.replace(/今天/g, "today")
+		.replace(/明天/g, "tomorrow")
+		.replace(/昨天/g, "yesterday")
+		.replace(/(\d)\s*天/g, "$1 days")
+		.replace(/(\d)\s*(?:周|星期)/g, "$1 weeks")
+		.replace(/(\d)\s*个月/g, "$1 months")
+		.replace(/(\d)\s*年/g, "$1 years")
+		.replace(/(^|\s)heute(?=\s|$|[+-])/g, "$1today")
+		.replace(/(^|\s)morgen(?=\s|$)/g, "$1tomorrow")
+		.replace(/(^|\s)gestern(?=\s|$)/g, "$1yesterday")
+		.replace(/(\d\s*)(?:tagen|tage|tag)(?=\s|$)/g, "$1days")
+		.replace(/(\d\s*)(?:wochen|woche)(?=\s|$)/g, "$1weeks")
+		.replace(/(\d\s*)(?:monaten|monate|monat)(?=\s|$)/g, "$1months")
+		.replace(/(\d\s*)(?:jahren|jahre|jahr)(?=\s|$)/g, "$1years")
+		.replace(/(^|\s)n(?:ä|a)chste[nrs]?(?=\s)/g, "$1next")
+		.replace(/(^|\s)diese[nrs]?(?=\s)/g, "$1this")
+		.replace(/montag/g, "monday")
+		.replace(/dienstag/g, "tuesday")
+		.replace(/mittwoch/g, "wednesday")
+		.replace(/donnerstag/g, "thursday")
+		.replace(/freitag/g, "friday")
+		.replace(/samstag|sonnabend/g, "saturday")
+		.replace(/sonntag/g, "sunday")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+const COUNT_UNTIL: readonly RegExp[] = [
+	/^(?:days?|how many days)\s+(?:until|till|to|before)\s+(.+)$/i,
+	/^tage\s+bis\s+(.+)$/i,
+	/^(?:距离?|到)\s*(.+?)\s*还有(?:几|多少)天[?？]?$/,
+];
+const COUNT_SINCE: readonly RegExp[] = [
+	/^(?:days?|how many days)\s+(?:since|from|after)\s+(.+)$/i,
+	/^tage\s+seit\s+(.+)$/i,
+	/^(?:自|从)?\s*(.+?)\s*(?:以来|至今)(?:已经)?(?:过了)?(?:几|多少)天[?？]?$/,
+];
 const SHIFT_RE =
 	/^(today|now|tomorrow|yesterday|\d{4}-\d{2}-\d{2})\s*([+-])\s*(\d+)\s*(d|days?|w|wks?|weeks?|m|mos?|months?|y|yrs?|years?)$/;
 const SHIFT_UNITS: Record<string, "day" | "week" | "month" | "year"> = { d: "day", w: "week", m: "month", y: "year" };
@@ -228,14 +313,16 @@ const SHIFT_UNITS: Record<string, "day" | "week" | "month" | "year"> = { d: "day
 const DATE_PHRASE_RE =
 	/^(?:today|tomorrow|yesterday|next (?:week|month|year|[a-z]+day)|this [a-z]+day|in \d+ (?:days?|weeks?|months?|years?)|(?:end|start) of (?:week|month|year)|eow|eom|eoy)$/;
 
-function detectDate(folded: string): InstantIntent | null {
-	const count = COUNT_RE.exec(folded);
+function detectDate(q: string): InstantIntent | null {
+	const until = firstMatch(q, COUNT_UNTIL);
+	const since = until ? null : firstMatch(q, COUNT_SINCE);
+	const count = until ?? since;
 	if (count) {
-		const date = parseNaturalDate(count[2]);
-		if (!date) return null;
-		return { kind: "date", date, count: UNTIL_WORDS.has(count[1]) ? "until" : "since" };
+		const date = parseNaturalDate(englishDate(count[1]));
+		return date ? { kind: "date", date, count: until ? "until" : "since" } : null;
 	}
-	const shift = SHIFT_RE.exec(folded);
+	const text = englishDate(q);
+	const shift = SHIFT_RE.exec(text);
 	if (shift) {
 		const start = parseNaturalDate(shift[1]);
 		if (!start) return null;
@@ -243,12 +330,100 @@ function detectDate(folded: string): InstantIntent | null {
 		const amount = Number(shift[3]) * (shift[2] === "-" ? -1 : 1);
 		return { kind: "date", date: moment(start, "YYYY-MM-DD").add(amount, unit).format("YYYY-MM-DD") };
 	}
-	if (DATE_PHRASE_RE.test(folded)) {
-		const date = parseNaturalDate(folded);
+	if (DATE_PHRASE_RE.test(text)) {
+		const date = parseNaturalDate(text);
 		return date ? { kind: "date", date } : null;
 	}
 	return null;
 }
+
+// ---- Market, weather, Wikipedia --------------------------------------------
+
+/** A name with a word that says "the market price of": `apple stock`,
+ * `Siemens Aktie`, `茅台股价`. */
+const MARKET_RULES: readonly RegExp[] = [
+	/^(.+?)\s+(?:stock|stocks|shares?|stock price|share price|price|quote|etf|fund)$/i,
+	/^(?:stock|stocks|quote|price of|share price of)\s+(.+)$/i,
+	/^(.+?)\s+(?:aktie|aktien|aktienkurs|kurs|fonds)$/i,
+	/^(?:aktie|aktienkurs|kurs)\s+(.+)$/i,
+	/^(.+?)\s*(?:股价|股票|行情|基金|价格|走势)$/,
+];
+
+const WEATHER_RULES: readonly RegExp[] = [
+	/^(?:weather|forecast|weather forecast)(?:\s+(?:in|for|at))?\s+(.+)$/i,
+	/^(.+?)\s+(?:weather|forecast)$/i,
+	/^(?:wetter|wettervorhersage)(?:\s+(?:in|f(?:ü|u)r))?\s+(.+)$/i,
+	/^(.+?)\s+(?:wetter)$/i,
+	/^(?:天气预报|天气)\s*(.+)$/,
+	/^(.+?)\s*(?:天气预报|天气)$/,
+];
+
+/** `wiki Prague`, `Prague wiki`, `wiki:de Prag`, `维基 布拉格`. The optional
+ * `:xx` picks the wiki's language; without it, Obsidian's is used. */
+const WIKI_RULES: readonly { re: RegExp; query: number; lang: number }[] = [
+	{ re: /^(?:wiki|wikipedia)(?::([a-z]{2,3}))?\s+(.+)$/i, query: 2, lang: 1 },
+	{ re: /^(.+?)\s+(?:wiki|wikipedia)(?::([a-z]{2,3}))?$/i, query: 1, lang: 2 },
+	{ re: /^(?:维基百科|维基)\s*(.+)$/, query: 1, lang: 0 },
+	{ re: /^(.+?)\s*(?:维基百科|维基)$/, query: 1, lang: 0 },
+];
+
+function detectWiki(q: string): InstantIntent | null {
+	for (const rule of WIKI_RULES) {
+		const m = rule.re.exec(q);
+		if (!m) continue;
+		const query = m[rule.query].trim();
+		if (!query) return null;
+		const lang = rule.lang ? m[rule.lang]?.toLowerCase() ?? null : /\p{Script=Han}/u.test(query) ? "zh" : null;
+		return { kind: "wiki", query, lang };
+	}
+	return null;
+}
+
+// ---- Chance ----------------------------------------------------------------
+
+const COIN_RE =
+	/^(?:coin|coin ?flip|flip a coin|toss a coin|heads or tails|m(?:ü|u)nze|m(?:ü|u)nzwurf|m(?:ü|u)nze werfen|kopf oder zahl|抛硬币|掷硬币|扔硬币|硬币)$/i;
+const DIE_RE = /^(?:roll|dice|roll a die|roll dice|w(?:ü|u)rfel|w(?:ü|u)rfeln|掷骰子|骰子)$/i;
+const DICE_RE = /^(?:roll\s+|w(?:ü|u)rfel\s+|掷\s*)?(\d{0,3})\s*[dw](\d{1,4})$/i;
+const RANDOM_RE =
+	/^(?:random|random number|rand|zufall|zufallszahl|随机数|随机)(?:\s*(?:between\s+|zwischen\s+)?(-?\d+)(?:\s*(?:-|to|and|bis|und|到|至|~)\s*(-?\d+))?)?$/i;
+
+/** Largest range or dice count worth answering; beyond it it's a typo. */
+const CHANCE_MAX = 1e9;
+
+function detectChance(q: string): InstantIntent | null {
+	if (COIN_RE.test(q)) return { kind: "coin" };
+	if (DIE_RE.test(q)) return { kind: "dice", count: 1, sides: 6 };
+	const dice = DICE_RE.exec(q);
+	if (dice) {
+		const count = dice[1] ? Number(dice[1]) : 1;
+		const sides = Number(dice[2]);
+		if (count < 1 || count > 100 || sides < 2) return null;
+		return { kind: "dice", count, sides };
+	}
+	const random = RANDOM_RE.exec(q);
+	if (random) {
+		let min = 1;
+		let max = 100;
+		if (random[1] !== undefined && random[2] !== undefined) {
+			min = Number(random[1]);
+			max = Number(random[2]);
+		} else if (random[1] !== undefined) {
+			max = Number(random[1]);
+		}
+		if (min > max) [min, max] = [max, min];
+		if (Math.abs(min) > CHANCE_MAX || Math.abs(max) > CHANCE_MAX || min === max) return null;
+		return { kind: "random", min, max };
+	}
+	return null;
+}
+
+/** A whole number in [min, max], from a source of [0, 1) (Math.random). */
+export function rollBetween(min: number, max: number, rnd: () => number): number {
+	return min + Math.floor(rnd() * (max - min + 1));
+}
+
+// ---- Numbers ---------------------------------------------------------------
 
 /** A bare number, a date or a time of day: never read as a sum, even though
  * `2026-10-02` evaluates (to 2014). */
@@ -270,7 +445,7 @@ function detectCurrency(query: string): InstantIntent | null {
 		return { kind: "currency", input: `1 ${from} to ${to}`, from, to };
 	}
 	const conv = currencyConversion(query);
-	if (!conv) return null;
+	if (!conv || conv.from === conv.to) return null;
 	return {
 		kind: "currency",
 		input: conv.hasAmount ? query : `1 ${conv.from} to ${conv.to}`,
@@ -285,14 +460,14 @@ function detectCurrency(query: string): InstantIntent | null {
  * aliases still work).
  */
 export function detectInstant(raw: string, zones: readonly string[] = []): InstantIntent | null {
-	const query = raw.trim();
+	const query = tidy(raw);
 	if (!query) return null;
 
 	// `$` followed by a letter: a market lookup. `$5 to czk` stays a currency
 	// conversion — a dollar sign before a number is money, not a ticker.
 	if (query.startsWith(MARKET_PREFIX)) {
 		const rest = query.slice(MARKET_PREFIX.length).trim();
-		if (rest && !/^[\d.,]/.test(rest)) return { kind: "market", query: rest };
+		if (rest && !/^[\d.,]/.test(rest)) return { kind: "market", query: rest, keyword: false };
 	}
 
 	if (query.startsWith(CALC_PREFIX)) {
@@ -304,10 +479,21 @@ export function detectInstant(raw: string, zones: readonly string[] = []): Insta
 	const currency = detectCurrency(query);
 	if (currency) return currency;
 
-	const folded = fold(query);
-	const time = detectTime(folded, zones);
+	const market = firstMatch(query, MARKET_RULES);
+	if (market && market[1].trim()) return { kind: "market", query: market[1].trim(), keyword: true };
+
+	const weather = firstMatch(query, WEATHER_RULES);
+	if (weather && weather[1].trim()) return { kind: "weather", place: weather[1].trim() };
+
+	const wiki = detectWiki(query);
+	if (wiki) return wiki;
+
+	const chance = detectChance(query);
+	if (chance) return chance;
+
+	const time = detectTime(query, zones);
 	if (time) return time;
-	const date = detectDate(folded);
+	const date = detectDate(query);
 	if (date) return date;
 
 	if (!/\d/.test(query) || notMath(query)) return null;
@@ -316,14 +502,15 @@ export function detectInstant(raw: string, zones: readonly string[] = []): Insta
 	return { kind: "calc", input: query, forced: false };
 }
 
-/** Whether an answer should take Enter from the note results. A sum or a
- * quote is what the reader typed for; a date or a clock is a side note to a
- * query that may well be a note's name, so the first note keeps Enter. */
+/** Whether an answer should take Enter from the note results. What the reader
+ * typed a phrase for — a sum, a quote, the weather — takes it; a date or a
+ * clock is a side note to a query that may well be a note's name, so the
+ * first note keeps Enter. */
 export function instantTakesEnter(intent: InstantIntent): boolean {
-	return intent.kind === "calc" || intent.kind === "currency" || intent.kind === "market";
+	return intent.kind !== "date" && intent.kind !== "time";
 }
 
 /** Whether the query is a lookup of its own, with no note search beside it. */
 export function instantOnly(intent: InstantIntent): boolean {
-	return intent.kind === "market" || (intent.kind === "calc" && intent.forced);
+	return (intent.kind === "market" && !intent.keyword) || (intent.kind === "calc" && intent.forced);
 }

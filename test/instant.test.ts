@@ -8,6 +8,7 @@ import {
 	instantTakesEnter,
 	isoWeek,
 	resolveZone,
+	rollBetween,
 	zoneOffsetMinutes,
 } from "../src/instant";
 
@@ -88,6 +89,17 @@ describe("detectInstant — currencies", () => {
 		expect(detectInstant("10 km to eur")).toBeNull();
 	});
 
+	it("reads currency names and connectors in English, German and Chinese", () => {
+		expect(detectInstant("20 euros to dollars")).toMatchObject({ kind: "currency", from: "eur", to: "usd" });
+		expect(detectInstant("100 CHF nach EUR")).toMatchObject({ kind: "currency", from: "chf", to: "eur" });
+		expect(detectInstant("100 Franken in Euro")).toMatchObject({ kind: "currency", from: "chf", to: "eur" });
+		expect(detectInstant("20美元换成人民币")).toMatchObject({ kind: "currency", from: "usd", to: "cny" });
+		expect(detectInstant("100 欧元兑换成日元")).toMatchObject({ kind: "currency", from: "eur", to: "jpy" });
+		expect(detectInstant("美元换成欧元")).toEqual({ kind: "currency", input: "1 usd to eur", from: "usd", to: "eur" });
+		// German "nach" converts units too.
+		expect(detectInstant("10 km nach mi")?.kind).toBe("calc");
+	});
+
 	it("currencyConversion reads the calculator's grammar", () => {
 		expect(currencyConversion("what is 20 czk in eur?")).toEqual({ from: "czk", to: "eur", hasAmount: true });
 		expect(currencyConversion("usd to czk")).toEqual({ from: "usd", to: "czk", hasAmount: false });
@@ -97,14 +109,28 @@ describe("detectInstant — currencies", () => {
 
 describe("detectInstant — market lookups", () => {
 	it("a $ before a letter is a lookup", () => {
-		expect(detectInstant("$AAPL")).toEqual({ kind: "market", query: "AAPL" });
-		expect(detectInstant("$ apple")).toEqual({ kind: "market", query: "apple" });
-		expect(detectInstant("$sh510300")).toEqual({ kind: "market", query: "sh510300" });
+		expect(detectInstant("$AAPL")).toEqual({ kind: "market", query: "AAPL", keyword: false });
+		expect(detectInstant("$ apple")).toEqual({ kind: "market", query: "apple", keyword: false });
+		expect(detectInstant("$sh510300")).toEqual({ kind: "market", query: "sh510300", keyword: false });
 		expect(detectInstant("$")).toBeNull();
 	});
 
-	it("a lookup and a forced sum stand alone; a date shares Enter", () => {
-		expect(instantOnly({ kind: "market", query: "x" })).toBe(true);
+	it("so is a name with a market word, in each language", () => {
+		const m = (query: string) => ({ kind: "market", query, keyword: true });
+		expect(detectInstant("apple stock")).toEqual(m("apple"));
+		expect(detectInstant("Apple Inc share price")).toEqual(m("Apple Inc"));
+		expect(detectInstant("bitcoin price")).toEqual(m("bitcoin"));
+		expect(detectInstant("stock tesla")).toEqual(m("tesla"));
+		expect(detectInstant("Siemens Aktie")).toEqual(m("Siemens"));
+		expect(detectInstant("Kurs Allianz")).toEqual(m("Allianz"));
+		expect(detectInstant("茅台股价")).toEqual(m("茅台"));
+		expect(detectInstant("stock")).toBeNull();
+		expect(detectInstant("stock notes")).toEqual(m("notes"));
+	});
+
+	it("a $ lookup and a forced sum stand alone; a date shares Enter", () => {
+		expect(instantOnly({ kind: "market", query: "x", keyword: false })).toBe(true);
+		expect(instantOnly({ kind: "market", query: "x", keyword: true })).toBe(false);
 		expect(instantOnly({ kind: "calc", input: "1", forced: true })).toBe(true);
 		expect(instantOnly({ kind: "calc", input: "1+1", forced: false })).toBe(false);
 		expect(instantTakesEnter({ kind: "date", date: "2026-07-15" })).toBe(false);
@@ -132,6 +158,19 @@ describe("detectInstant — dates", () => {
 		expect(detectInstant("days until someday")).toBeNull();
 	});
 
+	it("understands German and Chinese date phrases", () => {
+		expect(detectInstant("Tage bis 2026-12-24")).toEqual({ kind: "date", date: "2026-12-24", count: "until" });
+		expect(detectInstant("tage seit 2026-01-01")).toMatchObject({ count: "since" });
+		expect(detectInstant("距离2026-12-24还有几天")).toEqual({ kind: "date", date: "2026-12-24", count: "until" });
+		expect(detectInstant("2026-01-01以来多少天")).toMatchObject({ date: "2026-01-01", count: "since" });
+		expect(detectInstant("heute + 45 Tage")).toEqual({ kind: "date", date: "2026-08-29" });
+		expect(detectInstant("morgen")).toEqual({ kind: "date", date: "2026-07-16" });
+		expect(detectInstant("nächsten Freitag")).toEqual({ kind: "date", date: "2026-07-17" });
+		expect(detectInstant("明天")).toEqual({ kind: "date", date: "2026-07-16" });
+		expect(detectInstant("3天后")).toEqual({ kind: "date", date: "2026-07-18" });
+		expect(detectInstant("今天+45天")).toEqual({ kind: "date", date: "2026-08-29" });
+	});
+
 	it("a bare weekday or date is a daily note's name, not a question", () => {
 		expect(detectInstant("friday")).toBeNull();
 		expect(detectInstant("2026-07-15")).toBeNull();
@@ -148,9 +187,12 @@ describe("detectInstant — dates", () => {
 
 describe("detectInstant — time zones", () => {
 	it("answers the time somewhere", () => {
-		expect(detectInstant("time in Tokyo", ZONES)).toEqual({ kind: "time", zone: "Asia/Tokyo", place: "tokyo" });
+		expect(detectInstant("time in Tokyo", ZONES)).toEqual({ kind: "time", zone: "Asia/Tokyo", place: "Tokyo" });
 		expect(detectInstant("new york time", ZONES)).toMatchObject({ zone: "America/New_York" });
-		expect(detectInstant("čas v Praze", ZONES)).toMatchObject({ zone: "Europe/Prague" });
+		expect(detectInstant("Zeit in Prag", ZONES)).toMatchObject({ zone: "Europe/Prague" });
+		expect(detectInstant("wie spät ist es in Tokio?", ZONES)).toMatchObject({ zone: "Asia/Tokyo" });
+		expect(detectInstant("东京时间", ZONES)).toMatchObject({ zone: "Asia/Tokyo" });
+		expect(detectInstant("纽约现在几点", ZONES)).toMatchObject({ zone: "America/New_York" });
 		expect(detectInstant("time in sao paulo", ZONES)).toMatchObject({ zone: "America/Sao_Paulo" });
 	});
 
@@ -174,5 +216,51 @@ describe("detectInstant — time zones", () => {
 		expect(formatOffset(540)).toBe("+9");
 		expect(formatOffset(-330)).toBe("−5:30");
 		expect(formatOffset(0)).toBe("±0");
+	});
+});
+
+describe("detectInstant — weather and Wikipedia", () => {
+	it("asks for the weather at a place", () => {
+		const w = (place: string) => ({ kind: "weather", place });
+		expect(detectInstant("weather Prague")).toEqual(w("Prague"));
+		expect(detectInstant("weather in New York")).toEqual(w("New York"));
+		expect(detectInstant("london forecast")).toEqual(w("london"));
+		expect(detectInstant("Wetter für München")).toEqual(w("München"));
+		expect(detectInstant("Berlin Wetter")).toEqual(w("Berlin"));
+		expect(detectInstant("北京天气")).toEqual(w("北京"));
+		expect(detectInstant("weather")).toBeNull();
+	});
+
+	it("looks a subject up on Wikipedia", () => {
+		expect(detectInstant("wiki Prague")).toEqual({ kind: "wiki", query: "Prague", lang: null });
+		expect(detectInstant("Alan Turing wikipedia")).toEqual({ kind: "wiki", query: "Alan Turing", lang: null });
+		expect(detectInstant("wiki:de Prag")).toEqual({ kind: "wiki", query: "Prag", lang: "de" });
+		expect(detectInstant("维基 布拉格")).toEqual({ kind: "wiki", query: "布拉格", lang: "zh" });
+		expect(detectInstant("wiki")).toBeNull();
+	});
+});
+
+describe("detectInstant — chance", () => {
+	it("coins, dice and random numbers", () => {
+		expect(detectInstant("coin flip")).toEqual({ kind: "coin" });
+		expect(detectInstant("Kopf oder Zahl")).toEqual({ kind: "coin" });
+		expect(detectInstant("抛硬币")).toEqual({ kind: "coin" });
+		expect(detectInstant("roll")).toEqual({ kind: "dice", count: 1, sides: 6 });
+		expect(detectInstant("roll 2d6")).toEqual({ kind: "dice", count: 2, sides: 6 });
+		expect(detectInstant("d20")).toEqual({ kind: "dice", count: 1, sides: 20 });
+		expect(detectInstant("würfeln")).toEqual({ kind: "dice", count: 1, sides: 6 });
+		expect(detectInstant("random")).toEqual({ kind: "random", min: 1, max: 100 });
+		expect(detectInstant("random 1-6")).toEqual({ kind: "random", min: 1, max: 6 });
+		expect(detectInstant("random between 10 and 20")).toEqual({ kind: "random", min: 10, max: 20 });
+		expect(detectInstant("Zufallszahl 50")).toEqual({ kind: "random", min: 1, max: 50 });
+		expect(detectInstant("随机数 1到10")).toEqual({ kind: "random", min: 1, max: 10 });
+		expect(detectInstant("random 5-5")).toBeNull();
+		expect(detectInstant("roll 0d6")).toBeNull();
+	});
+
+	it("rollBetween covers both ends of the range", () => {
+		expect(rollBetween(1, 6, () => 0)).toBe(1);
+		expect(rollBetween(1, 6, () => 0.9999)).toBe(6);
+		expect(rollBetween(-5, 5, () => 0.5)).toBe(0);
 	});
 });
