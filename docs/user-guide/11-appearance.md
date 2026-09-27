@@ -121,6 +121,11 @@ now; the weather and market cards keep theirs in their *Content* tab, with the
 same *Default*. A synced card follows the board it is showing on, and a shared
 or published board carries its card design with it.
 
+The search row at the top of the board isn't a card, but it follows the board's
+*Card design* too (else the vault's): in Expressive the field and the button are
+tonal pills — *Search online* a connected pair — the filters round chips that
+firm up when chosen, and the results a tonal sheet with each icon on a badge.
+
 The dialogs an Expressive card opens are Expressive too: a task, the task
 filter and sort, an event, the folder browser, the full forecast, an
 instrument's chart and a confirmation open on a tonal surface with large

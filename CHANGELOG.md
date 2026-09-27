@@ -34,6 +34,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   that or choose *Classic* or *Expressive* for itself. The weather and market
   cards follow the default too until they're told otherwise (moon and daylight
   stay Expressive). A shared or published board carries its card design.
+  The search row at the top of the board follows the board's card design as
+  well: a pill of a field and button, round filter chips, and a tonal results
+  sheet — as does the search-bar card's own chips and results.
   The dialogs such a card opens follow it — a task and its filter and sort, an
   event, the folder browser, the full forecast (with the flat weather
   drawings), an instrument's chart, a confirmation: a tonal surface with large

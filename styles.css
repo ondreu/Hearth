@@ -16789,16 +16789,23 @@ body.hearth-snapshot-capturing .hearth-view {
  * (today, the answer, the time) is heavy and tight or sits on a cookie.
  * Nothing here changes a card's frame, which stays the board's.
  *
+ * The search row at the top of the board isn't a card, but it takes the
+ * board's card design the same way — `is-expressive` on .hearth-search-wrap
+ * (src/header.ts) — and shares the search-bar card's rules.
+ *
  * The dialogs such a card opens wear it too — `hearth-x-modal` on the modal
  * (see dressModal in src/ui.ts) — so every rule below is scoped to either.
  * ====================================================================== */
-.hearth-card.is-expressive {
+.hearth-card.is-expressive,
+.hearth-search-wrap.is-expressive {
 	--x-primary: var(--interactive-accent);
 	--x-on-primary: var(--text-on-accent);
 	--x-container: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
 	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
 	--x-surface: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
 	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 13%, var(--background-primary));
+	/* The tone a floating surface takes (the search results). */
+	--x-dialog: color-mix(in srgb, var(--interactive-accent) 6%, var(--background-primary));
 	--x-surface-highest: color-mix(in srgb, var(--interactive-accent) 18%, var(--background-primary));
 	/* Nine shallow lobes (the weather and market cards' cookie) and twelve
 	 * shallower ones for a clock face, as masks: a shape any element can take. */
@@ -16826,11 +16833,11 @@ body.hearth-snapshot-capturing .hearth-view {
  * Material's grouped list: every row its own tonal container, a hairline
  * apart, the group rounded at its ends. The leading icon sits on a round
  * badge in the accent's container. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list {
 	gap: 3px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-item {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item {
 	gap: 10px;
 	padding: 4px 12px 4px 5px;
 	border-radius: 6px;
@@ -16838,24 +16845,24 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list > .hearth-list-item:first-child,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list > .hearth-bookmark-group:first-child > .hearth-bookmark-group-header {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item:first-child,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-bookmark-group:first-child > .hearth-bookmark-group-header {
 	border-top-left-radius: 20px;
 	border-top-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list > .hearth-list-item:last-child,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list > .hearth-list-item:has(+ .hearth-list-item-clipped) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item:last-child,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list > .hearth-list-item:has(+ .hearth-list-item-clipped) {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-item:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item:hover {
 	background: var(--x-surface-highest);
 	border-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-icon {
 	align-items: center;
 	justify-content: center;
 	width: 28px;
@@ -16865,42 +16872,42 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-icon .svg-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-icon .svg-icon {
 	width: 16px;
 	height: 16px;
 	stroke-width: 2.1px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-label {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-label {
 	font-weight: 500;
 }
 
 /* A row without a leading icon (a task's check, a URL bookmark without its
  * favicon) keeps the badge's inset. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-item:not(:has(.hearth-list-icon)) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item:not(:has(.hearth-list-icon)) {
 	padding-left: 12px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-item.has-excerpt .hearth-list-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item.has-excerpt .hearth-list-icon {
 	margin-top: 0;
 }
 
 /* Bookmark groups: the header a row like the others, its chevron on the badge's
  * side of it; nested rows step in. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-bookmark-group,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-bookmark-group-children {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-bookmark-group,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-bookmark-group-children {
 	gap: 3px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-bookmark-group-header {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-bookmark-group-header {
 	gap: 6px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-bookmark-group-header .hearth-list-label {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-bookmark-group-header .hearth-list-label {
 	font-weight: 700;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-bookmark-chevron {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-bookmark-chevron {
 	width: 18px;
 	margin-left: 2px;
 	background: none;
@@ -16908,52 +16915,52 @@ body.hearth-snapshot-capturing .hearth-view {
 }
 
 /* ---- Tiles: links, commands, templater, favourites -------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-tile,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-card {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-tile,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-card {
 	border: none;
 	border-radius: 24px;
 	background: var(--x-surface-high);
 	transition: background 120ms ease, border-radius 180ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-links.is-tile-scaled .hearth-link-tile {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-links.is-tile-scaled .hearth-link-tile {
 	border-radius: clamp(12px, calc(var(--hearth-tile-cell) * 0.28), 32px);
 }
 
 /* Pressed-in on hover, the way an Expressive button morphs its corners. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-tile:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-card:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-tile:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-card:hover {
 	background: var(--x-container);
 	border-radius: 14px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-icon,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-icon,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-icon {
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-icon .svg-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-icon .svg-icon {
 	stroke-width: 2.1px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-label,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-name {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-label,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-name {
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-link-tile.hearth-tile-has-image .hearth-link-label {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-tile.hearth-tile-has-image .hearth-link-label {
 	border-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-favorites {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-favorites {
 	gap: 8px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-card {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-card {
 	padding: 10px 12px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-icon {
 	align-items: center;
 	justify-content: center;
 	width: 30px;
@@ -16962,21 +16969,21 @@ body.hearth-snapshot-capturing .hearth-view {
 	background: var(--x-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-icon .svg-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-icon .svg-icon {
 	width: 17px;
 	height: 17px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-fav-card:hover .hearth-fav-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-card:hover .hearth-fav-icon {
 	background: var(--background-primary);
 }
 
 /* ---- Clock ---------------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-clock {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock {
 	gap: 6px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-clock-time {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-time {
 	font-size: clamp(2.2rem, 7.5vw, 3.4rem);
 	font-weight: 800;
 	letter-spacing: -0.05em;
@@ -16984,7 +16991,7 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-variant-numeric: tabular-nums;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-clock-greeting {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-greeting {
 	padding: 3px 12px;
 	border-radius: 999px;
 	background: var(--x-container);
@@ -16992,94 +16999,94 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 650;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-clock-date {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-clock-date {
 	font-weight: 600;
 }
 
 /* The analogue face on a twelve-lobed cookie, hands as thick round strokes. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog {
 	background: var(--x-surface-high);
 	-webkit-mask: var(--x-clock-cookie) center / contain no-repeat;
 	mask: var(--x-clock-cookie) center / contain no-repeat;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-face,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-tick {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-face,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-tick {
 	display: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-tick-major {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-tick-major {
 	stroke: var(--x-on-container);
 	stroke-width: 3.2;
 	stroke-linecap: round;
 	opacity: 0.45;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-hour {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-hour {
 	stroke: var(--x-on-container);
 	stroke-width: 7;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-min {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-min {
 	stroke: var(--x-primary);
 	stroke-width: 4.6;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-sec {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-sec {
 	stroke-width: 1.8;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-analog-pin {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-analog-pin {
 	fill: var(--x-primary);
 	r: 4.5px;
 }
 
 /* ---- Mini calendar -------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-label {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-label {
 	font-size: 1rem;
 	font-weight: 750;
 	letter-spacing: -0.01em;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-nav {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-nav {
 	border-radius: 999px;
 	background: var(--x-surface-high);
 	color: var(--x-on-container);
 	box-shadow: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-nav:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-nav:hover {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-dow {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-dow {
 	color: var(--x-on-container);
 	font-weight: 650;
 	opacity: 0.75;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day {
 	position: relative;
 	isolation: isolate;
 	border-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day:hover {
 	background: var(--x-surface-high);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-daynum {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-daynum {
 	font-weight: 550;
 	font-variant-numeric: tabular-nums;
 }
 
 /* Today: no ring — the number on the accent's cookie. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day.is-today {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day.is-today {
 	outline: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day.is-today::before {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day.is-today::before {
 	content: "";
 	position: absolute;
 	z-index: -1;
@@ -17093,7 +17100,7 @@ body.hearth-snapshot-capturing .hearth-view {
 	mask: var(--x-cookie) center / contain no-repeat;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day.is-today .hearth-calendar-daynum {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day.is-today .hearth-calendar-daynum {
 	width: auto;
 	height: auto;
 	background: none;
@@ -17101,27 +17108,27 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 800;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day.is-today .hearth-calendar-dot {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day.is-today .hearth-calendar-dot {
 	background: var(--x-on-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calendar-day.has-heat {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calendar-day.has-heat {
 	border-radius: 12px;
 }
 
 /* ---- Vault statistics ----------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stats {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stats {
 	gap: 6px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stat {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stat {
 	gap: 0;
 	padding: 5px 4px;
 	border-radius: 20px;
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stat-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stat-icon {
 	align-items: center;
 	justify-content: center;
 	width: 24px;
@@ -17132,39 +17139,39 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stat-icon .svg-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stat-icon .svg-icon {
 	width: 14px;
 	height: 14px;
 	stroke-width: 2.1px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stat-value {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stat-value {
 	font-size: 1.4rem;
 	font-weight: 800;
 	letter-spacing: -0.04em;
 	line-height: 1.05;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-stat-label {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-stat-label {
 	color: var(--text-muted);
 	font-weight: 600;
 }
 
 /* ---- Activity heatmap ----------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-heatmap-grid {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap-grid {
 	gap: 4px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-heatmap-cell {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap-cell {
 	border-radius: 999px;
 	background: var(--x-surface-high);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-heatmap-cell.is-empty {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap-cell.is-empty {
 	background: transparent;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-heatmap-cell.has-heat {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap-cell.has-heat {
 	background-color: color-mix(
 		in srgb,
 		var(--x-primary) calc(25% + var(--heat, 0) * 18.75%),
@@ -17172,17 +17179,17 @@ body.hearth-snapshot-capturing .hearth-view {
 	);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-heatmap-legend {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap-legend {
 	gap: 4px;
 	font-weight: 600;
 }
 
 /* ---- Calculator ----------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc {
 	gap: 6px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-input {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-input {
 	height: auto;
 	padding: 10px 16px;
 	border: none;
@@ -17190,11 +17197,11 @@ body.hearth-snapshot-capturing .hearth-view {
 	background: var(--x-surface-high);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-input:focus {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-input:focus {
 	box-shadow: 0 0 0 2px var(--x-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-result {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-result {
 	padding: 0 6px;
 	font-size: clamp(1.8rem, 6vw, 2.8rem);
 	font-weight: 800;
@@ -17202,16 +17209,16 @@ body.hearth-snapshot-capturing .hearth-view {
 	text-align: right;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-note {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-note {
 	padding: 0 6px;
 	text-align: right;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-keys {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-keys {
 	gap: 6px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-surface-high);
@@ -17222,50 +17229,50 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key:hover {
 	background: var(--x-surface-highest);
 	border-radius: 14px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key.is-op {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key.is-op {
 	background: var(--x-container);
 	color: var(--x-on-container);
 	font-weight: 750;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key.is-fn {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key.is-fn {
 	background: var(--x-surface);
 	color: var(--x-on-container);
 	font-size: 0.95rem;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key.is-eq {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key.is-eq {
 	background: var(--x-primary);
 	color: var(--x-on-primary);
 	font-weight: 800;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-calc-key.is-eq:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-calc-key.is-eq:hover {
 	background: var(--interactive-accent-hover);
 }
 
 /* ---- Search bar ----------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-search-bar {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-search-bar {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-surface-high);
 	box-shadow: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-search-bar:focus-within {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-search-bar:focus-within {
 	box-shadow: 0 0 0 2px var(--x-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-search-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-search-icon {
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-newnote {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-newnote {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-container);
@@ -17274,12 +17281,12 @@ body.hearth-snapshot-capturing .hearth-view {
 }
 
 /* ---- Tasks ---------------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-list-item.hearth-task {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-list-item.hearth-task {
 	padding: 6px 12px;
 }
 
 /* A round check, the accent's when ticked. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-check {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-check {
 	width: 20px;
 	height: 20px;
 	border: 2px solid var(--x-on-container);
@@ -17287,18 +17294,18 @@ body.hearth-snapshot-capturing .hearth-view {
 	background: transparent;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-check:checked {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-check:checked {
 	border-color: var(--x-primary);
 	background-color: var(--x-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-metas {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-metas {
 	gap: 5px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-due,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-meta,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-priority:not(.is-dot-only) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-due,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-meta,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-priority:not(.is-dot-only) {
 	padding: 2px 9px;
 	border-radius: 999px;
 	background: var(--x-surface-highest);
@@ -17306,36 +17313,36 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 650;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-due.is-overdue {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-due.is-overdue {
 	background: color-mix(in srgb, var(--color-red) 16%, var(--background-primary));
 	color: color-mix(in srgb, var(--color-red) 80%, var(--text-normal));
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-priority:not(.is-dot-only) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-priority:not(.is-dot-only) {
 	background: color-mix(in srgb, var(--level-color) 16%, var(--background-primary));
 	color: color-mix(in srgb, var(--level-color) 75%, var(--text-normal));
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-task-tag {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-task-tag {
 	background: var(--x-container);
 	color: var(--x-on-container);
 	font-weight: 650;
 }
 
 /* Kanban: columns as tonal containers, cards as surfaces on them. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-kanban-col {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-col {
 	border-radius: 20px;
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-kanban-col-head {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-col-head {
 	padding: 8px 12px;
 	border-bottom: none;
 	color: var(--x-on-container);
 	font-weight: 750;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-kanban-col-count {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-col-count {
 	min-width: 20px;
 	padding: 0 6px;
 	border-radius: 999px;
@@ -17345,44 +17352,44 @@ body.hearth-snapshot-capturing .hearth-view {
 	text-align: center;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-kanban-card {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-kanban-card {
 	border: none;
 	border-radius: 14px;
 	background: var(--background-primary);
 	padding: 8px 10px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-tasks-sort,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-tasks-filter {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-sort,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-filter {
 	border-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-tasks-sort:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-tasks-filter:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-tasks-filter.is-active {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-sort:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-filter:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-tasks-filter.is-active {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
 /* ---- Full calendar (schedule) --------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-title {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-title {
 	font-size: 1rem;
 	font-weight: 750;
 	letter-spacing: -0.01em;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-navbtn {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-navbtn {
 	border-radius: 999px;
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-navbtn:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-today:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-navbtn:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-today:hover {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-today {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-today {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-surface-high);
@@ -17392,14 +17399,14 @@ body.hearth-snapshot-capturing .hearth-view {
 
 /* The view switcher as a connected button group: pills that touch, the
  * chosen one fully round in the accent. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-views {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-views {
 	gap: 2px;
 	border: none;
 	border-radius: 999px;
 	overflow: visible;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view {
 	border-radius: 6px;
 	background: var(--x-surface-high);
 	color: var(--x-on-container);
@@ -17407,119 +17414,119 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view + .hearth-sched-view {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view + .hearth-sched-view {
 	border-left: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view:first-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view:first-child {
 	border-top-left-radius: 999px;
 	border-bottom-left-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view:last-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view:last-child {
 	border-top-right-radius: 999px;
 	border-bottom-right-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view:hover {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-view.is-active {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-view.is-active {
 	border-radius: 999px;
 	background: var(--x-primary);
 	color: var(--x-on-primary);
 	font-weight: 750;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-dow {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-dow {
 	color: var(--x-on-container);
 	font-weight: 650;
 	opacity: 0.75;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-cell {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cell {
 	padding: 4px;
 	border-radius: 14px;
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-cell:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cell:hover {
 	background: var(--x-surface-highest);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-cell.is-outside {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cell.is-outside {
 	background: transparent;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-cell.is-today {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cell.is-today {
 	outline: none;
 	background: var(--x-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-daynum {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-daynum {
 	min-width: 22px;
 	height: 22px;
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-cell.is-today .hearth-sched-daynum {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-cell.is-today .hearth-sched-daynum {
 	background: var(--x-primary);
 	color: var(--x-on-primary);
 	font-weight: 800;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-chip {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-chip {
 	padding: 1px 8px;
 	border-left: none;
 	border-radius: 999px;
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-chip:not(.is-allday) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-chip:not(.is-allday) {
 	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 22%, var(--background-primary));
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-sched-chip:not(.is-allday):hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-chip:not(.is-allday):hover {
 	background: color-mix(in srgb, var(--ev-color, var(--interactive-accent)) 34%, var(--background-primary));
 }
 
 /* ---- RSS ------------------------------------------------------------ */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-tab {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-tab {
 	padding: 3px 12px;
 	background: var(--x-surface-high);
 	color: var(--x-on-container);
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-tab.is-active {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-tab.is-active {
 	background: var(--x-primary);
 	color: var(--x-on-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-refresh,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-refresh,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-refresh {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-refresh,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-refresh,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-refresh {
 	border-radius: 999px;
 	background: var(--x-surface-high);
 	color: var(--x-on-container);
 	box-shadow: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-refresh:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-refresh:hover,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-refresh:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-refresh:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-refresh:hover,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-refresh:hover {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
 /* Items as the grouped list's tonal rows. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-content {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-content {
 	gap: 3px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-item {
 	padding: 8px 12px;
 	border-bottom: none;
 	border-radius: 6px;
@@ -17527,38 +17534,38 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item:first-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-item:first-child {
 	border-top-left-radius: 20px;
 	border-top-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item:last-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-item:last-child {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-item:hover {
 	background: var(--x-surface-highest);
 	border-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-title {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-title {
 	font-weight: 700;
 	letter-spacing: -0.01em;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-meta {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-meta {
 	color: var(--x-on-container);
 	font-weight: 600;
 	opacity: 0.8;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-thumb {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-thumb {
 	border-radius: 16px;
 }
 
 /* ---- Jira ----------------------------------------------------------- */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter > summary {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter > summary {
 	padding: 4px 12px;
 	border: none;
 	background: var(--x-surface-high);
@@ -17566,42 +17573,42 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter[open] > summary,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter > summary:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter[open] > summary,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter > summary:hover {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter-menu {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter-menu {
 	border: none;
 	border-radius: 20px;
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter-search {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter-search {
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter-search input {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter-search input {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-surface-high);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter-option {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter-option {
 	border-radius: 999px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-filter-option:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-filter-option:hover {
 	background: var(--x-surface-high);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-issues {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-issues {
 	gap: 3px;
 	margin-top: 4px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-issue {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-issue {
 	height: auto;
 	padding: 7px 12px 7px 6px;
 	border-bottom: none;
@@ -17611,22 +17618,22 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-issue:first-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-issue:first-child {
 	border-top-left-radius: 20px;
 	border-top-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-issue:last-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-issue:last-child {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-issue:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-issue:hover {
 	background: var(--x-surface-highest);
 	border-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-type {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-type {
 	align-items: center;
 	justify-content: center;
 	width: 28px;
@@ -17636,18 +17643,18 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-key {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-key {
 	color: var(--x-on-container);
 	font-weight: 750;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-jira-status {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-status {
 	padding: 2px 9px;
 	font-weight: 700;
 }
 
 /* ---- Git ------------------------------------------------------------ */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-branch {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-branch {
 	padding: 4px 12px 4px 8px;
 	border: none;
 	background: var(--x-container);
@@ -17655,42 +17662,42 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 650;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-branch:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-branch:hover {
 	box-shadow: 0 0 0 2px var(--x-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-branch-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-branch-icon {
 	color: inherit;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-chips {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-chips {
 	gap: 4px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-chip {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-chip {
 	padding: 2px 8px;
 	border-radius: 999px;
 	background: var(--x-surface-high);
 	font-weight: 700;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-chip.is-staged {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-chip.is-staged {
 	background: color-mix(in srgb, var(--color-green) 16%, var(--background-primary));
 	color: color-mix(in srgb, var(--color-green) 80%, var(--text-normal));
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-chip.is-unpushed {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-chip.is-unpushed {
 	background: var(--x-container);
 	color: var(--x-on-container);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-chip.is-conflicted {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-chip.is-conflicted {
 	background: color-mix(in srgb, var(--color-red) 16%, var(--background-primary));
 	color: color-mix(in srgb, var(--color-red) 80%, var(--text-normal));
 }
 
 /* Actions as a row of round tonal buttons; commit-and-sync the filled one. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-action {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-action {
 	height: 36px;
 	min-width: 36px;
 	border: none;
@@ -17701,34 +17708,34 @@ body.hearth-snapshot-capturing .hearth-view {
 	transition: background 120ms ease, border-radius 160ms ease;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-action:hover:not(:disabled) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-action:hover:not(:disabled) {
 	background: var(--x-container);
 	border-radius: 12px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-action.is-commitAndSync {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-action.is-commitAndSync {
 	background: var(--x-primary);
 	color: var(--x-on-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-action.is-commitAndSync:hover:not(:disabled) {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-action.is-commitAndSync:hover:not(:disabled) {
 	background: var(--interactive-accent-hover);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-action-icon .svg-icon {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-action-icon .svg-icon {
 	stroke-width: 2.2px;
 }
 
 /* A file's letter as the row's round badge, tinted by what happened to it. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file {
 	padding: 4px 12px 4px 5px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-staged {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-staged {
 	box-shadow: none;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-letter {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-letter {
 	--git-tone: var(--interactive-accent);
 	width: 28px;
 	height: 28px;
@@ -17740,48 +17747,48 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 800;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-untracked .hearth-git-letter,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-added .hearth-git-letter {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-untracked .hearth-git-letter,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-added .hearth-git-letter {
 	--git-tone: var(--color-green);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-deleted .hearth-git-letter,
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-conflicted .hearth-git-letter {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-deleted .hearth-git-letter,
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-conflicted .hearth-git-letter {
 	--git-tone: var(--color-red);
 }
 
 /* A staged file's badge is filled, the way the chip above counts it. */
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-file.is-staged .hearth-git-letter {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-file.is-staged .hearth-git-letter {
 	background: var(--git-tone);
 	color: var(--background-primary);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-log {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-log {
 	gap: 3px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit {
 	padding: 4px 12px;
 	border-radius: 6px;
 	background: var(--x-surface);
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit:first-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit:first-child {
 	border-top-left-radius: 20px;
 	border-top-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit:last-child {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit:last-child {
 	border-bottom-left-radius: 20px;
 	border-bottom-right-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit:hover {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit:hover {
 	background: var(--x-surface-highest);
 	border-radius: 20px;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit-hash {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit-hash {
 	padding: 1px 6px;
 	border-radius: 999px;
 	background: var(--x-container);
@@ -17789,7 +17796,7 @@ body.hearth-snapshot-capturing .hearth-view {
 	font-weight: 600;
 }
 
-:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-git-commit-message {
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-commit-message {
 	font-weight: 600;
 }
 
@@ -18095,4 +18102,134 @@ body.hearth-snapshot-capturing .hearth-view {
 
 .hearth-weather-detail.is-expressive .hearth-weather-detail-table tr.is-now td:last-child {
 	border-radius: 0 999px 999px 0;
+}
+
+/* ---- The search row: the board's header and the search-bar card ----
+ * The field is a tonal pill (see "Search bar" above); the filters become
+ * round icon chips that firm up into a squircle when chosen, the button a
+ * pill — a connected pair when it searches online — and the results a
+ * tonal sheet of rounded rows with their icons on badges. */
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-filters {
+	gap: 8px clamp(6px, calc((100% - var(--n) * 38px) / max(var(--n) - 1, 1)), 40px);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-filter {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	transition:
+		color 120ms ease,
+		background-color 120ms ease,
+		border-radius 160ms ease,
+		opacity 120ms ease;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-filter:hover {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-filter.is-active {
+	border-radius: 12px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-filter-icon .svg-icon {
+	stroke-width: 2.1px;
+}
+
+/* The header's field and button sit on the wallpaper, not on a card: no
+ * shadow, the tonal fill does the separating. */
+.hearth-search-wrap.is-expressive .hearth-search-bar,
+.hearth-search-wrap.is-expressive .hearth-newnote {
+	box-shadow: none;
+}
+
+.hearth-search-wrap.is-expressive .hearth-search-bar:focus-within {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-newnote {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 650;
+	transition: background 120ms ease, border-radius 160ms ease;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-newnote:hover {
+	background: var(--x-surface-highest);
+	border-radius: 18px;
+}
+
+/* Search online: the two halves as a connected button group. */
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-searchonline {
+	gap: 2px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-searchonline .hearth-newnote-search {
+	border-radius: 999px 8px 8px 999px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-searchonline .hearth-newnote-search-caret {
+	border-radius: 8px 999px 999px 8px;
+	padding: 0 12px 0 10px;
+}
+
+/* The results: a tonal sheet (opaque over any theme, as Classic's is). */
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-search-results {
+	border: none;
+	border-radius: 24px;
+	background-color: var(--x-dialog);
+	background-image:
+		linear-gradient(var(--x-dialog), var(--x-dialog)),
+		linear-gradient(var(--background-primary), var(--background-primary));
+	/* Classic's shadow, and a tonal edge where a dark board would swallow it. */
+	box-shadow:
+		0 8px 28px rgba(0, 0, 0, 0.18),
+		0 0 0 1px var(--x-surface-high);
+	padding: 8px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result {
+	gap: 12px;
+	padding: 6px 12px 6px 6px;
+	border-radius: 16px;
+	transition: background 120ms ease;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result:hover,
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result.is-selected {
+	background: var(--x-surface-high);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result-icon {
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result.has-excerpt .hearth-result-icon {
+	margin-top: 0;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result-name {
+	font-weight: 550;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result-mark {
+	color: var(--x-primary);
+	font-weight: 800;
+}
+
+:is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result-badge:not(.is-excerpt) {
+	color: var(--x-on-container);
+	font-weight: 650;
 }
