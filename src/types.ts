@@ -732,6 +732,9 @@ export function calendarChips(cfg: CalendarChipConfig | undefined): ResolvedChip
 }
 
 
+/** How a favourites or recent-files card draws its files. */
+export type FileView = "list" | "tiles";
+
 /** Per-card configuration for a "search" (query) card. */
 export interface SavedSearchConfig {
 	/** The query, using the same syntax as the top search bar (plain text,
@@ -1766,6 +1769,17 @@ export interface DashboardCard {
 	 * vault reads from.
 	 */
 	favorites?: string[];
+	/**
+	 * kind === "favorites" | "recent": how the card draws its files — "list" is
+	 * a row per file with the icon beside the name, "tiles" a grid of cards with
+	 * the icon above it.
+	 *
+	 * Undefined keeps each kind's historic look: tiles for favourites, a list
+	 * for recent files. A favourites card added from the picker is built with
+	 * "list", so a new board matches every other file-listing card (#358)
+	 * without restyling one somebody already arranged.
+	 */
+	fileView?: FileView;
 	/** kind === "clock": time/greeting/date display options. */
 	clock?: ClockConfig;
 	/** kind === "tasks": source, folder scope and display options. */

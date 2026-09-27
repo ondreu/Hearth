@@ -1906,6 +1906,10 @@ export const de: Translations = {
 			refreshIntervalAria: "Aktualisierungsintervall in Sekunden",
 		},
 		recent: {
+			display: "Darstellung",
+			displayDesc: "Eine kompakte Liste von Zeilen oder ein Raster aus Kacheln mit dem Symbol über dem Namen.",
+			displayList: "Liste",
+			displayTiles: "Kacheln",
 			fit: "An Kartenhöhe anpassen",
 			fitDesc:
 				"Liste so viele Dateien, wie die Karte hoch genug anzeigt, statt einer " +
@@ -2625,6 +2629,10 @@ export const de: Translations = {
 			foldersDesc: "Ein Ordnerpfad pro Zeile.",
 		},
 		favorites: {
+			display: "Darstellung",
+			displayDesc: "Eine kompakte Liste von Zeilen oder ein Raster aus Kacheln mit dem Symbol über dem Namen.",
+			displayList: "Liste",
+			displayTiles: "Kacheln",
 			heading: "Favoriten",
 			headingDesc: "Notizen, die jede Favoriten-Karte zeigt.",
 			ownList: "Dieser Karte eine eigene Liste geben",

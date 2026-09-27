@@ -68,7 +68,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "base", icon: "database", category: "notes", requires: null, build: { kind: "embed", title: "Base", target: "", w: 6, h: 4 } },
 			{ id: "recent", icon: "history", category: "notes", requires: null, build: { kind: "recent", title: "Recent", count: 8, w: 4, h: 3 } },
 			{ id: "folder", icon: "folder-tree", category: "notes", requires: null, build: { kind: "folder", title: "Folder", folder: {}, w: 4, h: 4 } },
-			{ id: "favorites", icon: "star", category: "notes", requires: null, build: { kind: "favorites", title: "Favorites", w: 4, h: 3 } },
+			{ id: "favorites", icon: "star", category: "notes", requires: null, build: { kind: "favorites", title: "Favorites", fileView: "list", w: 4, h: 3 } },
 			{ id: "bookmarks", icon: "bookmark", category: "notes", requires: null, build: { kind: "bookmarks", title: "Bookmarks", w: 4, h: 3 } },
 
 			// ---- Planning ----

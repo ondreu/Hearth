@@ -3052,9 +3052,16 @@ button.hearth-kofi-btn:focus-visible {
 	background: var(--background-modifier-hover);
 }
 
-.hearth-fav-card.is-missing {
+.hearth-fav-card.is-missing,
+.hearth-list-item.is-missing {
 	opacity: 0.6;
 	cursor: default;
+}
+
+/* A recent-files card drawn as tiles and fitted to its height clips tiles the
+   way the list clips rows; the tile's own display:flex would otherwise win. */
+.hearth-favorites > .hearth-list-item-clipped {
+	display: none;
 }
 
 .hearth-fav-icon {

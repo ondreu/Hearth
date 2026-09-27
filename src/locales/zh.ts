@@ -1725,6 +1725,10 @@ export const zh: Translations = {
 			refreshIntervalAria: "刷新间隔（秒）",
 		},
 		recent: {
+			display: "显示方式",
+			displayDesc: "紧凑的列表行，或图标位于名称上方的磁贴网格。",
+			displayList: "列表",
+			displayTiles: "磁贴",
 			fit: "适应卡片高度",
 			fitDesc:
 				"按卡片高度能容纳的数量列出文件，而不是固定数量。调整卡片大小会改变显示数量。",
@@ -2387,6 +2391,10 @@ export const zh: Translations = {
 			foldersDesc: "每行一个文件夹路径。",
 		},
 		favorites: {
+			display: "显示方式",
+			displayDesc: "紧凑的列表行，或图标位于名称上方的磁贴网格。",
+			displayList: "列表",
+			displayTiles: "磁贴",
 			heading: "收藏",
 			headingDesc: "每张收藏卡片显示的笔记。",
 			ownList: "为这张卡片单独设置列表",

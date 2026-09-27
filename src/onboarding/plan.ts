@@ -416,7 +416,7 @@ export function planCards(
 
 	if (wants(answers, "browsing")) {
 		add("recent", "browsing", "main", { kind: "recent", title: "Recent", count: 8, w: 4, h: 4 });
-		add("favorites", "browsing", "main", { kind: "favorites", title: "Favorites", w: 4, h: 4 });
+		add("favorites", "browsing", "main", { kind: "favorites", title: "Favorites", fileView: "list", w: 4, h: 4 });
 	}
 
 	if (accepted(answers, "bookmarks")) {

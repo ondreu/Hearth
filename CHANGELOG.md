@@ -95,6 +95,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   off from the calendar and open the note at the task's line. Optionally limit
   it to some folders and pick its colours.
 
+- **List or tiles for Favorites and Recent files** (#358). Both cards get a
+  **Display** setting: *List* puts the icon beside the name, one row per file;
+  *Tiles* draws the grid with the icon above it. Existing cards keep the look
+  they had (tiles for Favorites, a list for Recent files); a newly added
+  Favorites card starts as a list, like every other file-listing card. Tiles
+  work with Recent files' **Fit to card height** too.
+
 ### Changed
 
 - **A shorter, visual setup wizard.** First-run setup is three steps instead of

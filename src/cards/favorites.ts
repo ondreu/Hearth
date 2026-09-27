@@ -1,14 +1,12 @@
-import { setIcon, Setting, TFile } from "obsidian";
+import { Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { moveItem } from "../editors";
-import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
-import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
-import { makeClickable } from "../ui";
 import type { DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
+import { type FileItem, fileViewSetting, renderFileItems } from "./fileview";
 
 
 // ---- Favorites (curated note cards) ------------------------------------
@@ -31,23 +29,11 @@ export function renderFavorites(
 		return;
 	}
 
-	const grid = body.createDiv("hearth-favorites");
-	const icons = fileIconOptions(view.plugin.settings);
-	for (const path of paths) {
+	const items: FileItem[] = paths.map((path) => {
 		const file = view.app.vault.getAbstractFileByPath(path);
-		const tile = grid.createDiv("hearth-fav-card");
-		if (file instanceof TFile) {
-			applyFileIcon(tile.createDiv("hearth-fav-icon"), resolveFileIcon(view.app, file, icons));
-			tile.createDiv({ cls: "hearth-fav-name", text: file.basename });
-			const open = () => void openFile(view, file, "card");
-			tile.addEventListener("click", open);
-			makeClickable(tile, open, file.basename);
-		} else {
-			tile.addClass("is-missing");
-			setIcon(tile.createDiv("hearth-fav-icon"), "file-x");
-			tile.createDiv({ cls: "hearth-fav-name", text: path });
-		}
-	}
+		return file instanceof TFile ? { file } : { missing: path };
+	});
+	renderFileItems(view, card, body, items);
 }
 
 
@@ -66,6 +52,8 @@ export function renderFavorites(
  * whatever it is showing now, so neither direction loses what is on screen.
  */
 export function favoritesEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
+	fileViewSetting(ctx, containerEl, t().editors.favorites);
+
 	new Setting(containerEl)
 		.setName(t().editors.favorites.heading)
 		.setDesc(t().editors.favorites.headingDesc)
@@ -138,7 +126,7 @@ export function favoritesEditor(ctx: CardEditorContext, containerEl: HTMLElement
 export const favoritesCard: CardDefinition<"favorites"> = {
 	kind: "favorites",
 	templates: [
-		{ id: "favorites", name: "Favorites", icon: "star", build: () => ({ kind: "favorites", title: "Favorites", w: 4, h: 3 }) },
+		{ id: "favorites", name: "Favorites", icon: "star", build: () => ({ kind: "favorites", title: "Favorites", fileView: "list", w: 4, h: 3 }) },
 	],
 	render: (view, card, body) => renderFavorites(view, card, body),
 	cloneConfig: (source, copy) => {

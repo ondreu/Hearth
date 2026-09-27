@@ -500,6 +500,7 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	if (background !== undefined) card.background = background;
 	if (typeof r.count === "number") card.count = r.count;
 	if (typeof r.recentAuto === "boolean") card.recentAuto = r.recentAuto;
+	if (r.fileView === "list" || r.fileView === "tiles") card.fileView = r.fileView;
 	if (typeof r.scale === "number") card.scale = r.scale;
 	const cardImageFit = sanitizeImageFit(r.imageFit);
 	if (cardImageFit !== undefined) card.imageFit = cardImageFit;

@@ -1897,6 +1897,10 @@ export const en = {
 			refreshIntervalAria: "Refresh interval in seconds",
 		},
 		recent: {
+			display: "Display",
+			displayDesc: "A compact list of rows, or a grid of tiles with the icon above the name.",
+			displayList: "List",
+			displayTiles: "Tiles",
 			fit: "Fit to card height",
 			fitDesc:
 				"List as many files as the card is tall enough to show, instead of a " +
@@ -2617,6 +2621,10 @@ export const en = {
 			foldersDesc: "One folder path per line.",
 		},
 		favorites: {
+			display: "Display",
+			displayDesc: "A compact list of rows, or a grid of tiles with the icon above the name.",
+			displayList: "List",
+			displayTiles: "Tiles",
 			heading: "Favorites",
 			headingDesc: "Notes shown by every favorites card.",
 			ownList: "Give this card its own list",

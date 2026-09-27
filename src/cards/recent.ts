@@ -1,22 +1,19 @@
-import { type Component, debounce, setIcon, Setting, TFile } from "obsidian";
+import { type Component, setIcon, Setting, TFile } from "obsidian";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
-import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile } from "../filetypes";
 import { t } from "../i18n";
-import { openFile } from "../opener";
 import {
 	clampRecentCount,
 	RECENT_COUNT_DEFAULT,
 	RECENT_COUNT_MIN,
 	RECENT_HISTORY_MAX,
 	recentFilePaths,
-	rowsThatFit,
 } from "../recentfiles";
 import { type DashboardCard } from "../types";
-import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
+import { fitItemsToBody, fileViewSetting, renderFileItems } from "./fileview";
 
 
 // ---- Recent files -------------------------------------------------------
@@ -53,71 +50,15 @@ export function renderRecent(
 		return;
 	}
 
-	const list = body.createDiv("hearth-list");
-	const icons = fileIconOptions(view.plugin.settings);
-	for (const file of files) {
-		const row = list.createDiv("hearth-list-item");
-		applyFileIcon(row.createDiv("hearth-list-icon"), resolveFileIcon(view.app, file, icons));
-		row.createDiv({ cls: "hearth-list-label", text: file.basename });
-		const open = () => void openFile(view, file, "card");
-		row.addEventListener("click", open);
-		makeClickable(row, open, file.basename);
-	}
-
-	if (auto) fitRowsToBody(body, list, component);
-}
-
-
-/**
- * Hide the rows that don't fit the card's current height, and keep doing so as
- * the card is resized.
- *
- * Measured rather than calculated: a row's height depends on the theme's font
- * size and Obsidian's icon scale, so the only honest source is the row the
- * browser actually laid out. Every row is un-hidden before each measurement so
- * the step is read from a real pair of rows rather than from a remembered one,
- * which keeps the fit correct after a font or theme change too.
- */
-function fitRowsToBody(body: HTMLElement, list: HTMLElement, component?: Component): void {
-	const rows = Array.from(list.children).filter((el): el is HTMLElement =>
-		el.instanceOf(HTMLElement),
-	);
-	if (rows.length === 0) return;
-
-	const fit = () => {
-		if (!list.isConnected) return;
-		for (const row of rows) row.removeClass("hearth-list-item-clipped", "is-last-unclipped");
-		// Rows are measured against the viewport, so a body left scrolled would
-		// read the list as starting higher than it does. Nothing is meant to
-		// scroll in this mode anyway — the whole point is that the list stops at
-		// the card's edge.
-		body.scrollTop = 0;
-		const first = rows[0].getBoundingClientRect();
-		const step = rows.length > 1
-			? rows[1].getBoundingClientRect().top - first.top
-			: first.height;
-		const padBottom = parseFloat(getComputedStyle(body).paddingBottom) || 0;
-		const available = body.getBoundingClientRect().bottom - padBottom - first.top;
-		const visible = rowsThatFit(available, first.height, Math.max(0, step - first.height));
-		for (let i = visible; i < rows.length; i++) rows[i].addClass("hearth-list-item-clipped");
-		// The last row still showing closes the group, as the list's last row would.
-		if (visible > 0 && visible < rows.length) rows[visible - 1].addClass("is-last-unclipped");
-	};
-
-	// Fit before the first paint, so a tall card never flashes its full list and
-	// then snaps back, then follow every resize of the card.
-	window.requestAnimationFrame(fit);
-	const observer = new ResizeObserver(debounce(fit, 60, true));
-	observer.observe(body);
-	// Without a component to hang it on (a caller that renders the card outside
-	// the dashboard's lifecycle) the observer is dropped on the next render with
-	// the element it watched; the initial fit still applies.
-	component?.register(() => observer.disconnect());
+	const container = renderFileItems(view, card, body, files.map((file) => ({ file })));
+	if (auto) fitItemsToBody(body, container, component);
 }
 
 
 export function recentEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
+
+	fileViewSetting(ctx, containerEl, t().editors.recent);
 
 	// Fit-to-height and a fixed count are the same decision, so only one of them
 	// is on screen at a time.

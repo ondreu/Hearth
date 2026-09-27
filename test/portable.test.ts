@@ -244,7 +244,7 @@ function configuredCards(): DashboardCard[] {
 				],
 			},
 		}),
-		card({ id: "k3", kind: "recent", recentTypes: ["markdown", "images"] }),
+		card({ id: "k3", kind: "recent", recentTypes: ["markdown", "images"], fileView: "tiles" }),
 		card({
 			id: "k4",
 			kind: "schedule",
@@ -378,6 +378,7 @@ describe("a dashboard package carries the cards' own settings", () => {
 				"periodic",
 				"templater",
 				"recentTypes",
+				"fileView",
 				"schedule",
 				"searchBar",
 				"stats",
