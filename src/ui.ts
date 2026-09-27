@@ -294,3 +294,19 @@ export function designSetting(
 			});
 		});
 }
+
+/** The nearest element at or above `el` that scrolls vertically — whatever
+ * actually scrolls a pane or modal, which differs by Obsidian version and theme.
+ *
+ * A pane rebuilt in place (`empty()` and draw again) collapses for an instant,
+ * which snaps its scroller to the top: a toggle halfway down threw the user back
+ * to the start. Callers read this scroller's `scrollTop` before rebuilding and
+ * restore it after. */
+export function scrollParent(el: HTMLElement): HTMLElement | null {
+	for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+		const overflow = node.win.getComputedStyle(node).overflowY;
+		if ((overflow === "auto" || overflow === "scroll") && node.scrollHeight > node.clientHeight)
+			return node;
+	}
+	return null;
+}

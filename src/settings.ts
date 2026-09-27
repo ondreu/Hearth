@@ -18,7 +18,7 @@ import {
 } from "./exportimport";
 import { forgetGallerySession, galleryConfigured, normalizeGalleryUrl } from "./gallery";
 import { openGallery } from "./gallerybrowse";
-import { makeClickable } from "./ui";
+import { makeClickable, scrollParent } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { formatSkyValue, parseSkyValue } from "./sky";
 import { shapePath, sparklePath } from "./shapes";
@@ -241,9 +241,9 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * is never attached, so rendering into it would silently go nowhere. */
 	private renderTarget: HTMLElement | null = null;
 
-	/** Title of a section to scroll to on the next render, set by a catalogue
-	 * row's "Show" button. */
-	private revealSectionTitle: string | null = null;
+	/** Each section's wrapper on the current page, by title, so a catalogue
+	 * row's "Show" button can scroll to it without rebuilding the pane. */
+	private sectionEls = new Map<string, HTMLElement>();
 
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
@@ -294,19 +294,28 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	/** Re-render the pane in place after a state change (tab switch, list
 	 * mutation, import) — into whichever element the pane currently lives in. */
-	private rerender(): void {
+	private rerender(keepScroll = true): void {
 		// A rerender follows a structural change (a card added, a list reordered,
 		// a settings import) and rebuilds every control from `plugin.settings`.
 		// Flush first so the pending edit is on disk before the pane that produced
 		// it is thrown away.
 		this.flushSave();
-		this.renderInto(this.renderTarget ?? this.containerEl);
+		const target = this.renderTarget ?? this.containerEl;
+		// Emptying the pane collapses its height, which snaps the scroller to the
+		// top — so a toggle halfway down a page threw the user back to its start.
+		// Put the scroller back where it was; only a move to another page
+		// (`navigate`) starts at the top.
+		const scroller = scrollParent(target);
+		const top = scroller?.scrollTop ?? 0;
+		this.renderInto(target);
+		if (scroller) scroller.scrollTop = keepScroll ? top : 0;
 	}
 
 	/** Build the full settings pane into `containerEl`, shared by both render
 	 * paths (legacy `display()` and the 1.13 setting-definition host). */
 	private renderInto(containerEl: HTMLElement): void {
 		containerEl.empty();
+		this.sectionEls.clear();
 		containerEl.addClass("hearth-settings");
 		this.applyPaneDesign(containerEl);
 
@@ -378,7 +387,7 @@ export class HomeSettingTab extends PluginSettingTab {
 	/** Move to another level of the pane, remembering it for next time. */
 	private navigate(route: SettingsRoute): void {
 		this.app.saveLocalStorage(ACTIVE_TAB_KEY, route);
-		this.rerender();
+		this.rerender(false);
 	}
 
 	/** The index: every category as a full-width row, grouped under headings.
@@ -566,6 +575,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		const render = typeof descOrRender === "function" ? descOrRender : maybeRender!;
 
 		const wrap = containerEl.createDiv("hearth-section");
+		this.sectionEls.set(title, wrap);
 		const head = wrap.createDiv("hearth-section-head");
 		head.createDiv({ cls: "hearth-section-title", text: title });
 		if (desc) head.createDiv({ cls: "hearth-section-desc", text: desc });
@@ -579,15 +589,6 @@ export class HomeSettingTab extends PluginSettingTab {
 		} catch (err) {
 			body.empty();
 			this.renderError(body, title, err);
-		}
-
-		// A catalogue row asked for this section — it lives further down the same
-		// page, so scroll it into view once the pane has been laid out.
-		if (this.revealSectionTitle === title) {
-			this.revealSectionTitle = null;
-			window.requestAnimationFrame(() =>
-				wrap.scrollIntoView({ block: "start", behavior: "smooth" }),
-			);
 		}
 	}
 
@@ -1743,9 +1744,13 @@ export class HomeSettingTab extends PluginSettingTab {
 		if (entry.where.kind === "section") {
 			const section = entry.where.section;
 			row.addButton((b) =>
+				// The section lives further down this same page — scroll to it as it
+				// stands, rather than rebuilding the pane (which flashed it back to
+				// the top first).
 				b.setButtonText(strings.goToSection).onClick(() => {
-					this.revealSectionTitle = this.integrationSectionTitle(section);
-					this.rerender();
+					this.sectionEls
+						.get(this.integrationSectionTitle(section))
+						?.scrollIntoView({ block: "start", behavior: "smooth" });
 				}),
 			);
 			return;
@@ -1778,7 +1783,14 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * the same string `renderTabSections` passes to `section()`, which is what
 	 * keys its collapsed state. */
 	private integrationSectionTitle(section: IntegrationSectionId): string {
-		return section === "tasks" ? t().settings.tasks.heading : t().settings.fileIcons.heading;
+		switch (section) {
+			case "tasks":
+				return t().settings.tasks.heading;
+			case "operon":
+				return t().settings.operon.heading;
+			case "fileIcons":
+				return t().settings.fileIcons.heading;
+		}
 	}
 
 	// ---- Tasks / TaskNotes ------------------------------------------------
@@ -2486,3 +2498,4 @@ export class HomeSettingTab extends PluginSettingTab {
 		this.aboutButton(b, icon, label, () => window.open(url, "_blank"), url);
 	}
 }
+

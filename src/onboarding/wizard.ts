@@ -96,6 +96,8 @@ export class SetupWizardModal extends HearthModal {
 	private readonly options: SetupWizardOptions;
 	private answers: SetupAnswers;
 	private stepIndex = 0;
+	/** The step last drawn, so a redraw within it keeps its scroll position. */
+	private renderedStep: SetupStepId | null = null;
 	/** True once the board has been built, so closing the modal afterwards
 	 * doesn't record the run as skipped. */
 	private finished = false;
@@ -172,11 +174,19 @@ export class SetupWizardModal extends HearthModal {
 	 * what the rest of the step shows, and on every navigation. */
 	private renderWizard(): void {
 		const { contentEl } = this;
+		// An answer redraws the step in place; keep the body where the user was
+		// reading instead of snapping it back to the top. Only a move to another
+		// step starts at the top.
+		const step = this.currentStep();
+		const keepTop =
+			step === this.renderedStep
+				? (contentEl.querySelector<HTMLElement>(".hearth-setup-body")?.scrollTop ?? 0)
+				: 0;
+		this.renderedStep = step;
 		contentEl.empty();
 		contentEl.addClass("hearth-setup");
 
 		const steps = this.wizardSteps();
-		const step = this.currentStep();
 		const strings = t().setup;
 
 		this.renderRail(contentEl, steps, step);
@@ -208,6 +218,7 @@ export class SetupWizardModal extends HearthModal {
 		}
 
 		this.renderFooter(contentEl.createDiv("hearth-setup-foot"), steps);
+		body.scrollTop = keepTop;
 	}
 
 	/** The progress rail: one pill per step, showing where the user is and how
