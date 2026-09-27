@@ -1,6 +1,7 @@
 import { type App, type ButtonComponent, debounce, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
 import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
+import { classicCardsInUse } from "./cards";
 import { hasFileIconPlugin } from "./fileicons";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { kofiTipButton } from "./kofi";
@@ -1072,6 +1073,16 @@ export class HomeSettingTab extends PluginSettingTab {
 		note.settingEl.addClass("hearth-setting-note");
 		const icon = createSpan("hearth-setting-note-icon");
 		setIcon(icon, "gauge");
+		note.descEl.prepend(icon);
+	}
+
+	/** The note standing in for the card-surface settings where every card is
+	 * Expressive, whose frame none of them shape. */
+	private expressiveSurfaceNote(containerEl: HTMLElement): void {
+		const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);
+		note.settingEl.addClass("hearth-setting-note");
+		const icon = createSpan("hearth-setting-note-icon");
+		setIcon(icon, "shapes");
 		note.descEl.prepend(icon);
 	}
 
@@ -2147,6 +2158,14 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	private cardSurfaceSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
+
+		// These shape the Classic frame only. With no Classic card on any board
+		// there is nothing for them to act on, so they step aside for a line
+		// saying why (they still hold their values for a board switched back).
+		if (!classicCardsInUse(s)) {
+			this.expressiveSurfaceNote(containerEl);
+			return;
+		}
 
 		// Radius and border width below are untouched by the tier; blur is dropped
 		// from `reduced` down and opacity on `minimal`, hence the note covering

@@ -1409,9 +1409,11 @@ export const zh: Translations = {
 			cardBorderWidth: "卡片边框",
 			cardBorderWidthDesc:
 				"卡片边框和标题栏分隔线的粗细（像素）。0 表示隐藏边框。",
+			cardSurfaceExpressive:
+				"Expressive 卡片使用不透明的色调表面和大圆角，因此不透明度、模糊、圆角半径和边框只作用于经典卡片。",
 			cardDesign: "设计",
 			cardDesignDesc:
-				"Hearth 的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。Expressive 适用于 Hearth 的整个界面：卡片、面板按钮、所有对话框和菜单，以及此设置页面。面板或卡片仍可单独指定；内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
+				"Hearth 的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。Expressive 适用于 Hearth 的整个界面：卡片、面板按钮、所有对话框和菜单，以及此设置页面。面板或卡片仍可单独指定；内容来自你自己的卡片（笔记、嵌入、网页）内容保持不变，只采用 Expressive 的卡片外框。",
 			designClassicDesc: "安静的表面与细边框——Hearth 一贯的样子。",
 			designExpressiveDesc: "处处 Material 3 Expressive：源自强调色的色调、胶囊与柔和形状、醒目的字体。",
 			designInUse: "使用中",

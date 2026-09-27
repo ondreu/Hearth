@@ -1506,6 +1506,7 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 /** Current conditions and a forecast, from the free key-less Open-Meteo API. */
 export const weatherCard: CardDefinition<"weather"> = {
 	kind: "weather",
+	ownDesign: (card, fallback) => card.weather?.design ?? defaultDesign(card.weather?.style ?? "compact", fallback),
 	templates: [
 		{
 			id: "weather",

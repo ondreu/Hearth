@@ -35,7 +35,7 @@ import {
 	NARROW_WIDTH_STEP,
 	newDashboardId,
 } from "./types";
-import { cloneCard } from "./cards";
+import { classicCardsInUse, cloneCard } from "./cards";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { openExportDashboard, pickAndImport } from "./exportimport";
 import {
@@ -1292,6 +1292,35 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				});
 			});
 
+		// The design first: it decides whether the surface settings below apply.
+		const designs = {
+			classic: t().editors.design.classic,
+			expressive: t().editors.design.expressive,
+		};
+		this.overrideChoice(
+			containerEl,
+			t().dashboards.modal.cardDesign,
+			t().dashboards.modal.cardDesignDesc,
+			dash.cardDesign,
+			designs,
+			designs[s.cardDesign ?? "classic"],
+			(v) => {
+				dash.cardDesign = v;
+			},
+			true,
+		);
+
+		// Opacity, blur, radius and border shape the Classic frame only; on a
+		// board with no Classic card they step aside for a line saying why.
+		if (!classicCardsInUse(s, dash)) {
+			const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);
+			note.settingEl.addClass("hearth-setting-note");
+			const icon = createSpan("hearth-setting-note-icon");
+			setIcon(icon, "shapes");
+			note.descEl.prepend(icon);
+			return;
+		}
+
 		this.overrideSlider(
 			containerEl,
 			t().dashboards.modal.cardOpacity,
@@ -1347,22 +1376,6 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			(v) => {
 				dash.cardBorderWidth = v;
 				this.commit();
-			},
-		);
-
-		const designs = {
-			classic: t().editors.design.classic,
-			expressive: t().editors.design.expressive,
-		};
-		this.overrideChoice(
-			containerEl,
-			t().dashboards.modal.cardDesign,
-			t().dashboards.modal.cardDesignDesc,
-			dash.cardDesign,
-			designs,
-			designs[s.cardDesign ?? "classic"],
-			(v) => {
-				dash.cardDesign = v;
 			},
 		);
 	}

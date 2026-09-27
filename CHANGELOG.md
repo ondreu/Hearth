@@ -29,6 +29,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   - **The weather card** — flat weather drawings (the big one on a turning
     cookie), metric chips, hourly pills and thick range bars. The weather
     drawings and the sky keep the weather's own colours.
+  - **The card itself** — an Expressive card sits on an opaque tonal surface
+    with Material's large 28px corners, no border and no rule under its
+    title, which is set larger. The corners draw in a step on hover. Cards
+    snapped together read as a connected group: a hairline apart, with small
+    corners where they meet. Opacity, blur, corner radius and border shape the
+    Classic frame only, so they step aside wherever no card is Classic.
   - **Everything around the cards** — the board's search row, toolbar,
     dashboard switcher and card buttons, every dialog, picker and menu Hearth
     opens (menus grouped, destructive entries marked), and Hearth's settings
@@ -38,8 +44,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Design* sets one board, and a card's *Style* tab can follow that or pick its
   own. A dialog or menu takes the design of whatever opened it. Cards showing
   your own content — notes, embeds, web pages, Dataview and Datacore, the
-  pets — and every card's frame stay as they are. A shared or published board
-  carries its designs.
+  pets — keep that content as it is and take only the Expressive frame, so any
+  card's *Style* tab can choose its design. A shared or published board carries
+  its designs.
 
 - **A Markets card: stocks, funds, forex and crypto.** Type or search a symbol
   — `AAPL`, `0700.HK`, `510300`, `EUR/USD`, `BTC-USD`, `fund:161725` — and the

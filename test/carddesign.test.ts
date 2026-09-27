@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CARD_DEFINITIONS } from "../src/cards";
+import { CARD_DEFINITIONS, classicCardsInUse, resolveCardDesign } from "../src/cards";
 import { resolveMarket } from "../src/cards/market";
 import { resolveConfig } from "../src/cards/weather";
 import { applySettings, exportSettingsPayload, sanitizeCard, sanitizeDashboard } from "../src/layout";
 import { flattenBoardLook } from "../src/portable/capture";
-import { type CardKind, DEFAULT_SETTINGS, effectiveCardDesign, type HomeSettings } from "../src/types";
+import { type CardKind, type DashboardCard, DEFAULT_SETTINGS, effectiveCardDesign, type HomeSettings } from "../src/types";
 
 /**
  * The card *Design* beyond the weather and market cards: a per-card choice
@@ -81,6 +81,49 @@ describe("effectiveCardDesign", () => {
 		expect(effectiveCardDesign(s, undefined)).toBe("classic");
 		s.activeDashboardId = "work";
 		expect(effectiveCardDesign(s, undefined)).toBe("expressive");
+	});
+});
+
+describe("the design a card's frame follows", () => {
+	const card = (kind: CardKind, extra: Partial<DashboardCard> = {}): DashboardCard => ({ id: kind, kind, x: 0, y: 0, w: 1, h: 1, ...extra });
+	const board = (cards: DashboardCard[], cardDesign?: "classic" | "expressive"): HomeSettings => {
+		const s = vault();
+		s.dashboards = [{ id: "home", name: "Home", cards, cardDesign }];
+		s.activeDashboardId = "home";
+		return s;
+	};
+
+	it("takes the board's design for a kind with no Expressive body of its own", () => {
+		const embed = card("embed");
+		expect(resolveCardDesign(board([embed], "expressive"), embed)).toBe("expressive");
+		expect(resolveCardDesign(board([embed]), embed)).toBe("classic");
+		embed.design = "expressive";
+		expect(resolveCardDesign(board([embed]), embed)).toBe("expressive");
+	});
+
+	it("takes the weather and market cards' own design over the card's", () => {
+		const weather = card("weather", { design: "classic", weather: { design: "expressive" } });
+		expect(resolveCardDesign(board([weather]), weather)).toBe("expressive");
+		const moon = card("weather", { weather: { style: "moon" } });
+		expect(resolveCardDesign(board([moon]), moon)).toBe("expressive");
+		const market = card("market", { market: { design: "classic" } });
+		expect(resolveCardDesign(board([market], "expressive"), market)).toBe("classic");
+	});
+
+	it("asks whether any card is Classic before offering the surface settings", () => {
+		const text = card("text");
+		const s = board([text], "expressive");
+		expect(classicCardsInUse(s)).toBe(false);
+		text.design = "classic";
+		expect(classicCardsInUse(s)).toBe(true);
+		expect(classicCardsInUse(s, s.dashboards[0])).toBe(true);
+	});
+
+	it("counts an empty board by the design its first card would take", () => {
+		const s = board([], "expressive");
+		expect(classicCardsInUse(s)).toBe(false);
+		s.dashboards[0].cardDesign = undefined;
+		expect(classicCardsInUse(s)).toBe(true);
 	});
 });
 

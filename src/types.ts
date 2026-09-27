@@ -1897,9 +1897,10 @@ export interface DashboardCard {
 	/** How the card's content is drawn: "classic", or "expressive" (Material 3
 	 * Expressive — tonal containers in the accent colour, pills and soft
 	 * shapes, heavy tight type). Undefined follows the vault's
-	 * {@link HomeSettings.cardDesign}. Only kinds whose definition declares
-	 * `expressive` read it; the weather and market cards keep theirs in their
-	 * own config. See {@link effectiveCardDesign}. */
+	 * {@link HomeSettings.cardDesign}. Every card's frame follows it; only
+	 * kinds whose definition declares `expressive` also draw their content
+	 * with it. The weather and market cards keep theirs in their own config.
+	 * See {@link effectiveCardDesign} and `resolveCardDesign` in cards/. */
 	design?: CardDesign;
 
 	// ---- Layout (legacy grid cell units) ----

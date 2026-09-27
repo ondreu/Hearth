@@ -1,6 +1,6 @@
 import type { App, Component } from "obsidian";
 import type { HomeView } from "../view";
-import type { CardKind, DashboardCard, HomeSettings } from "../types";
+import type { CardDesign, CardKind, DashboardCard, HomeSettings } from "../types";
 import type { VaultEvent } from "../cardevents";
 import type { CardSettingsOptions } from "../editors";
 
@@ -142,10 +142,16 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	): void;
 	/** The kind has a Material 3 Expressive design, drawn by styles.css under
 	 * `.hearth-card.is-expressive` and switched by the card's `design` (else the
-	 * vault's `cardDesign`). The editor's Style tab offers the choice to such a
-	 * kind. Weather and market leave it unset: their design lives in their own
-	 * config and editor. */
+	 * vault's `cardDesign`). Every kind takes the design's frame, so the
+	 * editor's Style tab offers the choice to all but weather and market,
+	 * which leave this unset: their design lives in their own config and
+	 * editor (see `ownDesign`). */
 	expressive?: boolean;
+	/** The design a kind that keeps its own (weather, market) is drawn in,
+	 * given the design the board would otherwise hand it. Read through
+	 * `resolveCardDesign()`, which is what the card's frame and the dialogs it
+	 * opens follow; kinds without it follow the card's `design`. */
+	ownDesign?(card: DashboardCard, fallback: CardDesign): CardDesign;
 	/** The card's body is a launchpad — a grid of buttons the user arranges
 	 * (links, commands, templater). The Layout tab offers such a kind the
 	 * button-sizing settings (`tileSizingSettings`), since how big the buttons

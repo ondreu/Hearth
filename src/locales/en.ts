@@ -1552,9 +1552,11 @@ export const en = {
 			cardBorderWidth: "Card border",
 			cardBorderWidthDesc:
 				"Thickness of the card border and header divider, in pixels. 0 hides the border.",
+			cardSurfaceExpressive:
+				"Expressive cards sit on an opaque tonal surface with large, rounded corners, so opacity, blur, corner radius and border apply only to Classic cards.",
 			cardDesign: "Design",
 			cardDesignDesc:
-				"How Hearth is drawn: Classic, or Material 3 Expressive — tonal containers in your accent colour, pills and soft shapes, heavier type. Expressive reaches all of Hearth's interface: the cards, the board's buttons, every dialog and menu, and this settings pane. A dashboard or a card can still choose for itself; cards whose content is your own (notes, embeds, web pages) stay as they are.",
+				"How Hearth is drawn: Classic, or Material 3 Expressive — tonal containers in your accent colour, pills and soft shapes, heavier type. Expressive reaches all of Hearth's interface: the cards, the board's buttons, every dialog and menu, and this settings pane. A dashboard or a card can still choose for itself; cards whose content is your own (notes, embeds, web pages) keep that content as it is and take only the Expressive frame.",
 			designClassicDesc: "Quiet surfaces and fine borders — Hearth as it has always looked.",
 			designExpressiveDesc: "Material 3 Expressive everywhere: tonal colour from your accent, pills and soft shapes, bold type.",
 			designInUse: "In use",

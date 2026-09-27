@@ -1560,9 +1560,11 @@ export const de: Translations = {
 			cardBorderWidth: "Kartenrahmen",
 			cardBorderWidthDesc:
 				"Stärke des Kartenrahmens und der Kopfzeilentrennlinie, in Pixeln. 0 blendet den Rahmen aus.",
+			cardSurfaceExpressive:
+				"Expressive-Karten liegen auf einer deckenden, tonalen Fläche mit großen, runden Ecken. Deckkraft, Unschärfe, Eckenradius und Rahmen gelten daher nur für klassische Karten.",
 			cardDesign: "Design",
 			cardDesignDesc:
-				"Wie Hearth gezeichnet wird: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Expressive gilt für die ganze Oberfläche von Hearth: die Karten, die Schaltflächen des Dashboards, alle Dialoge und Menüs und diese Einstellungen. Ein Dashboard oder eine Karte kann weiterhin selbst wählen; Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
+				"Wie Hearth gezeichnet wird: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Expressive gilt für die ganze Oberfläche von Hearth: die Karten, die Schaltflächen des Dashboards, alle Dialoge und Menüs und diese Einstellungen. Ein Dashboard oder eine Karte kann weiterhin selbst wählen; Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) behalten diesen Inhalt, wie er ist, und bekommen nur den Expressive-Rahmen.",
 			designClassicDesc: "Ruhige Flächen und feine Rahmen — Hearth, wie es immer aussah.",
 			designExpressiveDesc: "Material 3 Expressive überall: tonale Farben aus deiner Akzentfarbe, Pillen und weiche Formen, kräftige Schrift.",
 			designInUse: "Aktiv",

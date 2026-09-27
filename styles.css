@@ -14893,6 +14893,16 @@ body.hearth-dv-resizing {
 	-webkit-backdrop-filter: blur(var(--hearth-plugin-blur, 0px));
 }
 
+/* The Expressive frame, as a card on an ordinary board takes it (see "The
+ * Expressive card frame"): opaque and tonal, large corners, no border or
+ * shadow, and so never frosted. */
+.hearth-plugin-board.is-x-frame {
+	--hearth-card-surface: color-mix(in srgb, var(--interactive-accent) 9%, var(--background-primary));
+	border-radius: 28px;
+	border: none;
+	box-shadow: none;
+}
+
 /* The host inherits the leaf-card hosting rules (transparent pane surfaces, an
  * optional hidden view header); all it adds is filling the board. */
 .hearth-plugin-board-host {
@@ -17740,7 +17750,8 @@ body.hearth-snapshot-capturing .hearth-view {
  * You derives a scheme from a seed: rows and tiles sit on tonal containers
  * instead of rules and borders, controls are pills, the one thing that matters
  * (today, the answer, the time) is heavy and tight or sits on a cookie.
- * Nothing here changes a card's frame, which stays the board's.
+ * The card's frame is its own section below (`is-x-frame`), since every kind
+ * takes it, not only the ones drawn here.
  *
  * The search row at the top of the board isn't a card, but it takes the
  * board's card design the same way — `is-expressive` on .hearth-search-wrap
@@ -17780,6 +17791,113 @@ body.hearth-snapshot-capturing .hearth-view {
 	--x-surface-highest: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
 	--x-cookie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0 0.0L26.0 0.6L27.9 2.1L29.4 3.7L31.0 4.8L32.9 5.0L35.1 4.8L37.5 4.8L39.4 5.6L40.6 7.4L41.0 9.7L41.2 12.0L41.7 13.8L43.0 15.1L44.9 16.4L46.7 17.9L47.6 19.8L47.4 22.0L46.2 24.0L44.9 25.8L44.1 27.6L44.3 29.4L44.9 31.6L45.3 33.9L44.8 36.0L43.2 37.5L41.0 38.3L38.8 38.8L37.1 39.7L36.0 41.2L35.1 43.2L33.9 45.3L32.2 46.6L30.1 46.7L27.9 45.9L25.8 44.9L24.0 44.4L22.2 44.9L20.1 45.9L17.9 46.7L15.8 46.6L14.1 45.3L12.9 43.2L12.0 41.2L10.9 39.7L9.2 38.8L7.0 38.3L4.8 37.5L3.2 36.0L2.7 33.9L3.1 31.6L3.7 29.4L3.9 27.6L3.1 25.8L1.8 24.0L0.6 22.0L0.4 19.8L1.3 17.9L3.1 16.4L5.0 15.1L6.3 13.8L6.8 12.0L7.0 9.7L7.4 7.4L8.6 5.6L10.5 4.8L12.9 4.8L15.1 5.0L17.0 4.8L18.6 3.7L20.1 2.1L22.0 0.6Z'/%3E%3C/svg%3E");
 	--x-clock-cookie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50.0 0.0L54.3 1.1L58.2 3.6L61.9 5.4L66.1 5.7L70.7 5.6L75.0 6.7L78.1 9.8L80.3 13.9L82.6 17.4L86.1 19.7L90.2 21.9L93.3 25.0L94.4 29.3L94.3 33.9L94.6 38.1L96.4 41.8L98.9 45.7L100.0 50.0L98.9 54.3L96.4 58.2L94.6 61.9L94.3 66.1L94.4 70.7L93.3 75.0L90.2 78.1L86.1 80.3L82.6 82.6L80.3 86.1L78.1 90.2L75.0 93.3L70.7 94.4L66.1 94.3L61.9 94.6L58.2 96.4L54.3 98.9L50.0 100.0L45.7 98.9L41.8 96.4L38.1 94.6L33.9 94.3L29.3 94.4L25.0 93.3L21.9 90.2L19.7 86.1L17.4 82.6L13.9 80.3L9.8 78.1L6.7 75.0L5.6 70.7L5.7 66.1L5.4 61.9L3.6 58.2L1.1 54.3L0.0 50.0L1.1 45.7L3.6 41.8L5.4 38.1L5.7 33.9L5.6 29.3L6.7 25.0L9.8 21.9L13.9 19.7L17.4 17.4L19.7 13.9L21.9 9.8L25.0 6.7L29.3 5.6L33.9 5.7L38.1 5.4L41.8 3.6L45.7 1.1Z'/%3E%3C/svg%3E");
+}
+
+/* ---- The Expressive card frame -----------------------------------------
+ * A card in the Expressive design, whatever its kind, is framed the Material 3
+ * way: a filled card on a tonal surface container stepped from the accent,
+ * opaque, with no outline and no resting shadow, and Material's extra-large
+ * corners. `is-x-frame` is set by renderDashboard from resolveCardDesign, so an
+ * embed or a plugin view gets the frame even though it has no Expressive body.
+ *
+ * Classic's surface settings — opacity, frosted blur, corner radius, border
+ * width — shape the Classic frame only. None of them apply here (the settings
+ * hide them), and such a card never joins a frost layer.
+ *
+ * Touching cards read as Material's connected group rather than one tile: the
+ * shared edge keeps a hairline gap (a transparent border the surface is
+ * clipped short of, so the card's box and the layout stay where they are), and
+ * the corners that meet go small instead of square.
+ *
+ * A seamless card stays seamless: it has no frame to restyle. */
+.hearth-card.is-x-frame {
+	--x-frame-surface: color-mix(in srgb, var(--interactive-accent) 9%, var(--background-primary));
+	/* Material's extra-large shape, and the small one the corners of a
+	 * connected group take where cards meet. Hover morphs both a step. */
+	--hearth-card-radius: 28px;
+	--x-frame-inner-radius: 8px;
+}
+
+.hearth-card.is-x-frame:not(.is-seamless) {
+	/* Published for content that paints its own surface (a Bases table's
+	 * sticky header), as the Classic frame publishes its tint. */
+	--hearth-card-surface: var(--x-frame-surface);
+	--hearth-card-lift: none;
+	/* What an Expressive body puts on the surface steps one tone up from it,
+	 * the way a dialog's contents do (see .hearth-x-modal), or rows and tiles
+	 * would melt into the card. */
+	--x-surface: color-mix(in srgb, var(--interactive-accent) 16%, var(--background-primary));
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 21%, var(--background-primary));
+	--x-surface-highest: color-mix(in srgb, var(--interactive-accent) 26%, var(--background-primary));
+	--x-container: color-mix(in srgb, var(--interactive-accent) 28%, var(--background-primary));
+	border-width: 0;
+	border-color: transparent;
+	background: var(--hearth-card-surface);
+	background-clip: padding-box;
+	transition:
+		box-shadow 120ms ease,
+		border-radius 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Shape morph on hover: the corners draw in a step and spring back. Not while
+ * arranging, where the card is being aimed at, and not on the stepped-down
+ * tiers or under reduced motion, where a snap would be all that is left of it. */
+@media (prefers-reduced-motion: no-preference) {
+	.hearth-view:not(.hearth-no-motion) .hearth-grid:not(.is-arranging) .hearth-card.is-x-frame:not(.is-seamless):hover {
+		--hearth-card-radius: 22px;
+		--x-frame-inner-radius: 12px;
+	}
+}
+
+/* Connected group: the corners that meet go small, and the shared edge keeps
+ * a 3px seam — 1.5px of each card's surface held back by a clear border. */
+.hearth-card.is-x-frame.merge-tl {
+	border-top-left-radius: var(--x-frame-inner-radius);
+}
+.hearth-card.is-x-frame.merge-tr {
+	border-top-right-radius: var(--x-frame-inner-radius);
+}
+.hearth-card.is-x-frame.merge-bl {
+	border-bottom-left-radius: var(--x-frame-inner-radius);
+}
+.hearth-card.is-x-frame.merge-br {
+	border-bottom-right-radius: var(--x-frame-inner-radius);
+}
+.hearth-card.is-x-frame:not(.is-seamless).merge-top {
+	border-top-width: 1.5px;
+}
+.hearth-card.is-x-frame:not(.is-seamless).merge-bottom {
+	border-bottom-width: 1.5px;
+}
+.hearth-card.is-x-frame:not(.is-seamless).merge-left {
+	border-left-width: 1.5px;
+}
+.hearth-card.is-x-frame:not(.is-seamless).merge-right {
+	border-right-width: 1.5px;
+}
+
+/* The title carries the hierarchy on its own: larger and heavier, and no rule
+ * under it. The arrange-mode editor keeps its own bar. */
+.hearth-card.is-x-frame .hearth-card-head:not(.is-editing) {
+	padding: 14px 18px 6px;
+	border-bottom: none;
+}
+
+.hearth-card.is-x-frame .hearth-card-title {
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: -0.005em;
+}
+
+.hearth-card.is-x-frame .hearth-card-body {
+	--hearth-card-pad-x: 16px;
+}
+
+/* The phone board's hidden card is dashed to say so; this frame has no border
+ * to dash, so it borrows an outline. */
+.hearth-grid.is-stacked .hearth-card.is-x-frame.is-mobile-hidden {
+	outline: 1px dashed var(--background-modifier-border);
+	outline-offset: -1px;
 }
 
 /* ---- Lists: recent, folder, query, bookmarks, tasks -------------------

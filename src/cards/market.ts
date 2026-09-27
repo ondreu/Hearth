@@ -1572,6 +1572,7 @@ export function cloneMarket(cfg: MarketConfig): MarketConfig {
 /** Stocks, funds, forex and crypto from free key-less sources. */
 export const marketCard: CardDefinition<"market"> = {
 	kind: "market",
+	ownDesign: (card, fallback) => card.market?.design ?? fallback,
 	templates: [
 		{
 			id: "market",

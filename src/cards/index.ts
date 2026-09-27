@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import type { CardKind, DashboardCard } from "../types";
+import { type CardDesign, type CardKind, type DashboardCard, type Dashboard, type HomeSettings, activeDashboard } from "../types";
 import type {
 	CardCategory,
 	CardDefinition,
@@ -213,6 +213,31 @@ export function cardClasses(card: DashboardCard): string[] {
 	const cls = cardDefinition(card).cardClass;
 	const raw = typeof cls === "function" ? cls(card) : cls;
 	return raw ? raw.split(/\s+/).filter(Boolean) : [];
+}
+
+/**
+ * The design a card is drawn in on `board` (the active board by default): the
+ * kind's own choice where it keeps one (weather, market), else the card's
+ * `design`, else the board's, else the vault's. The card's frame follows it —
+ * a tonal Material 3 Expressive surface or Classic's glass — and so do the
+ * dialogs and menus opened from the card.
+ */
+export function resolveCardDesign(s: HomeSettings, card: DashboardCard, board?: Dashboard): CardDesign {
+	const boardDesign = (board ?? activeDashboard(s))?.cardDesign ?? s.cardDesign ?? "classic";
+	return cardDefinition(card).ownDesign?.(card, boardDesign) ?? card.design ?? boardDesign;
+}
+
+/** Whether any card, on any board, is drawn in Classic — the one design whose
+ * frame the card-surface settings (opacity, blur, radius, border) shape. With
+ * `board`, only that board's cards are asked. */
+export function classicCardsInUse(s: HomeSettings, board?: Dashboard): boolean {
+	const boards = board ? [board] : s.dashboards;
+	// An empty board still takes the settings for the first card added to it.
+	return boards.some((b) =>
+		b.cards.length === 0
+			? (b.cardDesign ?? s.cardDesign ?? "classic") === "classic"
+			: b.cards.some((c) => resolveCardDesign(s, c, b) === "classic"),
+	);
 }
 
 /** Deep-clone a card with a fresh id, so the copy can be added to a dashboard

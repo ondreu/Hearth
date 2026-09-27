@@ -13,6 +13,7 @@ import {
 	type Dashboard,
 	effectiveArrangeButtonVisibility,
 	effectiveCardBlur,
+	effectiveCardDesign,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
 	effectiveCardRadius,
@@ -324,10 +325,15 @@ export function renderPluginBoard(
 	// a single surface has none. `effectiveCardBlur` still reports 0 below the
 	// `reduced` performance tier, so the tier switches it off exactly as it does
 	// for cards.
+	//
+	// In the Expressive design the surface is Material's opaque tonal frame
+	// instead, which none of the four shape (see .hearth-plugin-board.is-x-frame).
+	const expressive = effectiveCardDesign(s, undefined) === "expressive";
+	stage.toggleClass("is-x-frame", expressive);
 	stage.style.setProperty("--card-opacity", String(effectiveCardOpacity(s)));
 	stage.style.setProperty("--hearth-card-radius", `${effectiveCardRadius(s)}px`);
 	stage.style.setProperty("--card-border-width", `${effectiveCardBorderWidth(s)}px`);
-	const blur = effectiveCardBlur(s);
+	const blur = expressive ? 0 : effectiveCardBlur(s);
 	stage.toggleClass("has-blur", blur > 0);
 	if (blur > 0) stage.style.setProperty("--hearth-plugin-blur", `${blur}px`);
 	const fail = (text: string) => {

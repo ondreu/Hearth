@@ -16,7 +16,7 @@ import {
 	type VaultEventHub,
 	watchedCardReactsToKind,
 } from "./cardevents";
-import { cardClasses, cardDefinition, cardFromTemplate, cloneCard } from "./cards";
+import { cardClasses, cardDefinition, cardFromTemplate, cloneCard, resolveCardDesign } from "./cards";
 import { openCardPicker } from "./cardpicker";
 import { openGallery } from "./gallerybrowse";
 import { galleryConfigured } from "./gallery";
@@ -30,7 +30,6 @@ import {
 	type DashboardCard,
 	effectiveArrangeButtonVisibility,
 	effectiveCardBorderWidth,
-	effectiveCardDesign,
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
@@ -166,7 +165,12 @@ export function renderDashboard(
 		el.dataset.kind = card.kind;
 		const kindClasses = cardClasses(card);
 		if (kindClasses.length) el.addClass(...kindClasses);
-		const design = effectiveCardDesign(s, card.design);
+		const design = resolveCardDesign(s, card);
+		// The frame follows the card's design whatever its kind: an Expressive
+		// card sits on a tonal, opaque surface with Material's large corners
+		// (see "The Expressive card frame" in styles.css). The body's own
+		// Expressive drawing is only for kinds that have one.
+		el.toggleClass("is-x-frame", design === "expressive");
 		if (cardDefinition(card).expressive && design === "expressive") {
 			el.addClass("is-expressive");
 		}
@@ -195,7 +199,9 @@ export function renderDashboard(
 		// A seamless card paints no surface of its own, so frosting the wallpaper
 		// behind it would leave a blurred rectangle floating on the board with no
 		// card on it. Such a card never joins a frost layer.
-		const cardBlur = kindClasses.includes("is-seamless") ? 0 : resolveCardBlur(s, card);
+		// An Expressive frame is opaque, so there is nothing behind it to frost.
+		const cardBlur =
+			kindClasses.includes("is-seamless") || design === "expressive" ? 0 : resolveCardBlur(s, card);
 		if (cardBlur > 0) {
 			el.addClass("has-blur");
 			el.dataset.blur = String(cardBlur);

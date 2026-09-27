@@ -1,5 +1,5 @@
-import { Notice, Setting, type App } from "obsidian";
-import { CARD_KINDS, cardDefinition } from "./cards";
+import { Notice, Setting, setIcon, type App } from "obsidian";
+import { CARD_KINDS, cardDefinition, resolveCardDesign } from "./cards";
 import { type CardEditorContext } from "./cards/definition";
 import { t } from "./i18n";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
@@ -202,7 +202,9 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	private colorsSection(containerEl: HTMLElement): void {
 		const card = this.card;
-		if (cardDefinition(card).expressive) {
+		// Every kind is offered the choice, since every kind takes the design's
+		// frame; weather and market keep theirs in their own editor.
+		if (!cardDefinition(card).ownDesign) {
 			designSetting(containerEl, {
 				name: t().editors.design.name,
 				desc: t().editors.design.desc,
@@ -212,6 +214,8 @@ export class CardSettingsModal extends HearthTabbedModal {
 					card.design = design;
 					this.opts.save();
 					this.opts.rerender();
+					// The surface settings below come and go with the design.
+					this.render();
 				},
 			});
 		}
@@ -251,6 +255,16 @@ export class CardSettingsModal extends HearthTabbedModal {
 					this.render();
 				}),
 		);
+
+		// Opacity, blur and border shape the Classic frame only.
+		if (resolveCardDesign(this.opts.settings, card) === "expressive") {
+			const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);
+			note.settingEl.addClass("hearth-setting-note");
+			const icon = createSpan("hearth-setting-note-icon");
+			setIcon(icon, "shapes");
+			note.descEl.prepend(icon);
+			return;
+		}
 
 		const opacityRow = new Setting(containerEl)
 			.setName(t().editors.colors.cardOpacity)
