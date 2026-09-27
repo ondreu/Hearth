@@ -526,6 +526,7 @@ export const de: Translations = {
 		deleteConfirm: "Löschen",
 		modal: {
 			title: "Dashboard-Einstellungen",
+			deleteDashboard: "Dashboard löschen",
 			/** Reiter oben im Fenster der Dashboard-Einstellungen. */
 			tabs: {
 				general: "Allgemein",

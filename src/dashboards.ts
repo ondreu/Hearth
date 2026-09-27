@@ -99,7 +99,8 @@ const DEFAULT_HEADER_SPACING_BELOW = 28;
 /**
  * The top-left dashboard switcher: a button per dashboard (its emoji/icon or its
  * 1-based number) plus a "+" to add one. Clicking switches to it; right-clicking
- * opens a menu to edit its settings or delete it.
+ * opens a menu to edit its settings or delete it (delete is also in the
+ * dashboard settings modal's footer).
  */
 export function renderDashboardSwitcher(
 	view: HomeView,
@@ -239,25 +240,36 @@ function showDashboardMenu(
 			.setIcon("trash-2")
 			// Always keep at least one dashboard around.
 			.setDisabled(s.dashboards.length <= 1)
-			.onClick(() => {
-				confirmAction(view.app, {
-					title: t().dashboards.deleteTitle,
-					message: t().dashboards.deleteMessage(dash.name, dash.cards.length),
-					confirmText: t().dashboards.deleteConfirm,
-					onConfirm: () => {
-						const i = s.dashboards.findIndex((d) => d.id === dash.id);
-						if (i >= 0) s.dashboards.splice(i, 1);
-						if (s.activeDashboardId === dash.id) {
-							s.activeDashboardId = s.dashboards[0].id;
-						}
-						void view.plugin.saveData(s);
-						view.render();
-					},
-				});
-			}),
+			.onClick(() => confirmDeleteDashboard(view, dash)),
 	);
 
 	menu.showAtMouseEvent(evt);
+}
+
+/** Ask, then delete `dash`. Shared by the switcher's right-click menu and the
+ * settings modal footer. `onDeleted` runs after the board is gone. Callers
+ * keep at least one dashboard around by not offering this for the last one. */
+function confirmDeleteDashboard(
+	view: HomeView,
+	dash: Dashboard,
+	onDeleted?: () => void,
+): void {
+	const s = view.plugin.settings;
+	confirmAction(view.app, {
+		title: t().dashboards.deleteTitle,
+		message: t().dashboards.deleteMessage(dash.name, dash.cards.length),
+		confirmText: t().dashboards.deleteConfirm,
+		onConfirm: () => {
+			const i = s.dashboards.findIndex((d) => d.id === dash.id);
+			if (i >= 0) s.dashboards.splice(i, 1);
+			if (s.activeDashboardId === dash.id) {
+				s.activeDashboardId = s.dashboards[0].id;
+			}
+			void view.plugin.saveData(s);
+			onDeleted?.();
+			view.render();
+		},
+	});
 }
 
 /** Per-dashboard settings: name, switcher icon, dashboard chrome, and optional
@@ -344,9 +356,19 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		}
 	}
 
-	/** Persistent footer shared by every tab: close the modal. */
+	/** Persistent footer shared by every tab: delete the dashboard, or close. */
 	protected hearthRenderFooter(footer: HTMLElement): void {
-		new Setting(footer).addButton((b) =>
+		const setting = new Setting(footer);
+		// Always keep at least one dashboard around.
+		if (this.view.plugin.settings.dashboards.length > 1) {
+			setting.addButton((b) => {
+				b.setButtonText(t().dashboards.modal.deleteDashboard).onClick(() =>
+					confirmDeleteDashboard(this.view, this.dash, () => this.close()),
+				);
+				b.buttonEl.addClass("hearth-danger-btn");
+			});
+		}
+		setting.addButton((b) =>
 			b
 				.setButtonText(t().dashboards.modal.done)
 				.setCta()

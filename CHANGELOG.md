@@ -317,6 +317,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   changes. The folds now have tests of their own, which the safety nets had
   been standing in for.
 
+- **Delete a dashboard from its settings, not only from a right-click.** The
+  dashboard settings modal — reached from arrange mode's toolbar or a plugin
+  board's gear, as well as the switcher's menu — now has a *Delete dashboard*
+  button beside *Done*, asking first exactly as the right-click menu does. It
+  is left out while only one dashboard exists, since the last one can't be
+  deleted.
+
 
 ## [3.1.0]
 

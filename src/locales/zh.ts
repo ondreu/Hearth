@@ -481,6 +481,7 @@ export const zh: Translations = {
 		deleteConfirm: "删除",
 		modal: {
 			title: "面板设置",
+			deleteDashboard: "删除面板",
 			/** Tabs across the top of the dashboard settings modal. */
 			tabs: {
 				general: "通用",

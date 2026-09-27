@@ -514,6 +514,7 @@ export const en = {
 		deleteConfirm: "Delete",
 		modal: {
 			title: "Dashboard settings",
+			deleteDashboard: "Delete dashboard",
 			/** Tabs across the top of the dashboard settings modal. */
 			tabs: {
 				general: "General",
