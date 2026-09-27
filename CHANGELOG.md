@@ -17,39 +17,25 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 - **Material 3 Expressive: a second design for all of Hearth.** A new
   **Design** setting — *Classic* or *Expressive* — heads **Settings → Hearth →
-  Appearance**, shown as a small card drawn each way. Expressive redraws
-  everything Hearth draws in tonal steps of your accent colour, in light and
-  dark themes:
+  Appearance**. Expressive redraws everything Hearth draws in tonal steps of
+  your accent colour, in light and dark themes:
 
-  - **Cards** — rows become grouped tonal lists with icons on round badges,
-    tiles and keys soft shapes, controls pills and connected button groups, and
-    each card's headline is set heavy or on a cookie shape (today in the mini
-    calendar, the analogue clock's face). Every view of both calendars follows,
-    week and day lanes and agendas included.
-  - **The weather card** — flat weather drawings (the big one on a turning
-    cookie), metric chips, hourly pills and thick range bars. The weather
-    drawings and the sky keep the weather's own colours.
-  - **The card itself** — an Expressive card sits on an opaque tonal surface
-    with Material's large 28px corners, no border and no rule under its
-    title, which is set larger. The corners draw in a step on hover. Cards
-    snapped together read as a connected group: a hairline apart, with small
-    corners where they meet. Opacity, blur, corner radius and border shape the
-    Classic frame only, so they step aside wherever no card is Classic.
-    The setup wizard recommends Expressive and, when it is picked, skips the
-    Frosted / Solid / Minimal choice, which is about the Classic frame.
-  - **Everything around the cards** — the board's search row, toolbar,
-    dashboard switcher and card buttons, every dialog, picker and menu Hearth
-    opens (menus grouped, destructive entries marked), and Hearth's settings
-    pane. A card's and a dashboard's settings gather their rows into tonal
-    groups under accent headings, as the settings pane does. Obsidian's own interface and other plugins' are left to your theme.
+  - **Cards** sit on an opaque tonal surface with large rounded corners that
+    draw in on hover; cards snapped together read as one connected group.
+    Inside, rows become grouped tonal lists with icons on round badges,
+    controls become pills and button groups, and each card's headline is set
+    heavy or on a cookie shape. Both calendars and the weather card follow in
+    every view.
+  - **Everything around the cards** — the board's search row and buttons,
+    every dialog, picker and menu Hearth opens, and its settings pane, where
+    rows are gathered into tonal groups under accent headings. Obsidian's own
+    interface and other plugins' are left to your theme.
 
-  The choice cascades vault → board → card: *Dashboard settings → Style →
-  Design* sets one board, and a card's *Style* tab can follow that or pick its
-  own. A dialog or menu takes the design of whatever opened it. Cards showing
-  your own content — notes, embeds, web pages, Dataview and Datacore, the
-  pets — keep that content as it is and take only the Expressive frame, so any
-  card's *Style* tab can choose its design. A shared or published board carries
-  its designs.
+  The choice cascades vault → board → card, and a dialog or menu takes the
+  design of whatever opened it. Cards showing your own content (notes, embeds,
+  web pages) keep that content as it is and take only the frame. Card opacity,
+  blur, corner radius and border shape Classic cards only, so they are hidden
+  where no card is Classic. A shared or published board carries its designs.
 
 - **A Markets card: stocks, funds, forex and crypto.** Type or search a symbol
   — `AAPL`, `0700.HK`, `510300`, `EUR/USD`, `BTC-USD`, `fund:161725` — and the
@@ -105,9 +91,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 ### Changed
 
 - **A shorter, visual setup wizard.** First-run setup is three steps instead of
-  six: what the vault is for (with the plugins Hearth found), the look — design,
-  background and card style, each shown as a small painting — and a scale
-  preview of the board about to be built. The boards it builds have no empty
+  six: what the vault is for (with the plugins Hearth found), the look — design
+  (Expressive recommended), background and, for Classic, card style, each
+  shown as a small painting — and a scale preview of the board about to be
+  built. The boards it builds have no empty
   cards and no holes: working cards in a main column, small ones (a switchable
   clock, calendar, weather, statistics) in a side column, and cards that need a
   feed or a place ask for it in the wizard instead of arriving unconfigured.
