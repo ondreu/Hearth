@@ -19,6 +19,7 @@ import { clearContentSearchCache } from "./query";
 import { BoardRefreshTracker } from "./boardrefresh";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
+import { installUiDesign } from "./uidesign";
 import {
 	adoptSettings,
 	isPluginDataPath,
@@ -94,6 +95,10 @@ export default class HearthPlugin extends Plugin {
 		setLanguage();
 
 		await this.loadSettings();
+
+		// Hearth's dialogs and menus take the design of wherever they are opened
+		// from, which needs the last press remembered (see src/uidesign.ts).
+		installUiDesign(this, () => this.settings.cardDesign ?? "classic");
 
 		// Register both Hearth crystals (brand purple and themeable) so either
 		// can be used as the ribbon, tab and header icon per the

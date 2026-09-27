@@ -76,7 +76,7 @@ The full effects of each tier are in [chapter 12](12-performance.md).
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| *Background type* | Hearth default | **Hearth default**, **None**, **Solid color**, **Vault image**, **Image URL**, **Live weather sky** |
+| *Background type* | Hearth default | **Hearth default**, **Harbour town**, **None**, **Solid color**, **Vault image**, **Image URL**, **Live weather sky** |
 | *Background value* | — | A CSS colour, a vault image path, or a direct image URL, depending on the type |
 | *Opacity* | 0.8 | How much the background shows through |
 | *Blur* | 0 px | Background blur |

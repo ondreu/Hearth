@@ -15,6 +15,7 @@
  */
 
 import { Modal, Notice, setIcon } from "obsidian";
+import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import type { AuthorIdentity } from "./identity";
 import type { Dashboard } from "./types";
@@ -76,7 +77,7 @@ export function openGalleryEntry(
 	new GalleryEntryModal(plugin, client, id, hooks).open();
 }
 
-class GalleryEntryModal extends Modal {
+class GalleryEntryModal extends HearthModal {
 	private plugin: HearthPlugin;
 	private client: GalleryClient;
 	private id: string;
@@ -800,7 +801,7 @@ export function openGalleryProfile(
 	return modal;
 }
 
-class GalleryProfileModal extends Modal {
+class GalleryProfileModal extends HearthModal {
 	private plugin: HearthPlugin;
 	private client: GalleryClient;
 	private publicKey: string;

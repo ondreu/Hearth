@@ -301,6 +301,13 @@ describe("defaultAnswers", () => {
 
 		expect(answers.purposes).toContain("tasks");
 	});
+
+	it("offers the vault's design as already chosen", () => {
+		const settings = freshSettings();
+		expect(defaultAnswers(settings, emptyDetection()).design).toBe("classic");
+		settings.cardDesign = "expressive";
+		expect(defaultAnswers(settings, emptyDetection()).design).toBe("expressive");
+	});
 });
 
 // ---- Planning the board ----------------------------------------------
@@ -641,18 +648,21 @@ describe("applySetup", () => {
 	 * The guarantee the whole module rests on, asserted wholesale rather than
 	 * setting by setting: run the wizard with every answer turned away from its
 	 * default and compare the settings object against an untouched clone,
-	 * ignoring only the three structural fields installing a board *is*.
+	 * ignoring only the three structural fields installing a board *is* — and,
+	 * on a first setup, the Design, the one answer that is vault-wide by
+	 * nature (see applyDesign).
 	 *
 	 * A future answer that writes a global setting fails here even if nobody
 	 * thought to write a test for it.
 	 */
-	it("changes nothing vault-wide but the board list and the setup flag", () => {
+	it("changes nothing vault-wide but the board list, the setup flag and the design", () => {
 		const settings = freshSettings();
 		const before = structuredClone(settings);
 
 		applySetup(
 			settings,
 			blankAnswers({
+				design: "expressive",
 				title: "Elsewhere",
 				showTitle: false,
 				titleIcon: "🔥",
@@ -672,12 +682,54 @@ describe("applySetup", () => {
 		);
 
 		const structural = new Set(["dashboards", "activeDashboardId", "setupStatus"]);
+		const design = new Set(["cardDesign", "backgroundSkyDesign"]);
 		for (const key of Object.keys(before) as (keyof HomeSettings)[]) {
-			if (structural.has(key)) continue;
+			if (structural.has(key) || design.has(key)) continue;
 			expect({ [key]: settings[key] }).toEqual({ [key]: before[key] });
 		}
 		// And the boards that already existed are untouched too.
 		expect(settings.dashboards[0]).toEqual(before.dashboards[0]);
+	});
+
+	it("makes the first setup's design the vault's, with no board override", () => {
+		const settings = freshSettings();
+		applySetup(settings, blankAnswers({ design: "expressive", target: "new" }), emptyDetection());
+
+		expect(settings.cardDesign).toBe("expressive");
+		expect(settings.backgroundSkyDesign).toBe("expressive");
+		const board = settings.dashboards[1];
+		expect(board.cardDesign).toBeUndefined();
+		expect(board.backgroundSkyDesign).toBeUndefined();
+	});
+
+	it("stores a first setup's Classic as absence, as the settings do", () => {
+		const settings = freshSettings();
+		settings.cardDesign = "expressive";
+		settings.setupStatus = "skipped";
+		applySetup(settings, blankAnswers({ design: "classic" }), emptyDetection());
+
+		expect(settings.cardDesign).toBeUndefined();
+		expect(settings.backgroundSkyDesign).toBeUndefined();
+	});
+
+	it("puts a later run's design on the new board and leaves the vault's alone", () => {
+		const settings = freshSettings();
+		settings.setupStatus = "done";
+		const before = structuredClone(settings);
+		applySetup(settings, blankAnswers({ design: "expressive", target: "new" }), emptyDetection());
+
+		expect(settings.cardDesign).toBe(before.cardDesign);
+		expect(settings.backgroundSkyDesign).toBe(before.backgroundSkyDesign);
+		const board = settings.dashboards[1];
+		expect(board.cardDesign).toBe("expressive");
+		expect(board.backgroundSkyDesign).toBe("expressive");
+	});
+
+	it("paints the harbour town when it is the chosen background", () => {
+		const settings = freshSettings();
+		applySetup(settings, blankAnswers({ background: "harbour", target: "new" }), emptyDetection());
+
+		expect(settings.dashboards[1].background).toMatchObject({ kind: "harbour", value: "" });
 	});
 
 	it("replaces the active board's cards when asked to replace", () => {

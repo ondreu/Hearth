@@ -1,11 +1,12 @@
-import { App, Command, FuzzySuggestModal, TFile, TFolder } from "obsidian";
+import { App, Command, TFile, TFolder } from "obsidian";
+import { HearthFuzzySuggestModal } from "./uidesign";
 import { t } from "./i18n";
 
 /**
  * A fuzzy file picker used to choose (or swap) the file embedded by a card
  * directly from the dashboard. Lists every file in the vault.
  */
-export class FilePickerModal extends FuzzySuggestModal<TFile> {
+export class FilePickerModal extends HearthFuzzySuggestModal<TFile> {
 	private onChoose: (file: TFile) => void;
 	private filter?: (file: TFile) => boolean;
 
@@ -40,7 +41,7 @@ export class FilePickerModal extends FuzzySuggestModal<TFile> {
  * one file (the slideshow card's folder source). The vault root is offered as
  * "/" so "every image in the vault" is reachable without typing a path.
  */
-export class FolderPickerModal extends FuzzySuggestModal<TFolder> {
+export class FolderPickerModal extends HearthFuzzySuggestModal<TFolder> {
 	private onChoose: (folder: TFolder) => void;
 
 	constructor(app: App, onChoose: (folder: TFolder) => void, placeholder?: string) {
@@ -77,7 +78,7 @@ export class FolderPickerModal extends FuzzySuggestModal<TFolder> {
  * A fuzzy picker over every registered command, used to add command tiles to a
  * "commands" card from the dashboard.
  */
-export class CommandPickerModal extends FuzzySuggestModal<Command> {
+export class CommandPickerModal extends HearthFuzzySuggestModal<Command> {
 	private onChoose: (command: Command) => void;
 
 	constructor(app: App, onChoose: (command: Command) => void) {

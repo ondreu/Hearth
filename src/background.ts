@@ -18,7 +18,7 @@ import {
 	motionAllowed,
 	skyDensity,
 } from "./types";
-import { drawWallpaper } from "./wallpaper";
+import { drawHarbour, drawWallpaper } from "./wallpaper";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
 
 /**
@@ -118,6 +118,12 @@ function paintBackground(
 	// weather sky uses (see wallpaper.ts).
 	if (bg.kind === "default") {
 		drawWallpaper(layer, effectiveSkyDesign(view.plugin.settings));
+		return;
+	}
+
+	// The harbour town is Expressive by nature, so it takes no design.
+	if (bg.kind === "harbour") {
+		drawHarbour(layer);
 		return;
 	}
 

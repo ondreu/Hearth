@@ -1,4 +1,5 @@
-import { type App, Component, Modal, setIcon, Setting } from "obsidian";
+import { type App, Component, setIcon, Setting } from "obsidian";
+import { HearthModal } from "../uidesign";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import {
@@ -987,7 +988,7 @@ export function daySummary(day: WeatherDay, r: Resolved): string[] {
  * than patching it, which is cheap at this size and keeps one drawing path for
  * the first open, a day change and a refresh alike.
  */
-class WeatherDetailModal extends Modal {
+class WeatherDetailModal extends HearthModal {
 	/** The day the hourly table is showing, as a `YYYY-MM-DD`. Null until the
 	 * first draw picks today. */
 	private day: string | null = null;

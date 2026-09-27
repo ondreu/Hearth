@@ -1,12 +1,12 @@
 import {
 	apiVersion,
-	Modal,
 	Notice,
 	Platform,
 	prepareFuzzySearch,
 	setIcon,
 	type App,
 } from "obsidian";
+import { HearthModal } from "./uidesign";
 import {
 	CARD_CATEGORIES,
 	CARD_TEMPLATES,
@@ -69,7 +69,7 @@ export function openCardPicker(app: App, opts: CardPickerOptions): void {
 	new CardPickerModal(app, opts).open();
 }
 
-class CardPickerModal extends Modal {
+class CardPickerModal extends HearthModal {
 	private opts: CardPickerOptions;
 	/** Named `pickerScope`, not `scope`: `Modal` already has a `scope` (its
 	 * keymap `Scope`), and shadowing it would break the modal's key handling —

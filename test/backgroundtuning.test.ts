@@ -12,6 +12,13 @@ describe("retuneBackground", () => {
 		expect(DEFAULT_SETTINGS.backgroundBlur).toBe(0);
 	});
 
+	it("tunes the harbour town as it tunes Hearth's own wallpaper", () => {
+		expect(retuneBackground("image", "harbour", { opacity: 0.35, blur: 2 })).toEqual({
+			opacity: 0.8,
+			blur: 0,
+		});
+	});
+
 	it("lifts a photo's dimming off the drawn wallpaper", () => {
 		expect(retuneBackground("image", "default", { opacity: 0.35, blur: 2 })).toEqual({
 			opacity: 0.8,

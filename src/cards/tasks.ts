@@ -2,8 +2,6 @@ import {
 	ButtonComponent,
 	ExtraButtonComponent,
 	MarkdownView,
-	Menu,
-	Modal,
 	Notice,
 	setIcon,
 	Setting,
@@ -12,6 +10,7 @@ import {
 	TFolder,
 	type App,
 } from "obsidian";
+import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
@@ -681,7 +680,7 @@ async function writeTaskFieldValue(
  * beside it cover what people actually pick — today, tomorrow, next week — and
  * Clear removes the date entirely.
  */
-class TaskDatePickerModal extends Modal {
+class TaskDatePickerModal extends HearthModal {
 	private value: string;
 
 	constructor(
@@ -750,7 +749,7 @@ class TaskDatePickerModal extends Modal {
 
 /** Ask for a value the vault hasn't seen yet — the only way to introduce, say,
  * a first "blocked" status without editing the note by hand. */
-class TaskValuePromptModal extends Modal {
+class TaskValuePromptModal extends HearthModal {
 	private value: string;
 
 	constructor(
@@ -834,7 +833,7 @@ async function openTaskValuePicker(
 	const found = await discoverSourceValues(view, cfg, key.source);
 	const rest = found.filter((v) => !seen.has(v.trim().toLowerCase()));
 
-	const menu = new Menu();
+	const menu = hearthMenu();
 	const item = (value: string, label: string) =>
 		menu.addItem((mi) =>
 			mi
@@ -1351,7 +1350,7 @@ function renderTaskSortControl(
 	if (active !== "smart" || current.reverse) btn.addClass("is-active");
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		const menu = new Menu();
+		const menu = hearthMenu();
 		for (const key of TASK_SORT_KEYS) {
 			menu.addItem((item) =>
 				item
@@ -1413,7 +1412,7 @@ function renderTaskListSortControl(
 
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		const menu = new Menu();
+		const menu = hearthMenu();
 		for (const key of TASK_SORT_KEYS) {
 			menu.addItem((item) =>
 				item
@@ -1465,7 +1464,7 @@ function renderTaskListSortControl(
  * in sequence, plus add / reorder / remove controls. Mirrors the filter modal —
  * edits apply on "Apply", "Clear" empties the list, "Cancel" discards them.
  */
-class TaskSortModal extends Modal {
+class TaskSortModal extends HearthModal {
 	private rules: TaskSortRule[];
 	private body: HTMLElement | null = null;
 
@@ -1692,7 +1691,7 @@ function setChipState(chip: HTMLElement, on: boolean): void {
 /** The filter modal: quick presets across the top, then editable criteria
  * (due, priority, status, text). Edits are applied on "Apply"; "Cancel"
  * discards them and "Clear" empties every field. */
-class TaskFilterModal extends Modal {
+class TaskFilterModal extends HearthModal {
 	private working: TaskFilterConfig;
 	private body: HTMLElement | null = null;
 	/** Re-reads each preset chip's on/off state from `working`. Kept so a chip
@@ -2878,7 +2877,7 @@ function buildTaskDetailFields(
 
 /** A modal to edit a Kanban card's dates, priority and description via {@link
  * buildTaskDetailFields}, prefilled from the card; submits the new values. */
-class TaskMetadataModal extends Modal {
+class TaskMetadataModal extends HearthModal {
 	private read: (() => { meta: TaskMeta; description: string }) | null = null;
 	constructor(
 		app: App,
@@ -2920,7 +2919,7 @@ class TaskMetadataModal extends Modal {
  * offers to open the full note or delete the task. When the task's metadata is
  * managed (checkbox extended / Kanban extended) the fields are editable and a
  * Save button writes them back; otherwise the metadata is shown read-only. */
-class TaskDetailModal extends Modal {
+class TaskDetailModal extends HearthModal {
 	private read: (() => { meta: TaskMeta; description: string }) | null = null;
 	/** For a linked card, the editable description textarea (its content is
 	 * written back to the note body on save). */
@@ -4100,7 +4099,7 @@ function attachKanbanCardMenu(
 	el.addEventListener("contextmenu", (e) => {
 		e.preventDefault();
 		e.stopPropagation();
-		const menu = new Menu();
+		const menu = hearthMenu();
 		if (canEditMeta) {
 			menu.addItem((item) =>
 				item
@@ -5143,7 +5142,7 @@ function sourceLabel(source: string): string {
  * and below stay on screen throughout. Building a second field that mirrors the
  * first is the common case, and it needs both visible.
  */
-export class TaskFieldsModal extends Modal {
+export class TaskFieldsModal extends HearthModal {
 	private fields: TaskFieldDef[];
 	private body: HTMLElement | null = null;
 	private discovery: TaskFieldDiscovery = { properties: [], values: new Map() };
@@ -5597,7 +5596,7 @@ export class TaskFieldsModal extends Modal {
 		};
 		show();
 		const openPalette = () => {
-			const menu = new Menu();
+			const menu = hearthMenu();
 			for (const preset of TASK_COLOR_PRESETS) {
 				const value = presetColor(preset);
 				menu.addItem((item) =>
@@ -5688,7 +5687,7 @@ export class TaskFieldsModal extends Modal {
 				.setButtonText(labels.fieldValuesFound(suggestions.length))
 				.setTooltip(labels.fieldPickValue)
 				.onClick((e) => {
-					const menu = new Menu();
+					const menu = hearthMenu();
 					for (const value of suggestions) {
 						menu.addItem((item) =>
 							item.setTitle(value).onClick(() => {
@@ -5731,7 +5730,7 @@ export class TaskFieldsModal extends Modal {
 			.setButtonText(labels.fieldAddBuiltin)
 			.setTooltip(labels.fieldPickBuiltin)
 			.onClick((e) => {
-				const menu = new Menu();
+				const menu = hearthMenu();
 				for (const id of TASK_BUILTIN_SOURCES) {
 					if (used.has(builtinSource(id))) continue;
 					menu.addItem((item) =>
@@ -5747,7 +5746,7 @@ export class TaskFieldsModal extends Modal {
 			.setButtonText(labels.fieldAddProperty)
 			.setTooltip(labels.fieldPickProperty)
 			.onClick((e) => {
-				const menu = new Menu();
+				const menu = hearthMenu();
 				for (const property of available) {
 					menu.addItem((item) =>
 						item.setTitle(property).onClick(() => add(frontmatterSource(property))),

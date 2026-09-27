@@ -1,7 +1,5 @@
 import {
 	Component,
-	Menu,
-	Modal,
 	Notice,
 	setIcon,
 	Setting,
@@ -10,6 +8,7 @@ import {
 	type App,
 	type TAbstractFile,
 } from "obsidian";
+import { hearthMenu, HearthModal } from "./uidesign";
 import {
 	createDailyNoteAt,
 	dailyNotesOptions,
@@ -394,7 +393,7 @@ export function eventDateLabel(ev: IcsOccurrence): string {
 /** A full modal with every field an ICS event carries: name, date, time,
  * location, notes, source calendar and any link. Fields that are absent are
  * simply skipped, so a bare event shows just its name and when. */
-class EventDetailModal extends Modal {
+class EventDetailModal extends HearthModal {
 	constructor(
 		private readonly view: HomeView,
 		private readonly ev: IcsOccurrence,
@@ -666,7 +665,7 @@ export function showDayMenu(
 	ics: IcsContext,
 	anchor: MouseEvent | HTMLElement,
 ): void {
-	const menu = new Menu();
+	const menu = hearthMenu();
 	if (options) {
 		const exists = file instanceof TFile;
 		menu.addItem((item) =>

@@ -221,6 +221,8 @@ export const zh: Translations = {
 			showSearchDesc: "标题下方的搜索与命令输入框。",
 		},
 		look: {
+			designHeading: "设计",
+			designNote: "此选项适用于整个 Hearth，而不仅是此面板。可随时在 设置 → Hearth → 设计 中更改。",
 			surfaceHeading: "卡片",
 			backgroundHeading: "背景",
 			color: "颜色",
@@ -252,11 +254,28 @@ export const zh: Translations = {
 				desc: "完全没有卡片表面 — 内容直接浮在背景上。",
 			},
 		},
+		designs: {
+			classic: {
+				icon: "square",
+				name: "经典",
+				desc: "Hearth 一贯的样子：安静的表面，细边框。",
+			},
+			expressive: {
+				icon: "shapes",
+				name: "Expressive",
+				desc: "整个 Hearth 使用 Material 3 Expressive——卡片、按钮、菜单、对话框和设置——采用强调色的色调。",
+			},
+		},
 		backgrounds: {
 			default: {
 				icon: "image",
 				name: "Hearth 壁纸",
 				desc: "由 Hearth 绘制的山丘，随主题呈现白天或夜晚。",
+			},
+			harbour: {
+				icon: "anchor",
+				name: "港口小镇",
+				desc: "灯塔、船只和山坡上的房屋，以强调色的扁平 Expressive 形状绘制。",
 			},
 			weather: {
 				icon: "cloud-sun",
@@ -588,9 +607,9 @@ export const zh: Translations = {
 			skyAnimateStateOff: "静止",
 			skyAnimateOptionOn: "启用动画",
 			skyAnimateOptionOff: "保持静止",
-			cardDesign: "卡片设计",
+			cardDesign: "设计",
 			cardDesignDesc:
-				"此面板上的卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive。",
+				"此面板的绘制方式——其卡片、按钮以及从它打开的对话框和菜单——卡片未单独指定时生效：经典，或 Material 3 Expressive。",
 			skyDesign: "背景设计",
 			skyDesignDesc: "在此面板上使用经典手绘天空，或 Material 3 Expressive 风格的扁平天空。",
 			wallpaperDesignDesc: "此面板上的 Hearth 壁纸：经典山丘，或以你的强调色绘制的 Material 3 Expressive 扁平图形。",
@@ -678,6 +697,7 @@ export const zh: Translations = {
 			default: "使用全局默认",
 			none: "无",
 			hdefault: "Hearth 默认",
+			harbour: "港口小镇",
 			color: "纯色",
 			image: "仓库图片",
 			url: "图片 URL",
@@ -962,6 +982,7 @@ export const zh: Translations = {
 			bannerFullWidthDesc: "让横幅横贯窗口两端，而不是与下方内容对齐。",
 			labels: {
 				default: "Hearth 默认",
+				harbour: "港口小镇",
 				none: "无",
 				color: "纯色",
 				image: "仓库图片",
@@ -1418,9 +1439,9 @@ export const zh: Translations = {
 			cardBorderWidth: "卡片边框",
 			cardBorderWidthDesc:
 				"卡片边框和标题栏分隔线的粗细（像素）。0 表示隐藏边框。",
-			cardDesign: "卡片设计",
+			cardDesign: "设计",
 			cardDesignDesc:
-				"面板或卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
+				"Hearth 的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。Expressive 适用于 Hearth 的整个界面：卡片、面板按钮、所有对话框和菜单，以及此设置页面。面板或卡片仍可单独指定；内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
 			cards: "卡片",
 			cardsDesc:
 				"卡片在面板上添加和配置：打开主页视图，点击“排列”，" +

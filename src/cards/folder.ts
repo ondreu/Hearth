@@ -1,4 +1,5 @@
-import { Keymap, Modal, Setting, TAbstractFile, TFile, TFolder, setIcon, type App } from "obsidian";
+import { Keymap, Setting, TAbstractFile, TFile, TFolder, setIcon, type App } from "obsidian";
+import { HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { explorerChildOrder, explorerSortAsFolderSort } from "../explorerorder";
@@ -357,14 +358,17 @@ interface BrowseOptions {
 	/** Told where the reader walked to, so the card it came from reopens there
 	 * (and follows along when it navigates in place). */
 	remember?: (path: string) => void;
-	/** Draw the dialog in the Expressive design (see dressModal). */
+	/** Draw the dialog in the Expressive design (see dressModal). Left out, it
+	 * takes the design of wherever it was opened from (src/uidesign.ts). */
 	expressive?: boolean;
 }
 
 /** Open the folder browser at a path. Exported for the card and for anything
  * else that wants to hand the user a folder. */
 export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
-	dressModal(new FolderBrowserModal(view, opts), opts.expressive === true).open();
+	const modal = new FolderBrowserModal(view, opts);
+	if (opts.expressive !== undefined) dressModal(modal, opts.expressive);
+	modal.open();
 }
 
 /**
@@ -378,7 +382,7 @@ export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
  * and back out never touches the board or the card's settings; the sort picker
  * is the dialog's own, for the same reason.
  */
-class FolderBrowserModal extends Modal {
+class FolderBrowserModal extends HearthModal {
 	private path: string;
 	private sort: FolderSort;
 	private body!: HTMLElement;

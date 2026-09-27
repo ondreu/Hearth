@@ -19,7 +19,8 @@
  *   at any more is discarded instead of overwriting the one they are.
  */
 
-import { Modal, Notice, Platform, setIcon } from "obsidian";
+import { Notice, Platform, setIcon } from "obsidian";
+import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import { t } from "./i18n";
 import { activeDashboard } from "./types";
@@ -75,7 +76,7 @@ export function openGallery(plugin: HearthPlugin): void {
 	new GalleryBrowseModal(plugin, client).open();
 }
 
-class GalleryBrowseModal extends Modal {
+class GalleryBrowseModal extends HearthModal {
 	private plugin: HearthPlugin;
 	private client: GalleryClient;
 

@@ -28,7 +28,8 @@
  * stranger's dashboard a safe thing to do at all.
  */
 
-import { apiVersion, type App, Modal, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
+import { apiVersion, type App, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
+import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";
 import { leaveArrangeMode, VIEW_TYPE_HOME } from "./view";
@@ -427,7 +428,7 @@ async function restoreIdentity(plugin: HearthPlugin, onChanged: () => void): Pro
  * board whose text cards are part of the design is a real thing to publish.
  * What is not there on the publish side is the switch that turns the strip off.
  */
-class ShareDashboardModal extends Modal {
+class ShareDashboardModal extends HearthModal {
 	private plugin: HearthPlugin;
 	private dash: Dashboard;
 	private mode: ShareMode;
@@ -1362,7 +1363,7 @@ export async function pickAndImport(plugin: HearthPlugin): Promise<void> {
  * leaves every global setting alone; a package this vault has imported before
  * can be updated in place instead.
  */
-class ImportModal extends Modal {
+class ImportModal extends HearthModal {
 	private plugin: HearthPlugin;
 	private json: string;
 	private pkg: HearthPackage;

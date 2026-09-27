@@ -38,6 +38,7 @@ import {
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
+import { stateDesign } from "./uidesign";
 import { isWebSearchEngineId, WEB_SEARCH_ENGINES, webSearchEngine } from "./websearch";
 import {
 	destinationSummary,
@@ -281,6 +282,15 @@ export class HomeSettingTab extends PluginSettingTab {
 		this.renderInto(this.containerEl);
 	}
 
+	/** Draw the pane in the vault's Card design — the global switch, never a
+	 * board's, since nothing here belongs to one board — and state it, so a
+	 * dialog opened from the pane takes it too (src/uidesign.ts). */
+	private applyPaneDesign(containerEl: HTMLElement): void {
+		const design = this.plugin.settings.cardDesign ?? "classic";
+		containerEl.toggleClass("hearth-x-settings", design === "expressive");
+		stateDesign(containerEl, design);
+	}
+
 	/** Re-render the pane in place after a state change (tab switch, list
 	 * mutation, import) — into whichever element the pane currently lives in. */
 	private rerender(): void {
@@ -297,6 +307,7 @@ export class HomeSettingTab extends PluginSettingTab {
 	private renderInto(containerEl: HTMLElement): void {
 		containerEl.empty();
 		containerEl.addClass("hearth-settings");
+		this.applyPaneDesign(containerEl);
 
 		// Whole-pane backstop. #52 reports a completely blank settings pane — no
 		// content, no error in the (main-window) console — for some users on
@@ -1131,10 +1142,12 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.backgroundDesignSetting(containerEl);
 		}
 
-		// "default", "none" and "weather" have no free-text value field; the rest do.
+		// The drawn kinds, "none" and "weather" have no free-text value field; the
+		// rest do.
 		if (
 			s.backgroundKind !== "none" &&
 			s.backgroundKind !== "default" &&
+			s.backgroundKind !== "harbour" &&
 			s.backgroundKind !== "weather"
 		) {
 			const desc =
@@ -2191,6 +2204,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				d.setValue(s.cardDesign ?? "classic").onChange((v) => {
 					s.cardDesign = v === "expressive" ? "expressive" : undefined;
 					this.save();
+					// The pane itself wears the switch, so it changes on the spot.
+					this.applyPaneDesign(this.renderTarget ?? this.containerEl);
 				});
 			});
 	}

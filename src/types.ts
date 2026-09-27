@@ -1961,11 +1961,12 @@ export interface MobileCardOptions {
 }
 
 /** Background mode for the home view. "default" draws Hearth's own wallpaper
- * (see wallpaper.ts); "weather" paints the live sky for a place (see sky.ts);
- * the other kinds use the user's own value. */
+ * and "harbour" its harbour town (both in wallpaper.ts); "weather" paints the
+ * live sky for a place (see sky.ts); the other kinds use the user's own value. */
 export type BackgroundKind =
 	| "none"
 	| "default"
+	| "harbour"
 	| "color"
 	| "image"
 	| "url"
@@ -3514,7 +3515,7 @@ export function retuneBackground(
 	const photo = (k: BackgroundKind): boolean => k === "image" || k === "url";
 	let { opacity, blur } = current;
 	if (to === "weather" && opacity <= 0.5) opacity = 1;
-	if (to === "default") {
+	if (to === "default" || to === "harbour") {
 		if (opacity <= 0.5) opacity = DEFAULT_SETTINGS.backgroundOpacity;
 		blur = DEFAULT_SETTINGS.backgroundBlur;
 	}
@@ -3549,7 +3550,7 @@ export function backgroundPaintable(
 ): boolean {
 	if (bg.kind === "none") return false;
 	if (externalCallsDisabled && backgroundIsRemote(bg.kind)) return false;
-	return bg.kind === "default" || !!bg.value;
+	return bg.kind === "default" || bg.kind === "harbour" || !!bg.value;
 }
 
 /** Whether the active board paints its backdrop as a banner rather than as a

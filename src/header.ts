@@ -1,4 +1,5 @@
-import { type Component, Menu, Platform, setIcon } from "obsidian";
+import { type Component, Platform, setIcon } from "obsidian";
+import { hearthMenu } from "./uidesign";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";
 import { hearthIconIdFor } from "./icon";
@@ -183,7 +184,7 @@ function createSearchOnlineButton(view: HomeView, bar: HTMLElement): HTMLElement
 	setIcon(caret.createSpan("hearth-newnote-icon"), "chevron-down");
 	caret.addEventListener("click", (evt) => {
 		const current = view.plugin.settings.webSearchEngine;
-		const menu = new Menu();
+		const menu = hearthMenu();
 		for (const engine of WEB_SEARCH_ENGINES) {
 			menu.addItem((item) =>
 				item

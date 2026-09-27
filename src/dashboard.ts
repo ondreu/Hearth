@@ -23,6 +23,7 @@ import { galleryConfigured } from "./gallery";
 import { openDashboardSettings } from "./dashboards";
 import { moveStacked, stackedCards, stackedHeight } from "./narrow";
 import { CardSettingsModal } from "./editors";
+import { stateDesign } from "./uidesign";
 import {
 	activeCards,
 	activeDashboard,
@@ -165,9 +166,13 @@ export function renderDashboard(
 		el.dataset.kind = card.kind;
 		const kindClasses = cardClasses(card);
 		if (kindClasses.length) el.addClass(...kindClasses);
-		if (cardDefinition(card).expressive && effectiveCardDesign(s, card.design) === "expressive") {
+		const design = effectiveCardDesign(s, card.design);
+		if (cardDefinition(card).expressive && design === "expressive") {
 			el.addClass("is-expressive");
 		}
+		// Stated whether or not the kind draws an Expressive body, so a dialog
+		// or menu opened from the card takes the card's design (src/uidesign.ts).
+		stateDesign(el, design);
 		if (card.accent) {
 			el.style.setProperty("--card-accent", card.accent);
 			el.addClass("has-accent");

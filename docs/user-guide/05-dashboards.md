@@ -88,14 +88,15 @@ global default currently is.
 ### Style tab
 
 Per-board overrides of the card surface: *Card opacity*, *Card blur*, *Card
-corner radius*, *Card border*, and *Card design* — Classic or Material 3
-Expressive for the cards on this board that don't choose for themselves (see
+corner radius*, *Card border*, and *Design* — Classic or Material 3
+Expressive for the cards on this board that don't choose for themselves, and
+for the board's own buttons and the dialogs and menus opened from it (see
 [chapter 11](11-appearance.md)).
 
 ### Background tab
 
-A per-board override of the whole background: type (none, Hearth default, solid
-colour, vault image, image URL, live weather sky), the value, *Opacity*,
+A per-board override of the whole background: type (none, Hearth default, harbour town,
+solid colour, vault image, image URL, live weather sky), the value, *Opacity*,
 *Blur*, *Background layout* (full or banner), *Banner height*, *Fade the lower
 edge*, *Full width*, and *Animate the sky*. Choosing *Follow the global setting*
 drops the override.

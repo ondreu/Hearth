@@ -254,6 +254,8 @@ export const de: Translations = {
 			showSearchDesc: "Das Such- und Befehlsfeld unter dem Titel.",
 		},
 		look: {
+			designHeading: "Design",
+			designNote: "Diese Wahl gilt für ganz Hearth, nicht nur für dieses Dashboard. Jederzeit änderbar unter Einstellungen → Hearth → Design.",
 			surfaceHeading: "Karten",
 			backgroundHeading: "Hintergrund",
 			color: "Farbe",
@@ -287,11 +289,28 @@ export const de: Translations = {
 				desc: "Gar keine Kartenoberfläche - Inhalt schwebt auf dem Hintergrund.",
 			},
 		},
+		designs: {
+			classic: {
+				icon: "square",
+				name: "Klassisch",
+				desc: "Hearth, wie es immer aussah: ruhige Flächen, feine Rahmen.",
+			},
+			expressive: {
+				icon: "shapes",
+				name: "Expressive",
+				desc: "Material 3 Expressive für ganz Hearth — Karten, Schaltflächen, Menüs, Dialoge und Einstellungen — in Tönen deiner Akzentfarbe.",
+			},
+		},
 		backgrounds: {
 			default: {
 				icon: "image",
 				name: "Hearth-Hintergrundbild",
 				desc: "Von Hearth gezeichnete Hügel, bei Tag oder Nacht passend zu deinem Theme.",
+			},
+			harbour: {
+				icon: "anchor",
+				name: "Eine Hafenstadt",
+				desc: "Ein Leuchtturm, Boote und Häuser am Hang, in flachen Expressive-Formen in deiner Akzentfarbe gezeichnet.",
 			},
 			weather: {
 				icon: "cloud-sun",
@@ -642,9 +661,9 @@ export const de: Translations = {
 			skyAnimateStateOff: "still",
 			skyAnimateOptionOn: "Animieren",
 			skyAnimateOptionOff: "Stillhalten",
-			cardDesign: "Kartendesign",
+			cardDesign: "Design",
 			cardDesignDesc:
-				"Wie die Karten dieses Dashboards gezeichnet werden, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive.",
+				"Wie dieses Dashboard gezeichnet wird — seine Karten, seine Schaltflächen und die Dialoge und Menüs, die es öffnet —, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive.",
 			skyDesign: "Hintergrund-Design",
 			skyDesignDesc:
 				"Der klassische gemalte Himmel oder der flache im Stil von Material 3 Expressive, auf diesem Board.",
@@ -740,6 +759,7 @@ export const de: Translations = {
 			default: "Globalen Standard verwenden",
 			none: "Kein",
 			hdefault: "Hearth-Standard",
+			harbour: "Hafenstadt",
 			color: "Volltonfarbe",
 			image: "Vault-Bild",
 			url: "Bild-URL",
@@ -1059,6 +1079,7 @@ export const de: Translations = {
 				"Ziehe das Banner von Kante zu Kante, statt es am Inhalt darunter auszurichten.",
 			labels: {
 				default: "Hearth-Standard",
+				harbour: "Hafenstadt",
 				none: "Keine",
 				color: "Volltonfarbe",
 				image: "Vault-Bild",
@@ -1572,9 +1593,9 @@ export const de: Translations = {
 			cardBorderWidth: "Kartenrahmen",
 			cardBorderWidthDesc:
 				"Stärke des Kartenrahmens und der Kopfzeilentrennlinie, in Pixeln. 0 blendet den Rahmen aus.",
-			cardDesign: "Kartendesign",
+			cardDesign: "Design",
 			cardDesignDesc:
-				"Wie Karten gezeichnet werden, sofern ein Dashboard oder eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
+				"Wie Hearth gezeichnet wird: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Expressive gilt für die ganze Oberfläche von Hearth: die Karten, die Schaltflächen des Dashboards, alle Dialoge und Menüs und diese Einstellungen. Ein Dashboard oder eine Karte kann weiterhin selbst wählen; Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
 			cards: "Karten",
 			cardsDesc:
 				"Füge Karten auf dem Dashboard selbst hinzu und richte sie ein: Öffne die Startansicht, " +

@@ -251,6 +251,207 @@
 	stroke: var(--hearth-wp-strong-alt);
 }
 
+/* ---- The harbour town (the "harbour" background, see drawHarbour) -----
+ * Tonal steps of the accent, as the Expressive wallpaper takes them: walls
+ * and sails pale, roofs and hulls strong, the sea a cool step round the hue.
+ * By day in a light theme; by night in a dark one, with lit windows, the lamp
+ * burning and stars out. */
+.hearth-wallpaper.is-harbour {
+	--hx-sky: hsl(var(--accent-h), calc(var(--accent-s) * 0.35), 93%);
+	--hx-sun: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.75), 76%);
+	--hx-cloud: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 98%);
+	--hx-far: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.35), 85%);
+	--hx-hill: hsl(var(--accent-h), calc(var(--accent-s) * 0.4), 80%);
+	--hx-wall-a: hsl(var(--accent-h), calc(var(--accent-s) * 0.45), 91%);
+	--hx-wall-b: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.45), 89%);
+	--hx-wall-c: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.35), 95%);
+	--hx-roof-a: hsl(var(--accent-h), calc(var(--accent-s) * 0.75), 62%);
+	--hx-roof-b: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.6), 60%);
+	--hx-roof-c: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.55), 56%);
+	--hx-window: hsl(var(--accent-h), calc(var(--accent-s) * 0.5), 50%);
+	--hx-water: hsl(calc(var(--accent-h) - 12), calc(var(--accent-s) * 0.5), 82%);
+	--hx-wave: hsl(var(--accent-h), calc(var(--accent-s) * 0.65), 67%);
+	--hx-wave-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.55), 72%);
+	--hx-quay: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 70%);
+	--hx-tower: hsl(var(--accent-h), calc(var(--accent-s) * 0.2), 98%);
+	--hx-band: hsl(var(--accent-h), calc(var(--accent-s) * 0.8), 58%);
+	--hx-lamp: hsl(44, 95%, 66%);
+	--hx-halo-opacity: 0.35;
+	--hx-hull: hsl(var(--accent-h), calc(var(--accent-s) * 0.65), 40%);
+	--hx-sail: hsl(var(--accent-h), calc(var(--accent-s) * 0.2), 99%);
+	--hx-sail-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.6), 80%);
+	--hx-shine: hsl(var(--accent-h), calc(var(--accent-s) * 0.35), 91%);
+	--hx-gull: hsl(var(--accent-h), calc(var(--accent-s) * 0.35), 38%);
+	--hx-star-opacity: 0;
+	background: var(--hx-sky);
+}
+
+.theme-dark .hearth-wallpaper.is-harbour {
+	--hx-sky: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 11%);
+	--hx-sun: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.3), 86%);
+	--hx-cloud: hsl(var(--accent-h), calc(var(--accent-s) * 0.25), 20%);
+	--hx-far: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.3), 17%);
+	--hx-hill: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 21%);
+	--hx-wall-a: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 31%);
+	--hx-wall-b: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.25), 29%);
+	--hx-wall-c: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.25), 34%);
+	--hx-roof-a: hsl(var(--accent-h), calc(var(--accent-s) * 0.55), 46%);
+	--hx-roof-b: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.45), 44%);
+	--hx-roof-c: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.4), 42%);
+	--hx-window: hsl(44, 90%, 68%);
+	--hx-water: hsl(calc(var(--accent-h) - 12), calc(var(--accent-s) * 0.4), 15%);
+	--hx-wave: hsl(var(--accent-h), calc(var(--accent-s) * 0.5), 42%);
+	--hx-wave-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.4), 38%);
+	--hx-quay: hsl(var(--accent-h), calc(var(--accent-s) * 0.25), 27%);
+	--hx-tower: hsl(var(--accent-h), calc(var(--accent-s) * 0.15), 82%);
+	--hx-band: hsl(var(--accent-h), calc(var(--accent-s) * 0.6), 52%);
+	--hx-lamp: hsl(44, 100%, 70%);
+	--hx-halo-opacity: 0.5;
+	--hx-hull: hsl(var(--accent-h), calc(var(--accent-s) * 0.45), 58%);
+	--hx-sail: hsl(var(--accent-h), calc(var(--accent-s) * 0.15), 84%);
+	--hx-sail-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.4), 62%);
+	--hx-shine: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 26%);
+	--hx-gull: hsl(var(--accent-h), calc(var(--accent-s) * 0.25), 72%);
+	--hx-star-opacity: 0.85;
+}
+
+.hearth-harbour-stars {
+	fill: hsl(44, 90%, 88%);
+	opacity: var(--hx-star-opacity);
+}
+
+.hearth-harbour-sun {
+	fill: var(--hx-sun);
+}
+
+.hearth-harbour-clouds {
+	fill: var(--hx-cloud);
+}
+
+.hearth-harbour-gulls {
+	fill: none;
+	stroke: var(--hx-gull);
+	stroke-width: 4;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-hill {
+	fill: var(--hx-hill);
+}
+
+.hearth-harbour-hill.is-far {
+	fill: var(--hx-far);
+}
+
+.hearth-harbour-house.is-a .hearth-harbour-wall {
+	fill: var(--hx-wall-a);
+}
+
+.hearth-harbour-house.is-b .hearth-harbour-wall {
+	fill: var(--hx-wall-b);
+}
+
+.hearth-harbour-house.is-c .hearth-harbour-wall {
+	fill: var(--hx-wall-c);
+}
+
+/* Roofs are drawn sharp and rounded off by a round-joined stroke in their own
+ * colour — Material's soft corners without computing the curves. */
+.hearth-harbour-roof {
+	stroke-width: 8;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-house.is-a .hearth-harbour-roof {
+	fill: var(--hx-roof-a);
+	stroke: var(--hx-roof-a);
+}
+
+.hearth-harbour-house.is-b .hearth-harbour-roof {
+	fill: var(--hx-roof-b);
+	stroke: var(--hx-roof-b);
+}
+
+.hearth-harbour-house.is-c .hearth-harbour-roof {
+	fill: var(--hx-roof-c);
+	stroke: var(--hx-roof-c);
+}
+
+.hearth-harbour-window {
+	fill: var(--hx-window);
+}
+
+.hearth-harbour-water {
+	fill: var(--hx-water);
+}
+
+.hearth-harbour-wave {
+	fill: none;
+	stroke: var(--hx-wave);
+	stroke-width: 7;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-wave.is-alt {
+	stroke: var(--hx-wave-alt);
+}
+
+.hearth-harbour-quay {
+	fill: var(--hx-quay);
+}
+
+.hearth-harbour-tower {
+	fill: var(--hx-tower);
+	stroke: var(--hx-tower);
+	stroke-width: 6;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-band {
+	fill: var(--hx-band);
+	stroke: var(--hx-band);
+	stroke-width: 4;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-lamp {
+	fill: var(--hx-lamp);
+}
+
+.hearth-harbour-halo {
+	fill: var(--hx-lamp);
+	opacity: var(--hx-halo-opacity);
+}
+
+.hearth-harbour-hull {
+	fill: var(--hx-hull);
+}
+
+.hearth-harbour-mast {
+	fill: none;
+	stroke: var(--hx-hull);
+	stroke-width: 5;
+	stroke-linecap: round;
+}
+
+.hearth-harbour-sail {
+	fill: var(--hx-sail);
+	stroke: var(--hx-sail);
+	stroke-width: 8;
+	stroke-linejoin: round;
+}
+
+.hearth-harbour-sail.is-alt {
+	fill: var(--hx-sail-alt);
+	stroke: var(--hx-sail-alt);
+}
+
+.hearth-harbour-shine {
+	fill: var(--hx-shine);
+}
+
 /* ---- Banner ----------------------------------------------------------
  *
  * The other way to wear a background: instead of filling the view, the same
@@ -18906,7 +19107,20 @@ body.hearth-snapshot-capturing .hearth-view {
 	background: var(--x-surface-high);
 }
 
-.modal.hearth-x-modal button:not(.clickable-icon) {
+/* Obsidian's own buttons (a Setting's, a footer's), and the few of Hearth's that
+ * are plain actions. Buttons Hearth styles as something else — a rail, a tile,
+ * a segmented switch — keep their own shape and get their Expressive version
+ * further down. */
+.modal.hearth-x-modal button:not(.clickable-icon, [class*="hearth-"]),
+.modal.hearth-x-modal button.mod-cta,
+.modal.hearth-x-modal :is(
+		.hearth-weather-detail-refresh,
+		.hearth-share-snapshot-report,
+		.hearth-gallery-retry,
+		.hearth-gallery-update,
+		.hearth-setup-skip,
+		.hearth-setup-gallery
+	) {
 	border: none;
 	border-radius: 999px;
 	background: var(--x-surface-high);
@@ -18916,7 +19130,15 @@ body.hearth-snapshot-capturing .hearth-view {
 	padding-inline: 16px;
 }
 
-.modal.hearth-x-modal button:not(.clickable-icon):hover {
+.modal.hearth-x-modal button:not(.clickable-icon, [class*="hearth-"]):hover,
+.modal.hearth-x-modal :is(
+		.hearth-weather-detail-refresh,
+		.hearth-share-snapshot-report,
+		.hearth-gallery-retry,
+		.hearth-gallery-update,
+		.hearth-setup-skip,
+		.hearth-setup-gallery
+	):hover {
 	background: var(--x-surface-highest);
 }
 
@@ -19313,4 +19535,481 @@ body.hearth-snapshot-capturing .hearth-view {
 :is(.hearth-card.is-expressive, .hearth-search-wrap.is-expressive) .hearth-result-badge:not(.is-excerpt) {
 	color: var(--x-on-container);
 	font-weight: 650;
+}
+
+/* ======================================================================
+ * The Expressive design, for the rest of Hearth
+ *
+ * With the vault's Design on Expressive, the recipe the cards wear reaches
+ * everything else Hearth draws: the board's own furniture (`hearth-x-ui` on
+ * the view, in the board's design), the settings pane (`hearth-x-settings`,
+ * always the vault's), every Hearth dialog and picker (`hearth-x-modal`) and
+ * every Hearth menu (`hearth-x-menu`). A dialog or menu takes the design of
+ * whatever it was opened from — a card, else the board, else the vault — so a
+ * Classic board or card keeps its dialogs Classic (see src/uidesign.ts).
+ *
+ * Only Hearth's own surfaces are touched: Obsidian's, and other plugins', are
+ * left to the theme.
+ * ====================================================================== */
+.hearth-view.hearth-x-ui,
+.hearth-settings.hearth-x-settings,
+.menu.hearth-x-menu {
+	--x-primary: var(--interactive-accent);
+	--x-on-primary: var(--text-on-accent);
+	--x-container: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
+	--x-dialog: color-mix(in srgb, var(--interactive-accent) 6%, var(--background-primary));
+	--x-surface: color-mix(in srgb, var(--interactive-accent) 9%, var(--background-primary));
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 14%, var(--background-primary));
+	--x-surface-highest: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
+}
+
+/* ---- Controls: switches, sliders, fields, buttons ---------------------
+ * Material's switch is a wide pill with a round thumb; its slider a thick
+ * track with a slim upright handle. Both are drawn through Obsidian's own
+ * control variables, so the theme's geometry is swapped rather than fought. */
+:is(.hearth-x-modal, .hearth-x-settings) {
+	--toggle-width: 46px;
+	--toggle-thickness: 28px;
+	--toggle-radius: 999px;
+	--toggle-border-width: 4px;
+	--toggle-thumb-width: 20px;
+	--toggle-thumb-height: 20px;
+	--toggle-thumb-radius: 999px;
+	--slider-track-height: 8px;
+	--slider-thumb-width: 6px;
+	--slider-thumb-height: 24px;
+	--slider-thumb-radius: 999px;
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .checkbox-container {
+	background-color: var(--x-surface-highest);
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--x-on-container) 45%, transparent);
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .checkbox-container::after {
+	background-color: color-mix(in srgb, var(--x-on-container) 70%, transparent);
+	box-shadow: none;
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .checkbox-container.is-enabled {
+	background-color: var(--x-primary);
+	box-shadow: none;
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .checkbox-container.is-enabled::after {
+	background-color: var(--x-on-primary);
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) input[type="range"] {
+	background: var(--x-surface-highest);
+	border-radius: 999px;
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) input[type="range"]::-webkit-slider-thumb {
+	border: none;
+	background: var(--x-primary);
+	box-shadow: 0 0 0 3px var(--x-dialog);
+}
+
+.hearth-x-settings button:not(.clickable-icon, [class*="hearth-"]),
+.hearth-x-settings button.mod-cta {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+	color: var(--x-on-container);
+	font-weight: 650;
+	padding-inline: 16px;
+}
+
+.hearth-x-settings button:not(.clickable-icon, [class*="hearth-"]):hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-settings button.mod-cta {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-settings button.mod-cta:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.hearth-x-settings button.mod-warning {
+	background: var(--background-modifier-error);
+	color: var(--text-on-accent);
+}
+
+.hearth-x-settings .clickable-icon {
+	border-radius: 999px;
+}
+
+.hearth-x-settings .clickable-icon:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-settings input[type="text"],
+.hearth-x-settings input[type="search"],
+.hearth-x-settings input[type="number"],
+.hearth-x-settings input[type="url"],
+.hearth-x-settings textarea,
+.hearth-x-settings select.dropdown {
+	border: none;
+	border-radius: 12px;
+	background: var(--x-surface-highest);
+	box-shadow: none;
+}
+
+.hearth-x-settings select.dropdown {
+	border-radius: 999px;
+	padding-inline-start: 14px;
+}
+
+.hearth-x-settings input[type="text"]:focus,
+.hearth-x-settings input[type="search"]:focus,
+.hearth-x-settings input[type="number"]:focus,
+.hearth-x-settings input[type="url"]:focus,
+.hearth-x-settings textarea:focus,
+.hearth-x-settings select.dropdown:focus {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.modal.hearth-x-modal input[type="url"] {
+	border: none;
+	border-radius: 12px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+}
+
+/* ---- Tab ribbons: the settings pane's and a tabbed dialog's -----------
+ * Pills, the chosen one filled — Material's segmented navigation. More
+ * specific than the dialog's button rule, which would otherwise give every
+ * tab a tonal fill. */
+:is(.modal.hearth-x-modal, .hearth-x-settings) button.hearth-ribbon-tab {
+	border: none;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--text-muted);
+	font-weight: 600;
+	padding-inline: 12px;
+}
+
+:is(.modal.hearth-x-modal, .hearth-x-settings) button.hearth-ribbon-tab:hover {
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+:is(.modal.hearth-x-modal, .hearth-x-settings) button.hearth-ribbon-tab.is-active {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-modal .hearth-modal-ribbon,
+.hearth-x-modal .hearth-modal-footer {
+	border: none;
+}
+
+/* ---- Groups of rows: tonal containers, no rules ---------------------- */
+:is(.hearth-x-modal, .hearth-x-settings) .hearth-section-body,
+.hearth-x-settings .hearth-settings-index-rows,
+.hearth-x-settings .hearth-settings-tabbody > .setting-item {
+	border: none;
+	border-radius: 24px;
+	background: var(--x-surface);
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .hearth-section-body > .setting-item + .setting-item,
+.hearth-x-settings .hearth-settings-index-row + .hearth-settings-index-row {
+	border-top: 1px solid var(--x-dialog);
+}
+
+:is(.hearth-x-modal, .hearth-x-settings) .hearth-section-title {
+	font-size: var(--font-ui-medium);
+	font-weight: 750;
+	color: var(--x-on-container);
+}
+
+.hearth-x-settings .setting-item-name {
+	font-weight: 600;
+}
+
+.hearth-x-settings .hearth-settings-index-title,
+.hearth-x-settings .hearth-settings-page-title {
+	font-size: 1.5em;
+	font-weight: 750;
+	letter-spacing: -0.02em;
+}
+
+.hearth-x-settings .hearth-settings-index-grouplabel {
+	color: var(--x-on-container);
+	letter-spacing: 0.08em;
+}
+
+.hearth-x-settings .hearth-settings-index-row:hover {
+	background: var(--x-surface-high);
+}
+
+.hearth-x-settings .hearth-settings-index-glyph {
+	width: 36px;
+	height: 36px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-x-settings .hearth-settings-index-row:hover .hearth-settings-index-glyph {
+	-webkit-mask: var(--x-cookie) center / contain no-repeat;
+	mask: var(--x-cookie) center / contain no-repeat;
+	border-radius: 0;
+}
+
+.hearth-x-settings .hearth-settings-back {
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-x-settings .hearth-settings-back:hover {
+	background: var(--x-surface-highest);
+}
+
+/* The index glyph's cookie on hover needs the mask the cards define. */
+.hearth-settings.hearth-x-settings {
+	--x-cookie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0 0.0L26.0 0.6L27.9 2.1L29.4 3.7L31.0 4.8L32.9 5.0L35.1 4.8L37.5 4.8L39.4 5.6L40.6 7.4L41.0 9.7L41.2 12.0L41.7 13.8L43.0 15.1L44.9 16.4L46.7 17.9L47.6 19.8L47.4 22.0L46.2 24.0L44.9 25.8L44.1 27.6L44.3 29.4L44.9 31.6L45.3 33.9L44.8 36.0L43.2 37.5L41.0 38.3L38.8 38.8L37.1 39.7L36.0 41.2L35.1 43.2L33.9 45.3L32.2 46.6L30.1 46.7L27.9 45.9L25.8 44.9L24.0 44.4L22.2 44.9L20.1 45.9L17.9 46.7L15.8 46.6L14.1 45.3L12.9 43.2L12.0 41.2L10.9 39.7L9.2 38.8L7.0 38.3L4.8 37.5L3.2 36.0L2.7 33.9L3.1 31.6L3.7 29.4L3.9 27.6L3.1 25.8L1.8 24.0L0.6 22.0L0.4 19.8L1.3 17.9L3.1 16.4L5.0 15.1L6.3 13.8L6.8 12.0L7.0 9.7L7.4 7.4L8.6 5.6L10.5 4.8L12.9 4.8L15.1 5.0L17.0 4.8L18.6 3.7L20.1 2.1L22.0 0.6Z'/%3E%3C/svg%3E");
+}
+
+/* ---- The setup wizard's choice tiles --------------------------------- */
+.hearth-x-modal .hearth-setup-option {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.hearth-x-modal .hearth-setup-option:hover {
+	background: var(--x-surface-high);
+}
+
+.hearth-x-modal .hearth-setup-option.is-selected {
+	background: var(--x-container);
+	box-shadow: inset 0 0 0 2px var(--x-primary);
+}
+
+.hearth-x-modal .hearth-setup-option.is-selected .hearth-setup-option-icon {
+	color: var(--x-primary);
+}
+
+/* ---- The card picker, the gallery and the share dialog --------------
+ * Their rails become Material's navigation: pills, the chosen one on the
+ * accent's container. The picker's tiles sit on tonal containers, and the
+ * share dialog's switch is a connected pill pair. */
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn, .hearth-gallery-rail-publish) {
+	border-radius: 999px;
+	padding-inline: 12px;
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn, .hearth-gallery-rail-publish):hover {
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn).is-active {
+	background: var(--x-container);
+	color: var(--x-on-container);
+	font-weight: 700;
+}
+
+.hearth-x-modal .hearth-card-tile {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-surface);
+}
+
+.hearth-x-modal .hearth-card-tile:hover {
+	border: none;
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-card-tile-icon {
+	color: var(--x-primary);
+}
+
+.hearth-x-modal .hearth-share-modes {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+}
+
+.hearth-x-modal .hearth-share-mode {
+	border-radius: 999px;
+}
+
+.hearth-x-modal .hearth-share-mode.is-active {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	box-shadow: none;
+}
+
+/* ---- Pickers (files, folders, commands, icons) ----------------------- */
+.prompt.hearth-x-modal {
+	border: none;
+	border-radius: 28px;
+	background: var(--x-dialog);
+	overflow: hidden;
+}
+
+.prompt.hearth-x-modal .prompt-input-container {
+	padding: 10px 10px 4px;
+}
+
+.prompt.hearth-x-modal .prompt-input {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+	padding-inline: 18px;
+}
+
+.prompt.hearth-x-modal .prompt-input:focus {
+	box-shadow: 0 0 0 2px var(--x-primary);
+}
+
+.prompt.hearth-x-modal .suggestion-container {
+	padding: 6px 10px 10px;
+}
+
+.prompt.hearth-x-modal .suggestion-item {
+	border-radius: 16px;
+}
+
+.prompt.hearth-x-modal .suggestion-item.is-selected {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.prompt.hearth-x-modal .prompt-instructions {
+	border-top: none;
+}
+
+/* ---- Menus ------------------------------------------------------------ */
+.menu.hearth-x-menu {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-dialog);
+	padding: 6px;
+	box-shadow: var(--shadow-l);
+}
+
+.menu.hearth-x-menu .menu-item {
+	border-radius: 12px;
+	padding-block: 7px;
+}
+
+.menu.hearth-x-menu .menu-item:not(.is-disabled, .is-label):hover,
+.menu.hearth-x-menu .menu-item.selected:not(.is-disabled, .is-label) {
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+}
+
+.menu.hearth-x-menu .menu-item:not(.is-disabled, .is-label):hover .menu-item-icon,
+.menu.hearth-x-menu .menu-item.selected:not(.is-disabled, .is-label) .menu-item-icon {
+	color: var(--x-primary);
+}
+
+.menu.hearth-x-menu .menu-item.is-label {
+	color: var(--x-on-container);
+	font-weight: 700;
+}
+
+.menu.hearth-x-menu .menu-separator {
+	margin: 4px 10px;
+	border-color: var(--x-surface-highest);
+}
+
+/* ---- The board's furniture: toolbar, dashboard switcher, action bar -- */
+.hearth-x-ui .hearth-tool-btn {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+	padding-inline: 14px;
+}
+
+.hearth-x-ui .hearth-tool-btn:hover {
+	border: none;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+}
+
+.hearth-x-ui .hearth-tool-btn.is-active {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-ui .hearth-tool-btn.is-icon {
+	padding: 5px;
+	border-radius: 999px;
+}
+
+/* Material's shape morph: a round button squares off as it is chosen. */
+.hearth-x-ui .hearth-dash-btn {
+	width: 30px;
+	height: 30px;
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 700;
+	transition:
+		color 120ms ease,
+		background-color 120ms ease,
+		border-radius 180ms ease,
+		opacity 120ms ease;
+}
+
+.hearth-x-ui .hearth-dash-btn:hover {
+	border: none;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+}
+
+.hearth-x-ui .hearth-dash-btn.is-active {
+	border-radius: 10px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-ui .hearth-mobile-action {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-x-ui .hearth-mobile-action:hover {
+	border: none;
+	background: var(--x-surface-highest);
+}
+
+/* A card's own buttons (arrange mode, the header actions) follow the card,
+ * so they key off the design the card states rather than the board's. */
+.hearth-card[data-hearth-design="expressive"] .hearth-card-action {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-card[data-hearth-design="expressive"] .hearth-card-action:hover {
+	border: none;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+}
+
+.hearth-card[data-hearth-design="expressive"] .hearth-card-action.is-danger:hover {
+	background: var(--text-error);
+	color: var(--text-on-accent);
 }

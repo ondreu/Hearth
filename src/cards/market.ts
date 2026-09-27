@@ -1,4 +1,5 @@
-import { type App, Component, Modal, Notice, setIcon, Setting } from "obsidian";
+import { type App, Component, Notice, setIcon, Setting } from "obsidian";
+import { HearthModal } from "../uidesign";
 import { emptyState } from "../cardbodies";
 import { cachedRates, CURRENCY_CODES, loadRates } from "../currency";
 import { detectLanguage, t } from "../i18n";
@@ -1113,7 +1114,7 @@ interface DetailOptions {
  * range with a crosshair, the day's and the year's range, the stats — and the
  * position, when the card holds some.
  */
-export class MarketDetailModal extends Modal {
+export class MarketDetailModal extends HearthModal {
 	private range: MarketRange;
 	private host!: HTMLElement;
 	private closed = false;

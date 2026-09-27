@@ -16,11 +16,12 @@ every overriding control tells you what it is overriding.
 Vault-wide: **Settings → Hearth → Appearance → Background**.
 Per dashboard: *Dashboard settings → Background*.
 
-### The six background types
+### The seven background types
 
 | Type | What it is |
 | --- | --- |
 | *Hearth default* | A wallpaper Hearth draws itself, so nothing is downloaded. Its *Design* is **Classic** — layered hills with a cabin, a soft morning in a light theme and a moonlit night with stars in a dark one — or **Expressive**: flat Material 3 Expressive shapes in the corners, in tones of your accent colour. It is the same *Design* setting the live sky uses, and a dashboard can override it |
+| *Harbour town* | A harbour town Hearth draws itself: houses stepping down a hill to the quay, a lighthouse at the end of the pier and sailing boats on the bay, all in Material 3 Expressive's soft shapes and tones of your accent colour. By day in a light theme, at night — lit windows, the lamp burning, stars — in a dark one |
 | *None* | Your theme's own background, untouched |
 | *Solid color* | Any CSS colour, for example `#1e1e2e` or `rgb(30,30,46)` |
 | *Vault image* | An image path in your vault, for example `Attachments/bg.png` |
@@ -104,11 +105,11 @@ Per card: that card's *Style* tab.
 | *Card blur* | 0 (off) | Frosted-glass blur behind translucent cards. Needs card opacity below 100% to show |
 | *Card corner radius* | 14 px | How rounded card corners are. 14 is both the default and the maximum; lower makes corners sharper, down to 0 |
 | *Card border* | 1 px | Thickness of the card border and the header divider. 0 hides the border |
-| *Card design* | Classic | How cards draw their content — see below |
+| *Design* | Classic | How Hearth is drawn — its cards, and in Expressive its whole interface — see below |
 
-### Card design: Classic or Expressive
+### Design: Classic or Expressive
 
-*Card design* sets how cards draw what's inside them: **Classic**, or
+*Design* sets how cards draw what's inside them: **Classic**, or
 **Expressive**, in Material 3 Expressive's manner — the look the weather and
 market cards introduced. In Expressive, rows and tiles sit on tonal containers
 in your accent colour instead of on rules and borders, icons sit on round
@@ -117,7 +118,7 @@ and tight or on a cookie shape: the time, today in the calendar, the
 calculator's answer, the statistics.
 
 It cascades like the rest of the card surface: the vault's choice, then the
-board's (*Dashboard settings → Style → Card design*, *Default* follows the
+board's (*Dashboard settings → Style → Design*, *Default* follows the
 vault), then the card's own. Each card's *Style* tab has a *Design* — *Default*,
 *Classic* or *Expressive* — where *Default* names what the card inherits right
 now; the weather and market cards keep theirs in their *Content* tab, with the
@@ -125,7 +126,7 @@ same *Default*. A synced card follows the board it is showing on, and a shared
 or published board carries its card design with it.
 
 The search row at the top of the board isn't a card, but it follows the board's
-*Card design* too (else the vault's): in Expressive the field and the button are
+*Design* too (else the vault's): in Expressive the field and the button are
 tonal pills — *Search online* a connected pair — the filters round chips that
 firm up when chosen, and the results a tonal sheet with each icon on a badge.
 
@@ -140,6 +141,24 @@ weather and markets. Cards whose content is your own — notes, embeds, web page
 Dataview and Datacore, hosted views, the slideshow and the pets — stay as they
 are. Nothing changes the card's frame: its corners, border and surface are still
 the board's.
+
+#### All of Hearth in Expressive
+
+The design reaches past the cards to everything else Hearth draws. In
+Expressive, every Hearth dialog and picker opens on a tonal surface with large
+corners, pill buttons and filled fields, Material's wide switches and
+slim-handled sliders, and pill tab ribbons; Hearth's menus become rounded
+tonal sheets; the board's toolbar, dashboard switcher and card buttons become
+pills (the current board's button squares off as it is chosen); and Hearth's
+own settings pane groups its rows in tonal containers. Obsidian's own
+interface, and other plugins', are left to your theme.
+
+It follows the same cascade as the cards. A dialog or menu takes the design of
+whatever it was opened from: from a card, the card's; from the board's
+furniture, the board's; from another dialog, that dialog's; from the settings
+pane, the vault's. Anything opened from elsewhere — the command palette, the
+ribbon — follows the vault. So a Classic board keeps its dialogs Classic in an
+Expressive vault, and the other way round.
 
 ### Why frosted glass is off by default
 

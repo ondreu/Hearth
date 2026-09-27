@@ -1,4 +1,5 @@
-import { App, Component, MarkdownRenderer, Modal, setIcon, Setting } from "obsidian";
+import { App, Component, MarkdownRenderer, setIcon, Setting } from "obsidian";
+import { HearthModal } from "./uidesign";
 import changelogMarkdown from "../CHANGELOG.md";
 import {
 	isNewer,
@@ -86,7 +87,7 @@ interface ReleaseView {
  * summarised or rewritten: every word still comes from the file, one click
  * further in. Purely informational.
  */
-export class WhatsNewModal extends Modal {
+export class WhatsNewModal extends HearthModal {
 	private readonly entries: ChangelogEntry[];
 	private readonly renderComponent = new Component();
 	private readonly releases: ReleaseView[] = [];

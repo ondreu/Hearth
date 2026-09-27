@@ -30,6 +30,11 @@ describe("dressModal", () => {
 		expect(dressModal(modal(), false).modalEl.classList.contains("hearth-x-modal")).toBe(false);
 	});
 
+	it("states the design, so a dialog opened from this one inherits it", () => {
+		expect(dressModal(modal(), true).modalEl.getAttribute("data-hearth-design")).toBe("expressive");
+		expect(dressModal(modal(), false).modalEl.getAttribute("data-hearth-design")).toBe("classic");
+	});
+
 	it("returns the modal, so open() chains", () => {
 		const m = modal();
 		expect(dressModal(m, true)).toBe(m);

@@ -15,22 +15,29 @@
  *
  * so the review step can show the first without committing the second.
  *
- * ⚠️ **The wizard never writes a global setting.** Every answer it collects
- * lands on the dashboard it builds — as a per-dashboard override (the header,
- * the card surface, the background, compact spacing) or in a card's own config
- * (the TaskNotes field mapping) — so running setup, or re-running it later,
- * cannot change how any *other* board looks or how Hearth behaves vault-wide.
- * The only fields of {@link HomeSettings} touched here are the structural ones
- * that installing a board *is*: the `dashboards` list, `activeDashboardId`, and
- * the `setupStatus` flag that stops the wizard offering itself twice. Anything
- * the wizard cannot express as a board-level override is therefore not asked
- * about at all — it belongs in Settings → Hearth, where it applies to
- * everything by design.
+ * ⚠️ **The wizard writes one global setting, once.** Every other answer it
+ * collects lands on the dashboard it builds — as a per-dashboard override (the
+ * header, the card surface, the background, compact spacing) or in a card's
+ * own config (the TaskNotes field mapping) — so running setup, or re-running
+ * it later, cannot change how any *other* board looks or how Hearth behaves
+ * vault-wide. The only fields of {@link HomeSettings} touched here are the
+ * structural ones that installing a board *is*: the `dashboards` list,
+ * `activeDashboardId`, and the `setupStatus` flag that stops the wizard
+ * offering itself twice.
+ *
+ * The exception is the Design (Classic or Expressive), because it is not only
+ * a board's look: in Expressive it dresses all of Hearth's interface — its
+ * dialogs, menus and settings pane (see src/uidesign.ts) — which no board-level
+ * override can reach. So the *first* setup (the one a new vault gets, or the
+ * first one a user who skipped it runs) writes it vault-wide, with the drawn
+ * background's design alongside; any later run writes both onto the board it
+ * builds, like every other answer. See {@link applyDesign}.
  */
 import { ensureLayout } from "../grid";
 import {
 	type BackgroundConfig,
 	type BackgroundLayout,
+	type CardDesign,
 	type DashboardCard,
 	type Dashboard,
 	type HomeSettings,
@@ -105,11 +112,12 @@ export const SURFACE_PRESETS: Record<
 /** What the wizard offers as a backdrop. A vault image and a custom URL are
  * deliberately absent — both need a path the wizard can't guess, and both are
  * one dropdown away in settings afterwards. */
-export type SetupBackground = "default" | "weather" | "color" | "none";
+export type SetupBackground = "default" | "harbour" | "weather" | "color" | "none";
 
 /** Every background choice, in wizard order. */
 export const SETUP_BACKGROUNDS: readonly SetupBackground[] = [
 	"default",
+	"harbour",
 	"weather",
 	"color",
 	"none",
@@ -124,6 +132,7 @@ export const SETUP_BACKGROUNDS: readonly SetupBackground[] = [
  */
 const BACKGROUND_TUNING: Record<SetupBackground, { opacity: number; blur: number }> = {
 	default: { opacity: 0.8, blur: 0 },
+	harbour: { opacity: 0.8, blur: 0 },
 	weather: { opacity: 0.6, blur: 0 },
 	color: { opacity: 1, blur: 0 },
 	none: { opacity: 0.35, blur: 2 },
@@ -148,6 +157,9 @@ export interface SetupAnswers {
 	showSearch: boolean;
 
 	// ---- Step: the look ----
+	/** Classic or Expressive — for the cards, the drawn background and, on a
+	 * first setup, all of Hearth's interface (see {@link applyDesign}). */
+	design: CardDesign;
 	surface: SetupSurface;
 	compact: boolean;
 	background: SetupBackground;
@@ -195,6 +207,7 @@ export function defaultAnswers(
 		themeColorTarget: "none",
 		showSearch: true,
 
+		design: settings.cardDesign ?? "classic",
 		surface: "glass",
 		compact: false,
 		background: "default",
@@ -605,11 +618,15 @@ export function applySetup(
 	detection: SetupDetection,
 	planned: PlannedCard[] = planCards(answers, detection),
 ): SetupOutcome {
+	// Read before anything is installed: this run is the first setup unless
+	// one has already finished.
+	const firstSetup = settings.setupStatus !== "done";
 	const cards = planned.map((p) => p.card);
 	const { dashboard, outcome } = installBoard(settings, answers, cards);
 
 	applyHeader(dashboard, answers);
 	applyLook(dashboard, answers);
+	applyDesign(settings, dashboard, answers.design, firstSetup);
 
 	settings.setupStatus = "done";
 	return outcome;
@@ -651,6 +668,34 @@ function applyLook(dashboard: Dashboard, answers: SetupAnswers): void {
 }
 
 /**
+ * Classic or Expressive, for the cards and the drawn background (Hearth's
+ * wallpaper, the harbour, the weather sky).
+ *
+ * On the first setup it is the vault's Design and background design, and the
+ * board keeps no override of either — so the board, the settings pane and
+ * every dialog agree, and the one switch in Settings changes them all
+ * afterwards. On any later run it is written onto the new board only, which
+ * is then Expressive or Classic whatever the vault is.
+ */
+export function applyDesign(
+	settings: HomeSettings,
+	dashboard: Dashboard,
+	design: CardDesign,
+	firstSetup: boolean,
+): void {
+	if (firstSetup) {
+		// Classic, the default, is stored as absence — as the settings do.
+		settings.cardDesign = design === "expressive" ? "expressive" : undefined;
+		settings.backgroundSkyDesign = design === "expressive" ? "expressive" : undefined;
+		delete dashboard.cardDesign;
+		delete dashboard.backgroundSkyDesign;
+		return;
+	}
+	dashboard.cardDesign = design;
+	dashboard.backgroundSkyDesign = design;
+}
+
+/**
  * The backdrop this board wears, as a complete per-dashboard override.
  *
  * All four fields at once, because a board's background override is
@@ -672,6 +717,8 @@ function plannedBackground(answers: SetupAnswers): BackgroundConfig {
 				: { kind: "default", value: "", ...BACKGROUND_TUNING.default };
 		case "none":
 			return { kind: "none", value: "", ...tuning };
+		case "harbour":
+			return { kind: "harbour", value: "", ...tuning };
 		default:
 			return { kind: "default", value: "", ...tuning };
 	}

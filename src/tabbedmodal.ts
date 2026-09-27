@@ -1,4 +1,5 @@
-import { Modal, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
+import { HearthModal } from "./uidesign";
 import { t } from "./i18n";
 
 /** One tab in a {@link HearthTabbedModal}'s ribbon. */
@@ -26,7 +27,7 @@ export interface HearthModalTab {
  * must never name a method `open`/`close`/`onOpen`/`onClose`/`setTitle`/
  * `load`/`unload`/`render`-that-shadows-anything without checking.
  */
-export abstract class HearthTabbedModal extends Modal {
+export abstract class HearthTabbedModal extends HearthModal {
 	/** The tabs to show, in ribbon order. Read once per shell render, so tabs
 	 * may appear or disappear with state. */
 	protected abstract hearthTabs(): HearthModalTab[];

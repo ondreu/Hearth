@@ -120,7 +120,7 @@ dashboard's value defers to the vault-wide value.
 
 | Setting | Meaning |
 | --- | --- |
-| *Design* | **Classic** or **Expressive** (Material 3 Expressive), or *Default* — the board's *Card design*, else the vault's. Only on cards that have an Expressive design — see [chapter 11](11-appearance.md) |
+| *Design* | **Classic** or **Expressive** (Material 3 Expressive), or *Default* — the board's *Design*, else the vault's. Only on cards that have an Expressive design — see [chapter 11](11-appearance.md) |
 | *Accent* | An accent colour for this card. Clearable |
 | *Background* | A background tint for this card. Clearable |
 | *Card opacity* | Transparency of this card's surface |

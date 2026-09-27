@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from "obsidian";
 import { t } from "./i18n";
+import { applyModalDesign, HearthModal } from "./uidesign";
 
 /**
  * Write `text` into `el` with the character ranges in `matches` wrapped in
@@ -44,7 +45,7 @@ export function makeClickable(el: HTMLElement, onActivate: () => void, label?: s
 }
 
 /** A minimal yes/no confirmation dialog used before destructive actions. */
-export class ConfirmModal extends Modal {
+export class ConfirmModal extends HearthModal {
 	private message: string;
 	private confirmText: string;
 	private onConfirm: () => void;
@@ -102,23 +103,29 @@ export interface ConfirmOptions {
 	onConfirm: () => void;
 	/** Optional: the dialog was closed without confirming. */
 	onDismiss?: () => void;
-	/** Draw the dialog in the Expressive design (see {@link dressModal}). */
+	/** Draw the dialog in the Expressive design (true) or the Classic one
+	 * (false) — see {@link dressModal}. Left out, the dialog takes the design
+	 * of wherever it was opened from (see src/uidesign.ts). */
 	expressive?: boolean;
 }
 
 /** Convenience: open a confirm dialog. */
 export function confirmAction(app: App, opts: ConfirmOptions): void {
-	dressModal(new ConfirmModal(app, opts), opts.expressive === true).open();
+	const modal = new ConfirmModal(app, opts);
+	if (opts.expressive !== undefined) dressModal(modal, opts.expressive);
+	modal.open();
 }
 
 /**
- * Dress a dialog in the Expressive design when it was opened from a card drawn
- * in it, so a task, an event or a folder opens looking like the card it came
- * from. styles.css keys everything off the one class on `modalEl` (which the
- * Modal constructor has already built). Returns the modal, to chain `open()`.
+ * Put a dialog in the design of the card it was opened from, so a task, an
+ * event or a folder opens looking like the card it came from — overriding the
+ * design a Hearth dialog otherwise takes from wherever it was opened (see
+ * src/uidesign.ts). styles.css keys everything off the one class on `modalEl`
+ * (which the Modal constructor has already built). Returns the modal, to chain
+ * `open()`.
  */
 export function dressModal<M extends Modal>(modal: M, expressive: boolean): M {
-	modal.modalEl.toggleClass("hearth-x-modal", expressive);
+	applyModalDesign(modal, expressive ? "expressive" : "classic");
 	return modal;
 }
 
@@ -137,7 +144,7 @@ export function inExpressiveCard(el: Element | null | undefined): boolean {
  * the typed text, or `null` when the user cancelled, so "" (an empty answer the
  * user did confirm) stays distinguishable from "never mind".
  */
-export class PromptModal extends Modal {
+export class PromptModal extends HearthModal {
 	private label: string;
 	private initial: string;
 	private placeholder: string;

@@ -92,6 +92,14 @@ declare module "obsidian" {
 		containerEl: HTMLElement;
 	}
 
+	/** The menu's element. Not in the public typings, but built in the
+	 * constructor and long relied on by community plugins to add a class to a
+	 * menu; optional here because a native (OS-drawn) menu has none to style.
+	 * Used only to dress Hearth's own menus (see `src/uidesign.ts`). */
+	interface Menu {
+		dom?: HTMLElement;
+	}
+
 	interface FileManager {
 		createNewMarkdownFile(folder: TFolder, baseName?: string): Promise<TFile>;
 		processFrontMatter(file: TFile, fn: (frontmatter: Record<string, unknown>) => void): Promise<void>;

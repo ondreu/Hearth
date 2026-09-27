@@ -62,8 +62,9 @@ describe("backgroundPaintable", () => {
 		expect(backgroundPaintable(bg("none"), false)).toBe(false);
 	});
 
-	it("needs a value for every kind but the default", () => {
+	it("needs a value for every kind but the drawn ones", () => {
 		expect(backgroundPaintable(bg("default"), false)).toBe(true);
+		expect(backgroundPaintable(bg("harbour"), false)).toBe(true);
 		expect(backgroundPaintable(bg("url"), false)).toBe(false);
 		expect(backgroundPaintable(bg("url", "https://example.com/bg.png"), false)).toBe(true);
 		expect(backgroundPaintable(bg("color", "#123456"), false)).toBe(true);

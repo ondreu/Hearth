@@ -11,10 +11,11 @@ import { DEFAULT_SETTINGS } from "../src/types";
 import { installObsidianDom } from "./support/obsidian-dom";
 
 let drawWallpaper: typeof import("../src/wallpaper").drawWallpaper;
+let drawHarbour: typeof import("../src/wallpaper").drawHarbour;
 
 beforeAll(async () => {
 	installObsidianDom();
-	({ drawWallpaper } = await import("../src/wallpaper"));
+	({ drawWallpaper, drawHarbour } = await import("../src/wallpaper"));
 });
 
 describe("the classic wallpaper", () => {
@@ -66,6 +67,30 @@ describe("the expressive wallpaper", () => {
 	});
 });
 
+describe("the harbour town", () => {
+	it("draws a town, a lighthouse, boats and the sea in one sliced picture", () => {
+		const host = document.body.createDiv();
+		const wp = drawHarbour(host);
+		expect(wp.classList.contains("hearth-wallpaper")).toBe(true);
+		expect(wp.classList.contains("is-harbour")).toBe(true);
+		expect(wp.querySelector("svg")?.getAttribute("preserveAspectRatio")).toBe("xMidYMid slice");
+		expect(wp.querySelectorAll(".hearth-harbour-house").length).toBeGreaterThan(10);
+		expect(wp.querySelector(".hearth-harbour-lighthouse .hearth-harbour-lamp")).not.toBeNull();
+		expect(wp.querySelectorAll(".hearth-harbour-boat")).toHaveLength(4);
+		expect(wp.querySelectorAll(".hearth-harbour-wave").length).toBeGreaterThan(4);
+	});
+
+	it("names parts only, leaving every colour to the stylesheet", () => {
+		const host = document.body.createDiv();
+		expect(drawHarbour(host).querySelector("[fill], [stroke], [style]")).toBeNull();
+	});
+
+	it("comes out the same every time", () => {
+		const host = document.body.createDiv();
+		expect(drawHarbour(host).innerHTML).toBe(drawHarbour(host).innerHTML);
+	});
+});
+
 describe("a board's own Hearth wallpaper", () => {
 	const load = (kind: string) =>
 		sanitizeDashboard(
@@ -76,6 +101,10 @@ describe("a board's own Hearth wallpaper", () => {
 
 	it("survives a saved layout", () => {
 		expect(load("default")).toBe("default");
+	});
+
+	it("keeps the harbour town", () => {
+		expect(load("harbour")).toBe("harbour");
 	});
 
 	it("reads the key the board settings once stored for it", () => {

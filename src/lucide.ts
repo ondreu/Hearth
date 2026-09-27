@@ -1,5 +1,4 @@
 import {
-	FuzzySuggestModal,
 	Setting,
 	getIconIds,
 	setIcon,
@@ -7,6 +6,7 @@ import {
 	type FuzzyMatch,
 	type TextComponent,
 } from "obsidian";
+import { HearthFuzzySuggestModal } from "./uidesign";
 import { t } from "./i18n";
 
 /**
@@ -114,7 +114,7 @@ export function lucideIconNames(): string[] {
 
 /** A fuzzy picker over the Lucide set, each row drawn as the icon beside its
  * name so icons can be recognised rather than recalled. */
-export class LucideIconPickerModal extends FuzzySuggestModal<string> {
+export class LucideIconPickerModal extends HearthFuzzySuggestModal<string> {
 	private onChoose: (name: string) => void;
 
 	constructor(app: App, onChoose: (name: string) => void) {

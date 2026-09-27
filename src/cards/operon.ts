@@ -1,4 +1,5 @@
-import { type App, Menu, Notice, Setting, setIcon, type Component } from "obsidian";
+import { type App, Notice, Setting, setIcon, type Component } from "obsidian";
+import { hearthMenu } from "../uidesign";
 import { emptyState } from "../cardbodies";
 import { formatRelativeDate, localDayKey } from "../dates";
 import { addResetButton } from "../editors";
@@ -339,7 +340,7 @@ function renderTaskRow(
 		row.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			const menu = new Menu();
+			const menu = hearthMenu();
 			menu.addItem((item) => item.setTitle(t().cards.operon.moveTo).setIsLabel(true));
 			for (const status of move.columns) {
 				if (status.id === task.workflow?.status.id) continue;

@@ -77,14 +77,23 @@ emoji, a couple of characters, a Lucide icon id, a vault image path, or an image
 URL — leave it empty for the Hearth crystal), whether the title and/or icon
 should follow your theme's accent colour, and whether the search bar is shown.
 
-**Step 3 — Look.** Chooses a card surface and a background.
+**Step 3 — Look.** Chooses the design, a card surface and a background.
+
+The design is *Classic* or *Expressive* (Material 3 Expressive, in tones of your
+accent colour), and the wizard redraws itself in the one you pick. On the first
+setup it becomes the vault's design — the cards, every Hearth dialog and menu,
+the board's buttons and the settings pane — and the design of the drawn
+backgrounds with it; running setup again later puts it on the new board only.
+You can change it any time in *Settings → Hearth → Dashboard → Design*.
 
 The three card surfaces are *Frosted* (translucent cards over a soft blur of the
 background), *Solid* (opaque panels, easiest to read over a busy photograph) and
 *Minimal* (no card surface at all, content floating on the background).
 
-The four backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
-morning or a moonlit night with your theme), *Live sky* (a painted sky drawn from real weather over a place you
+The five backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
+morning or a moonlit night with your theme — or, in the Expressive design, soft
+shapes in your accent colour), *A harbour town* (a lighthouse, boats and houses
+on a hill, in Expressive shapes), *Live sky* (a painted sky drawn from real weather over a place you
 pick, or one condition pinned and kept), *A flat colour* (the lightest option
 there is), and *None* (your theme's own background, untouched).
 

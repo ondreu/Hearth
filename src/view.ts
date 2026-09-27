@@ -34,6 +34,7 @@ import {
 import {
 	activeIsPluginBoard,
 	bannerActive,
+	effectiveCardDesign,
 	effectiveCompact,
 	effectiveFitToPage,
 	effectiveFullWidth,
@@ -49,6 +50,7 @@ import {
 import { tabIconIdFor } from "./icon";
 import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
+import { stateDesign } from "./uidesign";
 
 export const VIEW_TYPE_HOME = "hearth-home-view";
 
@@ -414,6 +416,12 @@ export class HomeView extends ItemView {
 		root.empty();
 		root.addClass("hearth-view");
 		root.toggleClass("hearth-compact", effectiveCompact(this.plugin.settings));
+		// The board's furniture — the toolbar, the dashboard switcher, the card
+		// buttons — in the board's design, and every dialog opened from the board
+		// in it too (src/uidesign.ts). The cards state their own, one level down.
+		const design = effectiveCardDesign(this.plugin.settings, undefined);
+		root.toggleClass("hearth-x-ui", design === "expressive");
+		stateDesign(root, design);
 		// The two performance-tier flags CSS keys off. They are separate because
 		// the tiers drop motion and frost at the same rung but for different
 		// reasons, and because `hearth-no-motion` is also what the focus/visibility

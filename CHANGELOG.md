@@ -29,8 +29,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   accent colour, in light and dark themes.
 
   It cascades vault → board → card: **Settings → Hearth → Dashboard → Card
-  surface → Card design** sets it for the whole vault, *Dashboard settings →
-  Style → Card design* for one board, and each card's *Style* tab can follow
+  surface → Design** sets it for the whole vault, *Dashboard settings →
+  Style → Design* for one board, and each card's *Style* tab can follow
   that or choose *Classic* or *Expressive* for itself. The weather and market
   cards follow the default too until they're told otherwise (moon and daylight
   stay Expressive). A shared or published board carries its card design.
@@ -43,6 +43,34 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   corners, pill buttons, filled fields and the card's own rows and chips. Cards showing
   your own content — notes, embeds, web pages, Dataview and Datacore, the pets —
   are left as they are, and no card's frame changes.
+
+- **Expressive for all of Hearth.** With the vault's design on Expressive, the
+  look reaches past the cards to everything else Hearth draws: every dialog and
+  picker (tonal surfaces, pill buttons and fields, Material's wide switches and
+  slim-handled sliders, pill tab ribbons), every menu Hearth opens, the board's
+  toolbar, dashboard switcher and card buttons, and Hearth's own settings pane.
+  Obsidian's own interface and other plugins' are left to your theme.
+
+  The cascade stays the same: a card's design, else its board's, else the
+  vault's. A dialog or menu takes the design of whatever it was opened from —
+  so a Classic card or board keeps its dialogs Classic inside an Expressive
+  vault, and a confirmation opened from a dialog matches that dialog — and
+  anything opened from elsewhere (the command palette, the ribbon) follows the
+  vault. The setting is now called **Design**, in *Settings → Hearth →
+  Dashboard → Card surface*, and the board's own in *Dashboard settings → Style*.
+
+- **Choose Classic or Expressive in setup.** The setup wizard's *Look* step
+  opens with the design, and the wizard redraws itself in the one you pick. The
+  first setup makes it the vault's design and the drawn background's (so
+  Expressive gets Hearth's wallpaper in its Expressive shapes); running setup
+  again later puts the choice on the new board only.
+
+- **A harbour town background.** A new *Harbour town* background: houses
+  stepping down a hill to the quay, a lighthouse at the end of the pier and
+  sailing boats on the bay, drawn — not downloaded — from Material 3
+  Expressive's soft shapes in tonal steps of your accent colour. By day in a
+  light theme; at night in a dark one, with lit windows, the lamp burning and
+  stars out. Offered in settings, per board, and in the setup wizard.
 
 - **Five new clock faces.** The Clock card's *Style* gains **Stacked** (hours
   over minutes, large), **Flip** (split tiles that turn over as the number

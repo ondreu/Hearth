@@ -18,7 +18,9 @@
  * method name compiles cleanly and silently replaces engine behaviour. Every
  * member below is named unmistakably (`renderWizard`, not `render`).
  */
-import { Modal, Notice, Setting, setIcon } from "obsidian";
+import { Notice, Setting, setIcon } from "obsidian";
+import { applyModalDesign, HearthModal } from "../uidesign";
+import type { CardDesign } from "../types";
 import { t } from "../i18n";
 import type HearthPlugin from "../main";
 import { configuredPlaces, renderSkySource } from "../placepicker";
@@ -69,6 +71,9 @@ const STEP_ICONS: Record<SetupStepId, string> = {
 const PREVIEW_COLUMNS = 12;
 
 /** How a particular run of the wizard behaves. */
+/** The two designs, in the order the look step offers them. */
+const DESIGNS: readonly CardDesign[] = ["classic", "expressive"];
+
 export interface SetupWizardOptions {
 	/**
 	 * Force the built board onto a *new* dashboard, with no option to replace
@@ -85,7 +90,7 @@ export interface SetupWizardOptions {
 	forceNewDashboard?: boolean;
 }
 
-export class SetupWizardModal extends Modal {
+export class SetupWizardModal extends HearthModal {
 	private readonly plugin: HearthPlugin;
 	private readonly detection: SetupDetection;
 	private readonly options: SetupWizardOptions;
@@ -105,6 +110,9 @@ export class SetupWizardModal extends Modal {
 		this.options = options;
 		this.detection = detectSetup(plugin.app);
 		this.answers = defaultAnswers(plugin.settings, this.detection);
+		// Drawn in the design it is about to offer as chosen, so the first look
+		// at the choice is also a preview of it.
+		applyModalDesign(this, this.answers.design);
 		// Replacing the board is right on a fresh install and wrong on a re-run
 		// over a board somebody has arranged; decide from what is actually there
 		// rather than making the user think about it. A forced run never replaces
@@ -391,6 +399,30 @@ export class SetupWizardModal extends Modal {
 	private renderLookStep(body: HTMLElement): void {
 		const strings = t().setup.look;
 		const a = this.answers;
+
+		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.designHeading });
+		this.optionGrid(
+			body,
+			DESIGNS,
+			(design: CardDesign) => ({
+				icon: t().setup.designs[design].icon,
+				name: t().setup.designs[design].name,
+				desc: t().setup.designs[design].desc,
+				selected: a.design === design,
+			}),
+			(design) => {
+				a.design = design;
+				// The wizard is Hearth's interface too, so it shows the choice at
+				// once rather than after the board is built.
+				applyModalDesign(this, design);
+				this.renderWizard();
+			},
+		);
+		// Only the first setup makes the choice vault-wide (see applyDesign), so
+		// only that one says so.
+		if (this.plugin.settings.setupStatus !== "done") {
+			body.createDiv({ cls: "hearth-setup-note", text: strings.designNote });
+		}
 
 		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.surfaceHeading });
 		this.optionGrid(

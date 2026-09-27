@@ -1,4 +1,5 @@
-import { Menu, Setting, setIcon } from "obsidian";
+import { Setting, setIcon } from "obsidian";
+import { hearthMenu } from "./uidesign";
 import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
@@ -198,7 +199,7 @@ function showDashboardMenu(
 	evt: MouseEvent,
 ): void {
 	const s = view.plugin.settings;
-	const menu = new Menu();
+	const menu = hearthMenu();
 
 	menu.addItem((item) =>
 		item
@@ -1517,7 +1518,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			});
 		}
 
-		if (bg.kind !== "default" && bg.kind !== "weather") {
+		if (bg.kind !== "default" && bg.kind !== "harbour" && bg.kind !== "weather") {
 			const desc =
 				bg.kind === "color"
 					? t().dashboards.backgroundValueDesc.color
