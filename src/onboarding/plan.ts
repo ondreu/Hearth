@@ -808,13 +808,18 @@ function applyHeader(dashboard: Dashboard, answers: SetupAnswers): void {
 }
 
 /** The look: card surface, spacing and backdrop, all as overrides on the board
- * the wizard just built. */
+ * the wizard just built. The surface is Classic's only — an Expressive card
+ * has its own opaque tonal frame that none of the four shape — so an
+ * Expressive board is left following the vault's values rather than given a
+ * preset the wizard never offered. */
 function applyLook(dashboard: Dashboard, answers: SetupAnswers): void {
-	const surface = SURFACE_PRESETS[answers.surface];
-	dashboard.cardOpacity = surface.cardOpacity;
-	dashboard.cardBlur = surface.cardBlur;
-	dashboard.cardRadius = surface.cardRadius;
-	dashboard.cardBorderWidth = surface.cardBorderWidth;
+	if (answers.design === "classic") {
+		const surface = SURFACE_PRESETS[answers.surface];
+		dashboard.cardOpacity = surface.cardOpacity;
+		dashboard.cardBlur = surface.cardBlur;
+		dashboard.cardRadius = surface.cardRadius;
+		dashboard.cardBorderWidth = surface.cardBorderWidth;
+	}
 	dashboard.compact = answers.compact;
 
 	dashboard.background = plannedBackground(answers);

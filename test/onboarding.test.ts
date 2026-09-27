@@ -589,6 +589,21 @@ describe("applySetup", () => {
 		});
 	});
 
+	it("leaves an Expressive board's surface to the vault, since its frame takes none of it", () => {
+		const settings = freshSettings();
+		const outcome = applySetup(
+			settings,
+			blankAnswers({ design: "expressive", surface: "minimal" }),
+			emptyDetection(),
+		);
+
+		const board = built(settings, outcome);
+		expect(board.cardOpacity).toBeUndefined();
+		expect(board.cardBlur).toBeUndefined();
+		expect(board.cardRadius).toBeUndefined();
+		expect(board.cardBorderWidth).toBeUndefined();
+	});
+
 	it("paints a flat colour at full strength rather than fading it", () => {
 		const settings = freshSettings();
 		const outcome = applySetup(

@@ -14384,6 +14384,17 @@ body.hearth-dv-resizing {
 	-webkit-backdrop-filter: blur(var(--sample-blur, 0px));
 }
 
+/* The Expressive frame in miniature: opaque and tonal, big corners, no border
+ * (see "The Expressive card frame"). */
+.hearth-setup-sample-card.is-x-frame,
+.hearth-setup-board-card.is-x-frame {
+	border: none;
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--interactive-accent) 9%, var(--background-primary));
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
 .hearth-setup-sample {
 	position: absolute;
 	inset: 24% 14%;
@@ -20171,6 +20182,49 @@ body.hearth-snapshot-capturing .hearth-view {
 
 :is(.hearth-x-modal, .hearth-x-settings) .hearth-section-body > .setting-item + .setting-item,
 .hearth-x-settings .hearth-settings-index-row + .hearth-settings-index-row {
+	border-top: 1px solid var(--x-dialog);
+}
+
+/* A tabbed dialog's rows, gathered into groups after they are drawn (see
+ * groupSettingRows in src/uidesign.ts): the same tonal containers as the
+ * settings pane's sections, each under its heading, set in the accent. */
+.hearth-x-modal .hearth-x-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-x-modal .hearth-x-group + .hearth-x-group {
+	margin-top: 16px;
+}
+
+.hearth-x-modal .hearth-x-group-head.setting-item {
+	padding: 0 8px 8px;
+	border: none;
+}
+
+.hearth-x-modal .hearth-x-group-head .setting-item-name {
+	font-size: var(--font-ui-medium);
+	font-weight: 750;
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-x-group-body {
+	border-radius: 24px;
+	background: var(--x-surface);
+	padding: 2px 16px;
+}
+
+.hearth-x-modal .hearth-x-group-body:empty {
+	display: none;
+}
+
+/* A row on the container takes the container's padding; hairlines in the
+ * dialog's own tone part the rows, as they do in the settings pane. */
+.hearth-x-modal .hearth-x-group-body > .setting-item {
+	border-top: none;
+}
+
+.hearth-x-modal .hearth-x-group-body > .setting-item + .setting-item {
 	border-top: 1px solid var(--x-dialog);
 }
 

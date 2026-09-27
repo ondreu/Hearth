@@ -35,10 +35,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     snapped together read as a connected group: a hairline apart, with small
     corners where they meet. Opacity, blur, corner radius and border shape the
     Classic frame only, so they step aside wherever no card is Classic.
+    The setup wizard recommends Expressive and, when it is picked, skips the
+    Frosted / Solid / Minimal choice, which is about the Classic frame.
   - **Everything around the cards** — the board's search row, toolbar,
     dashboard switcher and card buttons, every dialog, picker and menu Hearth
     opens (menus grouped, destructive entries marked), and Hearth's settings
-    pane. Obsidian's own interface and other plugins' are left to your theme.
+    pane. A card's and a dashboard's settings gather their rows into tonal
+    groups under accent headings, as the settings pane does. Obsidian's own interface and other plugins' are left to your theme.
 
   The choice cascades vault → board → card: *Dashboard settings → Style →
   Design* sets one board, and a card's *Style* tab can follow that or pick its

@@ -1293,6 +1293,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			});
 
 		// The design first: it decides whether the surface settings below apply.
+		this.hearthGroupBreak(containerEl);
 		const designs = {
 			classic: t().editors.design.classic,
 			expressive: t().editors.design.expressive,
@@ -1312,6 +1313,7 @@ class DashboardSettingsModal extends HearthTabbedModal {
 
 		// Opacity, blur, radius and border shape the Classic frame only; on a
 		// board with no Classic card they step aside for a line saying why.
+		this.hearthGroupBreak(containerEl);
 		if (!classicCardsInUse(s, dash)) {
 			const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);
 			note.settingEl.addClass("hearth-setting-note");

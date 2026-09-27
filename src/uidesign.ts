@@ -173,3 +173,56 @@ function markMenuGroups(menu: Menu, dom: HTMLElement): void {
 	observer.observe(dom, { childList: true, subtree: true });
 	menu.register(() => observer.disconnect());
 }
+
+// ---- Grouped settings rows --------------------------------------------------
+
+/** A group of settings rows in an Expressive dialog: its heading row, if it
+ * has one, above a tonal container holding the rows. */
+export const X_GROUP_CLASS = "hearth-x-group";
+const X_GROUP_BODY_CLASS = "hearth-x-group-body";
+const X_GROUP_HEAD_CLASS = "hearth-x-group-head";
+/** Left between two runs of rows that belong in separate groups but have no
+ * heading between them. Consumed by {@link groupSettingRows}. */
+export const X_GROUP_BREAK_CLASS = "hearth-x-group-break";
+
+/**
+ * Gather the loose children of a dialog's body into groups, the way Material
+ * lays out a settings screen: each run of rows on a tonal container of its own,
+ * under its heading. A group starts at every heading row (`setHeading()`, which
+ * becomes the group's title) and at every break marker; anything before the
+ * first of either forms an untitled group.
+ *
+ * Done after the fact, over whatever the tab drew, so the ~35 kinds' editors —
+ * which draw flat runs of rows split by `setHeading()` — are grouped without
+ * each being rewritten. Idempotent: children already in a group stay put, and
+ * anything appended later (an editor that fills in after a fetch) joins the
+ * last group when this runs again.
+ */
+export function groupSettingRows(body: HTMLElement): void {
+	let groupBody: HTMLElement | null = null;
+	// A new group, put where `before` stands. Made at the end of the body and
+	// moved, since a loose element would belong to the main window's document
+	// rather than a popout's.
+	const open = (before: Element): HTMLElement => {
+		const group = body.createDiv(X_GROUP_CLASS);
+		body.insertBefore(group, before);
+		return group;
+	};
+	for (const child of Array.from(body.children)) {
+		const cls = child.classList;
+		if (cls.contains(X_GROUP_CLASS)) {
+			groupBody = child.querySelector<HTMLElement>(`:scope > .${X_GROUP_BODY_CLASS}`);
+		} else if (cls.contains(X_GROUP_BREAK_CLASS)) {
+			child.remove();
+			groupBody = null;
+		} else if (cls.contains("setting-item-heading")) {
+			const group = open(child);
+			group.appendChild(child);
+			cls.add(X_GROUP_HEAD_CLASS);
+			groupBody = group.createDiv(X_GROUP_BODY_CLASS);
+		} else {
+			groupBody ??= open(child).createDiv(X_GROUP_BODY_CLASS);
+			groupBody.appendChild(child);
+		}
+	}
+}

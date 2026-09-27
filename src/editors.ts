@@ -115,8 +115,11 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	protected hearthRenderBody(body: HTMLElement, tabId: string): void {
 		switch (tabId) {
+			// Each section its own group in the Expressive design (see
+			// hearthGroupBreak); a kind's editor splits further by its headings.
 			case "content":
 				this.identitySection(body);
+				this.hearthGroupBreak(body);
 				this.contentSection(body);
 				break;
 			case "style":
@@ -124,9 +127,13 @@ export class CardSettingsModal extends HearthTabbedModal {
 				break;
 			case "layout":
 				this.sizeSection(body);
+				this.hearthGroupBreak(body);
 				this.mobileSection(body);
+				this.hearthGroupBreak(body);
 				this.buttonsSection(body);
+				this.hearthGroupBreak(body);
 				this.pinSection(body);
+				this.hearthGroupBreak(body);
 				this.copySection(body);
 				break;
 		}
@@ -219,6 +226,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 				},
 			});
 		}
+		this.hearthGroupBreak(containerEl);
 		const row = new Setting(containerEl)
 			.setName(t().editors.colors.heading)
 			.setDesc(t().editors.colors.headingDesc);
@@ -256,6 +264,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 				}),
 		);
 
+		this.hearthGroupBreak(containerEl);
 		// Opacity, blur and border shape the Classic frame only.
 		if (resolveCardDesign(this.opts.settings, card) === "expressive") {
 			const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);

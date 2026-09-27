@@ -519,6 +519,7 @@ export class SetupWizardModal extends HearthModal {
 				name: t().setup.designs[design].name,
 				desc: t().setup.designs[design].desc,
 				selected: a.design === design,
+				badge: design === "expressive" ? t().setup.integrations.recommended : undefined,
 			}),
 			(design) => {
 				a.design = design;
@@ -581,24 +582,28 @@ export class SetupWizardModal extends HearthModal {
 			});
 		}
 
-		body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.surfaceHeading });
-		this.swatchGrid(
-			body,
-			SETUP_SURFACES,
-			(surface) => ({
-				name: t().setup.surfaces[surface].name,
-				desc: t().setup.surfaces[surface].desc,
-				selected: a.surface === surface,
-				paint: (scene) => {
-					this.paintScene(scene, a);
-					this.sampleCards(scene, surface, 2);
+		// Frosted, solid or minimal are Classic's frames. Expressive has one
+		// frame of its own, so there is nothing to choose (see applyLook).
+		if (a.design === "classic") {
+			body.createDiv({ cls: "hearth-setup-grouplabel", text: strings.surfaceHeading });
+			this.swatchGrid(
+				body,
+				SETUP_SURFACES,
+				(surface) => ({
+					name: t().setup.surfaces[surface].name,
+					desc: t().setup.surfaces[surface].desc,
+					selected: a.surface === surface,
+					paint: (scene) => {
+						this.paintScene(scene, a);
+						this.sampleCards(scene, surface, 2);
+					},
+				}),
+				(surface) => {
+					a.surface = surface;
+					this.renderWizard();
 				},
-			}),
-			(surface) => {
-				a.surface = surface;
-				this.renderWizard();
-			},
-		);
+			);
+		}
 
 		if (a.background !== "none") {
 			new Setting(body)
@@ -813,6 +818,7 @@ export class SetupWizardModal extends HearthModal {
 		for (const entry of planned) {
 			const cell = grid.createDiv("hearth-setup-board-card");
 			styleSampleCard(cell, surface, banner);
+			cell.toggleClass("is-x-frame", a.design === "expressive");
 			cell.style.gridColumn = `${entry.card.x + 1} / span ${entry.card.w}`;
 			cell.style.gridRow = `${entry.card.y + 1} / span ${entry.card.h}`;
 			const head = cell.createDiv("hearth-setup-board-card-head");
@@ -861,6 +867,7 @@ export class SetupWizardModal extends HearthModal {
 		for (let i = 0; i < count; i++) {
 			const card = stack.createDiv("hearth-setup-sample-card");
 			styleSampleCard(card, SURFACE_PRESETS[surface], false);
+			card.toggleClass("is-x-frame", this.answers.design === "expressive");
 			card.createDiv("hearth-setup-sample-line is-strong");
 			card.createDiv("hearth-setup-sample-line");
 		}
@@ -875,7 +882,7 @@ export class SetupWizardModal extends HearthModal {
 	private optionGrid<T extends string>(
 		parent: HTMLElement,
 		options: readonly T[],
-		describe: (option: T) => { icon: string; name: string; desc: string; selected: boolean },
+		describe: (option: T) => { icon: string; name: string; desc: string; selected: boolean; badge?: string },
 		onPick: (option: T) => void,
 		extraClass?: string,
 	): void {
@@ -887,7 +894,8 @@ export class SetupWizardModal extends HearthModal {
 			tile.toggleClass("is-selected", info.selected);
 			setIcon(tile.createSpan("hearth-setup-option-icon"), info.icon);
 			const text = tile.createDiv("hearth-setup-option-text");
-			text.createDiv({ cls: "hearth-setup-option-name", text: info.name });
+			const name = text.createDiv({ cls: "hearth-setup-option-name", text: info.name });
+			if (info.badge) name.createSpan({ cls: "hearth-setup-badge", text: info.badge });
 			text.createDiv({ cls: "hearth-setup-option-desc", text: info.desc });
 			const pick = () => onPick(option);
 			makeClickable(tile, pick, info.name);
