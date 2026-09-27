@@ -4140,10 +4140,13 @@ function attachKanbanCardMenu(
 						.onClick(() => void convertKanbanCardToNote(view, cfg, hit).then(refresh)),
 				);
 			}
+			// Deleting stands apart from the rest, when there is a rest.
+			if (canEditMeta || !hit.linkedFile) menu.addSeparator();
 			menu.addItem((item) =>
 				item
 					.setTitle(t().cards.tasks.deleteCard)
 					.setIcon("trash-2")
+					.setWarning(true)
 					.onClick(() => {
 						void deleteKanbanCard(view, hit).then((ok) => {
 							if (!ok) new Notice(t().notices.taskChangedOnDisk);

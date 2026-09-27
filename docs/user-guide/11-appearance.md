@@ -105,9 +105,13 @@ Per card: that card's *Style* tab.
 | *Card blur* | 0 (off) | Frosted-glass blur behind translucent cards. Needs card opacity below 100% to show |
 | *Card corner radius* | 14 px | How rounded card corners are. 14 is both the default and the maximum; lower makes corners sharper, down to 0 |
 | *Card border* | 1 px | Thickness of the card border and the header divider. 0 hides the border |
-| *Design* | Classic | How Hearth is drawn — its cards, and in Expressive its whole interface — see below |
 
 ### Design: Classic or Expressive
+
+Vault-wide: at the head of **Settings → Hearth → Appearance**, where the two
+choices are shown as a small card drawn each way — pick one to switch. Per
+dashboard: *Dashboard settings → Style → Design*. Per card: that card's *Style*
+tab. The first run of the setup wizard asks too.
 
 *Design* sets how cards draw what's inside them: **Classic**, or
 **Expressive**, in Material 3 Expressive's manner — the look the weather and
@@ -150,7 +154,10 @@ corners, pill buttons and filled fields, Material's wide switches and
 slim-handled sliders, and pill tab ribbons; Hearth's menus become rounded
 tonal sheets; the board's toolbar, dashboard switcher and card buttons become
 pills (the current board's button squares off as it is chosen); and Hearth's
-own settings pane groups its rows in tonal containers. Obsidian's own
+own settings pane groups its rows in tonal containers. Menus are grouped:
+entries that belong together share a rounded container, a small gap apart
+from the next group, and a destructive entry (deleting a board, discarding a
+change) sits in a group of its own. Obsidian's own
 interface, and other plugins', are left to your theme.
 
 It follows the same cascade as the cards. A dialog or menu takes the design of

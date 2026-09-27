@@ -242,7 +242,7 @@ export const en = {
 		},
 		look: {
 			designHeading: "Design",
-			designNote: "This one applies to all of Hearth, not just this board. Change it any time in Settings → Hearth → Design.",
+			designNote: "This one applies to all of Hearth, not just this board. Change it any time in Settings → Hearth → Appearance.",
 			surfaceHeading: "Cards",
 			backgroundHeading: "Background",
 			color: "Colour",
@@ -781,7 +781,7 @@ export const en = {
 		/** One line per category, shown on its index row and again at the top of
 		 * its page: what a reader will find if they open it. */
 		tabDescs: {
-			appearance: "Title, title icon, background, and low power mode.",
+			appearance: "Design, title, title icon, background, and low power mode.",
 			search: "The search bar and which results it offers.",
 			dashboard: "Grid, card surface, and the controls around the board.",
 			behaviour: "Startup, how notes open, and privacy.",
@@ -1588,6 +1588,9 @@ export const en = {
 			cardDesign: "Design",
 			cardDesignDesc:
 				"How Hearth is drawn: Classic, or Material 3 Expressive — tonal containers in your accent colour, pills and soft shapes, heavier type. Expressive reaches all of Hearth's interface: the cards, the board's buttons, every dialog and menu, and this settings pane. A dashboard or a card can still choose for itself; cards whose content is your own (notes, embeds, web pages) stay as they are.",
+			designClassicDesc: "Quiet surfaces and fine borders — Hearth as it has always looked.",
+			designExpressiveDesc: "Material 3 Expressive everywhere: tonal colour from your accent, pills and soft shapes, bold type.",
+			designInUse: "In use",
 			cards: "Cards",
 			cardsDesc:
 				"Add and configure cards on the dashboard itself: open the home view, " +

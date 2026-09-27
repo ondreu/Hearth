@@ -84,7 +84,7 @@ accent colour), and the wizard redraws itself in the one you pick. On the first
 setup it becomes the vault's design — the cards, every Hearth dialog and menu,
 the board's buttons and the settings pane — and the design of the drawn
 backgrounds with it; running setup again later puts it on the new board only.
-You can change it any time in *Settings → Hearth → Dashboard → Design*.
+You can change it any time in *Settings → Hearth → Appearance → Design*.
 
 The three card surfaces are *Frosted* (translucent cards over a soft blur of the
 background), *Solid* (opaque panels, easiest to read over a busy photograph) and

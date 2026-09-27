@@ -222,7 +222,7 @@ export const zh: Translations = {
 		},
 		look: {
 			designHeading: "设计",
-			designNote: "此选项适用于整个 Hearth，而不仅是此面板。可随时在 设置 → Hearth → 设计 中更改。",
+			designNote: "此选项适用于整个 Hearth，而不仅是此面板。可随时在 设置 → Hearth → 外观 中更改。",
 			surfaceHeading: "卡片",
 			backgroundHeading: "背景",
 			color: "颜色",
@@ -731,7 +731,7 @@ export const zh: Translations = {
 		/** One line per category, shown on its index row and again at the top of
 		 * its page: what a reader will find if they open it. */
 		tabDescs: {
-			appearance: "标题、图标、背景与低功耗模式。",
+			appearance: "设计、标题、图标、背景与低功耗模式。",
 			search: "搜索栏及其提供的结果。",
 			dashboard: "网格、卡片表面与面板周围的控件。",
 			behaviour: "启动、笔记打开方式与隐私。",
@@ -1442,6 +1442,9 @@ export const zh: Translations = {
 			cardDesign: "设计",
 			cardDesignDesc:
 				"Hearth 的绘制方式：经典，或 Material 3 Expressive——强调色的色调容器、胶囊与柔和形状、更粗的字体。Expressive 适用于 Hearth 的整个界面：卡片、面板按钮、所有对话框和菜单，以及此设置页面。面板或卡片仍可单独指定；内容来自你自己的卡片（笔记、嵌入、网页）保持不变。",
+			designClassicDesc: "安静的表面与细边框——Hearth 一贯的样子。",
+			designExpressiveDesc: "处处 Material 3 Expressive：源自强调色的色调、胶囊与柔和形状、醒目的字体。",
+			designInUse: "使用中",
 			cards: "卡片",
 			cardsDesc:
 				"卡片在面板上添加和配置：打开主页视图，点击“排列”，" +

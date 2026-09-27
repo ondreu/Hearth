@@ -28,8 +28,8 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   calendar, the analogue clock's face. Everything takes tonal steps of your
   accent colour, in light and dark themes.
 
-  It cascades vault → board → card: **Settings → Hearth → Dashboard → Card
-  surface → Design** sets it for the whole vault, *Dashboard settings →
+  It cascades vault → board → card: **Settings → Hearth → Appearance →
+  Design** sets it for the whole vault, *Dashboard settings →
   Style → Design* for one board, and each card's *Style* tab can follow
   that or choose *Classic* or *Expressive* for itself. The weather and market
   cards follow the default too until they're told otherwise (moon and daylight
@@ -56,8 +56,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   so a Classic card or board keeps its dialogs Classic inside an Expressive
   vault, and a confirmation opened from a dialog matches that dialog — and
   anything opened from elsewhere (the command palette, the ribbon) follows the
-  vault. The setting is now called **Design**, in *Settings → Hearth →
-  Dashboard → Card surface*, and the board's own in *Dashboard settings → Style*.
+  vault. The setting is now called **Design** and heads *Settings → Hearth →
+  Appearance*, where the two choices are shown as a small card drawn each way;
+  the board's own is in *Dashboard settings → Style*.
+
+  Hearth's menus are grouped the Expressive way: a board's menu, for one, keeps
+  the board, moving it in and out, and deleting it as three separate groups,
+  and the destructive entry (delete, discard) is marked as such.
 
 - **Choose Classic or Expressive in setup.** The setup wizard's *Look* step
   opens with the design, and the wizard redraws itself in the one you pick. The

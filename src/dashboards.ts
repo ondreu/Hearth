@@ -192,7 +192,10 @@ export function openDashboardSettings(view: HomeView, dash: Dashboard): void {
 	new DashboardSettingsModal(view, dash).open();
 }
 
-/** Context menu for a single dashboard button: settings and delete. */
+/** Context menu for a single dashboard button, in three groups — the board
+ * itself, moving it in and out of the vault, and deleting it — so the one
+ * destructive entry stands apart (an Expressive menu draws each group as a
+ * container of its own). */
 function showDashboardMenu(
 	view: HomeView,
 	dash: Dashboard,
@@ -222,6 +225,8 @@ function showDashboardMenu(
 			}),
 	);
 
+	menu.addSeparator();
+
 	menu.addItem((item) =>
 		item
 			.setTitle(t().dashboards.menu.exportBoard)
@@ -236,10 +241,13 @@ function showDashboardMenu(
 			.onClick(() => void pickAndImport(view.plugin)),
 	);
 
+	menu.addSeparator();
+
 	menu.addItem((item) =>
 		item
 			.setTitle(t().dashboards.menu.delete)
 			.setIcon("trash-2")
+			.setWarning(true)
 			// Always keep at least one dashboard around.
 			.setDisabled(s.dashboards.length <= 1)
 			.onClick(() => confirmDeleteDashboard(view, dash)),

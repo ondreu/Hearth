@@ -19800,16 +19800,38 @@ body.hearth-snapshot-capturing .hearth-view {
 	color: var(--x-primary);
 }
 
-/* ---- The card picker, the gallery and the share dialog --------------
- * Their rails become Material's navigation: pills, the chosen one on the
- * accent's container. The picker's tiles sit on tonal containers, and the
- * share dialog's switch is a connected pill pair. */
-.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn, .hearth-gallery-rail-publish) {
-	border-radius: 999px;
-	padding-inline: 12px;
+/* ---- The card picker and the gallery -----------------------------------
+ * Material's navigation drawer for the rails: tall pill rows, the chosen one on
+ * the accent's container, no rule down the side. The way out of the list — the
+ * gallery, "Request a card", "Publish" — is a tonal extended button, so it
+ * reads as an action rather than one more scope. Tiles sit on tonal containers
+ * with their icon on a round badge that turns into a cookie under the pointer,
+ * and their corners firm up as they do (Material's shape morph). */
+.hearth-x-modal :is(.hearth-picker-rail, .hearth-gallery-rail) {
+	gap: 4px;
+	border-right: none;
 }
 
-.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn, .hearth-gallery-rail-publish):hover {
+.hearth-x-modal :is(.hearth-picker-rail-sep, .hearth-gallery-rail-sep) {
+	height: 0;
+	margin: 6px 0;
+	background: none;
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn, .hearth-gallery-rail-publish) {
+	min-height: 40px;
+	padding: 8px 14px;
+	border: none;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--text-muted);
+	font-weight: 600;
+	transition:
+		background-color 120ms ease,
+		color 120ms ease;
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn):hover {
 	background: var(--x-surface-high);
 	color: var(--x-on-container);
 }
@@ -19817,24 +19839,199 @@ body.hearth-snapshot-capturing .hearth-view {
 .hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn).is-active {
 	background: var(--x-container);
 	color: var(--x-on-container);
-	font-weight: 700;
+	font-weight: 750;
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn, .hearth-gallery-rail-btn).is-active :is(.hearth-picker-rail-icon, .hearth-gallery-rail-icon) {
+	color: var(--x-primary);
+}
+
+/* The rail's actions. */
+.hearth-x-modal :is(.hearth-picker-rail-btn.is-gallery, .hearth-picker-rail-btn.is-request, .hearth-gallery-rail-publish) {
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-picker-rail-btn.is-request,
+.hearth-x-modal .hearth-gallery-rail-publish {
+	margin-top: 4px;
+	border-radius: 16px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+	box-shadow: var(--shadow-s);
+}
+
+.hearth-x-modal :is(.hearth-picker-rail-btn.is-gallery, .hearth-picker-rail-btn.is-request, .hearth-gallery-rail-publish):hover {
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-picker-rail-btn.is-request.is-active {
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+	box-shadow: none;
+}
+
+.hearth-x-modal :is(.hearth-picker-search-input, .hearth-gallery-search-input) {
+	border-radius: 999px;
+	min-height: 40px;
+}
+
+.hearth-x-modal .hearth-picker-section {
+	color: var(--x-on-container);
+	font-weight: 750;
+	letter-spacing: 0.06em;
+}
+
+.hearth-x-modal .hearth-picker-grid {
+	gap: 10px;
 }
 
 .hearth-x-modal .hearth-card-tile {
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px 12px 12px;
 	border: none;
-	border-radius: 20px;
+	border-radius: 24px;
 	background: var(--x-surface);
+	transition:
+		background-color 140ms ease,
+		border-radius 180ms ease;
 }
 
 .hearth-x-modal .hearth-card-tile:hover {
 	border: none;
+	border-radius: 14px;
 	background: var(--x-surface-highest);
 }
 
+.hearth-x-modal .hearth-card-tile:focus-visible {
+	outline: 2px solid var(--x-primary);
+	outline-offset: 2px;
+}
+
 .hearth-x-modal .hearth-card-tile-icon {
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	margin-top: 0;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-card-tile:hover .hearth-card-tile-icon {
+	-webkit-mask: var(--x-cookie) center / contain no-repeat;
+	mask: var(--x-cookie) center / contain no-repeat;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-modal .hearth-card-tile-name {
+	font-weight: 700;
+}
+
+.hearth-x-modal .hearth-card-tile-badge {
+	border-radius: 999px;
+	background: var(--x-surface-highest);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-picker-foot {
+	border-top: none;
+}
+
+.hearth-x-modal .hearth-picker-foot-link {
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+	text-decoration: none;
+}
+
+.hearth-x-modal .hearth-picker-foot-link:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-picker-request-option {
+	border: none;
+	border-radius: 24px;
+	background: var(--x-surface);
+}
+
+/* The gallery's boards: a tonal card with the picture inset in it. */
+.hearth-x-modal .hearth-gallery-grid {
+	gap: 16px;
+}
+
+.hearth-x-modal .hearth-gallery-card {
+	border: none;
+	border-radius: 28px;
+	background: var(--x-surface);
+	transition:
+		background-color 140ms ease,
+		border-radius 180ms ease;
+}
+
+.hearth-x-modal .hearth-gallery-card:hover {
+	border-radius: 18px;
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-gallery-card .hearth-gallery-preview {
+	margin: 8px 8px 0;
+	border: none;
+	border-radius: 20px;
+}
+
+.hearth-x-modal .hearth-gallery-card-body {
+	padding: 10px 16px 14px;
+}
+
+.hearth-x-modal .hearth-gallery-card-name {
+	font-weight: 750;
+	letter-spacing: -0.01em;
+}
+
+.hearth-x-modal .hearth-gallery-stats {
+	gap: 6px;
+}
+
+.hearth-x-modal .hearth-gallery-stat {
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-x-modal .hearth-gallery-stat.is-positive {
+	background: var(--x-container);
 	color: var(--x-primary);
 }
 
+.hearth-x-modal .hearth-gallery-icon-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-gallery-icon-btn:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-gallery-preview.is-large {
+	border: none;
+	border-radius: 24px;
+}
+
+/* The share dialog's mode switch: a connected pill pair. */
 .hearth-x-modal .hearth-share-modes {
 	border: none;
 	border-radius: 999px;
@@ -19843,6 +20040,7 @@ body.hearth-snapshot-capturing .hearth-view {
 
 .hearth-x-modal .hearth-share-mode {
 	border-radius: 999px;
+	font-weight: 600;
 }
 
 .hearth-x-modal .hearth-share-mode.is-active {
@@ -19925,6 +20123,57 @@ body.hearth-snapshot-capturing .hearth-view {
 .menu.hearth-x-menu .menu-separator {
 	margin: 4px 10px;
 	border-color: var(--x-surface-highest);
+}
+
+/* A destructive entry keeps its red through the hover, on a red-tinted layer. */
+.menu.hearth-x-menu .menu-item.is-warning:not(.is-disabled):hover,
+.menu.hearth-x-menu .menu-item.is-warning.selected:not(.is-disabled) {
+	background: color-mix(in srgb, var(--text-error) 14%, var(--x-dialog));
+	color: var(--text-error);
+}
+
+.menu.hearth-x-menu .menu-item.is-warning:not(.is-disabled):hover .menu-item-icon,
+.menu.hearth-x-menu .menu-item.is-warning.selected:not(.is-disabled) .menu-item-icon {
+	color: var(--text-error);
+}
+
+/* Grouped: a menu whose entries are split by separators draws each group as a
+ * container of its own, a small gap apart — Material 3 Expressive's grouped
+ * menu. Inside a group the entries meet with small corners; the group's ends
+ * take the large ones. The shadow follows the groups rather than a box round
+ * all of them. */
+.menu.hearth-x-menu:has(.menu-separator) {
+	padding: 0;
+	background: transparent;
+	box-shadow: none;
+	filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.18));
+}
+
+.menu.hearth-x-menu:has(.menu-separator) .menu-item {
+	margin: 0;
+	border-radius: 4px;
+	background: var(--x-dialog);
+}
+
+.menu.hearth-x-menu:has(.menu-separator) .menu-item:first-child,
+.menu.hearth-x-menu:has(.menu-separator) .menu-separator + .menu-item {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+	padding-top: 10px;
+}
+
+.menu.hearth-x-menu:has(.menu-separator) .menu-item:last-child,
+.menu.hearth-x-menu:has(.menu-separator) .menu-item:has(+ .menu-separator) {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+	padding-bottom: 10px;
+}
+
+.menu.hearth-x-menu:has(.menu-separator) .menu-separator {
+	height: 4px;
+	margin: 0;
+	border: none;
+	background: transparent;
 }
 
 /* ---- The board's furniture: toolbar, dashboard switcher, action bar -- */
@@ -20012,4 +20261,260 @@ body.hearth-snapshot-capturing .hearth-view {
 .hearth-card[data-hearth-design="expressive"] .hearth-card-action.is-danger:hover {
 	background: var(--text-error);
 	color: var(--text-on-accent);
+}
+
+/* ======================================================================
+ * The Design switch, at the head of Settings → Appearance
+ *
+ * Drawn to be noticed in either design, so it carries its own tones rather
+ * than the Expressive tokens: a tonal panel with Expressive shapes in the
+ * corner, and the two choices shown as a small card drawn each way.
+ * ====================================================================== */
+.hearth-design-hero {
+	--hd-accent: var(--interactive-accent);
+	--hd-panel: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-secondary));
+	--hd-tone: color-mix(in srgb, var(--interactive-accent) 22%, var(--background-primary));
+	position: relative;
+	overflow: hidden;
+	margin-bottom: 22px;
+	padding: 20px 20px 18px;
+	border-radius: 24px;
+	background: var(--hd-panel);
+}
+
+.hearth-design-hero-art {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 220px;
+	height: auto;
+	pointer-events: none;
+}
+
+.hearth-design-hero-art .is-cookie {
+	fill: color-mix(in srgb, var(--hd-accent) 28%, transparent);
+}
+
+.hearth-design-hero-art .is-dot {
+	fill: color-mix(in srgb, var(--hd-accent) 55%, transparent);
+}
+
+.hearth-design-hero-art .is-sparkle {
+	fill: var(--hd-accent);
+}
+
+.hearth-design-hero-head {
+	position: relative;
+	max-width: 58ch;
+	padding-right: 90px;
+}
+
+.hearth-design-hero-title {
+	font-size: 1.45em;
+	font-weight: 750;
+	letter-spacing: -0.02em;
+	color: var(--text-normal);
+}
+
+.hearth-design-hero-desc {
+	margin-top: 4px;
+	font-size: var(--font-ui-small);
+	line-height: 1.5;
+	color: var(--text-muted);
+}
+
+.hearth-design-choices {
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	margin-top: 16px;
+}
+
+@media (max-width: 520px) {
+	.hearth-design-choices {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.hearth-design-hero-head {
+		padding-right: 0;
+	}
+}
+
+.hearth-design-choice {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
+	border: 2px solid transparent;
+	border-radius: 20px;
+	background: var(--background-primary);
+	cursor: pointer;
+	transition:
+		border-color 140ms ease,
+		background-color 140ms ease;
+}
+
+.hearth-design-choice:hover {
+	border-color: color-mix(in srgb, var(--hd-accent) 40%, transparent);
+}
+
+.hearth-design-choice:focus-visible {
+	outline: 2px solid var(--hd-accent);
+	outline-offset: 2px;
+}
+
+.hearth-design-choice.is-chosen {
+	border-color: var(--hd-accent);
+	background: color-mix(in srgb, var(--hd-accent) 7%, var(--background-primary));
+}
+
+.hearth-design-choice-label {
+	padding: 0 4px 2px;
+}
+
+.hearth-design-choice-name {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 700;
+	color: var(--text-normal);
+}
+
+.hearth-design-choice-badge {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--hd-accent);
+	color: var(--text-on-accent);
+	font-size: var(--font-ui-smaller);
+	font-weight: 650;
+}
+
+.hearth-design-choice-desc {
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.45;
+	color: var(--text-muted);
+}
+
+/* ---- The two miniatures ---- */
+.hearth-design-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	box-sizing: border-box;
+	height: 108px;
+	padding: 10px;
+	border-radius: 14px;
+	background: var(--background-secondary);
+}
+
+.hearth-design-preview-card {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+}
+
+.hearth-design-preview-badge {
+	flex: none;
+	width: 18px;
+	height: 18px;
+}
+
+.hearth-design-preview-lines {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.hearth-design-preview-line {
+	width: 75%;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--text-faint);
+}
+
+.hearth-design-preview-line.is-short {
+	width: 45%;
+	opacity: 0.6;
+}
+
+.hearth-design-preview-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.hearth-design-preview-row {
+	height: 7px;
+}
+
+.hearth-design-preview-row:nth-child(2) {
+	width: 85%;
+}
+
+.hearth-design-preview-row:nth-child(3) {
+	width: 65%;
+}
+
+.hearth-design-preview-button {
+	align-self: flex-end;
+	width: 48px;
+	height: 13px;
+	margin-top: auto;
+}
+
+/* Classic: ruled, bordered, square-ish. */
+.hearth-design-choice.is-classic .hearth-design-preview-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-primary);
+}
+
+.hearth-design-choice.is-classic .hearth-design-preview-badge {
+	border-radius: 4px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-design-choice.is-classic .hearth-design-preview-row {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-design-choice.is-classic .hearth-design-preview-button {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+}
+
+/* Expressive: tonal, round, a cookie for the badge, a filled pill. */
+.hearth-design-choice.is-expressive .hearth-design-preview {
+	background: color-mix(in srgb, var(--hd-accent) 8%, var(--background-secondary));
+}
+
+.hearth-design-choice.is-expressive .hearth-design-preview-card {
+	border-radius: 14px;
+	background: var(--hd-tone);
+}
+
+.hearth-design-choice.is-expressive .hearth-design-preview-badge {
+	background: var(--hd-accent);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0 0.0L26.0 0.6L27.9 2.1L29.4 3.7L31.0 4.8L32.9 5.0L35.1 4.8L37.5 4.8L39.4 5.6L40.6 7.4L41.0 9.7L41.2 12.0L41.7 13.8L43.0 15.1L44.9 16.4L46.7 17.9L47.6 19.8L47.4 22.0L46.2 24.0L44.9 25.8L44.1 27.6L44.3 29.4L44.9 31.6L45.3 33.9L44.8 36.0L43.2 37.5L41.0 38.3L38.8 38.8L37.1 39.7L36.0 41.2L35.1 43.2L33.9 45.3L32.2 46.6L30.1 46.7L27.9 45.9L25.8 44.9L24.0 44.4L22.2 44.9L20.1 45.9L17.9 46.7L15.8 46.6L14.1 45.3L12.9 43.2L12.0 41.2L10.9 39.7L9.2 38.8L7.0 38.3L4.8 37.5L3.2 36.0L2.7 33.9L3.1 31.6L3.7 29.4L3.9 27.6L3.1 25.8L1.8 24.0L0.6 22.0L0.4 19.8L1.3 17.9L3.1 16.4L5.0 15.1L6.3 13.8L6.8 12.0L7.0 9.7L7.4 7.4L8.6 5.6L10.5 4.8L12.9 4.8L15.1 5.0L17.0 4.8L18.6 3.7L20.1 2.1L22.0 0.6Z'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24.0 0.0L26.0 0.6L27.9 2.1L29.4 3.7L31.0 4.8L32.9 5.0L35.1 4.8L37.5 4.8L39.4 5.6L40.6 7.4L41.0 9.7L41.2 12.0L41.7 13.8L43.0 15.1L44.9 16.4L46.7 17.9L47.6 19.8L47.4 22.0L46.2 24.0L44.9 25.8L44.1 27.6L44.3 29.4L44.9 31.6L45.3 33.9L44.8 36.0L43.2 37.5L41.0 38.3L38.8 38.8L37.1 39.7L36.0 41.2L35.1 43.2L33.9 45.3L32.2 46.6L30.1 46.7L27.9 45.9L25.8 44.9L24.0 44.4L22.2 44.9L20.1 45.9L17.9 46.7L15.8 46.6L14.1 45.3L12.9 43.2L12.0 41.2L10.9 39.7L9.2 38.8L7.0 38.3L4.8 37.5L3.2 36.0L2.7 33.9L3.1 31.6L3.7 29.4L3.9 27.6L3.1 25.8L1.8 24.0L0.6 22.0L0.4 19.8L1.3 17.9L3.1 16.4L5.0 15.1L6.3 13.8L6.8 12.0L7.0 9.7L7.4 7.4L8.6 5.6L10.5 4.8L12.9 4.8L15.1 5.0L17.0 4.8L18.6 3.7L20.1 2.1L22.0 0.6Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.hearth-design-choice.is-expressive .hearth-design-preview-line {
+	height: 6px;
+	background: color-mix(in srgb, var(--hd-accent) 55%, var(--text-normal));
+}
+
+.hearth-design-choice.is-expressive .hearth-design-preview-row {
+	border-radius: 999px;
+	background: var(--hd-tone);
+}
+
+.hearth-design-choice.is-expressive .hearth-design-preview-button {
+	border-radius: 999px;
+	background: var(--hd-accent);
 }

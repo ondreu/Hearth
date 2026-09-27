@@ -255,7 +255,7 @@ export const de: Translations = {
 		},
 		look: {
 			designHeading: "Design",
-			designNote: "Diese Wahl gilt für ganz Hearth, nicht nur für dieses Dashboard. Jederzeit änderbar unter Einstellungen → Hearth → Design.",
+			designNote: "Diese Wahl gilt für ganz Hearth, nicht nur für dieses Dashboard. Jederzeit änderbar unter Einstellungen → Hearth → Erscheinungsbild.",
 			surfaceHeading: "Karten",
 			backgroundHeading: "Hintergrund",
 			color: "Farbe",
@@ -792,7 +792,7 @@ export const de: Translations = {
 		/** Eine Zeile pro Kategorie, gezeigt auf ihrer Übersichtszeile und erneut oben auf
 		 * ihrer Seite: was ein Leser findet, wenn er sie öffnet. */
 		tabDescs: {
-			appearance: "Titel, Titelsymbol, Hintergrund und Energiesparmodus.",
+			appearance: "Design, Titel, Titelsymbol, Hintergrund und Energiesparmodus.",
 			search: "Die Suchleiste und welche Ergebnisse sie anbietet.",
 			dashboard: "Raster, Kartenoberfläche und die Steuerelemente rund um das Board.",
 			behaviour: "Start, wie Notizen geöffnet werden, und Datenschutz.",
@@ -1596,6 +1596,9 @@ export const de: Translations = {
 			cardDesign: "Design",
 			cardDesignDesc:
 				"Wie Hearth gezeichnet wird: Klassisch oder Material 3 Expressive — tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen, kräftigere Schrift. Expressive gilt für die ganze Oberfläche von Hearth: die Karten, die Schaltflächen des Dashboards, alle Dialoge und Menüs und diese Einstellungen. Ein Dashboard oder eine Karte kann weiterhin selbst wählen; Karten mit deinem eigenen Inhalt (Notizen, Einbettungen, Webseiten) bleiben, wie sie sind.",
+			designClassicDesc: "Ruhige Flächen und feine Rahmen — Hearth, wie es immer aussah.",
+			designExpressiveDesc: "Material 3 Expressive überall: tonale Farben aus deiner Akzentfarbe, Pillen und weiche Formen, kräftige Schrift.",
+			designInUse: "Aktiv",
 			cards: "Karten",
 			cardsDesc:
 				"Füge Karten auf dem Dashboard selbst hinzu und richte sie ein: Öffne die Startansicht, " +

@@ -510,10 +510,13 @@ function paintChangeRow(
 					}),
 			);
 		}
+		// Discarding loses work, so it sits in a group of its own.
+		menu.addSeparator();
 		menu.addItem((item) =>
 			item
 				.setTitle(strings.discardFile)
 				.setIcon("undo")
+				.setWarning(true)
 				.onClick(() => {
 					confirmAction(view.app, {
 						title: t().cards.git.confirmTitle,
