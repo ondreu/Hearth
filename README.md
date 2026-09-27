@@ -7,7 +7,7 @@
 [![Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24.hearth.downloads&label=downloads)](https://obsidian.md/plugins?id=hearth)
 [![License](https://img.shields.io/github/license/ondreu/Hearth)](LICENSE)
 
-![Hearth — customizable Obsidian dashboard, search and launcher](assets/2.png)
+![Hearth — customizable Obsidian dashboard, search and launcher](assets/Header.png)
 
 **Hearth turns your Obsidian vault into a welcoming front page.** A fast fuzzy
 search bar, quick file-type filters, and a freely arrangeable grid of live
@@ -17,7 +17,7 @@ launchers — on desktop and mobile.
 Think of it as a new-tab dashboard, start page and command launcher in one.
 
 - 🔍 **Search everything** — fuzzy, full-text, tags, frontmatter and commands
-- 🧩 **35+ cards** — embeds, tasks, calendars, Dataview, Git, Jira, Operon, and more
+- 🧩 **40+ cards** — embeds, tasks, calendars, Dataview, Git, Jira, Operon, and more
 - 🔌 **26 integrations** — picked up automatically when the plugin is enabled
 - 🎛️ **Free-form layout** — drag, resize and snap cards anywhere
 - 🪟 **Frosted glass** — per-card opacity, blur, color and corner radius
@@ -31,6 +31,13 @@ Think of it as a new-tab dashboard, start page and command launcher in one.
 | --- | --- |
 | ![Full dashboard](assets/Full_Dash.png) | ![Search-only launcher](assets/Just_search.png) |
 | ![Dashboard variant](assets/Full_Dash2.png) | ![Card gallery](assets/cards.png) |
+
+### Material you 3 Expressive
+
+| | |
+| --- | --- |
+| ![Green_Dash](assets/M3_Green.png) | ![Purple_Dash](assets/M3_Purple.png) |
+| ![Red_Dash](assets/M3_Red.png) | ![Torq_Dash](assets/M3_Torq.png) |
 
 <img src="assets/mobile.png" width="280" alt="Hearth on mobile" />
 
