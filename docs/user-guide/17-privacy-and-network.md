@@ -59,12 +59,7 @@ There are nine categories of outbound request. Nothing else exists.
 | Any host you name | A background image or title icon given as a web address | An image request | None |
 | A dashboard gallery server | The gallery browser and publisher | Nothing until you open the gallery; nothing published until you press Publish | An anonymous handle generated locally |
 
-Two of these deserve a note.
-
-**Hearth's own default wallpaper is a web request.** The bundled ambient
-background is served from `raw.githubusercontent.com`. If that matters to you,
-choose a vault image or a solid colour instead, or turn on *Disable external
-calls*, which makes it fall back to no picture.
+One of these deserves a note.
 
 **A pinned weather sky needs no network at all.** If you like the painted sky but
 not the request, set the background's *Sky* to **A fixed sky** and choose a

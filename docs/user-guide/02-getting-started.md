@@ -83,8 +83,8 @@ The three card surfaces are *Frosted* (translucent cards over a soft blur of the
 background), *Solid* (opaque panels, easiest to read over a busy photograph) and
 *Minimal* (no card surface at all, content floating on the background).
 
-The four backgrounds are *Hearth's wallpaper* (the image that ships with the
-plugin), *Live sky* (a painted sky drawn from real weather over a place you
+The four backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
+morning or a moonlit night with your theme), *Live sky* (a painted sky drawn from real weather over a place you
 pick, or one condition pinned and kept), *A flat colour* (the lightest option
 there is), and *None* (your theme's own background, untouched).
 

@@ -20,7 +20,7 @@ Per dashboard: *Dashboard settings → Background*.
 
 | Type | What it is |
 | --- | --- |
-| *Hearth default* | The soft ambient wallpaper that ships with the plugin. Note that this image is served from `raw.githubusercontent.com`, so it is a web request like any other |
+| *Hearth default* | A wallpaper Hearth draws itself, so nothing is downloaded. Its *Design* is **Classic** — layered hills with a cabin, a soft morning in a light theme and a moonlit night with stars in a dark one — or **Expressive**: flat Material 3 Expressive shapes in the corners, in tones of your accent colour. It is the same *Design* setting the live sky uses, and a dashboard can override it |
 | *None* | Your theme's own background, untouched |
 | *Solid color* | Any CSS colour, for example `#1e1e2e` or `rgb(30,30,46)` |
 | *Vault image* | An image path in your vault, for example `Attachments/bg.png` |

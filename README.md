@@ -303,7 +303,7 @@ network → Disable external calls**.
 | RSS / Atom feeds | RSS cards | None |
 | ICS / webcal feeds | Mini calendar subscriptions (Google, iCloud, Fastmail, Nextcloud…) | The feed URL |
 | DuckDuckGo, Brave, Kagi, Google, Mojeek, Ecosia, Qwant | The search bar's optional web-search button, whichever engine you pick for it | None |
-| Whatever host you name | A background image or title icon given as a web address; the bundled default wallpaper is one of these, served from `raw.githubusercontent.com` | None |
+| Whatever host you name | A background image or title icon given as a web address | None |
 
 ### Operon
 

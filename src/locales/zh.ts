@@ -256,7 +256,7 @@ export const zh: Translations = {
 			default: {
 				icon: "image",
 				name: "Hearth 壁纸",
-				desc: "Hearth 自带的图片。",
+				desc: "由 Hearth 绘制的山丘，随主题呈现白天或夜晚。",
 			},
 			weather: {
 				icon: "cloud-sun",
@@ -591,8 +591,9 @@ export const zh: Translations = {
 			cardDesign: "卡片设计",
 			cardDesignDesc:
 				"此面板上的卡片未单独指定时的绘制方式：经典，或 Material 3 Expressive。",
-			skyDesign: "天空设计",
+			skyDesign: "背景设计",
 			skyDesignDesc: "在此面板上使用经典手绘天空，或 Material 3 Expressive 风格的扁平天空。",
+			wallpaperDesignDesc: "此面板上的 Hearth 壁纸：经典山丘，或以你的强调色绘制的 Material 3 Expressive 扁平图形。",
 			visibilityDefaultPlugin: (state: string) => `插件视图面板的默认值（${state}）`,
 			visibilityShown: "显示",
 			visibilityHidden: "隐藏",
@@ -991,6 +992,8 @@ export const zh: Translations = {
 				"以及系统要求减少动态效果的用户处，始终关闭。",
 			skyDesign: "设计",
 			skyDesignDesc: "经典的手绘天空，或 Material 3 Expressive 风格的扁平天空：山丘、圆润的云与旋转的太阳。",
+			wallpaperDesignDesc:
+				"经典山丘与小屋——浅色主题下是清晨，深色主题下是月夜——或以强调色色调绘制的 Material 3 Expressive 扁平图形。由 Hearth 绘制，无需下载任何内容。",
 			skyDesignClassic: "经典（手绘）",
 			skyDesignExpressive: "Expressive（扁平）",
 		},

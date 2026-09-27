@@ -291,7 +291,7 @@ export const de: Translations = {
 			default: {
 				icon: "image",
 				name: "Hearth-Hintergrundbild",
-				desc: "Das Bild, das mit Hearth geliefert wird.",
+				desc: "Von Hearth gezeichnete Hügel, bei Tag oder Nacht passend zu deinem Theme.",
 			},
 			weather: {
 				icon: "cloud-sun",
@@ -645,9 +645,11 @@ export const de: Translations = {
 			cardDesign: "Kartendesign",
 			cardDesignDesc:
 				"Wie die Karten dieses Dashboards gezeichnet werden, sofern eine Karte nicht selbst wählt: Klassisch oder Material 3 Expressive.",
-			skyDesign: "Himmel-Design",
+			skyDesign: "Hintergrund-Design",
 			skyDesignDesc:
 				"Der klassische gemalte Himmel oder der flache im Stil von Material 3 Expressive, auf diesem Board.",
+			wallpaperDesignDesc:
+				"Das Hearth-Hintergrundbild auf diesem Board: klassische Hügel oder flache Formen im Stil von Material 3 Expressive in deiner Akzentfarbe.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Standard auf einem Plugin-Board (${state})`,
 			visibilityShown: "angezeigt",
@@ -1089,6 +1091,10 @@ export const de: Translations = {
 			skyDesign: "Design",
 			skyDesignDesc:
 				"Der klassische gemalte Himmel oder ein flacher im Stil von Material 3 Expressive mit Hügeln, runden Wolken und einer sich drehenden Sonne.",
+			wallpaperDesignDesc:
+				"Klassische Hügel mit einer Hütte – ein Morgen im hellen Theme, eine Mondnacht im dunklen – " +
+				"oder flache Formen im Stil von Material 3 Expressive in Tönen deiner Akzentfarbe. Von Hearth " +
+				"gezeichnet, es wird also nichts heruntergeladen.",
 			skyDesignClassic: "Klassisch (gemalt)",
 			skyDesignExpressive: "Expressive (flach)",
 		},

@@ -18,15 +18,8 @@ import {
 	motionAllowed,
 	skyDensity,
 } from "./types";
+import { drawWallpaper } from "./wallpaper";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
-
-/**
- * URL of the bundled default background. Served straight from the main branch
- * on GitHub so it works without depending on a specific release asset being
- * attached. Update the file at assets/default-bg.gif to ship a new image.
- */
-const DEFAULT_BG_URL =
-	"https://raw.githubusercontent.com/ondreu/Hearth/refs/heads/main/assets/default-bg.gif";
 
 /**
  * Apply the optional, customizable background as a separate layer behind the
@@ -100,7 +93,7 @@ export function renderBanner(
  * Paint a resolved background into `layer`. Shared by the wallpaper and the
  * banner: the two differ only in where that layer sits and how big it is, so
  * everything about *what* is drawn — the opacity, the blur, the colour, the
- * image URL, the live sky — lives here once.
+ * image URL, the live sky, Hearth's own wallpaper — lives here once.
  */
 function paintBackground(
 	view: HomeView,
@@ -121,16 +114,20 @@ function paintBackground(
 		return;
 	}
 
+	// Hearth's own wallpaper is drawn, not fetched, in the same design the
+	// weather sky uses (see wallpaper.ts).
+	if (bg.kind === "default") {
+		drawWallpaper(layer, effectiveSkyDesign(view.plugin.settings));
+		return;
+	}
+
 	// A picture from the web is an outbound request whoever it was configured by,
-	// so "Disable external calls" blocks both remote kinds — the bundled default
-	// included, which is served from GitHub rather than from the plugin folder.
-	// `paintable` normally means we are never called for one; this is the check
-	// at the point the request would actually be made.
+	// so "Disable external calls" blocks it. `paintable` normally means we are
+	// never called for one; this is the check at the point the request would
+	// actually be made.
 	const blocked = view.plugin.settings.disableExternalCalls;
 	let url: string | null = null;
-	if (bg.kind === "default") {
-		url = blocked ? null : DEFAULT_BG_URL;
-	} else if (bg.kind === "url") {
+	if (bg.kind === "url") {
 		url = blocked ? null : bg.value;
 	} else if (bg.kind === "image") {
 		const file = view.app.vault.getAbstractFileByPath(bg.value);

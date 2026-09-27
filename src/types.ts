@@ -1940,10 +1940,9 @@ export interface MobileCardOptions {
 	collapsed?: boolean;
 }
 
-/** Background mode for the home view. "default" uses Hearth's bundled
- * background (a curated image shipped with a release); "weather" paints the
- * live sky for a place (see sky.ts); the other kinds use the user's own
- * value. */
+/** Background mode for the home view. "default" draws Hearth's own wallpaper
+ * (see wallpaper.ts); "weather" paints the live sky for a place (see sky.ts);
+ * the other kinds use the user's own value. */
 export type BackgroundKind =
 	| "none"
 	| "default"
@@ -2195,7 +2194,8 @@ export interface Dashboard extends BannerOverrides {
 	 * performance tier and the reader's reduced-motion preference both still
 	 * override it downwards; this can ask for motion, never insist on it. */
 	backgroundSkyAnimate?: boolean;
-	/** Override how the weather sky is drawn on this board (undefined = follow
+	/** Override how the drawn backgrounds (the weather sky, Hearth's own
+	 * wallpaper) are drawn on this board (undefined = follow
 	 * {@link HomeSettings.backgroundSkyDesign}). Beside {@link background} for
 	 * the same reason as {@link backgroundSkyAnimate}. */
 	backgroundSkyDesign?: "classic" | "expressive";
@@ -2352,8 +2352,9 @@ export interface HomeSettings {
 	 * power mode replaces the whole background anyway, and a reader who has
 	 * asked their OS for reduced motion gets a still sky regardless. */
 	backgroundSkyAnimate?: boolean;
-	/** How the "weather" background is drawn: the classic painted sky, or the
-	 * flat Material 3 Expressive one. Default "classic". */
+	/** How the drawn backgrounds — the "weather" sky and Hearth's own "default"
+	 * wallpaper — are drawn: classic, or flat Material 3 Expressive. Default
+	 * "classic". */
 	backgroundSkyDesign?: "classic" | "expressive";
 
 	// ---- Behaviour ----
@@ -3037,8 +3038,8 @@ export function effectiveCardDesign(s: HomeSettings, own: CardDesign | undefined
 	return own ?? activeDashboard(s)?.cardDesign ?? s.cardDesign ?? "classic";
 }
 
-/** How the weather sky is drawn on the active board: its own choice, else the
- * vault's, else the classic painted sky. */
+/** How the drawn backgrounds (weather sky, Hearth's own wallpaper) are drawn
+ * on the active board: its own choice, else the vault's, else classic. */
 export function effectiveSkyDesign(s: HomeSettings): "classic" | "expressive" {
 	return activeDashboard(s).backgroundSkyDesign ?? s.backgroundSkyDesign ?? "classic";
 }
@@ -3468,20 +3469,20 @@ export function effectiveBackground(s: HomeSettings): ResolvedBackground {
 	};
 }
 
-/** Whether a background kind is fetched from the web. "weather" is not in the
- * list: a live sky asks for a forecast, but the fetch is gated on its own and
- * what it draws is drawn locally either way (see background.ts), so it still
- * paints something. */
+/** Whether a background kind is fetched from the web. Only a typed-in URL is.
+ * "default" is drawn locally (see wallpaper.ts), and "weather" asks for a
+ * forecast but gates that fetch on its own and draws locally either way (see
+ * background.ts), so both still paint something. */
 export function backgroundIsRemote(kind: BackgroundKind): boolean {
-	return kind === "url" || kind === "default";
+	return kind === "url";
 }
 
 /**
  * Whether a resolved background has anything to paint.
  *
- * "default" ships its own image so it needs no value; every other kind but
+ * "default" draws its own wallpaper so it needs no value; every other kind but
  * "none" needs one. `externalCallsDisabled` — the vault's **Disable external
- * calls** setting — takes the two remote kinds out: a wallpaper the switch will
+ * calls** setting — takes the remote kind out: a wallpaper the switch will
  * not let Hearth fetch is a wallpaper that isn't there, and saying so here is
  * what keeps the banner strip from being reserved for a picture that never
  * arrives.

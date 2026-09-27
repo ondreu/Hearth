@@ -1689,10 +1689,13 @@ function sanitizeLeafView(r: Record<string, unknown>): LeafViewConfig {
 function sanitizeBackground(raw: unknown): BackgroundConfig | undefined {
 	if (!raw || typeof raw !== "object") return undefined;
 	const r = raw as Record<string, unknown>;
-	const kinds: BackgroundKind[] = ["none", "color", "image", "url", "weather"];
-	if (!kinds.includes(r.kind as BackgroundKind)) return undefined;
+	const kinds: BackgroundKind[] = ["none", "default", "color", "image", "url", "weather"];
+	// "hdefault" is what the board settings once stored for "Hearth default" —
+	// the dropdown's key for it rather than the kind — so read it as that.
+	const kind = r.kind === "hdefault" ? "default" : r.kind;
+	if (!kinds.includes(kind as BackgroundKind)) return undefined;
 	return {
-		kind: r.kind as BackgroundKind,
+		kind: kind as BackgroundKind,
 		value: str(r.value) ?? "",
 		opacity: Math.max(0, Math.min(1, num(r.opacity, 0.15))),
 		blur: Math.max(0, Math.min(40, num(r.blur, 0))),

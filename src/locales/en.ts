@@ -278,7 +278,7 @@ export const en = {
 			default: {
 				icon: "image",
 				name: "Hearth's wallpaper",
-				desc: "The image that ships with Hearth.",
+				desc: "Hills drawn by Hearth, by day or by night with your theme.",
 			},
 			weather: {
 				icon: "cloud-sun",
@@ -633,9 +633,11 @@ export const en = {
 			cardDesign: "Card design",
 			cardDesignDesc:
 				"How this board's cards are drawn unless a card chooses for itself: Classic, or Material 3 Expressive.",
-			skyDesign: "Sky design",
+			skyDesign: "Background design",
 			skyDesignDesc:
 				"The classic painted sky, or the flat Material 3 Expressive one, on this board.",
+			wallpaperDesignDesc:
+				"Hearth's wallpaper on this board: classic hills, or flat Material 3 Expressive shapes in your accent colour.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Default on a plugin board (${state})`,
 			visibilityShown: "shown",
@@ -1080,6 +1082,10 @@ export const en = {
 			skyDesign: "Design",
 			skyDesignDesc:
 				"The classic painted sky, or a flat Material 3 Expressive one with hills, bubbly clouds and a turning sun.",
+			wallpaperDesignDesc:
+				"Classic hills with a cabin — a morning in a light theme, a moonlit night in a dark one — " +
+				"or flat Material 3 Expressive shapes in tones of your accent colour. Drawn by Hearth, " +
+				"so nothing is downloaded.",
 			skyDesignClassic: "Classic (painted)",
 			skyDesignExpressive: "Expressive (flat)",
 		},

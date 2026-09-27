@@ -227,7 +227,7 @@ Privacy & network**. See [chapter 17](17-privacy-and-network.md).
 | RSS and Atom feeds | RSS cards | None |
 | ICS and webcal feeds | Mini calendar subscriptions — Google, iCloud, Fastmail, Nextcloud and others | The feed URL |
 | DuckDuckGo, Brave, Kagi, Google, Mojeek, Ecosia, Qwant | The search bar's optional web-search button | None |
-| Whatever host you name | A background image or title icon given as a web address. Hearth's own bundled default wallpaper is one of these, served from `raw.githubusercontent.com` | None |
+| Whatever host you name | A background image or title icon given as a web address | None |
 | A dashboard gallery server | The gallery browser and publisher | An anonymous handle Hearth generates locally, needed only for voting and publishing |
 
 ---

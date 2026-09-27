@@ -320,6 +320,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **Hearth's wallpaper is drawn, not downloaded.** The *Hearth default*
+  background used to be a 1.5 MB picture fetched from GitHub on every first
+  paint, and so vanished whenever *Disable external calls* was on. It is now
+  drawn by the plugin in the background's *Design*: **Classic** is layered
+  hills with a cabin and a few pines — a soft morning under a low sun in a
+  light theme, a moonlit night with stars in a dark one, switching with the
+  theme — and **Expressive** gathers Material 3 Expressive shapes (a cookie, a
+  clover, a sunny, a pill, a ring, sparkles and wavy lines) in the corners, in
+  tonal steps of your accent colour, leaving the middle calm for the cards.
+  The *Design* is the one the live weather sky already had, under
+  **Settings → Hearth → Appearance → Background**, and a board can override
+  it. Nothing is fetched, so it now shows with external calls off too.
+
+- **A board set to *Hearth default* keeps it.** Choosing *Hearth default* in
+  a board's own background settings painted nothing and was forgotten on the
+  next restart; it now shows Hearth's wallpaper and is saved with the board.
+
 - **A phone gets the stacked column again: *Narrow below* now starts at 700.**
   The threshold is a measured width, and 600 was chosen for readability — the
   width at which a half-width card stops holding a line of text. Phones do not

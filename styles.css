@@ -30,6 +30,227 @@
 	pointer-events: none;
 }
 
+/* ---- Hearth's own wallpaper -------------------------------------------
+ *
+ * The "default" background, drawn in wallpaper.ts. The SVG only names its
+ * parts; every colour is here, so the classic design turns from morning to
+ * night with the theme and the expressive one follows the accent — neither
+ * needs a redraw. */
+.hearth-wallpaper {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.hearth-wallpaper-art {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+/* Classic, light theme: a soft morning under a low sun. */
+.hearth-wallpaper.is-classic {
+	--hearth-wp-sun: #fff4e2;
+	--hearth-wp-glow: #ffe9cf;
+	--hearth-wp-glow-opacity: 0.9;
+	--hearth-wp-cloud: #ffffff;
+	--hearth-wp-cloud-opacity: 0.55;
+	--hearth-wp-star-opacity: 0;
+	--hearth-wp-ridge-1: #d8cbe3;
+	--hearth-wp-ridge-2: #c3b3d8;
+	--hearth-wp-ridge-3: #a896c7;
+	--hearth-wp-ridge-4: #8b78b2;
+	--hearth-wp-ridge-5: #6d5b95;
+	--hearth-wp-house: #5a4a7e;
+	--hearth-wp-window: #ffd28a;
+	--hearth-wp-smoke: #ffffff;
+	background: linear-gradient(to bottom, #dcd6f0 0%, #f1e4ec 38%, #fbe3d3 62%, #f7d7c4 100%);
+}
+
+/* Classic, dark theme: the same hills by moonlight, with stars. */
+.theme-dark .hearth-wallpaper.is-classic {
+	--hearth-wp-sun: #f4ecd8;
+	--hearth-wp-glow: #b9a8ff;
+	--hearth-wp-glow-opacity: 0.35;
+	--hearth-wp-cloud: #8f82c4;
+	--hearth-wp-cloud-opacity: 0.14;
+	--hearth-wp-star-opacity: 1;
+	--hearth-wp-ridge-1: #2f2754;
+	--hearth-wp-ridge-2: #272047;
+	--hearth-wp-ridge-3: #1f1a3b;
+	--hearth-wp-ridge-4: #18142f;
+	--hearth-wp-ridge-5: #110e22;
+	--hearth-wp-house: #0c0a18;
+	--hearth-wp-window: #ffc166;
+	--hearth-wp-smoke: #b3a6e6;
+	background: linear-gradient(to bottom, #0d0b1c 0%, #1a1533 45%, #2c2350 72%, #3a2d5c 100%);
+}
+
+.hearth-wallpaper-glow-stop {
+	stop-color: var(--hearth-wp-glow);
+	stop-opacity: var(--hearth-wp-glow-opacity);
+}
+
+.hearth-wallpaper-glow-stop.is-mid {
+	stop-opacity: calc(var(--hearth-wp-glow-opacity) * 0.45);
+}
+
+.hearth-wallpaper-glow-stop.is-end {
+	stop-opacity: 0;
+}
+
+.hearth-wallpaper-sun {
+	fill: var(--hearth-wp-sun);
+}
+
+.hearth-wallpaper-stars {
+	fill: #fff6de;
+	opacity: var(--hearth-wp-star-opacity);
+}
+
+.hearth-wallpaper-clouds {
+	fill: var(--hearth-wp-cloud);
+	opacity: var(--hearth-wp-cloud-opacity);
+}
+
+.hearth-wallpaper-ridge.is-1 {
+	fill: var(--hearth-wp-ridge-1);
+}
+
+.hearth-wallpaper-ridge.is-2 {
+	fill: var(--hearth-wp-ridge-2);
+}
+
+.hearth-wallpaper-ridge.is-3 {
+	fill: var(--hearth-wp-ridge-3);
+}
+
+.hearth-wallpaper-ridge.is-4 {
+	fill: var(--hearth-wp-ridge-4);
+}
+
+.hearth-wallpaper-ridge.is-5 {
+	fill: var(--hearth-wp-ridge-5);
+}
+
+/* Pines wear the colour of the hill in front of the one they stand on, so
+ * they read as silhouettes a step nearer. */
+.hearth-wallpaper-pines {
+	fill: var(--hearth-wp-ridge-4);
+}
+
+.hearth-wallpaper-pines.is-near {
+	fill: var(--hearth-wp-ridge-5);
+}
+
+.hearth-wallpaper-house {
+	fill: var(--hearth-wp-house);
+}
+
+.hearth-wallpaper-window {
+	fill: var(--hearth-wp-window);
+}
+
+.hearth-wallpaper-smoke {
+	fill: none;
+	stroke: var(--hearth-wp-smoke);
+	stroke-width: 4;
+	stroke-linecap: round;
+	opacity: 0.5;
+}
+
+/* Expressive: Material 3 tonal steps of the accent. Built from the stable
+ * --accent-h/s vars (as the heatmap tints are) so the hue can be turned for
+ * the secondary and tertiary roles the way Material derives them. */
+.hearth-wallpaper.is-expressive {
+	/* The corners are sized against this box, not the window: a banner strip
+	 * and a split pane should both get corners that fit them. */
+	container-type: size;
+	--hearth-wp-bg: hsl(var(--accent-h), calc(var(--accent-s) * 0.3), 95%);
+	--hearth-wp-primary: hsl(var(--accent-h), calc(var(--accent-s) * 0.75), 85%);
+	--hearth-wp-secondary: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.45), 88%);
+	--hearth-wp-tertiary: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.6), 86%);
+	--hearth-wp-strong: hsl(var(--accent-h), calc(var(--accent-s) * 0.8), 60%);
+	--hearth-wp-strong-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.65), 58%);
+	background: var(--hearth-wp-bg);
+}
+
+.theme-dark .hearth-wallpaper.is-expressive {
+	--hearth-wp-bg: hsl(var(--accent-h), calc(var(--accent-s) * 0.25), 10%);
+	--hearth-wp-primary: hsl(var(--accent-h), calc(var(--accent-s) * 0.55), 24%);
+	--hearth-wp-secondary: hsl(calc(var(--accent-h) - 20), calc(var(--accent-s) * 0.3), 19%);
+	--hearth-wp-tertiary: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.45), 21%);
+	--hearth-wp-strong: hsl(var(--accent-h), calc(var(--accent-s) * 0.7), 62%);
+	--hearth-wp-strong-alt: hsl(calc(var(--accent-h) + 60), calc(var(--accent-s) * 0.55), 60%);
+}
+
+.hearth-wallpaper-corner {
+	position: absolute;
+	width: clamp(120px, min(58cqmin, 48cqw), 720px);
+	height: auto;
+	aspect-ratio: 1;
+	overflow: visible;
+}
+
+.hearth-wallpaper-corner.is-tl {
+	top: 0;
+	left: 0;
+}
+
+.hearth-wallpaper-corner.is-tr {
+	top: 0;
+	right: 0;
+}
+
+.hearth-wallpaper-corner.is-bl {
+	bottom: 0;
+	left: 0;
+}
+
+.hearth-wallpaper-corner.is-br {
+	bottom: 0;
+	right: 0;
+}
+
+.hearth-wallpaper-primary {
+	fill: var(--hearth-wp-primary);
+}
+
+.hearth-wallpaper-secondary {
+	fill: var(--hearth-wp-secondary);
+}
+
+.hearth-wallpaper-tertiary {
+	fill: var(--hearth-wp-tertiary);
+}
+
+.hearth-wallpaper-strong {
+	fill: var(--hearth-wp-strong);
+}
+
+.hearth-wallpaper-strong-alt {
+	fill: var(--hearth-wp-strong-alt);
+}
+
+.hearth-wallpaper-ring {
+	fill: none;
+	stroke: var(--hearth-wp-primary);
+	stroke-width: 30;
+}
+
+.hearth-wallpaper-wave {
+	fill: none;
+	stroke: var(--hearth-wp-strong);
+	stroke-width: 10;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.hearth-wallpaper-wave.is-alt {
+	stroke: var(--hearth-wp-strong-alt);
+}
+
 /* ---- Banner ----------------------------------------------------------
  *
  * The other way to wear a background: instead of filling the view, the same

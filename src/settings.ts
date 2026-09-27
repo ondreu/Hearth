@@ -1131,6 +1131,11 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.weatherBackgroundSection(containerEl);
 		}
 
+		// Hearth's own wallpaper is drawn in the same two designs as the sky.
+		if (s.backgroundKind === "default") {
+			this.backgroundDesignSetting(containerEl);
+		}
+
 		// "default", "none" and "weather" have no free-text value field; the rest do.
 		if (
 			s.backgroundKind !== "none" &&
@@ -1298,9 +1303,18 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
+		this.backgroundDesignSetting(containerEl);
+	}
+
+	/** Classic or Expressive, for the backgrounds Hearth draws itself: the
+	 * weather sky and its own wallpaper. One setting serves both, since a vault
+	 * that wants the flat look wants it whichever it is showing. */
+	private backgroundDesignSetting(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.background;
 		new Setting(containerEl)
 			.setName(strings.skyDesign)
-			.setDesc(strings.skyDesignDesc)
+			.setDesc(s.backgroundKind === "default" ? strings.wallpaperDesignDesc : strings.skyDesignDesc)
 			.addDropdown((d) => {
 				d.addOption("classic", strings.skyDesignClassic);
 				d.addOption("expressive", strings.skyDesignExpressive);

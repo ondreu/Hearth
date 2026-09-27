@@ -12,9 +12,20 @@
  * A soft polygon: a circle whose radius swells and dips `lobes` times round, by
  * `depth` of the radius. Nine shallow lobes is the "cookie", eight deeper ones
  * the "sunny", six the snowflake's "flower". The first lobe points straight up.
+ *
+ * `perLobe` is how many straight segments trace each lobe. Twelve is smooth at
+ * icon and card size; a shape drawn across a whole window needs more, or its
+ * facets show.
  */
-export function shapePath(cx: number, cy: number, r: number, lobes: number, depth: number): string {
-	const steps = Math.max(lobes, 3) * 12;
+export function shapePath(
+	cx: number,
+	cy: number,
+	r: number,
+	lobes: number,
+	depth: number,
+	perLobe = 12,
+): string {
+	const steps = Math.max(lobes, 3) * perLobe;
 	const points: string[] = [];
 	for (let i = 0; i < steps; i++) {
 		const a = (i / steps) * Math.PI * 2;
