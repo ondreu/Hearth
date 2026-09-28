@@ -22471,3 +22471,12 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	overflow-y: auto;
 	scrollbar-width: thin;
 }
+
+.hearth-tui .hearth-tui-colored,
+.hearth-t-modal .hearth-tui-colored {
+	color: var(--tui-seg-color);
+}
+
+:is(.hearth-tui, .hearth-t-modal) .hearth-tui-reverse.hearth-tui-colored {
+	color: var(--tui-sel-fg);
+}

@@ -8,6 +8,7 @@ import {
 	TFile,
 	TFolder,
 	type App,
+	type Menu,
 } from "obsidian";
 import { setIcon } from "../glyphs";
 import { hearthMenu, HearthModal } from "../uidesign";
@@ -117,7 +118,7 @@ interface KanbanColumn {
 
 // ---- Tasks ---------------------------------------------------------------
 
-interface TaskHit {
+export interface TaskHit {
 	file: TFile;
 	/** Line index for checkbox tasks; -1 for TaskNotes tasks (whole-file, no
 	 * single line to jump to or toggle in place). */
@@ -195,7 +196,7 @@ function defaultCheckboxStatuses(): { symbol: string; label: string; done?: bool
 
 /** The card's configured checkbox statuses, or the default set. Blank/malformed
  * entries are dropped; a status without a label falls back to its symbol. */
-function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; done?: boolean }[] {
+export function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; done?: boolean }[] {
 	const custom = (cfg.checkboxStatuses ?? [])
 		.filter((s) => s && typeof s.symbol === "string" && s.symbol.length === 1)
 		.map((s) => ({ symbol: s.symbol, label: (s.label || "").trim() || s.symbol, done: !!s.done }));
@@ -212,7 +213,7 @@ function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; do
 const expressiveConfigs = new WeakMap<TasksConfig, boolean>();
 
 /** Whether dialogs opened for this config should wear the Expressive design. */
-function tasksExpressive(cfg: TasksConfig): boolean {
+export function tasksExpressive(cfg: TasksConfig): boolean {
 	return expressiveConfigs.get(cfg) === true;
 }
 
@@ -228,7 +229,7 @@ export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLEleme
 /** Resolve TaskNotes' "create new task" command id. Prefer a live lookup (the
  * plugin's command ids have shifted between versions) and fall back to the
  * conventional id. */
-function taskNotesCreateCommandId(view: HomeView): string {
+export function taskNotesCreateCommandId(view: HomeView): string {
 	const commands = view.app.commands.listCommands();
 	const match =
 		commands.find((c) => /^tasknotes[:.]/i.test(c.id) && /create.*task/i.test(c.name)) ??
@@ -260,7 +261,7 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
  * quick-add into the first column). When the card has a title the controls dock
  * into its title header; otherwise they float over the card's top-right corner. */
 /** Distinct filter values gathered from the card's full task set. */
-interface TaskFilterChoices {
+export interface TaskFilterChoices {
 	source: string;
 	statuses: string[];
 	contexts: string[];
@@ -327,7 +328,7 @@ function resolveTaskActionsHost(view: HomeView, container: HTMLElement): HTMLEle
 /** A short, human-readable label for a recurrence rule (e.g. "FREQ=WEEKLY;
  * INTERVAL=2" → "Repeats weekly"). Returns null if the rule is empty or
  * unparseable. */
-function recurrenceLabel(rule: string | undefined): string | null {
+export function recurrenceLabel(rule: string | undefined): string | null {
 	if (!rule) return null;
 	const r = rule.replace(/^RRULE:/i, "");
 	const freq = /FREQ=([A-Z]+)/i.exec(r)?.[1]?.toLowerCase();
@@ -350,7 +351,7 @@ function recurrenceLabel(rule: string | undefined): string | null {
 
 /** The date used for display/sorting — `due` wins, but recurring tasks use
  * `scheduled` (the next occurrence) since they have no fixed due date. */
-function effectiveDate(hit: TaskHit): string | null {
+export function effectiveDate(hit: TaskHit): string | null {
 	return hit.due ?? hit.scheduled ?? null;
 }
 
@@ -359,7 +360,7 @@ function effectiveDate(hit: TaskHit): string | null {
  * label ("Today", "Tomorrow", "Yesterday", "Friday", "Next Friday", "15 Jul").
  * Recurring tasks append a ↻ symbol so the date isn't mistaken for a one-off
  * and the user knows it's the next occurrence. */
-function formatDueLabel(hit: TaskHit): string | null {
+export function formatDueLabel(hit: TaskHit): string | null {
 	const raw = hit.recurrence ? hit.due ?? hit.scheduled : hit.due;
 	if (!raw) return hit.recurrence ? "↻" : null;
 	const tail = hit.recurrence ? " ↻" : "";
@@ -460,7 +461,7 @@ function renderStatusChip(
 
 
 /** The date a date source reads off a task. */
-function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
+export function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
 	if (id === "start") return hit.start ?? null;
 	if (id === "scheduled") return hit.scheduled;
 	if (id === "doneDate") return hit.doneDate ?? null;
@@ -1052,7 +1053,7 @@ function builtinSourceValues(hit: TaskHit, id: TaskBuiltinSource): string[] {
 
 
 /** The raw values a key holds for a task, before any mapping. */
-function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
+export function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
 	const builtin = sourceBuiltin(source);
 	if (builtin) return builtinSourceValues(hit, builtin);
 	const property = sourceProperty(source);
@@ -1201,7 +1202,7 @@ function renderTaskDescription(parent: HTMLElement, description: string): void {
  * repeat marks) is managed — parsed for display/sorting and written on edits.
  * Kanban cards (identified by `boardColumn`) follow `kanbanExtended` (off by
  * default); plain checkboxes follow `checkboxExtended` (on by default). */
-function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
+export function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
 }
 
@@ -1225,9 +1226,9 @@ function compareSmart(a: TaskHit, b: TaskHit): number {
 
 /** A chosen sort key + direction. An absent `key` means "smart" (the default
  * chain); an absent `reverse` means ascending. */
-type SortKey = NonNullable<TasksConfig["sortKey"]>;
+export type SortKey = NonNullable<TasksConfig["sortKey"]>;
 
-interface SortState {
+export interface SortState {
 	key?: SortKey;
 	reverse?: boolean;
 }
@@ -1237,7 +1238,7 @@ interface SortState {
  * tasks always come before completed ones (so "show completed" adds them below
  * rather than crowding out open work); within each group the chosen key
  * applies, and `reverse` flips that key (not the incomplete/complete grouping). */
-function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void {
+export function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void {
 	const compare = (a: TaskHit, b: TaskHit): number => {
 		switch (key) {
 			case "due": {
@@ -1322,14 +1323,14 @@ function hasCustomSort(cfg: TasksConfig): boolean {
 
 /** Sort tasks by the card's persistent (whole-list) sort setting: the custom
  * rule list when set, otherwise the single sort key + direction. */
-function sortTasks(hits: TaskHit[], cfg: TasksConfig): void {
+export function sortTasks(hits: TaskHit[], cfg: TasksConfig): void {
 	if (hasCustomSort(cfg)) sortHitsByRules(hits, cfg.sortRules as TaskSortRule[]);
 	else sortHits(hits, cfg.sortKey ?? "smart", !!cfg.sortReverse);
 }
 
 
 /** Available sort keys, in the order shown in the sort menu. */
-const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "priority", "created", "alpha"];
+export const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "priority", "created", "alpha"];
 
 
 /** A minimalistic sort control: a small button that opens a menu to pick a sort
@@ -1397,10 +1398,6 @@ function renderTaskListSortControl(
 	const custom = hasCustomSort(cfg);
 	const active: SortKey = cfg.sortKey ?? "smart";
 	const labels = t().cards.tasks.sortLabels;
-	const persist = () => {
-		void view.plugin.saveData(view.plugin.settings);
-		refresh();
-	};
 
 	const btn = parent.createEl("button", {
 		cls: "hearth-tasks-sort",
@@ -1416,50 +1413,64 @@ function renderTaskListSortControl(
 
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		const menu = hearthMenu();
-		for (const key of TASK_SORT_KEYS) {
-			menu.addItem((item) =>
-				item
-					.setTitle(labels[key])
-					.setChecked(!custom && active === key)
-					.onClick(() => {
-						cfg.sortRules = undefined;
-						cfg.sortKey = key === "smart" ? undefined : key;
-						persist();
-					}),
-			);
-		}
-		// Reverse applies to the simple key sort; hidden while a custom sort (which
-		// carries its own per-rule directions) is active.
-		if (!custom) {
-			menu.addSeparator();
-			menu.addItem((item) =>
-				item
-					.setTitle(t().cards.tasks.sortReverse)
-					.setChecked(!!cfg.sortReverse)
-					.setIcon("arrow-down-up")
-					.onClick(() => {
-						cfg.sortReverse = cfg.sortReverse ? undefined : true;
-						persist();
-					}),
-			);
-		}
+		taskSortMenu(view, cfg, availableStatuses, refresh).showAtMouseEvent(e);
+	});
+}
+
+
+/** The list's sort menu: the simple sorts, reverse, and the custom-sort
+ * dialog. Shared by the sort button and terminal mode's `s`. */
+export function taskSortMenu(view: HomeView, cfg: TasksConfig, availableStatuses: string[], refresh: () => void): Menu {
+	const custom = hasCustomSort(cfg);
+	const active: SortKey = cfg.sortKey ?? "smart";
+	const labels = t().cards.tasks.sortLabels;
+	const persist = () => {
+		void view.plugin.saveData(view.plugin.settings);
+		refresh();
+	};
+	const menu = hearthMenu();
+	for (const key of TASK_SORT_KEYS) {
+		menu.addItem((item) =>
+			item
+				.setTitle(labels[key])
+				.setChecked(!custom && active === key)
+				.onClick(() => {
+					cfg.sortRules = undefined;
+					cfg.sortKey = key === "smart" ? undefined : key;
+					persist();
+				}),
+		);
+	}
+	// Reverse applies to the simple key sort; hidden while a custom sort (which
+	// carries its own per-rule directions) is active.
+	if (!custom) {
 		menu.addSeparator();
 		menu.addItem((item) =>
 			item
-				.setTitle(t().cards.tasks.sortCustomOption)
-				.setChecked(custom)
-				.setIcon("list-ordered")
+				.setTitle(t().cards.tasks.sortReverse)
+				.setChecked(!!cfg.sortReverse)
+				.setIcon("arrow-down-up")
 				.onClick(() => {
-					const modal = new TaskSortModal(view.app, cfg.sortRules ?? [], availableStatuses, (rules) => {
-						cfg.sortRules = rules.length ? rules : undefined;
-						persist();
-					});
-					dressModal(modal, tasksExpressive(cfg)).open();
+					cfg.sortReverse = cfg.sortReverse ? undefined : true;
+					persist();
 				}),
 		);
-		menu.showAtMouseEvent(e);
-	});
+	}
+	menu.addSeparator();
+	menu.addItem((item) =>
+		item
+			.setTitle(t().cards.tasks.sortCustomOption)
+			.setChecked(custom)
+			.setIcon("list-ordered")
+			.onClick(() => {
+				const modal = new TaskSortModal(view.app, cfg.sortRules ?? [], availableStatuses, (rules) => {
+					cfg.sortRules = rules.length ? rules : undefined;
+					persist();
+				});
+				dressModal(modal, tasksExpressive(cfg)).open();
+			}),
+	);
+	return menu;
 }
 
 
@@ -1609,7 +1620,7 @@ class TaskSortModal extends HearthModal {
  * options don't shift as the filter narrows the visible list. `statusOrder`
  * lists status values in their configured order (checkbox states), so their
  * chips follow it instead of the order the tasks happen to be sorted in. */
-function collectTaskFilterChoices(hits: TaskHit[], source: string, statusOrder?: string[]): TaskFilterChoices {
+export function collectTaskFilterChoices(hits: TaskHit[], source: string, statusOrder?: string[]): TaskFilterChoices {
 	const statuses: string[] = [];
 	const contexts: string[] = [];
 	const projects: string[] = [];
@@ -1676,13 +1687,20 @@ function renderTaskFilterControl(
 	if (isTaskFilterActive(cfg.taskFilter)) btn.addClass("is-active");
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		const modal = new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
-			cfg.taskFilter = isTaskFilterActive(next) ? next : undefined;
-			void view.plugin.saveData(view.plugin.settings);
-			refresh();
-		});
-		dressModal(modal, tasksExpressive(cfg)).open();
+		openTaskFilter(view, cfg, filterChoices, refresh);
 	});
+}
+
+
+/** Open the filter dialog for a tasks card. Shared by the filter button and
+ * terminal mode's `f`. */
+export function openTaskFilter(view: HomeView, cfg: TasksConfig, filterChoices: TaskFilterChoices, refresh: () => void): void {
+	const modal = new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
+		cfg.taskFilter = isTaskFilterActive(next) ? next : undefined;
+		void view.plugin.saveData(view.plugin.settings);
+		refresh();
+	});
+	dressModal(modal, tasksExpressive(cfg)).open();
 }
 
 
@@ -1990,29 +2008,39 @@ class TaskFilterModal extends HearthModal {
 }
 
 
-async function loadAndRenderTasks(
-	view: HomeView,
-	cfg: TasksConfig,
-	container: HTMLElement,
-	refresh: () => void,
-): Promise<void> {
-	container.empty();
+/** What a tasks card has to show: its tasks and what came with them, or the
+ * message explaining why it has none to show. Shared by the graphical card and
+ * its terminal-mode text form. */
+export type TaskLoad =
+	| { kind: "message"; icon: string; text: string }
+	| {
+			kind: "ok";
+			source: string;
+			/** Every task, sorted, before the list's filter and cap. */
+			hits: TaskHit[];
+			/** The Kanban board's columns, in board order (Kanban source only). */
+			boardColumns?: string[];
+			filterChoices: TaskFilterChoices;
+			today: string;
+			/** The status a reopened TaskNotes task goes back to: the first open
+			 * status present, else none. */
+			openStatus: string;
+	  };
+
+/** Collect and sort a card's tasks from its source. */
+export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskLoad> {
 	const source = cfg.source ?? "checkbox";
 
 	let hits: TaskHit[];
 	let boardColumns: string[] | undefined;
 	if (source === "tasknotes") {
 		if (!view.app.plugins.enabledPlugins.has(TASKNOTES_PLUGIN_ID)) {
-			emptyState(container, "list-todo", t().cards.empty.tasksEnable);
-			return;
+			return { kind: "message", icon: "list-todo", text: t().cards.empty.tasksEnable };
 		}
 		hits = collectTaskNotesTasks(view, cfg);
 	} else if (source === "kanban") {
 		const board = await collectKanbanTasks(view, cfg);
-		if (!board.file) {
-			emptyState(container, "list-todo", t().cards.empty.kanbanNoBoard);
-			return;
-		}
+		if (!board.file) return { kind: "message", icon: "list-todo", text: t().cards.empty.kanbanNoBoard };
 		hits = board.hits;
 		boardColumns = board.columns.map((c) => c.heading);
 	} else {
@@ -2031,31 +2059,106 @@ async function loadAndRenderTasks(
 		source === "checkbox" ? checkboxStatuses(cfg).map((s) => s.label) : undefined,
 	);
 
-	if (cfg.layout === "kanban") {
-		// The board filters the same way the list does — the columns stay, their
-		// cards thin out — so a filter set in one layout still means the same
-		// thing after switching to the other.
-		const cards = isTaskFilterActive(cfg.taskFilter)
-			? hits.filter((h) => taskMatchesFilter(asTaskFilterHit(h), cfg.taskFilter as TaskFilterConfig, today))
-			: hits;
-		// The filter control (and TaskNotes' quick-add) sit top-right over the
-		// board, revealed on hover — as they are in the list layout. Sorting is
-		// per column and handled inside renderTaskKanban.
-		const actions = resolveTaskActionsHost(view, container);
-		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
-		if (source === "tasknotes") taskNotesAddButton(view, actions);
-		renderTaskKanban(view, cfg, cards, container, refresh, boardColumns);
-		return;
-	}
+	// The card's "open" status for TaskNotes tasks: the first non-done status
+	// value present. Used when a list checkbox reopens a completed task, so it
+	// returns to a real open status (e.g. "open") rather than being cleared.
+	// Falls back to empty (no status = open) when the card has none to offer.
+	const openStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
+	return { kind: "ok", source, hits, boardColumns, filterChoices, today, openStatus };
+}
 
-	// List layout: hide completed unless asked, apply any active filter, then cap.
+/** The board layout's cards: every task, thinned by the card's filter. The
+ * columns stay whatever the filter does, so a filter set in one layout still
+ * means the same thing after switching to the other. */
+export function boardTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
+	return isTaskFilterActive(cfg.taskFilter)
+		? hits.filter((h) => taskMatchesFilter(asTaskFilterHit(h), cfg.taskFilter as TaskFilterConfig, today))
+		: hits;
+}
+
+/** The list layout's tasks: completed ones hidden unless asked for, the
+ * card's filter applied, then capped to the card's count. */
+export function listTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
 	let list = cfg.showCompleted ? hits : hits.filter((h) => !h.done);
 	if (isTaskFilterActive(cfg.taskFilter)) {
 		const filter = cfg.taskFilter as TaskFilterConfig;
 		list = list.filter((h) => taskMatchesFilter(asTaskFilterHit(h), filter, today));
 	}
 	const limit = cfg.count && cfg.count > 0 ? cfg.count : 10;
-	list = list.slice(0, limit);
+	return list.slice(0, limit);
+}
+
+/** Whether a task's box is ticked: a recurring task shows today's occurrence,
+ * every other task its own done state. */
+export function taskChecked(cfg: TasksConfig, hit: TaskHit, today: string): boolean {
+	// The same branches, in the same order, as the checkbox `renderTaskRow` draws.
+	if (hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) return (hit.completeInstances ?? []).includes(today);
+	if (hit.line >= 0 && hit.recurrence && taskMetaEnabled(cfg, hit)) return hit.doneDate === today;
+	if (hit.line >= 0) return hit.done;
+	if (hit.recurrence) return (hit.completeInstances ?? []).includes(today);
+	return hit.done;
+}
+
+/**
+ * Tick or untick a task the way its list checkbox does, whatever its source:
+ * a recurring task completes (or reopens) today's occurrence, a line task
+ * toggles its checkbox (keeping the ✅ date in step where metadata is managed),
+ * and a TaskNotes task moves between its done status and `openStatus`.
+ */
+export function toggleTask(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	today: string,
+	openStatus: string,
+	refresh: () => void,
+): void {
+	const onDisk = (ok: boolean) => {
+		if (!ok) new Notice(t().notices.taskChangedOnDisk);
+		refresh();
+	};
+	if (hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) {
+		const done = (hit.completeInstances ?? []).includes(today);
+		void (done ? uncompleteRecurringInstance(view, hit, hit.linkedFile) : completeRecurringInstance(view, hit, hit.linkedFile)).then(refresh);
+	} else if (hit.line >= 0 && hit.recurrence && taskMetaEnabled(cfg, hit)) {
+		void setLineRecurringInstanceDone(view, hit, hit.doneDate !== today).then(onDisk);
+	} else if (hit.line >= 0) {
+		void setKanbanCardDone(view, hit, !hit.done, taskMetaEnabled(cfg, hit)).then(onDisk);
+	} else if (hit.recurrence) {
+		const done = (hit.completeInstances ?? []).includes(today);
+		void (done ? uncompleteRecurringInstance(view, hit) : completeRecurringInstance(view, hit)).then(refresh);
+	} else {
+		const value = hit.done ? openStatus : doneWriteValue(view, cfg);
+		void setTaskNotesStatus(view, cfg, hit, value).then(refresh);
+	}
+}
+
+async function loadAndRenderTasks(
+	view: HomeView,
+	cfg: TasksConfig,
+	container: HTMLElement,
+	refresh: () => void,
+): Promise<void> {
+	container.empty();
+	const load = await loadTasks(view, cfg);
+	if (load.kind === "message") {
+		emptyState(container, load.icon, load.text);
+		return;
+	}
+	const { source, hits, boardColumns, filterChoices, today, openStatus } = load;
+
+	if (cfg.layout === "kanban") {
+		// The filter control (and TaskNotes' quick-add) sit top-right over the
+		// board, revealed on hover — as they are in the list layout. Sorting is
+		// per column and handled inside renderTaskKanban.
+		const actions = resolveTaskActionsHost(view, container);
+		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
+		if (source === "tasknotes") taskNotesAddButton(view, actions);
+		renderTaskKanban(view, cfg, boardTasks(cfg, hits, today), container, refresh, boardColumns);
+		return;
+	}
+
+	const list = listTasks(cfg, hits, today);
 
 	// The list's sort/filter/add controls — docked into the card's title header
 	// when it has one, otherwise floating over the card's corner. Rendered even
@@ -2067,12 +2170,6 @@ async function loadAndRenderTasks(
 		emptyState(container, "list-todo", empty);
 		return;
 	}
-
-	// The card's "open" status for TaskNotes tasks: the first non-done status
-	// value present. Used when a list checkbox reopens a completed task, so it
-	// returns to a real open status (e.g. "open") rather than being cleared.
-	// Falls back to empty (no status = open) when the card has none to offer.
-	const openStatus = hits.find((h) => !h.done && h.status)?.status ?? "";
 
 	const listEl = container.createDiv("hearth-list hearth-tasks");
 	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh, openStatus);
@@ -2159,19 +2256,54 @@ function renderTaskRow(
  * For checkbox tasks the columns are To do / Done; for TaskNotes they're the
  * distinct status values (plus the configured "done" value). Dropping a task in
  * a column writes the new state back to the file. */
-function renderTaskKanban(
+/** One column of a tasks board. */
+export interface TaskBoardColumn {
+	key: string;
+	label: string;
+	hits: TaskHit[];
+	statusSymbol?: string;
+	statusDone?: boolean;
+}
+
+/**
+ * A tasks card's board: its columns — board headings, checkbox statuses or
+ * TaskNotes statuses, in the user's order and with their cards sorted — and
+ * everything that can be done to them. Built once per draw; shared by the
+ * graphical board and terminal mode's text board, so both move a card, hide a
+ * column or mark a done column the same way.
+ */
+export interface TaskBoard {
+	source: string;
+	/** Every column, hidden ones included, in display order. */
+	columns: TaskBoardColumn[];
+	/** The columns shown. */
+	visible: TaskBoardColumn[];
+	/** Kanban-source columns that complete the cards landing in them. */
+	doneColumns: Set<string>;
+	/** Move a card into a column and write the change back. */
+	moveTo: (hit: TaskHit, col: TaskBoardColumn) => void;
+	/** Put column `fromKey` where `toKey` is. */
+	reorder: (fromKey: string, toKey: string) => void;
+	hideColumn: (key: string) => void;
+	toggleDoneColumn: (col: TaskBoardColumn) => void;
+	/** A column's own sort override, when it has one. */
+	columnSort: (col: TaskBoardColumn) => SortState;
+	setColumnSort: (col: TaskBoardColumn, next: SortState) => void;
+}
+
+export function taskBoard(
 	view: HomeView,
 	cfg: TasksConfig,
 	hits: TaskHit[],
-	container: HTMLElement,
 	refresh: () => void,
 	boardColumns?: string[],
-): void {
+): TaskBoard {
+
 	const source = cfg.source ?? "checkbox";
 	const doneValue = taskNotesDoneValue(view.plugin.settings, cfg);
 
 	// Build the ordered list of columns and assign each hit to one.
-	interface Column { key: string; label: string; hits: TaskHit[]; statusSymbol?: string; statusDone?: boolean }
+	type Column = TaskBoardColumn;
 	const columns: Column[] = [];
 	const columnFor = new Map<string, Column>();
 	const ensure = (key: string, label: string): Column => {
@@ -2283,7 +2415,6 @@ function renderTaskKanban(
 		} else refresh();
 	};
 
-	const board = container.createDiv("hearth-kanban");
 	const today: string = moment().format("YYYY-MM-DD");
 
 	// Move a dragged task into a target column and persist the change.
@@ -2327,7 +2458,6 @@ function renderTaskKanban(
 	// card's global sort when it has no override of its own.
 	const globalKey: SortKey = cfg.sortKey ?? "smart";
 	const globalReverse = !!cfg.sortReverse;
-
 	for (const col of visible) {
 		const colSort = cfg.kanbanColumnSort?.[col.key] ?? {};
 		// A column with its own override sorts by that; otherwise it follows the
@@ -2337,6 +2467,45 @@ function renderTaskKanban(
 		} else {
 			sortTasks(col.hits, cfg);
 		}
+	}
+
+	return {
+		source,
+		columns,
+		visible,
+		doneColumns,
+		moveTo,
+		reorder,
+		hideColumn,
+		toggleDoneColumn,
+		columnSort: (col) => cfg.kanbanColumnSort?.[col.key] ?? {},
+		setColumnSort: (col, next) => {
+			const map = { ...(cfg.kanbanColumnSort ?? {}) };
+			if (!next.key && !next.reverse) delete map[col.key];
+			else map[col.key] = next;
+			cfg.kanbanColumnSort = Object.keys(map).length ? map : undefined;
+			persist();
+			refresh();
+		},
+	};
+}
+
+
+function renderTaskKanban(
+	view: HomeView,
+	cfg: TasksConfig,
+	hits: TaskHit[],
+	container: HTMLElement,
+	refresh: () => void,
+	boardColumns?: string[],
+): void {
+	const model = taskBoard(view, cfg, hits, refresh, boardColumns);
+	const { source, visible, doneColumns, moveTo, reorder, hideColumn, toggleDoneColumn } = model;
+	const today: string = moment().format("YYYY-MM-DD");
+	const board = container.createDiv("hearth-kanban");
+
+	for (const col of visible) {
+		const colSort = model.columnSort(col);
 
 		const colEl = board.createDiv("hearth-kanban-col");
 		colEl.toggleClass("is-done-col", doneColumns.has(col.key) || !!col.statusDone);
@@ -2354,14 +2523,7 @@ function renderTaskKanban(
 		head.createSpan({ cls: "hearth-kanban-col-count", text: String(col.hits.length) });
 		// Per-column sort control (icon-only). Writes into kanbanColumnSort under
 		// this column's key; clearing back to Smart/forward removes the override.
-		renderTaskSortControl(head, colSort, true, (next) => {
-			const map = { ...(cfg.kanbanColumnSort ?? {}) };
-			if (!next.key && !next.reverse) delete map[col.key];
-			else map[col.key] = next;
-			cfg.kanbanColumnSort = Object.keys(map).length ? map : undefined;
-			persist();
-			refresh();
-		});
+		renderTaskSortControl(head, colSort, true, (next) => model.setColumnSort(col, next));
 		// Kanban source: toggle whether this column auto-completes its cards.
 		if (source === "kanban") {
 			const isDoneCol = doneColumns.has(col.key);
@@ -3274,7 +3436,7 @@ function taskNotesFieldName(
 /** The single status value counted as complete: the card's own override, then
  * the global done value, then "done". Only consulted when the card lists no
  * `taskNotesDoneStatuses` of its own. */
-function taskNotesDoneValue(settings: HomeSettings, cfg: TasksConfig | null): string {
+export function taskNotesDoneValue(settings: HomeSettings, cfg: TasksConfig | null): string {
 	return cfg?.taskNotesDoneValue?.trim() || settings.taskNotesDoneValue.trim() || "done";
 }
 
@@ -3846,7 +4008,7 @@ function withEmojiDate(text: string, emoji: string, date: string | null): string
  * the next occurrence — so it reads as done today and resets to open on its next
  * date. Un-completing removes today's ✅ and rolls the reference date back to
  * today. Bails (false) when the stored line no longer matches. */
-async function setLineRecurringInstanceDone(
+export async function setLineRecurringInstanceDone(
 	view: HomeView,
 	hit: TaskHit,
 	done: boolean,
@@ -3924,7 +4086,7 @@ export async function setCheckboxTaskDone(
 /** Flip a Kanban card's checkbox to `done` in place, and — in extended mode —
  * add/remove its ✅ done date to match. Bails (false) if the stored line no
  * longer matches the card. */
-async function setKanbanCardDone(
+export async function setKanbanCardDone(
 	view: HomeView,
 	hit: TaskHit,
 	done: boolean,
@@ -3997,7 +4159,7 @@ async function moveKanbanCard(
 /** Append a new card under `heading` in the configured board note, checked when
  * `markDone` (the target is a "done column") and unchecked otherwise. Any
  * `description` is written as plain-text sub-bullets under the card. */
-async function addKanbanCard(
+export async function addKanbanCard(
 	view: HomeView,
 	cfg: TasksConfig,
 	heading: string,
@@ -4131,64 +4293,76 @@ function attachKanbanCardMenu(
 	el.addEventListener("contextmenu", (e) => {
 		e.preventDefault();
 		e.stopPropagation();
-		const menu = hearthMenu();
-		if (canEditMeta) {
-			menu.addItem((item) =>
-				item
-					.setTitle(t().cards.tasks.editMetadata)
-					.setIcon("calendar-clock")
-					.onClick(() => {
-						const current: TaskMeta = {
-							priority: priorityKey(hit.priority),
-							tags: hit.linkedFile
-								? noteFrontmatterTags(view.app, hit.linkedFile)
-								: (hit.tags ?? []),
-							recurrence: hit.recurrence ?? "",
-							start: hit.start ?? "",
-							scheduled: hit.scheduled ?? "",
-							due: hit.due ?? "",
-						};
-						// A linked card's description lives in its note, so only its
-						// metadata (frontmatter) is editable here; a card or checkbox on a
-						// line of its own edits both.
-						const ownsLines = hit.line >= 0 && !hit.linkedFile;
-						const modal = new TaskMetadataModal(view.app, current, hit.description ?? "", ownsLines, (meta, description) => {
-							void setKanbanCardMetadata(view, hit, meta, description).then((ok) => {
-								if (!ok) new Notice(t().notices.taskChangedOnDisk);
-								refresh();
-							});
-						});
-						dressModal(modal, tasksExpressive(cfg)).open();
-					}),
-			);
-		}
-		if (isKanban) {
-			// A card already linked to a note has nothing to convert.
-			if (!hit.linkedFile) {
-				menu.addItem((item) =>
-					item
-						.setTitle(t().cards.tasks.convertToNote)
-						.setIcon("file-output")
-						.onClick(() => void convertKanbanCardToNote(view, cfg, hit).then(refresh)),
-				);
-			}
-			// Deleting stands apart from the rest, when there is a rest.
-			if (canEditMeta || !hit.linkedFile) menu.addSeparator();
-			menu.addItem((item) =>
-				item
-					.setTitle(t().cards.tasks.deleteCard)
-					.setIcon("trash-2")
-					.setWarning(true)
-					.onClick(() => {
-						void deleteKanbanCard(view, hit).then((ok) => {
+		taskMenu(view, cfg, hit, refresh)?.showAtMouseEvent(e);
+	});
+}
+
+
+/** A line task's menu: edit its metadata where the marks are managed, and for
+ * a Kanban card convert or delete it. Null when there is nothing to offer (a
+ * plain checkbox with metadata off). Shared by the graphical card's right-click
+ * and terminal mode's. */
+export function taskMenu(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Menu | null {
+	const isKanban = !!hit.boardColumn;
+	const canEditMeta = taskMetaEnabled(cfg, hit);
+	if (!canEditMeta && !isKanban) return null;
+	const menu = hearthMenu();
+	if (canEditMeta) {
+		menu.addItem((item) =>
+			item
+				.setTitle(t().cards.tasks.editMetadata)
+				.setIcon("calendar-clock")
+				.onClick(() => {
+					const current: TaskMeta = {
+						priority: priorityKey(hit.priority),
+						tags: hit.linkedFile
+							? noteFrontmatterTags(view.app, hit.linkedFile)
+							: (hit.tags ?? []),
+						recurrence: hit.recurrence ?? "",
+						start: hit.start ?? "",
+						scheduled: hit.scheduled ?? "",
+						due: hit.due ?? "",
+					};
+					// A linked card's description lives in its note, so only its
+					// metadata (frontmatter) is editable here; a card or checkbox on a
+					// line of its own edits both.
+					const ownsLines = hit.line >= 0 && !hit.linkedFile;
+					const modal = new TaskMetadataModal(view.app, current, hit.description ?? "", ownsLines, (meta, description) => {
+						void setKanbanCardMetadata(view, hit, meta, description).then((ok) => {
 							if (!ok) new Notice(t().notices.taskChangedOnDisk);
 							refresh();
 						});
-					}),
+					});
+					dressModal(modal, tasksExpressive(cfg)).open();
+				}),
+		);
+	}
+	if (isKanban) {
+		// A card already linked to a note has nothing to convert.
+		if (!hit.linkedFile) {
+			menu.addItem((item) =>
+				item
+					.setTitle(t().cards.tasks.convertToNote)
+					.setIcon("file-output")
+					.onClick(() => void convertKanbanCardToNote(view, cfg, hit).then(refresh)),
 			);
 		}
-		menu.showAtMouseEvent(e);
-	});
+		// Deleting stands apart from the rest, when there is a rest.
+		if (canEditMeta || !hit.linkedFile) menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle(t().cards.tasks.deleteCard)
+				.setIcon("trash-2")
+				.setWarning(true)
+				.onClick(() => {
+					void deleteKanbanCard(view, hit).then((ok) => {
+						if (!ok) new Notice(t().notices.taskChangedOnDisk);
+						refresh();
+					});
+				}),
+		);
+	}
+	return menu;
 }
 
 
@@ -4742,7 +4916,7 @@ async function setCheckboxSymbol(
 /** The status value written when a TaskNotes task is marked done: the card's
  * first configured "done" status when set (so a card treating both "done" and
  * "canceled" as complete writes "done"), otherwise the global done value. */
-function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
+export function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
 	const custom = (cfg.taskNotesDoneStatuses ?? []).map((v) => v.trim()).filter(Boolean);
 	return custom[0] ?? taskNotesDoneValue(view.plugin.settings, cfg);
 }
@@ -4776,7 +4950,7 @@ function renderTaskNotesCheckbox(
 	});
 }
 
-async function setTaskNotesStatus(
+export async function setTaskNotesStatus(
 	view: HomeView,
 	cfg: TasksConfig,
 	hit: TaskHit,
@@ -4879,7 +5053,7 @@ function nextRecurrenceDate(rule: string, fromDate: string): string | null {
  * kept sorted) and advance `scheduled` to the next occurrence derived from the
  * recurrence rule. The task's `status` is left untouched — a recurring task
  * stays open and just rolls forward to its next due date. */
-async function completeRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
+export async function completeRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
 	if (!hit.recurrence) return;
 	const today: string = moment().format("YYYY-MM-DD");
 	const next = nextRecurrenceDate(hit.recurrence, today);
@@ -4909,7 +5083,7 @@ async function completeRecurringInstance(view: HomeView, hit: TaskHit, targetFil
  * `complete_instances` and roll `scheduled` back to today (the occurrence we
  * just un-completed). Used when the user unchecks the box to cancel a
  * mistaken completion. */
-async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
+export async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
 	if (!hit.recurrence) return;
 	const today: string = moment().format("YYYY-MM-DD");
 	try {
@@ -5001,7 +5175,7 @@ function renderLineRecurringCheckbox(
 }
 
 
-async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
+export async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
 	// Line-based tasks (checkboxes / Kanban cards) open a compact quick-view by
 	// default — metadata + description with open-note / delete actions — instead
 	// of jumping straight into the file. TaskNotes tasks (whole-file, no line)
@@ -5018,7 +5192,7 @@ async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh:
 /** Open a task's underlying file: TaskNotes tasks in TaskNotes' own editor when
  * possible, otherwise the note, scrolled to the task's line for line-based
  * tasks. */
-async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
+export async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
 	// A card that links to a note opens that note directly (not the board line).
 	if (hit.linkedFile) {
 		await openFile(view, hit.linkedFile, "card");

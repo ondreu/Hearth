@@ -48,6 +48,9 @@ export interface Seg {
 	onMenu?: (evt: MouseEvent) => void;
 	/** Tooltip / accessible label for an interactive run whose text is terse. */
 	label?: string;
+	/** A colour of the user's own (a task field's, a calendar's) — any CSS
+	 * colour. Takes precedence over the style's colour. */
+	color?: string;
 }
 
 /** One row of the grid. */
