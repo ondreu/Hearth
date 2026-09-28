@@ -4366,6 +4366,7 @@ export const zh: Translations = {
 			mkDetailFoot: "[ ] 切换区间 · r 刷新 · Backspace 返回",
 			mkLookupFoot: "[ ] 切换区间 · Enter 选择",
 			mkResultsFoot: "Enter 查看 · 空格 添加到卡片",
+			gitFoot: "Enter 打开 · 空格 暂存 · Del 丢弃 · r 重新读取",
 		},
 		settings: {
 			name: "终端",

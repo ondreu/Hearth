@@ -4737,6 +4737,7 @@ export const en = {
 			mkDetailFoot: "[ ] range · r refresh · backspace back",
 			mkLookupFoot: "[ ] range · enter picks",
 			mkResultsFoot: "enter shows it · space adds it to the card",
+			gitFoot: "enter opens · space stages · del discards · r re-reads",
 		},
 		settings: {
 			name: "Terminal",

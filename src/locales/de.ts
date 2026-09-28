@@ -4737,6 +4737,7 @@ export const de: Translations = {
 			mkDetailFoot: "[ ] Zeitraum · r aktualisiert · Rücktaste zurück",
 			mkLookupFoot: "[ ] Zeitraum · Enter wählt",
 			mkResultsFoot: "Enter zeigt ihn · Leertaste fügt ihn der Karte hinzu",
+			gitFoot: "Enter öffnet · Leertaste stagt · Entf verwirft · r liest neu",
 		},
 		settings: {
 			name: "Terminal",
