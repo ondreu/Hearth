@@ -1,12 +1,13 @@
 import {
 	Setting,
 	getIconIds,
-	setIcon,
+	setIcon as obsidianSetIcon,
 	type App,
 	type FuzzyMatch,
 	type TextComponent,
 } from "obsidian";
 import { HearthFuzzySuggestModal } from "./uidesign";
+import { setIcon } from "./glyphs";
 import { t } from "./i18n";
 
 /**
@@ -88,10 +89,17 @@ export function resolveIconId(raw: string | undefined): string | null {
 
 /** Draw a stored icon value into `el`, or leave it empty when the value names
  * no icon Obsidian knows. Returns whether anything was drawn. */
-export function renderIcon(el: HTMLElement, raw: string | undefined): boolean {
+export function renderIcon(
+	el: HTMLElement,
+	raw: string | undefined,
+	opts: { real?: boolean } = {},
+): boolean {
 	const id = resolveIconId(raw);
 	if (!id) return false;
-	setIcon(el, id);
+	// Terminal mode draws icons as characters (src/glyphs.ts); the picker and
+	// its preview ask for the real icon, because showing it is their job.
+	if (opts.real) obsidianSetIcon(el, id);
+	else setIcon(el, id);
 	return true;
 }
 
@@ -133,7 +141,7 @@ export class LucideIconPickerModal extends HearthFuzzySuggestModal<string> {
 
 	renderSuggestion(match: FuzzyMatch<string>, el: HTMLElement): void {
 		el.addClass("hearth-icon-suggestion");
-		renderIcon(el.createSpan("hearth-icon-suggestion-icon"), match.item);
+		renderIcon(el.createSpan("hearth-icon-suggestion-icon"), match.item, { real: true });
 		el.createSpan({ cls: "hearth-icon-suggestion-name", text: match.item });
 	}
 
@@ -164,7 +172,7 @@ export function addIconPicker(
 	const apply = (next: string) => {
 		const trimmed = next.trim();
 		preview.empty();
-		preview.toggleClass("is-empty", !renderIcon(preview, trimmed));
+		preview.toggleClass("is-empty", !renderIcon(preview, trimmed, { real: true }));
 		onChange(trimmed);
 	};
 
@@ -197,6 +205,6 @@ export function addIconPicker(
 			}),
 	);
 
-	preview.toggleClass("is-empty", !renderIcon(preview, value));
+	preview.toggleClass("is-empty", !renderIcon(preview, value, { real: true }));
 	return setting;
 }

@@ -1,4 +1,5 @@
-import { Setting, setIcon } from "obsidian";
+import { type Menu, Setting } from "obsidian";
+import { setIcon } from "./glyphs";
 import { hearthMenu } from "./uidesign";
 import type { HomeView } from "./view";
 import {
@@ -197,13 +198,20 @@ export function openDashboardSettings(view: HomeView, dash: Dashboard): void {
  * itself, moving it in and out of the vault, and deleting it — so the one
  * destructive entry stands apart (an Expressive menu draws each group as a
  * container of its own). */
-function showDashboardMenu(
+export function showDashboardMenu(
 	view: HomeView,
 	dash: Dashboard,
 	evt: MouseEvent,
+	/** Entries a caller adds on top — terminal mode's tab bar puts moving a
+	 * board left and right here, since its tabs aren't draggable. */
+	extend?: (menu: Menu) => void,
 ): void {
 	const s = view.plugin.settings;
 	const menu = hearthMenu();
+	if (extend) {
+		extend(menu);
+		menu.addSeparator();
+	}
 
 	menu.addItem((item) =>
 		item

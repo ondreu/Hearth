@@ -1,4 +1,5 @@
-import { setIcon, type App, type Setting, type TextComponent, type TFile } from "obsidian";
+import { type App, type Setting, type TextComponent, type TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import { isImageFile, isImagePath } from "./filetypes";
 import { HEARTH_ICON_ID } from "./icon";
 import { LucideIconPickerModal, knownIconIds, pickIconId } from "./lucide";

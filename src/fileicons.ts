@@ -1,4 +1,5 @@
-import { setIcon, TFile, type App, type TAbstractFile } from "obsidian";
+import { TFile, type App, type TAbstractFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import { iconForFile } from "./filetypes";
 import { knownIconIds } from "./lucide";
 import { type HomeSettings } from "./types";

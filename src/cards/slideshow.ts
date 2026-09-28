@@ -1,4 +1,5 @@
-import { type App, Component, setIcon, Setting, TFile, TFolder } from "obsidian";
+import { type App, Component, Setting, TFile, TFolder } from "obsidian";
+import { setIcon } from "../glyphs";
 import { cardOverlayButton, emptyState } from "../cardbodies";
 import { moveItem } from "../editors";
 import { isImageFile } from "../filetypes";

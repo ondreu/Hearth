@@ -3,13 +3,13 @@ import {
 	ExtraButtonComponent,
 	MarkdownView,
 	Notice,
-	setIcon,
 	Setting,
 	TextComponent,
 	TFile,
 	TFolder,
 	type App,
 } from "obsidian";
+import { setIcon } from "../glyphs";
 import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";

@@ -46,13 +46,31 @@ import {
 	frostAllowed,
 	motionAllowed,
 	renderCards,
+	terminalModeActive,
 } from "./types";
 import { tabIconIdFor } from "./icon";
 import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
 import { stateDesign } from "./uidesign";
+import { TuiViewState } from "./tui/state";
+import type { TuiBoard } from "./tui/board";
+import { clearTerminalView, renderTerminalView } from "./tui/screen";
 
 export const VIEW_TYPE_HOME = "hearth-home-view";
+
+/** Root classes of the graphical build that terminal mode must not inherit
+ * from a previous render. */
+const TERMINAL_EXCLUDED_CLASSES = [
+	"hearth-compact",
+	"hearth-x-ui",
+	"hearth-no-motion",
+	"hearth-no-frost",
+	"hearth-hide-header",
+	"hearth-mobile-only",
+	"hearth-plugin-view",
+	"hearth-empty-board",
+	"hearth-has-banner",
+];
 
 /**
  * Take every open Hearth view out of arrange mode.
@@ -137,6 +155,14 @@ export class HomeView extends ItemView {
 	/** The restore chasing the remembered offset while this render's content
 	 * fills in, if one is still running. */
 	private scrollRestore: ScrollRestore | null = null;
+	/** What terminal mode remembers about this tab between renders: which card
+	 * has the keyboard, what is selected, each card's own state. */
+	readonly tui = new TuiViewState();
+	/** Terminal mode's board on this render, when terminal mode is on. */
+	tuiBoard: TuiBoard | null = null;
+	/** Put a message on terminal mode's status line (set by each terminal
+	 * render; absent in the graphical design). */
+	tuiSay: ((message: string) => void) | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: HearthPlugin) {
 		super(leaf);
@@ -415,6 +441,23 @@ export class HomeView extends ItemView {
 		const root = this.contentEl;
 		root.empty();
 		root.addClass("hearth-view");
+
+		// Terminal mode draws the whole view as text (src/tui/). It replaces
+		// everything below — the wallpaper, the frosted glass, the graphical
+		// board — rather than restyling it, so it takes its own path here.
+		if (terminalModeActive(this.plugin.settings) && !pluginBoard) {
+			for (const cls of TERMINAL_EXCLUDED_CLASSES) root.removeClass(cls);
+			this.narrowAtRender = this.isNarrow();
+			root.toggleClass("hearth-narrow", this.narrowAtRender);
+			root.toggleClass("hearth-phone-preview", this.phonePreview);
+			stateDesign(root, "classic");
+			renderTerminalView(this, root, child);
+			const tuiScroll = root.querySelector<HTMLElement>(".hearth-scroll");
+			if (tuiScroll) this.trackScroll(tuiScroll, child);
+			return;
+		}
+		clearTerminalView(this, root);
+		this.tuiSay = null;
 		root.toggleClass("hearth-compact", effectiveCompact(this.plugin.settings));
 		// The board's furniture — the toolbar, the dashboard switcher, the card
 		// buttons — in the board's design, and every dialog opened from the board

@@ -1,13 +1,13 @@
 import {
 	Component,
 	Notice,
-	setIcon,
 	Setting,
 	TFile,
 	TFolder,
 	type App,
 	type TAbstractFile,
 } from "obsidian";
+import { setIcon } from "./glyphs";
 import { hearthMenu, HearthModal } from "./uidesign";
 import {
 	createDailyNoteAt,

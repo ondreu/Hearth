@@ -1,4 +1,5 @@
-import { type Component, Platform, setIcon } from "obsidian";
+import { type Component, Platform } from "obsidian";
+import { setIcon } from "./glyphs";
 import { hearthMenu } from "./uidesign";
 import type { HomeView } from "./view";
 import { SearchSection } from "./search";

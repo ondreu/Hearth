@@ -1,4 +1,5 @@
-import { type Component, debounce, setIcon, Setting, TFile } from "obsidian";
+import { type Component, debounce, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { openFile } from "../opener";
 import { rowsThatFit } from "../recentfiles";

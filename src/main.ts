@@ -1,6 +1,7 @@
 import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
+import { installGlyphMode } from "./glyphs";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
-import { effectiveHiddenInstantAnswers, HomeSettings, hydrateSettings, timersAllowed } from "./types";
+import { effectiveHiddenInstantAnswers, HomeSettings, effectiveTerminalScheme, hydrateSettings, terminalModeActive, timersAllowed } from "./types";
 import { SearchTipsModal } from "./searchtips";
 import { HomeSettingTab } from "./settings";
 import {
@@ -99,7 +100,13 @@ export default class HearthPlugin extends Plugin {
 
 		// Hearth's dialogs and menus take the design of wherever they are opened
 		// from, which needs the last press remembered (see src/uidesign.ts).
-		installUiDesign(this, () => this.settings.cardDesign ?? "classic");
+		installUiDesign(
+			this,
+			() => this.settings.cardDesign ?? "classic",
+			() => (terminalModeActive(this.settings) ? effectiveTerminalScheme(this.settings) : null),
+		);
+		// Terminal mode draws Hearth's icons as characters (src/glyphs.ts).
+		installGlyphMode(() => terminalModeActive(this.settings));
 
 		// Register both Hearth crystals (brand purple and themeable) so either
 		// can be used as the ribbon, tab and header icon per the
@@ -496,6 +503,8 @@ export default class HearthPlugin extends Plugin {
 	/** Re-apply the tab icon to the ribbon and open tab headers after the tab
 	 * icon or themeColorTarget setting changes. */
 	refreshBrandIcons() {
+		// Obsidian's own icon, not the terminal glyph: the ribbon is Obsidian's
+		// chrome, not Hearth's.
 		if (this.ribbonEl) setIcon(this.ribbonEl, this.brandIconId());
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
 			// updateHeader is undocumented; when absent the tab icon simply

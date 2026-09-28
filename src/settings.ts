@@ -1,4 +1,5 @@
-import { type App, type ButtonComponent, debounce, Notice, Platform, PluginSettingTab, setIcon, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
+import { type App, type ButtonComponent, debounce, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { classicCardsInUse } from "./cards";
@@ -9,7 +10,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, effectiveTerminalFontSize, effectiveTerminalScheme, TERMINAL_FONT_SIZE_DEFAULT, TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, TERMINAL_SCHEMES, type TerminalScheme, terminalModeActive, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -40,7 +41,7 @@ import {
 import { CHANGELOG, WhatsNewModal } from "./whatsnew";
 import { openSetupWizard } from "./onboarding";
 import { t } from "./i18n";
-import { stateDesign } from "./uidesign";
+import { stateDesign, terminalSchemeClass } from "./uidesign";
 import { isWebSearchEngineId, WEB_SEARCH_ENGINES, webSearchEngine } from "./websearch";
 import { INSTANT_FEATURES } from "./instant";
 import { SearchTipsModal } from "./searchtips";
@@ -291,7 +292,15 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * dialog opened from the pane takes it too (src/uidesign.ts). */
 	private applyPaneDesign(containerEl: HTMLElement): void {
 		const design = this.plugin.settings.cardDesign ?? "classic";
-		containerEl.toggleClass("hearth-x-settings", design === "expressive");
+		// Terminal mode dresses the pane too — everything of Hearth's is in it
+		// while it's on — and takes precedence over the card design's look.
+		const scheme = terminalSchemeClass();
+		for (const cls of Array.from(containerEl.classList)) {
+			if (cls.startsWith("hearth-tui-scheme-")) containerEl.removeClass(cls);
+		}
+		containerEl.toggleClass("hearth-t-settings", scheme !== null);
+		if (scheme) containerEl.addClass(scheme);
+		containerEl.toggleClass("hearth-x-settings", design === "expressive" && scheme === null);
 		stateDesign(containerEl, design);
 	}
 
@@ -465,6 +474,11 @@ export class HomeSettingTab extends PluginSettingTab {
 		switch (tab) {
 			case "appearance":
 				this.designHero(body);
+				if (terminalModeActive(this.plugin.settings)) {
+					this.section(body, t().tui.settings.heading, t().tui.settings.headingDesc, (b) =>
+						this.terminalSection(b),
+					);
+				}
 				this.section(body, s.sections.performance, s.sections.performanceDesc, (b) =>
 					this.performanceSection(b),
 				);
@@ -2287,7 +2301,10 @@ export class HomeSettingTab extends PluginSettingTab {
 	private designHero(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
 		const strings = t().settings.dashboard;
-		const current = s.cardDesign ?? "classic";
+		// Terminal mode is the third choice here, but not a third card design:
+		// it's stored apart from `cardDesign`, which it leaves as it was, so
+		// switching back lands on whichever of the other two was in use.
+		const current = s.terminalMode ? "terminal" : (s.cardDesign ?? "classic");
 
 		const hero = containerEl.createDiv("hearth-design-hero");
 		const art = hero.createSvg("svg", {
@@ -2303,8 +2320,8 @@ export class HomeSettingTab extends PluginSettingTab {
 		head.createDiv({ cls: "hearth-design-hero-title", text: strings.cardDesign });
 		head.createDiv({ cls: "hearth-design-hero-desc", text: strings.cardDesignDesc });
 
-		const choices = hero.createDiv({ cls: "hearth-design-choices", attr: { role: "radiogroup" } });
-		for (const design of ["classic", "expressive"] as const) {
+		const choices = hero.createDiv({ cls: "hearth-design-choices has-three", attr: { role: "radiogroup" } });
+		for (const design of ["classic", "expressive", "terminal"] as const) {
 			const chosen = design === current;
 			const choice = choices.createDiv({
 				cls: ["hearth-design-choice", `is-${design}`],
@@ -2312,6 +2329,16 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			choice.toggleClass("is-chosen", chosen);
 
+			const name = design === "terminal" ? t().tui.settings.name : t().editors.design[design];
+			const desc =
+				design === "classic"
+					? strings.designClassicDesc
+					: design === "expressive"
+						? strings.designExpressiveDesc
+						: t().tui.settings.desc;
+			if (design === "terminal") {
+				this.terminalPreview(choice);
+			} else {
 			// A card in miniature, drawn the way this design draws one.
 			const preview = choice.createDiv("hearth-design-preview");
 			const card = preview.createDiv("hearth-design-preview-card");
@@ -2322,29 +2349,76 @@ export class HomeSettingTab extends PluginSettingTab {
 			const rows = preview.createDiv("hearth-design-preview-rows");
 			for (let i = 0; i < 3; i++) rows.createDiv("hearth-design-preview-row");
 			preview.createDiv("hearth-design-preview-button");
+			}
 
 			const label = choice.createDiv("hearth-design-choice-label");
-			const name = label.createDiv("hearth-design-choice-name");
-			name.createSpan({ text: t().editors.design[design] });
-			if (chosen) name.createSpan({ cls: "hearth-design-choice-badge", text: strings.designInUse });
-			label.createDiv({
-				cls: "hearth-design-choice-desc",
-				text: design === "classic" ? strings.designClassicDesc : strings.designExpressiveDesc,
-			});
+			const nameEl = label.createDiv("hearth-design-choice-name");
+			nameEl.createSpan({ text: name });
+			if (chosen) nameEl.createSpan({ cls: "hearth-design-choice-badge", text: strings.designInUse });
+			label.createDiv({ cls: "hearth-design-choice-desc", text: desc });
 
 			const pick = (): void => {
-				if (design === (s.cardDesign ?? "classic")) return;
-				// Classic, the default, is stored as absence.
-				s.cardDesign = design === "expressive" ? "expressive" : undefined;
+				if (design === current) return;
+				if (design === "terminal") {
+					s.terminalMode = true;
+				} else {
+					s.terminalMode = undefined;
+					// Classic, the default, is stored as absence.
+					s.cardDesign = design === "expressive" ? "expressive" : undefined;
+				}
 				this.save();
 				// The pane wears the switch itself, so it changes on the spot.
 				this.rerender();
 			};
-			makeClickable(choice, pick, t().editors.design[design]);
+			makeClickable(choice, pick, name);
 			// One of two, not a plain button: announced as the radio it is.
 			choice.setAttribute("role", "radio");
 			choice.addEventListener("click", pick);
 		}
+	}
+
+	/** Terminal mode's choice in the design hero: a card in miniature, drawn
+	 * the way terminal mode draws one — as text. */
+	private terminalPreview(choice: HTMLElement): void {
+		const preview = choice.createDiv("hearth-design-preview is-terminal");
+		for (const line of [
+			"┌─ Tasks ────── ≡─┐",
+			"│ [x] ship 3.4    │",
+			"│ [ ] review  tmrw│",
+			"└─────────────────┘",
+		]) {
+			preview.createDiv({ cls: "hearth-design-preview-tline", text: line });
+		}
+	}
+
+	/** Terminal mode's own settings: its colours and its size. Shown under the
+	 * design hero while terminal mode is on. */
+	private terminalSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().tui.settings;
+		new Setting(containerEl)
+			.setName(strings.scheme)
+			.setDesc(strings.schemeDesc)
+			.addDropdown((d) => {
+				for (const scheme of TERMINAL_SCHEMES) d.addOption(scheme, t().tui.schemes[scheme]);
+				d.setValue(effectiveTerminalScheme(s)).onChange((v) => {
+					s.terminalScheme = v === "theme" ? undefined : (v as TerminalScheme);
+					this.save();
+					this.rerender();
+				});
+			});
+		new Setting(containerEl)
+			.setName(strings.fontSize)
+			.setDesc(strings.fontSizeDesc)
+			.addSlider((sl) => {
+				sl.setLimits(TERMINAL_FONT_SIZE_MIN, TERMINAL_FONT_SIZE_MAX, 1)
+					.setValue(effectiveTerminalFontSize(s))
+					.onChange((v) => {
+						s.terminalFontSize = v === TERMINAL_FONT_SIZE_DEFAULT ? undefined : v;
+						this.save();
+					});
+			});
+		new Setting(containerEl).setName(strings.overrides).setDesc(strings.overridesDesc);
 	}
 
 	// ---- Layout import / export ----------------------------------------

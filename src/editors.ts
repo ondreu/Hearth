@@ -1,4 +1,5 @@
-import { Notice, Setting, setIcon, type App } from "obsidian";
+import { Notice, Setting, type App } from "obsidian";
+import { setIcon } from "./glyphs";
 import { CARD_KINDS, cardDefinition, resolveCardDesign } from "./cards";
 import { type CardEditorContext } from "./cards/definition";
 import { t } from "./i18n";

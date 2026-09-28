@@ -1,4 +1,5 @@
-import { Component, moment as createMoment, Notice, setIcon, Setting } from "obsidian";
+import { Component, moment as createMoment, Notice, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import { emptyState, feedHost } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";

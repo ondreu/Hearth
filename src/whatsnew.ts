@@ -1,4 +1,5 @@
-import { App, Component, MarkdownRenderer, setIcon, Setting } from "obsidian";
+import { App, Component, MarkdownRenderer, Setting } from "obsidian";
+import { setIcon } from "./glyphs";
 import { HearthModal } from "./uidesign";
 import changelogMarkdown from "../CHANGELOG.md";
 import {

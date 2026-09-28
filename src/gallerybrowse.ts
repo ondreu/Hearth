@@ -19,7 +19,8 @@
  *   at any more is discarded instead of overwriting the one they are.
  */
 
-import { Notice, Platform, setIcon } from "obsidian";
+import { Notice, Platform } from "obsidian";
+import { setIcon } from "./glyphs";
 import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import { t } from "./i18n";

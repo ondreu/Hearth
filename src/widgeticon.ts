@@ -1,4 +1,5 @@
-import { setIcon, setTooltip, TFile } from "obsidian";
+import { setTooltip, TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import type { HomeView } from "./view";
 import { isImageFile } from "./filetypes";
 import { t } from "./i18n";

@@ -2,8 +2,8 @@ import {
 	type Component,
 	requestUrl,
 	type RequestUrlParam,
-	setIcon,
 } from "obsidian";
+import { setIcon } from "./glyphs";
 import type { HomeView } from "./view";
 import {
 	type DashboardCard,

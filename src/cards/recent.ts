@@ -1,4 +1,5 @@
-import { type Component, setIcon, Setting, TFile } from "obsidian";
+import { type Component, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupForFile } from "../filetypes";

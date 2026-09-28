@@ -1,9 +1,9 @@
 import {
 	Component,
 	debounce,
-	setIcon,
 	type TAbstractFile,
 } from "obsidian";
+import { setIcon } from "./glyphs";
 import { emptyState, resetCardBody, setCardRedraw } from "./cardbodies";
 import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateCardMotionOnVisibility } from "./motion";
@@ -372,12 +372,16 @@ export function renderDashboard(
  *   tracked file always redraws (it flips between the content and the
  *   "missing file" state); for content edits (modify) read-only cards redraw
  *   while editable cards sync their textarea in place so the cursor is kept. */
-function mountCardBody(
+export function mountCardBody(
 	view: HomeView,
 	card: DashboardCard,
 	body: HTMLElement,
 	parent: Component,
 	events: VaultEventHub,
+	/** Draws the body in place of the kind's own `render` — how terminal mode
+	 * puts its text renderers under the same liveness as the graphical board
+	 * (src/tui/board.ts). */
+	renderBody?: (child: Component) => void,
 ): () => void {
 	const def = cardDefinition(card);
 	let child: Component | null = null;
@@ -391,7 +395,8 @@ function mountCardBody(
 		parent.addChild(child);
 		resetCardBody(body, baseClasses);
 		try {
-			def.render(view, card, body, child);
+			if (renderBody) renderBody(child);
+			else def.render(view, card, body, child);
 		} catch (err) {
 			// A card kind must not be able to take the board down with it. This
 			// call is *synchronous* inside renderDashboard's per-card loop, and
@@ -496,7 +501,7 @@ function watchCardFile(
 
 /** Save the current settings and rebuild the view (used after structural
  * changes like adding, removing or re-targeting a card). */
-function persistAndRender(view: HomeView): void {
+export function persistAndRender(view: HomeView): void {
 	void view.plugin.saveData(view.plugin.settings);
 	view.render();
 }
@@ -650,24 +655,12 @@ function renderCardControls(
 	});
 	setIcon(remove, "trash-2");
 	remove.addEventListener("pointerdown", (e) => e.stopPropagation());
-	remove.addEventListener("click", () => {
-		confirmAction(view.app, {
-			title: t().dashboard.removeCardTitle,
-			message: t().dashboard.removeCardMessage(
-				card.title?.trim() || t().dashboard.thisCard,
-			),
-			confirmText: t().dashboard.removeCardConfirm,
-			onConfirm: () => {
-				removeCard(view.plugin.settings, card);
-				persistAndRender(view);
-			},
-		});
-	});
+	remove.addEventListener("click", () => confirmRemoveCard(view, card));
 }
 
 /** Open the full settings editor for a single card, driven entirely from the
  * board so nothing has to be configured in the plugin settings tab. */
-function openCardSettings(view: HomeView, card: DashboardCard): void {
+export function openCardSettings(view: HomeView, card: DashboardCard): void {
 	const s = view.plugin.settings;
 	new CardSettingsModal(view.app, card, {
 		settings: s,
@@ -693,6 +686,47 @@ function openCardSettings(view: HomeView, card: DashboardCard): void {
 	}).open();
 }
 
+/** Open the "Add card" picker and put the chosen card into a free slot on the
+ * active board. Shared by the arrange toolbar and terminal mode's F7. The
+ * gallery entry is offered only where the caller has room for it. */
+export function openAddCard(view: HomeView, withGallery: boolean, onAdded?: (card: DashboardCard) => void): void {
+	openCardPicker(view.app, {
+		hearthVersion: view.plugin.manifest.version,
+		onGallery: withGallery && galleryConfigured(view.plugin) ? () => openGallery(view.plugin) : undefined,
+		onChoose: (template) => {
+			const s = view.plugin.settings;
+			const card = cardFromTemplate(template);
+			// Place the new card into a free slot in the current layout so
+			// it never shifts the cards already on the board (placeFreeform).
+			placeFreeform(
+				card,
+				renderCards(s),
+				effectiveMaxWidth(s),
+				effectiveColumns(s),
+				GRID_GAP,
+				effectiveRowHeight(s) || ROW_HEIGHT,
+			);
+			activeCards(s).push(card);
+			onAdded?.(card);
+			persistAndRender(view);
+		},
+	});
+}
+
+/** Confirm, then take `card` off the board. Shared by the arrange header's
+ * remove button and terminal mode's card menu. */
+export function confirmRemoveCard(view: HomeView, card: DashboardCard): void {
+	confirmAction(view.app, {
+		title: t().dashboard.removeCardTitle,
+		message: t().dashboard.removeCardMessage(card.title?.trim() || t().dashboard.thisCard),
+		confirmText: t().dashboard.removeCardConfirm,
+		onConfirm: () => {
+			removeCard(view.plugin.settings, card);
+			persistAndRender(view);
+		},
+	});
+}
+
 function renderToolbar(view: HomeView, container: HTMLElement): void {
 	const bar = container.createDiv("hearth-toolbar");
 	// Track arrange mode so the toolbar can switch between its compact and full controls.
@@ -703,30 +737,7 @@ function renderToolbar(view: HomeView, container: HTMLElement): void {
 		setIcon(add.createSpan("hearth-tool-icon"), "plus");
 		add.createSpan({ cls: "hearth-tool-label", text: t().dashboard.addCard });
 		add.setAttribute("aria-label", t().dashboard.addCardAria);
-		add.addEventListener("click", () => {
-			openCardPicker(view.app, {
-				hearthVersion: view.plugin.manifest.version,
-				onGallery: galleryConfigured(view.plugin)
-					? () => openGallery(view.plugin)
-					: undefined,
-				onChoose: (template) => {
-					const s = view.plugin.settings;
-					const card = cardFromTemplate(template);
-					// Place the new card into a free slot in the current layout so
-					// it never shifts the cards already on the board (placeFreeform).
-					placeFreeform(
-						card,
-						renderCards(s),
-						effectiveMaxWidth(s),
-						effectiveColumns(s),
-						GRID_GAP,
-						effectiveRowHeight(s) || ROW_HEIGHT,
-					);
-					activeCards(s).push(card);
-					persistAndRender(view);
-				},
-			});
-		});
+		add.addEventListener("click", () => openAddCard(view, true));
 
 		// Beside "Add card", because they are the same question at two scales:
 		// one card you place yourself, or a whole board somebody has already

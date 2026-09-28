@@ -1,4 +1,5 @@
-import { Component, setIcon, Setting } from "obsidian";
+import { Component, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";

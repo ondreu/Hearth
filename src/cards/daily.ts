@@ -1,4 +1,5 @@
-import { Component, Notice, setIcon, Setting } from "obsidian";
+import { Component, Notice, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import {
 	cardOverlayButton,
 	dailyNoteFinder,

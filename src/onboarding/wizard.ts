@@ -18,7 +18,8 @@
  * method name compiles cleanly and silently replaces engine behaviour. Every
  * member below is named unmistakably (`renderWizard`, not `render`).
  */
-import { Notice, Setting, setIcon } from "obsidian";
+import { Notice, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import { applyModalDesign, HearthModal } from "../uidesign";
 import type { CardDesign } from "../types";
 import { t } from "../i18n";

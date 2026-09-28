@@ -1,4 +1,5 @@
-import { Component, setIcon, Setting, TFile } from "obsidian";
+import { Component, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import {
 	activityByDay,
 	dailyNoteFinder,

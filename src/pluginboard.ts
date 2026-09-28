@@ -1,4 +1,5 @@
-import { setIcon, type Component, type WorkspaceLeaf } from "obsidian";
+import { type Component, type WorkspaceLeaf } from "obsidian";
+import { setIcon } from "./glyphs";
 import { emptyState } from "./cardbodies";
 import { t } from "./i18n";
 import {

@@ -2562,6 +2562,18 @@ export interface HomeSettings {
 	 * "classic", or Material 3 "expressive". Default (absent) "classic". Read
 	 * through {@link effectiveCardDesign}. */
 	cardDesign?: CardDesign;
+	/** Terminal mode: the whole plugin drawn as a text interface — a character
+	 * grid, box-drawn card frames, a function-key bar — instead of the graphical
+	 * board. Vault-wide only; while it is on it takes precedence over every
+	 * card's and board's Classic/Expressive choice, which are kept untouched for
+	 * when it is switched off. Default (absent) off. See src/tui/. */
+	terminalMode?: boolean;
+	/** The colour scheme terminal mode paints in. Default (absent) "theme",
+	 * which takes every colour from the Obsidian theme. */
+	terminalScheme?: TerminalScheme;
+	/** Terminal mode's font size in pixels. Default (absent)
+	 * {@link TERMINAL_FONT_SIZE_DEFAULT}. */
+	terminalFontSize?: number;
 
 	// ---- Search filters ----
 	/** Group ids the user has hidden from the auto-detected filter row. */
@@ -3118,6 +3130,41 @@ export function effectiveSkyAnimate(s: HomeSettings): boolean {
 
 /** The two ways a card can be drawn. */
 export type CardDesign = "classic" | "expressive";
+
+/**
+ * The colour schemes terminal mode offers. "theme" reads every colour from the
+ * Obsidian theme, so the terminal looks like the vault it lives in; the others
+ * are fixed palettes named for what they imitate.
+ */
+export type TerminalScheme = "theme" | "htop" | "hearth" | "amber" | "paper";
+
+/** Every terminal scheme, in the order the settings dropdown offers them. */
+export const TERMINAL_SCHEMES: readonly TerminalScheme[] = ["theme", "htop", "hearth", "amber", "paper"];
+
+export const TERMINAL_FONT_SIZE_DEFAULT = 13;
+export const TERMINAL_FONT_SIZE_MIN = 10;
+export const TERMINAL_FONT_SIZE_MAX = 20;
+
+/** Whether terminal mode is on. */
+export function terminalModeActive(s: HomeSettings): boolean {
+	return s.terminalMode === true;
+}
+
+/** The terminal scheme in force, repaired on read so a hand-edited or
+ * newer-version value falls back to the theme's colours. */
+export function effectiveTerminalScheme(s: HomeSettings): TerminalScheme {
+	return TERMINAL_SCHEMES.includes(s.terminalScheme as TerminalScheme)
+		? (s.terminalScheme as TerminalScheme)
+		: "theme";
+}
+
+/** Terminal font size, clamped to the range the character grid is laid out
+ * for. */
+export function effectiveTerminalFontSize(s: HomeSettings): number {
+	const v = s.terminalFontSize;
+	if (typeof v !== "number" || !Number.isFinite(v)) return TERMINAL_FONT_SIZE_DEFAULT;
+	return Math.min(TERMINAL_FONT_SIZE_MAX, Math.max(TERMINAL_FONT_SIZE_MIN, Math.round(v)));
+}
 
 /** The design a card is drawn in: its own choice, else the active board's,
  * else the vault's, else Classic. For the weather and market cards `own` is

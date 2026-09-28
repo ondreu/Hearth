@@ -1,4 +1,5 @@
-import { setIcon, TFile } from "obsidian";
+import { TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import { openFile, openLink } from "./opener";
 import type { HomeView } from "./view";
 import type { MobileActionButton } from "./types";

@@ -8,7 +8,8 @@
  * the calculator and market cards use — so the search bar never makes a
  * request the cards wouldn't, and **Disable external calls** stops it too.
  */
-import { Notice, setIcon } from "obsidian";
+import { Notice } from "obsidian";
+import { setIcon } from "./glyphs";
 import { evaluate } from "./calculator";
 import { cachedRates, loadRates } from "./currency";
 import { drawChart, rangeChips } from "./cards/market";

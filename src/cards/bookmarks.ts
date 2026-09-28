@@ -1,4 +1,5 @@
-import { Notice, setIcon, type Component, TFile, TFolder } from "obsidian";
+import { Notice, type Component, TFile, TFolder } from "obsidian";
+import { setIcon } from "../glyphs";
 import { bookmarkTarget, type BookmarkItem } from "../bookmarks";
 import { emptyState, redrawCard } from "../cardbodies";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";

@@ -1,4 +1,5 @@
-import { type App, Notice, Setting, setIcon, type Component } from "obsidian";
+import { type App, Notice, Setting, type Component } from "obsidian";
+import { setIcon } from "../glyphs";
 import { hearthMenu } from "../uidesign";
 import { emptyState } from "../cardbodies";
 import { formatRelativeDate, localDayKey } from "../dates";

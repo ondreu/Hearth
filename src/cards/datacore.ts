@@ -1,4 +1,5 @@
-import { Component, setIcon, Setting } from "obsidian";
+import { Component, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import {
 	DATACORE_PLUGIN_ID,

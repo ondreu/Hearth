@@ -1,4 +1,5 @@
-import { Command, Component, debounce, Platform, setIcon, TAbstractFile, TFile, TFolder } from "obsidian";
+import { Command, Component, debounce, Platform, TAbstractFile, TFile, TFolder } from "obsidian";
+import { setIcon } from "./glyphs";
 import type { HomeView } from "./view";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
 import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";

@@ -14,7 +14,8 @@
  * `src/gallery/install.ts`.
  */
 
-import { Modal, Notice, setIcon } from "obsidian";
+import { Modal, Notice } from "obsidian";
+import { setIcon } from "./glyphs";
 import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import type { AuthorIdentity } from "./identity";

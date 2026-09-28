@@ -3,9 +3,9 @@ import {
 	Notice,
 	Platform,
 	prepareFuzzySearch,
-	setIcon,
 	type App,
 } from "obsidian";
+import { setIcon } from "./glyphs";
 import { HearthModal } from "./uidesign";
 import {
 	CARD_CATEGORIES,

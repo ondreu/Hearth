@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { setIcon } from "../glyphs";
 import {
 	instantOf,
 	minutesInto,

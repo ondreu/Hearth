@@ -1,4 +1,5 @@
-import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
+import { Component, Notice, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import {
 	cardOverlayButton,
 	emptyState,

@@ -1,4 +1,5 @@
-import { type App, Component, Notice, setIcon, Setting } from "obsidian";
+import { type App, Component, Notice, Setting } from "obsidian";
+import { setIcon } from "../glyphs";
 import { HearthModal } from "../uidesign";
 import { emptyState } from "../cardbodies";
 import { cachedRates, CURRENCY_CODES, loadRates } from "../currency";

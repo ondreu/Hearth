@@ -28,7 +28,8 @@
  * stranger's dashboard a safe thing to do at all.
  */
 
-import { apiVersion, type App, Notice, Platform, Setting, setIcon, TFile } from "obsidian";
+import { apiVersion, type App, Notice, Platform, Setting, TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import { HearthModal } from "./uidesign";
 import type HearthPlugin from "./main";
 import { activeDashboard, type Dashboard } from "./types";

@@ -1,4 +1,5 @@
-import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, setIcon, Setting, TFile } from "obsidian";
+import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, Setting, TFile } from "obsidian";
+import { setIcon } from "./glyphs";
 import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
 import { dailyNameMatcher } from "./dailyformat";

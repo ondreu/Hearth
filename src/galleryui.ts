@@ -13,7 +13,7 @@
  * vault image does and is a raster type by the format's own allowlist.
  */
 
-import { setIcon } from "obsidian";
+import { setIcon } from "./glyphs";
 import { CARD_DEFINITIONS, templateName } from "./cards";
 import type { CardKind } from "./types";
 import { t } from "./i18n";

@@ -13,7 +13,8 @@
  * paint the same markup: {@link kofiTipButton} for a row built with Obsidian's
  * `Setting`/`ButtonComponent`, {@link createKofiTipButton} for hand-built DOM.
  */
-import { setIcon, type ButtonComponent } from "obsidian";
+import { type ButtonComponent } from "obsidian";
+import { setIcon } from "./glyphs";
 import { t } from "./i18n";
 
 /** Where a tip goes. */

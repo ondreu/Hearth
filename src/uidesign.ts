@@ -37,6 +37,12 @@ export const X_MODAL_CLASS = "hearth-x-modal";
 /** The class a menu wears in the Expressive design. */
 export const X_MENU_CLASS = "hearth-x-menu";
 
+/** The classes a dialog and a menu wear while terminal mode is on. Terminal
+ * mode is vault-wide, so it doesn't follow the press that opened them: every
+ * Hearth dialog and menu is a terminal one while it's on. */
+export const T_MODAL_CLASS = "hearth-t-modal";
+export const T_MENU_CLASS = "hearth-t-menu";
+
 /** How long a press stays the likely opener of the next dialog. Long enough to
  * cover a dialog that waits on a file read or two first; short enough that a
  * press from a minute ago isn't credited with a dialog a timer opened. */
@@ -66,6 +72,7 @@ export function stateDesign(el: HTMLElement, design: CardDesign): void {
 let lastOrigin: Element | null = null;
 let lastOriginAt = 0;
 let vaultDesign: () => CardDesign = () => "classic";
+let terminalUi: () => string | null = () => null;
 
 function remember(evt: Event): void {
 	lastOrigin = evt.target instanceof Element ? evt.target : null;
@@ -84,8 +91,14 @@ function watchDocument(plugin: Plugin, doc: Document): void {
  * Card design each time it is needed, so a change in settings needs no call
  * back here. Popout windows are followed as they open.
  */
-export function installUiDesign(plugin: Plugin, vault: () => CardDesign): void {
+export function installUiDesign(
+	plugin: Plugin,
+	vault: () => CardDesign,
+	/** The terminal scheme in force, or null outside terminal mode. */
+	terminal: () => string | null = () => null,
+): void {
 	vaultDesign = vault;
+	terminalUi = terminal;
 	watchDocument(plugin, document);
 	plugin.registerEvent(
 		plugin.app.workspace.on("window-open", (win) => watchDocument(plugin, win.doc)),
@@ -93,12 +106,33 @@ export function installUiDesign(plugin: Plugin, vault: () => CardDesign): void {
 	plugin.register(() => {
 		lastOrigin = null;
 		vaultDesign = () => "classic";
+		terminalUi = () => null;
 	});
 }
 
 /** The vault's own Card design, the fallback for everything else. */
 export function vaultUiDesign(): CardDesign {
 	return vaultDesign();
+}
+
+/** Whether Hearth's interface is in terminal mode right now. */
+export function terminalUiActive(): boolean {
+	return terminalUi() !== null;
+}
+
+/** The terminal scheme's class, or null outside terminal mode. Dialogs and
+ * menus live outside the view, so they carry the scheme themselves. */
+export function terminalSchemeClass(): string | null {
+	const scheme = terminalUi();
+	return scheme ? `hearth-tui-scheme-${scheme}` : null;
+}
+
+/** Put `el` in terminal mode's dress when it is on: `cls`, and the scheme. */
+function dressTerminal(el: HTMLElement, cls: string): boolean {
+	const scheme = terminalSchemeClass();
+	el.toggleClass(cls, scheme !== null);
+	if (scheme) el.addClass(scheme);
+	return scheme !== null;
 }
 
 /** The design something opened right now should take: that of whatever the
@@ -113,7 +147,8 @@ export function currentUiDesign(): CardDesign {
 /** Put a dialog in `design`: the class its look keys off, and the stated
  * design a dialog opened from it inherits. */
 export function applyModalDesign(modal: Modal, design: CardDesign): void {
-	modal.modalEl.toggleClass(X_MODAL_CLASS, design === "expressive");
+	const terminal = dressTerminal(modal.modalEl, T_MODAL_CLASS);
+	modal.modalEl.toggleClass(X_MODAL_CLASS, design === "expressive" && !terminal);
 	stateDesign(modal.modalEl, design);
 }
 
@@ -146,9 +181,10 @@ export function hearthMenu(): Menu {
 	const dom = menu.dom;
 	if (dom instanceof HTMLElement) {
 		const design = currentUiDesign();
-		dom.toggleClass(X_MENU_CLASS, design === "expressive");
+		const terminal = dressTerminal(dom, T_MENU_CLASS);
+		dom.toggleClass(X_MENU_CLASS, design === "expressive" && !terminal);
 		stateDesign(dom, design);
-		if (design === "expressive") markMenuGroups(menu, dom);
+		if (design === "expressive" && !terminal) markMenuGroups(menu, dom);
 	}
 	return menu;
 }

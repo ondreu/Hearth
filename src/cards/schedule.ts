@@ -1,4 +1,5 @@
-import { Component, setIcon, setTooltip, Setting, TFile } from "obsidian";
+import { Component, setTooltip, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import {
 	dailyNoteFinder,
 	dailyNotesOptions,

@@ -1,4 +1,5 @@
-import { Component, Notice, setIcon, Setting, TFile } from "obsidian";
+import { Component, Notice, Setting, TFile } from "obsidian";
+import { setIcon } from "../glyphs";
 import { hearthMenu } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";

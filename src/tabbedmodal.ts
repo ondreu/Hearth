@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { setIcon } from "./glyphs";
 import { groupSettingRows, HearthModal, X_GROUP_BREAK_CLASS, X_MODAL_CLASS } from "./uidesign";
 import { t } from "./i18n";
 import { scrollParent } from "./ui";

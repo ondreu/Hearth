@@ -1,4 +1,5 @@
-import { Keymap, Setting, TAbstractFile, TFile, TFolder, setIcon, type App } from "obsidian";
+import { Keymap, Setting, TAbstractFile, TFile, TFolder, type App } from "obsidian";
+import { setIcon } from "../glyphs";
 import { HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";

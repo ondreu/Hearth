@@ -8,7 +8,8 @@
  * first time an empty search bar is focused, a `?` typed into any search bar,
  * the "Show search tips" command, and a button in Settings → Appearance.
  */
-import { type App, setIcon } from "obsidian";
+import { type App } from "obsidian";
+import { setIcon } from "./glyphs";
 import { t } from "./i18n";
 import { INSTANT_FEATURES, type InstantFeature } from "./instant";
 import { HearthModal } from "./uidesign";

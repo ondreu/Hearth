@@ -1,4 +1,5 @@
-import { getAllTags, setIcon, Setting, TFile, TFolder } from "obsidian";
+import { getAllTags, Setting, TFile, TFolder } from "obsidian";
+import { setIcon } from "../glyphs";
 import { dailyNoteFinder, dailyNotesOptions, moment, type Moment } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupById, groupForFile } from "../filetypes";
