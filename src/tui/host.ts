@@ -19,16 +19,20 @@ import { Component } from "obsidian";
 import type { DashboardCard } from "../types";
 import type { HomeView } from "../view";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "./card";
-import { drawLine } from "./draw";
+import { drawLine, LINE_CLASS } from "./draw";
 import { fit, styleLine, styleRange, type Line } from "./text";
 
 /** The class of the element that holds a body's rows. */
 const LINES_CLASS = "hearth-tui-lines";
+/** The class of the block of lines that stays put while the body scrolls. */
+const STICKY_CLASS = "hearth-tui-sticky";
 /** The class of a non-text mount placed on the body grid. */
 const MOUNT_CLASS = "hearth-tui-mount";
 
 export interface TuiHostOptions {
 	zoomed: boolean;
+	/** Outlives every draw, for as long as the card is shown. */
+	persistent: Component;
 	/** The body's current size in cells. */
 	size: () => { cols: number; rows: number };
 	/** Whether the card has the keyboard. */
@@ -47,6 +51,8 @@ export class TuiCardHost {
 	private linesEl: HTMLElement;
 	private mountsEl: HTMLElement;
 	private lineEls: HTMLElement[] = [];
+	/** Whether the renderer's opening scroll position has been applied. */
+	private scrolledOnce = false;
 
 	constructor(
 		private view: HomeView,
@@ -82,6 +88,7 @@ export class TuiCardHost {
 			view: this.view,
 			card: this.card,
 			component,
+			persistent: this.opts.persistent,
 			cols,
 			rows,
 			focused: this.opts.focused(),
@@ -106,6 +113,11 @@ export class TuiCardHost {
 		if (typeof out.select === "number") this.tui.setSelection(this.card.id, out.select);
 		this.clampSelection();
 		this.paint();
+		if (typeof out.scrollTo === "number" && !this.scrolledOnce) {
+			this.scrolledOnce = true;
+			const line = this.lineEls[out.scrollTo];
+			if (line) this.el.scrollTop = line.offsetTop - this.stickyHeight();
+		}
 		this.placeMounts(out, component, ctx.cols);
 		this.opts.onOutput?.(out);
 	}
@@ -119,12 +131,14 @@ export class TuiCardHost {
 		const from = item ? item.line : -1;
 		const to = item ? item.line + (item.span ?? 1) : -1;
 		this.linesEl.empty();
+		const sticky = Math.min(out.sticky ?? 0, out.lines.length);
+		const stickyEl = sticky > 0 ? this.linesEl.createDiv(STICKY_CLASS) : null;
 		this.lineEls = out.lines.map((line, i) => {
 			let l: Line = fit(line, cols);
 			if (i >= from && i < to) {
 				l = item?.range ? styleRange(l, item.range[0], item.range[1], "reverse") : styleLine(l, "reverse");
 			}
-			return drawLine(this.linesEl, l);
+			return drawLine(stickyEl && i < sticky ? stickyEl : this.linesEl, l);
 		});
 		if (item) this.reveal(item);
 	}
@@ -165,11 +179,18 @@ export class TuiCardHost {
 	private reveal(item: TuiItem): void {
 		const first = this.lineEls[item.line];
 		const last = this.lineEls[item.line + (item.span ?? 1) - 1] ?? first;
-		if (!first) return;
-		const top = first.offsetTop;
+		if (!first || item.line < (this.output.sticky ?? 0)) return;
+		const top = first.offsetTop - this.stickyHeight();
 		const bottom = last.offsetTop + last.offsetHeight;
 		if (top < this.el.scrollTop) this.el.scrollTop = top;
 		else if (bottom > this.el.scrollTop + this.el.clientHeight) this.el.scrollTop = bottom - this.el.clientHeight;
+	}
+
+	/** The height of the lines that stay put, which a scrolled-to line has to
+	 * clear. */
+	private stickyHeight(): number {
+		const n = Math.min(this.output.sticky ?? 0, this.lineEls.length);
+		return n > 0 ? (this.lineEls[n - 1].offsetTop + this.lineEls[n - 1].offsetHeight) : 0;
 	}
 
 	/** Where the body is scrolled to, as the first visible line and the total,
@@ -246,7 +267,7 @@ export class TuiCardHost {
 
 	/** Which body line a pointer event landed on. */
 	lineAt(evt: MouseEvent): number {
-		const target = evt.target instanceof HTMLElement ? evt.target.closest(`.${LINES_CLASS} > *`) : null;
+		const target = evt.target instanceof HTMLElement ? evt.target.closest(`.${LINES_CLASS} .${LINE_CLASS}`) : null;
 		if (target) {
 			const i = this.lineEls.indexOf(target as HTMLElement);
 			if (i >= 0) return i;

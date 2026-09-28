@@ -69,6 +69,12 @@ export interface TuiOutput {
 	/** A double-click anywhere on the body — a note card's way into its
 	 * editor. */
 	onDoubleClick?: () => void;
+	/** Scroll the body so this line is at the top, the first time the card
+	 * is drawn (a time grid opening on the morning rather than at midnight). */
+	scrollTo?: number;
+	/** How many of the first lines stay put while the rest scrolls under them
+	 * — a toolbar, a table's header. */
+	sticky?: number;
 	/** Pin the selection to this item index for this draw (e.g. after a new
 	 * item was added). */
 	select?: number;
@@ -80,6 +86,10 @@ export interface TuiContext {
 	card: DashboardCard;
 	/** Owns everything this draw registers; torn down before the next draw. */
 	component: Component;
+	/** Lives as long as the card is on screen, across its redraws — for what a
+	 * card keeps between draws (a calendar's event feeds and their refresh
+	 * timer). */
+	persistent: Component;
 	/** The body's size in cells. */
 	cols: number;
 	rows: number;

@@ -6,6 +6,7 @@
 import type { CardKind } from "../../types";
 import type { TuiRenderer } from "../card";
 import { calculatorTui } from "./calculator";
+import { calendarTui, scheduleTui } from "./calendar";
 import { clockTui } from "./clock";
 import { favoritesTui, recentTui } from "./files";
 import { commandsTui, linksTui, templaterTui } from "./launch";
@@ -15,6 +16,7 @@ import { tasksTui } from "./tasks";
 
 export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	calculator: calculatorTui,
+	calendar: calendarTui,
 	clock: clockTui,
 	commands: commandsTui,
 	daily: dailyTui,
@@ -24,6 +26,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	links: linksTui,
 	periodic: periodicTui,
 	recent: recentTui,
+	schedule: scheduleTui,
 	stats: statsTui,
 	tasks: tasksTui,
 	templater: templaterTui,

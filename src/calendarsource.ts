@@ -870,7 +870,7 @@ function renderTaskCompleteBox(
 /** Whether an entry can be ticked off from the calendar: a checkbox task when
  * its source allows it, a TaskNotes task (never a timeblock) when TaskNotes'
  * source does. */
-function canComplete(task: TaskNotesMeta, ics: IcsContext): boolean {
+export function canComplete(task: TaskNotesMeta, ics: IcsContext): boolean {
 	if (checkboxTaskMeta(task)) return ics.checkboxTasks?.allowComplete === true;
 	return task.kind !== "timeblock" && ics.taskNotes?.allowComplete === true;
 }

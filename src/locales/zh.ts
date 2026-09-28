@@ -4347,6 +4347,13 @@ export const zh: Translations = {
 			boardHint: (cards: number, columns: number) => `${columns} 列 ${cards} 张`,
 			showList: "以列表显示",
 			showBoard: "以看板显示",
+			calNothing: "暂无安排。按 Enter 打开日记。",
+			calNothingNoNotes: "暂无安排。",
+			calEvents: (n: number) => `${n} 个事件`,
+			calFoot: "方向键切换日期 · PgUp/PgDn 切换月份 · Enter 打开 · Home 今天",
+			agendaFoot: "方向键选择 · Enter 打开",
+			schedFoot: "[ ] 或 PgUp/PgDn 翻页 · v 切换视图 · 方向键切换日期 · Enter 打开 · Home 今天",
+			allDayShort: "全天",
 		},
 		settings: {
 			name: "终端",

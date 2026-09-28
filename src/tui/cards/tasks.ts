@@ -292,7 +292,7 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 	if (list.length === 0) {
 		const empty = isTaskFilterActive(cfg.taskFilter) ? t().cards.empty.tasksNoMatch : t().cards.empty.tasksEmpty;
 		lines.push([{ text: empty, style: "dim" }]);
-		return { lines, hint: filterHint(cfg, 0), foot: t().tui.cards.tasksFoot };
+		return { lines, hint: filterHint(cfg, 0), foot: t().tui.cards.tasksFoot, sticky: 1 };
 	}
 	for (const hit of list) {
 		const checked = taskChecked(cfg, hit, today);
@@ -327,7 +327,7 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 		});
 	}
 	const open = list.filter((h) => !taskChecked(cfg, h, today)).length;
-	return { lines, items, hint: filterHint(cfg, open), foot: t().tui.cards.tasksFoot };
+	return { lines, items, hint: filterHint(cfg, open), foot: t().tui.cards.tasksFoot, sticky: 1 };
 }
 
 function headerCells(cols: [string, number][], sorted: number): Line {
@@ -504,7 +504,7 @@ function boardOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoa
 		}
 	}
 	const total = cols.reduce((n, c) => n + c.hits.length, 0);
-	return { lines, hint: t().tui.cards.boardHint(total, cols.length), foot: t().tui.cards.boardFoot };
+	return { lines, hint: t().tui.cards.boardHint(total, cols.length), foot: t().tui.cards.boardFoot, sticky: 1 };
 }
 
 function boardKey(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>, evt: KeyboardEvent): boolean {

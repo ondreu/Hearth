@@ -132,7 +132,7 @@ interface ViewContext {
 // ---- Navigation state ----------------------------------------------------
 
 /** Which view a card is on and which period it is looking at. */
-interface ScheduleState {
+export interface ScheduleState {
 	view: ScheduleView;
 	/** Any day inside the shown period, as epoch ms of its local midnight. */
 	anchor: number;
@@ -153,7 +153,7 @@ const SCHEDULE_STATE = new Map<string, ScheduleState>();
 /** The card's live state, seeded from its configured default view. Also
  * re-seeds when the configured view changes under a card that was never
  * navigated, so editing the setting shows its effect immediately. */
-function scheduleState(card: DashboardCard, cfg: ScheduleConfig): ScheduleState {
+export function scheduleState(card: DashboardCard, cfg: ScheduleConfig): ScheduleState {
 	const configured = offeredViews(cfg);
 	const preferred = configured.includes(cfg.view ?? "month") ? (cfg.view ?? "month") : configured[0];
 	const existing = SCHEDULE_STATE.get(card.id);
@@ -173,7 +173,7 @@ function resetScheduleState(cardId: string): void {
 const ALL_VIEWS: ScheduleView[] = ["month", "week", "day", "list"];
 
 /** The views this card offers, always at least one. */
-function offeredViews(cfg: ScheduleConfig): ScheduleView[] {
+export function offeredViews(cfg: ScheduleConfig): ScheduleView[] {
 	const picked = ALL_VIEWS.filter((v) => cfg.views?.includes(v));
 	return picked.length ? picked : ALL_VIEWS;
 }
@@ -182,7 +182,7 @@ function offeredViews(cfg: ScheduleConfig): ScheduleView[] {
 // ---- Period maths --------------------------------------------------------
 
 /** The days a view covers, plus the label the toolbar shows for them. */
-interface ViewRange {
+export interface ViewRange {
 	start: Moment;
 	/** Exclusive end. */
 	end: Moment;
@@ -190,14 +190,14 @@ interface ViewRange {
 }
 
 /** The first day of the week containing `day`, honouring the card's week start. */
-function weekStart(day: Moment, cfg: ScheduleConfig): Moment {
+export function weekStart(day: Moment, cfg: ScheduleConfig): Moment {
 	const first = firstDay(cfg);
 	const back = (day.day() - first + 7) % 7;
 	return day.clone().startOf("day").subtract(back, "days");
 }
 
 /** The configured week start, or the locale's when unset. */
-function firstDay(cfg: ScheduleConfig): number {
+export function firstDay(cfg: ScheduleConfig): number {
 	const configured = cfg.firstDay;
 	if (configured === undefined || !Number.isFinite(configured)) {
 		return moment.localeData().firstDayOfWeek();
@@ -205,7 +205,7 @@ function firstDay(cfg: ScheduleConfig): number {
 	return ((Math.round(configured) % 7) + 7) % 7;
 }
 
-function viewRange(state: ScheduleState, cfg: ScheduleConfig): ViewRange {
+export function viewRange(state: ScheduleState, cfg: ScheduleConfig): ViewRange {
 	const anchor = moment(state.anchor).startOf("day");
 	if (state.view === "month") {
 		const start = anchor.clone().startOf("month");
@@ -236,7 +236,7 @@ function viewRange(state: ScheduleState, cfg: ScheduleConfig): ViewRange {
 }
 
 /** Move the cursor one period in either direction. */
-function step(state: ScheduleState, cfg: ScheduleConfig, delta: number): void {
+export function step(state: ScheduleState, cfg: ScheduleConfig, delta: number): void {
 	const anchor = moment(state.anchor).startOf("day");
 	const moved =
 		state.view === "month"
@@ -250,7 +250,7 @@ function step(state: ScheduleState, cfg: ScheduleConfig, delta: number): void {
 }
 
 /** How many days the list view spans. */
-function listDays(cfg: ScheduleConfig): number {
+export function listDays(cfg: ScheduleConfig): number {
 	const days = cfg.listDays;
 	return days && days > 0 ? Math.min(Math.round(days), 90) : 14;
 }
@@ -351,7 +351,7 @@ function isToday(day: Moment): boolean {
 
 /** The moment format for an event's time, honouring the card's clock setting
  * and otherwise the locale's own. */
-function timeFormat(cfg: ScheduleConfig): string {
+export function timeFormat(cfg: ScheduleConfig): string {
 	if (cfg.clock === "24") return "HH:mm";
 	if (cfg.clock === "12") return "h:mm A";
 	return "LT";
@@ -720,14 +720,14 @@ function mountNowLine(
 /** An hour ruler label, in the card's clock: "9 AM" on a 12-hour clock, "09:00"
  * on a 24-hour one, and whichever of the two the locale itself uses when the
  * card doesn't say. */
-function hourLabel(hour: number, cfg: ScheduleConfig): string {
+export function hourLabel(hour: number, cfg: ScheduleConfig): string {
 	const at = moment().startOf("day").add(hour % 24, "hours");
 	return twelveHour(cfg) ? at.format("h A") : at.format("HH:mm");
 }
 
 
 /** Whether times are drawn on a 12-hour clock. */
-function twelveHour(cfg: ScheduleConfig): boolean {
+export function twelveHour(cfg: ScheduleConfig): boolean {
 	if (cfg.clock) return cfg.clock === "12";
 	return /a/i.test(moment.localeData().longDateFormat("LT"));
 }

@@ -55,6 +55,7 @@ class TuiZoomModal extends HearthModal {
 			});
 			const host = new TuiCardHost(this.view, this.card, renderer, body, {
 				zoomed: true,
+				persistent: this.component,
 				size,
 				focused: () => true,
 			});

@@ -4718,6 +4718,13 @@ export const en = {
 			boardHint: (cards: number, columns: number) => `${cards} in ${columns}`,
 			showList: "Show as a list",
 			showBoard: "Show as a board",
+			calNothing: "Nothing planned. Enter opens the daily note.",
+			calNothingNoNotes: "Nothing planned.",
+			calEvents: (n: number) => (n === 1 ? "1 event" : `${n} events`),
+			calFoot: "arrows move the day · pgup/pgdn month · enter opens · home today",
+			agendaFoot: "arrows pick · enter opens",
+			schedFoot: "[ ] or pgup/pgdn step · v view · arrows move the day · enter opens · home today",
+			allDayShort: "all",
 		},
 		settings: {
 			name: "Terminal",

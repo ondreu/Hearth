@@ -144,7 +144,7 @@ export function renderCalendar(
  * a task that is only *scheduled* is not returned by the window read and will
  * not appear on the grid.
  */
-interface OperonOverlay {
+export interface OperonOverlay {
 	/** Load the tasks due in `[from, to]` (inclusive day keys). */
 	expand(from: string, to: string): void;
 	/** Tasks landing on a local day key (YYYY-MM-DD). */
@@ -161,7 +161,7 @@ interface OperonOverlay {
  * fits comfortably; beyond that the grid would be unreadable anyway. */
 const OPERON_OVERLAY_LIMIT = 400;
 
-function buildOperonOverlay(
+export function buildOperonOverlay(
 	view: HomeView,
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	component: Component,

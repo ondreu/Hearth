@@ -273,6 +273,7 @@ export class TuiBoard {
 
 		const host = new TuiCardHost(this.view, card, renderer, el, {
 			zoomed: false,
+			persistent: this.bodyComponent,
 			size: () => {
 				const b = bodyRect(this.rects.get(card.id) ?? rect);
 				return { cols: b.cols, rows: b.rows };
@@ -469,8 +470,25 @@ export class TuiBoard {
 		if (prev) this.hosts.get(prev)?.paint();
 		if (id) this.hosts.get(id)?.paint();
 		this.drawFrames();
-		if (id && !this.boardEl.contains(document.activeElement)) this.boardEl.focus({ preventScroll: true });
-		if (id) this.revealCard(id);
+		if (id) {
+			this.keepKeyboard();
+			this.revealCard(id);
+		}
+	}
+
+	/**
+	 * Give the board the keyboard unless something inside it already has it.
+	 * A click that focuses a card repaints the row it landed on before the
+	 * browser moves the focus, and a press on a removed element leaves the
+	 * focus on the page — so the check runs once more after the press is done.
+	 */
+	private keepKeyboard(): void {
+		const claim = () => {
+			if (!this.boardEl.isConnected || this.boardEl.contains(document.activeElement)) return;
+			this.boardEl.focus({ preventScroll: true });
+		};
+		claim();
+		window.setTimeout(claim, 0);
 	}
 
 	/** Keep the focused card on screen as Tab moves through a long board. */

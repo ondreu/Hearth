@@ -21886,6 +21886,14 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	position: relative;
 }
 
+/* The lines that stay put while the body scrolls: a toolbar, a table header. */
+.hearth-tui-sticky {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--tui-bg);
+}
+
 .hearth-tui-mounts {
 	position: absolute;
 	inset: 0 auto auto 0;

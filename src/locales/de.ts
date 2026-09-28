@@ -4718,6 +4718,13 @@ export const de: Translations = {
 			boardHint: (cards: number, columns: number) => `${cards} in ${columns}`,
 			showList: "Als Liste zeigen",
 			showBoard: "Als Board zeigen",
+			calNothing: "Nichts geplant. Enter öffnet die tägliche Notiz.",
+			calNothingNoNotes: "Nichts geplant.",
+			calEvents: (n: number) => (n === 1 ? "1 Termin" : `${n} Termine`),
+			calFoot: "Pfeile wechseln den Tag · Bild auf/ab Monat · Enter öffnet · Pos1 heute",
+			agendaFoot: "Pfeile wählen · Enter öffnet",
+			schedFoot: "[ ] oder Bild auf/ab blättern · v Ansicht · Pfeile wechseln den Tag · Enter öffnet · Pos1 heute",
+			allDayShort: "ganz",
 		},
 		settings: {
 			name: "Terminal",
