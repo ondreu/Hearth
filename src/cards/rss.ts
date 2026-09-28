@@ -20,7 +20,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 /** Which source tab each rss card is showing. Transient (not persisted): keyed
  * by the card object so the choice survives body redraws and full rebuilds —
  * the card objects live in settings and are reused — but resets on reload. */
-const rssActiveTab = new WeakMap<DashboardCard, string>();
+export const rssActiveTab = new WeakMap<DashboardCard, string>();
 
 
 /** moment's `.fromNow()` isn't on the shared Moment shim; assert it locally. */

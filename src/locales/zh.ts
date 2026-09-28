@@ -4367,6 +4367,10 @@ export const zh: Translations = {
 			mkLookupFoot: "[ ] 切换区间 · Enter 选择",
 			mkResultsFoot: "Enter 查看 · 空格 添加到卡片",
 			gitFoot: "Enter 打开 · 空格 暂存 · Del 丢弃 · r 重新读取",
+			rssOpen: "在浏览器中打开",
+			copyLink: "复制链接",
+			rssFoot: "Enter 在浏览器中打开 · r 刷新",
+			rssFootTabs: "Enter 在浏览器中打开 · ←/→ 切换来源 · r 刷新",
 		},
 		settings: {
 			name: "终端",

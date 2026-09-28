@@ -13,6 +13,7 @@ import { gitTui } from "./git";
 import { commandsTui, linksTui, templaterTui } from "./launch";
 import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
+import { rssTui } from "./rss";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
 import { weatherTui } from "./weather";
@@ -31,6 +32,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	market: marketTui,
 	periodic: periodicTui,
 	recent: recentTui,
+	rss: rssTui,
 	schedule: scheduleTui,
 	stats: statsTui,
 	tasks: tasksTui,

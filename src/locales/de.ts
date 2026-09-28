@@ -4738,6 +4738,10 @@ export const de: Translations = {
 			mkLookupFoot: "[ ] Zeitraum · Enter wählt",
 			mkResultsFoot: "Enter zeigt ihn · Leertaste fügt ihn der Karte hinzu",
 			gitFoot: "Enter öffnet · Leertaste stagt · Entf verwirft · r liest neu",
+			rssOpen: "Im Browser öffnen",
+			copyLink: "Link kopieren",
+			rssFoot: "Enter öffnet im Browser · r aktualisiert",
+			rssFootTabs: "Enter öffnet im Browser · ←/→ Quelle · r aktualisiert",
 		},
 		settings: {
 			name: "Terminal",

@@ -4738,6 +4738,10 @@ export const en = {
 			mkLookupFoot: "[ ] range · enter picks",
 			mkResultsFoot: "enter shows it · space adds it to the card",
 			gitFoot: "enter opens · space stages · del discards · r re-reads",
+			rssOpen: "Open in browser",
+			copyLink: "Copy link",
+			rssFoot: "enter opens in the browser · r refresh",
+			rssFootTabs: "enter opens in the browser · ←/→ source · r refresh",
 		},
 		settings: {
 			name: "Terminal",
