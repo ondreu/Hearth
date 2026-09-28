@@ -36,7 +36,7 @@ class TuiZoomModal extends HearthModal {
 		this.component.load();
 		const events = createVaultEventHub(this.view.app, (ref) => this.component.registerEvent(ref));
 		const body = this.contentEl.createDiv({ cls: "hearth-tui-zoombody", attr: { tabindex: "0" } });
-		const renderer = tuiRenderer(this.card);
+		const renderer = tuiRenderer(this.card, this.view);
 
 		if (!renderer) {
 			const shell = body.createDiv("hearth-card hearth-tui-guicard");

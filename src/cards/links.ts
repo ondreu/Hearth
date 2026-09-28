@@ -48,7 +48,7 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 }
 
 
-function openLink(view: HomeView, link: LinkItem): void {
+export function openLink(view: HomeView, link: LinkItem): void {
 	switch (link.type) {
 		case "url":
 			if (link.target) window.open(link.target, "_blank");

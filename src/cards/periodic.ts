@@ -123,11 +123,28 @@ function renderNote(
 }
 
 
-// ---- Periodic Notes -----------------------------------------------------
+// ---- Which note the card shows ------------------------------------------
 
 /**
- * Embed the current periodic note — this week's, this month's, this quarter's
- * or this year's — resolved fresh on every render so the card rolls over on its
+ * What a periodic card shows right now: the current period's note, a prompt to
+ * make one, or a message saying why it can't do either. Decided in one place so
+ * the graphical card and its terminal-mode text form can't drift on it.
+ *
+ * `redraw` redraws the card — after a journal lookup lands, or after a note
+ * was made.
+ */
+export type PeriodicResolution =
+	| { kind: "message"; icon: string; text: string }
+	| { kind: "create"; text: string; label: string; create: () => void }
+	| { kind: "note"; file: TFile; openLabel: string };
+
+export function resolvePeriodicNote(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
+	return sourceOf(card) === "journals" ? resolveFromJournals(view, card, redraw) : resolveFromPeriodicNotes(view, card, redraw);
+}
+
+/**
+ * The current periodic note — this week's, this month's, this quarter's or
+ * this year's — resolved fresh on every render so the card rolls over on its
  * own when the period ends (issue #116).
  *
  * Everything about *where* that note lives, and what a new one contains, is
@@ -135,67 +152,50 @@ function renderNote(
  * now?", "please make one") and renders the answer with the same embed
  * machinery every other file-backed card uses.
  */
-function renderFromPeriodicNotes(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
+function resolveFromPeriodicNotes(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
 	const granularity = granularityOf(card);
-
 	if (!getPeriodicNotesPlugin(view.app)) {
-		emptyState(body, "plug-zap", t().cards.empty.periodicInstall);
-		return;
+		return { kind: "message", icon: "plug-zap", text: t().cards.empty.periodicInstall };
 	}
 	if (!isGranularityEnabled(view.app, granularity)) {
-		emptyState(
-			body,
-			"calendar-days",
-			t().cards.periodic.notEnabled(t().editors.periodic.granularities[granularity]),
-		);
-		return;
+		return {
+			kind: "message",
+			icon: "calendar-days",
+			text: t().cards.periodic.notEnabled(t().editors.periodic.granularities[granularity]),
+		};
 	}
-
 	const period = t().cards.periodic.period[granularity];
 	const file = findPeriodicNote(view.app, granularity, now());
-
-	if (!file) {
-		createPrompt(
-			body,
-			t().cards.periodic.noNoteYet(period),
-			t().cards.periodic.create(period),
-			() => {
-				void (async () => {
-					// Periodic Notes writes the note, with its own template: Hearth
-					// never invents one (see src/periodic.ts).
-					const made = await createPeriodicNote(view.app, granularity, now());
-					if (!made.ran) {
-						new Notice(t().notices.couldNotOpenPeriodic);
-						return;
-					}
-					// 1.0 hands the file back without opening it, so Hearth opens it
-					// the way it opens everything else (#106) and redraws the card
-					// itself — the file-watch below can't see a note whose path the
-					// card couldn't work out. 0.x's command opened it already, and
-					// the watch picks the creation up.
-					if (made.file) {
-						void openFile(view, made.file, "card");
-						redrawCard(body);
-					}
-				})();
-			},
-		);
-		return;
-	}
-
-	renderNote(view, card, body, component, file, t().cards.periodic.open(period));
+	if (file) return { kind: "note", file, openLabel: t().cards.periodic.open(period) };
+	return {
+		kind: "create",
+		text: t().cards.periodic.noNoteYet(period),
+		label: t().cards.periodic.create(period),
+		create: () => {
+			void (async () => {
+				// Periodic Notes writes the note, with its own template: Hearth
+				// never invents one (see src/periodic.ts).
+				const made = await createPeriodicNote(view.app, granularity, now());
+				if (!made.ran) {
+					new Notice(t().notices.couldNotOpenPeriodic);
+					return;
+				}
+				// 1.0 hands the file back without opening it, so Hearth opens it
+				// the way it opens everything else (#106) and redraws the card
+				// itself — the file-watch can't see a note whose path the card
+				// couldn't work out. 0.x's command opened it already, and the
+				// watch picks the creation up.
+				if (made.file) {
+					void openFile(view, made.file, "card");
+					redraw();
+				}
+			})();
+		},
+	};
 }
 
-
-// ---- Journals -----------------------------------------------------------
-
 /**
- * Embed the current note of one journal from the Journals plugin (issue #318).
+ * The current note of one journal from the Journals plugin (issue #318).
  *
  * The shape is the same as the Periodic Notes branch above — is there a note
  * for now, else offer to make one — with two differences that come from the
@@ -210,58 +210,38 @@ function renderFromPeriodicNotes(
  *   *file* is there is still read from the vault on every render, so a note
  *   created or deleted behind Hearth's back shows immediately.
  */
-function renderFromJournals(
-	view: HomeView,
-	card: DashboardCard,
-	body: HTMLElement,
-	component: Component,
-): void {
+function resolveFromJournals(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
 	if (!getJournalsApi(view.app)) {
-		emptyState(body, "plug-zap", t().cards.empty.journalsInstall);
-		return;
+		return { kind: "message", icon: "plug-zap", text: t().cards.empty.journalsInstall };
 	}
-
 	const journal = journalOf(card);
-	if (!journal) {
-		emptyState(body, "notebook-pen", t().cards.periodic.pickJournal);
-		return;
-	}
-
-	const lookup = peekNote(view.app, journal, () => redrawCard(body));
-	if (!lookup) {
-		// First ask for this journal today: the answer is on its way.
-		emptyState(body, "notebook-pen", t().cards.periodic.loading);
-		return;
-	}
+	if (!journal) return { kind: "message", icon: "notebook-pen", text: t().cards.periodic.pickJournal };
+	const lookup = peekNote(view.app, journal, redraw);
+	// First ask for this journal today: the answer is on its way.
+	if (!lookup) return { kind: "message", icon: "notebook-pen", text: t().cards.periodic.loading };
 	if (lookup.unknownJournal) {
-		emptyState(body, "notebook-pen", t().cards.periodic.noSuchJournal(journal));
-		return;
+		return { kind: "message", icon: "notebook-pen", text: t().cards.periodic.noSuchJournal(journal) };
 	}
-
 	const file = lookup.path ? view.app.vault.getAbstractFileByPath(lookup.path) : null;
-	if (!(file instanceof TFile)) {
-		createPrompt(
-			body,
-			t().cards.periodic.noJournalNoteYet(journal),
-			t().cards.periodic.createJournalNote,
-			() => {
-				void (async () => {
-					// Journals writes the note, applying its own template and asking
-					// its own creation prompts; it does not open what it creates.
-					const made = await createJournalNote(view.app, journal);
-					if (!made) {
-						new Notice(t().notices.couldNotCreateJournalNote);
-						return;
-					}
-					void openFile(view, made, "card");
-					redrawCard(body);
-				})();
-			},
-		);
-		return;
-	}
-
-	renderNote(view, card, body, component, file, t().cards.periodic.openJournalNote(journal));
+	if (file instanceof TFile) return { kind: "note", file, openLabel: t().cards.periodic.openJournalNote(journal) };
+	return {
+		kind: "create",
+		text: t().cards.periodic.noJournalNoteYet(journal),
+		label: t().cards.periodic.createJournalNote,
+		create: () => {
+			void (async () => {
+				// Journals writes the note, applying its own template and asking
+				// its own creation prompts; it does not open what it creates.
+				const made = await createJournalNote(view.app, journal);
+				if (!made) {
+					new Notice(t().notices.couldNotCreateJournalNote);
+					return;
+				}
+				void openFile(view, made, "card");
+				redraw();
+			})();
+		},
+	};
 }
 
 
@@ -272,8 +252,17 @@ export function renderPeriodic(
 	body: HTMLElement,
 	component: Component,
 ): void {
-	if (sourceOf(card) === "journals") renderFromJournals(view, card, body, component);
-	else renderFromPeriodicNotes(view, card, body, component);
+	const r = resolvePeriodicNote(view, card, () => redrawCard(body));
+	switch (r.kind) {
+		case "message":
+			emptyState(body, r.icon, r.text);
+			return;
+		case "create":
+			createPrompt(body, r.text, r.label, r.create);
+			return;
+		case "note":
+			renderNote(view, card, body, component, r.file, r.openLabel);
+	}
 }
 
 

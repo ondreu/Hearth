@@ -47,7 +47,7 @@ export function renderCommands(view: HomeView, card: DashboardCard, body: HTMLEl
 }
 
 
-function runCommand(view: HomeView, cmd: CommandItem): void {
+export function runCommand(view: HomeView, cmd: CommandItem): void {
 	if (cmd.id) view.app.commands.executeCommandById(cmd.id);
 }
 

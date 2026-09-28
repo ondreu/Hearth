@@ -9,12 +9,15 @@
  * without the decision being made.
  */
 import type { CardKind, DashboardCard } from "../types";
+import type { HomeView } from "../view";
 import type { TuiRenderer } from "./card";
 import { TUI_RENDERERS } from "./cards";
 
 /** The text renderer for a card, or null when it is drawn graphically. */
-export function tuiRenderer(card: DashboardCard): TuiRenderer | null {
-	return (TUI_RENDERERS as Partial<Record<string, TuiRenderer>>)[card.kind] ?? null;
+export function tuiRenderer(card: DashboardCard, view?: HomeView): TuiRenderer | null {
+	const renderer = (TUI_RENDERERS as Partial<Record<string, TuiRenderer>>)[card.kind] ?? null;
+	if (renderer?.graphicalFor && view && renderer.graphicalFor(view, card)) return null;
+	return renderer;
 }
 
 /** Kinds that stay graphical in terminal mode, and why — a picture, a web

@@ -259,7 +259,7 @@ export class TuiBoard {
 		// Arranging must not tick a task or follow a link by accident.
 		if (this.view.arrangeMode) el.addClass("is-shielded");
 
-		const renderer = tuiRenderer(card);
+		const renderer = tuiRenderer(card, this.view);
 		if (!renderer) {
 			// No text renderer: the kind's graphical body, inside the frame. It
 			// gets the element structure its own CSS and helpers expect.
@@ -527,7 +527,7 @@ export class TuiBoard {
 		const host = this.hosts.get(card.id);
 		if (host?.key(evt)) return true;
 
-		const renderer = tuiRenderer(card);
+		const renderer = tuiRenderer(card, this.view);
 		switch (key) {
 			case "Enter":
 				if (this.stacked && card.mobile?.collapsed && this.isCollapsed(card)) this.toggleExpanded(card);
@@ -751,7 +751,7 @@ export class TuiBoard {
 
 	/** The card's menu: its own entries, then the ones every card has. */
 	openCardMenu(card: DashboardCard, evt?: MouseEvent | KeyboardEvent): void {
-		const renderer = tuiRenderer(card);
+		const renderer = tuiRenderer(card, this.view);
 		const host = this.hosts.get(card.id);
 		const menu = hearthMenu();
 		if (renderer?.menu && host) {

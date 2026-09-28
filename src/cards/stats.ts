@@ -18,7 +18,16 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * With no advanced config the card shows its fixed default set. When the card's
  * `stats.advanced` flag is on the user picks which built-in stats appear, breaks
  * attachments out into per file-type tiles, and adds custom query counts. */
-export function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export interface StatTile {
+	icon: string;
+	value: number;
+	label: string;
+}
+
+/** The card's stats, in order: what the tiles show. Shared by the graphical
+ * card and its terminal-mode text form. */
+export function statTiles(view: HomeView, card: DashboardCard): StatTile[] {
+	const tiles: StatTile[] = [];
 	const cfg = card.stats;
 	const advanced = cfg?.advanced ?? false;
 	const vault = view.app.vault;
@@ -71,34 +80,38 @@ export function renderStats(view: HomeView, card: DashboardCard, body: HTMLEleme
 	};
 	const streak = dailyNoteStreak(view);
 
-	const grid = body.createDiv("hearth-stats");
-
 	const builtins = advanced && cfg?.builtins ? cfg.builtins : DEFAULT_STATS;
 	for (const id of builtins) {
 		// The day-streak tile only appears when daily notes are configured — same
 		// as it always has — whether or not it's explicitly selected.
 		if (id === "dayStreak") {
-			if (streak !== null) addStat(grid, STAT_ICONS.dayStreak, streak, t().cards.stats.dayStreak);
+			if (streak !== null) tiles.push({ icon: STAT_ICONS.dayStreak, value: streak, label: t().cards.stats.dayStreak });
 			continue;
 		}
-		addStat(grid, STAT_ICONS[id], values[id], t().cards.stats[id]);
+		tiles.push({ icon: STAT_ICONS[id], value: values[id], label: t().cards.stats[id] });
 	}
 
-	if (!advanced) return;
+	if (!advanced) return tiles;
 
 	// Attachment breakdown: one tile per selected file-type group.
 	for (const groupId of cfg?.attachmentTypes ?? []) {
 		const group = groupById(groupId);
 		if (!group) continue;
-		addStat(grid, group.icon, byType.get(groupId) ?? 0, fileTypeLabel(group));
+		tiles.push({ icon: group.icon, value: byType.get(groupId) ?? 0, label: fileTypeLabel(group) });
 	}
 
 	// Custom query counts.
 	for (const q of cfg?.queries ?? []) {
 		const query = q.query?.trim();
 		if (!query) continue;
-		addStat(grid, q.icon?.trim() || "hash", countQuery(view.app, query), q.label?.trim() || query);
+		tiles.push({ icon: q.icon?.trim() || "hash", value: countQuery(view.app, query), label: q.label?.trim() || query });
 	}
+	return tiles;
+}
+
+export function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+	const grid = body.createDiv("hearth-stats");
+	for (const tile of statTiles(view, card)) addStat(grid, tile.icon, tile.value, tile.label);
 }
 
 

@@ -29,7 +29,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 /** What one unit is called in a day's tooltip. Advanced cards may name it
  * themselves ("workouts"); otherwise it follows the metric — the file date it
  * counts, or, when the card sums a property, that property's own name. */
-function heatUnit(cfg: HeatmapConfig): string {
+export function heatUnit(cfg: HeatmapConfig): string {
 	const custom = cfg.unit?.trim();
 	if (custom) return custom;
 	if ((cfg.value ?? "count") === "sum") {

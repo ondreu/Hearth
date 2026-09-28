@@ -418,7 +418,7 @@ export function wireMarkdownCheckboxes(
 
 /** Apply an edit to a note, atomically re-reading it first so a checkbox click
  * can't clobber a concurrent edit. */
-function processFile(
+export function processFile(
 	view: HomeView,
 	file: TFile,
 ): (fn: (data: string) => string) => Promise<unknown> {

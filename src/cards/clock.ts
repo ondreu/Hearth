@@ -17,7 +17,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // ---- Clock / greeting ---------------------------------------------------
 
 /** Time-of-day buckets used to pick a fitting greeting. */
-function greetingBucket(hour: number): number {
+export function greetingBucket(hour: number): number {
 	if (hour < 5) return 0; // late night
 	if (hour < 8) return 1; // early morning
 	if (hour < 12) return 2; // morning
@@ -27,7 +27,7 @@ function greetingBucket(hour: number): number {
 }
 
 
-function pickGreeting(hour: number, playful: boolean): string {
+export function pickGreeting(hour: number, playful: boolean): string {
 	if (!playful) {
 		return hour < 12 ? t().clock.greetingMorning : hour < 18 ? t().clock.greetingAfternoon : t().clock.greetingEvening;
 	}
@@ -40,7 +40,7 @@ function pickGreeting(hour: number, playful: boolean): string {
  * locale default is used, or a boolean to force a 12- or 24-hour clock. The
  * pre-`hourFormat` `use24Hour` boolean is not read here: `sanitizeClock` folds
  * it into `hourFormat` on load and never copies it onto a `ClockConfig`. */
-function resolveHour12(cfg: ClockConfig): boolean | undefined {
+export function resolveHour12(cfg: ClockConfig): boolean | undefined {
 	const fmt = cfg.hourFormat ?? "auto";
 	if (fmt === "24") return false;
 	if (fmt === "12") return true;
@@ -48,7 +48,7 @@ function resolveHour12(cfg: ClockConfig): boolean | undefined {
 }
 
 
-function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, custom?: string): string {
+export function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, custom?: string): string {
 	switch (mode) {
 		case "short":
 			return now.toLocaleDateString(undefined, { dateStyle: "short" });

@@ -310,6 +310,33 @@ export function styleLine(line: Line, ...extra: TuiStyle[]): Line {
 	return line.map((s) => withStyle(s, ...extra));
 }
 
+/** `line` with the cells from `from` (inclusive) to `to` (exclusive) in
+ * `style` as well — the rest untouched. Segments straddling an edge are split. */
+export function styleRange(line: Line, from: number, to: number, ...extra: TuiStyle[]): Line {
+	const out: Line = [];
+	let n = 0;
+	for (const s of line) {
+		const chars = Array.from(s.text);
+		let buf = "";
+		let inside: boolean | null = null;
+		const flush = () => {
+			if (!buf) return;
+			out.push(inside ? withStyle({ ...s, text: buf }, ...extra) : { ...s, text: buf });
+			buf = "";
+		};
+		for (const ch of chars) {
+			const w = cellWidth(ch);
+			const now = n >= from && n < to;
+			if (inside !== null && now !== inside) flush();
+			inside = now;
+			buf += ch;
+			n += w;
+		}
+		flush();
+	}
+	return out;
+}
+
 /**
  * Word-wrap `text` to lines of at most `w` cells. Words longer than a line are
  * broken; explicit newlines are kept.
@@ -356,6 +383,56 @@ export function wrap(text: string, w: number): string[] {
 			}
 		}
 		out.push(cur);
+	}
+	return out;
+}
+
+/**
+ * Soft-wrap a styled line to lines of at most `w` cells, breaking after the
+ * last space that fits (or mid-word when a word is longer than the line).
+ * Continuation lines start with `indent` spaces, so a wrapped list item lines
+ * up under its text. Segments keep their styles and handlers across the break.
+ */
+export function wrapLine(line: Line, w: number, indent = 0): Line[] {
+	if (w <= 0) return [];
+	if (lineWidth(line) <= w) return [line];
+	type Cell = { ch: string; w: number; seg: Seg };
+	const cells: Cell[] = [];
+	for (const s of line) for (const ch of s.text) cells.push({ ch, w: cellWidth(ch), seg: s });
+	const out: Line[] = [];
+	const pad = Math.min(indent, Math.max(0, w - 4));
+	let i = 0;
+	let first = true;
+	while (i < cells.length) {
+		const room = first ? w : w - pad;
+		let n = 0;
+		let end = i;
+		let lastSpace = -1;
+		while (end < cells.length && n + cells[end].w <= room) {
+			if (cells[end].ch === " ") lastSpace = end;
+			n += cells[end].w;
+			end++;
+		}
+		// Break after the last space when the line would otherwise split a word.
+		if (end < cells.length && lastSpace > i) end = lastSpace + 1;
+		if (end === i) end = i + 1;
+		const row: Line = first || pad === 0 ? [] : [{ text: " ".repeat(pad) }];
+		for (let k = i; k < end; k++) {
+			const prev = row[row.length - 1];
+			// Characters of one segment share its style object, so they merge
+			// back into one run; a run from another segment starts a new one.
+			if (prev && prev.onClick === cells[k].seg.onClick && prev.style === cells[k].seg.style) {
+				prev.text += cells[k].ch;
+			} else row.push({ ...cells[k].seg, text: cells[k].ch });
+		}
+		// Trailing spaces at a break are not worth a cell.
+		const last = row[row.length - 1];
+		if (last && end < cells.length) last.text = last.text.replace(/ +$/, "");
+		out.push(row);
+		// Skip the spaces a break swallowed.
+		i = end;
+		while (i < cells.length && cells[i].ch === " " && end < cells.length) i++;
+		first = false;
 	}
 	return out;
 }

@@ -11,7 +11,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 
 /** One key on the on-screen keypad. `insert` is spliced in at the caret; keys
  * with no `insert` carry a named `action` (equals / clear / backspace). */
-interface CalcKey {
+export interface CalcKey {
 	label: string;
 	insert?: string;
 	action?: "equals" | "clear" | "back";
@@ -21,7 +21,7 @@ interface CalcKey {
 
 
 /** The basic pad: digits and the four operations plus edit keys. */
-const CALC_BASIC_KEYS: CalcKey[] = [
+export const CALC_BASIC_KEYS: CalcKey[] = [
 	{ label: "C", action: "clear", cls: "is-fn" },
 	{ label: "(", insert: "(" },
 	{ label: ")", insert: ")" },
@@ -39,7 +39,7 @@ const CALC_BASIC_KEYS: CalcKey[] = [
 
 
 /** Extra keys prepended for the scientific tier: functions, powers, constants. */
-const CALC_SCI_KEYS: CalcKey[] = [
+export const CALC_SCI_KEYS: CalcKey[] = [
 	{ label: "sin", insert: "sin(", cls: "is-fn" },
 	{ label: "cos", insert: "cos(", cls: "is-fn" },
 	{ label: "tan", insert: "tan(", cls: "is-fn" },

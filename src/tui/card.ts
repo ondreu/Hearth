@@ -25,6 +25,9 @@ export interface TuiItem {
 	line: number;
 	/** How many lines it spans (default 1). */
 	span?: number;
+	/** The columns it occupies on its line, `[from, to)`, when it shares the
+	 * line with other items (a row of buttons). Default: the whole line. */
+	range?: [number, number];
 	/** Enter, a click or a tap. */
 	activate?: (evt?: MouseEvent | KeyboardEvent) => void;
 	/** Space: tick a task, move a card, toggle a folder. */
@@ -63,6 +66,9 @@ export interface TuiOutput {
 	foot?: string;
 	/** Non-text content to place on the grid. */
 	mounts?: TuiMount[];
+	/** A double-click anywhere on the body — a note card's way into its
+	 * editor. */
+	onDoubleClick?: () => void;
 	/** Pin the selection to this item index for this draw (e.g. after a new
 	 * item was added). */
 	select?: number;
@@ -96,6 +102,9 @@ export interface TuiContext {
 /** A kind's text renderer. */
 export interface TuiRenderer {
 	render: (ctx: TuiContext) => TuiOutput;
+	/** Whether this particular card is drawn graphically after all — an
+	 * embed card showing a picture or a canvas rather than a note. */
+	graphicalFor?: (view: HomeView, card: DashboardCard) => boolean;
 	/** Keys the card handles itself (arrows in a calendar grid, letters for
 	 * git actions). Return true to claim the key. Called before the board's
 	 * own list navigation. */

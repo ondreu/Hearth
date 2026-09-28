@@ -22447,3 +22447,27 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-design-preview-tline:first-child {
 	color: #5fd0e0;
 }
+
+/* ---- Text renderers' own controls ---------------------------------------------- */
+.hearth-tui-calc-prompt {
+	display: flex;
+	align-items: center;
+}
+
+.hearth-tui-mount .hearth-tui-calc-input {
+	flex: 1;
+	min-width: 0;
+	height: var(--tui-lh, 1.32em);
+	border-bottom: 1px dashed var(--tui-line);
+}
+
+.hearth-tui-mount .hearth-tui-calc-input:focus {
+	border-bottom-color: var(--tui-accent);
+}
+
+.hearth-tui-mount textarea.hearth-tui-editor {
+	display: block;
+	white-space: pre-wrap;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}

@@ -20,7 +20,7 @@ import type { DashboardCard } from "../types";
 import type { HomeView } from "../view";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "./card";
 import { drawLine } from "./draw";
-import { fit, styleLine, type Line } from "./text";
+import { fit, styleLine, styleRange, type Line } from "./text";
 
 /** The class of the element that holds a body's rows. */
 const LINES_CLASS = "hearth-tui-lines";
@@ -59,6 +59,12 @@ export class TuiCardHost {
 		this.linesEl = el.createDiv(LINES_CLASS);
 		this.mountsEl = el.createDiv("hearth-tui-mounts");
 		el.addEventListener("scroll", () => this.opts.onScroll?.(), { passive: true });
+		el.addEventListener("dblclick", (evt) => {
+			const handler = this.output.onDoubleClick;
+			if (!handler || (evt.target instanceof HTMLElement && evt.target.closest(".hearth-tui-mount"))) return;
+			evt.preventDefault();
+			handler();
+		});
 	}
 
 	private get tui() {
@@ -90,6 +96,10 @@ export class TuiCardHost {
 	/** Ask the renderer for a fresh output and paint it. `component` is this
 	 * draw's own, torn down before the next one. */
 	draw(component: Component): void {
+		// The liveness wiring empties the body before every draw
+		// (`resetCardBody`), taking the containers with it.
+		if (this.linesEl.parentElement !== this.el) this.el.appendChild(this.linesEl);
+		if (this.mountsEl.parentElement !== this.el) this.el.appendChild(this.mountsEl);
 		const ctx = this.context(component);
 		const out = this.renderer.render(ctx);
 		this.output = out;
@@ -111,7 +121,9 @@ export class TuiCardHost {
 		this.linesEl.empty();
 		this.lineEls = out.lines.map((line, i) => {
 			let l: Line = fit(line, cols);
-			if (i >= from && i < to) l = styleLine(l, "reverse");
+			if (i >= from && i < to) {
+				l = item?.range ? styleRange(l, item.range[0], item.range[1], "reverse") : styleLine(l, "reverse");
+			}
 			return drawLine(this.linesEl, l);
 		});
 		if (item) this.reveal(item);

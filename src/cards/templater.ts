@@ -110,7 +110,7 @@ export function renderTemplater(view: HomeView, card: DashboardCard, body: HTMLE
 
 /** The text on a tile: the user's label, or the template's own name so a tile
  * added and never renamed still reads correctly. */
-function tileLabel(item: TemplaterItem): string {
+export function tileLabel(item: TemplaterItem): string {
 	return item.label.trim() || templateDisplayName(item.template) || t().cards.templater.untitledTile;
 }
 
@@ -138,7 +138,7 @@ function tileTooltip(item: TemplaterItem): string {
  * Every failure is reported as a Notice rather than swallowed — a launcher
  * button that silently does nothing is worse than one that says why.
  */
-async function runTemplaterItem(view: HomeView, item: TemplaterItem): Promise<void> {
+export async function runTemplaterItem(view: HomeView, item: TemplaterItem): Promise<void> {
 	const strings = t().notices;
 	const app = view.app;
 
