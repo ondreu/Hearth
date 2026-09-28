@@ -52,7 +52,7 @@ import {
 } from "../../weather";
 import { bigLines, bigWidth, BIG_ROWS, hasBigGlyphs } from "../bigtext";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "../card";
-import { BLOCKS, centerLine, fit, padEnd, padStart, strWidth, truncate, wrap, type Line, type TuiStyle } from "../text";
+import { BLOCKS, blockRow, centerLine, fit, padEnd, padStart, strWidth, truncate, wrap, type Line, type TuiStyle } from "../text";
 import { button, heading, message, rule, tableHeader } from "./common";
 
 // ---- The art --------------------------------------------------------------------
@@ -331,7 +331,7 @@ function temperatureChart(hours: readonly WeatherHour[], r: Resolved, w: number,
 			const inRow = Math.max(0, Math.min(8, e - row * 8));
 			const ch = inRow === 0 ? " " : inRow >= 8 ? "█" : BLOCKS[inRow - 1];
 			const bar = ch.repeat(Math.max(1, cellW - 1));
-			line.push({ text: bar, style: "accent" }, { text: " " });
+			line.push(...blockRow(bar, "accent"), { text: " " });
 		});
 		lines.push(line);
 	}

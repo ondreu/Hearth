@@ -115,17 +115,17 @@ export function rowsFor(cfg: MarketConfig): Row[] {
 }
 
 /** The symbol a row shows: the source's own, without its decoration. */
-function rowSymbol(row: Row): string {
+export function rowSymbol(row: Row): string {
 	return displaySymbol(row.targets[0]);
 }
 
 /** The name a row goes by: the one on the card, else the quote's. */
-function rowName(row: Row, quote: MarketQuote | null): string {
+export function rowName(row: Row, quote: MarketQuote | null): string {
 	return row.item.name?.trim() || quote?.name || rowSymbol(row);
 }
 
 /** The label line and the line under it, as the display toggles ask. */
-function identity(row: Row, quote: MarketQuote | null, r: Resolved): { title: string; sub: string } {
+export function identity(row: Row, quote: MarketQuote | null, r: Resolved): { title: string; sub: string } {
 	const symbol = rowSymbol(row);
 	if (!r.showName) return { title: symbol, sub: quote?.exchange ?? "" };
 	const name = rowName(row, quote);
@@ -143,20 +143,20 @@ function trendIcon(value: number | null): string {
 	return d === "up" ? "trending-up" : d === "down" ? "trending-down" : "minus";
 }
 
-function typeLabel(type: MarketAssetType): string {
+export function typeLabel(type: MarketAssetType): string {
 	return t().cards.market.types[type];
 }
 
-function stateLabel(state: MarketState): string {
+export function stateLabel(state: MarketState): string {
 	return t().cards.market.states[state];
 }
 
-function rangeLabel(range: MarketRange): string {
+export function rangeLabel(range: MarketRange): string {
 	return t().cards.market.ranges[range];
 }
 
 /** When a chart point was, at the grain its range is drawn in. */
-function formatStamp(ms: number, range: MarketRange): string {
+export function formatStamp(ms: number, range: MarketRange): string {
 	const d = new Date(ms);
 	if (range === "1d") return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 	if (range === "5d") {
@@ -169,14 +169,14 @@ function formatStamp(ms: number, range: MarketRange): string {
 	});
 }
 
-function updatedText(fetched: number): string {
+export function updatedText(fetched: number): string {
 	return t().cards.market.updated(
 		new Date(fetched).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
 	);
 }
 
 /** The move a chart shows: its last price against its baseline. */
-function seriesMove(series: MarketSeries): number | null {
+export function seriesMove(series: MarketSeries): number | null {
 	const last = series.points[series.points.length - 1];
 	const base = series.baseline ?? series.points[0]?.v ?? null;
 	return last && base !== null ? last.v - base : null;
@@ -364,7 +364,7 @@ function facts(parent: HTMLElement, items: { label: string; value: string }[], c
 	}
 }
 
-function quoteFacts(quote: MarketQuote): { label: string; value: string }[] {
+export function quoteFacts(quote: MarketQuote): { label: string; value: string }[] {
 	const s = t().cards.market;
 	const p = (v: number | null): string => (v === null ? "—" : formatPrice(v, quote.type, quote.currency));
 	return [
@@ -725,7 +725,7 @@ function paintStyle(wrap: HTMLElement, ctx: PaintContext): void {
 
 /** Run loads a few at a time: a board of twenty charts shouldn't open twenty
  * connections at once. */
-async function inBatches<T>(items: T[], size: number, fn: (item: T) => Promise<unknown>): Promise<void> {
+export async function inBatches<T>(items: T[], size: number, fn: (item: T) => Promise<unknown>): Promise<void> {
 	for (let i = 0; i < items.length; i += size) {
 		await Promise.all(items.slice(i, i + size).map(fn));
 	}

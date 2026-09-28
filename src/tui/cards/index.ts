@@ -10,6 +10,7 @@ import { calendarTui, scheduleTui } from "./calendar";
 import { clockTui } from "./clock";
 import { favoritesTui, recentTui } from "./files";
 import { commandsTui, linksTui, templaterTui } from "./launch";
+import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
@@ -25,6 +26,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	favorites: favoritesTui,
 	heatmap: heatmapTui,
 	links: linksTui,
+	market: marketTui,
 	periodic: periodicTui,
 	recent: recentTui,
 	schedule: scheduleTui,

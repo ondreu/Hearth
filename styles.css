@@ -21798,6 +21798,17 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 /* A solid cell, painted as background so neighbouring rows touch with no gap
  * between them — a block glyph stops short of the line height. */
 :is(.hearth-tui, .hearth-t-modal) .hearth-tui-block { background: var(--tui-accent); }
+/* A full cell of a chart: its colour as a background, so stacked cells meet
+ * without the gap a block glyph leaves inside a taller line. */
+:is(.hearth-tui, .hearth-t-modal) .hearth-tui-solid { background: currentColor; }
+/* An inline background covers only the font's content box, which is shorter
+ * than the line; a solid cell is stretched to the whole line so the rows of a
+ * chart or of big digits meet. */
+:is(.hearth-tui, .hearth-t-modal) :is(.hearth-tui-solid, .hearth-tui-block) {
+	display: inline-block;
+	height: 1lh;
+	vertical-align: top;
+}
 :is(.hearth-tui, .hearth-t-modal) .hearth-tui-reverse,
 :is(.hearth-tui, .hearth-t-modal) .hearth-tui-reverse:hover {
 	background: var(--tui-sel-bg);

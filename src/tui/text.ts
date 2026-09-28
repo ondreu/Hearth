@@ -36,7 +36,8 @@ export type TuiStyle =
 	| "heat2"
 	| "heat3"
 	| "heat4"
-	| "rule";
+	| "rule"
+	| "solid";
 
 /** One run of text in a single look, optionally interactive. */
 export interface Seg {
@@ -453,6 +454,72 @@ export function sparkline(values: readonly number[], w: number): string {
 	const hi = Math.max(...v);
 	const span = hi - lo || 1;
 	return v.map((x) => BLOCKS[Math.round(((x - lo) / span) * (BLOCKS.length - 1))]).join("");
+}
+
+/**
+ * An area chart `w` columns wide and `h` rows tall: `values` sampled to one per
+ * column, each column filled up to its value in eighths of a row — the price
+ * charts of a terminal system monitor. Rows are returned top first. `lo` and
+ * `hi` fix the scale (to fit a baseline in, say); they default to the values'
+ * own range. Every column with a value keeps at least one eighth.
+ */
+export function areaChart(values: readonly number[], w: number, h: number, lo?: number, hi?: number): string[] {
+	const v = values.filter((x) => Number.isFinite(x));
+	const rows = Math.max(1, h);
+	if (v.length === 0 || w <= 0) return Array.from({ length: rows }, () => " ".repeat(Math.max(0, w)));
+	const min = lo ?? Math.min(...v);
+	const max = hi ?? Math.max(...v);
+	const span = max - min || 1;
+	const levels: number[] = [];
+	for (let c = 0; c < w; c++) {
+		const x = v[w > 1 ? Math.round((c * (v.length - 1)) / (w - 1)) : v.length - 1];
+		const f = Math.max(0, Math.min(1, (x - min) / span));
+		levels.push(1 + Math.round(f * (rows * 8 - 1)));
+	}
+	const out: string[] = [];
+	for (let r = rows - 1; r >= 0; r--) {
+		out.push(
+			levels
+				.map((e) => {
+					const inRow = Math.max(0, Math.min(8, e - r * 8));
+					return inRow === 0 ? " " : inRow >= 8 ? "█" : BLOCKS[inRow - 1];
+				})
+				.join(""),
+		);
+	}
+	return out;
+}
+
+/**
+ * A row of block characters as segments, each run of full blocks drawn as
+ * solid cells — spaces on a background of the style's colour — so the rows of
+ * a chart meet without the hairline a `█` leaves inside a line taller than the
+ * glyph.
+ */
+export function blockRow(row: string, style?: TuiStyle | TuiStyle[]): Line {
+	const extra = style === undefined ? [] : Array.isArray(style) ? style : [style];
+	const line: Line = [];
+	let run = "";
+	let solid: boolean | null = null;
+	const flush = () => {
+		if (!run) return;
+		line.push(solid ? { text: " ".repeat(run.length), style: [...extra, "solid"] } : { text: run, style });
+		run = "";
+	};
+	for (const ch of row) {
+		const full = ch === "█";
+		if (solid !== null && full !== solid) flush();
+		solid = full;
+		run += ch;
+	}
+	flush();
+	return line;
+}
+
+/** Which row of an {@link areaChart} a value falls on, top first. */
+export function chartRow(value: number, lo: number, hi: number, h: number): number {
+	const f = Math.max(0, Math.min(1, (value - lo) / (hi - lo || 1)));
+	return Math.max(0, Math.min(h - 1, h - 1 - Math.floor(f * h - 1e-9)));
 }
 
 /** A horizontal bar `w` cells long, `fraction` of it filled in eighths. */
