@@ -2119,6 +2119,15 @@ button.hearth-tips-example:hover {
 	--table-row-background: transparent;
 	--table-row-alt-background: transparent;
 	--table-header-background: var(--hearth-card-surface, var(--background-primary));
+
+	/* On a phone Obsidian pushes every view in the main area down past its
+	   floating header, and a note's text further still (a view top spacing, a
+	   markdown one, and a bottom one past the navigation bar), by selectors
+	   that reach a hosted view too. A card has neither bar over it, so the note
+	   in a Daily note card opened on some 100px of nothing. */
+	--view-top-spacing: 0px;
+	--view-top-spacing-markdown: 0px;
+	--view-bottom-spacing: 0px;
 }
 
 .hearth-leaf-host > .workspace-leaf {
@@ -2364,6 +2373,27 @@ button.hearth-tips-example:hover {
 	background: transparent;
 }
 
+/* A setting tagged beside its name (Legacy), in the status pill's muted look. */
+.hearth-setting-tagged .setting-item-name {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.hearth-setting-tag {
+	flex: 0 0 auto;
+	padding: 1px 7px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-normal);
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
 /* Where this integration's settings live (or that it has none). Quieter than
  * the description above it — it's a signpost, not the point of the row. */
 .hearth-integration-where {
@@ -2575,6 +2605,23 @@ button.hearth-tips-example:hover {
 	display: block;
 	border: none;
 	padding: 0;
+}
+
+/* On a phone, and in a pane under 400px, Obsidian stacks every row that isn't
+   a toggle (or a link or an action): the control goes full width and to the
+   start, the name to the top. The rules are descendant selectors, so through
+   the host, which is such a row, they also reached every toggle in the pane:
+   the switch took the row and squeezed a name with no description under it
+   down to a few letters. Give those rows back the layout Obsidian gives them
+   outside the host, name beside a switch at the end. */
+.hearth-settings-host .setting-item:is(.mod-toggle, .mod-navigable, .mod-action) .setting-item-control,
+.is-phone .modal .hearth-settings-host .setting-item:is(.mod-toggle, .mod-navigable, .mod-action) .setting-item-control {
+	width: auto;
+	justify-content: flex-end;
+}
+
+.hearth-settings-host .setting-item:is(.mod-toggle, .mod-navigable, .mod-action) .setting-item-info {
+	align-self: auto;
 }
 
 /* ---- Settings tab: the category index -------------------------------
@@ -2886,6 +2933,12 @@ button.hearth-tips-example:hover {
    (style) doesn't make the modal jump in height on every click. */
 .hearth-modal-tabbody {
 	min-height: 220px;
+	/* On a phone the modal's content is a scrolling flex column, and the
+	   explicit min-height above replaces the `auto` floor that keeps a flex item
+	   from shrinking below its content. The body shrank to 220px, its rows
+	   spilled out of it, and the footer sat right under the shrunken box: in the
+	   middle of the rows, scrolling with them. */
+	flex-shrink: 0;
 	animation: hearth-tab-fade 140ms ease;
 }
 
@@ -2907,6 +2960,33 @@ button.hearth-tips-example:hover {
 
 .hearth-modal-footer .setting-item-control {
 	gap: 8px;
+}
+
+/* On a phone the dialog fills the screen, so the footer stays in reach at its
+   foot while the rows scroll, as the ribbon stays at the top, and on the same
+   terms: only on a surface it can match exactly (see the ribbon above). The
+   empty name column Obsidian stacks above the buttons there is dropped. */
+.is-phone .hearth-surface-solid > .hearth-modal-footer {
+	position: sticky;
+	bottom: calc(-1 * var(--size-4-4));
+	z-index: 5;
+	margin-top: auto;
+	margin-bottom: calc(-1 * var(--size-4-4));
+	padding-bottom: calc(var(--size-4-4) + var(--safe-area-inset-bottom, 0px));
+	background: var(--hearth-modal-surface);
+}
+
+/* Both bars reach over the content's padding (Obsidian's --size-4-4 on a
+   phone) and paint it, so no strip of rows shows past them where they stick;
+   the negative margin keeps them where they sat. */
+.is-phone .hearth-surface-solid > .hearth-modal-ribbon {
+	top: calc(-1 * var(--size-4-4));
+	margin-top: calc(-1 * var(--size-4-4));
+	padding-top: var(--size-4-4);
+}
+
+.is-phone .hearth-modal-footer .setting-item-info {
+	display: none;
 }
 
 /* ---- Icon+label buttons and the Ko-fi tip button --------------------
@@ -15539,6 +15619,31 @@ button:is(.hearth-gallery-rail-btn, .hearth-gallery-rail-publish, .hearth-picker
 	overflow-y: auto;
 }
 
+/* The rail's stand-in on a phone (see renderScopeBar): the category as a
+   dropdown on one line, and Publish beside it. Hidden wherever the rail fits. */
+.hearth-gallery-scopebar {
+	display: none;
+}
+
+@media (max-width: 620px) {
+	.hearth-gallery-scopebar {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+
+	.hearth-gallery-scope {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.hearth-gallery-rail {
+		display: none;
+	}
+}
+
 .hearth-gallery-count {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
@@ -20082,6 +20187,16 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-x-modal select.hearth-taskdetail-input {
 	border-radius: 999px;
+}
+
+/* Obsidian pins a date field's calendar icon to the start edge and makes room
+   for it with a padding it only sets on desktop, so on a phone the paddings
+   above left the icon over "dd.mm.yyyy". Keep that room everywhere. After the
+   Expressive rule above, with its specificity, so it wins there too; desktop's
+   own rule outranks it and is unchanged. */
+.hearth-taskdetail-input[type="date"],
+.hearth-operon-add-due {
+	padding-inline-start: var(--size-4-6);
 }
 
 /* ---- The task filter: chips as Material filter chips ---- */

@@ -174,11 +174,14 @@ export class SearchSection {
 		this.resultsEl.hide();
 		if (opts.filters !== false) this.renderFilters(boundary);
 
-		// Close the dropdown when clicking outside the whole search section.
-		// Registered on the per-render component (not the long-lived view) so it's
-		// torn down on every re-render instead of accumulating a stale listener
-		// each time the view is rebuilt.
-		component.registerDomEvent(this.view.containerEl.ownerDocument, "click", (e) => {
+		// Close the dropdown when pressing anywhere outside the whole search
+		// section. On the press, not the click: a phone sends no click for a tap
+		// on something that isn't clickable (the board's background, a card's
+		// text), nor for a touch that turns into a scroll, so the dropdown stayed
+		// open over the board. Registered on the per-render component (not the
+		// long-lived view) so it's torn down on every re-render instead of
+		// accumulating a stale listener each time the view is rebuilt.
+		component.registerDomEvent(this.view.containerEl.ownerDocument, "pointerdown", (e) => {
 			if (!boundary.contains(e.target as Node)) this.hide();
 		});
 

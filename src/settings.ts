@@ -1528,7 +1528,7 @@ export class HomeSettingTab extends PluginSettingTab {
 	private mobileModeSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
 
-		new Setting(containerEl)
+		const searchOnly = new Setting(containerEl)
 			.setName(t().settings.behaviour.mobileSearchOnly)
 			.setDesc(t().settings.behaviour.mobileSearchOnlyDesc)
 			.addToggle((t) =>
@@ -1537,6 +1537,10 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+		// Still honoured, but a phone now gets the stacked board below; the tag
+		// says this is the old way rather than the one to reach for.
+		searchOnly.settingEl.addClass("hearth-setting-tagged");
+		searchOnly.nameEl.createSpan({ cls: "hearth-setting-tag", text: t().settings.behaviour.legacyTag });
 
 		new Setting(containerEl)
 			.setName(t().settings.behaviour.stackOnNarrow)

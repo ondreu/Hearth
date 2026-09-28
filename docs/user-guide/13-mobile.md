@@ -117,8 +117,9 @@ different proposition from the stacked column. It hides the dashboard entirely
 on phones and tablets and shows **only the search field**, turning Hearth into a
 pure launcher on a phone. It has no effect on desktop.
 
-It is off by default. Use it if the dashboard is a desktop thing for you and the
-phone is for finding notes.
+It is off by default and marked *Legacy* in settings: the stacked column is now
+the way to use a board on a phone. It still works. Use it
+if the dashboard is a desktop thing for you and the phone is for finding notes.
 
 ## The mobile action bar
 

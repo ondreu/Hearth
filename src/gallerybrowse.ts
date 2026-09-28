@@ -97,6 +97,8 @@ class GalleryBrowseModal extends HearthModal {
 	private debounce: number | null = null;
 
 	private identityBar: HTMLElement | null = null;
+	/** The rail as a dropdown, for a phone (CSS shows one or the other). */
+	private scopeBar: HTMLElement | null = null;
 	private railEl: HTMLElement | null = null;
 	private resultsEl: HTMLElement | null = null;
 	private searchEl: HTMLInputElement | null = null;
@@ -130,6 +132,7 @@ class GalleryBrowseModal extends HearthModal {
 		this.renderTopBar(contentEl);
 		this.identityBar = contentEl.createDiv();
 		this.renderIdentityBar();
+		this.scopeBar = contentEl.createDiv("hearth-gallery-scopebar");
 		const body = contentEl.createDiv("hearth-gallery-body");
 		this.railEl = body.createDiv("hearth-gallery-rail");
 		this.resultsEl = body.createDiv("hearth-gallery-results");
@@ -244,39 +247,93 @@ class GalleryBrowseModal extends HearthModal {
 		});
 	}
 
+	/** What the rail offers, in its order. "Published by me" is only offered to
+	 * a vault that has an identity: with no key behind it, it is a question with
+	 * no possible answer, and merely opening the gallery is not a reason to mint
+	 * one. */
+	private scopes(): { scope: BrowseScope; label: string; icon: string }[] {
+		const strings = t().gallery;
+		const scopes: { scope: BrowseScope; label: string; icon: string }[] = [
+			{ scope: "all", label: strings.browse.all, icon: "layout-grid" },
+			...GALLERY_CATEGORIES.map((category) => ({
+				scope: category,
+				label: strings.categories[category],
+				icon: GALLERY_CATEGORY_ICONS[category],
+			})),
+		];
+		if (vaultIdentity(this.plugin)) {
+			scopes.push({ scope: "mine", label: strings.browse.mine, icon: "user-round" });
+		}
+		return scopes;
+	}
+
+	private setScope(scope: BrowseScope): void {
+		if (scope === this.browseScope) return;
+		this.browseScope = scope;
+		this.app.saveLocalStorage(SCOPE_KEY, scope);
+		this.renderRail();
+		void this.load({ reset: true });
+	}
+
+	/** The rail, and the dropdown that stands in for it on a phone. */
 	private renderRail(): void {
 		const rail = this.railEl;
 		if (!rail) return;
 		rail.empty();
-		const strings = t().gallery;
-
-		this.railButton(rail, "all", strings.browse.all, "layout-grid");
-		for (const category of GALLERY_CATEGORIES) {
-			this.railButton(
-				rail,
-				category,
-				strings.categories[category],
-				GALLERY_CATEGORY_ICONS[category],
-			);
+		const scopes = this.scopes();
+		for (const { scope, label, icon } of scopes) {
+			if (scope !== "mine") this.railButton(rail, scope, label, icon);
 		}
+		// "Published by me" is the reader's own shelf, not a category.
 		rail.createDiv("hearth-gallery-rail-sep");
-		// Only offered to a vault that has an identity: "published by me" with no
-		// key behind it is a question with no possible answer, and merely opening
-		// the gallery is not a reason to mint one.
-		if (vaultIdentity(this.plugin)) {
-			this.railButton(rail, "mine", strings.browse.mine, "user-round");
-		}
+		const mine = scopes.find(({ scope }) => scope === "mine");
+		if (mine) this.railButton(rail, mine.scope, mine.label, mine.icon);
 
 		const publish = rail.createEl("button", { cls: "hearth-gallery-rail-publish" });
 		setIcon(publish.createSpan("hearth-gallery-rail-icon"), "upload");
 		publish.createSpan({
 			cls: "hearth-gallery-rail-label",
-			text: strings.browse.publish,
+			text: t().gallery.browse.publish,
 		});
-		publish.addEventListener("click", () => {
-			this.close();
-			openPublishDashboard(this.plugin, activeDashboard(this.plugin.settings));
+		publish.addEventListener("click", () => this.publish());
+
+		this.renderScopeBar(scopes);
+	}
+
+	/**
+	 * On a phone, ten categories stacked in a rail fill the screen before a
+	 * single board shows, and laid out as a row of chips they still take a
+	 * swipe to reach. A dropdown is one line, and the phone's own picker is
+	 * the list.
+	 */
+	private renderScopeBar(scopes: { scope: BrowseScope; label: string }[]): void {
+		const bar = this.scopeBar;
+		if (!bar) return;
+		bar.empty();
+		const strings = t().gallery.browse;
+		const select = bar.createEl("select", {
+			cls: "dropdown hearth-gallery-scope",
+			attr: { "aria-label": strings.scopeLabel },
 		});
+		for (const { scope, label } of scopes) {
+			select.createEl("option", { value: scope, text: label });
+		}
+		select.value = this.browseScope;
+		select.addEventListener("change", () => {
+			if (this.isScope(select.value)) this.setScope(select.value);
+		});
+
+		const publish = bar.createEl("button", {
+			cls: "hearth-gallery-icon-btn",
+			attr: { "aria-label": strings.publish },
+		});
+		setIcon(publish, "upload");
+		publish.addEventListener("click", () => this.publish());
+	}
+
+	private publish(): void {
+		this.close();
+		openPublishDashboard(this.plugin, activeDashboard(this.plugin.settings));
 	}
 
 	private railButton(
@@ -290,13 +347,7 @@ class GalleryBrowseModal extends HearthModal {
 		btn.setAttribute("aria-pressed", String(this.browseScope === scope));
 		setIcon(btn.createSpan("hearth-gallery-rail-icon"), icon);
 		btn.createSpan({ cls: "hearth-gallery-rail-label", text: label });
-		btn.addEventListener("click", () => {
-			if (scope === this.browseScope) return;
-			this.browseScope = scope;
-			this.app.saveLocalStorage(SCOPE_KEY, scope);
-			this.renderRail();
-			void this.load({ reset: true });
-		});
+		btn.addEventListener("click", () => this.setScope(scope));
 	}
 
 	// ---- Fetching -------------------------------------------------------

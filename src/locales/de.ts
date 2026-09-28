@@ -1222,6 +1222,7 @@ export const de: Translations = {
 				"Wende Dashboard-Änderungen von einem anderen Gerät an, sobald der Sync sie " +
 				"hereinbringt, statt erst beim nächsten Obsidian-Neustart. Lasse dies an, außer " +
 				"wenn ein Board, das sich mitten in der Sitzung neu lädt, dich stört.",
+			legacyTag: "Veraltet",
 			mobileSearchOnly: "Mobilmodus (nur Suche)",
 			mobileSearchOnlyDesc:
 				"Blende auf Smartphones und Tablets das Dashboard aus und zeige nur das " +
@@ -4468,6 +4469,7 @@ export const de: Translations = {
 			searchPlaceholder: "Dashboards suchen…",
 			all: "Alle Dashboards",
 			mine: "Von mir veröffentlicht",
+			scopeLabel: "Kategorie",
 			sortLabel: "Sortieren nach",
 			refresh: "Aktualisieren",
 			publish: "Dashboard veröffentlichen",

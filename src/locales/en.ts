@@ -1213,6 +1213,7 @@ export const en = {
 				"Apply dashboard changes made on another device as soon as sync brings " +
 				"them in, instead of at the next Obsidian restart. Leave this on unless " +
 				"a board reloading mid-session gets in your way.",
+			legacyTag: "Legacy",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:
 				"On phones and tablets, hide the dashboard and show only the search " +
@@ -4468,6 +4469,7 @@ export const en = {
 			searchPlaceholder: "Search dashboards…",
 			all: "All dashboards",
 			mine: "Published by me",
+			scopeLabel: "Category",
 			sortLabel: "Sort by",
 			refresh: "Refresh",
 			publish: "Publish a dashboard",

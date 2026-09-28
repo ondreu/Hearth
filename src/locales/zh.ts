@@ -1106,6 +1106,7 @@ export const zh: Translations = {
 			liveSettingsSyncDesc:
 				"同步送达其他设备上所做的面板更改后立即应用，而不必等到下次重启 " +
 				"Obsidian。除非面板在使用过程中重新加载会造成困扰，否则请保持开启。",
+			legacyTag: "旧版",
 			mobileSearchOnly: "移动模式（仅搜索）",
 			mobileSearchOnlyDesc:
 				"在手机和平板上隐藏面板，仅显示搜索框。对桌面端无影响。",
@@ -4117,6 +4118,7 @@ export const zh: Translations = {
 			searchPlaceholder: "搜索仪表板……",
 			all: "全部仪表板",
 			mine: "我发布的",
+			scopeLabel: "分类",
 			sortLabel: "排序方式",
 			refresh: "刷新",
 			publish: "发布仪表板",

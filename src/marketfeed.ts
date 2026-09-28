@@ -12,7 +12,7 @@
  * Nothing here throws. A card asks, waits, and reads whatever is cached.
  * With **Disable external calls** on, nothing is fetched at all.
  */
-import { requestUrl, type RequestUrlResponse } from "obsidian";
+import { Platform, requestUrl, type RequestUrlResponse } from "obsidian";
 import {
 	coinParts,
 	frankfurterQuote,
@@ -151,9 +151,24 @@ function failedRecently(target: MarketTarget, opts: MarketLoadOptions, now: numb
 
 // ---- Requests ---------------------------------------------------------------
 
+/**
+ * On a phone a request goes out through the app's native HTTP rather than the
+ * browser engine, under that library's User-Agent, and Yahoo is known to turn
+ * away (429) a client that doesn't introduce itself as a browser; quotes read
+ * "Unavailable" on a phone while the desktop, which sends the browser's own,
+ * got them. A phone's request says it is a WebKit client, which Obsidian on a
+ * phone is, and says whose.
+ */
+const MOBILE_USER_AGENT =
+	"Mozilla/5.0 (compatible; Hearth; Obsidian) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36";
+
+function requestHeaders(): Record<string, string> | undefined {
+	return Platform.isMobile ? { "User-Agent": MOBILE_USER_AGENT } : undefined;
+}
+
 async function get(url: string): Promise<RequestUrlResponse | null> {
 	try {
-		const res = await requestUrl({ url, throw: false });
+		const res = await requestUrl({ url, headers: requestHeaders(), throw: false });
 		return res.status >= 200 && res.status < 300 ? res : null;
 	} catch {
 		// Offline, blocked, or a TLS failure: the same "no answer" to the card.
