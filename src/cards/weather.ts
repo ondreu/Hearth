@@ -58,7 +58,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 
 /** Every config value a render needs, with the defaults applied once so the
  * paint functions never repeat a `?? true` dance. */
-interface Resolved {
+export interface Resolved {
 	style: WeatherStyle;
 	tempUnit: TemperatureUnit;
 	windUnit: WindUnit;
@@ -91,7 +91,7 @@ interface Resolved {
 
 /** Default hourly-strip length per style: the forecast style is built around
  * the strip and shows twice as much of it as the styles where it is a garnish. */
-function defaultHourlyCount(style: WeatherStyle): number {
+export function defaultHourlyCount(style: WeatherStyle): number {
 	switch (style) {
 		case "forecast":
 			return 12;
@@ -173,7 +173,7 @@ export function resolveConfig(
 }
 
 /** The forecast request a card's config asks for. */
-function requestFor(cfg: WeatherConfig, r: Resolved): WeatherRequest | null {
+export function requestFor(cfg: WeatherConfig, r: Resolved): WeatherRequest | null {
 	const place = cfg.place;
 	if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lon)) return null;
 	return {
@@ -186,7 +186,7 @@ function requestFor(cfg: WeatherConfig, r: Resolved): WeatherRequest | null {
 }
 
 /** The localized condition text for a WMO code. */
-function conditionText(code: number): string {
+export function conditionText(code: number): string {
 	return t().cards.weather.conditions[weatherLabelKey(code)];
 }
 
@@ -215,7 +215,7 @@ function conditionGlyph(
 }
 
 /** One labelled value — the unit of the meta lines and the metric grid. */
-interface Metric {
+export interface Metric {
 	icon: string;
 	label: string;
 	value: string;
@@ -226,7 +226,7 @@ interface Metric {
  * on never reshuffles the others. Everything here is opt-in: a fresh card shows
  * the conditions and nothing else.
  */
-function metricsFor(snapshot: WeatherSnapshot, r: Resolved): Metric[] {
+export function metricsFor(snapshot: WeatherSnapshot, r: Resolved): Metric[] {
 	const strings = t().cards.weather;
 	const now = snapshot.now;
 	const day = today(snapshot);
@@ -287,7 +287,7 @@ function metricsFor(snapshot: WeatherSnapshot, r: Resolved): Metric[] {
 
 /** "Feels like 19°" and "H 24° L 12°" — the two readings that ride along with
  * the current temperature rather than sitting in the metric grid. */
-function headlineBits(snapshot: WeatherSnapshot, r: Resolved): string[] {
+export function headlineBits(snapshot: WeatherSnapshot, r: Resolved): string[] {
 	const strings = t().cards.weather;
 	const bits: string[] = [];
 	if (r.showFeelsLike && snapshot.now.apparent !== null) {
@@ -507,7 +507,7 @@ function metricGrid(parent: HTMLElement, metrics: Metric[]): void {
 
 /** "Updated 14:20" — when this reading was fetched, on the reader's own clock
  * rather than the location's. */
-function updatedText(snapshot: WeatherSnapshot, r: Resolved): string {
+export function updatedText(snapshot: WeatherSnapshot, r: Resolved): string {
 	const stamp = new Date(snapshot.fetched);
 	// h23 rather than `hour12: false` — see formatHour in ../weather.ts.
 	const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
@@ -893,7 +893,7 @@ export function formatUv(value: number | null): string {
 }
 
 /** A wind speed with the compass point it blows from, when there is one. */
-function windText(speed: number | null, dir: number | null, r: Resolved): string {
+export function windText(speed: number | null, dir: number | null, r: Resolved): string {
 	const value = formatWind(speed, r.windUnit);
 	const compass = compassIndex(dir);
 	return compass === null ? value : `${value} ${t().cards.weather.compass[compass]}`;

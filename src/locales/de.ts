@@ -4725,6 +4725,8 @@ export const de: Translations = {
 			agendaFoot: "Pfeile wählen · Enter öffnet",
 			schedFoot: "[ ] oder Bild auf/ab blättern · v Ansicht · Pfeile wechseln den Tag · Enter öffnet · Pos1 heute",
 			allDayShort: "ganz",
+			weatherFoot: "Pfeile wählen einen Tag · Enter zeigt ihn Stunde für Stunde",
+			weatherCardFoot: "Enter öffnet die ganze Vorhersage",
 		},
 		settings: {
 			name: "Terminal",

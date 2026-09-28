@@ -4725,6 +4725,8 @@ export const en = {
 			agendaFoot: "arrows pick · enter opens",
 			schedFoot: "[ ] or pgup/pgdn step · v view · arrows move the day · enter opens · home today",
 			allDayShort: "all",
+			weatherFoot: "arrows pick a day · enter shows it hour by hour",
+			weatherCardFoot: "enter opens the full forecast",
 		},
 		settings: {
 			name: "Terminal",

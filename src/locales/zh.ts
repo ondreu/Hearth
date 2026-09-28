@@ -4354,6 +4354,8 @@ export const zh: Translations = {
 			agendaFoot: "方向键选择 · Enter 打开",
 			schedFoot: "[ ] 或 PgUp/PgDn 翻页 · v 切换视图 · 方向键切换日期 · Enter 打开 · Home 今天",
 			allDayShort: "全天",
+			weatherFoot: "方向键选择日期 · Enter 查看逐小时预报",
+			weatherCardFoot: "Enter 打开完整预报",
 		},
 		settings: {
 			name: "终端",

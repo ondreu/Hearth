@@ -13,6 +13,7 @@ import { commandsTui, linksTui, templaterTui } from "./launch";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
+import { weatherTui } from "./weather";
 
 export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	calculator: calculatorTui,
@@ -31,4 +32,5 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	tasks: tasksTui,
 	templater: templaterTui,
 	text: textTui,
+	weather: weatherTui,
 };

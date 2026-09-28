@@ -83,7 +83,7 @@ function offsetOf(snapshot: WeatherSnapshot, ms: number): number {
 }
 
 /** The location's wall clock right now. */
-function wallNow(snapshot: WeatherSnapshot, ms: number): string {
+export function wallNow(snapshot: WeatherSnapshot, ms: number): string {
 	return wallClockAt(ms, offsetOf(snapshot, ms));
 }
 
@@ -525,7 +525,7 @@ function arcX(box: ArcBox, minute: number): number {
 }
 
 /** The day's sunrise, sunset and the next sunrise as minutes into it. */
-interface DayTimes {
+export interface DayTimes {
 	/** The daily entry the location's clock is in, and the one after it. */
 	day: WeatherDay | null;
 	next: WeatherDay | undefined;
@@ -535,7 +535,7 @@ interface DayTimes {
 	nextSunrise: number | undefined;
 }
 
-function dayTimes(snapshot: WeatherSnapshot, wall: string): DayTimes {
+export function dayTimes(snapshot: WeatherSnapshot, wall: string): DayTimes {
 	const date = wall.slice(0, 10);
 	const days = snapshot.daily;
 	const i = days.findIndex((d) => d.date === date);
