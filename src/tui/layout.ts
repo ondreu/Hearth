@@ -125,3 +125,39 @@ export function resizeRect(r: FrameRect, dCols: number, dRows: number, cols: num
 		rows: Math.max(MIN_CARD_ROWS, r.rows + dRows),
 	};
 }
+
+/**
+ * Which tabs of a tab bar fit in `avail` cells, as the range `[from, to)` —
+ * always holding `active`, the way tmux windows its status line. `widths` are
+ * the tabs' widths; `marker` is the width of the "more this way" marker a side
+ * with tabs left out gets, which the window makes room for.
+ *
+ * The window moves no more than it has to: it starts at the first tab while
+ * the active one is among those that fit from there, and otherwise ends at the
+ * active tab — so stepping along the bar slides it one tab at a time rather
+ * than jumping a page — then takes whatever room is left after it.
+ */
+export function tabWindow(
+	widths: readonly number[],
+	active: number,
+	avail: number,
+	marker: number,
+): { from: number; to: number } {
+	const n = widths.length;
+	const total = widths.reduce((sum, w) => sum + w, 0);
+	if (n === 0 || total <= avail) return { from: 0, to: n };
+	const at = Math.min(Math.max(active, 0), n - 1);
+	const width = (from: number, to: number) =>
+		widths.slice(from, to).reduce((sum, w) => sum + w, 0) + (from > 0 ? marker : 0) + (to < n ? marker : 0);
+	const growRight = (from: number, to: number) => {
+		while (to < n && width(from, to + 1) <= avail) to++;
+		return to;
+	};
+
+	const first = growRight(0, 1);
+	if (at < first) return { from: 0, to: first };
+
+	let from = at;
+	while (from > 0 && width(from - 1, at + 1) <= avail) from--;
+	return { from, to: growRight(from, at + 1) };
+}

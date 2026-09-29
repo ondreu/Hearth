@@ -365,7 +365,12 @@ and the function-key bar. Each function key is also a button:
 
 The letters do the same without the function keys, for laptops and tablets
 that hide them: `?` or `h` help, `/` search, `a` arrange, `n` add a card, `r`
-refresh, `t` next colour scheme, and `1`–`9` switch to that board.
+refresh, `t` next colour scheme, `1`–`9` switch to that board, and `[` and `]`
+step to the previous or next board, round the end.
+
+When there are more boards than the tab line holds, it shows the ones around
+the active board, with `«3` or `2»` on a side that has more — the number is how
+many. Clicking one lists every board, so each is a click away.
 
 ### Working a card
 

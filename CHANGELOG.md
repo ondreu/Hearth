@@ -28,6 +28,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     arrange, search, filter, refresh, sort, add, board settings, colours,
     quit). Arranging works by keys (arrows move, Shift and an arrow resizes)
     or by dragging a frame and its corner.
+  - The boards are tabs along the top, like tmux windows: `1`–`9` open one,
+    `[` and `]` step through them all, and when there are more than the line
+    holds it shows those around the active board, with a count on each side
+    that has more — click it to list every board.
   - Every card with a text form is drawn as text: tasks as an htop table or a
     board, notes as highlighted Markdown you can tick and edit in place, the
     calendars as `cal` and a time grid, the weather as ASCII art with the full

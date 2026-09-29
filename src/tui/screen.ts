@@ -38,11 +38,13 @@ import {
 	TERMINAL_SCHEMES,
 } from "../types";
 import { confirmAction } from "../ui";
-import { HearthModal } from "../uidesign";
+import { HearthModal, hearthMenu } from "../uidesign";
 import type { HomeView } from "../view";
 import { TuiBoard } from "./board";
 import { drawLine, drawLines } from "./draw";
-import { asciify, fit, spread, strWidth, type Line, type Seg } from "./text";
+import { showMenuFor } from "./cards/common";
+import { tabWindow } from "./layout";
+import { asciify, fit, lineWidth, spread, strWidth, type Line, type Seg } from "./text";
 
 /** The root classes terminal mode puts on a view, so switching modes can take
  * every one of them off again. */
@@ -141,25 +143,26 @@ function drawTabs(view: HomeView, el: HTMLElement): void {
 	const s = view.plugin.settings;
 	el.empty();
 	const cols = cellsAcross(el);
-	const left: Line = [];
-	s.dashboards.forEach((d, i) => {
+	const tabs: Line[] = s.dashboards.map((d, i) => {
 		const active = d.id === s.activeDashboardId;
 		const name = asciify(d.name?.trim() || String(i + 1));
-		left.push({
-			text: ` ${i + 1} ${name} `,
-			style: active ? ["reverse", "bold"] : undefined,
-			onClick: () => view.plugin.setActiveDashboard(d.id),
-			onMenu: (evt) => showDashboardMenu(view, d, evt, (menu) => addMoveEntries(view, d, menu)),
-			label: d.name,
-		});
-		left.push({ text: " " });
+		return [
+			{
+				text: ` ${i + 1} ${name} `,
+				style: active ? ["reverse", "bold"] : undefined,
+				onClick: () => view.plugin.setActiveDashboard(d.id),
+				onMenu: (evt) => showDashboardMenu(view, d, evt, (menu) => addMoveEntries(view, d, menu)),
+				label: d.name,
+			},
+			{ text: " " },
+		];
 	});
-	left.push({
+	const add: Seg = {
 		text: " + ",
 		style: "dim",
 		onClick: () => addDashboard(view),
 		label: t().dashboards.newDashboard,
-	});
+	};
 	const arrange: Line = [
 		{ text: "F2", style: "dim" },
 		{
@@ -168,7 +171,54 @@ function drawTabs(view: HomeView, el: HTMLElement): void {
 			onClick: () => toggleArrange(view),
 		},
 	];
+
+	// More boards than the line holds: show a window of them around the active
+	// one, with a marker on each side that has more, counting them. A marker
+	// opens the list of every board, so none is out of reach by pointer —
+	// and `[` and `]` step through them by key (see onKey).
+	const n = tabs.length;
+	const marker = strWidth(`«${n} `);
+	const avail = Math.max(0, cols - lineWidth(arrange) - strWidth(add.text) - 1);
+	const active = s.dashboards.findIndex((d) => d.id === s.activeDashboardId);
+	const { from, to } = tabWindow(tabs.map(lineWidth), active, avail, marker);
+	const more = (text: string, count: number): Seg => ({
+		text,
+		style: ["accent", "bold"],
+		onClick: (evt) => showBoardList(view, evt),
+		label: t().tui.moreBoards(count),
+	});
+	const left: Line = [];
+	if (from > 0) left.push(more(`«${from} `, from));
+	for (const tab of tabs.slice(from, to)) left.push(...tab);
+	if (to < n) left.push(more(`${n - to}» `, n - to));
+	left.push(add);
 	drawLine(el, spread(left, arrange, cols));
+}
+
+/** Every board in a menu, the active one ticked — how a board past the edge
+ * of the tab bar is reached by pointer. */
+function showBoardList(view: HomeView, evt: MouseEvent | KeyboardEvent): void {
+	const s = view.plugin.settings;
+	const menu = hearthMenu();
+	s.dashboards.forEach((d, i) => {
+		menu.addItem((item) =>
+			item
+				.setTitle(`${i + 1}  ${d.name?.trim() || String(i + 1)}`)
+				.setChecked(d.id === s.activeDashboardId)
+				.onClick(() => view.plugin.setActiveDashboard(d.id)),
+		);
+	});
+	showMenuFor(menu, evt);
+}
+
+/** The board `step` places from the active one, wrapping round. */
+function stepBoard(view: HomeView, step: number): boolean {
+	const s = view.plugin.settings;
+	const n = s.dashboards.length;
+	if (n < 2) return false;
+	const at = Math.max(0, s.dashboards.findIndex((d) => d.id === s.activeDashboardId));
+	view.plugin.setActiveDashboard(s.dashboards[(at + step + n) % n].id);
+	return true;
 }
 
 function addMoveEntries(view: HomeView, dash: Dashboard, menu: Menu): void {
@@ -435,6 +485,10 @@ function onKey(
 		case "t":
 			cycleScheme(view);
 			return true;
+		case "[":
+			return stepBoard(view, -1);
+		case "]":
+			return stepBoard(view, 1);
 	}
 	if (/^[1-9]$/.test(evt.key)) {
 		const d = s.dashboards[Number(evt.key) - 1];
@@ -466,6 +520,7 @@ class TuiHelpModal extends HearthModal {
 			["Esc", h.escape],
 			["/  F3", h.search],
 			["1 – 9", h.boards],
+			["[  ]", h.stepBoards],
 			["a  F2", h.arrange],
 			["n  F7", h.add],
 			["f  F4", h.filter],
