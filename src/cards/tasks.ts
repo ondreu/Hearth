@@ -10,7 +10,7 @@ import {
 	type App,
 	type Menu,
 } from "obsidian";
-import { setIcon } from "../glyphs";
+import { glyphModeActive, setIcon } from "../glyphs";
 import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
@@ -2967,7 +2967,9 @@ function buildTaskDetailFields(
 
 	const dateField = (emoji: string, label: string, value: string) => {
 		const r = grid.createDiv({ cls: "hearth-taskdetail-row" });
-		r.createSpan({ cls: "hearth-taskdetail-label", text: `${emoji} ${label}` });
+		// The Tasks plugin's emoji name the field outside terminal mode, which
+		// draws no emoji.
+		r.createSpan({ cls: "hearth-taskdetail-label", text: glyphModeActive() ? label : `${emoji} ${label}` });
 		const inp = r.createEl("input", { cls: "hearth-taskdetail-input", attr: { type: "date", "aria-label": label } });
 		inp.value = value;
 		return inp;

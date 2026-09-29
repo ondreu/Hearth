@@ -1,5 +1,5 @@
 import { type App, type ButtonComponent, debounce, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, type SliderComponent, type TextComponent, TFile } from "obsidian";
-import { setIcon } from "./glyphs";
+import { glyphIconsIn, setIcon } from "./glyphs";
 import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { classicCardsInUse } from "./cards";
@@ -299,7 +299,10 @@ export class HomeSettingTab extends PluginSettingTab {
 			if (cls.startsWith("hearth-tui-scheme-")) containerEl.removeClass(cls);
 		}
 		containerEl.toggleClass("hearth-t-settings", scheme !== null);
-		if (scheme) containerEl.addClass(scheme);
+		if (scheme) {
+			containerEl.addClass(scheme);
+			glyphIconsIn(containerEl);
+		}
 		containerEl.toggleClass("hearth-x-settings", design === "expressive" && scheme === null);
 		stateDesign(containerEl, design);
 	}

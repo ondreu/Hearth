@@ -344,3 +344,43 @@ export function iconGlyph(iconId: string): string {
 	for (const [pattern, glyph] of FAMILIES) if (pattern.test(id)) return glyph;
 	return FALLBACK_GLYPH;
 }
+
+// ---- Icons Obsidian draws itself ----------------------------------------------
+
+/** Where a real icon is the point: the icon picker's rows and preview. */
+const REAL_ICONS = ".hearth-icon-suggestion-icon, .hearth-icon-preview";
+
+/** Roots already being watched, so dressing one twice watches it once. */
+const watched = new WeakSet<HTMLElement>();
+
+/** Replace one of Obsidian's SVG icons with its character. */
+function glyphSvg(svg: Element): void {
+	if (!svg.classList.contains("svg-icon") || svg.closest(REAL_ICONS)) return;
+	const name = Array.from(svg.classList).find((c) => c.startsWith("lucide-"))?.slice("lucide-".length) ?? "";
+	svg.replaceWith(createSpan({ cls: GLYPH_CLASS, text: iconGlyph(name) }));
+}
+
+/**
+ * Draw the icons Obsidian's own components put inside `root` as characters —
+ * a setting's extra button, a button given an icon, a menu item's icon — the
+ * ones that never pass through {@link setIcon} here. Covers what `root` holds
+ * now and whatever is added to it later (a menu fills itself as it opens).
+ * Does nothing while terminal mode is off, so a root dressed once and later
+ * shown in the graphical design keeps its real icons.
+ */
+export function glyphIconsIn(root: HTMLElement): void {
+	if (!glyphMode()) return;
+	root.querySelectorAll("svg.svg-icon").forEach(glyphSvg);
+	if (watched.has(root)) return;
+	watched.add(root);
+	new MutationObserver((records) => {
+		if (!glyphMode()) return;
+		for (const record of records) {
+			record.addedNodes.forEach((node) => {
+				if (!node.instanceOf(Element)) return;
+				if (node.matches("svg.svg-icon")) glyphSvg(node);
+				else node.querySelectorAll("svg.svg-icon").forEach(glyphSvg);
+			});
+		}
+	}).observe(root, { childList: true, subtree: true });
+}

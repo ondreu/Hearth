@@ -25,6 +25,7 @@
  * always taken the design of the card it came from.
  */
 import { type App, FuzzySuggestModal, Menu, Modal, type Plugin } from "obsidian";
+import { glyphIconsIn } from "./glyphs";
 import type { CardDesign } from "./types";
 
 /** The attribute every design-carrying element states its design in. Read and
@@ -131,7 +132,10 @@ export function terminalSchemeClass(): string | null {
 function dressTerminal(el: HTMLElement, cls: string): boolean {
 	const scheme = terminalSchemeClass();
 	el.toggleClass(cls, scheme !== null);
-	if (scheme) el.addClass(scheme);
+	if (scheme) {
+		el.addClass(scheme);
+		glyphIconsIn(el);
+	}
 	return scheme !== null;
 }
 
