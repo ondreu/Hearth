@@ -416,6 +416,13 @@ Before you add one:
   button groups, and the same look on the search row, dialogs, menus and
   Hearth's settings. Obsidian's own interface is left to your theme. The choice
   cascades vault → board → card (**Settings → Hearth → Appearance → Design**).
+- **Terminal mode** — the third design: all of Hearth as a text interface, the
+  way `htop` looks. One character grid in a bundled monospaced font, cards as
+  box-drawn frames that join their neighbours, tasks as tables, notes as
+  highlighted Markdown you can tick and edit, calendars as `cal`, the weather
+  as ASCII art, charts in block characters, folders as trees — and keys for
+  everything (Tab between cards, arrows inside, `m` the card menu, `z` zoom,
+  F1–F10 for the board). Five colour schemes, one of them your theme's.
 - **Background** — solid color, vault image, URL, a background **drawn by
   Hearth** (*Hearth default* — hills and a cabin, or Material's soft shapes in
   Expressive — and *Harbour town*, both following your light or dark theme and
@@ -583,3 +590,7 @@ page, you can buy me a coffee — it genuinely helps keep the updates coming.
 ## License
 
 MIT © ondreu · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+
+Terminal mode draws with a subset of [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono),
+embedded in `styles.css`: Copyright 2020 The JetBrains Mono Project Authors,
+licensed under the [SIL Open Font License 1.1](assets/fonts/JetBrainsMono-OFL.txt).

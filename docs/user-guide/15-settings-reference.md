@@ -55,6 +55,18 @@ and smoothness on slower hardware.*
 
 The full effects of each tier are in [chapter 12](12-performance.md).
 
+### Design and terminal mode
+
+The design choices at the head of the page — *Classic*, *Expressive* and
+*Terminal* — set the vault-wide design. With *Terminal* chosen, a *Terminal
+mode* section follows (see the Terminal mode section of
+[chapter 11](11-appearance.md)):
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| *Colour scheme* | Obsidian theme | **Obsidian theme** takes every colour from your theme; **Htop**, **Hearth**, **Amber** and **Paper** are fixed palettes |
+| *Font size* | 13 px | The size of the terminal's text, 10–20 px. Every card keeps its place on the grid |
+
 ### Home
 
 *Title, title and tab icons, search visibility and overall content width.*

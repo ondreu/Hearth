@@ -284,6 +284,135 @@ changed on their side. See [chapter 16](16-sharing-and-gallery.md).
 
 ---
 
+## Terminal mode
+
+Vault-wide only: **Settings → Hearth → Appearance**, the third of the design
+choices at the head of the page, *Terminal*. There is no per-board or per-card
+terminal mode; while it is on, it is the whole of Hearth.
+
+Terminal mode draws Hearth as a text interface, the way a terminal tool such
+as `htop` looks: one character grid in a bundled monospaced font, every card a
+box drawn in line characters, and keys for everything. It sets aside the
+wallpaper, the frosted glass, the card surfaces, the animations and the
+Classic or Expressive choice of every board and card until it is switched off
+again; nothing about a board is changed by switching it on, and switching it
+off brings every board back exactly as it was.
+
+### What it looks like
+
+- **Cards keep their places.** Each card is drawn where it sits on the
+  graphical board, rounded to the character grid, and cards that touch share
+  their border, so two neighbours meet in `┬` and `┴` like the panes of a
+  terminal multiplexer. In a narrow pane (or on a phone) the cards stack in one
+  column, in reading order, the way the mobile layout does.
+- **The focused card** — the one that has the keyboard — is drawn in a heavy
+  line (`┏━┓`); a card being arranged in a dashed one. The card's title sits on
+  its top border, a short summary (a count, a place, *Loading…*) on the right
+  of it, and `[≡]` opens the card menu. The keys the focused card understands
+  are written along its bottom border.
+- **Cards are text.** A task list is a table with the sorted column lit, a
+  note is its highlighted Markdown source, a calendar is a month as `cal`
+  prints it, the weather is ASCII art of the sky, a price chart is drawn in
+  block characters, a folder is a tree as `tree` prints it, and the pet is its
+  pixel sprite in half-block characters. Emoji are replaced by an ASCII
+  equivalent where one exists (🙂 becomes `:)`, ✅ becomes `[x]`) and left
+  out where none does; a flag becomes its region code.
+- **What has no text form stays itself.** The slideshow, web pages, hosted
+  plugin views (including Vault Pet's), Datacore views, DataviewJS, and an
+  embedded picture, canvas, base or drawing are drawn graphically inside their
+  terminal frame. A board of the *Plugin view* type — one other plugin's view
+  filling the whole board — is drawn as usual.
+- **Dialogs, menus and Hearth's settings** are drawn in the same font and
+  colours, with double-lined frames and `[ ]` buttons. The icon picker keeps
+  real icons, since showing what an icon looks like is its whole job.
+
+### Colours and size
+
+With terminal mode on, a *Terminal mode* section appears under the design
+choices:
+
+- *Colour scheme*: **Obsidian theme** takes every colour from your theme, so
+  the text interface follows it light or dark; **Htop**, **Hearth**, **Amber**
+  and **Paper** are fixed palettes. F9 (or `t`) steps through them from the
+  board.
+- *Font size*: the size of the terminal's text, 10 to 20 pixels (13 by
+  default). Every card keeps its place on the grid at any size.
+
+### The screen
+
+From the top: the board tabs (with the board menu and a `+` for a new board),
+the title line with the date and time, the search line (the full Hearth search,
+labelled *Search:*), the board, a status line that says what the last key did,
+and the function-key bar. Each function key is also a button:
+
+| Key | Does |
+| --- | --- |
+| F1 | Help: every key, in a dialog |
+| F2 | Arrange the board (again to finish) |
+| F3 | Search |
+| F4 | Filter the focused card (tasks) |
+| F5 | Refresh every card |
+| F6 | Sort the focused card (tasks) |
+| F7 | Add a card |
+| F8 | Board settings |
+| F9 | Next colour scheme |
+| F10 | Leave terminal mode (it asks first) |
+
+The letters do the same without the function keys, for laptops and tablets
+that hide them: `?` or `h` help, `/` search, `a` arrange, `n` add a card, `r`
+refresh, `t` next colour scheme, and `1`–`9` switch to that board.
+
+### Working a card
+
+- **Tab** and **Shift+Tab** move between cards; the arrow keys move inside the
+  focused card, and past its edge to the card beside it.
+- **Enter** does what a click on the row would: opens the note, follows the
+  link, opens the day. On a card whose row has nothing to open, Enter opens the
+  card's larger view.
+- **Space** ticks a task, folds a folder or a bookmark group, stages a Git
+  change.
+- **m**, a right-click or `[≡]` opens the card menu: the card's own entries
+  (switch the tasks card between list and board, refresh a feed), then *Open
+  larger view*, *Zoom*, *Refresh*, *Card settings*, pinning, *Duplicate* and
+  *Remove card*.
+- **z** zooms the card: the same card, at the size of a dialog, keys and all.
+  Zoomed, the weather card is the full forecast (every reading, the week to
+  pick a day from, that day hour by hour), a market instrument is its chart
+  over any range with its stats and your position, and lists show everything
+  rather than the card's count.
+- **o** opens the card's larger view where it has one of its own (the folder
+  browser, a note in its tab); otherwise it zooms.
+- **e** opens the card's settings. **Esc** leaves a field, or lets go of the
+  card.
+- A note card set to *Editable* is edited in place: `i` or a double-click
+  opens the note's text in an editor on the card, saved as you type; Esc or
+  Ctrl+Enter finishes.
+- `[` and `]` step a calendar or a chart through its ranges; the card's bottom
+  border says which keys a card adds.
+
+### Arranging
+
+F2 (or `a`) arranges the board. The arrow keys move the focused card by a cell,
+Shift and an arrow resize it, `x` or Delete removes it (after asking). With the
+pointer, a frame can be dragged by its border and resized by the `◆` at its
+bottom-right corner. In the stacked layout, `▴` and `▾` on the frame move a card
+up and down the column. Positions are saved as the graphical board's own, so a
+card moved in terminal mode is in the same place when terminal mode is off.
+
+### Why use it
+
+Terminal mode is a look first: plain text, the Markdown and the files as they
+are. It is also the lightest way to draw a board — no blur, no shadows, no
+animated sky, one font — which helps on an older machine or a large board.
+It isn't a separate performance tier, though: the cards still read the vault
+the way they do in the graphical design, so a board that is slow because of
+what its cards compute is not made fast by drawing them as text. See
+[Performance tiers and battery life](12-performance.md) for that.
+
+The font is a subset of JetBrains Mono, bundled with Hearth under the SIL Open
+Font License, so every box, block and arrow sits on the grid whatever fonts
+the system has.
+
 ## Putting a look together: three worked examples
 
 **A calm, low-contrast board.** Background: *Hearth default* at opacity 0.25,

@@ -172,6 +172,11 @@ its neighbours and of the board. The threshold is 8 pixels.
 layout: one full-width column, top to bottom, in the order the desktop board
 reads in. The stored layout is untouched.
 
+**Terminal mode** — The third design, beside Classic and Expressive, set
+vault-wide at *Settings → Hearth → Appearance*: all of Hearth drawn as a text
+interface on one character grid, cards as box-drawn frames, with keys for
+everything. See the Terminal mode section of the Appearance chapter.
+
 **Tier** — See *Performance tier*.
 
 **Tile** — One button on a Links, Commands or New note from template card. Tiles
