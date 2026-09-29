@@ -614,7 +614,7 @@ function timeGrid(s: SchedCtx): { lines: Line[]; scrollTo: number; top: number }
 		for (let k = 0; k < perHour; k++) {
 			const slotStart = h * 60 + k * slotMin;
 			const slotEnd = slotStart + slotMin;
-			const nowHere = nowMin >= slotStart && nowMin < slotEnd && days.some((d) => isTodayKey(d.format("YYYY-MM-DD")));
+			const nowHere = cfg.nowLine !== false && nowMin >= slotStart && nowMin < slotEnd && days.some((d) => isTodayKey(d.format("YYYY-MM-DD")));
 			const label = k === 0 ? padEnd(hourLabel(h, cfg), gutter - 1) + (nowHere ? "▶" : " ") : " ".repeat(gutter - 1) + (nowHere ? "▶" : " ");
 			const line: Line = [{ text: label, style: nowHere ? "red" : "faint" }];
 			days.forEach((day, i) => {

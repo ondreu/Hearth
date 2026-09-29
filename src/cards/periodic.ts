@@ -362,17 +362,21 @@ export function periodicEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 				ctx.requestRender();
 			}),
 		);
-	if (card.editable) livePreviewSetting(ctx, containerEl, card);
+	// Terminal mode draws the note as text and edits it in a plain text field,
+	// with its card menu to open it — no live preview, no open button.
+	if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
 
-	new Setting(containerEl)
-		.setName(t().editors.periodic.openButton)
-		.setDesc(t().editors.periodic.openButtonDesc)
-		.addToggle((tg) =>
-			tg.setValue(card.showOpenButton !== false).onChange((v) => {
-				card.showOpenButton = v ? undefined : false;
-				ctx.opts.save();
-			}),
-		);
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(t().editors.periodic.openButton)
+			.setDesc(t().editors.periodic.openButtonDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.showOpenButton !== false).onChange((v) => {
+					card.showOpenButton = v ? undefined : false;
+					ctx.opts.save();
+				}),
+			);
+	}
 
 	// Says the same thing the card's own empty state does, so the dependency is
 	// discoverable from the settings modal too (see src/cards/README.md).

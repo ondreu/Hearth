@@ -169,16 +169,19 @@ export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement
 				ctx.opts.rerender();
 			});
 		});
-	new Setting(containerEl)
-		.setName(t().editors.searchBar.seamless)
-		.setDesc(t().editors.searchBar.seamlessDesc)
-		.addToggle((tg) =>
-			tg.setValue(cfg.seamless === true).onChange((v) => {
-				cfg.seamless = v || undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			}),
-		);
+	// Terminal mode frames every card, the search bar included.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(t().editors.searchBar.seamless)
+			.setDesc(t().editors.searchBar.seamlessDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.seamless === true).onChange((v) => {
+					cfg.seamless = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
 	renderInstantAnswers(ctx, containerEl, cfg);
 	// There is no thickness control: the bar fills the card, so its height is the
 	// card's. Say so here — it isn't discoverable from a settings pane that has

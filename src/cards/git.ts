@@ -661,19 +661,22 @@ export function gitEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 		});
 	}
 
-	new Setting(containerEl)
-		.setName(strings.actionStyle)
-		.setDesc(strings.actionStyleDesc)
-		.addDropdown((d) => {
-			for (const style of GIT_ACTION_STYLES) {
-				d.addOption(style, t().editors.git.actionStyles[style]);
-			}
-			d.setValue(cfg.actionStyle ?? "icon").onChange((value) => {
-				cfg.actionStyle = value === "icon" ? undefined : (value as GitActionStyle);
-				ctx.opts.save();
-				ctx.opts.rerender();
+	// Terminal mode draws the actions as `[ label ]` buttons whatever the style.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(strings.actionStyle)
+			.setDesc(strings.actionStyleDesc)
+			.addDropdown((d) => {
+				for (const style of GIT_ACTION_STYLES) {
+					d.addOption(style, t().editors.git.actionStyles[style]);
+				}
+				d.setValue(cfg.actionStyle ?? "icon").onChange((value) => {
+					cfg.actionStyle = value === "icon" ? undefined : (value as GitActionStyle);
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
 			});
-		});
+	}
 
 	// ---- Committing ----
 	new Setting(containerEl).setName(strings.committing).setHeading();

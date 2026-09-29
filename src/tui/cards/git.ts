@@ -262,7 +262,7 @@ function gitOutput(ctx: TuiContext, plugin: GitPlugin, st: GitState): TuiOutput 
 						{ text: " " },
 						{ text: asciify(row.name), style: row.kind === "deleted" ? ["dim", "strike"] : undefined },
 					];
-					const right: Line = cfg.showPaths !== false && folder && w > strWidth(row.name) + strWidth(folder) + 8 ? [{ text: ` ${asciify(folder)}`, style: "faint" }] : [];
+					const right: Line = cfg.showPaths === true && folder && w > strWidth(row.name) + strWidth(folder) + 8 ? [{ text: ` ${asciify(folder)}`, style: "faint" }] : [];
 					items.push({
 						line: lines.length,
 						activate: (evt) => openChange(ctx, plugin, row, evt),

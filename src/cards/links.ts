@@ -71,15 +71,18 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	const card = ctx.card;
 	const links = (card.links ??= []);
 
-	new Setting(containerEl)
-		.setName(t().editors.links.autoShift)
-		.setDesc(t().editors.links.autoShiftDesc)
-		.addToggle((t) =>
-			t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
-				card.tileAutoFlow = v;
-				ctx.opts.save();
-			}),
-		);
+	// Terminal mode lays the buttons out in a row at the card's width, in order.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(t().editors.links.autoShift)
+			.setDesc(t().editors.links.autoShiftDesc)
+			.addToggle((t) =>
+				t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
+					card.tileAutoFlow = v;
+					ctx.opts.save();
+				}),
+			);
+	}
 
 	links.forEach((link, index) => {
 		const row = new Setting(containerEl).setClass("hearth-link-setting");

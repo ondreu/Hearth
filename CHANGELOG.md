@@ -39,6 +39,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   - Five colour schemes (your Obsidian theme's colours, Htop, Hearth, Amber,
     Paper) and a font size. Switching terminal mode off brings every board
     back exactly as it was.
+  - Settings that would change nothing while terminal mode is on are hidden
+    until it is switched off. These include:
+    - a card's Style tab and the sizing of its buttons
+    - the board dialog's Style and Background tabs, the header's icon,
+      alignment and sizes, and the width
+    - the wallpaper, card surfaces and compact spacing
+    - designs and animations of the weather and market cards, picture and
+      icon options, pixel sizes, live preview and open buttons on notes
+    The vault-wide settings stay while a plugin board, which terminal mode
+    leaves as it is, still uses them. The time grid's now line and the Git
+    card's paths now follow their settings in terminal mode too.
 
 ## [3.3.0]
 

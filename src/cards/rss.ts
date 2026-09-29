@@ -434,16 +434,19 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 
 	const isCards = (cfg.layout ?? "list") === "cards";
 	if (isCards) {
-		new Setting(containerEl)
-			.setName(t().editors.rss.showImages)
-			.setDesc(t().editors.rss.showImagesDesc)
-			.addToggle((tg) =>
-				tg.setValue(cfg.showImages !== false).onChange((v) => {
-					cfg.showImages = v ? undefined : false;
-					ctx.opts.save();
-					ctx.opts.rerender();
-				}),
-			);
+		// Terminal mode leaves the pictures out.
+		if (!ctx.terminal) {
+			new Setting(containerEl)
+				.setName(t().editors.rss.showImages)
+				.setDesc(t().editors.rss.showImagesDesc)
+				.addToggle((tg) =>
+					tg.setValue(cfg.showImages !== false).onChange((v) => {
+						cfg.showImages = v ? undefined : false;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+				);
+		}
 		new Setting(containerEl)
 			.setName(t().editors.rss.showExcerpt)
 			.setDesc(t().editors.rss.showExcerptDesc)

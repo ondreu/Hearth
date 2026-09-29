@@ -88,6 +88,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 			opts: this.opts,
 			requestRender: () => this.render(),
 			session: this.session,
+			terminal: this.terminal,
 		};
 	}
 

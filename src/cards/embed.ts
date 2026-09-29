@@ -368,6 +368,20 @@ function zoomSetting(
 }
 
 
+/** Whether terminal mode draws a view pointed at `target` as text — a note is;
+ * a picture, a canvas, a base or a drawing is drawn as it always is, inside
+ * the terminal frame, and keeps every setting (see `embedTui.graphicalFor`).
+ * An empty or missing target counts as not, so nothing is hidden before the
+ * view has something to show. */
+function drawnAsText(ctx: CardEditorContext, target: string | undefined): boolean {
+	if (!ctx.terminal) return false;
+	const file = ctx.app.vault.getAbstractFileByPath(target?.trim() ?? "");
+	if (!(file instanceof TFile)) return false;
+	const ext = file.extension.toLowerCase();
+	return (ext === "md" || ext === "markdown") && !isExcalidraw(file);
+}
+
+
 export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
 	const setting = new Setting(containerEl)
@@ -402,7 +416,9 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		},
 	);
 	imageFormatSettings(ctx, containerEl, card.target, card);
-	zoomSetting(ctx, containerEl, card.target, card);
+	// A note drawn as text has no zoom, and terminal mode edits it in a plain
+	// text field rather than in live preview.
+	if (!drawnAsText(ctx, card.target)) zoomSetting(ctx, containerEl, card.target, card);
 	new Setting(containerEl)
 		.setName(t().editors.embed.editable)
 		.setDesc(t().editors.embed.editableDesc)
@@ -414,17 +430,22 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				ctx.requestRender();
 			}),
 		);
-	if (card.editable) livePreviewSetting(ctx, containerEl, card);
-	new Setting(containerEl)
-		.setName(t().editors.embed.openButton)
-		.setDesc(t().editors.embed.openButtonDesc)
-		.addToggle((tg) =>
-			tg.setValue(card.showOpenButton === true).onChange((v) => {
-				card.showOpenButton = v || undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			}),
-		);
+	if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
+	// The open button sits on the card, whichever view is showing; terminal
+	// mode draws none on a note (its card menu opens it instead).
+	const secondTarget = card.secondView?.target?.trim();
+	if (!drawnAsText(ctx, card.target) || (secondTarget && !drawnAsText(ctx, secondTarget))) {
+		new Setting(containerEl)
+			.setName(t().editors.embed.openButton)
+			.setDesc(t().editors.embed.openButtonDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.showOpenButton === true).onChange((v) => {
+					card.showOpenButton = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
 	// Hide-base-header is only relevant to .base embeds; shown when either
 	// view targets one.
 	if (isBaseTarget(card.target) || isBaseTarget(card.secondView?.target)) {
@@ -575,7 +596,7 @@ export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement
 			},
 		);
 		imageFormatSettings(ctx, containerEl, view.target, view);
-		zoomSetting(ctx, containerEl, view.target, view);
+		if (!drawnAsText(ctx, view.target)) zoomSetting(ctx, containerEl, view.target, view);
 		new Setting(containerEl)
 			.setName(t().editors.embed.editable)
 			.setDesc(t().editors.embed.editableDesc)
@@ -586,7 +607,7 @@ export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement
 					ctx.requestRender();
 				}),
 			);
-		if (view.editable) livePreviewSetting(ctx, containerEl, view);
+		if (view.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, view);
 	}
 }
 

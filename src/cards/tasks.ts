@@ -6138,15 +6138,18 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					}),
 			);
 
-		new Setting(containerEl)
-			.setName(t().editors.tasks.newTaskAsNote)
-			.setDesc(t().editors.tasks.newTaskAsNoteDesc)
-			.addToggle((tg) =>
-				tg.setValue(cfg.newTaskAsNote ?? false).onChange((v) => {
-					cfg.newTaskAsNote = v || undefined;
-					ctx.opts.save();
-				}),
-			);
+		// Terminal mode adds a task as a card on the board, from a prompt.
+		if (!ctx.terminal) {
+			new Setting(containerEl)
+				.setName(t().editors.tasks.newTaskAsNote)
+				.setDesc(t().editors.tasks.newTaskAsNoteDesc)
+				.addToggle((tg) =>
+					tg.setValue(cfg.newTaskAsNote ?? false).onChange((v) => {
+						cfg.newTaskAsNote = v || undefined;
+						ctx.opts.save();
+					}),
+				);
+		}
 	}
 
 	// Checkbox source: parse the inline Tasks-plugin metadata (dates, priority,

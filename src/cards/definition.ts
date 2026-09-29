@@ -110,6 +110,12 @@ export interface CardEditorContext {
 	 * not across separate opens (was the RSS/Jira transient modal fields). Each
 	 * editor casts its own slice. */
 	session: Record<string, unknown>;
+	/** Whether terminal mode is on. The editor of a kind terminal mode draws
+	 * as text leaves out what only shapes the graphical card while it is — a
+	 * design, an animation, a picture, a button size — since changing it would
+	 * change nothing. (A kind drawn graphically in a terminal frame keeps all
+	 * of its settings, so its editor has no use for this.) */
+	terminal: boolean;
 }
 
 export interface CardDefinition<K extends CardKind = CardKind> {

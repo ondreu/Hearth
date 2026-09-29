@@ -1439,7 +1439,9 @@ export function marketEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 				ctx.requestRender();
 			});
 		});
-	designSetting(containerEl, {
+	// Terminal mode draws every style as text: no design, and a ticker that
+	// wraps rather than scrolls.
+	if (!ctx.terminal) designSetting(containerEl, {
 		name: strings.design,
 		desc: strings.designDesc,
 		own: cfg.design,
@@ -1504,7 +1506,7 @@ export function marketEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 				});
 			});
 	}
-	if (style === "ticker") {
+	if (style === "ticker" && !ctx.terminal) {
 		new Setting(containerEl)
 			.setName(strings.animate)
 			.setDesc(strings.animateDesc)

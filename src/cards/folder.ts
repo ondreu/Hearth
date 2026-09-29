@@ -615,18 +615,21 @@ export function folderEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 			});
 		});
 
-	new Setting(containerEl)
-		.setName(strings.display)
-		.setDesc(strings.displayDesc)
-		.addDropdown((d) => {
-			d.addOption("list", strings.displayList);
-			d.addOption("tiles", strings.displayTiles);
-			d.setValue(cfg.view ?? "list").onChange((v) => {
-				cfg.view = v === "list" ? undefined : (v as "tiles");
-				ctx.opts.save();
-				ctx.opts.rerender();
+	// Terminal mode draws the folder as a tree either way.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(strings.display)
+			.setDesc(strings.displayDesc)
+			.addDropdown((d) => {
+				d.addOption("list", strings.displayList);
+				d.addOption("tiles", strings.displayTiles);
+				d.setValue(cfg.view ?? "list").onChange((v) => {
+					cfg.view = v === "list" ? undefined : (v as "tiles");
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
 			});
-		});
+	}
 
 	const count = new Setting(containerEl).setName(strings.count).setDesc(strings.countDesc);
 	count.addText((txt) => {

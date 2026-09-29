@@ -954,19 +954,22 @@ export function scheduleEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		cfg.dayEnd = undefined;
 	});
 
-	const zoom = new Setting(containerEl).setName(strings.hourHeight).setDesc(strings.hourHeightDesc);
-	zoom.addSlider((s) =>
-		s
-			.setLimits(20, 160, 4)
-			.setValue(clampHourHeight(cfg.hourHeight))
-			.onChange((v) => {
-				cfg.hourHeight = v === 44 ? undefined : v;
-				save();
-			}),
-	);
-	addResetButton(ctx, zoom, t().settings.resetSlider, () => {
-		cfg.hourHeight = undefined;
-	});
+	// Terminal mode gives an hour one or two rows, by the card's height.
+	if (!ctx.terminal) {
+		const zoom = new Setting(containerEl).setName(strings.hourHeight).setDesc(strings.hourHeightDesc);
+		zoom.addSlider((s) =>
+			s
+				.setLimits(20, 160, 4)
+				.setValue(clampHourHeight(cfg.hourHeight))
+				.onChange((v) => {
+					cfg.hourHeight = v === 44 ? undefined : v;
+					save();
+				}),
+		);
+		addResetButton(ctx, zoom, t().settings.resetSlider, () => {
+			cfg.hourHeight = undefined;
+		});
+	}
 
 	new Setting(containerEl)
 		.setName(strings.nowLine)

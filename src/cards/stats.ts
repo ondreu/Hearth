@@ -272,16 +272,19 @@ export function statsEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					ctx.opts.rerender();
 				}),
 		);
-		row.addText((txt) =>
-			txt
-				.setPlaceholder(t().editors.stats.iconPlaceholder)
-				.setValue(q.icon ?? "")
-				.onChange((v) => {
-					q.icon = v || undefined;
-					ctx.opts.save();
-					ctx.opts.rerender();
-				}),
-		);
+		// Terminal mode draws a count as its label and value, without the icon.
+		if (!ctx.terminal) {
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(t().editors.stats.iconPlaceholder)
+					.setValue(q.icon ?? "")
+					.onChange((v) => {
+						q.icon = v || undefined;
+						ctx.opts.save();
+						ctx.opts.rerender();
+					}),
+			);
+		}
 		row.addText((txt) =>
 			txt
 				.setPlaceholder(t().editors.stats.queryPlaceholder)

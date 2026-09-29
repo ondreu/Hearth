@@ -196,19 +196,22 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		new Setting(containerEl).setName(strings.missing).setDesc(strings.missingDesc);
 	}
 
-	new Setting(containerEl)
-		.setName(strings.autoShift)
-		.setDesc(strings.autoShiftDesc)
-		.addToggle((tg) =>
-			tg.setValue(card.tileAutoFlow ?? false).onChange((v) => {
-				card.tileAutoFlow = v;
-				ctx.opts.save();
-			}),
-		);
+	// Terminal mode lays the buttons out in a row at the card's width, in order.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(strings.autoShift)
+			.setDesc(strings.autoShiftDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.tileAutoFlow ?? false).onChange((v) => {
+					card.tileAutoFlow = v;
+					ctx.opts.save();
+				}),
+			);
+	}
 
 	// Only the fixed style has a pixel size to set; the scaled one sizes its
 	// buttons from the card's column count (see tileSizingSettings).
-	if (tileSizing(card) === "fixed") {
+	if (tileSizing(card) === "fixed" && !ctx.terminal) {
 		const buttonSize = new Setting(containerEl)
 			.setName(strings.buttonSize)
 			.setDesc(strings.buttonSizeDesc);
@@ -261,17 +264,20 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 				}),
 		);
 
-		row.addText((txt) => {
-			txt
-				.setPlaceholder(t().pickers.iconPlaceholder)
-				.setValue(item.icon)
-				.onChange((v) => {
-					item.icon = v;
-					ctx.opts.save();
-				});
-			setTooltip(txt.inputEl, t().editors.iconHelp);
-		});
-		addIconHelp(row.controlEl);
+		// Terminal mode marks every template button with a "+" instead.
+		if (!ctx.terminal) {
+			row.addText((txt) => {
+				txt
+					.setPlaceholder(t().pickers.iconPlaceholder)
+					.setValue(item.icon)
+					.onChange((v) => {
+						item.icon = v;
+						ctx.opts.save();
+					});
+				setTooltip(txt.inputEl, t().editors.iconHelp);
+			});
+			addIconHelp(row.controlEl);
+		}
 
 		// A template is addressed by vault path, which is exactly the kind of
 		// thing a fuzzy picker is for. Scoped to Templater's own template folder

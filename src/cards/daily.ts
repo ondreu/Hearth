@@ -90,16 +90,20 @@ export function dailyEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				ctx.requestRender();
 			}),
 		);
-	if (card.editable) livePreviewSetting(ctx, containerEl, card);
-	new Setting(containerEl)
-		.setName(t().editors.daily.openButton)
-		.setDesc(t().editors.daily.openButtonDesc)
-		.addToggle((tg) =>
-			tg.setValue(card.showOpenButton !== false).onChange((v) => {
-				card.showOpenButton = v ? undefined : false;
-				ctx.opts.save();
-			}),
-		);
+	// Terminal mode draws the note as text and edits it in a plain text field,
+	// with its card menu to open it — no live preview, no open button.
+	if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(t().editors.daily.openButton)
+			.setDesc(t().editors.daily.openButtonDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.showOpenButton !== false).onChange((v) => {
+					card.showOpenButton = v ? undefined : false;
+					ctx.opts.save();
+				}),
+			);
+	}
 	new Setting(containerEl)
 		.setName(t().editors.daily.info)
 		.setDesc(t().editors.daily.infoDesc);

@@ -54,18 +54,21 @@ export function runCommand(view: HomeView, cmd: CommandItem): void {
 
 export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
-	new Setting(containerEl)
-		.setName(t().editors.commands.autoShift)
-		.setDesc(t().editors.commands.autoShiftDesc)
-		.addToggle((t) =>
-			t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
-				card.tileAutoFlow = v;
-				ctx.opts.save();
-			}),
-		);
+	// Terminal mode lays the buttons out in a row at the card's width, in order.
+	if (!ctx.terminal) {
+		new Setting(containerEl)
+			.setName(t().editors.commands.autoShift)
+			.setDesc(t().editors.commands.autoShiftDesc)
+			.addToggle((t) =>
+				t.setValue(card.tileAutoFlow ?? false).onChange((v) => {
+					card.tileAutoFlow = v;
+					ctx.opts.save();
+				}),
+			);
+	}
 	// Only the fixed style has a pixel size to set; the scaled one sizes its
 	// buttons from the card's column count (see tileSizingSettings).
-	if (tileSizing(card) === "fixed") {
+	if (tileSizing(card) === "fixed" && !ctx.terminal) {
 		const buttonSize = new Setting(containerEl)
 			.setName(t().editors.commands.buttonSize)
 			.setDesc(t().editors.commands.buttonSizeDesc);
@@ -109,7 +112,7 @@ export function commandsEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		addIconHelp(row.controlEl);
 		// A pixel size per tile only means something in the fixed style; a scaled
 		// button is sized in whole cells, by dragging its corner in arrange mode.
-		if (tileSizing(card) === "fixed") {
+		if (tileSizing(card) === "fixed" && !ctx.terminal) {
 			row.addText((txt) => {
 				txt
 					.setPlaceholder(t().editors.commands.sizePlaceholder)

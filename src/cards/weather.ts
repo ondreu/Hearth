@@ -1311,8 +1311,10 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 		});
 
+	// Terminal mode draws every style as text: no design, no animation, and
+	// the moon always with its summary and place.
 	// Undefined follows the style's own default (see defaultDesign).
-	designSetting(containerEl, {
+	if (!ctx.terminal) designSetting(containerEl, {
 		name: strings.design,
 		desc: strings.designDesc,
 		own: cfg.design,
@@ -1324,7 +1326,7 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 		},
 	});
 
-	if (style === "moon") {
+	if (style === "moon" && !ctx.terminal) {
 		new Setting(containerEl)
 			.setName(strings.moonLayout)
 			.setDesc(strings.moonLayoutDesc)
@@ -1341,7 +1343,7 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 	}
 
-	if (style === "artistic" || style === "moon" || style === "daylight") {
+	if ((style === "artistic" || style === "moon" || style === "daylight") && !ctx.terminal) {
 		new Setting(containerEl)
 			.setName(strings.animate)
 			.setDesc(
@@ -1412,7 +1414,8 @@ export function weatherEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 
 	// ---- What to display ----
 	// The clean moon writes nothing on the card, so it has nothing to toggle.
-	const cleanMoon = style === "moon" && cfg.moonLayout === "clean";
+	// Terminal mode has no clean layout: the display toggles below all apply.
+	const cleanMoon = style === "moon" && cfg.moonLayout === "clean" && !ctx.terminal;
 	if (!cleanMoon) new Setting(containerEl).setName(strings.display).setHeading();
 
 	/** One display toggle. `defaultOn` decides which way the stored value is
