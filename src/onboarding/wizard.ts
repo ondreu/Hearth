@@ -100,8 +100,11 @@ const PLAN_ICONS: Record<string, string> = {
  * width `planCards` lays out to. */
 const PREVIEW_COLUMNS = 12;
 
-/** The two designs, in the order the look step offers them. */
-const DESIGNS: readonly CardDesign[] = ["classic", "expressive"];
+/** The look step's design choices, in order: the two card designs, then
+ * terminal mode (experimental), which is not a third card design but a
+ * vault-wide mode drawn over whichever of the two is underneath. */
+type SetupDesignChoice = CardDesign | "terminal";
+const DESIGNS: readonly SetupDesignChoice[] = ["classic", "expressive", "terminal"];
 
 /** How a particular run of the wizard behaves. */
 export interface SetupWizardOptions {
@@ -515,21 +518,39 @@ export class SetupWizardModal extends HearthModal {
 		this.optionGrid(
 			body,
 			DESIGNS,
-			(design: CardDesign) => ({
+			(design) => ({
 				icon: t().setup.designs[design].icon,
 				name: t().setup.designs[design].name,
 				desc: t().setup.designs[design].desc,
-				selected: a.design === design,
-				badge: design === "expressive" ? t().setup.integrations.recommended : undefined,
+				selected: design === "terminal" ? a.terminal : !a.terminal && a.design === design,
+				badge:
+					design === "expressive"
+						? t().setup.integrations.recommended
+						: design === "terminal"
+							? t().tui.settings.experimental
+							: undefined,
+				experimental: design === "terminal",
 			}),
 			(design) => {
-				a.design = design;
-				// The wizard is Hearth's interface too, so it shows the choice at
-				// once rather than after the board is built.
-				applyModalDesign(this, design);
+				// Terminal leaves the card design as it was: it is what the boards
+				// go back to when terminal mode is switched off.
+				a.terminal = design === "terminal";
+				if (design !== "terminal") {
+					a.design = design;
+					// The wizard is Hearth's interface too, so it shows the choice
+					// at once rather than after the board is built.
+					applyModalDesign(this, design);
+				}
 				this.renderWizard();
 			},
 		);
+		if (a.terminal) {
+			// Terminal mode draws no wallpaper and no card surfaces, and spaces
+			// the board by its character grid, so the rest of this step would
+			// change nothing — it stands aside for a line saying what it is.
+			body.createDiv({ cls: "hearth-setup-note is-quiet", text: strings.terminalNote });
+			return;
+		}
 		// Only the first setup makes the choice vault-wide (see applyDesign), so
 		// only that one says so.
 		if (this.plugin.settings.setupStatus !== "done") {
@@ -787,12 +808,15 @@ export class SetupWizardModal extends HearthModal {
 	private renderBoardPreview(body: HTMLElement, planned: PlannedCard[]): HTMLElement | null {
 		const a = this.answers;
 		const surface = SURFACE_PRESETS[a.surface];
-		const banner = a.backgroundLayout === "banner" && a.background !== "none";
+		// Terminal mode draws no wallpaper and no card surfaces: the model is
+		// boxes on the theme's own background, in a monospaced face.
+		const banner = !a.terminal && a.backgroundLayout === "banner" && a.background !== "none";
 
 		const frame = body.createDiv("hearth-setup-board");
+		frame.toggleClass("is-terminal", a.terminal);
 		const scene = frame.createDiv("hearth-setup-board-scene");
 		scene.toggleClass("is-banner", banner);
-		this.paintScene(scene, a);
+		this.paintScene(scene, a.terminal ? { ...a, background: "none" } : a);
 
 		const page = scene.createDiv("hearth-setup-board-page");
 		page.toggleClass("is-compact", a.compact);
@@ -818,8 +842,8 @@ export class SetupWizardModal extends HearthModal {
 		grid.style.gridTemplateRows = `repeat(${Math.max(1, rows)}, minmax(0, 1fr))`;
 		for (const entry of planned) {
 			const cell = grid.createDiv("hearth-setup-board-card");
-			styleSampleCard(cell, surface, banner);
-			cell.toggleClass("is-x-frame", a.design === "expressive");
+			if (!a.terminal) styleSampleCard(cell, surface, banner);
+			cell.toggleClass("is-x-frame", !a.terminal && a.design === "expressive");
 			cell.style.gridColumn = `${entry.card.x + 1} / span ${entry.card.w}`;
 			cell.style.gridRow = `${entry.card.y + 1} / span ${entry.card.h}`;
 			const head = cell.createDiv("hearth-setup-board-card-head");
@@ -883,7 +907,15 @@ export class SetupWizardModal extends HearthModal {
 	private optionGrid<T extends string>(
 		parent: HTMLElement,
 		options: readonly T[],
-		describe: (option: T) => { icon: string; name: string; desc: string; selected: boolean; badge?: string },
+		describe: (option: T) => {
+			icon: string;
+			name: string;
+			desc: string;
+			selected: boolean;
+			badge?: string;
+			/** A badge that warns rather than recommends. */
+			experimental?: boolean;
+		},
 		onPick: (option: T) => void,
 		extraClass?: string,
 	): void {
@@ -896,7 +928,10 @@ export class SetupWizardModal extends HearthModal {
 			setIcon(tile.createSpan("hearth-setup-option-icon"), info.icon);
 			const text = tile.createDiv("hearth-setup-option-text");
 			const name = text.createDiv({ cls: "hearth-setup-option-name", text: info.name });
-			if (info.badge) name.createSpan({ cls: "hearth-setup-badge", text: info.badge });
+			if (info.badge) {
+				const badge = name.createSpan({ cls: "hearth-setup-badge", text: info.badge });
+				badge.toggleClass("is-experimental", info.experimental === true);
+			}
 			text.createDiv({ cls: "hearth-setup-option-desc", text: info.desc });
 			const pick = () => onPick(option);
 			makeClickable(tile, pick, info.name);

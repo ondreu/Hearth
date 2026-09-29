@@ -317,6 +317,7 @@ export const de: Translations = {
 		look: {
 			designHeading: "Design",
 			designNote: "Diese Wahl gilt für ganz Hearth, nicht nur für dieses Dashboard. Jederzeit änderbar unter Einstellungen → Hearth → Erscheinungsbild.",
+			terminalNote: "Der Terminalmodus gilt für ganz Hearth und jedes Dashboard. Er zeichnet weder Hintergrundbild noch Kartenflächen, hier gibt es also nichts weiter zu wählen. Er ist experimentell: Unter Einstellungen → Hearth → Erscheinungsbild jederzeit ausschaltbar, und die Dashboards kehren im Design darunter zurück.",
 			surfaceHeading: "Karten",
 			backgroundHeading: "Hintergrund",
 			color: "Farbe",
@@ -360,6 +361,11 @@ export const de: Translations = {
 				icon: "shapes",
 				name: "Expressive",
 				desc: "Material 3 Expressive für ganz Hearth — Karten, Schaltflächen, Menüs, Dialoge und Einstellungen — in Tönen deiner Akzentfarbe.",
+			},
+			terminal: {
+				icon: "terminal",
+				name: "Terminal",
+				desc: "Jedes Dashboard als Text, in einem Zeichenraster mit gezeichneten Kartenrahmen und Tasten für alles. Experimentell: manche Karten erscheinen noch als Bild.",
 			},
 		},
 		backgrounds: {
@@ -4763,6 +4769,7 @@ export const de: Translations = {
 		},
 		settings: {
 			name: "Terminal",
+			experimental: "Experimentell",
 			desc: "Ganz Hearth als Text: ein Zeichenraster, mit Linien gezeichnete Karten und Tasten für alles, wie ein Terminalprogramm. Leicht genug für jeden Rechner.",
 			heading: "Terminalmodus",
 			headingDesc: "Wie die Textoberfläche aussieht. Solange er an ist, wird jedes Board darin gezeichnet.",

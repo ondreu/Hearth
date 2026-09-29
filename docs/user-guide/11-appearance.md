@@ -287,8 +287,13 @@ changed on their side. See [chapter 16](16-sharing-and-gallery.md).
 ## Terminal mode
 
 Vault-wide only: **Settings → Hearth → Appearance**, the third of the design
-choices at the head of the page, *Terminal*. There is no per-board or per-card
-terminal mode; while it is on, it is the whole of Hearth.
+choices at the head of the page, *Terminal* — or the same choice in the setup
+wizard's look step. There is no per-board or per-card terminal mode; while it
+is on, it is the whole of Hearth.
+
+Terminal mode is **experimental**, and both places say so: some cards are still
+drawn graphically inside their frame, and details of how it looks and which
+keys do what may change between releases.
 
 Terminal mode draws Hearth as a text interface, the way a terminal tool such
 as `htop` looks: one character grid in a bundled monospaced font, every card a

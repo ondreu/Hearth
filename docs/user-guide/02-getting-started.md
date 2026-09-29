@@ -126,6 +126,14 @@ the board's buttons and the settings pane — and the design of the drawn
 backgrounds with it; running setup again later puts it on the new board only.
 You can change it any time in *Settings → Hearth → Appearance → Design*.
 
+The third choice, *Terminal*, is marked experimental. It turns on terminal mode
+(see [chapter 11](11-appearance.md)), which draws every board of the vault as
+text, so it is vault-wide whichever run of the wizard picks it. It leaves the
+Classic or Expressive choice underneath as it was, for when it is switched off
+again. Terminal mode draws no wallpaper and no card surfaces, so with it chosen
+the rest of the step is not shown, and the finish step's preview is drawn as
+plain boxes.
+
 The five backgrounds are *Hearth's wallpaper* (hills drawn by the plugin, a
 morning or a moonlit night with your theme — or, in the Expressive design, soft
 shapes in your accent colour), *A harbour town* (a lighthouse, boats and houses

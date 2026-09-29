@@ -15,8 +15,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Terminal mode.** A third design beside Classic and Expressive
-  (**Settings → Hearth → Appearance → Terminal**) that draws the whole of
+- **Terminal mode (experimental).** A third design beside Classic and
+  Expressive (**Settings → Hearth → Appearance → Terminal**, and in the setup
+  wizard's look step) that draws the whole of
   Hearth as a text interface, the way a terminal tool such as `htop` looks:
   one character grid in a bundled monospaced font, every card a box drawn in
   line characters that joins its neighbours, and keys for everything.

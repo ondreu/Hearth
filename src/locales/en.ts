@@ -304,6 +304,7 @@ export const en = {
 		look: {
 			designHeading: "Design",
 			designNote: "This one applies to all of Hearth, not just this board. Change it any time in Settings → Hearth → Appearance.",
+			terminalNote: "Terminal mode applies to all of Hearth and every board. It draws no wallpaper or card surfaces, so there is nothing more to pick here. It is experimental: switch it off any time in Settings → Hearth → Appearance, and the boards come back in the design underneath.",
 			surfaceHeading: "Cards",
 			backgroundHeading: "Background",
 			color: "Colour",
@@ -347,6 +348,11 @@ export const en = {
 				icon: "shapes",
 				name: "Expressive",
 				desc: "Material 3 Expressive across all of Hearth — cards, buttons, menus, dialogs and settings — in tones of your accent colour.",
+			},
+			terminal: {
+				icon: "terminal",
+				name: "Terminal",
+				desc: "Every board as text, in a character grid with box-drawn cards and keys for everything. Experimental: some cards are still drawn as pictures.",
 			},
 		},
 		backgrounds: {
@@ -4763,6 +4769,7 @@ export const en = {
 		},
 		settings: {
 			name: "Terminal",
+			experimental: "Experimental",
 			desc: "The whole of Hearth as text: a character grid, box-drawn cards and keys for everything, the way a terminal tool looks. Light enough for any machine.",
 			heading: "Terminal mode",
 			headingDesc: "How the text interface looks. Every board is drawn in it while it's on.",

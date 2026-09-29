@@ -32,6 +32,11 @@
  * first one a user who skipped it runs) writes it vault-wide, with the drawn
  * background's design alongside; any later run writes both onto the board it
  * builds, like every other answer. See {@link applyDesign}.
+ *
+ * Terminal mode is the other: it has no per-board form at all — it draws every
+ * card board as text — so whichever run chooses it, or chooses to leave it,
+ * writes it vault-wide. It starts as the vault's own state, so a run that
+ * doesn't touch the choice leaves it exactly as it was.
  */
 import { ensureLayout } from "../grid";
 import {
@@ -168,6 +173,10 @@ export interface SetupAnswers {
 	/** Classic or Expressive — for the cards, the drawn background and, on a
 	 * first setup, all of Hearth's interface (see {@link applyDesign}). */
 	design: CardDesign;
+	/** Terminal mode (experimental), which draws every card board as text.
+	 * Vault-wide, and independent of `design`: the Classic or Expressive choice
+	 * underneath is what the boards return to when it is switched off. */
+	terminal: boolean;
 	surface: SetupSurface;
 	compact: boolean;
 	background: SetupBackground;
@@ -225,6 +234,7 @@ export function defaultAnswers(
 		showSearch: true,
 
 		design: settings.cardDesign ?? "classic",
+		terminal: settings.terminalMode === true,
 		surface: "glass",
 		compact: false,
 		background: "default",
@@ -781,6 +791,7 @@ export function applySetup(
 	applyHeader(dashboard, answers);
 	applyLook(dashboard, answers);
 	applyDesign(settings, dashboard, answers.design, firstSetup);
+	settings.terminalMode = answers.terminal || undefined;
 
 	settings.setupStatus = "done";
 	return outcome;

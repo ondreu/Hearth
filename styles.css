@@ -14670,6 +14670,13 @@ body.hearth-dv-resizing {
 	vertical-align: middle;
 }
 
+/* Experimental: an outline in the warning colour, apart from "Recommended". */
+.hearth-setup-badge.is-experimental {
+	background: transparent;
+	box-shadow: inset 0 0 0 1px var(--text-warning);
+	color: var(--text-warning);
+}
+
 .hearth-setup-detected {
 	margin-top: 14px;
 	padding: 12px;
@@ -14825,6 +14832,18 @@ body.hearth-dv-resizing {
 	background: color-mix(in srgb, var(--background-primary) var(--sample-opacity, 100%), transparent);
 	backdrop-filter: blur(var(--sample-blur, 0px));
 	-webkit-backdrop-filter: blur(var(--sample-blur, 0px));
+}
+
+/* Terminal mode in miniature: square boxes drawn in one line weight on the
+ * theme's own background, in a monospaced face. */
+.hearth-setup-board.is-terminal .hearth-setup-board-page {
+	font-family: var(--font-monospace);
+}
+
+.hearth-setup-board.is-terminal .hearth-setup-board-card {
+	border: 1px solid var(--text-faint);
+	border-radius: 0;
+	background: transparent;
 }
 
 /* The Expressive frame in miniature: opaque and tonal, big corners, no border
@@ -21390,8 +21409,9 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-design-choice-name {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	gap: 4px 8px;
 	font-weight: 700;
 	color: var(--text-normal);
 }
@@ -21403,6 +21423,15 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--text-on-accent);
 	font-size: var(--font-ui-smaller);
 	font-weight: 650;
+}
+
+/* Experimental: an outline beside the filled "In use", so the two read as
+ * different kinds of label. */
+.hearth-design-choice-badge.is-experimental {
+	padding: 0 7px;
+	border: 1px solid var(--text-warning);
+	background: transparent;
+	color: var(--text-warning);
 }
 
 .hearth-design-choice-desc {

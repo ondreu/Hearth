@@ -272,6 +272,7 @@ export const zh: Translations = {
 		look: {
 			designHeading: "设计",
 			designNote: "此选项适用于整个 Hearth，而不仅是此面板。可随时在 设置 → Hearth → 外观 中更改。",
+			terminalNote: "终端模式适用于整个 Hearth 和所有仪表板。它不绘制壁纸和卡片底色，因此这里没有其他可选项。这是实验性功能：可随时在 设置 → Hearth → 外观 中关闭，仪表板会恢复为其下的设计。",
 			surfaceHeading: "卡片",
 			backgroundHeading: "背景",
 			color: "颜色",
@@ -313,6 +314,11 @@ export const zh: Translations = {
 				icon: "shapes",
 				name: "Expressive",
 				desc: "整个 Hearth 使用 Material 3 Expressive——卡片、按钮、菜单、对话框和设置——采用强调色的色调。",
+			},
+			terminal: {
+				icon: "terminal",
+				name: "终端",
+				desc: "所有仪表板都以文本显示：字符网格、线框绘制的卡片，一切皆可用按键操作。实验性：部分卡片仍以图形显示。",
 			},
 		},
 		backgrounds: {
@@ -4392,6 +4398,7 @@ export const zh: Translations = {
 		},
 		settings: {
 			name: "终端",
+			experimental: "实验性",
 			desc: "把整个 Hearth 画成文字：字符网格、线框卡片、一切皆有按键，就像终端工具一样。任何机器都跑得动。",
 			heading: "终端模式",
 			headingDesc: "文字界面的外观。开启时每个仪表板都以它绘制。",

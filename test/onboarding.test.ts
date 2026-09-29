@@ -309,6 +309,13 @@ describe("defaultAnswers", () => {
 		settings.cardDesign = "expressive";
 		expect(defaultAnswers(settings, emptyDetection()).design).toBe("expressive");
 	});
+
+	it("offers terminal mode as chosen only while the vault is in it", () => {
+		const settings = freshSettings();
+		expect(defaultAnswers(settings, emptyDetection()).terminal).toBe(false);
+		settings.terminalMode = true;
+		expect(defaultAnswers(settings, emptyDetection()).terminal).toBe(true);
+	});
 });
 
 // ---- Planning the board ----------------------------------------------
@@ -570,6 +577,29 @@ describe("applySetup", () => {
 		if (!dash) throw new Error("the wizard reported a dashboard it did not install");
 		return dash;
 	};
+
+	it("switches terminal mode on vault-wide, keeping the card design underneath", () => {
+		const settings = freshSettings();
+		applySetup(settings, blankAnswers({ design: "expressive", terminal: true }), emptyDetection());
+		expect(settings.terminalMode).toBe(true);
+		expect(settings.cardDesign).toBe("expressive");
+	});
+
+	it("switches terminal mode off when a later run picks a card design", () => {
+		const settings = freshSettings();
+		settings.terminalMode = true;
+		settings.setupStatus = "done";
+		applySetup(settings, blankAnswers({ design: "classic", terminal: false }), emptyDetection());
+		expect(settings.terminalMode).toBeUndefined();
+	});
+
+	it("leaves terminal mode as it was when the choice is left alone", () => {
+		const settings = freshSettings();
+		settings.terminalMode = true;
+		settings.setupStatus = "done";
+		applySetup(settings, defaultAnswers(settings, emptyDetection()), emptyDetection());
+		expect(settings.terminalMode).toBe(true);
+	});
 
 	it("writes the chosen surface preset onto the board, not the vault", () => {
 		const settings = freshSettings();

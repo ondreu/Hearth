@@ -2383,6 +2383,12 @@ export class HomeSettingTab extends PluginSettingTab {
 			const nameEl = label.createDiv("hearth-design-choice-name");
 			nameEl.createSpan({ text: name });
 			if (chosen) nameEl.createSpan({ cls: "hearth-design-choice-badge", text: strings.designInUse });
+			if (design === "terminal") {
+				nameEl.createSpan({
+					cls: "hearth-design-choice-badge is-experimental",
+					text: t().tui.settings.experimental,
+				});
+			}
 			label.createDiv({ cls: "hearth-design-choice-desc", text: desc });
 
 			const pick = (): void => {
