@@ -14,6 +14,7 @@ import { jiraTui } from "./jira";
 import { commandsTui, linksTui, templaterTui } from "./launch";
 import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
+import { operonTui } from "./operon";
 import { rssTui } from "./rss";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
@@ -32,6 +33,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	jira: jiraTui,
 	links: linksTui,
 	market: marketTui,
+	operon: operonTui,
 	periodic: periodicTui,
 	recent: recentTui,
 	rss: rssTui,

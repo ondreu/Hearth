@@ -70,23 +70,23 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  */
 
 const DEFAULT_COUNT = 10;
-const DEFAULT_AGENDA_DAYS = 7;
+export const DEFAULT_AGENDA_DAYS = 7;
 /** Ceiling on one board read. A board splits a single result set across its
  * columns, so the request has to cover all of them — but an unbounded limit on
  * a large vault would pull far more than a card can show. */
-const BOARD_MAX_LIMIT = 500;
+export const BOARD_MAX_LIMIT = 500;
 
 type OperonView = NonNullable<OperonConfig["view"]>;
 
-function operonView(cfg: OperonConfig): OperonView {
+export function operonView(cfg: OperonConfig): OperonView {
 	return cfg.view ?? "list";
 }
 
-function countOf(cfg: OperonConfig): number {
+export function countOf(cfg: OperonConfig): number {
 	return Math.max(1, cfg.count ?? DEFAULT_COUNT);
 }
 
-function sortKeyOf(cfg: OperonConfig): OperonSortKey {
+export function sortKeyOf(cfg: OperonConfig): OperonSortKey {
 	return cfg.sortKey ?? "smart";
 }
 
@@ -220,7 +220,7 @@ function filtersFor(cfg: OperonConfig, today: string): {
 
 /** Read the tasks one card wants: an Operon-defined scope when the card picked
  * one, otherwise its own filter set. */
-function loadTasks(
+export function loadTasks(
 	view: HomeView,
 	cfg: OperonConfig,
 	today: string,
@@ -254,7 +254,7 @@ type OperonChipKey =
 
 /** Metadata chips are opt-out: a card that has never been configured shows the
  * lot, which is what a fresh task card looks like elsewhere in Hearth. */
-function chipEnabled(value: boolean | undefined): boolean {
+export function chipEnabled(value: boolean | undefined): boolean {
 	return value !== false;
 }
 
@@ -400,7 +400,7 @@ function renderTaskRow(
  * grant actually covers them. A card that offers a drag handle it cannot honour
  * is worse than one that offers none.
  */
-function writesEnabled(view: HomeView): boolean {
+export function writesEnabled(view: HomeView): boolean {
 	const settings = view.plugin.settings;
 	if (!settings.operonIntegration || !settings.operonWrites) return false;
 	return canWrite(view.plugin.operon.access());
@@ -408,7 +408,7 @@ function writesEnabled(view: HomeView): boolean {
 
 /** Ask before applying a plan Operon flagged as needing consent or as more than
  * routine. Operon owns the risk assessment; Hearth just relays it. */
-function confirmPlan(view: HomeView): OperonConfirm {
+export function confirmPlan(view: HomeView): OperonConfirm {
 	return (plan) =>
 		new Promise<boolean>((resolve) => {
 			confirmAction(view.app, {
@@ -435,7 +435,7 @@ function confirmPlan(view: HomeView): OperonConfirm {
  * uncertain and let the reload show whatever Operon now reports, rather than
  * claiming success or offering a retry that could write twice.
  */
-function settleWrite(
+export function settleWrite(
 	result: OperonWriteResult,
 	reload: () => void,
 	undo?: () => void,
@@ -489,7 +489,7 @@ function describeCreateTarget(target: OperonCreateTarget): string {
 
 /** Report a refused create with the setting behind it, which the error code
  * alone never names. */
-function noticeCreateFailure(cfg: OperonConfig, reason: string): void {
+export function noticeCreateFailure(cfg: OperonConfig, reason: string): void {
 	const where = describeCreateTarget(createTarget(cachedPolicies(), cfg.createAs));
 	new Notice(
 		where
@@ -883,7 +883,7 @@ function renderTimer(
  * while the first two land within seconds for the common case, which is
  * Operon's grant store finishing a write it queued microseconds earlier.
  */
-const ACCESS_RETRIES = 6;
+export const ACCESS_RETRIES = 6;
 
 /**
  * Draw the card for whatever access we currently have, retrying by itself while

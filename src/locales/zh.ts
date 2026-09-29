@@ -4378,6 +4378,12 @@ export const zh: Translations = {
 			jiraStatus: "状态",
 			jiraClear: "清除",
 			jiraFoot: "Enter 打开事务 · 方向键选择筛选 · r 刷新",
+			opFlags: "^ 已置顶 · ~ 重复 · * 计时中 · # 被阻塞",
+			opReload: "重新读取",
+			opListFoot: "Enter 打开 · + 添加 · r 重新读取",
+			opReadFoot: "Enter 打开 · r 重新读取",
+			opAgendaFoot: "Enter 打开 · r 重新读取",
+			opBoardFoot: "方向键移动 · Shift+←/→ 移动任务 · + 添加 · r 重新读取",
 		},
 		settings: {
 			name: "终端",

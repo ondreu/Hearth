@@ -4749,6 +4749,12 @@ export const en = {
 			jiraStatus: "STATUS",
 			jiraClear: "Clear",
 			jiraFoot: "enter opens the issue · arrows reach the filters · r refresh",
+			opFlags: "^ pinned · ~ repeats · * timer running · # blocked",
+			opReload: "Read again",
+			opListFoot: "enter opens · + adds · r reads again",
+			opReadFoot: "enter opens · r reads again",
+			opAgendaFoot: "enter opens · r reads again",
+			opBoardFoot: "arrows move · shift+←/→ moves the task · + adds · r reads again",
 		},
 		settings: {
 			name: "Terminal",

@@ -4749,6 +4749,12 @@ export const de: Translations = {
 			jiraStatus: "STATUS",
 			jiraClear: "Zurücksetzen",
 			jiraFoot: "Enter öffnet den Vorgang · Pfeile erreichen die Filter · r aktualisiert",
+			opFlags: "^ angeheftet · ~ wiederholt · * Timer läuft · # blockiert",
+			opReload: "Neu lesen",
+			opListFoot: "Enter öffnet · + fügt hinzu · r liest neu",
+			opReadFoot: "Enter öffnet · r liest neu",
+			opAgendaFoot: "Enter öffnet · r liest neu",
+			opBoardFoot: "Pfeile bewegen · Umschalt+←/→ verschiebt die Aufgabe · + fügt hinzu · r liest neu",
 		},
 		settings: {
 			name: "Terminal",
