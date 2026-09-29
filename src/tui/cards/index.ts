@@ -13,10 +13,12 @@ import { bookmarksTui, folderTui } from "./folder";
 import { gitTui } from "./git";
 import { jiraTui } from "./jira";
 import { commandsTui, linksTui, templaterTui } from "./launch";
+import { dataviewTui } from "./dataview";
 import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
 import { operonTui } from "./operon";
 import { rssTui } from "./rss";
+import { searchTui, searchbarTui } from "./search";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
 import { weatherTui } from "./weather";
@@ -28,6 +30,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	clock: clockTui,
 	commands: commandsTui,
 	daily: dailyTui,
+	dataview: dataviewTui,
 	embed: embedTui,
 	favorites: favoritesTui,
 	folder: folderTui,
@@ -41,6 +44,8 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	recent: recentTui,
 	rss: rssTui,
 	schedule: scheduleTui,
+	search: searchTui,
+	searchbar: searchbarTui,
 	stats: statsTui,
 	tasks: tasksTui,
 	templater: templaterTui,

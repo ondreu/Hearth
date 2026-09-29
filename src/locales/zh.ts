@@ -4386,6 +4386,8 @@ export const zh: Translations = {
 			opBoardFoot: "方向键移动 · Shift+←/→ 移动任务 · + 添加 · r 重新读取",
 			folderFoot: "Enter 打开 · 空格 折叠文件夹 · o 浏览",
 			bookmarksFoot: "Enter 打开 · 空格 折叠分组",
+			dvNoResults: "没有结果",
+			dvError: "Dataview 无法运行此查询",
 		},
 		settings: {
 			name: "终端",

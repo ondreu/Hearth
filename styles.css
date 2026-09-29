@@ -22130,6 +22130,28 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	font-family: var(--tui-font);
 }
 
+/* The search bar card: its results are rows of the card, not a dropdown
+ * over the board. */
+.hearth-tui .hearth-tui-cardsearch,
+.hearth-tui .hearth-tui-cardsearch .hearth-search-col {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+}
+
+.hearth-tui .hearth-tui-cardsearch .hearth-search-results {
+	position: static;
+	flex: 1 1 auto;
+	min-height: 0;
+	max-height: none;
+	overflow-y: auto;
+	border: 0;
+	border-top: 1px dashed var(--tui-faint);
+	margin-top: 0;
+}
+
 .hearth-tui .hearth-tui-searchwrap .hearth-result {
 	gap: 1ch;
 	padding: 0 1ch;
@@ -22145,6 +22167,18 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-tui .hearth-tui-searchwrap .hearth-result.is-selected :is(.hearth-result-path, .hearth-result-badge, .hearth-result-text),
 .hearth-tui .hearth-tui-searchwrap .hearth-result:hover :is(.hearth-result-path, .hearth-result-badge, .hearth-result-text) {
 	color: inherit;
+}
+
+/* Every part of a result on the grid's own size: a name, a path, an excerpt
+ * are all one line of the terminal's text. */
+.hearth-tui .hearth-tui-searchwrap .hearth-result :is(.hearth-result-name, .hearth-result-path, .hearth-result-text, .hearth-result-badge) {
+	font-size: inherit;
+	line-height: inherit;
+	font-weight: normal;
+}
+
+.hearth-tui .hearth-tui-searchwrap .hearth-result .hearth-result-name {
+	font-weight: bold;
 }
 
 .hearth-tui .hearth-tui-searchwrap .hearth-result-icon {

@@ -4757,6 +4757,8 @@ export const en = {
 			opBoardFoot: "arrows move · shift+←/→ moves the task · + adds · r reads again",
 			folderFoot: "enter opens · space folds a folder · o browses",
 			bookmarksFoot: "enter opens · space folds a group",
+			dvNoResults: "No results",
+			dvError: "Dataview couldn't run this query",
 		},
 		settings: {
 			name: "Terminal",

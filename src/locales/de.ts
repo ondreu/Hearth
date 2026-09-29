@@ -4757,6 +4757,8 @@ export const de: Translations = {
 			opBoardFoot: "Pfeile bewegen · Umschalt+←/→ verschiebt die Aufgabe · + fügt hinzu · r liest neu",
 			folderFoot: "Enter öffnet · Leertaste klappt einen Ordner · o durchsucht",
 			bookmarksFoot: "Enter öffnet · Leertaste klappt eine Gruppe",
+			dvNoResults: "Keine Ergebnisse",
+			dvError: "Dataview konnte diese Abfrage nicht ausführen",
 		},
 		settings: {
 			name: "Terminal",
