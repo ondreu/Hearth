@@ -4742,6 +4742,13 @@ export const en = {
 			copyLink: "Copy link",
 			rssFoot: "enter opens in the browser · r refresh",
 			rssFootTabs: "enter opens in the browser · ←/→ source · r refresh",
+			jiraKey: "KEY",
+			jiraType: "TYPE",
+			jiraPriority: "PRIORITY",
+			jiraSummary: "SUMMARY",
+			jiraStatus: "STATUS",
+			jiraClear: "Clear",
+			jiraFoot: "enter opens the issue · arrows reach the filters · r refresh",
 		},
 		settings: {
 			name: "Terminal",

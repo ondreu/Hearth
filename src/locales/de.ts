@@ -4742,6 +4742,13 @@ export const de: Translations = {
 			copyLink: "Link kopieren",
 			rssFoot: "Enter öffnet im Browser · r aktualisiert",
 			rssFootTabs: "Enter öffnet im Browser · ←/→ Quelle · r aktualisiert",
+			jiraKey: "SCHLÜSSEL",
+			jiraType: "TYP",
+			jiraPriority: "PRIORITÄT",
+			jiraSummary: "ZUSAMMENFASSUNG",
+			jiraStatus: "STATUS",
+			jiraClear: "Zurücksetzen",
+			jiraFoot: "Enter öffnet den Vorgang · Pfeile erreichen die Filter · r aktualisiert",
 		},
 		settings: {
 			name: "Terminal",

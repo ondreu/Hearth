@@ -4371,6 +4371,13 @@ export const zh: Translations = {
 			copyLink: "复制链接",
 			rssFoot: "Enter 在浏览器中打开 · r 刷新",
 			rssFootTabs: "Enter 在浏览器中打开 · ←/→ 切换来源 · r 刷新",
+			jiraKey: "编号",
+			jiraType: "类型",
+			jiraPriority: "优先级",
+			jiraSummary: "摘要",
+			jiraStatus: "状态",
+			jiraClear: "清除",
+			jiraFoot: "Enter 打开事务 · 方向键选择筛选 · r 刷新",
 		},
 		settings: {
 			name: "终端",

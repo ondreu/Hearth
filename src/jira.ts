@@ -288,7 +288,7 @@ export function filterJiraOptions(values: string[], query: string): string[] {
 	return values.filter((value) => value.toLocaleLowerCase().includes(needle));
 }
 
-function validatedHost(host: string): URL {
+export function validatedHost(host: string): URL {
 	const parsed = new URL(host);
 	if (
 		parsed.protocol !== "https:" ||
@@ -428,7 +428,7 @@ export async function listJiraFilters(config: JiraConfig): Promise<JiraFilter[]>
 		.filter((filter): filter is JiraFilter => filter !== null);
 }
 
-async function loadFilterJql(config: JiraConfig, force: boolean): Promise<string> {
+export async function loadFilterJql(config: JiraConfig, force: boolean): Promise<string> {
 	const id = config.filterId?.trim();
 	if (!id) throw new Error("missing-filter");
 	const filter = await requestJira<JiraFilterResponse>(
@@ -442,14 +442,14 @@ async function loadFilterJql(config: JiraConfig, force: boolean): Promise<string
 	return filter.jql.trim();
 }
 
-async function loadSprintFieldId(config: JiraConfig): Promise<string | null> {
+export async function loadSprintFieldId(config: JiraConfig): Promise<string | null> {
 	const fields = await requestJira<unknown>(config, "/field");
 	return Array.isArray(fields)
 		? discoverSprintFieldId(fields as JiraField[])
 		: null;
 }
 
-async function searchJira(
+export async function searchJira(
 	config: JiraConfig,
 	jql: string,
 	maxResults: number,
@@ -487,7 +487,7 @@ function statusClass(key: string | undefined): string {
 	}
 }
 
-function controlLabel(control: JiraControl): string {
+export function controlLabel(control: JiraControl): string {
 	return t().cards.jira.controls[control];
 }
 
