@@ -3150,6 +3150,15 @@ export function terminalModeActive(s: HomeSettings): boolean {
 	return s.terminalMode === true;
 }
 
+/** Whether any board is still drawn graphically: every board outside terminal
+ * mode, and in it only a plugin board, which terminal mode leaves as it is.
+ * While this is false the settings that shape nothing but the graphical board
+ * — the wallpaper, card surfaces, the header's icon and sizes — are hidden,
+ * since changing them would change nothing on screen. */
+export function graphicalBoardsInUse(s: HomeSettings): boolean {
+	return !terminalModeActive(s) || s.dashboards.some(isPluginBoard);
+}
+
 /** The terminal scheme in force, repaired on read so a hand-edited or
  * newer-version value falls back to the theme's colours. */
 export function effectiveTerminalScheme(s: HomeSettings): TerminalScheme {

@@ -4772,7 +4772,7 @@ export const de: Translations = {
 			fontSizeDesc: "Die Größe der Terminalschrift in Pixeln. Jede Karte behält ihren Platz im Raster.",
 			overrides: "Was der Terminalmodus übergeht",
 			overridesDesc:
-				"Hintergrundbild, Milchglas, Kartenflächen und Animationen werden nicht gezeichnet, und die Wahl zwischen Klassisch und Expressiv jedes Boards und jeder Karte ruht, bis der Terminalmodus ausgeschaltet wird. Karten, die Bilder oder die Ansicht eines anderen Plugins sind, erscheinen wie sie sind, in einem Terminalrahmen.",
+				"Hintergrundbild, Milchglas, Kartenflächen und Animationen werden nicht gezeichnet, und die Wahl zwischen Klassisch und Expressiv jedes Boards und jeder Karte ruht, bis der Terminalmodus ausgeschaltet wird. Karten, die Bilder oder die Ansicht eines anderen Plugins sind, erscheinen wie sie sind, in einem Terminalrahmen. Einstellungen, die solange nichts ändern würden — der Tab „Stil“ einer Karte, Hintergrundbild, Kartenflächen, Symbol und Größen der Kopfzeile —, sind ausgeblendet, außer ein Plugin-Board, das der Terminalmodus unverändert lässt, nutzt sie noch.",
 		},
 		helpTitle: "Tasten",
 		help: {

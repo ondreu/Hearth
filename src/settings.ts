@@ -10,7 +10,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, effectiveTerminalFontSize, effectiveTerminalScheme, TERMINAL_FONT_SIZE_DEFAULT, TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, TERMINAL_SCHEMES, type TerminalScheme, terminalModeActive, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, effectiveTerminalFontSize, effectiveTerminalScheme, TERMINAL_FONT_SIZE_DEFAULT, TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, TERMINAL_SCHEMES, type TerminalScheme, terminalModeActive, graphicalBoardsInUse, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -486,9 +486,13 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.performanceSection(b),
 				);
 				this.section(body, s.sections.home, s.sections.homeDesc, (b) => this.homeSection(b));
-				this.section(body, s.background.heading, s.background.headingDesc, (b) =>
-					this.backgroundSection(b),
-				);
+				// Terminal mode draws no wallpaper, so its settings would change
+				// nothing — unless a plugin board is still drawn graphically.
+				if (graphicalBoardsInUse(this.plugin.settings)) {
+					this.section(body, s.background.heading, s.background.headingDesc, (b) =>
+						this.backgroundSection(b),
+					);
+				}
 				break;
 			case "search":
 				this.section(body, s.sections.searchBar, s.sections.searchBarDesc, (b) =>
@@ -498,12 +502,16 @@ export class HomeSettingTab extends PluginSettingTab {
 				break;
 			case "dashboard":
 				this.section(body, s.sections.grid, s.sections.gridDesc, (b) => this.gridSection(b));
-				this.section(body, s.sections.dashboardControls, s.sections.dashboardControlsDesc, (b) =>
-					this.dashboardControlsSection(b),
-				);
-				this.section(body, s.sections.cardSurface, s.sections.cardSurfaceDesc, (b) =>
-					this.cardSurfaceSection(b),
-				);
+				// Terminal mode draws its own tab bar and arrange key, and its own
+				// frames, so these two shape only a board drawn graphically.
+				if (graphicalBoardsInUse(this.plugin.settings)) {
+					this.section(body, s.sections.dashboardControls, s.sections.dashboardControlsDesc, (b) =>
+						this.dashboardControlsSection(b),
+					);
+					this.section(body, s.sections.cardSurface, s.sections.cardSurfaceDesc, (b) =>
+						this.cardSurfaceSection(b),
+					);
+				}
 				// The cards themselves are added and configured on the board, not
 				// here — surface that as a plain informational row.
 				new Setting(body).setName(s.dashboard.cards).setDesc(s.dashboard.cardsDesc);
@@ -525,9 +533,12 @@ export class HomeSettingTab extends PluginSettingTab {
 				this.section(body, s.sections.mobileMode, s.sections.mobileModeDesc, (b) =>
 					this.mobileModeSection(b),
 				);
-				this.section(body, s.mobileActions.heading, s.mobileActions.headingDesc, (b) =>
-					this.mobileActionsSection(b),
-				);
+				// Terminal mode's search-only screen has no action bar of its own.
+				if (graphicalBoardsInUse(this.plugin.settings)) {
+					this.section(body, s.mobileActions.heading, s.mobileActions.headingDesc, (b) =>
+						this.mobileActionsSection(b),
+					);
+				}
 				break;
 			case "integrations":
 				// The catalogue first: every integration Hearth has, listed whether
@@ -660,6 +671,10 @@ export class HomeSettingTab extends PluginSettingTab {
 
 	private homeSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
+		// Terminal mode's title line draws its own mark and fills the pane's
+		// width, so the title icon and the width controls only reach a board
+		// still drawn graphically.
+		const graphical = graphicalBoardsInUse(s);
 
 		new Setting(containerEl)
 			.setName(t().settings.appearance.showTitle)
@@ -692,18 +707,20 @@ export class HomeSettingTab extends PluginSettingTab {
 			this.addTextReset(title, txt, "title");
 		});
 
-		addTitleIconPicker(
-			new Setting(containerEl)
-				.setName(t().settings.appearance.titleIcon)
-				.setDesc(t().settings.appearance.titleIconDesc),
-			this.app,
-			s.titleIcon,
-			(v) => {
-				s.titleIcon = v;
-				void this.save();
-			},
-			s.disableExternalCalls,
-		);
+		if (graphical) {
+			addTitleIconPicker(
+				new Setting(containerEl)
+					.setName(t().settings.appearance.titleIcon)
+					.setDesc(t().settings.appearance.titleIconDesc),
+				this.app,
+				s.titleIcon,
+				(v) => {
+					s.titleIcon = v;
+					void this.save();
+				},
+				s.disableExternalCalls,
+			);
+		}
 
 		addIconPicker(
 			new Setting(containerEl)
@@ -736,6 +753,8 @@ export class HomeSettingTab extends PluginSettingTab {
 						this.plugin.refreshBrandIcons();
 					}),
 			);
+
+		if (!graphical) return;
 
 		new Setting(containerEl)
 			.setName(t().settings.appearance.fullWidth)
@@ -1085,7 +1104,10 @@ export class HomeSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		if (tier === "minimal") {
+		// The minimal tier's plain backdrop, the sky, the frost and the card
+		// surfaces are all the graphical board's; terminal mode draws none of them.
+		const graphical = graphicalBoardsInUse(s);
+		if (tier === "minimal" && graphical) {
 			const color = new Setting(containerEl)
 				.setName(strings.color)
 				.setDesc(strings.colorDesc);
@@ -1103,12 +1125,12 @@ export class HomeSettingTab extends PluginSettingTab {
 		// What the selected tier actually does, spelled out. Built from the same
 		// predicates the renderers use, so the list cannot drift from behaviour.
 		const lines: string[] = [];
-		if (skyDensity(s) < 1) lines.push(strings.effectSkyHalf);
+		if (graphical && skyDensity(s) < 1) lines.push(strings.effectSkyHalf);
 		if (!motionAllowed(s)) {
 			lines.push(strings.effectMotion, strings.effectClock, strings.effectSlideshow);
 		}
-		if (!frostAllowed(s)) lines.push(strings.effectFrost);
-		if (lowPowerActive(s)) lines.push(strings.effectBackground, strings.effectOpaque);
+		if (graphical && !frostAllowed(s)) lines.push(strings.effectFrost);
+		if (graphical && lowPowerActive(s)) lines.push(strings.effectBackground, strings.effectOpaque);
 		if (!timersAllowed(s)) lines.push(strings.effectRefresh, strings.effectLiveRefresh);
 		if (lines.length === 0) return;
 
@@ -2170,6 +2192,9 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		// Terminal mode's spacing is the character grid's.
+		if (!graphicalBoardsInUse(s)) return;
 
 		new Setting(containerEl)
 			.setName(t().settings.dashboard.compact)

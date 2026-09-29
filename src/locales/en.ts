@@ -4772,7 +4772,7 @@ export const en = {
 			fontSizeDesc: "The size of the terminal's text, in pixels. Every card keeps its place on the grid.",
 			overrides: "What terminal mode overrides",
 			overridesDesc:
-				"The wallpaper, frosted glass, card surfaces and animations are not drawn, and the Classic or Expressive choice of each board and card is set aside until terminal mode is switched off. Cards that are pictures or another plugin's view are shown as they are, inside a terminal frame.",
+				"The wallpaper, frosted glass, card surfaces and animations are not drawn, and the Classic or Expressive choice of each board and card is set aside until terminal mode is switched off. Cards that are pictures or another plugin's view are shown as they are, inside a terminal frame. Settings that would change nothing meanwhile — a card's Style tab, the wallpaper, card surfaces, the header's icon and sizes — are hidden, unless a plugin board, which terminal mode leaves as it is, still uses them.",
 		},
 		helpTitle: "Keys",
 		help: {

@@ -22,6 +22,7 @@ import {
 	type DashboardMode,
 	DEFAULT_SETTINGS,
 	effectiveSwitcherVisibility,
+	graphicalBoardsInUse,
 	HEADER_MARGIN_TOP_MAX,
 	HEADER_MARGIN_TOP_MIN,
 	HEADER_SCALE_MAX,
@@ -35,6 +36,7 @@ import {
 	NARROW_WIDTH_MIN,
 	NARROW_WIDTH_STEP,
 	newDashboardId,
+	terminalModeActive,
 } from "./types";
 import { INSTANT_FEATURES } from "./instant";
 import { classicCardsInUse, cloneCard } from "./cards";
@@ -333,9 +335,18 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		return "hearth-dash-settings-tab";
 	}
 
+	/** Whether this board is drawn graphically. Terminal mode draws a card
+	 * board as text — no wallpaper, no card surfaces, its own title line, tab
+	 * bar and layout — so the settings that only shape the graphical board are
+	 * not offered for one while it is on. A plugin board it leaves as it is. */
+	private get graphical(): boolean {
+		return !terminalModeActive(this.view.plugin.settings) || isPluginBoard(this.dash);
+	}
+
 	protected hearthTabs(): HearthModalTab[] {
 		const tabs = t().dashboards.modal.tabs;
 		const plugin = isPluginBoard(this.dash);
+		const graphical = this.graphical;
 		return [
 			{ id: "general", label: tabs.general, icon: "settings-2" },
 			// Which view the board hosts, right after the board's identity: on a
@@ -347,8 +358,12 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			{ id: "layout", label: tabs.layout, icon: "layout-dashboard" },
 			// Kept on a plugin board: the hosted view sits on one big card surface,
 			// so opacity, blur, radius and border all still land somewhere.
-			{ id: "style", label: tabs.style, icon: "palette" },
-			{ id: "background", label: tabs.background, icon: "image" },
+			...(graphical
+				? [
+						{ id: "style", label: tabs.style, icon: "palette" },
+						{ id: "background", label: tabs.background, icon: "image" },
+					]
+				: []),
 		];
 	}
 
@@ -431,27 +446,32 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			hint.settingEl.addClass("hearth-setting-note");
 		}
 
-		new Setting(containerEl)
-			.setName(t().dashboards.modal.switcherIcon)
-			.setDesc(t().dashboards.modal.switcherIconDesc)
-			.addText((tx) =>
-				tx.setValue(dash.icon ?? "").onChange((v) => {
-					dash.icon = v.trim() || undefined;
-					this.commit();
-				}),
-			);
-
-		addIconPicker(
+		// The switcher's icons are drawn by the graphical switcher alone —
+		// terminal mode's tab bar names each board — which a plugin board still
+		// shows, listing every board.
+		if (graphicalBoardsInUse(this.view.plugin.settings)) {
 			new Setting(containerEl)
-				.setName(t().dashboards.modal.switcherLucide)
-				.setDesc(t().dashboards.modal.switcherLucideDesc),
-			this.view.app,
-			dash.iconLucide ?? "",
-			(v) => {
-				dash.iconLucide = v || undefined;
-				this.commit();
-			},
-		);
+				.setName(t().dashboards.modal.switcherIcon)
+				.setDesc(t().dashboards.modal.switcherIconDesc)
+				.addText((tx) =>
+					tx.setValue(dash.icon ?? "").onChange((v) => {
+						dash.icon = v.trim() || undefined;
+						this.commit();
+					}),
+				);
+
+			addIconPicker(
+				new Setting(containerEl)
+					.setName(t().dashboards.modal.switcherLucide)
+					.setDesc(t().dashboards.modal.switcherLucideDesc),
+				this.view.app,
+				dash.iconLucide ?? "",
+				(v) => {
+					dash.iconLucide = v || undefined;
+					this.commit();
+				},
+			);
+		}
 
 		new Setting(containerEl)
 			.setName(t().dashboards.modal.mobileDefault)
@@ -799,6 +819,10 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				this.commit();
 			},
 		);
+
+		// The rest shape the graphical header: terminal mode's title line is one
+		// row of text with its own mark, left-aligned, in the scheme's colours.
+		if (!this.graphical) return;
 
 		this.overrideHeaderIcon(
 			containerEl,
@@ -1170,47 +1194,50 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;
 
-		new Setting(containerEl)
-			.setName(t().dashboards.modal.fullWidth)
-			.setDesc(t().dashboards.modal.fullWidthDesc)
-			.addDropdown((d) => {
-				d.addOption(
-					"default",
-					t().dashboards.modal.fullWidthDefault(
-						s.fullWidth
-							? t().dashboards.modal.fullWidthStateOn
-							: t().dashboards.modal.fullWidthStateOff,
-					),
-				);
-				d.addOption("on", t().dashboards.modal.fullWidthOptionOn);
-				d.addOption("off", t().dashboards.modal.fullWidthOptionOff);
-				d.setValue(
-					dash.fullWidth === undefined ? "default" : dash.fullWidth ? "on" : "off",
-				);
-				d.onChange((v) => {
-					dash.fullWidth = v === "default" ? undefined : v === "on";
-					this.commit();
-					// The width slider below is the ceiling this drops, so it appears
-					// and disappears with the choice rather than sitting there inert.
-					this.render();
+		// Terminal mode's screen fills the pane whatever the width setting.
+		if (this.graphical) {
+			new Setting(containerEl)
+				.setName(t().dashboards.modal.fullWidth)
+				.setDesc(t().dashboards.modal.fullWidthDesc)
+				.addDropdown((d) => {
+					d.addOption(
+						"default",
+						t().dashboards.modal.fullWidthDefault(
+							s.fullWidth
+								? t().dashboards.modal.fullWidthStateOn
+								: t().dashboards.modal.fullWidthStateOff,
+						),
+					);
+					d.addOption("on", t().dashboards.modal.fullWidthOptionOn);
+					d.addOption("off", t().dashboards.modal.fullWidthOptionOff);
+					d.setValue(
+						dash.fullWidth === undefined ? "default" : dash.fullWidth ? "on" : "off",
+					);
+					d.onChange((v) => {
+						dash.fullWidth = v === "default" ? undefined : v === "on";
+						this.commit();
+						// The width slider below is the ceiling this drops, so it appears
+						// and disappears with the choice rather than sitting there inert.
+						this.render();
+					});
 				});
-			});
 
-		// Only offered while this board actually has a ceiling to set.
-		if (!(dash.fullWidth ?? s.fullWidth)) {
-			this.overrideSlider(
-				containerEl,
-				t().dashboards.modal.contentWidth,
-				dash.maxWidth,
-				s.maxWidth,
-				CONTENT_WIDTH_MIN,
-				CONTENT_WIDTH_MAX,
-				CONTENT_WIDTH_STEP,
-				(v) => {
-					dash.maxWidth = v;
-					this.commit();
-				},
-			);
+			// Only offered while this board actually has a ceiling to set.
+			if (!(dash.fullWidth ?? s.fullWidth)) {
+				this.overrideSlider(
+					containerEl,
+					t().dashboards.modal.contentWidth,
+					dash.maxWidth,
+					s.maxWidth,
+					CONTENT_WIDTH_MIN,
+					CONTENT_WIDTH_MAX,
+					CONTENT_WIDTH_STEP,
+					(v) => {
+						dash.maxWidth = v;
+						this.commit();
+					},
+				);
+			}
 		}
 
 		// Stacking and the two pieces of chrome sit above the plugin-board early
@@ -1250,29 +1277,32 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			},
 		);
 
-		this.overrideChoice(
-			containerEl,
-			t().dashboards.modal.arrangeVisibility,
-			t().dashboards.modal.arrangeVisibilityDesc,
-			dash.arrangeButtonVisibility,
-			t().dashboards.modal.chromeOptions,
-			t().dashboards.modal.chromeStates[s.arrangeButtonVisibility],
-			(v) => {
-				dash.arrangeButtonVisibility = v;
-			},
-		);
+		// Terminal mode's tab bar and F2 are always there.
+		if (this.graphical) {
+			this.overrideChoice(
+				containerEl,
+				t().dashboards.modal.arrangeVisibility,
+				t().dashboards.modal.arrangeVisibilityDesc,
+				dash.arrangeButtonVisibility,
+				t().dashboards.modal.chromeOptions,
+				t().dashboards.modal.chromeStates[s.arrangeButtonVisibility],
+				(v) => {
+					dash.arrangeButtonVisibility = v;
+				},
+			);
 
-		this.overrideChoice(
-			containerEl,
-			t().dashboards.modal.switcherVisibility,
-			t().dashboards.modal.switcherVisibilityDesc,
-			dash.dashboardSwitcherVisibility,
-			t().dashboards.modal.chromeOptions,
-			t().dashboards.modal.chromeStates[s.dashboardSwitcherVisibility],
-			(v) => {
-				dash.dashboardSwitcherVisibility = v;
-			},
-		);
+			this.overrideChoice(
+				containerEl,
+				t().dashboards.modal.switcherVisibility,
+				t().dashboards.modal.switcherVisibilityDesc,
+				dash.dashboardSwitcherVisibility,
+				t().dashboards.modal.chromeOptions,
+				t().dashboards.modal.chromeStates[s.dashboardSwitcherVisibility],
+				(v) => {
+					dash.dashboardSwitcherVisibility = v;
+				},
+			);
+		}
 
 		// A plugin board is always fitted — the hosted view needs a definite
 		// height to fill and scrolls itself inside it — so the choice isn't
