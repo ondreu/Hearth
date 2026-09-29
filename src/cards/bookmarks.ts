@@ -23,7 +23,7 @@ import { openFolderBrowser } from "./folder";
  * native pane hides those orphans. We mirror that so the card never shows dead,
  * unclickable rows (see issue #41). A group whose whole subtree prunes away is
  * dropped too, rather than leaving an empty folder in the card. */
-function pruneBookmarks(items: BookmarkItem[], view: HomeView): BookmarkItem[] {
+export function pruneBookmarks(items: BookmarkItem[], view: HomeView): BookmarkItem[] {
 	const out: BookmarkItem[] = [];
 	for (const item of items) {
 		if (item.type === "group") {
@@ -119,7 +119,7 @@ function renderBookmarkGroup(
  * basename, not its full path. Resolving through the vault strips the `.md`
  * extension from notes (like Obsidian) and keeps the extension on other files;
  * if the target can't be resolved we fall back to the last path segment. */
-function bookmarkPathName(view: HomeView, path: string): string {
+export function bookmarkPathName(view: HomeView, path: string): string {
 	const file = view.app.vault.getAbstractFileByPath(path);
 	if (file instanceof TFile) return file.basename;
 	if (file instanceof TFolder) return file.name;
@@ -200,7 +200,7 @@ function renderFavicon(iconEl: HTMLElement, url: string): void {
  * need a core plugin say so when it is switched off, because silence is exactly
  * what the bug looked like.
  */
-function openBookmark(view: HomeView, item: BookmarkItem, expressive: boolean): void {
+export function openBookmark(view: HomeView, item: BookmarkItem, expressive: boolean): void {
 	const target = bookmarkTarget(
 		item,
 		(path) => view.app.vault.getAbstractFileByPath(path) instanceof TFolder,

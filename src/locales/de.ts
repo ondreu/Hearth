@@ -4755,6 +4755,8 @@ export const de: Translations = {
 			opReadFoot: "Enter öffnet · r liest neu",
 			opAgendaFoot: "Enter öffnet · r liest neu",
 			opBoardFoot: "Pfeile bewegen · Umschalt+←/→ verschiebt die Aufgabe · + fügt hinzu · r liest neu",
+			folderFoot: "Enter öffnet · Leertaste klappt einen Ordner · o durchsucht",
+			bookmarksFoot: "Enter öffnet · Leertaste klappt eine Gruppe",
 		},
 		settings: {
 			name: "Terminal",

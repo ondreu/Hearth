@@ -4755,6 +4755,8 @@ export const en = {
 			opReadFoot: "enter opens · r reads again",
 			opAgendaFoot: "enter opens · r reads again",
 			opBoardFoot: "arrows move · shift+←/→ moves the task · + adds · r reads again",
+			folderFoot: "enter opens · space folds a folder · o browses",
+			bookmarksFoot: "enter opens · space folds a group",
 		},
 		settings: {
 			name: "Terminal",

@@ -17,6 +17,7 @@ import type { TuiContext, TuiItem, TuiOutput } from "../card";
 import {
 	asciify,
 	padEnd,
+	spread,
 	strWidth,
 	truncate,
 	wrap,
@@ -236,4 +237,51 @@ export function showMenuFor(menu: Menu, evt: MouseEvent | KeyboardEvent): void {
 /** Whether `f` is a file (not a folder). */
 export function isFile(f: TAbstractFile | null | undefined): f is TFile {
 	return f instanceof TFile;
+}
+
+// ---- Trees ------------------------------------------------------------------
+
+/** One node of a {@link treeRows} tree. */
+export interface TreeNode {
+	/** Stable id, for remembering whether a branch is open. */
+	id: string;
+	label: Line;
+	/** Drawn on the right of the row: a count, a folder. */
+	right?: Line;
+	/** A branch's children, read only when it is open. Undefined for a leaf. */
+	children?: () => TreeNode[];
+	activate?: TuiItem["activate"];
+	menu?: TuiItem["menu"];
+}
+
+/**
+ * A tree as `tree` draws it — `├── `, `└── `, `│   ` — one selectable row
+ * per node. A branch shows `▸` closed and `▾` open; Space opens and closes
+ * it, and so does Enter when the branch does nothing else.
+ */
+export function treeRows(
+	ctx: TuiContext,
+	nodes: readonly TreeNode[],
+	isOpen: (node: TreeNode) => boolean,
+	setOpen: (node: TreeNode, open: boolean) => void,
+	prefix = "",
+): Row[] {
+	const rows: Row[] = [];
+	nodes.forEach((node, i) => {
+		const last = i === nodes.length - 1;
+		const branch = !!node.children;
+		const open = branch && isOpen(node);
+		const flip = branch ? () => setOpen(node, !open) : undefined;
+		const lead: Line = [{ text: prefix + (last ? "└── " : "├── "), style: "faint" }];
+		if (branch) lead.push({ text: open ? "▾ " : "▸ ", style: "accent", onClick: flip, label: node.id });
+		const left: Line = [...lead, ...node.label];
+		rows.push({
+			lines: node.right ? spread(left, node.right, ctx.cols) : left,
+			activate: node.activate ?? flip,
+			toggle: flip,
+			menu: node.menu,
+		});
+		if (open && node.children) rows.push(...treeRows(ctx, node.children(), isOpen, setOpen, prefix + (last ? "    " : "│   ")));
+	});
+	return rows;
 }

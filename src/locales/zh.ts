@@ -4384,6 +4384,8 @@ export const zh: Translations = {
 			opReadFoot: "Enter 打开 · r 重新读取",
 			opAgendaFoot: "Enter 打开 · r 重新读取",
 			opBoardFoot: "方向键移动 · Shift+←/→ 移动任务 · + 添加 · r 重新读取",
+			folderFoot: "Enter 打开 · 空格 折叠文件夹 · o 浏览",
+			bookmarksFoot: "Enter 打开 · 空格 折叠分组",
 		},
 		settings: {
 			name: "终端",
