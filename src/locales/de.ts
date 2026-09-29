@@ -4759,6 +4759,7 @@ export const de: Translations = {
 			bookmarksFoot: "Enter öffnet · Leertaste klappt eine Gruppe",
 			dvNoResults: "Keine Ergebnisse",
 			dvError: "Dataview konnte diese Abfrage nicht ausführen",
+			petFoot: "Enter oder Leertaste streichelt es",
 		},
 		settings: {
 			name: "Terminal",

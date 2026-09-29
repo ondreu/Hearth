@@ -50,8 +50,10 @@ export function drawSeg(parent: HTMLElement, s: Seg): HTMLElement {
 	const classes = styles(s).map(styleClass);
 	if (s.onClick || s.onMenu) classes.push(ACTION_CLASS);
 	if (s.color) classes.push("hearth-tui-colored");
+	if (s.bg) classes.push("hearth-tui-bg");
 	const span = parent.createSpan({ cls: classes });
 	if (s.color) span.setCssProps({ "--tui-seg-color": s.color });
+	if (s.bg) span.setCssProps({ "--tui-seg-bg": s.bg });
 	appendText(span, s.text);
 	if (s.label) {
 		span.setAttribute("aria-label", s.label);
@@ -88,7 +90,7 @@ export function drawSeg(parent: HTMLElement, s: Seg): HTMLElement {
 export function drawLine(parent: HTMLElement, line: Line, cls?: string): HTMLElement {
 	const row = parent.createDiv(cls ? `${LINE_CLASS} ${cls}` : LINE_CLASS);
 	for (const s of mergeRuns(line)) {
-		if (!s.style && !s.onClick && !s.onMenu && !s.label && !s.color) appendText(row, s.text);
+		if (!s.style && !s.onClick && !s.onMenu && !s.label && !s.color && !s.bg) appendText(row, s.text);
 		else drawSeg(row, s);
 	}
 	return row;
@@ -114,6 +116,7 @@ export function mergeRuns(line: Line): Line {
 			!s.onMenu &&
 			!s.label &&
 			prev.color === s.color &&
+			prev.bg === s.bg &&
 			styleKey(prev) === styleKey(s)
 		) {
 			out[out.length - 1] = { ...prev, text: prev.text + s.text };

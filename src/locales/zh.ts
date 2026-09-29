@@ -4388,6 +4388,7 @@ export const zh: Translations = {
 			bookmarksFoot: "Enter 打开 · 空格 折叠分组",
 			dvNoResults: "没有结果",
 			dvError: "Dataview 无法运行此查询",
+			petFoot: "Enter 或空格 抚摸它",
 		},
 		settings: {
 			name: "终端",

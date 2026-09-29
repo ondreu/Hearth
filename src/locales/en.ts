@@ -4759,6 +4759,7 @@ export const en = {
 			bookmarksFoot: "enter opens · space folds a group",
 			dvNoResults: "No results",
 			dvError: "Dataview couldn't run this query",
+			petFoot: "enter or space pets it",
 		},
 		settings: {
 			name: "Terminal",

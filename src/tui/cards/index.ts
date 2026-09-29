@@ -17,6 +17,7 @@ import { dataviewTui } from "./dataview";
 import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
 import { operonTui } from "./operon";
+import { petTui } from "./pet";
 import { rssTui } from "./rss";
 import { searchTui, searchbarTui } from "./search";
 import { heatmapTui, statsTui } from "./stats";
@@ -41,6 +42,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	market: marketTui,
 	operon: operonTui,
 	periodic: periodicTui,
+	pet: petTui,
 	recent: recentTui,
 	rss: rssTui,
 	schedule: scheduleTui,

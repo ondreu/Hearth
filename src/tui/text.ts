@@ -52,6 +52,9 @@ export interface Seg {
 	/** A colour of the user's own (a task field's, a calendar's) — any CSS
 	 * colour. Takes precedence over the style's colour. */
 	color?: string;
+	/** A background of the run's own, any CSS colour: the lower pixel of a
+	 * half-block picture. Drawn the whole height of the line. */
+	bg?: string;
 }
 
 /** One row of the grid. */

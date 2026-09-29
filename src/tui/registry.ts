@@ -21,6 +21,7 @@ export function tuiRenderer(card: DashboardCard, view?: HomeView): TuiRenderer |
 }
 
 /** Kinds that stay graphical in terminal mode, and why — a picture, a web
- * page, another plugin's own view, or a Datacore view (its results are
- * Preact components of Datacore's, with no text form to ask for). */
-export const GRAPHICAL_KINDS: readonly CardKind[] = ["slideshow", "web", "leaf", "datacore"];
+ * page, another plugin's own view (Vault Pet's pet and house among them),
+ * or a Datacore view (its results are Preact components of Datacore's, with
+ * no text form to ask for). */
+export const GRAPHICAL_KINDS: readonly CardKind[] = ["slideshow", "web", "leaf", "datacore", "vaultpet"];

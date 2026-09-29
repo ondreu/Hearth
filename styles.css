@@ -21804,7 +21804,8 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 /* An inline background covers only the font's content box, which is shorter
  * than the line; a solid cell is stretched to the whole line so the rows of a
  * chart or of big digits meet. */
-:is(.hearth-tui, .hearth-t-modal) :is(.hearth-tui-solid, .hearth-tui-block) {
+:is(.hearth-tui, .hearth-t-modal) .hearth-tui-bg { background: var(--tui-seg-bg); }
+:is(.hearth-tui, .hearth-t-modal) :is(.hearth-tui-solid, .hearth-tui-block, .hearth-tui-bg) {
 	display: inline-block;
 	height: 1lh;
 	vertical-align: top;

@@ -42,7 +42,7 @@ export const PET_SLEEPY_AFTER_MS = 6 * 60 * 60 * 1000;
 
 /** How often the card re-derives its mood without a vault event, so a pet left
  * on screen still drifts from bored to sleepy (and out of a petting). */
-const PET_TICK_MS = 5 * 60 * 1000;
+export const PET_TICK_MS = 5 * 60 * 1000;
 
 
 // ---- Mood ---------------------------------------------------------------
@@ -193,7 +193,7 @@ interface VaultPulse {
 	sinceLastMs: number | null;
 }
 
-function readVaultPulse(view: HomeView, metric: "modified" | "created"): VaultPulse {
+export function readVaultPulse(view: HomeView, metric: "modified" | "created"): VaultPulse {
 	const counts = new Map<string, number>();
 	let newest = 0;
 	for (const file of view.app.vault.getMarkdownFiles()) {
@@ -717,7 +717,7 @@ export function petName(cfg: PetConfig): string {
 	return t().cards.pet.species[cfg.species ?? "cat"];
 }
 
-function moodLabel(mood: PetMood): string {
+export function moodLabel(mood: PetMood): string {
 	const s = t().cards.pet;
 	switch (mood) {
 		case "excited":
