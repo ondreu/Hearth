@@ -21580,7 +21580,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-t-modal,
 .hearth-t-menu,
 .hearth-t-settings {
-	--tui-font: "Hearth Mono", ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+	--tui-font: "Hearth Mono", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 	--tui-bg: var(--background-primary);
 	--tui-bg-alt: var(--background-secondary);
 	--tui-fg: var(--text-normal);
@@ -22251,7 +22251,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	align-items: center;
 	justify-content: center;
 	min-width: 1ch;
-	font-family: "Hearth Mono", ui-monospace, monospace;
+	font-family: "Hearth Mono", var(--font-monospace);
 	font-style: normal;
 	font-weight: 400;
 	line-height: 1;
@@ -22491,7 +22491,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	border-radius: 0;
 	background: #0e1013;
 	color: #d4d7dc;
-	font-family: "Hearth Mono", ui-monospace, monospace;
+	font-family: "Hearth Mono", var(--font-monospace);
 	font-size: 11px;
 	line-height: 1.32;
 	overflow: hidden;
