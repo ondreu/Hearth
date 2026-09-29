@@ -42,6 +42,7 @@ describe("which kinds draw an Expressive design", () => {
 				"stats",
 				"tasks",
 				"templater",
+				"tension",
 			].sort(),
 		);
 		// Weather and market keep the design in their own config and editor.

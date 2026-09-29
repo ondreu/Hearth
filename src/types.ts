@@ -44,6 +44,7 @@ export type CardKind =
 	| "jira"
 	| "weather"
 	| "market"
+	| "tension"
 	| "git"
 	| "operon"
 	| "leaf"
@@ -1280,6 +1281,45 @@ export interface WeatherConfig {
 }
 
 /**
+ * How a "tension" card (Kagi News' World Tension index) draws itself:
+ *
+ * - `minimal`  — the score, its band and where it sits on the scale.
+ * - `artistic` — an edge-to-edge diorama that goes from a peaceful village to
+ *   a village at war as the score climbs (see src/tensionscene.ts), with the
+ *   reading laid over it.
+ */
+export type TensionStyle = "minimal" | "artistic";
+
+/** Per-card configuration for a "tension" card. Every default is what the
+ * "Add card" menu gives you. Classic or Expressive is the card's own `design`. */
+export interface TensionConfig {
+	/** Visual style. Default "minimal". */
+	style?: TensionStyle;
+	/** Show the band's name ("Hot"). Default true. */
+	showBand?: boolean;
+	/** Show the explanation Kagi's language model wrote for the score.
+	 * Default false. */
+	showSummary?: boolean;
+	/** How much of it: its first sentence, or all of it. Default "sentence". */
+	summaryLength?: "sentence" | "full";
+	/** Show how the score moved since the day before. Default false. */
+	showChange?: boolean;
+	/** Show a sparkline of the last days. Default false. */
+	showHistory?: boolean;
+	/** How many days the sparkline covers. Default 30. */
+	historyDays?: number;
+	/** Show the scale the score sits on (minimal style). Default true. */
+	showScale?: boolean;
+	/** Show when Kagi last scored it. Default false. */
+	showUpdated?: boolean;
+	/** Animate the artistic style's diorama. Default true; forced off from the
+	 * `reduced` tier down. */
+	animate?: boolean;
+	/** Auto-refresh interval in minutes; 0 means "only when opened". Default 60. */
+	refreshMin?: number;
+}
+
+/**
  * Where a "market" card's quotes come from. Every one is free and key-less:
  *
  * - `yahoo`       — Yahoo Finance's chart API: stocks, ETFs, funds and indices
@@ -1816,6 +1856,8 @@ export interface DashboardCard {
 	weather?: WeatherConfig;
 	/** kind === "market": instruments, holdings, style and what to display. */
 	market?: MarketConfig;
+	/** kind === "tension": style and what to display. */
+	tension?: TensionConfig;
 	/** kind === "git": sections, action buttons and commit behaviour. */
 	git?: GitConfig;
 	/** kind === "operon": view, Operon filters and display options. */

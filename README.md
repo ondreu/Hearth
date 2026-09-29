@@ -245,6 +245,7 @@ Categorized as **Integrations** in the picker.
 | **RSS feed** | Headlines from any RSS 2.0 or Atom feed you follow | Network |
 | **Weather** | Current conditions and forecast from [Open-Meteo](https://open-meteo.com) in seven styles, up to an edge-to-edge painted sky that follows real conditions and time of day, tonight's moon in its real phase (*Moon*) and the sun's arc from sunrise to sunset (*Daylight*) — click a card for the full forecast, hour by hour | Network |
 | **Markets** | Stocks, ETFs, funds, indices, forex and crypto from most of the world's exchanges — Chinese on- and off-exchange funds included — as a single price, a spotlight with a chart, an edge-to-edge chart, a watchlist, tiles, a ticker tape, a portfolio with gains in one currency, or a search field on the card. Classic or Material 3 Expressive; red-up or green-up. Click anything for the full chart and stats | Network |
+| **World tension** | Kagi News' [World Tension index](https://kite.kagi.com/?view=chaos) — a language model's 0–100 reading of the day's world news — as a minimal reading on a scale, or an edge-to-edge diorama of a village that goes from peace to war as the score climbs. Classic or Material 3 Expressive; the model's explanation, the change since yesterday and a sparkline are optional | Network |
 | **Operon tasks / board / agenda / timer** | Four cards on [Operon](https://github.com/hasanyilmaz/operon)'s own API — a task list, a pipeline board, a few days' agenda, and the running time tracker | Operon (desktop) |
 | **Plugin view** *(beta)* | Another plugin's side-panel view (calendar, outline, tag pane, Kanban…) hosted in a card, optionally pinned to one file | A plugin with a view |
 
@@ -319,6 +320,7 @@ network → Disable external calls**.
 | [Open-Meteo](https://open-meteo.com) | Weather cards and the live weather sky | None. Only the coordinates you pick are sent, and a pinned sky needs no location at all |
 | [Frankfurter](https://www.frankfurter.app/) (ECB rates) | Calculator currency conversion | None |
 | [Yahoo Finance](https://finance.yahoo.com), [Tencent](https://gu.qq.com), [Eastmoney](https://fund.eastmoney.com), [CoinGecko](https://www.coingecko.com), [Frankfurter](https://www.frankfurter.app/) | Markets cards. None is an official API, so a card falls back to the next source that carries the same instrument | None. Only the symbols on your cards (and what you type into a search) are sent |
+| [Kagi News](https://kite.kagi.com) | World tension cards | None. Nothing but the request for the index |
 | Jira Cloud / Server | Jira cards, over REST with bearer PAT auth | Yours, entered on the card; exports never include the PAT |
 | RSS / Atom feeds | RSS cards | None |
 | ICS / webcal feeds | Mini calendar subscriptions (Google, iCloud, Fastmail, Nextcloud…) | The feed URL |
@@ -527,6 +529,7 @@ switches all of them off at once.
 | --- | --- | --- |
 | **Weather** card | `api.open-meteo.com`, `geocoding-api.open-meteo.com` | The coordinates or place name you set |
 | **Markets** card | `query1/query2.finance.yahoo.com`, `api.coingecko.com`, `qt.gtimg.cn`, `web.ifzq.gtimg.cn`, `smartbox.gtimg.cn`, `fundgz.1234567.com.cn`, `fund.eastmoney.com`, `api.frankfurter.app` | The symbols on your watchlist or the name you search for |
+| **World tension** card | `kite.kagi.com` | Nothing but the request for today's index (and its history, if the card shows it) |
 | **Calculator** card and currency answers in search | `api.frankfurter.app` | Nothing but the request for today's rates |
 | `wiki …` answers in search | `<language>.wikipedia.org` | The term you look up |
 | **RSS feed**, **Mini calendar** (ICS/iCal), **Web page** cards | Only the addresses you enter | A plain request for that feed, calendar or page |

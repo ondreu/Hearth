@@ -4,6 +4,7 @@ import { bigLines, bigWidth, BIG_ROWS, hasBigGlyphs } from "../src/tui/bigtext";
 import { literalText } from "../src/tui/cards/dataview";
 import { TUI_RENDERERS } from "../src/tui/cards";
 import { halfBlocks } from "../src/tui/cards/pet";
+import { historyLine, scaleLine } from "../src/tui/cards/tension";
 import { ART_W, conditionArt } from "../src/tui/cards/weather";
 import { GRAPHICAL_KINDS } from "../src/tui/registry";
 import { lineWidth, strWidth, type Line } from "../src/tui/text";
@@ -80,5 +81,21 @@ describe("dataview values as text", () => {
 		expect(literalText([1, "b"])).toBe("1, b");
 		expect(literalText({ path: "Projects/Hearth.md", type: "file", embed: false })).toBe("Hearth");
 		expect(literalText({ path: "a.md", type: "file", embed: false, display: "Alias" })).toBe("Alias");
+	});
+});
+
+describe("world tension as text", () => {
+	it("lights one cell of the scale, at the score", () => {
+		for (const [score, at] of [[0, 0], [50, 10], [100, 19]] as const) {
+			const line = scaleLine(score, 20);
+			expect(lineWidth(line)).toBe(20);
+			expect(line.findIndex((s) => s.text === "█"), String(score)).toBe(at);
+			expect(line.filter((s) => s.text === "█")).toHaveLength(1);
+		}
+	});
+
+	it("draws the history on the whole scale, the last days only", () => {
+		expect(historyLine([0, 100], 10)).toBe("▁█");
+		expect(historyLine([10, 20, 30, 40], 2)).toHaveLength(2);
 	});
 });

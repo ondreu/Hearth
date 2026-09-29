@@ -36,6 +36,7 @@ import { rssCard } from "./rss";
 import { jiraCard } from "./jira";
 import { weatherCard } from "./weather";
 import { marketCard } from "./market";
+import { tensionCard } from "./tension";
 import { gitCard } from "./git";
 import { operonCard } from "./operon";
 import { leafCard } from "./leaf";
@@ -87,6 +88,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	jira: jiraCard,
 	weather: weatherCard,
 	market: marketCard,
+	tension: tensionCard,
 	git: gitCard,
 	operon: operonCard,
 	leaf: leafCard,
@@ -136,7 +138,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
-	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
+	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
 	{ category: "fun", templates: ["pet", "vault-pet", "vault-pet-house"] },
 ];
 

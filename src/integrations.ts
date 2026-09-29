@@ -103,6 +103,7 @@ export type IntegrationId =
 	| "currency"
 	| "weather"
 	| "markets"
+	| "tension"
 	| "webSearch";
 
 export interface IntegrationEntry {
@@ -243,6 +244,7 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 	{ id: "currency", group: "service", where: { kind: "none" } },
 	{ id: "weather", group: "service", where: { kind: "card" } },
 	{ id: "markets", group: "service", where: { kind: "card" } },
+	{ id: "tension", group: "service", where: { kind: "card" } },
 	{ id: "webSearch", group: "service", where: { kind: "tab", tab: "search" } },
 ];
 

@@ -1536,6 +1536,14 @@ export const de: Translations = {
 						"wählst, werden jemals gesendet, und ein auf eine Lage fixierter Himmel braucht gar " +
 						"keinen Standort.",
 				},
+				tension: {
+					name: "Weltspannung",
+					desc:
+						"Weltspannungs-Karten lesen den World-Tension-Index von Kagi News — die " +
+						"Einschätzung eines Sprachmodells von 0 bis 100 aus den Weltnachrichten " +
+						"des Tages — von kite.kagi.com: kostenlos, ohne Schlüssel und Konto. " +
+						"Nichts über dich oder deinen Tresor wird gesendet.",
+				},
 				webSearch: {
 					name: "Websuche",
 					desc:
@@ -1791,6 +1799,7 @@ export const de: Translations = {
 			jira: "Jira-Filter",
 			weather: "Wetter",
 			market: "Börse",
+			tension: "Weltspannung",
 			git: "Git",
 			operon: "Operon",
 			leaf: "Plugin-Ansicht (Beta)",
@@ -3074,6 +3083,34 @@ export const de: Translations = {
 			refresh: "Aktualisieren alle (Minuten)",
 			refreshDesc: "0 aktualisiert nur beim Öffnen des Boards. Kurse werden zwischen Karten geteilt, eine geschlossene Börse wird höchstens halbstündlich geprüft.",
 		},
+		tension: {
+			about: "Kagi News · World Tension",
+			aboutDesc:
+				"Kagi News lässt ein Sprachmodell die Weltnachrichten des Tages lesen und die globale Spannung von 0 (ruhig) bis 100 (in Flammen) bewerten. Das ist die Einschätzung eines Modells, keine Messung. Ein Klick auf die Karte öffnet den Index bei Kagi News.",
+			appearance: "Darstellung",
+			style: "Stil",
+			styleDesc: "Minimal zeigt den Wert und seine Lage auf der Skala; Künstlerisch malt ein Dorf, das mit steigendem Wert vom Frieden in den Krieg gerät.",
+			styleMinimal: "Minimal",
+			styleArtistic: "Künstlerisch",
+			animate: "Animieren",
+			animateDesc: "Das Diorama bewegt sich: die Windmühle, der Rauch, die Flugzeuge. Leistungsstufe und reduzierte Bewegung können es trotzdem anhalten.",
+			display: "Was angezeigt wird",
+			showBand: "Stufe (Kühl … Brennend)",
+			showSummary: "KI-Erklärung",
+			showSummaryDesc: "Was das Sprachmodell von Kagi dazu schreibt, warum der Wert so steht.",
+			summaryLength: "Länge der Erklärung",
+			summarySentence: "Erster Satz",
+			summaryFull: "Vollständig",
+			showScale: "Skala",
+			showChange: "Veränderung seit gestern",
+			showChangeDesc: "Um wie viele Punkte sich der Wert seit dem Vortag bewegt hat.",
+			showHistory: "Verlauf",
+			historyDays: "Verlauf über",
+			days: (n: number) => `${n} Tage`,
+			showUpdated: "Zuletzt aktualisiert",
+			refresh: "Aktualisieren alle (Minuten)",
+			refreshDesc: "0 aktualisiert nur beim Öffnen des Boards. Kagi bewertet die Nachrichten einige Male am Tag, daher fragt eine Karte höchstens alle 15 Minuten.",
+		},
 		weather: {
 			location: "Ort",
 			search: "Ort suchen",
@@ -3604,6 +3641,26 @@ export const de: Translations = {
 			onCard: "Auf der Karte",
 			added: (name: string) => `${name} hinzugefügt`,
 		},
+		tension: {
+			title: "Weltspannung",
+			bands: {
+				cool: "Kühl",
+				mild: "Mild",
+				warm: "Warm",
+				hot: "Heiß",
+				burning: "Brennend",
+			},
+			loading: "Nachrichten werden gelesen…",
+			error: "Der World-Tension-Index konnte nicht geladen werden",
+			disabled: "Weltspannung ist aus (externe Aufrufe deaktiviert)",
+			none: "Kagi hat gerade keinen World-Tension-Index veröffentlicht",
+			open: "Den World-Tension-Index bei Kagi News öffnen",
+			aria: (score: number, band: string) => `Weltspannung ${score} von 100, ${band}`,
+			source: "KI-Einschätzung · Kagi News",
+			updated: (when: string) => `Aktualisiert ${when}`,
+			historyTip: (days: number, lo: number, hi: number) => `Letzte ${days} Tage: ${lo}–${hi}`,
+			changeTip: "Veränderung seit dem Vortag",
+		},
 		weather: {
 			loading: "Lade Vorhersage…",
 			error: "Die Vorhersage konnte nicht geladen werden",
@@ -4102,6 +4159,7 @@ export const de: Translations = {
 		jira: "Jira-Filter",
 		weather: "Wetter",
 		market: "Börse",
+		tension: "Weltspannung",
 		git: "Git",
 		"operon-tasks": "Operon-Aufgaben",
 		"operon-board": "Operon-Board",
@@ -4150,6 +4208,7 @@ export const de: Translations = {
 		jira: "Vorgänge aus einem Jira-Filter oder einer JQL-Suche",
 		weather: "Die Vorhersage für einen Ort deiner Wahl",
 		market: "Aktien, Fonds, Devisen und Krypto, live",
+		tension: "Die KI-Einschätzung von Kagi News, wie angespannt die Welt ist",
 		git: "Repository-Status, mit Commit, Pull und Push",
 		"operon-tasks": "Deine Operon-Aufgaben, gefiltert nach deinen Wünschen",
 		"operon-board": "Operons Pipeline-Status als Board-Spalten",
@@ -4734,6 +4793,7 @@ export const de: Translations = {
 			allDayShort: "ganz",
 			weatherFoot: "Pfeile wählen einen Tag · Enter zeigt ihn Stunde für Stunde",
 			weatherCardFoot: "Enter öffnet die ganze Vorhersage",
+			tensionFoot: "Enter öffnet den Index bei Kagi News",
 			mkName: "NAME",
 			mkSymbol: "SYMBOL",
 			mkPrice: "KURS",

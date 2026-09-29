@@ -55,6 +55,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     The vault-wide settings stay while a plugin board, which terminal mode
     leaves as it is, still uses them. The time grid's now line and the Git
     card's paths now follow their settings in terminal mode too.
+- **World tension card.** Kagi News' World Tension index — a language model's
+  0–100 reading of the day's world news, from *Cool* to *Burning* — on the
+  board, in the Integrations section of the card picker.
+  - *Minimal* shows the score and its band on a five-band scale; *Artistic*
+    paints a village that goes from a spring morning to a night at war as the
+    score climbs: sheep and a turning windmill, then a watchtower, an army
+    camp, tanks and jets, and above 80 a bomber over the ruins.
+  - Both styles come in Classic and Expressive, and terminal mode draws the
+    card as text.
+  - The model's explanation (first sentence or all of it), the change since
+    yesterday, a sparkline of up to 90 days and the time of the last update
+    are optional. Clicking the card opens the index on Kagi News.
+  - The index comes from `kite.kagi.com`, free and key-less, and **Disable
+    external calls** stops it like every other request.
 
 ## [3.3.0]
 

@@ -18233,6 +18233,1318 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 /* ======================================================================
+ * World Tension card (src/cards/tension.ts)
+ *
+ * Kagi News' World Tension index. Two styles, each in both designs:
+ * `is-minimal` — the score, its band and the scale — and `is-artistic`, a
+ * diorama edge to edge (`.hearth-tension-flush` on the body, as the weather
+ * card's painted sky). `is-band-<band>` on the card sets `--tn-band`, the
+ * colour everything that names the band is drawn in.
+ * ====================================================================== */
+.hearth-tension {
+	--tn-cool: #2f86d4;
+	--tn-mild: #25996a;
+	--tn-warm: #c98d12;
+	--tn-hot: #e0621f;
+	--tn-burning: #d2332a;
+	--tn-band: var(--text-muted);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 100%;
+	color: var(--text-normal);
+	cursor: pointer;
+}
+
+.theme-dark .hearth-tension {
+	--tn-cool: #6cb2f0;
+	--tn-mild: #5cc794;
+	--tn-warm: #f0bb45;
+	--tn-hot: #ff8a4d;
+	--tn-burning: #ff6154;
+}
+
+.hearth-tension.is-band-cool { --tn-band: var(--tn-cool); }
+.hearth-tension.is-band-mild { --tn-band: var(--tn-mild); }
+.hearth-tension.is-band-warm { --tn-band: var(--tn-warm); }
+.hearth-tension.is-band-hot { --tn-band: var(--tn-hot); }
+.hearth-tension.is-band-burning { --tn-band: var(--tn-burning); }
+
+.hearth-tension:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+	border-radius: var(--radius-m);
+}
+
+/* The body is the size container the score measures against, as the weather
+ * card's is. */
+.hearth-card-body.hearth-tension-host {
+	container-type: size;
+}
+
+.hearth-card > .hearth-card-body.hearth-tension-flush {
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-card-body.hearth-tension-flush .hearth-card-empty {
+	padding: 12px 14px;
+}
+
+/* ---- Minimal ---- */
+.hearth-tension.is-minimal {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 5px;
+}
+
+.hearth-tension-hero {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.hearth-tension-glyph {
+	position: relative;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1em;
+	height: 1em;
+	font-size: clamp(1.2rem, min(13cqw, 24cqh), 2.8rem);
+	color: var(--tn-band);
+}
+
+.hearth-tension-glyph-icon,
+.hearth-tension-glyph-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+	display: flex;
+}
+
+.hearth-tension-score {
+	display: flex;
+	align-items: baseline;
+	gap: 2px;
+	font-size: clamp(1.6rem, min(22cqw, 36cqh), 4.4rem);
+	font-weight: 300;
+	line-height: 1.08;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-tension-score-max {
+	font-size: 0.28em;
+	font-weight: 500;
+	letter-spacing: 0;
+	color: var(--text-faint);
+}
+
+.hearth-tension-meta {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	font-size: 0.86rem;
+	line-height: 1.25;
+}
+
+.hearth-tension-band {
+	color: var(--tn-band);
+	font-weight: 600;
+}
+
+.hearth-tension-change {
+	font-size: 0.74rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
+/* Rising tension is the bad direction, so up is red and down is green. */
+.hearth-tension-change.is-up { color: var(--tn-burning); }
+.hearth-tension-change.is-down { color: var(--tn-mild); }
+
+/* The scale: five bands, the score marked on them. */
+.hearth-tension-scale {
+	position: relative;
+	width: min(100%, 220px);
+	padding: 5px 0;
+}
+
+.hearth-tension-scale-track {
+	display: flex;
+	gap: 2px;
+	height: 4px;
+}
+
+.hearth-tension-scale-seg {
+	flex: 1 1 0;
+	border-radius: 2px;
+	opacity: 0.4;
+}
+
+.hearth-tension-scale-seg.is-band-cool { background: var(--tn-cool); }
+.hearth-tension-scale-seg.is-band-mild { background: var(--tn-mild); }
+.hearth-tension-scale-seg.is-band-warm { background: var(--tn-warm); }
+.hearth-tension-scale-seg.is-band-hot { background: var(--tn-hot); }
+.hearth-tension-scale-seg.is-band-burning { background: var(--tn-burning); }
+
+.hearth-tension-scale-marker {
+	position: absolute;
+	top: 50%;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--tn-band);
+	border: 2px solid var(--background-primary);
+	transform: translate(-50%, -50%);
+	box-sizing: border-box;
+}
+
+/* The last days, on the whole 0–100 scale. */
+.hearth-tension-history {
+	position: relative;
+	width: min(100%, 260px);
+	height: 26px;
+	flex: 0 0 auto;
+}
+
+.hearth-tension-history svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.hearth-tension-history-line {
+	fill: none;
+	stroke: var(--tn-band);
+	stroke-width: 1.5px;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.hearth-tension-history-area {
+	fill: var(--tn-band);
+	opacity: 0.12;
+}
+
+.hearth-tension-history-dot {
+	position: absolute;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--tn-band);
+	transform: translate(-50%, -50%);
+}
+
+.hearth-tension-summary {
+	max-width: 36em;
+	font-size: 0.8rem;
+	line-height: 1.4;
+	color: var(--text-muted);
+}
+
+.hearth-tension-summary-source {
+	margin-top: 2px;
+	font-size: 0.68rem;
+	color: var(--text-faint);
+}
+
+.hearth-tension-updated {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+}
+
+/* ---- Minimal, Expressive: the glyph on a cookie, the band on a chip, a
+ * chunky scale and a tonal container for the explanation. ---- */
+.hearth-tension.is-expressive .hearth-tension-glyph {
+	font-size: clamp(1.9rem, min(19cqw, 34cqh), 4rem);
+}
+
+.hearth-tension-cookie {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.hearth-tension-cookie path {
+	fill: color-mix(in srgb, var(--tn-band) 22%, var(--background-primary));
+}
+
+.hearth-tension.is-expressive .hearth-tension-glyph-icon {
+	position: relative;
+	font-size: 0.5em;
+}
+
+.hearth-tension.is-expressive .hearth-tension-glyph-icon .svg-icon {
+	stroke-width: 2.6px;
+}
+
+.hearth-tension.is-expressive .hearth-tension-score {
+	font-weight: 750;
+	letter-spacing: -0.045em;
+}
+
+.hearth-tension.is-expressive .hearth-tension-band {
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--tn-band) 20%, var(--background-primary));
+	color: color-mix(in srgb, var(--tn-band) 70%, var(--text-normal));
+	font-weight: 700;
+	font-size: 0.8rem;
+}
+
+.hearth-tension.is-expressive .hearth-tension-change {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--x-surface-high, var(--background-modifier-hover));
+	font-weight: 700;
+}
+
+.hearth-tension.is-expressive .hearth-tension-scale-track {
+	height: 10px;
+	gap: 3px;
+}
+
+.hearth-tension.is-expressive .hearth-tension-scale-seg {
+	border-radius: 5px;
+	opacity: 0.3;
+}
+
+.hearth-tension.is-expressive .hearth-tension-scale-marker {
+	width: 18px;
+	height: 18px;
+	border-width: 4px;
+	border-color: var(--x-surface, var(--background-primary));
+}
+
+.hearth-tension.is-expressive .hearth-tension-history-line {
+	stroke-width: 3px;
+}
+
+.hearth-tension.is-expressive .hearth-tension-history-area {
+	opacity: 0.18;
+}
+
+.hearth-tension.is-expressive .hearth-tension-summary {
+	padding: 8px 12px;
+	border-radius: 16px;
+	background: var(--x-surface-high, var(--background-modifier-hover));
+	color: var(--text-normal);
+	text-align: start;
+}
+
+/* ---- Artistic: the reading over the diorama ---- */
+.hearth-tension.is-artistic {
+	gap: 0;
+	height: 100%;
+}
+
+.hearth-tension-art-content {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 12px 14px;
+	color: #fff;
+	/* The same soft scrim the painted sky lays under its text: a pale cloud or
+	 * the sun can sit right behind a line. */
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.4) 100%);
+	overflow-y: auto;
+	scrollbar-width: none;
+}
+
+.hearth-tension-art-content::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-tension-art-top,
+.hearth-tension-art-bottom {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.hearth-tension-art-title {
+	font-size: 0.86rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.hearth-tension-art-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.76rem;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.hearth-tension-art-meta .hearth-tension-band,
+.hearth-tension-art-meta .hearth-tension-change {
+	color: inherit;
+	opacity: 0.9;
+	font-weight: 500;
+}
+
+.hearth-tension-art-score {
+	display: flex;
+	align-items: baseline;
+	gap: 3px;
+	font-size: clamp(1.6rem, min(22cqw, 32cqh), 4.6rem);
+	font-weight: 200;
+	line-height: 1.05;
+	letter-spacing: -0.03em;
+	font-variant-numeric: tabular-nums;
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.hearth-tension-art-score .hearth-tension-score-max {
+	color: inherit;
+	opacity: 0.7;
+}
+
+.hearth-tension-art-content .hearth-tension-history {
+	--tn-band: #fff;
+	width: min(100%, 220px);
+	height: 20px;
+}
+
+.hearth-tension-art-summary {
+	max-width: 34em;
+	font-size: 0.74rem;
+	line-height: 1.35;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.hearth-tension-art-summary .hearth-tension-summary-source,
+.hearth-tension-art-content .hearth-tension-updated {
+	color: inherit;
+	opacity: 0.7;
+	font-size: 0.66rem;
+}
+
+@container (max-height: 170px) {
+	.hearth-tension-scene .hearth-tension-art-content {
+		padding: 8px 10px;
+		gap: 2px;
+	}
+
+	.hearth-tension-scene .hearth-tension-art-title {
+		font-size: 0.78rem;
+	}
+
+	.hearth-tension-scene .hearth-tension-art-meta,
+	.hearth-tension-scene .hearth-tension-art-summary {
+		font-size: 0.68rem;
+	}
+}
+
+/* Expressive over its flat scene: heavy type, no shadows, the band on a chip. */
+.is-expressive .hearth-tension-art-content {
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.26) 100%);
+}
+
+.is-expressive .hearth-tension-art-content * {
+	text-shadow: none;
+}
+
+.is-expressive .hearth-tension-art-title {
+	font-weight: 700;
+}
+
+.is-expressive .hearth-tension-art-score {
+	font-weight: 750;
+	letter-spacing: -0.045em;
+}
+
+.is-expressive .hearth-tension-art-meta .hearth-tension-band {
+	padding: 1px 9px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.28);
+	font-weight: 700;
+	opacity: 1;
+}
+
+.is-expressive .hearth-tension-art-summary {
+	padding: 6px 10px;
+	border-radius: 14px;
+	background: rgba(0, 0, 0, 0.3);
+}
+
+.is-expressive .hearth-tension-art-content .hearth-tension-history-line {
+	stroke-width: 2.5px;
+}
+
+/* ---- The artistic style's diorama (src/tensionscene.ts) ----
+ *
+ * Every colour in the scene is a variable set per band, so the geometry never
+ * knows what it is painted with: `.is-<band>` picks the palette and
+ * `.is-expressive` swaps it for the flat tonal one. The scene is an
+ * illustration with a light of its own (a spring morning, a red dusk, a night
+ * lit by fires), so it keeps the same palette in light and dark themes, like
+ * the weather card's painted sky. */
+.hearth-tension-scene {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	min-height: 100%;
+	overflow: hidden;
+	color: #fff;
+
+	--ts-sky-top: #6fb8ec;
+	--ts-sky-mid: #a9daf8;
+	--ts-sky-bottom: #e4f5ff;
+	--ts-sky-flat: #8ccaf2;
+	--ts-sky-band: #b4ddf7;
+	--ts-sun: #fff1a6;
+	--ts-moon: #e8dfd2;
+	--ts-cloud: #ffffff;
+	--ts-cloud-dark: #dfe7ee;
+	--ts-hill-far: #a5d69c;
+	--ts-hill-mid: #7cc070;
+	--ts-ground: #5aaa55;
+	--ts-tree: #3d8c47;
+	--ts-tree-light: #5aa85f;
+	--ts-trunk: #6f5238;
+	--ts-silhouette: #2a2222;
+	--ts-wall: #f6ecd9;
+	--ts-wall-shade: #e0cfb2;
+	--ts-roof: #d0674a;
+	--ts-window: #6a8fa8;
+	--ts-window-lit: #ffd27a;
+	--ts-door: #8a5a3c;
+	--ts-ruin: #5b4a44;
+	--ts-sail: #fbf7ee;
+	--ts-flag: #c73a2d;
+	--ts-army: #5d6440;
+	--ts-army-dark: #3c4129;
+	--ts-plane: #3a3f46;
+	--ts-contrail: #ffffff;
+	--ts-beam: #fff6c8;
+	--ts-fire: #ff7a2a;
+	--ts-fire-core: #ffd65a;
+	--ts-smoke: #5a5050;
+	--ts-glow: #ff7a3a;
+	--ts-bird: #34465a;
+	--ts-wire: #3a3a36;
+	--ts-sand: #c9b48a;
+	--ts-sand-edge: #9c8762;
+	--ts-crater: #1a1214;
+}
+
+/* Mild: an afternoon, clouds coming in. */
+.hearth-tension-scene.is-mild {
+	--ts-sky-top: #7fb0d8;
+	--ts-sky-mid: #b8d2e6;
+	--ts-sky-bottom: #f1e6cc;
+	--ts-sky-flat: #9cc1df;
+	--ts-sky-band: #d6dcd6;
+	--ts-sun: #ffe08a;
+	--ts-cloud: #f6f7f8;
+	--ts-cloud-dark: #d4dbe2;
+	--ts-hill-far: #a7c992;
+	--ts-hill-mid: #87b36d;
+	--ts-ground: #6ea05a;
+	--ts-tree: #4a8a4a;
+	--ts-tree-light: #64a35c;
+	--ts-roof: #c55f43;
+}
+
+/* Warm: an amber overcast; the army has arrived. */
+.hearth-tension-scene.is-warm {
+	--ts-sky-top: #a39a8a;
+	--ts-sky-mid: #cdb58e;
+	--ts-sky-bottom: #eec688;
+	--ts-sky-flat: #c2b294;
+	--ts-sky-band: #dfc08e;
+	--ts-sun: #ffc36b;
+	--ts-cloud: #b9b0a2;
+	--ts-cloud-dark: #8f877c;
+	--ts-hill-far: #aaa27a;
+	--ts-hill-mid: #8d8a5d;
+	--ts-ground: #76754b;
+	--ts-tree: #5f6b3c;
+	--ts-tree-light: #74804a;
+	--ts-wall: #e2d3b6;
+	--ts-wall-shade: #c8b594;
+	--ts-roof: #9d5a3f;
+	--ts-window: #5c6a72;
+	--ts-bird: #3b3a38;
+}
+
+/* Hot: a red dusk, smoke on the horizon. */
+.hearth-tension-scene.is-hot {
+	--ts-sky-top: #3f2c44;
+	--ts-sky-mid: #93465a;
+	--ts-sky-bottom: #f07a48;
+	--ts-sky-flat: #7a3f55;
+	--ts-sky-band: #c9584c;
+	--ts-sun: #ff9e5e;
+	--ts-cloud: #7a4a52;
+	--ts-cloud-dark: #4d3038;
+	--ts-hill-far: #6d4546;
+	--ts-hill-mid: #4d3334;
+	--ts-ground: #3a2828;
+	--ts-silhouette: #1e1415;
+	--ts-trunk: #2c1f1d;
+	--ts-wall: #b89886;
+	--ts-wall-shade: #94766a;
+	--ts-roof: #5e3226;
+	--ts-window-lit: #ffcd6e;
+	--ts-door: #3e2720;
+	--ts-army: #6a6150;
+	--ts-army-dark: #2a241f;
+	--ts-plane: #1f1a1c;
+	--ts-contrail: #ffd8c4;
+	--ts-smoke: #2e2224;
+	--ts-glow: #ff6a2a;
+	--ts-wire: #1c1515;
+	--ts-sand: #7d6650;
+	--ts-sand-edge: #54432f;
+}
+
+/* Burning: night over a village at war. */
+.hearth-tension-scene.is-burning {
+	--ts-sky-top: #0c0912;
+	--ts-sky-mid: #2b1320;
+	--ts-sky-bottom: #7c2414;
+	--ts-sky-flat: #1d1220;
+	--ts-sky-band: #4a1a1c;
+	--ts-moon: #cbbfb0;
+	--ts-cloud: #3a2426;
+	--ts-cloud-dark: #25181b;
+	--ts-hill-far: #2e1b1d;
+	--ts-hill-mid: #211416;
+	--ts-ground: #160e10;
+	--ts-silhouette: #0c0809;
+	--ts-trunk: #140d0d;
+	--ts-wall: #3c2a28;
+	--ts-wall-shade: #2c1e1d;
+	--ts-roof: #22171a;
+	--ts-window-lit: #ff8a3a;
+	--ts-door: #140d0d;
+	--ts-ruin: #4a302b;
+	--ts-army: #4d4438;
+	--ts-army-dark: #1c1714;
+	--ts-plane: #070506;
+	--ts-contrail: #ffb08a;
+	--ts-beam: #ffe0b0;
+	--ts-fire: #ff5a1f;
+	--ts-fire-core: #ffd24a;
+	--ts-smoke: #1a1213;
+	--ts-glow: #ff4a14;
+	--ts-wire: #0c0808;
+	--ts-sand: #4a3a2c;
+	--ts-sand-edge: #2c2219;
+	--ts-crater: #070405;
+}
+
+/* The flat Expressive palettes: brighter, fewer steps, no haze. */
+.hearth-tension-scene.is-expressive.is-cool {
+	--ts-sky-flat: #9ad3fb;
+	--ts-sky-band: #c3e6ff;
+	--ts-sun: #ffcf33;
+	--ts-hill-far: #9fdc8e;
+	--ts-hill-mid: #6cc35c;
+	--ts-ground: #48a848;
+	--ts-tree: #2f8f3f;
+	--ts-roof: #ee6a4a;
+}
+
+.hearth-tension-scene.is-expressive.is-mild {
+	--ts-sky-flat: #a9cdee;
+	--ts-sky-band: #e6e2cf;
+	--ts-sun: #ffc93d;
+	--ts-hill-far: #b0d48e;
+	--ts-hill-mid: #86bd62;
+	--ts-ground: #63a54e;
+}
+
+.hearth-tension-scene.is-expressive.is-warm {
+	--ts-sky-flat: #d8c29a;
+	--ts-sky-band: #efcf8f;
+	--ts-sun: #ffb13d;
+	--ts-cloud: #c7bba8;
+	--ts-cloud-dark: #a09480;
+	--ts-hill-far: #bdb07a;
+	--ts-hill-mid: #9c9658;
+	--ts-ground: #7f7c44;
+	--ts-army: #62693a;
+}
+
+.hearth-tension-scene.is-expressive.is-hot {
+	--ts-sky-flat: #8e3f5c;
+	--ts-sky-band: #e0654f;
+	--ts-sun: #ffb35c;
+	--ts-hill-far: #7a4449;
+	--ts-hill-mid: #563236;
+	--ts-ground: #3e2527;
+	--ts-fire: #ff7b2e;
+}
+
+.hearth-tension-scene.is-expressive.is-burning {
+	--ts-sky-flat: #231426;
+	--ts-sky-band: #5a1c22;
+	--ts-hill-far: #3a1e24;
+	--ts-hill-mid: #28151a;
+	--ts-ground: #190d11;
+	--ts-fire: #ff6424;
+	--ts-fire-core: #ffd23f;
+}
+
+.hearth-tension-art {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+/* A card taller than the scene would crop the village off both sides. There
+ * the scene stands on the bottom edge at no more than half again the card's
+ * width — cropping a little of the sides, centred on the village rather than
+ * the middle, which is where the story is — and its sky, drawn on past the
+ * top of its box (`.ts-sky-over`), fills the card above it. */
+@container (max-aspect-ratio: 36 / 22) {
+	.hearth-tension-scene .hearth-tension-art {
+		--tn-art-w: min(150cqw, 163.6cqh);
+		top: auto;
+		right: auto;
+		/* The village's middle on the card's middle, but never so far over
+		 * that an edge of the card goes uncovered. */
+		left: clamp(calc(100cqw - var(--tn-art-w)), calc(50cqw - 0.58 * var(--tn-art-w)), 0px);
+		width: var(--tn-art-w);
+		height: auto;
+		aspect-ratio: 360 / 220;
+		overflow: visible;
+	}
+}
+
+.ts-sky-over {
+	fill: var(--ts-sky-top);
+}
+
+.is-expressive .ts-sky-over {
+	fill: var(--ts-sky-flat);
+}
+
+/* Sky */
+.ts-sky-top {
+	stop-color: var(--ts-sky-top);
+}
+
+.ts-sky-mid {
+	stop-color: var(--ts-sky-mid);
+}
+
+.ts-sky-bottom {
+	stop-color: var(--ts-sky-bottom);
+}
+
+.is-expressive .ts-sky {
+	fill: var(--ts-sky-flat);
+}
+
+.ts-sky-band {
+	fill: var(--ts-sky-band);
+}
+
+.ts-glow-in {
+	stop-color: var(--ts-glow);
+	stop-opacity: 0.7;
+}
+
+.ts-glow-out {
+	stop-color: var(--ts-glow);
+	stop-opacity: 0;
+}
+
+.ts-sun-disc {
+	fill: var(--ts-sun);
+}
+
+.ts-sun-glow {
+	fill: var(--ts-sun);
+	opacity: 0.22;
+}
+
+.is-expressive .ts-sun-glow {
+	opacity: 0.3;
+}
+
+.ts-moon {
+	fill: var(--ts-moon);
+}
+
+.ts-moon-bite {
+	fill: var(--ts-sky-top);
+}
+
+.is-expressive .ts-moon-bite {
+	fill: var(--ts-sky-flat);
+}
+
+.ts-star {
+	fill: #fff;
+	opacity: 0.75;
+}
+
+.ts-cloud {
+	fill: var(--ts-cloud);
+	opacity: 0.92;
+}
+
+.ts-cloud-dark {
+	fill: var(--ts-cloud-dark);
+	opacity: 0.92;
+}
+
+.is-expressive .ts-cloud,
+.is-expressive .ts-cloud-dark {
+	opacity: 1;
+}
+
+.ts-sky-flash {
+	fill: var(--ts-fire);
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Land */
+.ts-hill-far {
+	fill: var(--ts-hill-far);
+}
+
+.ts-hill-mid {
+	fill: var(--ts-hill-mid);
+}
+
+.ts-ground {
+	fill: var(--ts-ground);
+}
+
+.ts-tree {
+	fill: var(--ts-tree);
+}
+
+.ts-tree-light {
+	fill: var(--ts-tree-light);
+}
+
+.ts-trunk {
+	fill: var(--ts-trunk);
+}
+
+.ts-tree-dead {
+	fill: none;
+	stroke: var(--ts-silhouette);
+	stroke-width: 1.4px;
+	stroke-linecap: round;
+}
+
+.ts-flower-a {
+	fill: #ffd84d;
+}
+
+.ts-flower-b {
+	fill: #ff93b4;
+}
+
+.ts-flower-c {
+	fill: #ffffff;
+}
+
+.ts-wool {
+	fill: #f8f5ec;
+}
+
+.ts-sheep-head {
+	fill: #3a3430;
+}
+
+.ts-leg {
+	stroke: #3a3430;
+	stroke-width: 1px;
+}
+
+.ts-crater-rim {
+	fill: var(--ts-hill-mid);
+}
+
+.ts-crater {
+	fill: var(--ts-crater);
+}
+
+/* Buildings */
+.ts-wall,
+.ts-mill {
+	fill: var(--ts-wall);
+}
+
+.ts-wall-shade {
+	fill: var(--ts-wall-shade);
+}
+
+.ts-roof {
+	fill: var(--ts-roof);
+}
+
+.ts-roof.is-round,
+.ts-tent.is-round,
+.ts-tower-roof.is-round {
+	stroke-linejoin: round;
+	stroke-width: 2.2px;
+}
+
+.ts-roof.is-round {
+	stroke: var(--ts-roof);
+}
+
+.ts-window {
+	fill: var(--ts-window);
+}
+
+.ts-window-lit {
+	fill: var(--ts-window-lit);
+}
+
+.ts-door {
+	fill: var(--ts-door);
+}
+
+.ts-ruin {
+	fill: var(--ts-ruin);
+}
+
+.ts-cross {
+	fill: none;
+	stroke: var(--ts-roof);
+	stroke-width: 1.2px;
+	stroke-linecap: round;
+}
+
+.ts-blade,
+.ts-hub {
+	fill: var(--ts-trunk);
+}
+
+.ts-blade-sail {
+	fill: var(--ts-sail);
+}
+
+.ts-tower-legs,
+.ts-pole,
+.ts-post {
+	fill: none;
+	stroke: var(--ts-trunk);
+	stroke-width: 1.4px;
+	stroke-linecap: round;
+}
+
+.ts-tower,
+.ts-tower-roof {
+	fill: var(--ts-trunk);
+}
+
+.ts-tower-roof.is-round {
+	stroke: var(--ts-trunk);
+}
+
+.ts-flag {
+	fill: #ffffff;
+}
+
+.ts-flag-war {
+	fill: var(--ts-flag);
+}
+
+/* The army */
+.ts-tent {
+	fill: var(--ts-army);
+}
+
+.ts-tent.is-round {
+	stroke: var(--ts-army);
+}
+
+.ts-tent-door {
+	fill: var(--ts-army-dark);
+}
+
+.ts-tank {
+	fill: var(--ts-army);
+}
+
+.ts-tank-track {
+	fill: var(--ts-army-dark);
+}
+
+.ts-tank-wheel {
+	fill: var(--ts-army);
+}
+
+.ts-flash {
+	fill: var(--ts-fire-core);
+}
+
+.ts-beam {
+	fill: var(--ts-beam);
+	opacity: 0.16;
+}
+
+.ts-lamp {
+	fill: var(--ts-beam);
+}
+
+.ts-jet,
+.ts-bomber,
+.ts-bomb,
+.ts-bomb-fin {
+	fill: var(--ts-plane);
+}
+
+.ts-bomber-glass {
+	fill: var(--ts-window-lit);
+}
+
+.ts-contrail {
+	fill: none;
+	stroke: var(--ts-contrail);
+	stroke-width: 1.3px;
+	stroke-linecap: round;
+	opacity: 0.55;
+}
+
+.ts-coil {
+	fill: none;
+	stroke: var(--ts-wire);
+	stroke-width: 0.7px;
+}
+
+.ts-sandbag {
+	fill: var(--ts-sand);
+	stroke: var(--ts-sand-edge);
+	stroke-width: 0.6px;
+}
+
+/* Fire and smoke */
+.ts-fire,
+.ts-blast {
+	fill: var(--ts-fire);
+}
+
+.ts-fire-core,
+.ts-blast-core,
+.ts-flak-spark {
+	fill: var(--ts-fire-core);
+}
+
+.ts-blast-glow {
+	fill: var(--ts-fire);
+	opacity: 0.22;
+}
+
+.ts-smoke {
+	fill: var(--ts-smoke);
+	opacity: 0.55;
+}
+
+.ts-flak-puff {
+	fill: var(--ts-smoke);
+	opacity: 0.85;
+}
+
+.is-expressive .ts-smoke {
+	opacity: 0.7;
+}
+
+.ts-bird {
+	fill: none;
+	stroke: var(--ts-bird);
+	stroke-width: 1.2px;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* ---- Motion ----
+ * Every moving part is drawn around its own origin (a blade round its hub, a
+ * flame on its base), so the default SVG transform origin is the right one. */
+.hearth-tension-scene.is-animated .ts-spin {
+	animation: ts-spin 9s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-sunny {
+	animation: ts-spin 60s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-drift {
+	animation: ts-sway 38s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-drift.is-lane-1 {
+	animation-duration: 52s;
+}
+
+.hearth-tension-scene.is-animated .ts-drift.is-lane-2 {
+	animation-duration: 64s;
+}
+
+.hearth-tension-scene.is-animated .ts-flock {
+	animation: ts-sway 24s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-flap {
+	animation: ts-flap 0.55s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-wave {
+	animation: ts-wave 1.3s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-star {
+	animation: ts-twinkle 3s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-flicker {
+	animation: ts-flicker 0.7s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-smoke {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: ts-rise 6s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-sweep {
+	animation: ts-sweep 7s ease-in-out infinite alternate;
+}
+
+.hearth-tension-scene.is-animated .ts-muzzle {
+	animation: ts-muzzle 4s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-fly-jet {
+	animation: ts-jet 11s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-fly-bomber {
+	animation: ts-bomber 24s linear infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-drop {
+	animation: ts-drop 2.7s ease-in infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-boom {
+	animation: ts-boom 3.2s ease-out infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-flak {
+	animation: ts-flak 2.4s ease-out infinite;
+}
+
+.hearth-tension-scene.is-animated .ts-sky-flash {
+	animation: ts-skyflash 3.2s linear infinite;
+}
+
+/* Still (motion off): the planes sit where they read best, the bombs hang
+ * under the bomber and the muzzles are dark. */
+.hearth-tension-scene:not(.is-animated) .ts-muzzle {
+	opacity: 0;
+}
+
+@keyframes ts-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes ts-sway {
+	from {
+		transform: translateX(-14px);
+	}
+	to {
+		transform: translateX(14px);
+	}
+}
+
+@keyframes ts-flap {
+	from {
+		transform: scaleY(1);
+	}
+	to {
+		transform: scaleY(0.35);
+	}
+}
+
+@keyframes ts-wave {
+	from {
+		transform: skewY(0deg) scaleX(1);
+	}
+	to {
+		transform: skewY(10deg) scaleX(0.9);
+	}
+}
+
+@keyframes ts-twinkle {
+	from {
+		opacity: 0.25;
+	}
+	to {
+		opacity: 0.9;
+	}
+}
+
+@keyframes ts-flicker {
+	from {
+		transform: scale(1, 1);
+	}
+	to {
+		transform: scale(0.88, 0.78);
+	}
+}
+
+@keyframes ts-rise {
+	from {
+		transform: translate(0, 0) scale(0.7);
+		opacity: 0.65;
+	}
+	to {
+		transform: translate(8px, -30px) scale(1.7);
+		opacity: 0;
+	}
+}
+
+@keyframes ts-sweep {
+	from {
+		transform: rotate(-28deg);
+	}
+	to {
+		transform: rotate(24deg);
+	}
+}
+
+@keyframes ts-muzzle {
+	0%, 100% {
+		opacity: 0;
+		transform: scale(0.4);
+	}
+	2% {
+		opacity: 1;
+		transform: scale(1.2);
+	}
+	8% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+}
+
+@keyframes ts-jet {
+	0% {
+		transform: translateX(400px);
+	}
+	45%, 100% {
+		transform: translateX(-130px);
+	}
+}
+
+@keyframes ts-bomber {
+	from {
+		transform: translateX(-70px);
+	}
+	to {
+		transform: translateX(440px);
+	}
+}
+
+@keyframes ts-drop {
+	0% {
+		transform: translateY(0);
+		opacity: 0;
+	}
+	8% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 1;
+	}
+	100% {
+		transform: translateY(80px);
+		opacity: 0;
+	}
+}
+
+@keyframes ts-boom {
+	0% {
+		transform: scale(0.2);
+		opacity: 0;
+	}
+	6% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	30% {
+		transform: scale(1.35);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1.35);
+		opacity: 0;
+	}
+}
+
+@keyframes ts-flak {
+	0% {
+		transform: scale(0.3);
+		opacity: 0;
+	}
+	8% {
+		transform: scale(1.1);
+		opacity: 1;
+	}
+	60% {
+		transform: scale(1.4);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1.4);
+		opacity: 0;
+	}
+}
+
+@keyframes ts-skyflash {
+	0%, 100% {
+		opacity: 0;
+	}
+	3% {
+		opacity: 0.22;
+	}
+	12% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-tension-scene.is-animated *:not(#hearth-boost) {
+		animation: none;
+	}
+}
+
+/* ======================================================================
  * The Expressive design, for the rest of the cards
  *
  * The weather and market cards' recipe, lent to every card whose content

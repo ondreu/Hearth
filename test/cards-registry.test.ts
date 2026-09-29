@@ -157,6 +157,13 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				},
 			},
 			{
+				id: "tension",
+				icon: "thermometer",
+				category: "integrations",
+				requires: null,
+				build: { kind: "tension", title: "World tension", tension: {}, w: 3, h: 3 },
+			},
+			{
 				id: "operon-tasks",
 				icon: "list-checks",
 				category: "integrations",
@@ -443,6 +450,7 @@ describe("liveness classification", () => {
 			jira: "static",
 			weather: "static",
 			market: "static",
+			tension: "static",
 			git: "static",
 			operon: "vault",
 			leaf: "static",

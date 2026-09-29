@@ -2,8 +2,8 @@
 
 This chapter documents the cards in the **Integrations** category of Hearth's
 Add card picker. Each one is a window onto another plugin or another service:
-Templater, Dataview, Datacore, Git, Jira, RSS, Weather, Markets, Operon (four
-cards) and
+Templater, Dataview, Datacore, Git, Jira, RSS, Weather, Markets, World tension,
+Operon (four cards) and
 the Plugin view card.
 
 A card whose plugin is not installed is still listed in the picker, marked
@@ -394,6 +394,56 @@ half hour.
 **When publishing a board**, the units and costs on a portfolio are removed with
 the other private details (see [chapter 16](16-sharing-and-gallery.md)); the
 symbols travel.
+
+---
+
+## World tension
+
+**What it shows:** [Kagi News](https://kite.kagi.com)' World Tension index — a
+score from 0 (calm) to 100 (on fire) that Kagi's language model gives the day's
+world headlines — with its band: *Cool* up to 20, *Mild* up to 40, *Warm* up to
+60, *Hot* up to 80 and *Burning* above.
+
+It is a model's assessment of the news, not a measurement, and the card says so
+wherever it shows the model's words. Clicking the card opens the index on Kagi
+News, with the reasoning and the history.
+
+**Requires:** network access. The index comes from `kite.kagi.com`, free and
+key-less; nothing about you or your vault is sent.
+
+### Style
+
+| Style | What it draws |
+| --- | --- |
+| *Minimal* | A thermometer, the score and its band, over a five-band scale with the score marked on it |
+| *Artistic* | An edge-to-edge diorama of one village, drawn five ways: a spring morning with a turning windmill and grazing sheep (*Cool*); clouds and a watchtower on the hill (*Mild*); an amber overcast with an army camp, a parked tank and barbed wire (*Warm*); a red dusk with tanks on the move, jets, searchlights and the first house alight (*Hot*); and night, with a bomber over the village, flak, explosions and ruins (*Burning*) |
+
+Both styles follow the card's *Design*: **Classic** draws a thin score, a slim
+scale and a painted diorama with gradients and glows; **Expressive** sets the
+thermometer on a cookie shape, the band on a chip, a chunky scale, and draws the
+diorama in flat tonal shapes. *Animate* (artistic only) lets the windmill, the
+smoke and the planes move; the performance tier and reduced motion can still
+hold it still. On a card taller than it is wide, the diorama stands on the
+bottom edge and its sky fills the card above.
+
+### What to display and refresh
+
+- **Band** — the band's name. On by default.
+- **AI explanation** — what Kagi's model wrote about why the score is where it
+  is: its first sentence, or all of it. Off by default. Hovering the card shows
+  all of it either way.
+- **Scale** (minimal) — the five-band scale.
+- **Change since yesterday** — how many points the score moved since the day
+  before, red when tension rose.
+- **History** — a sparkline of the last 7 to 90 days, on the whole 0–100 scale.
+- **Last updated** — when Kagi last scored the news.
+
+*Refresh every (minutes)* defaults to 60; 0 fetches only when the board opens.
+Kagi scores the news a few times a day, so a card never asks more often than
+every 15 minutes, and every card on every board shares one request.
+
+In terminal mode the card is the score in big digits in its band's colour, the
+scale as a row of cells, and the same optional lines as text.
 
 ---
 

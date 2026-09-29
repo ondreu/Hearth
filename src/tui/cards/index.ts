@@ -22,6 +22,7 @@ import { rssTui } from "./rss";
 import { searchTui, searchbarTui } from "./search";
 import { heatmapTui, statsTui } from "./stats";
 import { tasksTui } from "./tasks";
+import { tensionTui } from "./tension";
 import { weatherTui } from "./weather";
 
 export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
@@ -51,6 +52,7 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	stats: statsTui,
 	tasks: tasksTui,
 	templater: templaterTui,
+	tension: tensionTui,
 	text: textTui,
 	weather: weatherTui,
 };
