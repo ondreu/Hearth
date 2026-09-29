@@ -2844,8 +2844,8 @@ export const zh: Translations = {
 			historyDays: "历史范围",
 			days: (n: number) => `${n} 天`,
 			showUpdated: "上次更新",
-			refresh: "刷新间隔（分钟）",
-			refreshDesc: "0 表示仅在打开面板时刷新。Kagi 每天为新闻评分数次，因此卡片最多每 15 分钟请求一次。",
+			refresh: "检查间隔（分钟）",
+			refreshDesc: "Kagi 每天发布一次新指数，因此在距上次发布满一天之前卡片不会发出任何请求；之后按此间隔检查，直到新指数发布。0 表示仅在打开面板时检查。",
 		},
 		weather: {
 			location: "位置",

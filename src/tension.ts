@@ -159,17 +159,36 @@ export function tensionDelta(snapshot: TensionSnapshot): number | null {
 
 // ---- Fetching ---------------------------------------------------------------
 
+/** How often Kagi scores the news: once a day. */
+export const TENSION_PERIOD_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether a cached snapshot is still the latest there can be. Kagi publishes a
+ * new index once a day and says when it scored the current one, so until a day
+ * has passed since then there is nothing new to ask for, whatever the card's
+ * interval. Once the next index is due, the card's own interval (`ttlMs`)
+ * decides how often it checks until it arrives. A snapshot that doesn't say
+ * when it was scored — or found no index at all — falls back to the interval.
+ */
+export function tensionFresh(snapshot: TensionSnapshot, now: number, ttlMs: number): boolean {
+	if (now - snapshot.fetched < ttlMs) return true;
+	const updated = snapshot.now?.updated;
+	// A timestamp in the future is a clock out of step, not a promise.
+	if (updated == null || updated > now) return false;
+	return now < updated + TENSION_PERIOD_MS;
+}
+
 /** What a card asks for: how many days of history, 0 for none. */
 export interface TensionRequest {
 	historyDays: number;
 }
 
 export interface LoadOptions {
-	/** How long a fetched snapshot is fresh. */
+	/** How often to check once the next index is due (see tensionFresh). */
 	ttlMs: number;
 	/** "Disable external calls": only what is cached is returned. */
 	disabled: boolean;
-	/** Skip the TTL (the refresh button, the auto-refresh timer). */
+	/** Ask whatever the cache says (a refresh asked for by hand). */
 	force?: boolean;
 }
 
@@ -200,7 +219,8 @@ async function getJson(url: string): Promise<{ status: number; json: unknown }> 
 }
 
 /**
- * A fresh snapshot, fetched when the cache is missing, stale or `force`d.
+ * A fresh snapshot, fetched when the cache is missing, the next index is due
+ * (see {@link tensionFresh}) or the call is `force`d.
  * Concurrent callers share one request. Never throws: on failure the last good
  * snapshot is returned, or null when there never was one.
  */
@@ -208,7 +228,7 @@ export async function loadTension(req: TensionRequest, opts: LoadOptions): Promi
 	const key = keyOf(req);
 	const cached = cache.get(key) ?? null;
 	if (opts.disabled) return cached;
-	if (cached && !opts.force && Date.now() - cached.fetched < opts.ttlMs) return cached;
+	if (cached && !opts.force && tensionFresh(cached, Date.now(), opts.ttlMs)) return cached;
 	const pending = inflight.get(key);
 	if (pending) return pending;
 	const run = (async (): Promise<TensionSnapshot | null> => {

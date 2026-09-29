@@ -6,6 +6,7 @@ import {
 	parseReading,
 	tensionBand,
 	tensionDelta,
+	tensionFresh,
 	type TensionSnapshot,
 } from "../src/tension";
 
@@ -120,5 +121,33 @@ describe("tensionDelta", () => {
 	it("says nothing without a history", () => {
 		expect(tensionDelta(snap(62, "2024-01-03T10:00:00Z", []))).toBeNull();
 		expect(tensionDelta(snap(62, "2024-01-03T10:00:00Z", [["2024-01-03", 62]]))).toBeNull();
+	});
+});
+
+describe("tensionFresh", () => {
+	const hour = 3_600_000;
+	const scored = Date.parse("2026-09-29T06:00:00Z");
+	const snap = (updated: number | null, fetched: number): TensionSnapshot => ({
+		now: { score: 50, summary: "", updated },
+		history: [],
+		fetched,
+	});
+
+	it("asks nothing until a day has passed since Kagi scored the index", () => {
+		const s = snap(scored, scored + hour);
+		expect(tensionFresh(s, scored + 5 * hour, hour)).toBe(true);
+		expect(tensionFresh(s, scored + 23.9 * hour, hour)).toBe(true);
+	});
+
+	it("checks at the card's interval once the next index is due", () => {
+		const s = snap(scored, scored + 24.2 * hour);
+		expect(tensionFresh(s, scored + 24.5 * hour, hour)).toBe(true);
+		expect(tensionFresh(s, scored + 25.3 * hour, hour)).toBe(false);
+	});
+
+	it("falls back to the interval without a timestamp, or with one from the future", () => {
+		expect(tensionFresh(snap(null, scored), scored + 2 * hour, hour)).toBe(false);
+		expect(tensionFresh(snap(scored + 10 * hour, scored), scored + 2 * hour, hour)).toBe(false);
+		expect(tensionFresh({ now: null, history: [], fetched: scored }, scored + 2 * hour, hour)).toBe(false);
 	});
 });

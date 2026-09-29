@@ -46,12 +46,14 @@ export function historyLine(scores: readonly number[], w: number): string {
 		.join("");
 }
 
-async function refresh(ctx: TuiContext, req: TensionRequest, ttlMs: number): Promise<void> {
+/** `force` is for a refresh asked for by hand; the timer asks only once the
+ * day's index is due. */
+async function refresh(ctx: TuiContext, req: TensionRequest, ttlMs: number, force = true): Promise<void> {
 	if (ctx.state.tnRefreshing === true) return;
 	ctx.state.tnRefreshing = true;
 	ctx.redraw();
 	try {
-		await loadTension(req, { ttlMs, disabled: false, force: true });
+		await loadTension(req, { ttlMs, disabled: false, force });
 	} finally {
 		ctx.state.tnRefreshing = false;
 		ctx.redraw();
@@ -83,7 +85,7 @@ export const tensionTui: TuiRenderer = {
 		});
 		const autoMin = effectiveAutoRefreshMinutes(ctx.view.plugin.settings, r.refreshMin);
 		if (autoMin > 0 && !disabled) {
-			ctx.component.registerInterval(window.setInterval(() => void refresh(ctx, req, ttlMs), autoMin * 60_000));
+			ctx.component.registerInterval(window.setInterval(() => void refresh(ctx, req, ttlMs, false), autoMin * 60_000));
 		}
 
 		if (!snapshot) {

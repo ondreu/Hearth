@@ -83,8 +83,9 @@ export function tensionRequest(r: TensionResolved): TensionRequest {
 	return { historyDays: r.showChange ? 7 : 0 };
 }
 
-/** The cache floor: Kagi scores the news a few times a day, so a board's
- * frequent re-renders must never become requests. */
+/** How often to check once the next index is due. Floored, so a board's
+ * frequent re-renders never become requests; until the day's index is due
+ * nothing is asked at all (see tensionFresh). */
 export function tensionTtlMs(r: TensionResolved): number {
 	return Math.max(r.refreshMin, 15) * 60_000;
 }
@@ -312,9 +313,10 @@ export function renderTension(view: HomeView, card: DashboardCard, body: HTMLEle
 
 	load(false);
 
+	// Not forced: the timer only asks once the day's index is due.
 	const autoMin = effectiveAutoRefreshMinutes(settings, r.refreshMin);
 	if (autoMin > 0) {
-		component.registerInterval(window.setInterval(() => load(true), autoMin * 60_000));
+		component.registerInterval(window.setInterval(() => load(false), autoMin * 60_000));
 	}
 }
 

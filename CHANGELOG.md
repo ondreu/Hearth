@@ -68,7 +68,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     yesterday, a sparkline of up to 90 days and the time of the last update
     are optional. Clicking the card opens the index on Kagi News.
   - The index comes from `kite.kagi.com`, free and key-less, and **Disable
-    external calls** stops it like every other request.
+    external calls** stops it like every other request. Kagi publishes it once
+    a day, so a card asks nothing until the next one is due, then checks
+    hourly (by default) until it arrives.
 
 ## [3.3.0]
 

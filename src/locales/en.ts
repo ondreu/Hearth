@@ -3099,8 +3099,8 @@ export const en = {
 			historyDays: "History covers",
 			days: (n: number) => `${n} days`,
 			showUpdated: "Last updated",
-			refresh: "Refresh every (minutes)",
-			refreshDesc: "0 refreshes only when the board opens. Kagi scores the news a few times a day, so a card never asks more than every 15 minutes.",
+			refresh: "Check every (minutes)",
+			refreshDesc: "Kagi publishes a new index once a day, so a card asks nothing until a day has passed since the last one; then it checks this often until the new one is in. 0 checks only when the board opens.",
 		},
 		weather: {
 			location: "Location",

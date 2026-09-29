@@ -3108,8 +3108,8 @@ export const de: Translations = {
 			historyDays: "Verlauf über",
 			days: (n: number) => `${n} Tage`,
 			showUpdated: "Zuletzt aktualisiert",
-			refresh: "Aktualisieren alle (Minuten)",
-			refreshDesc: "0 aktualisiert nur beim Öffnen des Boards. Kagi bewertet die Nachrichten einige Male am Tag, daher fragt eine Karte höchstens alle 15 Minuten.",
+			refresh: "Prüfen alle (Minuten)",
+			refreshDesc: "Kagi veröffentlicht einmal am Tag einen neuen Index, daher fragt eine Karte nichts, bis seit dem letzten ein Tag vergangen ist; danach prüft sie so oft, bis der neue da ist. 0 prüft nur beim Öffnen des Boards.",
 		},
 		weather: {
 			location: "Ort",

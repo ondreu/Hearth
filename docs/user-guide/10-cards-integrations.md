@@ -438,9 +438,11 @@ bottom edge and its sky fills the card above.
 - **History** — a sparkline of the last 7 to 90 days, on the whole 0–100 scale.
 - **Last updated** — when Kagi last scored the news.
 
-*Refresh every (minutes)* defaults to 60; 0 fetches only when the board opens.
-Kagi scores the news a few times a day, so a card never asks more often than
-every 15 minutes, and every card on every board shares one request.
+Kagi publishes a new index once a day and says when it scored the current one,
+so until a day has passed since then a card asks nothing at all. After that,
+*Check every (minutes)* — 60 by default, never under 15 — is how often it looks
+until the new index is in; 0 checks only when the board opens. Every card on
+every board shares one request.
 
 In terminal mode the card is the score in big digits in its band's colour, the
 scale as a row of cells, and the same optional lines as text.
