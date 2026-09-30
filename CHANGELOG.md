@@ -71,6 +71,23 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     external calls** stops it like every other request. Kagi publishes it once
     a day, so a card asks nothing until the next one is due, then checks
     hourly (by default) until it arrives.
+- **Hearth speaks French.** A full `fr` locale joins English, German and
+  Simplified Chinese: every string Hearth draws comes out in French when
+  Obsidian's own display language is French, with no setting of its own.
+  Anything untranslated falls back to English. Thanks to @jlclux71 (#374).
+  - The search bar's instant answers understand French phrases too:
+    `LVMH en bourse`, `météo Paris`, `pile ou face`, `lancer 2d6`,
+    `nombre aléatoire 1-10`, `jours jusqu'au 2026-12-24`,
+    `aujourd'hui + 45 jours`, `vendredi prochain`, `heure à Tokyo` and French
+    city names. The calculator reads `en` as "to" (`100 euros en dollars`,
+    `10 km en miles`), `20 % de 150`, and `binaire`, `décimal` and
+    `hexadécimal`. The search tips show French examples.
+
+### Fixed
+
+- **`FF hex to decimal` in the search bar now answers.** The search tips
+  suggest it, but a query without a digit never reached the calculator, so a
+  hex number written only in letters got no answer unless typed after `=`.
 
 ## [3.3.0]
 

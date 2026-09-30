@@ -224,6 +224,9 @@ Unit families it knows include length, mass, time, volume, area, speed, digital
 storage (both decimal SI and binary IEC) and angle. It accepts scientific
 notation (`1e5`, `2.5e-3`) and `**` as an alias for `^`. Currency symbols are
 recognised before or after the number, so `$10` and `10€` both work.
+The connecting word and a percentage can also be written in German, French or
+Chinese: `10 km nach mi`, `100 euros en dollars`, `20 % de 150`,
+`20美元换成欧元`.
 
 | Setting | Meaning |
 | --- | --- |

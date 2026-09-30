@@ -219,10 +219,11 @@ function defBase(aliases: string[], radix: number, label: string, prefix: string
 	for (const a of aliases) BASES[a] = { radix, label, prefix };
 }
 
-defBase(["bin", "binary", "base2"], 2, "binary", "0b");
+// French names ("binaire", "décimal", "hexadécimal") beside the English.
+defBase(["bin", "binary", "binaire", "base2"], 2, "binary", "0b");
 defBase(["oct", "octal", "base8"], 8, "octal", "0o");
-defBase(["dec", "decimal", "base10"], 10, "decimal", "");
-defBase(["hex", "hexadecimal", "base16"], 16, "hex", "0x");
+defBase(["dec", "decimal", "décimal", "base10"], 10, "decimal", "");
+defBase(["hex", "hexadecimal", "hexadécimal", "base16"], 16, "hex", "0x");
 
 /** Decimal is the assumed base everywhere a query doesn't name one. */
 const DECIMAL = BASES.decimal;
@@ -566,9 +567,10 @@ function normalizeExpression(input: string): string {
 	s = s.replace(/\bsquared\b/g, " ^ 2 ");
 	s = s.replace(/\bcubed\b/g, " ^ 3 ");
 	s = s.replace(/\bto the power of\b/g, " ^ ");
-	// Percentages: "20% of 150" → (20/100)*150 ; leftover "%" → /100.
-	s = s.replace(/%\s*of\b/g, " /100* ");
-	s = s.replace(/\bpercent of\b/g, " /100* ");
+	// Percentages: "20% of 150" (French "20 % de 150") → (20/100)*150 ;
+	// leftover "%" → /100.
+	s = s.replace(/%\s*(?:of|de)\b/g, " /100* ");
+	s = s.replace(/\b(?:percent of|pour cent de)\b/g, " /100* ");
 	s = s.replace(/\bpercent\b/g, " /100 ");
 	s = s.replace(/%/g, " /100 ");
 	return s.trim();
@@ -590,20 +592,21 @@ function normalizeCurrencySymbols(input: string): string {
 	return s.replace(/\s+/g, " ").trim();
 }
 
-/** "Into" as German and Chinese say it: `10 km nach mi`, `20美元换成欧元` both
- * become the "… to …" the conversion parser reads. Chinese needs no spaces
- * around the word, so it is matched anywhere; German only as a whole word. */
+/** "Into" as German, French and Chinese say it: `10 km nach mi`, `20 euros
+ * en dollars`, `20美元换成欧元` all become the "… to …" the conversion parser
+ * reads. Chinese needs no spaces around the word, so it is matched anywhere;
+ * German and French only as a whole word. */
 function normalizeConnectors(input: string): string {
 	return input
 		.replace(/\s*(?:兑换成|换算成|转换成|兑换为|换成|兑成|转成|兑换|等于多少|是多少)\s*/g, " to ")
-		.replace(/\s+nach\s+/gi, " to ")
+		.replace(/\s+(?:nach|en)\s+/gi, " to ")
 		.trim();
 }
 
-/** Strip conversational lead-ins/trailers ("what is …", "= "). */
+/** Strip conversational lead-ins/trailers ("what is …", "combien font …", "= "). */
 function stripFiller(input: string): string {
 	let s = normalizeConnectors(input.trim());
-	s = s.replace(/^\s*(what\s+is|whats|what's|calculate|compute|convert|how\s+much\s+is|evaluate)\s+/i, "");
+	s = s.replace(/^\s*(what\s+is|whats|what's|calculate|compute|convert|how\s+much\s+is|evaluate|combien\s+(?:font|fait|vaut|valent)|convertir|calculer)\s+/i, "");
 	s = s.replace(/^=\s*/, "");
 	s = s.replace(/[=?]+\s*$/, "");
 	return s.trim();
@@ -723,7 +726,7 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 function convertBase(leftRaw: string, target: NumberBase, opts: CalcOptions): CalcResult | null {
 	const trimmed = leftRaw.trim();
 	// A trailing word naming the source base, e.g. the "hex" of "FF hex".
-	const named = /^(.*?)\s*([a-z][a-z0-9]*)\s*$/i.exec(trimmed);
+	const named = /^(.*?)\s*(\p{L}[\p{L}\d]*)\s*$/iu.exec(trimmed);
 	const namedBase = named ? lookupBase(named[2]) : null;
 
 	let value: number;

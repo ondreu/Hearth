@@ -68,8 +68,10 @@ results, above the notes:
 
 The phrases are understood in the languages Hearth is translated into —
 English, German (`Siemens Aktie`, `Wetter Berlin`, `Tage bis …`, `Zeit in
-Tokio`, `100 CHF nach EUR`) and Chinese (`茅台股价`, `北京天气`, `东京时间`,
-`20美元换成人民币`).
+Tokio`, `100 CHF nach EUR`), French (`LVMH en bourse`, `météo Paris`,
+`pile ou face`, `jours jusqu'au …`, `vendredi prochain`, `heure à Tokyo`,
+`100 euros en dollars`, `20 % de 150`) and Chinese (`茅台股价`, `北京天气`,
+`东京时间`, `20美元换成人民币`).
 
 - A leading `=` forces the calculator, so `=2026-10` is a subtraction rather
   than a date. A plain number, a date or a time of day is never treated as a

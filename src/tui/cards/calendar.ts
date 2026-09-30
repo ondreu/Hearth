@@ -45,7 +45,7 @@ import { taskNotesEnabled, taskNotesMeta } from "../../tasknotes";
 import { dayWindow, daySpan, overlapColumns, scrollHour, weekdayColumns } from "../../timegrid";
 import type { CalendarSourcesConfig, DashboardCard, ScheduleConfig } from "../../types";
 import type { TuiContext, TuiOutput, TuiRenderer } from "../card";
-import { asciify, centerLine, fit, padEnd, padStart, spread, type Line, type Seg, type TuiStyle } from "../text";
+import { asciify, centerLine, fit, padEnd, padStart, spread, strWidth, type Line, type Seg, type TuiStyle } from "../text";
 import { listOutput, message, type Row } from "./common";
 
 // ---- Event feeds, kept across redraws -------------------------------------------
@@ -552,7 +552,10 @@ function timeGrid(s: SchedCtx): { lines: Line[]; scrollTo: number; top: number }
 			? [anchor]
 			: weekdayColumns(firstDay(cfg), cfg.hideWeekends === true).map((dow) => weekStart(anchor, cfg).add((dow - firstDay(cfg) + 7) % 7, "days"));
 	const win = dayWindow(cfg.dayStart, cfg.dayEnd);
-	const gutter = 6;
+	// Hour labels take five cells and a space; a longer all-day label (French
+	// "tte j.") widens the gutter rather than being cut.
+	const allDayLabel = t().tui.cards.allDayShort;
+	const gutter = Math.max(6, strWidth(allDayLabel) + 1);
 	const cw = Math.max(4, Math.floor((ctx.cols - gutter - (days.length - 1)) / days.length));
 	// Two rows an hour when the card is tall enough to show a working day that
 	// way, one otherwise.
@@ -582,7 +585,7 @@ function timeGrid(s: SchedCtx): { lines: Line[]; scrollTo: number; top: number }
 	if (allDay.some((a) => a.length)) {
 		const n = Math.max(...allDay.map((a) => a.length));
 		for (let r = 0; r < Math.min(n, 3); r++) {
-			const line: Line = [{ text: r === 0 ? padEnd(t().tui.cards.allDayShort, gutter) : " ".repeat(gutter), style: "dim" }];
+			const line: Line = [{ text: r === 0 ? padEnd(allDayLabel, gutter - 1) + " " : " ".repeat(gutter), style: "dim" }];
 			allDay.forEach((events, i) => {
 				const ev = events[r];
 				const cell: Line = ev

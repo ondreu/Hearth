@@ -77,11 +77,14 @@ describe("evaluate — plain language", () => {
 	it("percentages", () => {
 		expect(ok("20% of 150").value).toBe(30);
 		expect(ok("50 percent of 80").value).toBe(40);
+		expect(ok("20 % de 150").value).toBe(30);
+		expect(ok("50 pour cent de 80").value).toBe(40);
 	});
 
 	it("strips conversational filler", () => {
 		expect(ok("what is 2 + 2").value).toBe(4);
 		expect(ok("2 + 2 =").value).toBe(4);
+		expect(ok("combien font 6 x 7").value).toBe(42);
 	});
 });
 
@@ -91,6 +94,7 @@ describe("evaluate — unit conversions", () => {
 		expect(r.value).toBeCloseTo(6.2137, 3);
 		expect(r.formatted).toContain("mi");
 		expect(r.note).toBe("10 km → mi");
+		expect(ok("10 km en miles").value).toBeCloseTo(6.2137, 3);
 	});
 
 	it("temperature (affine)", () => {
@@ -124,6 +128,11 @@ describe("evaluate — currency (rates supplied by caller)", () => {
 		expect(r.value).toBeCloseTo(11, 10);
 	});
 
+	it("reads French currency names and the connector \"en\"", () => {
+		expect(ok("10 euros en dollars", { rates }).value).toBeCloseTo(11, 10);
+		expect(ok("convertir 10 eur en czk", { rates }).value).toBeCloseTo(250, 10);
+	});
+
 	it("reports when rates are unavailable", () => {
 		const r = evaluate("10 eur to usd");
 		expect(r.ok).toBe(false);
@@ -142,6 +151,12 @@ describe("evaluate — number bases", () => {
 		expect(ok("FF hex to decimal").formatted).toBe("255");
 		expect(ok("377 octal to decimal").formatted).toBe("255");
 		expect(ok("1010 binary to decimal").formatted).toBe("10");
+	});
+
+	it("knows the bases' French names", () => {
+		expect(ok("FF hex en décimal").formatted).toBe("255");
+		expect(ok("1010 binaire en décimal").formatted).toBe("10");
+		expect(ok("FF hexadécimal en binaire").formatted).toBe("0b11111111");
 	});
 
 	it("writes the target base with its prefix", () => {

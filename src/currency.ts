@@ -46,9 +46,10 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 /** Currency names as they're typed in the languages Hearth speaks (English,
- * German, Chinese), mapped to their ISO code: `20 euros to dollars`,
+ * German, French, Chinese), mapped to their ISO code: `20 euros to dollars`,
  * `100 美元换成人民币`. Only names that belong to one currency are listed —
- * "pound" is a unit of mass to the calculator, and "Krone" is four currencies. */
+ * "pound" is a unit of mass to the calculator, and "Krone" (French "couronne")
+ * is four currencies. */
 export const CURRENCY_NAMES: Record<string, string> = {
 	euro: "eur",
 	euros: "eur",
@@ -66,6 +67,12 @@ export const CURRENCY_NAMES: Record<string, string> = {
 	rupien: "inr",
 	zloty: "pln",
 	forint: "huf",
+	yens: "jpy",
+	yuans: "cny",
+	roupie: "inr",
+	roupies: "inr",
+	zlotys: "pln",
+	forints: "huf",
 	美元: "usd",
 	美金: "usd",
 	欧元: "eur",

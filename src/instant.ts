@@ -9,16 +9,16 @@
  * | `1+1`, `20% of 150`, `10 km to mi`     | the calculator's result               |
  * | `20 CZK to EUR`, `20美元换成欧元`, `eur/usd` | the conversion and the pair's chart |
  * | `$AAPL`, `apple stock`, `Siemens Aktie`  | a live quote and chart                |
- * | `weather Prague`, `Wetter Berlin`      | the weather there                     |
+ * | `weather Prague`, `météo Paris`        | the weather there                     |
  * | `wiki Prague`, `wiki:de Prag`          | the Wikipedia article's summary       |
- * | `coin flip`, `roll 2d6`, `random 1-10` | a coin, dice, a random number         |
+ * | `coin flip`, `pile ou face`, `roll 2d6` | a coin, dice, a random number        |
  * | `time in Tokyo`, `东京时间`             | the clock there, and the offset       |
  * | `days until 2026-12-24`, `Tage bis …`  | a day count                           |
- * | `today + 45 days`, `next friday`       | the date                              |
+ * | `today + 45 days`, `vendredi prochain` | the date                              |
  * | `=…`                                   | forces the calculator                 |
  *
  * Phrases are understood in the languages Hearth has a translation for —
- * English, German and Chinese.
+ * English, German, French and Chinese.
  *
  * This file only decides which of those a query is. It is pure — no DOM, no
  * network — so the rules are tested directly (test/instant.test.ts); the
@@ -28,7 +28,7 @@
  * note results, so a false positive costs a row, but a missed note name costs
  * more. A bare number, a date or a time of day is never a calculation, and
  * the network is reached only for a query that plainly asks for something
- * from it: a `$` or a "stock"/"Aktie"/"股价" lookup, the weather, a wiki
+ * from it: a `$` or a "stock"/"Aktie"/"en bourse"/"股价" lookup, the weather, a wiki
  * summary, or a currency conversion (which needs rates).
  */
 import { moment as createMoment } from "obsidian";
@@ -92,7 +92,8 @@ export const CALC_PREFIX = "=";
 const CURRENCIES = new Set(CURRENCY_CODES);
 
 /** Places whose zone isn't named after them, or is named in another of the
- * languages Hearth speaks (English, German, Chinese). */
+ * languages Hearth speaks (English, German, French, Chinese). Keys are
+ * folded (see fold below): lower case, no accents. */
 const ZONE_ALIASES: Record<string, string> = {
 	utc: "UTC",
 	gmt: "UTC",
@@ -139,6 +140,33 @@ const ZONE_ALIASES: Record<string, string> = {
 	kopenhagen: "Europe/Copenhagen",
 	kairo: "Africa/Cairo",
 	"neu-delhi": "Asia/Kolkata",
+	// French names.
+	pekin: "Asia/Shanghai",
+	japon: "Asia/Tokyo",
+	singapour: "Asia/Singapore",
+	inde: "Asia/Kolkata",
+	"nouvelle-delhi": "Asia/Kolkata",
+	"nouvelle delhi": "Asia/Kolkata",
+	londres: "Europe/London",
+	edimbourg: "Europe/London",
+	bruxelles: "Europe/Brussels",
+	lisbonne: "Europe/Lisbon",
+	barcelone: "Europe/Madrid",
+	geneve: "Europe/Zurich",
+	francfort: "Europe/Berlin",
+	cologne: "Europe/Berlin",
+	milan: "Europe/Rome",
+	venise: "Europe/Rome",
+	vienne: "Europe/Vienna",
+	varsovie: "Europe/Warsaw",
+	copenhague: "Europe/Copenhagen",
+	athenes: "Europe/Athens",
+	moscou: "Europe/Moscow",
+	"le caire": "Africa/Cairo",
+	"le cap": "Africa/Johannesburg",
+	montreal: "America/Toronto",
+	quebec: "America/Toronto",
+	mexico: "America/Mexico_City",
 	// Chinese names.
 	北京: "Asia/Shanghai",
 	上海: "Asia/Shanghai",
@@ -272,6 +300,9 @@ const TIME_RULES: readonly RegExp[] = [
 	/^(.+?)\s+(?:time|local time)$/i,
 	/^(?:zeit|uhrzeit|wie sp(?:ä|a)t ist es)\s+in\s+(.+?)\??$/i,
 	/^(.+?)\s+(?:zeit|uhrzeit)$/i,
+	/^(?:l['’]\s?)?heure(?: locale)?\s+(?:à|a|au|aux|en)\s+(.+?)\s*\??$/i,
+	/^quelle heure (?:est-il|il est)\s+(?:à|a|au|aux|en)\s+(.+?)\s*\??$/i,
+	/^(.+?)\s+heure(?: locale)?$/i,
 	/^(.+?)\s*(?:现在几点|几点了|时间)[?？]?$/,
 ];
 
@@ -284,9 +315,15 @@ function detectTime(q: string, zones: readonly string[]): InstantIntent | null {
 
 // ---- Dates ---------------------------------------------------------------
 
-/** German and Chinese date words, in the English the date parser reads. */
+const FR_UNITS: Record<string, string> = { semaine: "week", mois: "month", annee: "year", an: "year" };
+const WEEKDAY_WORDS = "monday|tuesday|wednesday|thursday|friday|saturday|sunday";
+
+/** German, French and Chinese date words, in the English the date parser
+ * reads. Accents are folded first, so "année" and "annee" read alike. */
 function englishDate(text: string): string {
 	return text
+		.normalize("NFD")
+		.replace(/\p{M}/gu, "")
 		.toLowerCase()
 		.replace(/(\d+)\s*天后/g, "in $1 days")
 		.replace(/(\d+)\s*(?:周|星期)后/g, "in $1 weeks")
@@ -315,6 +352,28 @@ function englishDate(text: string): string {
 		.replace(/freitag/g, "friday")
 		.replace(/samstag|sonnabend/g, "saturday")
 		.replace(/sonntag/g, "sunday")
+		// French. Adjectives follow the noun: "vendredi prochain", "la semaine
+		// prochaine", so the word order is swapped after the words are.
+		.replace(/aujourd['’]hui/g, "today")
+		.replace(/(^|\s)demain(?=\s|$)/g, "$1tomorrow")
+		.replace(/(^|\s)hier(?=\s|$)/g, "$1yesterday")
+		.replace(/(^|\s)dans(?=\s+\d)/g, "$1in")
+		.replace(/(\d\s*)jours?(?=\s|$)/g, "$1days")
+		.replace(/(\d\s*)semaines?(?=\s|$)/g, "$1weeks")
+		.replace(/(\d\s*)mois(?=\s|$)/g, "$1months")
+		.replace(/(\d\s*)(?:annees?|ans?)(?=\s|$)/g, "$1years")
+		.replace(/(^|\s)(fin|debut)\s+(?:du|de la|de l['’]|de)\s*(semaine|mois|annee)(?=\s|$)/g, (_m, pre: string, edge: string, unit: string) => `${pre}${edge === "fin" ? "end" : "start"} of ${FR_UNITS[unit]}`)
+		.replace(/(^|\s)(?:(?:la|le)\s+|l['’]\s?)?(semaine|mois|annee|an)\s+prochaine?(?=\s|$)/g, (_m, pre: string, unit: string) => `${pre}next ${FR_UNITS[unit]}`)
+		.replace(/(^|\s)lundi(?=\s|$)/g, "$1monday")
+		.replace(/(^|\s)mardi(?=\s|$)/g, "$1tuesday")
+		.replace(/(^|\s)mercredi(?=\s|$)/g, "$1wednesday")
+		.replace(/(^|\s)jeudi(?=\s|$)/g, "$1thursday")
+		.replace(/(^|\s)vendredi(?=\s|$)/g, "$1friday")
+		.replace(/(^|\s)samedi(?=\s|$)/g, "$1saturday")
+		.replace(/(^|\s)dimanche(?=\s|$)/g, "$1sunday")
+		.replace(new RegExp(`(^|\\s)(${WEEKDAY_WORDS})\\s+prochain(?=\\s|$)`, "g"), "$1next $2")
+		.replace(new RegExp(`(^|\\s)ce\\s+(${WEEKDAY_WORDS})(?=\\s|$)`, "g"), "$1this $2")
+		.replace(new RegExp(`(^|\\s)prochain\\s+(${WEEKDAY_WORDS})(?=\\s|$)`, "g"), "$1next $2")
 		.replace(/\s+/g, " ")
 		.trim();
 }
@@ -322,11 +381,13 @@ function englishDate(text: string): string {
 const COUNT_UNTIL: readonly RegExp[] = [
 	/^(?:days?|how many days)\s+(?:until|till|to|before)\s+(.+)$/i,
 	/^tage\s+bis\s+(.+)$/i,
+	/^(?:combien de )?jours\s+(?:jusqu['’]\s?(?:à|a|au)|avant(?:\s+le)?)\s+(.+?)\s*\??$/i,
 	/^(?:距离?|到)\s*(.+?)\s*还有(?:几|多少)天[?？]?$/,
 ];
 const COUNT_SINCE: readonly RegExp[] = [
 	/^(?:days?|how many days)\s+(?:since|from|after)\s+(.+)$/i,
 	/^tage\s+seit\s+(.+)$/i,
+	/^(?:combien de )?jours\s+depuis(?:\s+le)?\s+(.+?)\s*\??$/i,
 	/^(?:自|从)?\s*(.+?)\s*(?:以来|至今)(?:已经)?(?:过了)?(?:几|多少)天[?？]?$/,
 ];
 const SHIFT_RE =
@@ -373,12 +434,16 @@ function detectDate(q: string): InstantIntent | null {
 // ---- Market, weather, Wikipedia --------------------------------------------
 
 /** A name with a word that says "the market price of": `apple stock`,
- * `Siemens Aktie`, `茅台股价`. */
+ * `Siemens Aktie`, `LVMH en bourse`, `茅台股价`. French has no one-word
+ * marker that isn't also an everyday note title ("action", "cours"), so
+ * only the unambiguous phrases are read. */
 const MARKET_RULES: readonly RegExp[] = [
 	/^(.+?)\s+(?:stock|stocks|shares?|stock price|share price|price|quote|etf|fund)$/i,
 	/^(?:stock|stocks|quote|price of|share price of)\s+(.+)$/i,
 	/^(.+?)\s+(?:aktie|aktien|aktienkurs|kurs|fonds)$/i,
 	/^(?:aktie|aktienkurs|kurs)\s+(.+)$/i,
+	/^(.+?)\s+(?:en bourse|cours de bourse|cours de l['’]action)$/i,
+	/^(?:cours de l['’]action|cours de bourse)\s+(.+)$/i,
 	/^(.+?)\s*(?:股价|股票|行情|基金|价格|走势)$/,
 ];
 
@@ -387,6 +452,8 @@ const WEATHER_RULES: readonly RegExp[] = [
 	/^(.+?)\s+(?:weather|forecast)$/i,
 	/^(?:wetter|wettervorhersage)(?:\s+(?:in|f(?:ü|u)r))?\s+(.+)$/i,
 	/^(.+?)\s+(?:wetter)$/i,
+	/^(?:m(?:é|e)t(?:é|e)o|pr(?:é|e)visions? m(?:é|e)t(?:é|e)o)(?:\s+(?:à|a|au|aux|en|de|du|pour|sur))?\s+(.+)$/i,
+	/^(.+?)\s+m(?:é|e)t(?:é|e)o$/i,
 	/^(?:天气预报|天气)\s*(.+)$/,
 	/^(.+?)\s*(?:天气预报|天气)$/,
 ];
@@ -394,8 +461,8 @@ const WEATHER_RULES: readonly RegExp[] = [
 /** `wiki Prague`, `Prague wiki`, `wiki:de Prag`, `维基 布拉格`. The optional
  * `:xx` picks the wiki's language; without it, Obsidian's is used. */
 const WIKI_RULES: readonly { re: RegExp; query: number; lang: number }[] = [
-	{ re: /^(?:wiki|wikipedia)(?::([a-z]{2,3}))?\s+(.+)$/i, query: 2, lang: 1 },
-	{ re: /^(.+?)\s+(?:wiki|wikipedia)(?::([a-z]{2,3}))?$/i, query: 1, lang: 2 },
+	{ re: /^(?:wiki|wikip(?:e|é)dia)(?::([a-z]{2,3}))?\s+(.+)$/i, query: 2, lang: 1 },
+	{ re: /^(.+?)\s+(?:wiki|wikip(?:e|é)dia)(?::([a-z]{2,3}))?$/i, query: 1, lang: 2 },
 	{ re: /^(?:维基百科|维基)\s*(.+)$/, query: 1, lang: 0 },
 	{ re: /^(.+?)\s*(?:维基百科|维基)$/, query: 1, lang: 0 },
 ];
@@ -415,11 +482,12 @@ function detectWiki(q: string): InstantIntent | null {
 // ---- Chance ----------------------------------------------------------------
 
 const COIN_RE =
-	/^(?:coin|coin ?flip|flip a coin|toss a coin|heads or tails|m(?:ü|u)nze|m(?:ü|u)nzwurf|m(?:ü|u)nze werfen|kopf oder zahl|抛硬币|掷硬币|扔硬币|硬币)$/i;
-const DIE_RE = /^(?:roll|dice|roll a die|roll dice|w(?:ü|u)rfel|w(?:ü|u)rfeln|掷骰子|骰子)$/i;
-const DICE_RE = /^(?:roll\s+|w(?:ü|u)rfel\s+|掷\s*)?(\d{0,3})\s*[dw](\d{1,4})$/i;
+	/^(?:coin|coin ?flip|flip a coin|toss a coin|heads or tails|m(?:ü|u)nze|m(?:ü|u)nzwurf|m(?:ü|u)nze werfen|kopf oder zahl|pile ou face|(?:tirer|jouer) (?:à|a) pile ou face|lancer une pi(?:è|e)ce|抛硬币|掷硬币|扔硬币|硬币)$/i;
+const DIE_RE =
+	/^(?:roll|dice|roll a die|roll dice|w(?:ü|u)rfel|w(?:ü|u)rfeln|lancer (?:un|le) d(?:é|e)|lancer (?:les|des) d(?:é|e)s|掷骰子|骰子)$/i;
+const DICE_RE = /^(?:roll\s+|w(?:ü|u)rfel\s+|lancer\s+|掷\s*)?(\d{0,3})\s*[dw](\d{1,4})$/i;
 const RANDOM_RE =
-	/^(?:random|random number|rand|zufall|zufallszahl|随机数|随机)(?:\s*(?:between\s+|zwischen\s+)?(-?\d+)(?:\s*(?:-|to|and|bis|und|到|至|~)\s*(-?\d+))?)?$/i;
+	/^(?:random|random number|rand|zufall|zufallszahl|nombre al(?:é|e)atoire|al(?:é|e)atoire|随机数|随机)(?:\s*(?:between\s+|zwischen\s+|entre\s+)?(-?\d+)(?:\s*(?:-|to|and|bis|und|et|à|到|至|~)\s*(-?\d+))?)?$/i;
 
 /** Largest range or dice count worth answering; beyond it it's a typo. */
 const CHANCE_MAX = 1e9;
@@ -467,6 +535,11 @@ function notMath(query: string): boolean {
 		/^\d{1,2}:\d{2}/.test(query)
 	);
 }
+
+/** `FF hex to decimal`: hex digits may all be letters, so a query that names
+ * hex as its source gets to the calculator without a digit. Only this shape —
+ * a word that could be a hex number, "hex", a connector and a target. */
+const HEX_WORDS_RE = /^[0-9a-f]+\s+hex(?:adecimal|adécimal)?\s+(?:to|in|into|as|nach|en)\s+\S+$/i;
 
 /** A currency conversion, as the calculator will evaluate it. */
 function detectCurrency(query: string): InstantIntent | null {
@@ -545,7 +618,7 @@ function detectAny(
 	const date = enabled("date") ? detectDate(query) : null;
 	if (date) return date;
 
-	if (!enabled("calc") || !/\d/.test(query) || notMath(query)) return null;
+	if (!enabled("calc") || !(/\d/.test(query) || HEX_WORDS_RE.test(query)) || notMath(query)) return null;
 	const res = evaluate(query);
 	if (!res.ok || !Number.isFinite(res.value)) return null;
 	return { kind: "calc", input: query, forced: false };

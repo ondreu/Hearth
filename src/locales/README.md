@@ -62,6 +62,20 @@ truth; every other locale is type-checked against it.
 
 4. Run `npm run typecheck`. TypeScript will list any key you missed or
    mistyped. Fix them until it's clean, then `npm run build`.
+5. Teach the search bar your language. Instant answers read phrases in every
+   language Hearth is translated into, and that part lives in code, not in
+   the locale file:
+   - `src/instant.ts` — the phrase rules (`TIME_RULES`, `MARKET_RULES`,
+     `WEATHER_RULES`, `COIN_RE`/`DIE_RE`/`RANDOM_RE`, `COUNT_UNTIL`/
+     `COUNT_SINCE`), the date words in `englishDate`, and city names in
+     `ZONE_ALIASES`;
+   - `src/calculator.ts` — the word for "to" in `normalizeConnectors`, and
+     lead-ins in `stripFiller`;
+   - `src/currency.ts` — currency names in `CURRENCY_NAMES`;
+   - `test/instant.test.ts` — a test per rule, and one that a common note
+     title in your language is *not* read as a question;
+   - `search.tips.features.*.examples` in your locale — examples in your
+     language, each one a phrase the rules above actually answer.
 
 Regional codes fall back to the base language and finally to English, so a
 partial `pt-br.ts` still renders (untranslated keys aside) and an unknown
