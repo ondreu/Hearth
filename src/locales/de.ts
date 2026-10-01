@@ -2132,6 +2132,12 @@ export const de: Translations = {
 			previewDesc: "Zeigt die ersten Zeilen des Textes jeder Notiz auf ihrer Kachel, ohne ihre Eigenschaften.",
 			previewSize: "Schriftgröße der Vorschau",
 			previewSizeDesc: "In Pixeln. Standardmäßig klein — genug, um eine Notiz wiederzuerkennen.",
+			images: "Bildvorschau",
+			imagesDesc:
+				"Bilder zeigen sich selbst auf ihrer Kachel, und eine Notiz zeigt ihr " +
+				"erstes eingebettetes Bild als Titelbild. Nur in der Leistungsstufe " +
+				"„Voll“: Ein Bild ist die ganze dekodierte Datei, und genau das sollen " +
+				"die leichteren Stufen vermeiden.",
 		},
 		calendar: {
 			view: "Layout",

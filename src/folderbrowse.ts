@@ -1,6 +1,6 @@
 import { asFolderSort, FOLDER_SORT_DEFAULT, type FolderShow, type FolderSort } from "./foldercontents";
 import { previewSize } from "./notepreview";
-import type { FolderCardConfig } from "./types";
+import type { CardDesign, FolderCardConfig, PerformanceTier } from "./types";
 
 /**
  * The folder browser's state — what it shows and how — and the path rules the
@@ -35,6 +35,14 @@ export interface FolderBrowseState {
 	preview: boolean;
 	/** The previews' text size, in pixels. */
 	previewSize: number;
+	/** Pictures on the tiles: an image file's own, a note's first embedded
+	 * image as its cover. Only drawn on the Full performance tier — see
+	 * {@link picturesAllowed}. */
+	images: boolean;
+	/** The design the page is drawn in, when it was opened from somewhere that
+	 * has one (a card, a dialog). A tab keeps it; left out, it takes the
+	 * vault's. Terminal mode is vault-wide and overrides either. */
+	design?: CardDesign;
 }
 
 /** The browser's state from a card's config, opened on `path`. */
@@ -47,6 +55,7 @@ export function browseStateFor(cfg: FolderCardConfig, path: string): FolderBrows
 		layout: cfg.browserView === "tiles" ? "tiles" : "list",
 		preview: cfg.preview !== false,
 		previewSize: previewSize(cfg.previewSize),
+		images: cfg.images !== false,
 	};
 }
 
@@ -66,6 +75,8 @@ export function readBrowseState(raw: unknown): FolderBrowseState {
 		layout: r.layout === "tiles" ? "tiles" : "list",
 		preview: r.preview !== false,
 		previewSize: previewSize(r.previewSize),
+		images: r.images !== false,
+		...(r.design === "classic" || r.design === "expressive" ? { design: r.design } : {}),
 	};
 }
 
@@ -73,4 +84,19 @@ export function readBrowseState(raw: unknown): FolderBrowseState {
  * the explorer's order, everything shown, no counts, a list. */
 export function defaultBrowseState(path: string): FolderBrowseState {
 	return browseStateFor({}, path);
+}
+
+/**
+ * Whether the browser draws pictures on its tiles: in tiles, with pictures on,
+ * and only on the Full performance tier.
+ *
+ * Obsidian has no thumbnails, so a picture on a tile is the whole file decoded
+ * — a phone photo is tens of megapixels — and a folder of them held in memory
+ * for as long as the page is open. That is the kind of cost the tiers below
+ * Full exist to keep off a machine that can't afford it, and Balanced is the
+ * phone's default tier, where it would hurt most. So it is Full only: a tier
+ * that has asked for everything gets this too.
+ */
+export function picturesAllowed(state: FolderBrowseState, tier: PerformanceTier): boolean {
+	return state.layout === "tiles" && state.images && tier === "full";
 }

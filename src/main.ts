@@ -540,6 +540,11 @@ export default class HearthPlugin extends Plugin {
 			// tracker records that it owes a render to whoever next shows it.
 			if (this.boards.refresh(leaf, leafIsVisible(leaf))) view.render();
 		});
+		// The folder browser's tabs follow the same settings (#375). A page of
+		// a folder is far cheaper than a board, so it is simply redrawn.
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_FOLDER).forEach((leaf) => {
+			if (leaf.view instanceof FolderView) leaf.view.refresh();
+		});
 	}
 
 	/** Re-render a home view when it becomes the active leaf again, so content

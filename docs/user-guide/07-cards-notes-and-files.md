@@ -283,6 +283,7 @@ empty space or its folder button always opens the browser.
 | *Browser layout* | How the browser shows the folder, separately from *Display*: a list of rows, or larger tiles with a preview of each note |
 | *Note previews* | With tiles: the first lines of each note's text on its tile. On by default |
 | *Preview text size* | With previews: the size of that text, in pixels (6–14, 8 by default) |
+| *Image previews* | With tiles: pictures show themselves, and a note shows its first embedded image as a cover. Full performance tier only. On by default |
 
 ### Order
 
@@ -370,6 +371,11 @@ restarts, and it follows the folder live as notes are added, renamed or edited.
 It has its own position — walking it doesn't move the card. Opening a folder
 that already has a tab brings that tab forward instead of opening a second one.
 
+The tab is drawn in the same design the dialog would be — Classic or
+Expressive, from the card that opened it — and in terminal mode it is a
+terminal page, in your colour scheme. It follows changes to those settings while
+it is open.
+
 #### Tiles and previews
 
 Set *Browser layout* to **Tiles** — or use the switch beside the order picker —
@@ -384,6 +390,16 @@ doesn't read every note in it.
 
 The text is deliberately small; *Preview text size* makes it larger. A CSS
 snippet can also set `--hearth-folder-preview-size`.
+
+With *Image previews* on, a picture's tile shows the picture, and a note whose
+text embeds an image from the vault (`![[photo.jpg]]` or `![](photo.jpg)`)
+shows the first one as a cover above its name. Images on the web are never
+fetched for this. Pictures are shown **only on the Full performance tier**
+(*Settings → Hearth → Behaviour*): Obsidian has no thumbnails, so every picture
+is the whole file decoded and held in memory while the page is open — a folder
+of phone photos is exactly what the lighter tiers, and the phone's Balanced
+default, are there to spare. Like the text, a picture loads only once its tile
+comes near the screen.
 
 If you use Iconic or Iconize, files and folders show their own icons here. With
 Front Matter Title, notes are listed by the titles the file explorer shows for

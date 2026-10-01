@@ -2070,6 +2070,12 @@ export const fr: Translations = {
 			previewDesc: "Affiche les premières lignes du texte de chaque note sur sa tuile, sans ses propriétés.",
 			previewSize: "Taille du texte de l'aperçu",
 			previewSizeDesc: "En pixels. Petite par défaut — assez pour reconnaître une note.",
+			images: "Aperçu des images",
+			imagesDesc:
+				"Les images s'affichent sur leur tuile, et une note montre sa première " +
+				"image intégrée en couverture. Uniquement au niveau de performance " +
+				"« Complet » : une image, c'est le fichier entier décodé, ce que les " +
+				"niveaux plus légers sont là pour éviter.",
 		},
 		calendar: {
 			view: "Disposition",

@@ -1912,6 +1912,8 @@ export const zh: Translations = {
 			previewDesc: "在磁贴上显示每篇笔记正文的前几行，不含其属性。",
 			previewSize: "预览文字大小",
 			previewSizeDesc: "单位为像素。默认较小——足以认出一篇笔记。",
+			images: "图片预览",
+			imagesDesc: "图片会显示在自己的磁贴上，笔记会以其第一张嵌入图片作为封面。仅在“完整”性能档位下显示：一张图片就是解码后的整个文件，而较轻的档位正是为了避免这种开销。",
 		},
 		calendar: {
 			view: "布局",

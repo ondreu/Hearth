@@ -17239,6 +17239,44 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	display: none;
 }
 
+/* Pictures on the tiles — Full performance tier only (see picturesAllowed in
+   src/folderbrowse.ts). An image file fills the tile under its name; a note's
+   cover sits above its name, and appears only once the note turns out to have
+   one, so a note without one never leaves a gap. Both bleed to the tile's
+   edges. */
+.hearth-folder-tile-picture,
+.hearth-folder-tile-cover {
+	overflow: hidden;
+	background: var(--background-secondary);
+}
+
+.hearth-folder-tile-picture {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin: 0 -12px -10px;
+	border-radius: 0 0 9px 9px;
+}
+
+.hearth-folder-tile-cover {
+	order: -1;
+	flex: 0 0 64px;
+	margin: -10px -12px 0;
+	border-radius: 9px 9px 0 0;
+}
+
+.hearth-folder-tile:not(.has-cover) .hearth-folder-tile-cover,
+.hearth-folder-tile-picture.is-empty {
+	display: none;
+}
+
+.hearth-folder-tile-picture img,
+.hearth-folder-tile-cover img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
 /* A folder's tile has no text to show, so its icon takes the room instead. */
 .hearth-folder-tile.is-folder {
 	justify-content: center;
@@ -17276,6 +17314,49 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-folder-view .hearth-folder-bar {
 	padding-top: var(--size-4-3);
+}
+
+/* The tab wears the dialog's design (applyPageDesign in src/uidesign.ts): the
+   dialog's classes reach everything inside it, and these give the page the
+   ground a dialog's frame would have given it. */
+.hearth-folder-view.hearth-x-modal {
+	background: var(--x-dialog);
+}
+
+.hearth-folder-view.hearth-t-modal {
+	background: var(--tui-bg);
+	color: var(--tui-fg);
+	font-family: var(--tui-font);
+	font-variant-ligatures: none;
+}
+
+/* The browser in terminal mode, in a tab or a terminal dialog: square, ruled,
+   on the scheme's own colours. */
+.hearth-t-modal .hearth-folder-bar {
+	background: var(--tui-bg);
+	border-bottom-color: var(--tui-line);
+}
+
+.hearth-t-modal :is(.hearth-folder-crumb, .hearth-folder-head, .hearth-list-item, .hearth-folder-count) {
+	border-radius: 0;
+}
+
+.hearth-t-modal .hearth-folder-tile {
+	border: 1px solid var(--tui-line);
+	border-radius: 0;
+	background: var(--tui-bg);
+}
+
+.hearth-t-modal .hearth-folder-tile:hover {
+	background: var(--tui-hover);
+}
+
+.hearth-t-modal :is(.hearth-folder-tile-picture, .hearth-folder-tile-cover) {
+	border-radius: 0;
+}
+
+.hearth-t-modal .hearth-folder-tile-preview {
+	color: var(--tui-dim);
 }
 
 /* ======================================================================
@@ -21683,6 +21764,14 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-x-modal .hearth-folder-tile:hover {
 	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-folder-tile-picture {
+	border-radius: 0 0 16px 16px;
+}
+
+.hearth-x-modal .hearth-folder-tile-cover {
+	border-radius: 16px 16px 0 0;
 }
 
 .hearth-x-modal .hearth-folder-bar {

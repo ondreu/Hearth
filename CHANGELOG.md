@@ -89,12 +89,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   - Walking into a folder is a step in the tab's back and forward history, the
     tab reopens on the same folder after a restart, and it follows the folder
     live. Opening a folder that already has a tab brings that tab forward.
+  - The tab takes the dialog's design — Classic or Expressive from the card
+    that opened it, and terminal mode in its colour scheme — and follows
+    changes to them while it is open.
 - **Tiles with note previews in the folder browser.** The browser gets its own
   layout, separate from the card's: a list, or larger tiles that show each
   note's name and the first lines of its text — small by default, with a size
   setting — without its properties, code blocks or embeds (#375). A switch
   beside the order picker changes the layout on the spot. A note is read only
   once its tile comes near the screen.
+  - On the Full performance tier, pictures show themselves on their tiles and
+    a note shows its first embedded image as a cover (*Image previews*, on by
+    default). Lighter tiers skip them: there are no thumbnails, so each one is
+    the whole picture decoded.
 - **Front Matter Title integration.** With the
   [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin)
   plugin's file-explorer feature on, Folder cards and the folder browser list

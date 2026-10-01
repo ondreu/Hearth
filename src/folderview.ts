@@ -11,6 +11,7 @@ import {
 } from "./cards/folder";
 import { browserTouches } from "./foldercontents";
 import type HearthPlugin from "./main";
+import { applyPageDesign, vaultUiDesign } from "./uidesign";
 
 /**
  * The folder browser as a tab of its own (#375).
@@ -62,6 +63,7 @@ export class FolderView extends ItemView {
 		const next = readBrowseState(state);
 		if (next.path !== this.state.path) result.history = true;
 		this.state = next;
+		this.dress();
 		this.browser?.setState(next);
 		this.updateHeader();
 	}
@@ -88,8 +90,26 @@ export class FolderView extends ItemView {
 			},
 		};
 		this.browser = new FolderBrowser(host, this.contentEl.createDiv(), this.state);
+		this.dress();
 		this.browser.draw();
 		this.watchVault();
+	}
+
+	/** Redraw after a settings change — the design, terminal mode, the
+	 * performance tier, Front Matter Title — the way the boards are. */
+	refresh(): void {
+		this.dress();
+		this.browser?.draw();
+	}
+
+	/**
+	 * Wear the design a dialog opened from the same place would: the card's or
+	 * dialog's that opened the tab, else the vault's — and terminal mode's,
+	 * vault-wide, over either. Re-run on every refresh, since a tab outlives
+	 * the settings it was opened under.
+	 */
+	private dress(): void {
+		applyPageDesign(this.contentEl, this.state.design ?? vaultUiDesign());
 	}
 
 	async onClose(): Promise<void> {

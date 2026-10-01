@@ -1,10 +1,11 @@
-import { Keymap, Setting, TAbstractFile, TFile, TFolder, type App } from "obsidian";
+import { getLinkpath, Keymap, Setting, TAbstractFile, TFile, TFolder, type App } from "obsidian";
 import { setIcon } from "../glyphs";
-import { HearthModal } from "../uidesign";
+import { currentUiDesign, DESIGN_ATTR, HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { explorerChildOrder, explorerSortAsFolderSort } from "../explorerorder";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type FileIconOptions } from "../fileicons";
+import { isImageFile } from "../filetypes";
 import {
 	asFolderSort,
 	filterFolderEntries,
@@ -24,6 +25,7 @@ import {
 import {
 	browseStateFor,
 	folderPath,
+	picturesAllowed,
 	readBrowseState,
 	ROOT,
 	type FolderBrowseState,
@@ -33,14 +35,14 @@ import { t } from "../i18n";
 import { notePreviewText, PREVIEW_SIZE, previewSize } from "../notepreview";
 import { openFile, type OpenFrom } from "../opener";
 import { FolderPickerModal } from "../pickers";
-import { type DashboardCard, effectiveCardDesign, type FolderCardConfig, type HomeSettings } from "../types";
+import { type DashboardCard, effectiveCardDesign, type FolderCardConfig, type HomeSettings, performanceTier } from "../types";
 import { dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // The browse state and the path rules are pure, so they live where a test can
 // reach them; re-exported for everything that has always imported them here.
-export { browseStateFor, defaultBrowseState, folderPath, readBrowseState, ROOT } from "../folderbrowse";
+export { browseStateFor, defaultBrowseState, folderPath, picturesAllowed, readBrowseState, ROOT } from "../folderbrowse";
 export type { BrowserLayout, FolderBrowseState } from "../folderbrowse";
 
 
@@ -390,7 +392,11 @@ interface BrowseOptions extends FolderBrowseState {
  * wants to hand the user a folder. */
 export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
 	if (opts.inTab) {
-		void openFolderTab(view.app, stateOf(opts));
+		// The tab is drawn in the design of what opened it, as the dialog
+		// would have been: the card's when it says, else the press's.
+		const design =
+			opts.expressive === undefined ? currentUiDesign() : opts.expressive ? "expressive" : "classic";
+		void openFolderTab(view.app, { ...stateOf(opts), design });
 		return;
 	}
 	const modal = new FolderBrowserModal(view, opts);
@@ -401,8 +407,8 @@ export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
 /** Just the state out of a set of options, for a tab to persist — the
  * callbacks and the design are the dialog's. */
 function stateOf(opts: FolderBrowseState): FolderBrowseState {
-	const { path, sort, show, counts, layout, preview, previewSize } = opts;
-	return { path, sort, show, counts, layout, preview, previewSize };
+	const { path, sort, show, counts, layout, preview, previewSize, images, design } = opts;
+	return { path, sort, show, counts, layout, preview, previewSize, images, design };
 }
 
 /**
@@ -464,6 +470,8 @@ export interface BrowserHost {
 export class FolderBrowser {
 	state: FolderBrowseState;
 	private previews: PreviewLoader | null = null;
+	/** Whether this draw puts pictures on the tiles (see picturesAllowed). */
+	private pictures = false;
 
 	constructor(
 		private readonly host: BrowserHost,
@@ -513,8 +521,9 @@ export class FolderBrowser {
 			this.el.createDiv({ cls: "hearth-folder-empty", text: t().cards.empty.folderEmpty });
 			return;
 		}
-		if (this.state.layout === "tiles" && this.state.preview) {
-			this.previews = new PreviewLoader(app, this.el);
+		this.pictures = picturesAllowed(this.state, performanceTier(this.host.settings));
+		if (this.state.layout === "tiles" && (this.state.preview || this.pictures)) {
+			this.previews = new PreviewLoader(this.el);
 		}
 		const groups = groupFolderEntries(entries, (entry) =>
 			childEntries(app, entry, sort, show, titles),
@@ -653,10 +662,66 @@ export class FolderBrowser {
 				cls: "hearth-folder-count",
 				text: String(childCount(this.host.app, entry.path)),
 			});
-		} else if (this.previews && entry.extension === "md") {
-			this.previews.watch(tile.createDiv("hearth-folder-tile-preview"), entry.path);
+		} else {
+			this.drawTileContent(tile, entry);
 		}
 		this.wire(tile, entry);
+	}
+
+	/**
+	 * What a file's tile shows under its name, each part filled in only once the
+	 * tile comes near the screen: an image file shows itself; a note shows its
+	 * first embedded image as a cover above the name, and the first lines of
+	 * its text below it.
+	 */
+	private drawTileContent(tile: HTMLElement, entry: FolderEntry): void {
+		const loader = this.previews;
+		if (!loader) return;
+		const file = this.host.app.vault.getAbstractFileByPath(entry.path);
+		if (!(file instanceof TFile)) return;
+		if (isImageFile(file)) {
+			if (!this.pictures) return;
+			tile.addClass("has-picture");
+			const frame = tile.createDiv("hearth-folder-tile-picture");
+			loader.watch(frame, () => this.showPicture(frame, file));
+			return;
+		}
+		if (entry.extension !== "md") return;
+		if (this.pictures) {
+			// Watched through the tile: the frame stays hidden until there is a
+			// cover to put in it, and a hidden element never comes into view.
+			const cover = tile.createDiv("hearth-folder-tile-cover");
+			loader.watch(tile, () => {
+				const image = noteCover(this.host.app, file);
+				if (image) {
+					tile.addClass("has-cover");
+					this.showPicture(cover, image);
+				} else {
+					cover.addClass("is-empty");
+				}
+			});
+		}
+		if (this.state.preview) {
+			const text = tile.createDiv("hearth-folder-tile-preview");
+			loader.watch(text, () => fillPreview(this.host.app, loader, text, entry.path));
+		}
+	}
+
+	/** Put a picture in its frame. Decoded off the main thread where the
+	 * browser can; a file it can't show takes its frame away again. */
+	private showPicture(frame: HTMLElement, file: TFile): void {
+		const img = frame.createEl("img", {
+			attr: { alt: "", decoding: "async", loading: "lazy", draggable: "false" },
+		});
+		img.addEventListener(
+			"error",
+			() => {
+				frame.addClass("is-empty");
+				frame.parentElement?.removeClass("has-cover");
+			},
+			{ once: true },
+		);
+		img.src = this.host.app.vault.getResourcePath(file);
 	}
 
 	private wire(el: HTMLElement, entry: FolderEntry): void {
@@ -718,8 +783,11 @@ class FolderBrowserModal extends HearthModal {
 			opened: () => this.close(),
 			changed: (state) => this.opts.remember?.(state.path),
 			popOut: (state) => {
+				// The tab keeps the dialog's design: it is the same page, moved.
+				const stated = this.modalEl.getAttribute(DESIGN_ATTR);
+				const design = stated === "expressive" || stated === "classic" ? stated : undefined;
 				this.close();
-				void openFolderTab(this.app, state);
+				void openFolderTab(this.app, { ...state, design });
 			},
 		};
 		this.browser = new FolderBrowser(host, this.contentEl.createDiv(), stateOf(this.opts));
@@ -760,20 +828,53 @@ async function notePreview(app: App, path: string): Promise<string> {
 	return text;
 }
 
+/** Fill a tile's text preview, unless the page was redrawn while the note
+ * was being read. */
+function fillPreview(app: App, loader: PreviewLoader, el: HTMLElement, path: string): void {
+	notePreview(app, path).then(
+		(text) => {
+			if (!loader.live) return;
+			if (text) el.setText(text);
+			else el.addClass("is-empty");
+		},
+		() => {
+			if (loader.live) el.addClass("is-empty");
+		},
+	);
+}
+
 /**
- * Fills each tile's preview once the tile comes near the screen. A folder of
- * three hundred notes opened in tiles reads the dozen in view, not all three
- * hundred; the rest are read as they are scrolled to.
+ * A note's cover: the first image it embeds (`![[photo.jpg]]` or
+ * `![](photo.jpg)`) that resolves to a picture in the vault. Read from the
+ * metadata cache, so finding it reads no file; a picture on the web is not a
+ * cover, since showing one would be a request the vault never made.
+ */
+function noteCover(app: App, file: TFile): TFile | null {
+	const embeds = app.metadataCache.getFileCache(file)?.embeds ?? [];
+	for (const embed of embeds.slice(0, 20)) {
+		const target = app.metadataCache.getFirstLinkpathDest(getLinkpath(embed.link), file.path);
+		if (target && isImageFile(target)) return target;
+	}
+	return null;
+}
+
+/**
+ * Fills each tile's previews — its text, its picture — once the tile comes
+ * near the screen. A folder of three hundred notes opened in tiles reads the
+ * dozen in view, not all three hundred; the rest are read as they are
+ * scrolled to.
  *
- * Without an IntersectionObserver (a test environment) every preview is read
+ * Without an IntersectionObserver (a test environment) everything is filled
  * straight away.
  */
 class PreviewLoader {
 	private readonly observer: IntersectionObserver | null;
-	private readonly paths = new Map<Element, string>();
-	private live = true;
+	private readonly jobs = new Map<Element, () => void>();
+	/** False once the page has been redrawn or closed: a read that finishes
+	 * after that has nowhere to go. */
+	live = true;
 
-	constructor(private readonly app: App, root: HTMLElement) {
+	constructor(root: HTMLElement) {
 		this.observer =
 			typeof IntersectionObserver === "function"
 				? new IntersectionObserver((entries) => this.seen(entries), {
@@ -783,44 +884,30 @@ class PreviewLoader {
 				: null;
 	}
 
-	watch(el: HTMLElement, path: string): void {
+	watch(el: HTMLElement, run: () => void): void {
 		if (!this.observer) {
-			this.fill(el, path);
+			run();
 			return;
 		}
-		this.paths.set(el, path);
+		this.jobs.set(el, run);
 		this.observer.observe(el);
 	}
 
 	disconnect(): void {
 		this.live = false;
 		this.observer?.disconnect();
-		this.paths.clear();
+		this.jobs.clear();
 	}
 
 	private seen(entries: IntersectionObserverEntry[]): void {
 		for (const entry of entries) {
 			if (!entry.isIntersecting) continue;
-			const path = this.paths.get(entry.target);
-			if (path === undefined) continue;
-			this.paths.delete(entry.target);
+			const run = this.jobs.get(entry.target);
+			if (!run) continue;
+			this.jobs.delete(entry.target);
 			this.observer?.unobserve(entry.target);
-			this.fill(entry.target as HTMLElement, path);
+			run();
 		}
-	}
-
-	private fill(el: HTMLElement, path: string): void {
-		notePreview(this.app, path).then(
-			(text) => {
-				// The page was redrawn while the note was being read.
-				if (!this.live) return;
-				if (text) el.setText(text);
-				else el.addClass("is-empty");
-			},
-			() => {
-				if (this.live) el.addClass("is-empty");
-			},
-		);
 	}
 }
 
@@ -1004,6 +1091,16 @@ export function folderEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 				cfg.preview = v ? undefined : false;
 				ctx.opts.save();
 				ctx.requestRender();
+			}),
+		);
+
+	new Setting(containerEl)
+		.setName(strings.images)
+		.setDesc(strings.imagesDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.images !== false).onChange((v) => {
+				cfg.images = v ? undefined : false;
+				ctx.opts.save();
 			}),
 		);
 

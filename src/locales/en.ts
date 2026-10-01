@@ -2121,6 +2121,11 @@ export const en = {
 			previewDesc: "Show the first lines of each note's text on its tile, without its properties.",
 			previewSize: "Preview text size",
 			previewSizeDesc: "In pixels. Small by default — enough to recognise a note by.",
+			images: "Image previews",
+			imagesDesc:
+				"Pictures show themselves on their tiles, and a note shows its first " +
+				"embedded image as a cover. Only on the Full performance tier: a " +
+				"picture is the whole file decoded, which a lighter tier is there to avoid.",
 		},
 		calendar: {
 			view: "Layout",

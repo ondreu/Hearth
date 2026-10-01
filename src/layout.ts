@@ -1467,6 +1467,7 @@ function sanitizeFolder(r: Record<string, unknown>): FolderCardConfig {
 	if (r.browseIn === "tab") cfg.browseIn = "tab";
 	if (r.browserView === "list" || r.browserView === "tiles") cfg.browserView = r.browserView;
 	if (typeof r.preview === "boolean") cfg.preview = r.preview;
+	if (typeof r.images === "boolean") cfg.images = r.images;
 	if (typeof r.previewSize === "number" && Number.isFinite(r.previewSize)) {
 		cfg.previewSize = previewSize(r.previewSize);
 	}

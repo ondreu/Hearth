@@ -156,6 +156,22 @@ export function applyModalDesign(modal: Modal, design: CardDesign): void {
 	stateDesign(modal.modalEl, design);
 }
 
+/**
+ * Put a page Hearth draws in a tab of its own — the folder browser's (#375) —
+ * in `design`, dressed exactly as a dialog would be: the same classes, so the
+ * same rules reach everything inside it. A page outlives the settings it was
+ * drawn under, so unlike a dialog this is re-run on every redraw, and it takes
+ * off whatever an earlier one put on.
+ */
+export function applyPageDesign(el: HTMLElement, design: CardDesign): void {
+	for (const cls of Array.from(el.classList)) {
+		if (cls.startsWith("hearth-tui-scheme-")) el.removeClass(cls);
+	}
+	const terminal = dressTerminal(el, T_MODAL_CLASS);
+	el.toggleClass(X_MODAL_CLASS, design === "expressive" && !terminal);
+	stateDesign(el, design);
+}
+
 /** Every Hearth dialog: born in the design of wherever it was opened from. */
 export class HearthModal extends Modal {
 	constructor(app: App) {

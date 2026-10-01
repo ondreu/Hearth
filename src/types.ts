@@ -793,6 +793,10 @@ export interface FolderCardConfig {
 	/** The preview text's size in pixels. Omitted is `PREVIEW_SIZE.default` —
 	 * small on purpose: it is there to recognise a note by, not to read it. */
 	previewSize?: number;
+	/** Pictures on the browser's tiles: an image file shows itself, a note its
+	 * first embedded image as a cover. Default on, and drawn only on the Full
+	 * performance tier (`picturesAllowed` in `folderbrowse.ts`). */
+	images?: boolean;
 }
 
 /** Per-card configuration for a "searchbar" (live search field) card. */
