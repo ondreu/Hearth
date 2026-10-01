@@ -4,6 +4,7 @@ import type HearthPlugin from "./main";
 import { TaskFieldsModal } from "./cards/tasks";
 import { classicCardsInUse } from "./cards";
 import { hasFileIconPlugin } from "./fileicons";
+import { hasFrontMatterTitle } from "./frontmattertitle";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "./filetypes";
 import { kofiTipButton } from "./kofi";
 import { addIconPicker } from "./lucide";
@@ -554,6 +555,9 @@ export class HomeSettingTab extends PluginSettingTab {
 				);
 				this.section(body, s.fileIcons.heading, s.fileIcons.headingDesc, (b) =>
 					this.fileIconsSection(b),
+				);
+				this.section(body, s.frontMatterTitle.heading, s.frontMatterTitle.headingDesc, (b) =>
+					this.frontMatterTitleSection(b),
 				);
 				break;
 			case "backup":
@@ -1884,6 +1888,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				return t().settings.operon.heading;
 			case "fileIcons":
 				return t().settings.fileIcons.heading;
+			case "frontMatterTitle":
+				return t().settings.frontMatterTitle.heading;
 		}
 	}
 
@@ -2156,6 +2162,22 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			this.addTextReset(property, txt, "iconizeIconProperty");
 		});
+	}
+
+	// ---- Front Matter Title ----------------------------------------------
+
+	private frontMatterTitleSection(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const strings = t().settings.frontMatterTitle;
+		new Setting(containerEl)
+			.setName(strings.enable)
+			.setDesc(hasFrontMatterTitle(this.plugin.app) ? strings.enableDesc : strings.enableDescNoPlugin)
+			.addToggle((tog) =>
+				tog.setValue(s.frontMatterTitles).onChange(async (v) => {
+					s.frontMatterTitles = v;
+					this.save();
+				}),
+			);
 	}
 
 	// ---- Filters --------------------------------------------------------

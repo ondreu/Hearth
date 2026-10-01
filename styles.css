@@ -17151,6 +17151,133 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	font-size: var(--font-ui-smaller);
 }
 
+/* The layout switch and the "open in a tab" button: icons at the end of the
+   row, beside the sort picker, never wrapping away from it. */
+.hearth-folder-bar-button {
+	flex: 0 0 auto;
+}
+
+/* The browser in tiles (#375): bigger than the card's tiles, because each one
+   carries the start of its note — a name and a few lines, the way a notes app
+   shows a folder. As many per row as the page is wide. */
+.hearth-folder-browser-tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 10px;
+}
+
+.hearth-folder-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	height: 168px;
+	padding: 10px 12px;
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-primary);
+	cursor: pointer;
+}
+
+.hearth-folder-tile:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-folder-tile-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	min-width: 0;
+}
+
+.hearth-folder-tile-icon {
+	display: flex;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.hearth-folder-tile-icon .svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* Two lines of the name, as on the card's tiles. */
+.hearth-folder-tile-name {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	line-height: 1.3;
+}
+
+.hearth-folder-tile .hearth-folder-count {
+	margin-inline-start: auto;
+}
+
+/* The note's first lines: small on purpose — enough to recognise a note by,
+   not to read it — with its line breaks kept, and faded out where the tile
+   ends rather than cut mid-line. The size is the card's setting, and a CSS
+   snippet can override the variable. */
+.hearth-folder-tile-preview {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	color: var(--text-muted);
+	font-size: var(--hearth-folder-preview-size, 8px);
+	line-height: 1.35;
+	white-space: pre-line;
+	overflow-wrap: anywhere;
+	-webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+	mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.hearth-folder-tile-preview.is-empty {
+	display: none;
+}
+
+/* A folder's tile has no text to show, so its icon takes the room instead. */
+.hearth-folder-tile.is-folder {
+	justify-content: center;
+}
+
+.hearth-folder-tile.is-folder .hearth-folder-tile-head {
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+.hearth-folder-tile.is-folder .hearth-folder-tile-icon .svg-icon {
+	width: 32px;
+	height: 32px;
+}
+
+.hearth-folder-tile.is-folder .hearth-folder-count {
+	margin-inline-start: 0;
+}
+
+/* The browser in a tab of its own: the page is the browser, and the browser
+   is what scrolls, so the sticky bar sits flush with the top of the tab. */
+.hearth-folder-view.view-content {
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-folder-view .hearth-folder-browser {
+	flex: 1 1 auto;
+	max-height: none;
+	padding: 0 var(--size-4-6) var(--size-4-6);
+}
+
+.hearth-folder-view .hearth-folder-bar {
+	padding-top: var(--size-4-3);
+}
+
 /* ======================================================================
  * Market card
  *
@@ -21548,6 +21675,16 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 /* ---- The folder browser ---- */
+.hearth-x-modal .hearth-folder-tile {
+	border: none;
+	border-radius: 16px;
+	background: var(--x-surface-high);
+}
+
+.hearth-x-modal .hearth-folder-tile:hover {
+	background: var(--x-surface-highest);
+}
+
 .hearth-x-modal .hearth-folder-bar {
 	padding-bottom: 10px;
 	border-bottom: none;

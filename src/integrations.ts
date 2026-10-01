@@ -24,6 +24,7 @@ import { DATACORE_PLUGIN_ID } from "./datacore";
 import { DATAVIEW_PLUGIN_ID } from "./dataview";
 import { ICONIC_PLUGIN_ID, ICONIZE_PLUGIN_ID } from "./fileicons";
 import { EXCALIDRAW_PLUGIN_ID } from "./filetypes";
+import { FRONT_MATTER_TITLE_PLUGIN_ID } from "./frontmattertitle";
 import { GIT_PLUGIN_ID } from "./git";
 import { OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { OPERON_PLUGIN_ID } from "./operon";
@@ -52,7 +53,7 @@ export type SettingsTabId =
 
 /** The collapsible sections of the Integrations tab that hold real settings.
  * A catalogue entry names one so its row can expand and scroll to it. */
-export type IntegrationSectionId = "tasks" | "operon" | "fileIcons";
+export type IntegrationSectionId = "tasks" | "operon" | "fileIcons" | "frontMatterTitle";
 
 /** How an integration is grouped in the list. */
 export type IntegrationGroup = "plugin" | "core" | "service";
@@ -86,6 +87,7 @@ export type IntegrationId =
 	| "operon"
 	| "iconic"
 	| "iconize"
+	| "frontMatterTitle"
 	| "excalidraw"
 	| "vaultPet"
 	| "bases"
@@ -190,6 +192,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		group: "plugin",
 		pluginId: ICONIZE_PLUGIN_ID,
 		where: { kind: "section", section: "fileIcons" },
+	},
+	{
+		id: "frontMatterTitle",
+		group: "plugin",
+		pluginId: FRONT_MATTER_TITLE_PLUGIN_ID,
+		where: { kind: "section", section: "frontMatterTitle" },
 	},
 	{
 		id: "excalidraw",

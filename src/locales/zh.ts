@@ -1305,6 +1305,10 @@ export const zh: Translations = {
 						"对 Iconize（原 Obsidian Icon Folder）同样适用，包括通过 frontmatter " +
 						"属性设置的图标。",
 				},
+				frontMatterTitle: {
+					name: "Front Matter Title",
+					desc: "文件夹卡片和文件夹浏览页会用 Front Matter Title 在文件列表中显示的标题来列出笔记，而不是文件名。",
+				},
 				vaultPet: {
 					name: "Vault Pet",
 					desc:
@@ -1443,6 +1447,16 @@ export const zh: Translations = {
 			propertyDesc:
 				"Iconize 存放笔记图标的属性，用于通过 frontmatter 而非菜单设置的图标。" +
 				"如果您重命名过，请与 Iconize 自己的设置保持一致（其默认值为 “icon”）。",
+		},
+		frontMatterTitle: {
+			heading: "Front Matter Title",
+			headingDesc:
+				"当 Front Matter Title 插件为笔记设置了标题时，按文件列表的方式显示笔记：" +
+				"文件夹卡片和文件夹浏览页会用该标题而不是文件名来列出每篇笔记。" +
+				"跟随该插件自身的文件列表设置——其文件列表功能关闭时，显示文件名。",
+			enable: "使用 Front Matter Title 的标题",
+			enableDesc: "关闭后，每篇笔记都按文件名列出，忽略该插件。",
+			enableDescNoPlugin: "Front Matter Title 当前未启用，因此笔记按文件名列出。此项可以保持开启——插件安装后即会生效。",
 		},
 		operon: {
 			heading: "Operon",
@@ -1888,6 +1902,16 @@ export const zh: Translations = {
 			navigateCard: "在卡片内",
 			browse: "从卡片打开浏览页",
 			browseDesc: "点击卡片的空白处（或其文件夹按钮）会打开带面包屑导航的浏览页，其中每个文件夹都可以继续进入。",
+			browseIn: "打开浏览页",
+			browseInDesc: "在看板上方的对话框中打开（带有一个移到标签页的按钮），或直接在单独的标签页中打开，让文件夹占据整个页面。",
+			browseInModal: "在对话框中",
+			browseInTab: "在新标签页中",
+			browserView: "浏览页布局",
+			browserViewDesc: "浏览页如何显示文件夹，与卡片分开设置：行列表，或带有每篇笔记预览的较大磁贴。",
+			preview: "笔记预览",
+			previewDesc: "在磁贴上显示每篇笔记正文的前几行，不含其属性。",
+			previewSize: "预览文字大小",
+			previewSizeDesc: "单位为像素。默认较小——足以认出一篇笔记。",
 		},
 		calendar: {
 			view: "布局",
@@ -3174,6 +3198,10 @@ export const zh: Translations = {
 			/** The path row's back arrow, and the vault's own name in it. */
 			up: (name: string) => `返回 ${name}`,
 			vaultRoot: "库根目录",
+			/** The browser's own controls, beside the breadcrumb. */
+			showList: "以列表显示",
+			showTiles: "以磁贴显示",
+			openInTab: "在新标签页中打开",
 		},
 		operon: {
 			loading: "正在读取 Operon…",

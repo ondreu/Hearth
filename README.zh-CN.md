@@ -258,6 +258,7 @@ Hearth 会自行识别这些插件 —— 无需连接，也不用粘贴任何�
 | [Git](https://github.com/Vinzent03/obsidian-git) | Git 卡片，通过该插件自己的任务队列执行 | 卡片本身 |
 | [Operon](https://github.com/hasanyilmaz/operon) | 基于 Operon 开发者 API 的四张卡片 —— [详情见下](#operon) | 集成标签页 |
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | 您的按文件图标会出现在 Hearth 列出文件的任何位置 | 集成标签页 |
+| [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin) | 文件夹卡片按文件列表中显示的标题列出笔记 | 集成标签页 |
 | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) | 绘图在嵌入卡片中实时渲染；“新建绘图”会运行它的命令 | 卡片本身 |
 | [Kanban](https://github.com/obsidian-community/obsidian-kanban) | 任务卡片以它自己的格式读写其看板笔记 | 卡片本身 |
 | [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) | Vault Pet 卡片把该插件安置在面板上 —— 它自己的宠物卡片，或它完整的宠物小屋 | 卡片本身 |

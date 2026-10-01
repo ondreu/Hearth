@@ -1442,6 +1442,13 @@ export const de: Translations = {
 						"Dasselbe für Iconize (ehemals Obsidian Icon Folder), einschließlich Symbolen, " +
 						"die über eine Frontmatter-Eigenschaft gesetzt wurden.",
 				},
+				frontMatterTitle: {
+					name: "Front Matter Title",
+					desc:
+						"Ordnerkarten und der Ordner-Browser zeigen Notizen mit den Titeln, " +
+						"die Front Matter Title im Datei-Explorer anzeigt, statt mit ihren " +
+						"Dateinamen.",
+				},
 				vaultPet: {
 					name: "Vault Pet",
 					desc:
@@ -1600,6 +1607,21 @@ export const de: Translations = {
 				"Eigenschaft, in der Iconize das Symbol einer Notiz speichert, für Symbole, die über " +
 				"Frontmatter statt über sein Menü gesetzt wurden. Gleiche dies mit Iconizes eigener " +
 				"Einstellung ab, falls du sie umbenannt hast (Standard ist „icon“).",
+		},
+		frontMatterTitle: {
+			heading: "Front Matter Title",
+			headingDesc:
+				"Zeigt Notizen so wie der Datei-Explorer, wenn das Plugin Front Matter " +
+				"Title ihnen einen Titel gibt: Ordnerkarten und der Ordner-Browser " +
+				"listen jede Notiz unter diesem Titel statt unter ihrem Dateinamen. " +
+				"Folgt der Explorer-Einstellung des Plugins — solange seine " +
+				"Explorer-Funktion aus ist, werden Dateinamen gezeigt.",
+			enable: "Titel aus Front Matter Title verwenden",
+			enableDesc: "Aus zeigt jede Notiz mit ihrem Dateinamen und ignoriert das Plugin.",
+			enableDescNoPlugin:
+				"Front Matter Title ist gerade nicht aktiviert, daher werden Notizen " +
+				"mit ihren Dateinamen gezeigt. Das kann eingeschaltet bleiben — es " +
+				"greift, sobald das Plugin installiert ist.",
 		},
 		operon: {
 			heading: "Operon",
@@ -2095,6 +2117,21 @@ export const de: Translations = {
 				"Ein Klick auf die freie Fläche der Karte — oder auf ihre " +
 				"Ordner-Schaltfläche — öffnet den Ordner in einem Browser mit " +
 				"Pfadleiste, in dem jeder Ordner geöffnet werden kann.",
+			browseIn: "Browser öffnen",
+			browseInDesc:
+				"In einem Dialog über dem Board — mit einer Schaltfläche, die ihn in " +
+				"einen Tab verschiebt — oder direkt in einem eigenen Tab, wo der " +
+				"Ordner die ganze Seite hat.",
+			browseInModal: "In einem Dialog",
+			browseInTab: "In einem neuen Tab",
+			browserView: "Layout des Browsers",
+			browserViewDesc:
+				"Wie der Browser den Ordner zeigt, unabhängig von der Karte: eine " +
+				"Liste von Zeilen oder größere Kacheln mit einer Vorschau jeder Notiz.",
+			preview: "Notizvorschau",
+			previewDesc: "Zeigt die ersten Zeilen des Textes jeder Notiz auf ihrer Kachel, ohne ihre Eigenschaften.",
+			previewSize: "Schriftgröße der Vorschau",
+			previewSizeDesc: "In Pixeln. Standardmäßig klein — genug, um eine Notiz wiederzuerkennen.",
 		},
 		calendar: {
 			view: "Layout",
@@ -3464,6 +3501,10 @@ export const de: Translations = {
 			/** The path row's back arrow, and the vault's own name in it. */
 			up: (name: string) => `Zurück zu ${name}`,
 			vaultRoot: "Vault-Wurzel",
+			/** The browser's own controls, beside the breadcrumb. */
+			showList: "Als Liste zeigen",
+			showTiles: "Als Kacheln zeigen",
+			openInTab: "In neuem Tab öffnen",
 		},
 		operon: {
 			loading: "Lese Operon…",

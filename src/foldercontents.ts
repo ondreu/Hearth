@@ -223,3 +223,16 @@ export function folderTouches(folder: string, path: string, deep: boolean): bool
 	if (!deep) return false;
 	return folder === "" ? true : path.startsWith(`${folder}/`);
 }
+
+/**
+ * Whether a change at `path` can alter what the folder browser shows for
+ * `folder`: the folder itself, its children, their children (every subfolder
+ * is opened one level on the page), and the level below those, whose size the
+ * count on each of those rows reads. Anything deeper is not on the page.
+ */
+export function browserTouches(folder: string, path: string): boolean {
+	if (path === folder) return true;
+	if (!pathWithin(path, folder)) return false;
+	const rest = folder === "" ? path : path.slice(folder.length + 1);
+	return rest.split("/").length <= 3;
+}

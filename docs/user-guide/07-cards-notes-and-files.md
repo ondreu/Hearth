@@ -279,6 +279,10 @@ empty space or its folder button always opens the browser.
 | *Item counts* | Show how many things each subfolder holds |
 | *Opening a subfolder* | In the folder browser (the default), or in the card itself |
 | *Open the browser from the card* | Turn off for a card that should only ever open what it lists |
+| *Open the browser* | In a dialog over the board (the default), or straight in a new tab |
+| *Browser layout* | How the browser shows the folder, separately from *Display*: a list of rows, or larger tiles with a preview of each note |
+| *Note previews* | With tiles: the first lines of each note's text on its tile. On by default |
+| *Preview text size* | With previews: the size of that text, in pixels (6–14, 8 by default) |
 
 ### Order
 
@@ -328,8 +332,8 @@ when Obsidian restarts.
 
 ### The folder browser
 
-The card is a glance; the browser is the whole folder. It opens as a dialog
-with:
+The card is a glance; the browser is the whole folder. It opens as a dialog —
+or in a tab, see below — with:
 
 - a **breadcrumb** from the vault root down to the folder, every step of it
   clickable;
@@ -337,8 +341,8 @@ with:
   opened one extra level, and the files between them gathered into blocks — so
   the page keeps the order the sidebar has, rather than sorting the folders away
   from the files;
-- an **order** picker, which belongs to the dialog: changing it there doesn't
-  touch the card.
+- an **order** picker and a **list / tiles** switch, which belong to the
+  browser: changing them there doesn't touch the card.
 
 Every folder in the browser — a breadcrumb step, a section heading, a row —
 steps the dialog into that folder, so you can walk a whole tree without leaving
@@ -354,8 +358,36 @@ position, that is remembered for the session only, and a card set to navigate in
 the card follows the browser: walk somewhere in the dialog, close it, and the
 card is there.
 
-If you use Iconic or Iconize, files and folders show their own icons here. See
-[chapter 14](14-integrations.md).
+#### In a tab
+
+The dialog has a button at the end of its top row that moves the browser to a
+**new tab**, where the folder has the whole page. Set *Open the browser* to
+**In a new tab** and the card skips the dialog and opens the tab directly.
+
+A tab behaves like any other page: walking into a folder is a step in the tab's
+**back and forward** history, the tab reopens on the same folder after Obsidian
+restarts, and it follows the folder live as notes are added, renamed or edited.
+It has its own position — walking it doesn't move the card. Opening a folder
+that already has a tab brings that tab forward instead of opening a second one.
+
+#### Tiles and previews
+
+Set *Browser layout* to **Tiles** — or use the switch beside the order picker —
+and the browser shows larger tiles instead of rows: each note's name, then the
+**first lines of its text**, small, the way a notes app shows a folder.
+
+The preview is the note's text with its Markdown taken out — not rendered: no
+properties, no code blocks, comments, embeds or images; headings, list items,
+quotes and link labels as plain text. That keeps a page of tiles cheap. A note
+is read only once its tile comes near the screen, so opening a large folder
+doesn't read every note in it.
+
+The text is deliberately small; *Preview text size* makes it larger. A CSS
+snippet can also set `--hearth-folder-preview-size`.
+
+If you use Iconic or Iconize, files and folders show their own icons here. With
+Front Matter Title, notes are listed by the titles the file explorer shows for
+them. See [chapter 14](14-integrations.md).
 
 ---
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	asFolderSort,
+	browserTouches,
 	filterFolderEntries,
 	folderTouches,
 	folderTrail,
@@ -212,5 +213,26 @@ describe("asFolderSort", () => {
 		expect(asFolderSort("byModifiedTime")).toBeUndefined();
 		expect(asFolderSort(undefined)).toBeUndefined();
 		expect(asFolderSort(7)).toBeUndefined();
+	});
+});
+
+describe("browserTouches", () => {
+	it("counts the three levels the browser page draws", () => {
+		expect(browserTouches("A", "A")).toBe(true);
+		expect(browserTouches("A", "A/note.md")).toBe(true);
+		expect(browserTouches("A", "A/Sub/note.md")).toBe(true);
+		// A row inside a subfolder's section counts what it holds.
+		expect(browserTouches("A", "A/Sub/Deeper/note.md")).toBe(true);
+	});
+
+	it("ignores anything deeper, and anything outside", () => {
+		expect(browserTouches("A", "A/Sub/Deeper/Deepest/note.md")).toBe(false);
+		expect(browserTouches("A", "B/note.md")).toBe(false);
+		expect(browserTouches("A", "AB/note.md")).toBe(false);
+	});
+
+	it("measures from the vault root's own children", () => {
+		expect(browserTouches("", "note.md")).toBe(true);
+		expect(browserTouches("", "A/B/C/note.md")).toBe(false);
 	});
 });

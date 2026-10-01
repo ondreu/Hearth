@@ -294,6 +294,7 @@ full list, with live status and where each one's settings live, is under
 | [Git](https://github.com/Vinzent03/obsidian-git) | The Git card, acting through the plugin's own task queue | The card |
 | [Operon](https://github.com/hasanyilmaz/operon) | Four cards on Operon's Developer API — [details below](#operon) | Integrations tab |
 | [Iconic](https://obsidian.md/plugins?id=iconic) / [Iconize](https://obsidian.md/plugins?id=obsidian-icon-folder) | Your per-file icons show wherever Hearth lists a file | Integrations tab |
+| [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin) | Folder cards list notes by the titles the file explorer shows | Integrations tab |
 | [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) | Drawings render live in Embed cards; "New drawing" runs its command | The card |
 | [Kanban](https://github.com/obsidian-community/obsidian-kanban) | Tasks cards read and write its board notes in its own format | The card |
 | [Vault Pet](https://github.com/elliott-json-park/obsidian-vault-pet) | The Vault Pet card gives the plugin a place on the board — its own pet card, or its whole pet house | The card |

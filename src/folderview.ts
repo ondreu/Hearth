@@ -1,0 +1,128 @@
+import { debounce, ItemView, type TAbstractFile, type ViewStateResult, type WorkspaceLeaf } from "obsidian";
+import {
+	defaultBrowseState,
+	FolderBrowser,
+	folderTitle,
+	readBrowseState,
+	ROOT,
+	VIEW_TYPE_FOLDER,
+	type BrowserHost,
+	type FolderBrowseState,
+} from "./cards/folder";
+import { browserTouches } from "./foldercontents";
+import type HearthPlugin from "./main";
+
+/**
+ * The folder browser as a tab of its own (#375).
+ *
+ * The dialog over the board is a good way to look into a folder and get back
+ * to the board; it is a poor place to spend time in one — it covers the board,
+ * caps its height, and is gone the moment a note is opened. A tab has the whole
+ * page, survives a reload on the folder it was showing, and walks its folders
+ * through the tab's own back and forward buttons.
+ *
+ * The browser itself is the dialog's (`FolderBrowser` in `cards/folder.ts`):
+ * this view only hosts it — persists its state, names the tab, and redraws it
+ * when the folder it shows changes on disk, which the dialog, opened for a
+ * moment, never needed to.
+ */
+export class FolderView extends ItemView {
+	private state: FolderBrowseState = defaultBrowseState(ROOT);
+	private browser: FolderBrowser | null = null;
+
+	constructor(leaf: WorkspaceLeaf, private readonly plugin: HearthPlugin) {
+		super(leaf);
+		this.navigation = true;
+	}
+
+	getViewType(): string {
+		return VIEW_TYPE_FOLDER;
+	}
+
+	getDisplayText(): string {
+		return folderTitle(this.app, this.state.path);
+	}
+
+	getIcon(): string {
+		return "folder-open";
+	}
+
+	getState(): Record<string, unknown> {
+		return { ...super.getState(), ...this.state };
+	}
+
+	/**
+	 * Take a state — a reloaded workspace, the card opening this tab, or a step
+	 * through the tab's history. A change of folder is recorded as a history
+	 * entry, so Back returns to the folder before it; a change of sort or layout
+	 * is not, since that is the same page drawn differently.
+	 */
+	async setState(state: unknown, result: ViewStateResult): Promise<void> {
+		await super.setState(state, result);
+		const next = readBrowseState(state);
+		if (next.path !== this.state.path) result.history = true;
+		this.state = next;
+		this.browser?.setState(next);
+		this.updateHeader();
+	}
+
+	async onOpen(): Promise<void> {
+		this.contentEl.addClass("hearth-folder-view");
+		const host: BrowserHost = {
+			app: this.app,
+			settings: this.plugin.settings,
+			opener: { app: this.app, settings: this.plugin.settings, leaf: this.leaf },
+			// The tab's header is the title; a second one inside the page would
+			// only say it again.
+			setTitle: () => this.updateHeader(),
+			navigate: (path) => {
+				void this.leaf.setViewState({
+					type: VIEW_TYPE_FOLDER,
+					state: { ...this.state, path },
+					active: true,
+				});
+			},
+			changed: (state) => {
+				this.state = state;
+				this.app.workspace.requestSaveLayout();
+			},
+		};
+		this.browser = new FolderBrowser(host, this.contentEl.createDiv(), this.state);
+		this.browser.draw();
+		this.watchVault();
+	}
+
+	async onClose(): Promise<void> {
+		this.browser?.destroy();
+		this.browser = null;
+		this.contentEl.empty();
+	}
+
+	/** Redraw when something on the page — the folder shown, and the levels
+	 * below it the page draws — is added, removed, renamed or re-titled. */
+	private watchVault(): void {
+		const redraw = debounce(() => this.browser?.draw(), 300, true);
+		const check = (file: TAbstractFile, oldPath?: string) => {
+			const at = this.state.path;
+			if (browserTouches(at, file.path) || (oldPath !== undefined && browserTouches(at, oldPath))) {
+				redraw();
+			}
+		};
+		this.registerEvent(this.app.vault.on("create", (file) => check(file)));
+		this.registerEvent(this.app.vault.on("delete", (file) => check(file)));
+		this.registerEvent(this.app.vault.on("rename", (file, oldPath) => check(file, oldPath)));
+		// A note's title (Front Matter Title) and its preview come from its
+		// content, which a metadata update follows.
+		this.registerEvent(this.app.metadataCache.on("changed", (file) => check(file)));
+	}
+
+	/** Have the tab's header say the folder now shown. `updateHeader` is not
+	 * public API; without it the header catches up on the next layout change. */
+	private updateHeader(): void {
+		try {
+			(this.leaf as unknown as { updateHeader?: () => void }).updateHeader?.();
+		} catch {
+			// The header keeps its old name until Obsidian next redraws it.
+		}
+	}
+}

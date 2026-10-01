@@ -3,14 +3,13 @@ import { setIcon } from "../glyphs";
 import { bookmarkTarget, type BookmarkItem } from "../bookmarks";
 import { emptyState, redrawCard } from "../cardbodies";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
-import { FOLDER_SORT_DEFAULT } from "../foldercontents";
 import { t } from "../i18n";
 import { type BookmarksInstance } from "../obsidian-ext";
 import { openFile, openSearch, targetLeaf } from "../opener";
 import { inExpressiveCard, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition } from "./definition";
-import { openFolderBrowser } from "./folder";
+import { defaultBrowseState, openFolderBrowser } from "./folder";
 
 
 // ---- Bookmarks (Obsidian core) -----------------------------------------
@@ -256,13 +255,7 @@ function openNote(view: HomeView, path: string, subpath?: string): void {
  * read here — a bookmark is a path and nothing else — so the browser opens on
  * its own defaults: the explorer's order, everything shown, no counts. */
 function openFolder(view: HomeView, path: string, expressive: boolean): void {
-	openFolderBrowser(view, {
-		path,
-		sort: FOLDER_SORT_DEFAULT,
-		show: "all",
-		counts: false,
-		expressive,
-	});
+	openFolderBrowser(view, { ...defaultBrowseState(path), expressive });
 }
 
 

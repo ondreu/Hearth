@@ -96,6 +96,7 @@ import {
 } from "./slideshow";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
 import { asFolderSort } from "./foldercontents";
+import { previewSize } from "./notepreview";
 import {
 	type EventField,
 	type EventFieldAction,
@@ -307,6 +308,9 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		// File icons (Iconic / Iconize)
 		customFileIcons: s.customFileIcons,
 		iconizeIconProperty: s.iconizeIconProperty,
+
+		// Front Matter Title
+		frontMatterTitles: s.frontMatterTitles,
 
 		// Operon
 		operonIntegration: s.operonIntegration,
@@ -1460,6 +1464,12 @@ function sanitizeFolder(r: Record<string, unknown>): FolderCardConfig {
 	if (typeof r.counts === "boolean") cfg.counts = r.counts;
 	if (typeof r.browse === "boolean") cfg.browse = r.browse;
 	if (r.navigate === "card") cfg.navigate = "card";
+	if (r.browseIn === "tab") cfg.browseIn = "tab";
+	if (r.browserView === "list" || r.browserView === "tiles") cfg.browserView = r.browserView;
+	if (typeof r.preview === "boolean") cfg.preview = r.preview;
+	if (typeof r.previewSize === "number" && Number.isFinite(r.previewSize)) {
+		cfg.previewSize = previewSize(r.previewSize);
+	}
 	return cfg;
 }
 
@@ -2347,6 +2357,9 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.customFileIcons = data.customFileIcons;
 	const iconizeProperty = str(data.iconizeIconProperty)?.trim();
 	if (iconizeProperty) s.iconizeIconProperty = iconizeProperty;
+	// Front Matter Title
+	if (typeof data.frontMatterTitles === "boolean")
+		s.frontMatterTitles = data.frontMatterTitles;
 
 	// Operon
 	if (typeof data.operonIntegration === "boolean") {

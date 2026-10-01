@@ -1383,6 +1383,13 @@ export const fr: Translations = {
 						"Pareil pour Iconize (anciennement Obsidian Icon Folder), y compris les icônes " +
 						"définies via une propriété de frontmatter.",
 				},
+				frontMatterTitle: {
+					name: "Front Matter Title",
+					desc:
+						"Les cartes Dossier et le navigateur de dossiers affichent les notes " +
+						"sous les titres que Front Matter Title leur donne dans l'explorateur " +
+						"de fichiers, au lieu de leurs noms de fichier.",
+				},
 				vaultPet: {
 					name: "Vault Pet",
 					desc:
@@ -1539,6 +1546,22 @@ export const fr: Translations = {
 				"La propriété où Iconize stocke l'icône d'une note, pour les icônes définies via " +
 				"le frontmatter plutôt que son menu. Faites-la correspondre au paramètre d'Iconize " +
 				"si vous l'avez renommée (par défaut « icon »).",
+		},
+		frontMatterTitle: {
+			heading: "Front Matter Title",
+			headingDesc:
+				"Affiche les notes comme l'explorateur de fichiers lorsque le plugin " +
+				"Front Matter Title leur donne un titre : les cartes Dossier et le " +
+				"navigateur de dossiers listent chaque note sous ce titre plutôt que " +
+				"sous son nom de fichier. Suit le réglage d'explorateur du plugin — " +
+				"tant que sa fonction explorateur est désactivée, les noms de fichier " +
+				"sont affichés.",
+			enable: "Utiliser les titres de Front Matter Title",
+			enableDesc: "Désactivé, chaque note est listée par son nom de fichier, sans tenir compte du plugin.",
+			enableDescNoPlugin:
+				"Front Matter Title n'est pas activé pour le moment, les notes sont " +
+				"donc listées par leur nom de fichier. Vous pouvez laisser ce réglage " +
+				"activé : il prendra effet dès que le plugin sera installé.",
 		},
 		operon: {
 			heading: "Operon",
@@ -2032,6 +2055,21 @@ export const fr: Translations = {
 				"Cliquer sur l'espace vide de la carte — ou sur son bouton dossier — ouvre le " +
 				"dossier dans un navigateur avec fil d'Ariane, où l'on peut entrer dans " +
 				"chaque dossier.",
+			browseIn: "Ouvrir le navigateur",
+			browseInDesc:
+				"Dans une fenêtre au-dessus du tableau — avec un bouton qui la déplace " +
+				"dans un onglet — ou directement dans un onglet à part, où le dossier " +
+				"dispose de toute la page.",
+			browseInModal: "Dans une fenêtre",
+			browseInTab: "Dans un nouvel onglet",
+			browserView: "Disposition du navigateur",
+			browserViewDesc:
+				"Comment le navigateur affiche le dossier, indépendamment de la carte : " +
+				"une liste de lignes, ou de plus grandes tuiles avec un aperçu de chaque note.",
+			preview: "Aperçu des notes",
+			previewDesc: "Affiche les premières lignes du texte de chaque note sur sa tuile, sans ses propriétés.",
+			previewSize: "Taille du texte de l'aperçu",
+			previewSizeDesc: "En pixels. Petite par défaut — assez pour reconnaître une note.",
 		},
 		calendar: {
 			view: "Disposition",
@@ -3400,6 +3438,10 @@ export const fr: Translations = {
 			missing: "Ce dossier n'est plus dans le coffre.",
 			up: (name: string) => `Remonter à ${name}`,
 			vaultRoot: "la racine du coffre",
+			/** The browser's own controls, beside the breadcrumb. */
+			showList: "Afficher en liste",
+			showTiles: "Afficher en tuiles",
+			openInTab: "Ouvrir dans un nouvel onglet",
 		},
 		operon: {
 			loading: "Lecture d'Operon…",

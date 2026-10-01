@@ -14,6 +14,7 @@ import { TFile, TFolder, type TAbstractFile } from "obsidian";
 import { bookmarkPathName, openBookmark, pruneBookmarks } from "../../cards/bookmarks";
 import {
 	browsedPath,
+	browseStateFor,
 	CARD_COUNT_DEFAULT,
 	childCount,
 	currentPath,
@@ -26,6 +27,7 @@ import {
 } from "../../cards/folder";
 import type { BookmarkItem } from "../../bookmarks";
 import { FOLDER_SORT_DEFAULT, parentPath, type FolderEntry } from "../../foldercontents";
+import { explorerTitles } from "../../frontmattertitle";
 import { t } from "../../i18n";
 import type { BookmarksInstance } from "../../obsidian-ext";
 import type { TuiContext, TuiRenderer } from "../card";
@@ -53,10 +55,10 @@ function setOpen(ctx: TuiContext, node: TreeNode, open: boolean): void {
 function browse(ctx: TuiContext, path: string): void {
 	const cfg = ctx.card.folder ?? {};
 	openFolderBrowser(ctx.view, {
-		path,
-		sort: cfg.sort ?? FOLDER_SORT_DEFAULT,
-		show: cfg.show ?? "all",
-		counts: cfg.counts === true,
+		// A list, whatever the graphical card's browser is set to: the dialog
+		// is dressed as a terminal one, and tiles are not a terminal's shape.
+		...browseStateFor(cfg, path),
+		layout: "list",
 		remember: (to) => {
 			browsedPath.set(ctx.card, to);
 			if (cfg.navigate === "card") ctx.redraw();
@@ -68,7 +70,8 @@ function browse(ctx: TuiContext, path: string): void {
 function folderNodes(ctx: TuiContext, folder: TFolder, limit: number): TreeNode[] {
 	const cfg = ctx.card.folder ?? {};
 	const inCard = cfg.navigate === "card";
-	const entries = folderEntries(ctx.view.app, folder, cfg.sort ?? FOLDER_SORT_DEFAULT, cfg.show ?? "all");
+	const titles = explorerTitles(ctx.view.app, ctx.view.plugin.settings);
+	const entries = folderEntries(ctx.view.app, folder, cfg.sort ?? FOLDER_SORT_DEFAULT, cfg.show ?? "all", titles);
 	const shown = limit > 0 ? entries.slice(0, limit) : entries;
 	const nodes = shown.map((entry) => entryNode(ctx, entry, inCard));
 	if (entries.length > shown.length) {

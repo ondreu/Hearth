@@ -156,6 +156,22 @@ is installed.
 If you renamed Iconize's frontmatter property, tell Hearth the new name;
 Iconize's own default is `icon`.
 
+### Front Matter Title
+
+**What Hearth does with it:** when
+[Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin)
+shows a note in the file explorer by a title from its frontmatter, Folder cards
+and the folder browser list the note by that same title instead of its file
+name — and sort by it under the name orders.
+
+**Configured in:** *Settings → Hearth → Integrations → Front Matter Title*.
+
+Hearth asks the plugin through its own API for the title its **explorer**
+feature shows, so the card follows the plugin's settings: while that feature is
+off, the explorer shows file names and so does the card. Only notes are
+retitled; folders keep their names. Turning the setting off lists
+every note by its file name. Leaving it on without the plugin changes nothing.
+
 ### Excalidraw
 
 **What Hearth does with it:** Embed cards render

@@ -1,6 +1,9 @@
 import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
 import { installGlyphMode } from "./glyphs";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
+import { VIEW_TYPE_FOLDER } from "./cards/folder";
+import { FolderView } from "./folderview";
+import { whenFrontMatterTitleReady } from "./frontmattertitle";
 import { effectiveHiddenInstantAnswers, HomeSettings, effectiveTerminalScheme, hydrateSettings, terminalModeActive, timersAllowed } from "./types";
 import { SearchTipsModal } from "./searchtips";
 import { HomeSettingTab } from "./settings";
@@ -115,6 +118,8 @@ export default class HearthPlugin extends Plugin {
 		addIcon(HEARTH_ICON_THEMED_ID, HEARTH_ICON_THEMED_SVG);
 
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
+		// The folder browser, opened in a tab of its own (#375).
+		this.registerView(VIEW_TYPE_FOLDER, (leaf) => new FolderView(leaf, this));
 
 		// A renegotiated Operon session may be looking at different settings, so
 		// the cached taxonomy it filled is no longer trustworthy.
@@ -234,6 +239,9 @@ export default class HearthPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			if (this.applyMobileDefaultDashboard()) this.refreshViews();
+			// Front Matter Title can still be starting up when the first boards
+			// draw; once it is running, their folder cards can show its titles.
+			whenFrontMatterTitleReady(this.app, () => this.refreshViews());
 			if (this.settings.openOnStartup) void this.activateView();
 			// Pop the release-notes dialog after an update (but not on a fresh
 			// install). Runs once layout is ready so it doesn't fight startup.

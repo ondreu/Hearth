@@ -317,6 +317,12 @@ Operon is documented in full in [chapter 14](14-integrations.md).
 | *Use icons from Iconic / Iconize* | On | Off shows Hearth's file-type icon for every file, ignoring both plugins |
 | *Iconize frontmatter property* | `icon` | The property Iconize stores a note's icon in, for icons set through frontmatter rather than its menu |
 
+### Front Matter Title
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| *Use titles from Front Matter Title* | On | Folder cards and the folder browser list notes by the titles the file explorer shows for them. Off lists every note by its file name |
+
 ---
 
 ## Backup

@@ -1434,6 +1434,13 @@ export const en = {
 						"The same for Iconize (formerly Obsidian Icon Folder), including icons " +
 						"set through a frontmatter property.",
 				},
+				frontMatterTitle: {
+					name: "Front Matter Title",
+					desc:
+						"Folder cards and the folder browser list notes by the titles Front " +
+						"Matter Title shows for them in the file explorer, instead of their " +
+						"file names.",
+				},
 				vaultPet: {
 					name: "Vault Pet",
 					desc:
@@ -1590,6 +1597,21 @@ export const en = {
 				"Property Iconize stores a note's icon in, for icons set through " +
 				"frontmatter rather than its menu. Match this to Iconize's own " +
 				"setting if you renamed it (its default is “icon”).",
+		},
+		frontMatterTitle: {
+			heading: "Front Matter Title",
+			headingDesc:
+				"Show notes the way the file explorer does when the Front Matter Title " +
+				"plugin gives them a title: folder cards and the folder browser list " +
+				"each note by that title instead of its file name. Follows the " +
+				"plugin's own explorer setting — while its explorer feature is off, " +
+				"file names are shown.",
+			enable: "Use titles from Front Matter Title",
+			enableDesc: "Off lists every note by its file name, ignoring the plugin.",
+			enableDescNoPlugin:
+				"Front Matter Title isn't enabled right now, so notes are listed by " +
+				"their file names. This can stay on — it takes effect as soon as the " +
+				"plugin is installed.",
 		},
 		operon: {
 			heading: "Operon",
@@ -2085,6 +2107,20 @@ export const en = {
 				"Clicking the card's empty space — or its folder button — opens the " +
 				"folder in a browser with a breadcrumb, where every folder can be " +
 				"stepped into.",
+			browseIn: "Open the browser",
+			browseInDesc:
+				"In a dialog over the board — with a button that moves it to a tab — " +
+				"or straight in a tab of its own, where the folder has the whole page.",
+			browseInModal: "In a dialog",
+			browseInTab: "In a new tab",
+			browserView: "Browser layout",
+			browserViewDesc:
+				"How the browser shows the folder, separately from the card: a list " +
+				"of rows, or larger tiles with a preview of each note.",
+			preview: "Note previews",
+			previewDesc: "Show the first lines of each note's text on its tile, without its properties.",
+			previewSize: "Preview text size",
+			previewSizeDesc: "In pixels. Small by default — enough to recognise a note by.",
 		},
 		calendar: {
 			view: "Layout",
@@ -3455,6 +3491,10 @@ export const en = {
 			/** The path row's back arrow, and the vault's own name in it. */
 			up: (name: string) => `Up to ${name}`,
 			vaultRoot: "the vault root",
+			/** The browser's own controls, beside the breadcrumb. */
+			showList: "Show as a list",
+			showTiles: "Show as tiles",
+			openInTab: "Open in a new tab",
 		},
 		operon: {
 			loading: "Reading Operon…",

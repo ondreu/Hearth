@@ -779,6 +779,20 @@ export interface FolderCardConfig {
 	 * rewrote itself (and synced) on every click into a subfolder would be a
 	 * board nobody could share. See `browsedPath` in `cards/folder.ts`. */
 	navigate?: "card";
+	/** Where the folder browser opens. Omitted is a dialog over the board, with
+	 * a button that moves it to a tab; "tab" opens it straight in a tab of its
+	 * own (`folderview.ts`), where a folder has the whole page (#375). */
+	browseIn?: "tab";
+	/** The browser's own layout, separate from the card's `view`: the card is a
+	 * glance a few rows tall, the browser is a page. "list" (default) is rows,
+	 * "tiles" a grid of larger tiles that carry a preview of each note. */
+	browserView?: "list" | "tiles";
+	/** Show a preview of each note's text on the browser's tiles. Default on;
+	 * false leaves the tiles with their icon and name only. */
+	preview?: boolean;
+	/** The preview text's size in pixels. Omitted is `PREVIEW_SIZE.default` —
+	 * small on purpose: it is there to recognise a note by, not to read it. */
+	previewSize?: number;
 }
 
 /** Per-card configuration for a "searchbar" (live search field) card. */
@@ -2669,6 +2683,12 @@ export interface HomeSettings {
 	 * default rather than assuming nobody changed it. */
 	iconizeIconProperty: string;
 
+	// ---- Front Matter Title ----
+	/** Show the titles the Front Matter Title plugin gives notes in the file
+	 * explorer wherever Hearth lists a folder's contents, instead of the file
+	 * names. Inert without the plugin, or while its explorer feature is off. */
+	frontMatterTitles: boolean;
+
 	// ---- Operon ----
 	/** Let Hearth talk to the Operon plugin's Developer API. Turning this off
 	 * is a kill switch: Operon cards stop reading and no capability grant is
@@ -2890,6 +2910,11 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// to see. "icon" is Iconize's own default property name.
 	customFileIcons: true,
 	iconizeIconProperty: "icon",
+
+	// On by default for the same reason: with the plugin absent (or its explorer
+	// feature off) nothing changes, and with it on the folder card matches the
+	// sidebar the user already set up.
+	frontMatterTitles: true,
 
 	// On by default, but inert until an Operon card exists: no session is
 	// opened — and so no grant is requested — until one renders.
