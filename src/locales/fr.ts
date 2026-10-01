@@ -3448,6 +3448,11 @@ export const fr: Translations = {
 			showList: "Afficher en liste",
 			showTiles: "Afficher en tuiles",
 			openInTab: "Ouvrir dans un nouvel onglet",
+			/** Folding a subfolder's section in the browser, one or all of them. */
+			collapse: (name: string) => `Replier ${name}`,
+			expand: (name: string) => `Déplier ${name}`,
+			collapseAll: "Replier tous les dossiers",
+			expandAll: "Déplier tous les dossiers",
 		},
 		operon: {
 			loading: "Lecture d'Operon…",

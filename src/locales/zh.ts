@@ -3204,6 +3204,11 @@ export const zh: Translations = {
 			showList: "以列表显示",
 			showTiles: "以磁贴显示",
 			openInTab: "在新标签页中打开",
+			/** Folding a subfolder's section in the browser, one or all of them. */
+			collapse: (name: string) => `折叠 ${name}`,
+			expand: (name: string) => `展开 ${name}`,
+			collapseAll: "折叠所有文件夹",
+			expandAll: "展开所有文件夹",
 		},
 		operon: {
 			loading: "正在读取 Operon…",

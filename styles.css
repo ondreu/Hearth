@@ -17106,24 +17106,64 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	gap: 0 18px;
 }
 
+/* Each subfolder is a panel of its own — a heading bar over its contents — so
+   where one folder ends and the next begins never has to be read off the rows.
+   The folder's own files, between the panels, stay on the page itself. */
 .hearth-folder-section {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: var(--background-secondary);
 }
 
-/* A subfolder's heading — itself the way into that folder. */
+.hearth-folder-section > :is(.hearth-folder-files, .hearth-folder-browser-tiles) {
+	padding: 6px;
+}
+
+.hearth-folder-section > .hearth-folder-browser-tiles {
+	padding: 10px;
+}
+
+/* A subfolder's heading — itself the way into that folder; the chevron at its
+   start folds the panel instead. */
 .hearth-folder-head {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 4px 8px;
-	border-radius: 7px;
+	padding: 7px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary-alt);
 	cursor: pointer;
 }
 
 .hearth-folder-head:hover {
 	background: var(--background-modifier-hover);
+}
+
+/* Folded, the panel is its heading alone. */
+.hearth-folder-section.is-folded > .hearth-folder-head {
+	border-bottom: none;
+}
+
+.hearth-folder-head-toggle {
+	display: flex;
+	flex: 0 0 auto;
+	margin-inline-start: -4px;
+	padding: 2px;
+	border-radius: 5px;
+	color: var(--text-faint);
+}
+
+.hearth-folder-head-toggle:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-folder-head-toggle .svg-icon {
+	width: 14px;
+	height: 14px;
 }
 
 .hearth-folder-head-icon {
@@ -17339,6 +17379,26 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-t-modal :is(.hearth-folder-crumb, .hearth-folder-head, .hearth-list-item, .hearth-folder-count) {
 	border-radius: 0;
+}
+
+.hearth-t-modal .hearth-folder-section {
+	border: 1px solid var(--tui-line);
+	border-radius: 0;
+	background: var(--tui-bg);
+}
+
+.hearth-t-modal .hearth-folder-head {
+	border-bottom-color: var(--tui-line);
+	background: var(--tui-bg-alt);
+}
+
+.hearth-t-modal .hearth-folder-head:hover {
+	background: var(--tui-hover);
+}
+
+.hearth-t-modal .hearth-folder-head-toggle {
+	border-radius: 0;
+	color: var(--tui-dim);
 }
 
 .hearth-t-modal .hearth-folder-tile {
@@ -21756,6 +21816,25 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 /* ---- The folder browser ---- */
+.hearth-x-modal .hearth-folder-section {
+	border: none;
+	border-radius: 22px;
+	background: var(--x-surface);
+}
+
+.hearth-x-modal .hearth-folder-head {
+	border-bottom: none;
+	background: var(--x-surface-high);
+}
+
+.hearth-x-modal .hearth-folder-head:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal .hearth-folder-head-toggle {
+	border-radius: 999px;
+}
+
 .hearth-x-modal .hearth-folder-tile {
 	border: none;
 	border-radius: 16px;

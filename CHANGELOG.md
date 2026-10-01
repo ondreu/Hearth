@@ -98,6 +98,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   setting — without its properties, code blocks or embeds (#375). A switch
   beside the order picker changes the layout on the spot. A note is read only
   once its tile comes near the screen.
+  - Each subfolder is a panel of its own under a heading bar, and folds down
+    to its heading from the chevron at its start; a button in the top row
+    folds or unfolds them all. Folds last for the session.
   - On the Full performance tier, pictures show themselves on their tiles and
     a note shows its first embedded image as a cover (*Image previews*, on by
     default). Lighter tiers skip them: there are no thumbnails, so each one is

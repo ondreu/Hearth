@@ -345,6 +345,14 @@ or in a tab, see below — with:
 - an **order** picker and a **list / tiles** switch, which belong to the
   browser: changing them there doesn't touch the card.
 
+Each subfolder is a **panel** of its own, under a heading bar with its name and
+how many things it holds. The chevron at the start of the heading **folds** the
+panel down to the heading; a button beside the order picker folds every panel
+on the page, or unfolds them all once they are all folded. Folds are shared by
+every browser — the dialog and the tabs — and kept for the session, like where
+you walked to. A folded panel reads nothing below its heading, so folding a
+large subfolder also spares its previews.
+
 Every folder in the browser — a breadcrumb step, a section heading, a row —
 steps the dialog into that folder, so you can walk a whole tree without leaving
 it.

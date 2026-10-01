@@ -3511,6 +3511,11 @@ export const de: Translations = {
 			showList: "Als Liste zeigen",
 			showTiles: "Als Kacheln zeigen",
 			openInTab: "In neuem Tab öffnen",
+			/** Folding a subfolder's section in the browser, one or all of them. */
+			collapse: (name: string) => `${name} einklappen`,
+			expand: (name: string) => `${name} ausklappen`,
+			collapseAll: "Alle Ordner einklappen",
+			expandAll: "Alle Ordner ausklappen",
 		},
 		operon: {
 			loading: "Lese Operon…",

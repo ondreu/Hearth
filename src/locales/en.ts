@@ -3500,6 +3500,11 @@ export const en = {
 			showList: "Show as a list",
 			showTiles: "Show as tiles",
 			openInTab: "Open in a new tab",
+			/** Folding a subfolder's section in the browser, one or all of them. */
+			collapse: (name: string) => `Fold ${name}`,
+			expand: (name: string) => `Unfold ${name}`,
+			collapseAll: "Fold all folders",
+			expandAll: "Unfold all folders",
 		},
 		operon: {
 			loading: "Reading Operon…",

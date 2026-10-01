@@ -432,6 +432,15 @@ export async function openFolderTab(app: App, state: FolderBrowseState): Promise
 	});
 }
 
+/**
+ * The subfolder sections the reader has folded, by path — in every browser,
+ * the dialog and the tabs alike, so a folder folded in one is folded in the
+ * next. For the session only, like where a card has been walked to: folding a
+ * section is how you are reading the folder now, not something the board or
+ * the vault should carry (and a folded section is one click from open).
+ */
+const foldedSections = new Set<string>();
+
 /** What the browser needs from whatever holds it: the dialog or the tab. */
 export interface BrowserHost {
 	app: App;
@@ -472,6 +481,10 @@ export class FolderBrowser {
 	private previews: PreviewLoader | null = null;
 	/** Whether this draw puts pictures on the tiles (see picturesAllowed). */
 	private pictures = false;
+	/** The subfolder sections on the page, by path, and the bar button that
+	 * folds or opens them all. */
+	private sections: string[] = [];
+	private foldAllButton: HTMLElement | null = null;
 
 	constructor(
 		private readonly host: BrowserHost,
@@ -509,14 +522,18 @@ export class FolderBrowser {
 		this.el.empty();
 		this.el.toggleClass("is-tiles", this.state.layout === "tiles");
 		this.el.style.setProperty("--hearth-folder-preview-size", `${this.state.previewSize}px`);
-		this.drawTrail();
 		const folder = folderAt(app, path);
+		const titles = explorerTitles(app, this.host.settings);
+		const entries = folder ? folderEntries(app, folder, sort, show, titles) : [];
+		const groups = groupFolderEntries(entries, (entry) =>
+			childEntries(app, entry, sort, show, titles),
+		);
+		this.sections = groups.flatMap((group) => (group.kind === "folder" ? [group.folder.path] : []));
+		this.drawTrail();
 		if (!folder) {
 			this.el.createDiv({ cls: "hearth-folder-empty", text: t().cards.folder.missing });
 			return;
 		}
-		const titles = explorerTitles(app, this.host.settings);
-		const entries = folderEntries(app, folder, sort, show, titles);
 		if (entries.length === 0) {
 			this.el.createDiv({ cls: "hearth-folder-empty", text: t().cards.empty.folderEmpty });
 			return;
@@ -525,9 +542,6 @@ export class FolderBrowser {
 		if (this.state.layout === "tiles" && (this.state.preview || this.pictures)) {
 			this.previews = new PreviewLoader(this.el);
 		}
-		const groups = groupFolderEntries(entries, (entry) =>
-			childEntries(app, entry, sort, show, titles),
-		);
 		const host = this.el.createDiv("hearth-folder-groups");
 		for (const group of groups) {
 			if (group.kind === "files") this.drawFiles(host, group.entries);
@@ -561,6 +575,12 @@ export class FolderBrowser {
 			this.change({ layout: tiles ? "list" : "tiles" }),
 		);
 
+		this.foldAllButton = null;
+		if (this.sections.length > 0) {
+			this.foldAllButton = this.barButton(bar, "", "", () => this.foldAll());
+			this.syncFoldAll();
+		}
+
 		const picker = bar.createEl("select", { cls: "dropdown hearth-folder-sort" });
 		for (const sort of FOLDER_SORTS) {
 			picker.createEl("option", { value: sort, text: t().editors.folder.sorts[sort] });
@@ -577,12 +597,42 @@ export class FolderBrowser {
 		}
 	}
 
-	private barButton(bar: HTMLElement, icon: string, label: string, run: () => void): void {
+	private barButton(bar: HTMLElement, icon: string, label: string, run: () => void): HTMLElement {
 		const button = bar.createDiv({ cls: "clickable-icon hearth-folder-bar-button" });
-		setIcon(button, icon);
+		if (icon) setIcon(button, icon);
 		button.setAttr("title", label);
 		button.addEventListener("click", run);
 		makeClickable(button, run, label);
+		return button;
+	}
+
+	/** Whether every section on the page is folded, which is when the bar's
+	 * button opens them all rather than folding them. */
+	private allFolded(): boolean {
+		return this.sections.length > 0 && this.sections.every((path) => foldedSections.has(path));
+	}
+
+	/** Fold every section on the page, or open them all once they all are. */
+	private foldAll(): void {
+		const open = this.allFolded();
+		for (const path of this.sections) {
+			if (open) foldedSections.delete(path);
+			else foldedSections.add(path);
+		}
+		this.draw();
+	}
+
+	/** The fold-all button says what it will do next. */
+	private syncFoldAll(): void {
+		const button = this.foldAllButton;
+		if (!button) return;
+		const strings = t().cards.folder;
+		const open = this.allFolded();
+		const label = open ? strings.expandAll : strings.collapseAll;
+		button.empty();
+		setIcon(button, open ? "chevrons-up-down" : "chevrons-down-up");
+		button.setAttr("title", label);
+		button.setAttr("aria-label", label);
 	}
 
 	/** A change of how the page is drawn, not of where it is. */
@@ -599,10 +649,16 @@ export class FolderBrowser {
 		for (const entry of entries) this.drawEntry(list, entry);
 	}
 
-	/** One subfolder: its own heading, then the level below it. */
+	/**
+	 * One subfolder: its own heading, then the level below it — or, folded,
+	 * only the heading. The chevron folds it; the rest of the heading steps
+	 * into the folder, as it always has. A folded section draws nothing below
+	 * its heading, so it reads no previews either.
+	 */
 	private drawFolder(host: HTMLElement, folder: FolderEntry, children: FolderEntry[]): void {
 		const section = host.createDiv("hearth-folder-section");
 		const head = section.createDiv("hearth-folder-head");
+		const toggle = head.createDiv("hearth-folder-head-toggle");
 		setIcon(head.createDiv("hearth-folder-head-icon"), "folder");
 		head.createDiv({ cls: "hearth-folder-head-name", text: folder.name });
 		head.createDiv({
@@ -613,12 +669,43 @@ export class FolderBrowser {
 		head.addEventListener("click", go);
 		makeClickable(head, go, folder.name);
 
-		const list = section.createDiv(this.blockClass());
-		if (children.length === 0) {
-			list.createDiv({ cls: "hearth-folder-empty", text: t().cards.empty.folderEmpty });
-			return;
-		}
-		for (const entry of children) this.drawEntry(list, entry);
+		let body: HTMLElement | null = null;
+		const show = () => {
+			const folded = foldedSections.has(folder.path);
+			section.toggleClass("is-folded", folded);
+			const strings = t().cards.folder;
+			toggle.empty();
+			setIcon(toggle, folded ? "chevron-right" : "chevron-down");
+			toggle.setAttr("aria-expanded", String(!folded));
+			toggle.setAttr("aria-label", folded ? strings.expand(folder.name) : strings.collapse(folder.name));
+			body?.remove();
+			body = null;
+			if (folded) return;
+			body = section.createDiv(this.blockClass());
+			if (children.length === 0) {
+				body.createDiv({ cls: "hearth-folder-empty", text: t().cards.empty.folderEmpty });
+				return;
+			}
+			for (const entry of children) this.drawEntry(body, entry);
+		};
+		const flip = (evt?: Event) => {
+			// The heading's own click steps into the folder; this one mustn't.
+			evt?.stopPropagation();
+			if (foldedSections.has(folder.path)) foldedSections.delete(folder.path);
+			else foldedSections.add(folder.path);
+			show();
+			this.syncFoldAll();
+		};
+		toggle.addEventListener("click", flip);
+		toggle.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				flip(evt);
+			}
+		});
+		toggle.tabIndex = 0;
+		toggle.setAttr("role", "button");
+		show();
 	}
 
 	private blockClass(): string {
