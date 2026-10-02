@@ -629,6 +629,7 @@ export const calendarCard: CardDefinition<"calendar"> = {
 							fields: source.calendar.eventNote.fields
 								? source.calendar.eventNote.fields.map((f) => ({ ...f }))
 								: undefined,
+							properties: source.calendar.eventNote.properties?.map((p) => ({ ...p })),
 						}
 					: undefined,
 			};

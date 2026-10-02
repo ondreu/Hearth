@@ -3,7 +3,6 @@ import {
 	Notice,
 	Setting,
 	TFile,
-	TFolder,
 	type App,
 	type TAbstractFile,
 } from "obsidian";
@@ -18,12 +17,15 @@ import {
 	type Moment,
 } from "./cardbodies";
 import { moveItem } from "./editors";
+import { clipTemplateEditor } from "./clipeditor";
+import { findNoteByProperty, readTemplateText, writeClipNote } from "./clipnote";
 import {
 	buildEventNote,
 	DEFAULT_EVENT_LINK_KEY,
-	DEFAULT_EVENT_NOTE_FIELDS,
-	type EventField,
-	type EventFieldAction,
+	EVENT_CLIP_VARIABLES,
+	EVENT_NOTE_DEFAULTS,
+	eventClipVars,
+	upgradeEventNote,
 	type EventNoteConfig,
 	type EventNoteInput,
 } from "./eventnote";
@@ -38,7 +40,6 @@ import { setCheckboxTaskDone } from "./cards/tasks";
 import { t } from "./i18n";
 import { cachedCalendar, eventsByDay, expandEvents, loadCalendar, type IcsOccurrence } from "./ics";
 import { openFile } from "./opener";
-import { FilePickerModal } from "./pickers";
 import {
 	applyCompletion,
 	cachedLocalCalendar,
@@ -656,7 +657,7 @@ class EventDetailModal extends HearthModal {
 	private renderNoteAction(): void {
 		const cfg = this.ics.eventNote ?? {};
 		const linkKey = cfg.linkKey === undefined ? DEFAULT_EVENT_LINK_KEY : cfg.linkKey.trim();
-		const existing = findEventNote(this.app, this.ev.uid, linkKey);
+		const existing = findNoteByProperty(this.app, linkKey, this.ev.uid);
 
 		const footer = this.contentEl.createDiv("hearth-event-footer");
 		const btn = footer.createEl("button", { cls: "mod-cta" });
@@ -715,75 +716,17 @@ function toEventNoteInput(ev: IcsOccurrence, calendar: string): EventNoteInput {
 }
 
 
-/** Find an existing note whose frontmatter link key holds this event's UID, so
- * the same event always maps to one note. Returns null when linking is off, the
- * event has no UID, or no note matches. */
-function findEventNote(app: App, uid: string, linkKey: string): TFile | null {
-	if (!uid || !linkKey) return null;
-	for (const file of app.vault.getMarkdownFiles()) {
-		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
-		if (fm && String(fm[linkKey]) === uid) return file;
-	}
-	return null;
-}
-
-
-/** Create the note for an event from the card's event-note config: seed from a
- * template (if any), route each field to frontmatter or body per the rules,
- * write the file and its frontmatter. Returns the file, or null on failure. */
+/** Create the note for an event from the card's note template, seeded from
+ * its template note when it names one. Returns the file, or null on failure. */
 async function createEventNote(
 	app: App,
 	ev: IcsOccurrence,
 	ics: IcsContext,
 ): Promise<TFile | null> {
 	const cfg = ics.eventNote ?? {};
-	let templateContent = "";
-	const templatePath = (cfg.template || "").trim();
-	if (templatePath) {
-		const tpl =
-			app.vault.getAbstractFileByPath(templatePath) ??
-			app.vault.getAbstractFileByPath(`${templatePath}.md`);
-		if (tpl instanceof TFile) {
-			try {
-				templateContent = await app.vault.read(tpl);
-			} catch {
-				templateContent = "";
-			}
-		}
-	}
-
+	const templateContent = await readTemplateText(app, cfg.template);
 	const built = buildEventNote(toEventNoteInput(ev, ics.label(ev.sourceId)), cfg, templateContent);
-
-	// Ensure the target folder exists.
-	if (built.folder && !(app.vault.getAbstractFileByPath(built.folder) instanceof TFolder)) {
-		try {
-			await app.vault.createFolder(built.folder);
-		} catch {
-			// May have been created concurrently — proceed.
-		}
-	}
-	const parent =
-		(built.folder ? app.vault.getAbstractFileByPath(built.folder) : app.vault.getRoot()) ??
-		app.vault.getRoot();
-	if (!(parent instanceof TFolder)) return null;
-
-	let file: TFile;
-	try {
-		file = await app.fileManager.createNewMarkdownFile(parent, built.filename);
-	} catch {
-		return null;
-	}
-	try {
-		if (built.body) await app.vault.modify(file, `${built.body.replace(/\s+$/, "")}\n`);
-		if (Object.keys(built.frontmatter).length) {
-			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				for (const [k, v] of Object.entries(built.frontmatter)) fm[k] = v;
-			});
-		}
-	} catch {
-		// The file exists even if body/frontmatter writes failed; return it.
-	}
-	return file;
+	return writeClipNote(app, built);
 }
 
 
@@ -1575,207 +1518,36 @@ async function refreshSubscriptions(
 }
 
 
-/** The "Event notes" section: configure the modal's Create-note action —
- * template, folder, filename, link property, and per-field routing so the
- * user decides what each event value becomes in the new note. */
+/** The "Event notes" section: the note template behind the event popup's
+ * "Create note" — name, folder, properties and body (see `src/clip.ts`),
+ * previewed with a made-up event. A card still on the old field routing is
+ * upgraded to the template it amounts to the first time this is drawn. */
 export function eventNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: CalendarSourcesConfig): void {
-	const note = (cfg.eventNote ??= {});
-
-	new Setting(containerEl).setName(t().editors.calendar.eventNoteHeading).setHeading();
-	new Setting(containerEl).setDesc(t().editors.calendar.eventNoteDesc);
-
-	new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteEnabled)
-		.setDesc(t().editors.calendar.eventNoteEnabledDesc)
-		.addToggle((tg) =>
-			tg.setValue(note.enabled !== false).onChange((v) => {
-				note.enabled = v ? undefined : false;
-				ctx.opts.save();
-				ctx.requestRender();
-			}),
-		);
-	if (note.enabled === false) return;
-
-	new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteFolder)
-		.setDesc(t().editors.calendar.eventNoteFolderDesc)
-		.addText((txt) =>
-			txt.setValue(note.folder ?? "").onChange((v) => {
-				note.folder = v.trim() || undefined;
-				ctx.opts.save();
-			}),
-		);
-
-	new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteFilename)
-		.setDesc(t().editors.calendar.eventNoteFilenameDesc)
-		.addText((txt) =>
-			txt
-				.setPlaceholder("{{summary}}")
-				.setValue(note.filename ?? "")
-				.onChange((v) => {
-					note.filename = v.trim() || undefined;
-					ctx.opts.save();
-				}),
-		);
-
-	const template = new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteTemplate)
-		.setDesc(t().editors.calendar.eventNoteTemplateDesc);
-	template.addText((txt) => {
-		txt.setValue(note.template ?? "").onChange((v) => {
-			note.template = v.trim() || undefined;
-			ctx.opts.save();
-		});
-		txt.inputEl.addClass("hearth-rss-url");
+	const note = upgradeEventNote((cfg.eventNote ??= {}));
+	const strings = t().editors.calendar;
+	clipTemplateEditor(ctx, containerEl, note, {
+		heading: strings.eventNoteHeading,
+		desc: strings.eventNoteDesc,
+		enabledName: strings.eventNoteEnabled,
+		enabledDesc: strings.eventNoteEnabledDesc,
+		defaults: EVENT_NOTE_DEFAULTS,
+		variables: EVENT_CLIP_VARIABLES,
+		sample: () => {
+			const sample = t().editors.clip.sampleEvent;
+			const start = new Date();
+			start.setHours(10, 0, 0, 0);
+			const ev: EventNoteInput = {
+				uid: "sample-event@hearth",
+				summary: sample.title,
+				location: sample.location,
+				description: sample.description,
+				url: "https://example.com/meeting",
+				start: start.getTime(),
+				end: start.getTime() + 3_600_000,
+				allDay: false,
+				calendar: sample.calendar,
+			};
+			return { label: null, vars: eventClipVars(ev), linkValue: ev.uid };
+		},
 	});
-	template.addExtraButton((b) =>
-		b
-			.setIcon("file-symlink")
-			.setTooltip(t().editors.calendar.eventNotePickTemplate)
-			.onClick(() => {
-				new FilePickerModal(ctx.app, (file) => {
-					note.template = file.path;
-					ctx.opts.save();
-					ctx.requestRender();
-				}).open();
-			}),
-	);
-	template.addExtraButton((b) =>
-		b
-			.setIcon("x")
-			.setTooltip(t().editors.calendar.eventNoteClearTemplate)
-			.onClick(() => {
-				note.template = undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-			}),
-	);
-
-	new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteLinkKey)
-		.setDesc(t().editors.calendar.eventNoteLinkKeyDesc)
-		.addText((txt) =>
-			txt
-				.setPlaceholder(DEFAULT_EVENT_LINK_KEY)
-				.setValue(note.linkKey ?? "")
-				.onChange((v) => {
-					// Distinguish "unset (use default)" from "explicitly empty".
-					note.linkKey = v === "" ? undefined : v.trim();
-					ctx.opts.save();
-				}),
-		);
-
-	new Setting(containerEl)
-		.setName(t().editors.calendar.eventNoteCustomize)
-		.setDesc(t().editors.calendar.eventNoteCustomizeDesc)
-		.addToggle((tg) =>
-			tg.setValue(note.fields !== undefined).onChange((v) => {
-				note.fields = v ? DEFAULT_EVENT_NOTE_FIELDS.map((f) => ({ ...f })) : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-			}),
-		);
-
-	if (note.fields) eventNoteFieldsEditor(ctx, containerEl, note);
-}
-
-
-/** The editable list of per-field routing rules (field → action → key/format). */
-export function eventNoteFieldsEditor(ctx: CardEditorContext, containerEl: HTMLElement, note: EventNoteConfig): void {
-	const rules = (note.fields ??= []);
-	const fieldNames = t().editors.calendar.eventFieldNames;
-	const actionNames = t().editors.calendar.eventFieldActions;
-	const fieldOrder: EventField[] = [
-		"summary",
-		"date",
-		"start",
-		"end",
-		"location",
-		"description",
-		"url",
-		"calendar",
-	];
-
-	new Setting(containerEl).setName(t().editors.calendar.eventNoteFieldsHeading).setHeading();
-
-	rules.forEach((rule, index) => {
-		const row = new Setting(containerEl).setClass("hearth-rss-setting");
-		row.addDropdown((d) => {
-			for (const f of fieldOrder) d.addOption(f, fieldNames[f]);
-			d.setValue(rule.field).onChange((v) => {
-				rule.field = v as EventField;
-				ctx.opts.save();
-			});
-		});
-		row.addDropdown((d) => {
-			d.addOption("ignore", actionNames.ignore);
-			d.addOption("frontmatter", actionNames.frontmatter);
-			d.addOption("body", actionNames.body);
-			d.setValue(rule.action).onChange((v) => {
-				rule.action = v as EventFieldAction;
-				ctx.opts.save();
-				ctx.requestRender();
-			});
-		});
-		if (rule.action !== "ignore") {
-			row.addText((txt) => {
-				txt
-					.setPlaceholder(
-						rule.action === "frontmatter"
-							? t().editors.calendar.eventNotePropertyPlaceholder
-							: t().editors.calendar.eventNoteHeadingPlaceholder,
-					)
-					.setValue(rule.key ?? "")
-					.onChange((v) => {
-						rule.key = v.trim() || undefined;
-						ctx.opts.save();
-					});
-			});
-		}
-		if (rule.action === "frontmatter" && ["date", "start", "end"].includes(rule.field)) {
-			row.addText((txt) => {
-				txt
-					.setPlaceholder(t().editors.calendar.eventNoteFormatPlaceholder)
-					.setValue(rule.format ?? "")
-					.onChange((v) => {
-						rule.format = v.trim() || undefined;
-						ctx.opts.save();
-					});
-				txt.inputEl.addClass("hearth-event-format");
-			});
-		}
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-up")
-				.setTooltip(t().editors.links.moveUp)
-				.setDisabled(index === 0)
-				.onClick(() => moveItem(ctx, rules, index, index - 1)),
-		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("chevron-down")
-				.setTooltip(t().editors.links.moveDown)
-				.setDisabled(index === rules.length - 1)
-				.onClick(() => moveItem(ctx, rules, index, index + 1)),
-		);
-		row.addExtraButton((b) =>
-			b
-				.setIcon("trash-2")
-				.setTooltip(t().editors.calendar.eventNoteRemoveField)
-				.onClick(() => {
-					rules.splice(index, 1);
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-		);
-	});
-
-	new Setting(containerEl).addButton((b) =>
-		b.setButtonText(t().editors.calendar.eventNoteAddField).onClick(() => {
-			rules.push({ field: "location", action: "frontmatter" });
-			ctx.opts.save();
-			ctx.requestRender();
-		}),
-	);
 }

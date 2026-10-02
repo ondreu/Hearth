@@ -1035,6 +1035,7 @@ export const scheduleCard: CardDefinition<"schedule"> = {
 							fields: source.schedule.eventNote.fields
 								? source.schedule.eventNote.fields.map((f) => ({ ...f }))
 								: undefined,
+							properties: source.schedule.eventNote.properties?.map((p) => ({ ...p })),
 						}
 					: undefined,
 			};

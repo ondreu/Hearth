@@ -170,6 +170,8 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 
 	// rss
 	{ at: "rss.sources[].url", scope: "publicUrl" },
+	{ at: "rss.note.folder", scope: "vaultPath", folder: true },
+	{ at: "rss.note.template", scope: "vaultPath" },
 
 	// jira
 	{ at: "jira.host", scope: "privateHost" },

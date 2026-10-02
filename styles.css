@@ -4412,6 +4412,7 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 .hearth-rss-tablist {
+	position: relative;
 	display: flex;
 	gap: 4px;
 	overflow-x: auto;
@@ -4420,13 +4421,30 @@ button.hearth-kofi-btn:focus-visible {
 	min-width: 0;
 }
 
+/* The edge with more chips beyond it fades (src/tabstrip.ts). */
+.hearth-rss-tablist.is-fade-end {
+	mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.hearth-rss-tablist.is-fade-start {
+	mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+}
+
+.hearth-rss-tablist.is-fade-start.is-fade-end {
+	mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
 .hearth-rss-tablist::-webkit-scrollbar {
 	display: none;
 }
 
+/* A chip is as wide as its name; only a name longer than the whole row is
+   cut, with …. */
 .hearth-rss-tab {
+	display: inline-flex;
+	align-items: center;
 	flex: 0 0 auto;
-	max-width: 140px;
+	max-width: 100%;
 	padding: 2px 10px;
 	border: none;
 	border-radius: 999px;
@@ -4434,9 +4452,52 @@ button.hearth-kofi-btn:focus-visible {
 	color: var(--text-muted);
 	font-size: 0.78rem;
 	white-space: nowrap;
+	cursor: pointer;
+}
+
+.hearth-rss-tab-label {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.hearth-rss-tab-count {
+	flex: 0 0 auto;
+}
+
+/* "+3": the chips not fully in view, and a menu of every feed. */
+.hearth-rss-tabmore {
+	display: none;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 2px;
+	height: 22px;
+	padding: 0 7px;
+	border: none;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
 	cursor: pointer;
+}
+
+.hearth-rss-tabmore.is-shown {
+	display: inline-flex;
+}
+
+.hearth-rss-tabmore:hover {
+	color: var(--text-normal);
+}
+
+.hearth-rss-tabmore-icon {
+	display: inline-flex;
+}
+
+.hearth-rss-tabmore-icon :is(.svg-icon, svg) {
+	width: 14px;
+	height: 14px;
 }
 
 .hearth-rss-tab.is-active {
@@ -8462,6 +8523,470 @@ button.hearth-kofi-btn:focus-visible {
 .hearth-event-btnicon svg {
 	width: 16px;
 	height: 16px;
+}
+
+/* ---- RSS reader (#377) ------------------------------------------------------
+   One page in two hosts: a dialog over the board and a tab of its own. The
+   feeds along the top, the entries down the side, the entry on the right at a
+   reading width. The reader is a size container, so the list steps aside on
+   a narrow dialog or a phone without the page knowing which host it is in. */
+.modal.hearth-rss-reader-modal {
+	width: min(1180px, 95vw);
+	max-width: none;
+	height: min(92vh, 1100px);
+	max-height: none;
+}
+
+.hearth-rss-reader-modal .modal-content {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	padding-top: 4px;
+	overflow: hidden;
+}
+
+.hearth-rss-reader-view.view-content {
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-rss-reader-view.hearth-x-modal {
+	background: var(--x-dialog);
+}
+
+.hearth-rss-reader-view.hearth-t-modal {
+	background: var(--tui-bg);
+	color: var(--tui-fg);
+	font-family: var(--tui-font);
+	font-variant-ligatures: none;
+}
+
+.hearth-rss-reader {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	height: 100%;
+	outline: none;
+	container-type: inline-size;
+}
+
+.hearth-rss-reader-view .hearth-rss-reader-bar {
+	padding: var(--size-4-2) var(--size-4-4);
+}
+
+.hearth-rss-reader-bar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hearth-rss-reader-bar .hearth-rss-tablist {
+	flex: 0 1 auto;
+}
+
+.hearth-rss-reader-bar .hearth-rss-tab {
+	padding: 3px 10px;
+	font-size: var(--font-ui-small);
+}
+
+.hearth-rss-reader-spacer {
+	flex: 1 1 auto;
+}
+
+.hearth-rss-reader-iconbtn {
+	flex: 0 0 auto;
+}
+
+/* The unread count on a feed's tab, here and on the card. */
+.hearth-rss-tab-count {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--interactive-accent) 22%, transparent);
+	color: var(--text-normal);
+	font-size: 0.85em;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-rss-tab.is-active .hearth-rss-tab-count {
+	background: color-mix(in srgb, var(--text-on-accent) 25%, transparent);
+	color: inherit;
+}
+
+.hearth-rss-reader-main {
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.hearth-rss-reader-list {
+	flex: 0 0 300px;
+	padding: 8px 8px 8px 0;
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+.hearth-rss-reader-view .hearth-rss-reader-list {
+	padding-left: var(--size-4-2);
+}
+
+.hearth-rss-reader.is-list-hidden .hearth-rss-reader-list {
+	display: none;
+}
+
+.hearth-rss-item.is-current {
+	background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+}
+
+.hearth-rss-reader-article {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-y: auto;
+	padding: 16px 32px 32px;
+}
+
+/* A line length to read at, whatever the dialog's width. */
+.hearth-rss-reader-article > * {
+	box-sizing: border-box;
+	max-width: 46rem;
+	margin-inline: auto;
+}
+
+.hearth-rss-reader-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+h1.hearth-rss-reader-title {
+	margin-top: 6px;
+	margin-bottom: 14px;
+	font-size: 1.75em;
+	line-height: 1.2;
+	overflow-wrap: anywhere;
+}
+
+.hearth-rss-reader-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 18px;
+}
+
+.hearth-rss-reader-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.hearth-rss-reader-btnicon {
+	display: inline-flex;
+}
+
+.hearth-rss-reader-btnicon :is(.svg-icon, svg) {
+	width: 16px;
+	height: 16px;
+}
+
+.hearth-rss-reader-blocked {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 8px 12px;
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-rss-reader-blocked-text {
+	flex: 1 1 auto;
+}
+
+.hearth-rss-reader-body {
+	font-size: var(--font-text-size);
+	line-height: 1.65;
+	overflow-wrap: anywhere;
+	user-select: text;
+}
+
+.hearth-rss-reader-body.is-plain {
+	white-space: pre-wrap;
+}
+
+.hearth-rss-reader-body * {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.hearth-rss-reader-body img {
+	height: auto;
+	border-radius: var(--radius-s);
+}
+
+.hearth-rss-reader-body table {
+	width: auto !important;
+}
+
+.hearth-rss-reader-nav {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: 12px;
+	margin-top: 32px;
+	padding-top: 16px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+button.hearth-rss-reader-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: auto;
+	min-width: 0;
+	padding: 8px 12px;
+	text-align: left;
+	white-space: normal;
+}
+
+button.hearth-rss-reader-step.is-next {
+	justify-content: flex-end;
+	text-align: right;
+}
+
+button.hearth-rss-reader-step.is-empty {
+	visibility: hidden;
+}
+
+.hearth-rss-reader-steplabel {
+	min-width: 0;
+}
+
+.hearth-rss-reader-stepdir {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-rss-reader-steptitle {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	font-weight: 600;
+}
+
+.hearth-rss-reader-pos {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-rss-reader-keys {
+	margin-top: 14px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+}
+
+.is-mobile .hearth-rss-reader-keys {
+	display: none;
+}
+
+.hearth-rss-reader-empty {
+	margin: auto;
+	padding: 48px 16px;
+	color: var(--text-muted);
+	text-align: center;
+}
+
+/* Narrow (a phone, a slim pane): the list sits over the entry, short, and
+   the entry takes the full width. */
+@container (max-width: 720px) {
+	.hearth-rss-reader-main {
+		flex-direction: column;
+	}
+
+	.hearth-rss-reader-list {
+		flex: 0 0 auto;
+		max-height: 34%;
+		padding: 6px 0;
+		border-right: none;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.hearth-rss-reader-article {
+		padding: 12px 4px 24px;
+	}
+
+	.hearth-rss-reader-view .hearth-rss-reader-article {
+		padding-inline: var(--size-4-4);
+	}
+
+	h1.hearth-rss-reader-title {
+		font-size: 1.4em;
+	}
+}
+
+/* Unread marks, on the card and in the reader's list: a dot while unread, a
+   quieter title once read. */
+.hearth-rss-dot {
+	flex: 0 0 7px;
+	align-self: flex-start;
+	width: 7px;
+	height: 7px;
+	margin-top: 0.45em;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+}
+
+.hearth-rss-item.is-read .hearth-rss-dot {
+	background: transparent;
+}
+
+.hearth-rss-item.is-read .hearth-rss-title {
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.hearth-rss-refresh.is-active {
+	background: color-mix(in srgb, var(--interactive-accent) 20%, transparent);
+	color: var(--text-accent);
+}
+
+/* ---- Note templates (event notes, saved feed entries) ---- */
+.hearth-clip-editor .hearth-clip-input {
+	width: min(22rem, 100%);
+}
+
+.hearth-clip-prop .setting-item-control {
+	flex-wrap: wrap;
+	justify-content: flex-start;
+}
+
+.hearth-clip-prop .setting-item-info {
+	display: none;
+}
+
+.hearth-clip-prop-name {
+	width: 9rem;
+}
+
+.hearth-clip-prop-value {
+	flex: 1 1 14rem;
+	font-family: var(--font-monospace);
+}
+
+.hearth-clip-body {
+	flex-wrap: wrap;
+}
+
+.hearth-clip-body .setting-item-control {
+	flex: 1 1 100%;
+}
+
+.hearth-clip-textarea {
+	width: 100%;
+	min-height: 8em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-clip-ref,
+.hearth-clip-preview {
+	margin: 12px 0;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.hearth-clip-ref-head {
+	font-weight: 600;
+}
+
+.hearth-clip-ref-hint {
+	margin: 2px 0 8px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.hearth-clip-vars {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	gap: 4px;
+}
+
+button.hearth-clip-chip {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1px;
+	height: auto;
+	padding: 5px 9px;
+	text-align: left;
+	white-space: normal;
+}
+
+.hearth-clip-chip-code {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	color: var(--text-accent);
+}
+
+.hearth-clip-chip-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.hearth-clip-filters {
+	margin-top: 10px;
+}
+
+.hearth-clip-filters > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.hearth-clip-filterlist {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+	gap: 4px 16px;
+	font-size: var(--font-ui-small);
+}
+
+.hearth-clip-filter {
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-clip-filter span {
+	color: var(--text-muted);
+}
+
+.hearth-clip-preview-path {
+	margin-bottom: 6px;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	color: var(--text-accent);
+}
+
+.hearth-clip-preview-text {
+	max-height: 18rem;
+	margin: 0;
+	padding: 10px;
+	overflow: auto;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	font-size: var(--font-ui-small);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 /* Keep the optional date-format input from crowding the field-routing row. */
@@ -17370,6 +17895,146 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	font-variant-ligatures: none;
 }
 
+/* The RSS reader in terminal mode, in a tab or a terminal dialog: the
+   feeds as a tab line, the list as rows with a ● for unread, the entry
+   under a reversed heading, the steps as boxed links. */
+.hearth-t-modal .hearth-rss-reader-bar {
+	border-bottom: 1px dashed var(--tui-line);
+}
+
+.hearth-t-modal .hearth-rss-reader-nav {
+	border-top: 1px dashed var(--tui-line);
+}
+
+.hearth-t-modal .hearth-rss-reader-list {
+	border-right: 1px dashed var(--tui-line);
+}
+
+/* Tabs and steps are not "[ buttons ]": a tab line reverses the active
+   one, as the card's own tab line does. */
+.hearth-t-modal button:is(.hearth-rss-tab, .hearth-rss-reader-step, .hearth-clip-chip):not(.clickable-icon):not(.modal-close-button)::before,
+.hearth-t-modal button:is(.hearth-rss-tab, .hearth-rss-reader-step, .hearth-clip-chip):not(.clickable-icon):not(.modal-close-button)::after {
+	content: none;
+}
+
+.hearth-t-modal button.hearth-rss-tab:not(.clickable-icon):not(.modal-close-button) {
+	border-radius: 0;
+	background: transparent;
+	color: var(--tui-dim);
+}
+
+.hearth-t-modal button.hearth-rss-tab.is-active:not(.clickable-icon):not(.modal-close-button) {
+	background: var(--tui-sel-bg);
+	color: var(--tui-sel-fg);
+	font-weight: 700;
+}
+
+.hearth-t-modal .hearth-rss-tab-count {
+	border-radius: 0;
+	background: transparent;
+	color: var(--tui-accent);
+	padding: 0;
+}
+
+.hearth-t-modal .hearth-rss-tab.is-active .hearth-rss-tab-count {
+	background: transparent;
+	color: inherit;
+}
+
+.hearth-t-modal .hearth-rss-item {
+	border-radius: 0;
+	border-bottom: none;
+}
+
+.hearth-t-modal .hearth-rss-item.is-current {
+	background: var(--tui-sel-bg);
+}
+
+.hearth-t-modal .hearth-rss-item.is-current :is(.hearth-rss-title, .hearth-rss-meta) {
+	color: var(--tui-sel-fg);
+}
+
+.hearth-t-modal .hearth-rss-dot {
+	width: auto;
+	height: auto;
+	flex-basis: 2ch;
+	margin-top: 0;
+	border-radius: 0;
+	background: none;
+	color: var(--tui-accent);
+}
+
+.hearth-t-modal .hearth-rss-dot::before {
+	content: "●";
+}
+
+.hearth-t-modal .hearth-rss-item.is-read .hearth-rss-dot::before {
+	content: " ";
+}
+
+.hearth-t-modal .hearth-rss-item.is-current .hearth-rss-dot {
+	color: var(--tui-sel-fg);
+}
+
+.hearth-t-modal h1.hearth-rss-reader-title {
+	font-family: var(--tui-font);
+	font-size: 1.15em;
+}
+
+.hearth-t-modal h1.hearth-rss-reader-title::before {
+	content: "# ";
+	color: var(--tui-accent);
+}
+
+.hearth-t-modal .hearth-rss-reader-meta {
+	color: var(--tui-dim);
+}
+
+.hearth-t-modal .hearth-rss-reader-blocked {
+	border-radius: 0;
+	border: 1px dashed var(--tui-line);
+	background: transparent;
+	color: var(--tui-dim);
+}
+
+.hearth-t-modal .hearth-rss-reader-body {
+	font-family: var(--tui-font);
+	font-size: inherit;
+	line-height: 1.5;
+}
+
+.hearth-t-modal .hearth-rss-reader-body img {
+	border-radius: 0;
+}
+
+.hearth-t-modal button.hearth-rss-reader-step:not(.clickable-icon):not(.modal-close-button) {
+	border: 1px solid var(--tui-line);
+	color: var(--tui-fg);
+}
+
+.hearth-t-modal button.hearth-rss-reader-step:not(.clickable-icon):not(.modal-close-button):hover {
+	border-color: var(--tui-accent);
+}
+
+.hearth-t-modal .hearth-rss-reader-stepdir {
+	color: var(--tui-accent);
+}
+
+.hearth-t-modal :is(.hearth-clip-ref, .hearth-clip-preview) {
+	border: 1px dashed var(--tui-line);
+	border-radius: 0;
+}
+
+.hearth-t-modal .hearth-clip-preview-text {
+	border-radius: 0;
+	background: var(--tui-bg-alt);
+	font-family: var(--tui-font);
+}
+
+.hearth-t-modal button.hearth-clip-chip:not(.clickable-icon):not(.modal-close-button) {
+	color: var(--tui-fg);
+}
+
 /* The browser in terminal mode, in a tab or a terminal dialog: square, ruled,
    on the scheme's own colours. */
 .hearth-t-modal .hearth-folder-bar {
@@ -21309,6 +21974,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--x-on-primary);
 }
 
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-tabmore {
+	height: 24px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
+}
+
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-refresh,
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-jira-refresh,
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-git-refresh {
@@ -21813,6 +22485,125 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-x-modal .hearth-taskfilter-chip.is-on {
 	font-weight: 750;
+}
+
+/* ---- The RSS reader ---- */
+.hearth-x-modal .hearth-rss-reader-bar {
+	border-bottom: none;
+}
+
+.hearth-x-modal .hearth-rss-reader-list {
+	padding-right: 12px;
+	border-right: none;
+}
+
+.hearth-x-modal .hearth-rss-item.is-current {
+	background: var(--x-container);
+	border-radius: 20px;
+}
+
+.hearth-x-modal .hearth-rss-reader-article {
+	margin: 0 0 4px;
+	border-radius: 28px;
+	background: var(--x-surface);
+}
+
+.hearth-x-modal h1.hearth-rss-reader-title {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+
+.hearth-x-modal .hearth-rss-reader-meta {
+	color: var(--x-on-container);
+	font-weight: 600;
+}
+
+.hearth-x-modal button.hearth-rss-reader-action,
+.hearth-x-modal button.hearth-rss-reader-step,
+.hearth-x-modal button.hearth-clip-chip {
+	border: none;
+	border-radius: 999px;
+	background: var(--x-surface-high);
+	box-shadow: none;
+	color: var(--x-on-container);
+	font-weight: 650;
+	padding-inline: 16px;
+}
+
+.hearth-x-modal button.hearth-rss-reader-action:hover,
+.hearth-x-modal button.hearth-rss-reader-step:hover,
+.hearth-x-modal button.hearth-clip-chip:hover {
+	background: var(--x-surface-highest);
+}
+
+.hearth-x-modal button.hearth-rss-reader-action.mod-cta {
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-x-modal button.hearth-rss-reader-step {
+	border-radius: 20px;
+	padding-block: 10px;
+}
+
+.hearth-x-modal button.hearth-clip-chip {
+	border-radius: 14px;
+	padding-inline: 10px;
+}
+
+.hearth-x-modal .hearth-rss-reader-blocked {
+	border-radius: 20px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-x-modal .hearth-rss-reader-blocked button.hearth-rss-reader-action {
+	background: var(--x-container);
+}
+
+.hearth-x-modal .hearth-rss-reader-nav {
+	border-top: none;
+}
+
+.hearth-x-modal :is(.hearth-clip-ref, .hearth-clip-preview) {
+	border: none;
+	border-radius: 22px;
+	background: var(--x-surface);
+}
+
+.hearth-x-modal .hearth-clip-preview-text {
+	border-radius: 14px;
+	background: var(--x-surface-high);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-tab-count {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-tab.is-active .hearth-rss-tab-count {
+	background: color-mix(in srgb, var(--x-on-primary) 25%, transparent);
+	color: inherit;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-dot {
+	width: 8px;
+	height: 8px;
+	flex-basis: 8px;
+	background: var(--x-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item.is-read .hearth-rss-dot {
+	background: transparent;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-item.is-read .hearth-rss-title {
+	font-weight: 550;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-rss-refresh.is-active {
+	background: var(--x-container);
+	color: var(--x-on-container);
 }
 
 /* ---- The folder browser ---- */

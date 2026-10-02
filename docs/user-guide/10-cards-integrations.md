@@ -194,7 +194,9 @@ card says so. If loading fails, check the host, the API path and the token.
 
 ## RSS feed
 
-**What it shows:** headlines from any RSS 2.0 or Atom feed.
+**What it shows:** headlines from any RSS 2.0 or Atom feed, with what you have
+read and what you haven't — and a reader to read them in without leaving
+Obsidian.
 
 **Requires:** network access.
 
@@ -220,6 +222,59 @@ newest first.
 
 With external calls disabled, the card says *Feeds are off (external calls
 disabled)* rather than failing silently.
+
+### Read and unread
+
+An entry is read once you open it, in the reader or the browser. Unread entries
+carry a dot, and each feed's tab says how many it has. Above the list:
+
+- the **filter** button lists only unread entries (also *Unread only* in the
+  card's settings);
+- **mark all as read** clears the feed shown;
+- right-click an entry for every other action: read it in Hearth or in a new
+  tab, open it in the browser, mark it read or unread, save it as a note, copy
+  its link.
+
+What has been read is kept in Hearth's settings, so it syncs with them.
+
+### Reading in Hearth
+
+Clicking an entry opens its web page by default. An entry with no web page —
+an email newsletter brought into a feed by LetterFeed, Kill the Newsletter or
+FreshRSS, say — opens in Hearth's **reader** instead, showing the full text the
+feed carried. *Open entries in* can send every entry there: **Reader (dialog)**
+over the board, or **Reader (tab)** in a tab of its own.
+
+The reader shows the card's feeds along the top, the entries down the side and
+the entry itself at a comfortable reading width, with buttons to open it in the
+browser, save it as a note, mark it unread and copy its link. **←** **→** (or
+**j** **k**) step through the entries, **[** **]** through the feeds; **o**
+opens the page, **s** saves the note, **u** marks it unread, **i** loads its
+pictures and **l** shows or hides the list. The dialog's tab button moves it
+into a tab, where the tab's back and forward buttons walk the entries you read.
+
+The feed's HTML is sanitised: scripts, frames and forms are dropped, links open
+in your browser, and colours and fonts follow your theme.
+
+*Pictures in the reader* decides about an entry's pictures. They are fetched
+from the sender's server, which learns that you opened the entry — newsletters
+count on it — so by default (**Ask**) the reader holds them back and offers
+*Load pictures*. **Always load** and **Never load** do what they say. Tracking
+pixels are never loaded, and nothing is while external calls are disabled.
+
+### Save as note
+
+*Save as note* in the reader turns an entry into a note through a note
+template — the same kind the calendars' event notes use, described in
+[Creating a note from an event](08-cards-planning.md#creating-a-note-from-an-event).
+An entry offers `{{title}}`, `{{link}}`, `{{content}}` (the full text as
+Markdown), `{{excerpt}}`, `{{published}}`, `{{author}}`, `{{feed}}`,
+`{{feedUrl}}`, `{{categories}}` (a list), `{{image}}`, `{{id}}` and `{{html}}`.
+
+Out of the box a note looks like a Web Clipper clipping: `source`, `author`,
+`feed`, `published`, `created` and `tags: rss` as properties, the article as
+the body. The preview is filled from the card's newest entry. Once saved, the
+reader's button opens the note instead.
 
 ---
 

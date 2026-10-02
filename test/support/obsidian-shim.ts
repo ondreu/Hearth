@@ -35,6 +35,9 @@ export function prepareFuzzySearch(): unknown {
 export function requestUrl(): unknown {
 	throw new Error("requestUrl is not implemented in tests (Obsidian API)");
 }
+export function sanitizeHTMLToDom(): DocumentFragment {
+	throw new Error("sanitizeHTMLToDom is not implemented in tests (Obsidian API)");
+}
 
 // Obsidian's own base64 helpers. Real implementations rather than placeholders:
 // they are pure functions over an ArrayBuffer, the portable-package engine's
