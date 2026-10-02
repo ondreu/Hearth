@@ -111,6 +111,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   notes by the titles the explorer shows instead of their file names, through
   the plugin's own API (#375). On by default; **Settings → Hearth →
   Integrations → Front Matter Title** turns it off.
+- **Read feed entries in Hearth.** An RSS entry with no web link — an email
+  newsletter brought in through LetterFeed or FreshRSS, say — used to do
+  nothing when clicked; it now opens in a reader dialog showing the full text
+  the feed carried (#377). The feed's HTML is sanitised, links open in the
+  browser, colours and fonts follow your theme, tracking pixels are dropped and
+  no pictures load while external calls are off. A new **Read in Hearth**
+  option on the RSS card opens every entry with a body there, keeping the
+  page one button away; in terminal mode the item menu offers both.
+- **RSS entries whose only address is their `<guid>`** now open that page.
 
 ### Fixed
 

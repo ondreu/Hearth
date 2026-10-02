@@ -3050,6 +3050,9 @@ export const en = {
 			showExcerptDesc: "Show a short text snippet under each item.",
 			showDate: "Show date",
 			showDateDesc: "Show each item's publish time.",
+			openInReader: "Read in Hearth",
+			openInReaderDesc:
+				"Open entries in a reader inside Hearth when the feed includes their full text, instead of the browser. Entries without a link always open there.",
 		},
 		market: {
 			symbols: "Symbols",
@@ -3605,6 +3608,7 @@ export const en = {
 			error: "Couldn't load this feed",
 			disabled: "Feeds are off (external calls disabled)",
 			refresh: "Refresh",
+			nothingToOpen: "This entry has no link or text to open.",
 		},
 		market: {
 			types: {

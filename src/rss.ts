@@ -24,6 +24,12 @@ export interface RssItem {
 	published: number | null;
 	/** Thumbnail image URL when the item advertises one, else "". */
 	image: string;
+	/** The entry's full body as the feed sent it — `content:encoded` or Atom
+	 * `<content>`, else the description/summary — as HTML (or plain text when
+	 * the feed sent no markup), or "". Unsanitised: render it only through
+	 * the reader, which sanitises it. Lets an entry with no link (a
+	 * newsletter imported into a feed, #377) still be read. */
+	content: string;
 }
 
 /** A parsed feed: its own title plus its items, newest first. */
@@ -126,20 +132,33 @@ function parseRssItem(el: Element): RssItem {
 	const body = encoded || description;
 	return {
 		title: text(el.querySelector("title")),
-		link: text(el.querySelector("link")),
+		link: text(el.querySelector("link")) || guidLink(el),
 		excerpt: stripHtml(description || encoded),
 		published: parseDate(
 			text(el.querySelector("pubDate")) ||
 				text(tagNS(el, "dc:date")),
 		),
 		image: rssImage(el, body),
+		content: body,
 	};
+}
+
+/** An RSS `<guid>` that is a permalink: the spec makes `isPermaLink` default
+ * to true, and plenty of feeds put the article's address only there. Only a
+ * web address counts — a guid is often an opaque id even without the flag. */
+function guidLink(el: Element): string {
+	const guid = el.querySelector("guid");
+	if (!guid || guid.getAttribute("isPermaLink")?.trim().toLowerCase() === "false") return "";
+	const value = text(guid);
+	return /^https?:\/\//i.test(value) ? value : "";
 }
 
 /** An Atom `<entry>`. */
 function parseAtomEntry(el: Element): RssItem {
 	const summary =
 		text(el.querySelector("summary")) || text(el.querySelector("content"));
+	const body =
+		atomBody(atomChild(el, "content")) || atomBody(atomChild(el, "summary"));
 	return {
 		title: text(el.querySelector("title")),
 		link: atomLink(el),
@@ -149,7 +168,34 @@ function parseAtomEntry(el: Element): RssItem {
 				text(el.querySelector("updated")),
 		),
 		image: htmlImage(summary),
+		content: body,
 	};
+}
+
+/** A direct child of an Atom entry in the entry's own namespace — a plain
+ * `content` selector would also take a `<media:content>` thumbnail. */
+function atomChild(el: Element, name: string): Element | null {
+	for (const child of Array.from(el.children)) {
+		if (child.localName === name && child.namespaceURI === el.namespaceURI) return child;
+	}
+	return null;
+}
+
+/** An Atom text construct as HTML: `type="xhtml"` carries real child
+ * elements (its text alone would drop the markup), `html` carries escaped
+ * markup, and `text` (the default) is plain text — returned as is, which the
+ * reader shows as plain text since it has no tags. An out-of-line
+ * `<content src>` has no body here. */
+function atomBody(el: Element | null): string {
+	if (!el) return "";
+	const type = el.getAttribute("type")?.trim().toLowerCase() ?? "text";
+	if (type === "xhtml") {
+		// The spec wraps xhtml content in one <div>; take what is inside it.
+		const div = el.firstElementChild;
+		const host = div && div.localName === "div" && el.children.length === 1 ? div : el;
+		return host.innerHTML.trim();
+	}
+	return text(el);
 }
 
 /** Atom links live in <link href> attributes; prefer rel="alternate"/no rel. */

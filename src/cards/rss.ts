@@ -4,6 +4,7 @@ import { emptyState, feedHost } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { cachedFeed, loadFeed, type RssItem } from "../rss";
+import { openRssItem } from "../rssreader";
 import {
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
@@ -87,20 +88,21 @@ export function renderRss(
 	const activeTab = (): Tab =>
 		tabs.find((tab) => tab.id === activeId) ?? tabs[0];
 
-	const openItem = (item: RssItem): void => {
-		if (item.link && /^https?:\/\//i.test(item.link)) {
-			window.open(item.link, "_blank");
-		}
-	};
-
 	const renderItem = (
 		container: HTMLElement,
 		item: RssItem,
 		badge: string,
+		source: string,
 	): void => {
+		const openItem = (): void =>
+			openRssItem(view.app, item, {
+				source,
+				disableExternal: disabled,
+				preferReader: cfg.openInReader,
+			});
 		const row = container.createDiv("hearth-rss-item");
-		makeClickable(row, () => openItem(item), item.title || t().cards.rss.untitled);
-		row.addEventListener("click", () => openItem(item));
+		makeClickable(row, openItem, item.title || t().cards.rss.untitled);
+		row.addEventListener("click", openItem);
 
 		if (layout === "cards" && cfg.showImages !== false && item.image) {
 			const thumb = row.createDiv("hearth-rss-thumb");
@@ -137,15 +139,16 @@ export function renderRss(
 	const paint = (content: HTMLElement): void => {
 		const tab = activeTab();
 		const merged = tab.urls.length > 1;
-		const rows: { item: RssItem; badge: string }[] = [];
+		const rows: { item: RssItem; badge: string; source: string }[] = [];
 		let anyCached = false;
 		for (const url of tab.urls) {
 			const feed = cachedFeed(url);
 			if (!feed) continue;
 			anyCached = true;
 			const src = sources.find((s) => s.url === url);
-			const badge = merged && src ? sourceLabel(src) : "";
-			for (const item of feed.items) rows.push({ item, badge });
+			const source = src ? sourceLabel(src) : feed.title;
+			const badge = merged ? source : "";
+			for (const item of feed.items) rows.push({ item, badge, source });
 		}
 		if (merged) {
 			rows.sort((a, b) => (b.item.published ?? 0) - (a.item.published ?? 0));
@@ -164,7 +167,7 @@ export function renderRss(
 			}
 			return;
 		}
-		for (const row of items) renderItem(content, row.item, row.badge);
+		for (const row of items) renderItem(content, row.item, row.badge, row.source);
 	};
 
 	/** Rebuild tab bar + content from the current cache and loading flag. */
@@ -458,6 +461,16 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 				}),
 			);
 	}
+
+	new Setting(containerEl)
+		.setName(t().editors.rss.openInReader)
+		.setDesc(t().editors.rss.openInReaderDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.openInReader ?? false).onChange((v) => {
+				cfg.openInReader = v || undefined;
+				ctx.opts.save();
+			}),
+		);
 
 	new Setting(containerEl)
 		.setName(t().editors.rss.showDate)

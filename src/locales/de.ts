@@ -3061,6 +3061,9 @@ export const de: Translations = {
 			showExcerptDesc: "Einen kurzen Textausschnitt unter jedem Eintrag zeigen.",
 			showDate: "Datum anzeigen",
 			showDateDesc: "Die Veröffentlichungszeit jedes Eintrags zeigen.",
+			openInReader: "In Hearth lesen",
+			openInReaderDesc:
+				"Einträge in einem Leser in Hearth statt im Browser öffnen, wenn der Feed ihren vollen Text mitliefert. Einträge ohne Link öffnen sich immer dort.",
 		},
 		market: {
 			symbols: "Symbole",
@@ -3615,6 +3618,7 @@ export const de: Translations = {
 			error: "Dieser Feed konnte nicht geladen werden",
 			disabled: "Feeds sind aus (externe Aufrufe deaktiviert)",
 			refresh: "Aktualisieren",
+			nothingToOpen: "Dieser Eintrag hat weder Link noch Text zum Öffnen.",
 		},
 		market: {
 			types: {

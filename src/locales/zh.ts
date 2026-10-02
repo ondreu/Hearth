@@ -2780,6 +2780,9 @@ export const zh: Translations = {
 			showExcerptDesc: "在每个条目下显示一小段文本摘要。",
 			showDate: "显示日期",
 			showDateDesc: "显示每个条目的发布时间。",
+			openInReader: "在 Hearth 中阅读",
+			openInReaderDesc:
+				"当订阅源包含全文时，在 Hearth 内置阅读器中打开条目，而不是浏览器。没有链接的条目始终在阅读器中打开。",
 		},
 		market: {
 			symbols: "代码",
@@ -3309,6 +3312,7 @@ export const zh: Translations = {
 			error: "无法加载此订阅源",
 			disabled: "订阅源已关闭（对外调用被禁用）",
 			refresh: "刷新",
+			nothingToOpen: "此条目没有可打开的链接或正文。",
 		},
 		market: {
 			types: {

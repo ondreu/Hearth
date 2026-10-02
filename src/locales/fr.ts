@@ -3000,6 +3000,9 @@ export const fr: Translations = {
 			showExcerptDesc: "Afficher un court extrait sous chaque élément.",
 			showDate: "Afficher la date",
 			showDateDesc: "Afficher l'heure de publication de chaque élément.",
+			openInReader: "Lire dans Hearth",
+			openInReaderDesc:
+				"Ouvrir les articles dans un lecteur intégré à Hearth plutôt que dans le navigateur quand le flux fournit leur texte complet. Les articles sans lien s’y ouvrent toujours.",
 		},
 		market: {
 			symbols: "Symboles",
@@ -3548,6 +3551,7 @@ export const fr: Translations = {
 			error: "Impossible de charger ce flux",
 			disabled: "Les flux sont désactivés (appels externes désactivés)",
 			refresh: "Actualiser",
+			nothingToOpen: "Cet article n’a ni lien ni texte à ouvrir.",
 		},
 		market: {
 			types: {

@@ -1172,6 +1172,9 @@ export interface RssConfig {
 	showDate?: boolean;
 	/** Add a leading "All" tab that merges every source, newest first. Default false. */
 	mergeAll?: boolean;
+	/** Open entries whose feed carries their body in Hearth's reader rather
+	 * than the browser. Entries with no link open there regardless. Default false. */
+	openInReader?: boolean;
 }
 
 /** A place a "weather" card shows the forecast for.

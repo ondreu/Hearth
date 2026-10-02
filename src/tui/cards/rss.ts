@@ -4,13 +4,15 @@
  * A tab per source (and "All", when the card merges them) along the top, then
  * one row per item — its title, and under it the source and how long ago — in
  * the card's list layout, or with the excerpt under the title in the cards
- * layout. Pictures are left out. Enter opens the article in the browser.
+ * layout. Pictures are left out. Enter opens the article in the browser, or
+ * in Hearth's reader when the entry has no link (or the card prefers it).
  */
 import { moment as createMoment } from "obsidian";
 import { feedHost } from "../../cardbodies";
 import { rssActiveTab } from "../../cards/rss";
 import { t } from "../../i18n";
 import { cachedFeed, loadFeed, type RssItem } from "../../rss";
+import { openRssItem, rssOpenAction } from "../../rssreader";
 import { effectiveAutoRefreshMinutes, type RssSource } from "../../types";
 import { hearthMenu } from "../../uidesign";
 import type { TuiContext, TuiItem, TuiRenderer } from "../card";
@@ -42,19 +44,30 @@ function sourceLabel(source: RssSource): string {
 	return source.name.trim() || cachedFeed(source.url)?.title || feedHost(source.url);
 }
 
-function openItem(item: RssItem): void {
-	if (item.link && /^https?:\/\//i.test(item.link)) window.open(item.link, "_blank");
+function openItem(ctx: TuiContext, item: RssItem, source: string, preferReader = ctx.card.rss?.openInReader): void {
+	openRssItem(ctx.view.app, item, {
+		source,
+		disableExternal: ctx.view.plugin.settings.disableExternalCalls,
+		preferReader,
+	});
 }
 
 function ago(ms: number): string {
 	return (createMoment(new Date(ms)) as unknown as { fromNow(): string }).fromNow();
 }
 
-function itemMenu(item: RssItem, evt: MouseEvent | KeyboardEvent): void {
-	if (!item.link) return;
+function itemMenu(ctx: TuiContext, item: RssItem, source: string, evt: MouseEvent | KeyboardEvent): void {
+	const readable = rssOpenAction(item, true) === "reader";
+	const linked = rssOpenAction(item) === "link";
+	if (!readable && !linked) return;
 	const menu = hearthMenu();
-	menu.addItem((i) => i.setTitle(t().tui.cards.rssOpen).setIcon("globe").onClick(() => openItem(item)));
-	menu.addItem((i) => i.setTitle(t().tui.cards.copyLink).setIcon("link").onClick(() => void navigator.clipboard.writeText(item.link)));
+	if (readable) {
+		menu.addItem((i) => i.setTitle(t().editors.rss.openInReader).setIcon("book-open").onClick(() => openItem(ctx, item, source, true)));
+	}
+	if (linked) {
+		menu.addItem((i) => i.setTitle(t().tui.cards.rssOpen).setIcon("globe").onClick(() => openItem(ctx, item, source, false)));
+		menu.addItem((i) => i.setTitle(t().tui.cards.copyLink).setIcon("link").onClick(() => void navigator.clipboard.writeText(item.link)));
+	}
 	showMenuFor(menu, evt);
 }
 
@@ -129,14 +142,15 @@ export const rssTui: TuiRenderer = {
 		}
 
 		const merged = tab.urls.length > 1;
-		const rows: { item: RssItem; badge: string }[] = [];
+		const rows: { item: RssItem; badge: string; source: string }[] = [];
 		let anyCached = false;
 		for (const url of tab.urls) {
 			const feed = cachedFeed(url);
 			if (!feed) continue;
 			anyCached = true;
 			const src = sources.find((s) => s.url === url);
-			for (const item of feed.items) rows.push({ item, badge: merged && src ? sourceLabel(src) : "" });
+			const source = src ? sourceLabel(src) : feed.title;
+			for (const item of feed.items) rows.push({ item, badge: merged ? source : "", source });
 		}
 		if (merged) rows.sort((a, b) => (b.item.published ?? 0) - (a.item.published ?? 0));
 		const limit = ctx.zoomed ? 100 : cfg.itemLimit && cfg.itemLimit > 0 ? cfg.itemLimit : 15;
@@ -149,7 +163,7 @@ export const rssTui: TuiRenderer = {
 		}
 
 		const cards = cfg.layout === "cards";
-		for (const { item, badge } of shown) {
+		for (const { item, badge, source } of shown) {
 			const own: Line[] = [];
 			const title = asciify(item.title || strings.untitled);
 			const meta = [badge, cfg.showDate !== false && item.published ? ago(item.published) : ""].filter(Boolean).join(" · ");
@@ -162,7 +176,7 @@ export const rssTui: TuiRenderer = {
 			} else {
 				own.push(spread([{ text: title, style: "bold" }], meta ? [{ text: `  ${meta}`, style: "faint" }] : [], w));
 			}
-			items.push({ line: lines.length, span: own.length, activate: () => openItem(item), menu: (evt) => itemMenu(item, evt) });
+			items.push({ line: lines.length, span: own.length, activate: () => openItem(ctx, item, source), menu: (evt) => itemMenu(ctx, item, source, evt) });
 			lines.push(...own);
 			if (cards) lines.push([]);
 		}

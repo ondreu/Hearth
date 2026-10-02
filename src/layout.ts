@@ -1533,6 +1533,7 @@ function sanitizeRss(r: Record<string, unknown>): RssConfig {
 	if (typeof r.showExcerpt === "boolean") cfg.showExcerpt = r.showExcerpt;
 	if (typeof r.showDate === "boolean") cfg.showDate = r.showDate;
 	if (typeof r.mergeAll === "boolean") cfg.mergeAll = r.mergeAll;
+	if (r.openInReader === true) cfg.openInReader = true;
 	return cfg;
 }
 

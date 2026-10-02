@@ -8464,6 +8464,49 @@ button.hearth-kofi-btn:focus-visible {
 	height: 16px;
 }
 
+/* RSS reader: an entry's own text, read in Hearth (#377) — newsletters and
+   other entries with no page to open. Feed HTML hard-codes widths and
+   fonts, so everything is held to the dialog's width and the theme's type. */
+.hearth-rss-reader-modal {
+	width: min(760px, 92vw);
+}
+
+.hearth-rss-reader-modal .modal-content {
+	padding-top: 4px;
+}
+
+.hearth-rss-reader-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: 12px;
+}
+
+.hearth-rss-reader-body {
+	max-height: 65vh;
+	overflow: auto;
+	overflow-wrap: anywhere;
+	line-height: 1.55;
+	user-select: text;
+}
+
+.hearth-rss-reader-body.is-plain {
+	white-space: pre-wrap;
+}
+
+.hearth-rss-reader-body * {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.hearth-rss-reader-body img {
+	height: auto;
+	border-radius: var(--radius-s);
+}
+
+.hearth-rss-reader-body table {
+	width: auto !important;
+}
+
 /* Keep the optional date-format input from crowding the field-routing row. */
 .hearth-event-format {
 	max-width: 9em;
