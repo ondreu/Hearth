@@ -3,6 +3,7 @@ import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
+import type { ClipTemplate } from "./clip";
 import type { EventNoteConfig } from "./eventnote";
 import type { FolderShow, FolderSort } from "./foldercontents";
 import type { Granularity } from "./periodic";
@@ -1172,10 +1173,25 @@ export interface RssConfig {
 	showDate?: boolean;
 	/** Add a leading "All" tab that merges every source, newest first. Default false. */
 	mergeAll?: boolean;
-	/** Open entries whose feed carries their body in Hearth's reader rather
-	 * than the browser. Entries with no link open there regardless. Default false. */
-	openInReader?: boolean;
+	/** Where a click on an entry goes: its page in the browser (the default;
+	 * an entry with no link still opens in the reader dialog), or Hearth's
+	 * reader as a dialog or in a tab of its own. */
+	openIn?: RssOpenIn;
+	/** Whether the reader loads an entry's pictures: only on request (the
+	 * default — a remote picture tells its sender the entry was opened),
+	 * always, or never. External calls off means never, whatever this says. */
+	readerImages?: RssReaderImages;
+	/** List only the entries not yet read. Default false. */
+	unreadOnly?: boolean;
+	/** The note template behind the reader's "Save as note" (src/clip.ts). */
+	note?: ClipTemplate;
 }
+
+/** Where an RSS card opens its entries. */
+export type RssOpenIn = "browser" | "dialog" | "tab";
+
+/** When the RSS reader loads pictures. */
+export type RssReaderImages = "ask" | "always" | "never";
 
 /** A place a "weather" card shows the forecast for.
  *
@@ -2727,6 +2743,9 @@ export interface HomeSettings {
 	lastSeenVersion: string;
 	/** How far the first-run setup wizard has got. See {@link SetupStatus}. */
 	setupStatus: SetupStatus;
+	/** The RSS entries opened or marked read, by key (see `src/rssstate.ts`),
+	 * against the day — days since the epoch — they were read. */
+	rssRead: Record<string, number>;
 	/**
 	 * The secret behind this vault's export identity, minted the first time a
 	 * dashboard is exported. Empty until then.
@@ -2934,6 +2953,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	fullWidth: false,
 
 	lastSeenVersion: "",
+	rssRead: {},
 	// Fresh installs start out owing the wizard a run; `migrateSettings` marks
 	// every *existing* vault as done, so nobody is offered a rebuild of a
 	// dashboard they already have.

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { parseFeed, type RssItem } from "../src/rss";
-import { isPlainText, rssOpenAction, tidyReaderBody } from "../src/rssreader";
+import { isPlainText, prepareEntryHtml, releaseImages, rssOpenAction, tidyReaderBody } from "../src/rssreader";
 
 const rss = (items: string): string =>
 	`<?xml version="1.0"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Letters</title>${items}</channel></rss>`;
@@ -17,7 +17,7 @@ const atom = (entries: string): string =>
 	`<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"><title>Atom</title>${entries}</feed>`;
 
 function item(over: Partial<RssItem>): RssItem {
-	return { title: "T", link: "", excerpt: "", published: null, image: "", content: "", ...over };
+	return { id: "x", title: "T", link: "", excerpt: "", published: null, image: "", content: "", author: "", categories: [], ...over };
 }
 
 describe("parseFeed: entry bodies and links", () => {
@@ -33,6 +33,29 @@ describe("parseFeed: entry bodies and links", () => {
 	it("falls back to the description when there is no content:encoded", () => {
 		const feed = parseFeed(rss(`<item><title>A</title><description>&lt;p&gt;Hi&lt;/p&gt;</description></item>`))!;
 		expect(feed.items[0].content).toBe("<p>Hi</p>");
+	});
+
+	it("gives every entry an id, author and categories", () => {
+		const feed = parseFeed(
+			rss(
+				`<item><title>A</title><guid isPermaLink="false">abc-1</guid><author>a@b.c (Ann)</author><category>News</category><category>News</category><category>Tech</category></item>` +
+					`<item><title>B</title><link>https://example.com/b</link></item>` +
+					`<item><title>C</title><pubDate>Tue, 29 Sep 2026 10:00:00 GMT</pubDate></item>`,
+			),
+		)!;
+		const [c, a, b] = feed.items;
+		expect(a.id).toBe("abc-1");
+		expect(a.author).toBe("a@b.c (Ann)");
+		expect(a.categories).toEqual(["News", "Tech"]);
+		expect(b.id).toBe("https://example.com/b");
+		expect(c.id).toBe(`C|${Date.parse("Tue, 29 Sep 2026 10:00:00 GMT")}`);
+	});
+
+	it("reads an Atom entry's id, author and category terms", () => {
+		const feed = parseFeed(
+			atom(`<entry><id>tag:example.com,2026:1</id><title>X</title><author><name>Bo</name></author><category term="rss"/></entry>`),
+		)!;
+		expect(feed.items[0]).toMatchObject({ id: "tag:example.com,2026:1", author: "Bo", categories: ["rss"] });
 	});
 
 	it("takes a permalink guid as the link when <link> is missing", () => {
@@ -72,9 +95,10 @@ describe("rssOpenAction", () => {
 		expect(rssOpenAction(item({ link: "javascript:alert(1)", excerpt: "x" }))).toBe("reader");
 	});
 
-	it("prefers the reader when asked, but only when there is a body", () => {
-		expect(rssOpenAction(item({ link: "https://example.com", content: "<p>x</p>" }), true)).toBe("reader");
-		expect(rssOpenAction(item({ link: "https://example.com" }), true)).toBe("link");
+	it("reads in Hearth when the card says, but only when there is a body", () => {
+		expect(rssOpenAction(item({ link: "https://example.com", content: "<p>x</p>" }), "dialog")).toBe("reader");
+		expect(rssOpenAction(item({ link: "https://example.com", content: "<p>x</p>" }), "tab")).toBe("reader");
+		expect(rssOpenAction(item({ link: "https://example.com" }), "tab")).toBe("link");
 	});
 
 	it("has nothing to do for an entry with neither", () => {
@@ -115,8 +139,13 @@ describe("tidyReaderBody", () => {
 		expect(imgs[0].hasAttribute("srcset")).toBe(false);
 	});
 
-	it("drops every picture when external calls are off", () => {
-		expect(tidy(`<p>a</p><img src="https://e.com/a.png">`, false).innerHTML).toBe("<p>a</p>");
+	it("holds pictures back until asked, and counts them (pixels aside)", () => {
+		const root = new DOMParser().parseFromString(
+			`<p>a</p><img src="https://e.com/a.png"><img src="https://e.com/b.png"><img src="https://t.com/p.gif" width="1">`,
+			"text/html",
+		).body;
+		expect(tidyReaderBody(root, { images: false })).toEqual({ blocked: 2 });
+		expect(root.innerHTML).toBe("<p>a</p>");
 	});
 
 	it("leaves colours, typefaces and fixed widths to the dialog", () => {
@@ -128,6 +157,48 @@ describe("tidyReaderBody", () => {
 		expect(table.hasAttribute("bgcolor")).toBe(false);
 		expect(root.querySelector("td")!.getAttribute("style")).toBe("padding: 4px;");
 		expect(root.querySelector<HTMLElement>("font")!.hasAttribute("color")).toBe(false);
+	});
+});
+
+describe("holding picture addresses through the sanitiser", () => {
+	it("keeps no src on any picture until released, then sets it up first", () => {
+		const { body, blocked } = prepareEntryHtml(
+			`<p><a href="https://e.com">x</a></p><img src="https://e.com/a.png"><img src="https://t.com/p.gif" height="1"><video src="https://e.com/v.mp4"></video>`,
+			{ images: true, hold: true },
+		);
+		expect(blocked).toBe(0);
+		expect(body.querySelectorAll("img[src], video")).toHaveLength(0);
+		const img = body.querySelector("img")!;
+		expect(img.getAttribute("data-hearth-src")).toBe("https://e.com/a.png");
+		// What the sanitiser would hand back: the same markup, links stripped of target.
+		const copy = new DOMParser().parseFromString(body.innerHTML.replace(/ target="_blank"/g, ""), "text/html").body;
+		releaseImages(copy);
+		const out = copy.querySelector("img")!;
+		expect(out.getAttribute("src")).toBe("https://e.com/a.png");
+		expect(out.getAttribute("referrerpolicy")).toBe("no-referrer");
+		expect(out.hasAttribute("data-hearth-src")).toBe(false);
+		expect(copy.querySelector("a")!.getAttribute("target")).toBe("_blank");
+	});
+
+	it("matches pictures to addresses by order when the sanitiser drops data attributes", () => {
+		const { body, held } = prepareEntryHtml(`<img src="https://e.com/1.png"><p>x</p><img src="https://e.com/2.png">`, {
+			images: true,
+			hold: true,
+		});
+		expect(held).toEqual(["https://e.com/1.png", "https://e.com/2.png"]);
+		const stripped = new DOMParser().parseFromString(body.innerHTML.replace(/ data-hearth-src="[^"]*"/g, ""), "text/html").body;
+		releaseImages(stripped, held);
+		expect(Array.from(stripped.querySelectorAll("img")).map((i) => i.getAttribute("src"))).toEqual(held);
+		// Counts that disagree are not trusted: the pictures go instead.
+		const short = new DOMParser().parseFromString(`<img><img><img>`, "text/html").body;
+		releaseImages(short, held);
+		expect(short.querySelectorAll("img")).toHaveLength(0);
+	});
+
+	it("won't release an address that isn't a web one", () => {
+		const body = new DOMParser().parseFromString(`<img data-hearth-src="javascript:alert(1)">`, "text/html").body;
+		releaseImages(body);
+		expect(body.querySelector("img")).toBeNull();
 	});
 });
 

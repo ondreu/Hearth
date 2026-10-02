@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-	applyEventPlaceholders,
 	buildEventNote,
-	eventFieldValue,
 	sanitizeFilename,
+	upgradeEventNote,
+	type EventNoteConfig,
 	type EventNoteInput,
 } from "../src/eventnote";
 
@@ -27,39 +27,24 @@ function makeEvent(partial: Partial<EventNoteInput> = {}): EventNoteInput {
 	};
 }
 
-describe("eventFieldValue", () => {
+describe("event variables", () => {
 	const ev = makeEvent();
-	it("returns plain fields verbatim", () => {
-		expect(eventFieldValue("summary", ev)).toBe("Design review");
-		expect(eventFieldValue("location", ev)).toBe("Room 4");
-		expect(eventFieldValue("calendar", ev)).toBe("Work");
+	const name = (template: string, e = ev): string => buildEventNote(e, { name: template, linkKey: "" }).filename;
+	it("fills plain fields and dates", () => {
+		expect(name("{{title}} @ {{location}}")).toBe("Design review @ Room 4");
+		expect(name("{{date}} {{start}}-{{end}}")).toBe("2026-07-20 09 00-10 30");
 	});
-	it("formats date and time fields", () => {
-		expect(eventFieldValue("date", ev)).toBe("2026-07-20");
-		expect(eventFieldValue("start", ev)).toBe("09:00");
-		expect(eventFieldValue("end", ev)).toBe("10:30");
+	it("still reads the old {{field:FORMAT}} form", () => {
+		expect(name("{{date:DD.MM.YYYY}} {{start:h.mm A}}")).toBe("20.07.2026 9.00 AM");
+		expect(name("{{summary}}")).toBe("Design review");
 	});
-	it("honours a custom format", () => {
-		expect(eventFieldValue("start", ev, "h:mm A")).toBe("9:00 AM");
-		expect(eventFieldValue("date", ev, "DD.MM.YYYY")).toBe("20.07.2026");
-	});
-	it("all-day events have no clock time (fall back to date)", () => {
-		const allDay = makeEvent({ allDay: true });
-		expect(eventFieldValue("start", allDay)).toBe("2026-07-20");
-	});
-	it("returns '' for a missing end", () => {
-		expect(eventFieldValue("end", makeEvent({ end: null }))).toBe("");
-	});
-});
-
-describe("applyEventPlaceholders", () => {
-	const ev = makeEvent();
-	it("substitutes plain and formatted tokens", () => {
-		expect(applyEventPlaceholders("{{summary}} @ {{location}}", ev)).toBe("Design review @ Room 4");
-		expect(applyEventPlaceholders("{{date}} {{start:h:mm A}}", ev)).toBe("2026-07-20 9:00 AM");
+	it("gives an all-day event days, not clock times", () => {
+		expect(name("{{start}}", makeEvent({ allDay: true }))).toBe("2026-07-20");
 	});
 	it("leaves unknown tokens untouched", () => {
-		expect(applyEventPlaceholders("{{unknown}} {{summary}}", ev)).toBe("{{unknown}} Design review");
+		expect(buildEventNote(ev, { name: "x", body: "{{unknown}} {{title}}", linkKey: "" }).body).toBe(
+			"{{unknown}} Design review",
+		);
 	});
 });
 
@@ -139,5 +124,70 @@ describe("buildEventNote — template", () => {
 			template,
 		);
 		expect(built.body).toBe("# Design review\n\nWhere: Room 4\n\nBring the deck");
+	});
+});
+
+describe("upgradeEventNote", () => {
+	it("turns routing rules into properties and body sections", () => {
+		const cfg: EventNoteConfig = {
+			filename: "{{date}} {{summary}}",
+			fields: [
+				{ field: "date", action: "frontmatter" },
+				{ field: "start", action: "frontmatter", key: "starts_at", format: "h:mm A" },
+				{ field: "url", action: "ignore" },
+				{ field: "description", action: "body", key: "Notes" },
+				{ field: "location", action: "body" },
+			],
+		};
+		upgradeEventNote(cfg);
+		expect(cfg).toEqual({
+			name: "{{date}} {{title}}",
+			properties: [
+				{ name: "date", value: "{{date}}", type: "date" },
+				{ name: "starts_at", value: '{{start|date:"h:mm A"}}', type: "text" },
+			],
+			body: "## Notes\n\n{{description}}\n\n{{location}}",
+		});
+	});
+
+	it("keeps a card that never customised its rules on the defaults", () => {
+		const cfg: EventNoteConfig = { folder: "Events", linkKey: "uid" };
+		expect(upgradeEventNote(cfg)).toEqual({ folder: "Events", linkKey: "uid" });
+	});
+
+	it("builds the same note before and after the upgrade", () => {
+		const legacy: EventNoteConfig = {
+			filename: "{{summary}} ({{calendar}})",
+			fields: [
+				{ field: "start", action: "frontmatter", key: "at", format: "HH:mm" },
+				{ field: "description", action: "body", key: "Agenda" },
+			],
+		};
+		const before = buildEventNote(makeEvent(), legacy, "# {{summary}}");
+		const after = buildEventNote(makeEvent(), upgradeEventNote({ ...legacy }), "# {{summary}}");
+		expect(after).toEqual(before);
+		expect(before.filename).toBe("Design review (Work)");
+		expect(before.body).toBe("# Design review\n\n## Agenda\n\nBring the deck");
+	});
+});
+
+describe("buildEventNote — templates", () => {
+	it("types properties and fills a folder pattern", () => {
+		const built = buildEventNote(makeEvent(), {
+			folder: "Meetings/{{calendar}}/{{date|date:\"YYYY\"}}",
+			properties: [
+				{ name: "attendees", value: "Ann, Bob", type: "list" },
+				{ name: "when", value: "{{start}}", type: "datetime" },
+				{ name: "billable", value: "yes", type: "checkbox" },
+				{ name: "empty", value: "{{url|replace:\"https://example.com/mtg\",\"\"}}" },
+			],
+			linkKey: "",
+		});
+		expect(built.folder).toBe("Meetings/Work/2026");
+		expect(built.frontmatter).toEqual({
+			attendees: ["Ann", "Bob"],
+			when: "2026-07-20T09:00",
+			billable: true,
+		});
 	});
 });

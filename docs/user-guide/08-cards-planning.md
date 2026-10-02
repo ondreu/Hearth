@@ -410,21 +410,51 @@ pruning.
 ### Creating a note from an event
 
 The event popup can offer a **Create note** button, which turns a calendar event
-into a note in your vault. This is configured under *Event notes*:
+into a note in your vault — or opens the note an event already has. What the
+note looks like is a **note template**, configured under *Event notes*. It works
+like an [Obsidian Web Clipper](https://obsidian.md/clipper) template: you write
+the note as you want it to read, with `{{variables}}` where the event's values
+go, and a preview under the settings shows the note it makes right now.
 
 | Setting | Meaning |
 | --- | --- |
 | *Show "Create note"* | Offer the button in the event details popup |
-| *Folder* | Where new event notes are created. Empty means the vault root |
-| *Filename* | The note name. Placeholders include `{{summary}}`, `{{date}}`, `{{start}}`, `{{location}}` |
-| *Template* | An optional note whose contents seed the body. The same `{{…}}` placeholders are substituted |
-| *Link property* | A frontmatter property that stores the event's ID, so an event always maps to one note. Empty disables linking |
-| *Customise field routing* | Off uses sensible defaults — date and time as properties, description in the body. On lets you route each value yourself |
+| *Note name* | The new note's name, e.g. `{{date}} {{title}}` |
+| *Folder* | Where new notes go. Variables work here too: `Meetings/{{calendar}}`. Empty means the vault root |
+| *Properties* | One row per property: its name, a value template, and a type — Text, List, Number, Checkbox, Date or Date & time, as in Obsidian's property editor. A property that comes out empty is left out |
+| *Note content* | The body of the note |
+| *Template note* | Optional. Its text opens the body, with the same variables filled in |
+| *Link property* | Remembers which event the note was made from (by its ID), so the same event opens its note instead of making another. Empty: always make a new note |
 
-With field routing on, each event value — Name, Date, Start time, End time,
-Location, Description, URL, Calendar — can be **ignored**, written as a
-**property** (with a property name and an optional format such as `HH:mm`), or
-**appended to the body** under an optional heading.
+Out of the box a note gets the event's date (as a date property), time,
+location and calendar, with the description as its body.
+
+#### Variables and filters
+
+Click a variable in the list under the settings to put it where the cursor is.
+An event offers `{{title}}`, `{{date}}`, `{{start}}`, `{{end}}`,
+`{{location}}`, `{{description}}`, `{{url}}`, `{{calendar}}` and `{{uid}}`;
+every template also has `{{today}}` and `{{now}}`.
+
+Filters shape a value; chain them after the variable with `|`:
+
+| Filter | Does |
+| --- | --- |
+| `date:"D MMMM YYYY"` | Formats a date with [moment.js](https://momentjs.com/docs/#/displaying/format/) tokens |
+| `lower`, `upper`, `title`, `capitalize`, `trim` | Change case, trim spaces |
+| `truncate:80` | Cuts to a length, adding … |
+| `replace:"a","b"` | Replaces every *a* with *b* |
+| `default:"text"` | Used when the value is empty |
+| `split:","`, `join:", "`, `first`, `last` | Turn text into a list and back, pick an item |
+| `list`, `wikilink`, `link:"label"`, `blockquote` | Markdown: bullets, `[[links]]`, a link, a quote |
+| `safe_name` | Drops characters a file name can't hold |
+
+For example `{{start|date:"HH:mm"}}`, `{{title|lower|truncate:40}}`.
+The older `{{start:HH:mm}}` form still works.
+
+Cards set up before templates — with *Filename* and *Field routing* — are
+converted to the template they amount to the first time their settings open,
+and make the same notes as before.
 
 ---
 

@@ -1,74 +1,46 @@
 /**
  * The RSS card as text: a feed reader's list, the way a terminal one reads.
  *
- * A tab per source (and "All", when the card merges them) along the top, then
- * one row per item — its title, and under it the source and how long ago — in
- * the card's list layout, or with the excerpt under the title in the cards
- * layout. Pictures are left out. Enter opens the article in the browser, or
- * in Hearth's reader when the entry has no link (or the card prefers it).
+ * A tab per source (and "All", when the card merges them) along the top, each
+ * with its unread count, then one row per item — a `●` while it is unread,
+ * its title, and under it the source and how long ago — in the card's list
+ * layout, or with the excerpt under the title in the cards layout. Pictures
+ * are left out. Enter opens an entry the way the card says (its page, or the
+ * reader); `u` marks it read or unread, `A` marks the feed read, `f` lists
+ * only the unread, and `m` has every other way to open or keep it.
  */
 import { moment as createMoment } from "obsidian";
-import { feedHost } from "../../cardbodies";
-import { rssActiveTab } from "../../cards/rss";
+import { rssActiveTab, rssEntryMenu } from "../../cards/rss";
 import { t } from "../../i18n";
-import { cachedFeed, loadFeed, type RssItem } from "../../rss";
-import { openRssItem, rssOpenAction } from "../../rssreader";
-import { effectiveAutoRefreshMinutes, type RssSource } from "../../types";
-import { hearthMenu } from "../../uidesign";
+import { cachedFeed, loadFeed } from "../../rss";
+import {
+	rssEntryRead,
+	rssSources,
+	rssTabEntries,
+	rssTabLabel,
+	rssTabs,
+	rssTabUnread,
+	type RssEntry,
+	type RssTab,
+} from "../../rssfeeds";
+import { openRssEntry, type RssOpenContext } from "../../rssreader";
+import { setRssRead } from "../../rssstate";
+import { effectiveAutoRefreshMinutes } from "../../types";
 import type { TuiContext, TuiItem, TuiRenderer } from "../card";
 import { asciify, spread, truncate, wrap, type Line } from "../text";
 import { message, showMenuFor } from "./common";
 
-interface Tab {
-	id: string;
-	urls: string[];
-}
-
-function sourcesOf(ctx: TuiContext): RssSource[] {
-	return (ctx.card.rss?.sources ?? []).filter((s) => s.url.trim());
-}
-
-function tabsOf(ctx: TuiContext, sources: readonly RssSource[]): Tab[] {
-	const tabs: Tab[] = [];
-	if (ctx.card.rss?.mergeAll && sources.length > 1) tabs.push({ id: "all", urls: sources.map((s) => s.url) });
-	for (const s of sources) tabs.push({ id: s.id, urls: [s.url] });
-	return tabs;
-}
-
-function activeTab(ctx: TuiContext, tabs: readonly Tab[]): Tab {
+function activeTab(ctx: TuiContext, tabs: readonly RssTab[]): RssTab {
 	const id = rssActiveTab.get(ctx.card);
 	return tabs.find((tab) => tab.id === id) ?? tabs[0];
 }
 
-function sourceLabel(source: RssSource): string {
-	return source.name.trim() || cachedFeed(source.url)?.title || feedHost(source.url);
-}
-
-function openItem(ctx: TuiContext, item: RssItem, source: string, preferReader = ctx.card.rss?.openInReader): void {
-	openRssItem(ctx.view.app, item, {
-		source,
-		disableExternal: ctx.view.plugin.settings.disableExternalCalls,
-		preferReader,
-	});
+function openCtx(ctx: TuiContext): RssOpenContext {
+	return { app: ctx.view.app, settings: ctx.view.plugin.settings, opener: ctx.view };
 }
 
 function ago(ms: number): string {
 	return (createMoment(new Date(ms)) as unknown as { fromNow(): string }).fromNow();
-}
-
-function itemMenu(ctx: TuiContext, item: RssItem, source: string, evt: MouseEvent | KeyboardEvent): void {
-	const readable = rssOpenAction(item, true) === "reader";
-	const linked = rssOpenAction(item) === "link";
-	if (!readable && !linked) return;
-	const menu = hearthMenu();
-	if (readable) {
-		menu.addItem((i) => i.setTitle(t().editors.rss.openInReader).setIcon("book-open").onClick(() => openItem(ctx, item, source, true)));
-	}
-	if (linked) {
-		menu.addItem((i) => i.setTitle(t().tui.cards.rssOpen).setIcon("globe").onClick(() => openItem(ctx, item, source, false)));
-		menu.addItem((i) => i.setTitle(t().tui.cards.copyLink).setIcon("link").onClick(() => void navigator.clipboard.writeText(item.link)));
-	}
-	showMenuFor(menu, evt);
 }
 
 /** When the feeds were fetched, so a load can tell whether it brought
@@ -96,7 +68,7 @@ function load(ctx: TuiContext, urls: readonly string[], force: boolean): void {
 }
 
 function switchTab(ctx: TuiContext, dir: 1 | -1): boolean {
-	const tabs = tabsOf(ctx, sourcesOf(ctx));
+	const tabs = rssTabs(ctx.card);
 	if (tabs.length < 2) return false;
 	const i = tabs.indexOf(activeTab(ctx, tabs));
 	rssActiveTab.set(ctx.card, tabs[(i + dir + tabs.length) % tabs.length].id);
@@ -106,13 +78,29 @@ function switchTab(ctx: TuiContext, dir: 1 | -1): boolean {
 	return true;
 }
 
+/** The entry under the selection, as the last draw listed them. */
+function selectedEntry(ctx: TuiContext): RssEntry | null {
+	const shown = ctx.state.rssShown as RssEntry[] | undefined;
+	return shown?.[ctx.selected] ?? null;
+}
+
+/** Flip the card's unread-only filter. Saved quietly: only this card
+ * changes. */
+function toggleUnreadOnly(ctx: TuiContext): void {
+	const rss = (ctx.card.rss ??= {});
+	rss.unreadOnly = rss.unreadOnly ? undefined : true;
+	void ctx.view.plugin.saveData(ctx.view.plugin.settings);
+	ctx.select(0);
+	ctx.redraw();
+}
+
 export const rssTui: TuiRenderer = {
 	render(ctx) {
 		const cfg = ctx.card.rss ?? {};
-		const sources = sourcesOf(ctx);
+		const sources = rssSources(ctx.card);
 		if (!sources.length) return { lines: message(t().cards.empty.rssNoSources, ctx.cols) };
 		const strings = t().cards.rss;
-		const tabs = tabsOf(ctx, sources);
+		const tabs = rssTabs(ctx.card);
 		const tab = activeTab(ctx, tabs);
 		load(ctx, tab.urls, false);
 		const autoMin = effectiveAutoRefreshMinutes(ctx.view.plugin.settings, cfg.refreshMin ?? 30);
@@ -126,9 +114,10 @@ export const rssTui: TuiRenderer = {
 			const bar: Line = [];
 			for (const tb of tabs) {
 				if (bar.length) bar.push({ text: " " });
-				const label = tb.id === "all" ? strings.allTab : sourceLabel(sources.find((s) => s.id === tb.id) ?? { id: tb.id, name: "", url: tb.urls[0] });
+				const unread = rssTabUnread(tb);
+				const count = unread > 0 ? ` ${unread > 99 ? "99+" : unread}` : "";
 				bar.push({
-					text: ` ${asciify(truncate(label, 18))} `,
+					text: ` ${asciify(truncate(rssTabLabel(ctx.card, tb), 18))}${count} `,
 					style: tb.id === tab.id ? ["reverse", "bold"] : "dim",
 					onClick: () => {
 						rssActiveTab.set(ctx.card, tb.id);
@@ -142,41 +131,56 @@ export const rssTui: TuiRenderer = {
 		}
 
 		const merged = tab.urls.length > 1;
-		const rows: { item: RssItem; badge: string; source: string }[] = [];
-		let anyCached = false;
-		for (const url of tab.urls) {
-			const feed = cachedFeed(url);
-			if (!feed) continue;
-			anyCached = true;
-			const src = sources.find((s) => s.url === url);
-			const source = src ? sourceLabel(src) : feed.title;
-			for (const item of feed.items) rows.push({ item, badge: merged ? source : "", source });
-		}
-		if (merged) rows.sort((a, b) => (b.item.published ?? 0) - (a.item.published ?? 0));
+		const all = rssTabEntries(ctx.card, tab);
+		const anyCached = tab.urls.some((url) => cachedFeed(url) !== null);
 		const limit = ctx.zoomed ? 100 : cfg.itemLimit && cfg.itemLimit > 0 ? cfg.itemLimit : 15;
-		const shown = rows.slice(0, limit);
+		const shown = (cfg.unreadOnly ? all.filter((e) => !rssEntryRead(e)) : all).slice(0, limit);
+		ctx.state.rssShown = shown;
 
+		const foot = `${tabs.length > 1 ? t().tui.cards.rssFootTabs : t().tui.cards.rssFoot}${cfg.unreadOnly ? ` · ${strings.unreadOnly.toLowerCase()}` : ""}`;
 		if (!shown.length) {
 			const disabled = ctx.view.plugin.settings.disableExternalCalls;
-			const text = ctx.state.rssTried !== true && !anyCached ? strings.loading : disabled && !anyCached ? strings.disabled : anyCached ? strings.empty : strings.error;
-			return { lines: [...lines, ...message(text, w)], sticky };
+			const text =
+				ctx.state.rssTried !== true && !anyCached
+					? strings.loading
+					: disabled && !anyCached
+						? strings.disabled
+						: all.length > 0
+							? strings.allRead
+							: anyCached
+								? strings.empty
+								: strings.error;
+			return { lines: [...lines, ...message(text, w)], sticky, foot };
 		}
 
 		const cards = cfg.layout === "cards";
-		for (const { item, badge, source } of shown) {
+		for (const entry of shown) {
+			const { item } = entry;
+			const read = rssEntryRead(entry);
 			const own: Line[] = [];
+			const mark = { text: read ? "  " : "● ", style: "accent" as const };
 			const title = asciify(item.title || strings.untitled);
-			const meta = [badge, cfg.showDate !== false && item.published ? ago(item.published) : ""].filter(Boolean).join(" · ");
+			const titleStyle = read ? ("dim" as const) : ("bold" as const);
+			const meta = [merged ? entry.feed : "", cfg.showDate !== false && item.published ? ago(item.published) : ""]
+				.filter(Boolean)
+				.join(" · ");
 			if (cards || w < 48) {
-				for (const l of wrap(title, w).slice(0, cards ? 2 : 1)) own.push([{ text: l, style: "bold" }]);
+				wrap(title, w - 2)
+					.slice(0, cards ? 2 : 1)
+					.forEach((l, i) => own.push([i === 0 ? mark : { text: "  " }, { text: l, style: titleStyle }]));
 				if (cards && cfg.showExcerpt !== false && item.excerpt) {
-					for (const l of wrap(asciify(item.excerpt), w).slice(0, ctx.zoomed ? 6 : 2)) own.push([{ text: l }]);
+					for (const l of wrap(asciify(item.excerpt), w - 2).slice(0, ctx.zoomed ? 6 : 2)) own.push([{ text: "  " }, { text: l }]);
 				}
-				if (meta) own.push([{ text: meta, style: "faint" }]);
+				if (meta) own.push([{ text: "  " }, { text: meta, style: "faint" }]);
 			} else {
-				own.push(spread([{ text: title, style: "bold" }], meta ? [{ text: `  ${meta}`, style: "faint" }] : [], w));
+				own.push(spread([mark, { text: title, style: titleStyle }], meta ? [{ text: `  ${meta}`, style: "faint" }] : [], w));
 			}
-			items.push({ line: lines.length, span: own.length, activate: () => openItem(ctx, item, source), menu: (evt) => itemMenu(ctx, item, source, evt) });
+			items.push({
+				line: lines.length,
+				span: own.length,
+				activate: () => openRssEntry(openCtx(ctx), ctx.card, tab.id, entry),
+				menu: (evt) => showMenuFor(rssEntryMenu(openCtx(ctx), ctx.card, tab.id, entry), evt),
+			});
 			lines.push(...own);
 			if (cards) lines.push([]);
 		}
@@ -185,31 +189,64 @@ export const rssTui: TuiRenderer = {
 			items,
 			sticky,
 			hint: ctx.state.rssBusy === true ? t().tui.cards.loading : undefined,
-			foot: tabs.length > 1 ? t().tui.cards.rssFootTabs : t().tui.cards.rssFoot,
+			foot,
 		};
 	},
 	key(ctx, evt) {
+		if (evt.ctrlKey || evt.metaKey || evt.altKey) return false;
 		if (evt.key === "ArrowLeft" || evt.key === "ArrowRight") return switchTab(ctx, evt.key === "ArrowRight" ? 1 : -1);
-		if (evt.key === "r" && !evt.ctrlKey && !evt.metaKey) {
-			const tabs = tabsOf(ctx, sourcesOf(ctx));
-			if (!tabs.length) return false;
-			load(ctx, activeTab(ctx, tabs).urls, true);
-			ctx.redraw();
-			return true;
+		const tabs = rssTabs(ctx.card);
+		if (!tabs.length) return false;
+		switch (evt.key) {
+			case "r":
+				load(ctx, activeTab(ctx, tabs).urls, true);
+				ctx.redraw();
+				return true;
+			case "u": {
+				const entry = selectedEntry(ctx);
+				if (!entry) return false;
+				setRssRead([entry], !rssEntryRead(entry));
+				ctx.redraw();
+				return true;
+			}
+			case "A":
+				setRssRead(rssTabEntries(ctx.card, activeTab(ctx, tabs)), true);
+				ctx.redraw();
+				return true;
+			case "f":
+				toggleUnreadOnly(ctx);
+				return true;
+			default:
+				return false;
 		}
-		return false;
 	},
 	menu(ctx, menu) {
-		const tabs = tabsOf(ctx, sourcesOf(ctx));
+		const tabs = rssTabs(ctx.card);
 		if (!tabs.length) return;
+		const strings = t().cards.rss;
 		menu.addItem((i) =>
 			i
-				.setTitle(t().cards.rss.refresh)
+				.setTitle(strings.refresh)
 				.setIcon("refresh-cw")
 				.onClick(() => {
 					load(ctx, activeTab(ctx, tabs).urls, true);
 					ctx.redraw();
 				}),
+		);
+		menu.addItem((i) =>
+			i
+				.setTitle(strings.markAllRead)
+				.setIcon("check-check")
+				.onClick(() => {
+					setRssRead(rssTabEntries(ctx.card, activeTab(ctx, tabs)), true);
+					ctx.redraw();
+				}),
+		);
+		menu.addItem((i) =>
+			i
+				.setTitle(ctx.card.rss?.unreadOnly ? strings.showAll : strings.unreadOnly)
+				.setIcon("list-filter")
+				.onClick(() => toggleUnreadOnly(ctx)),
 		);
 	},
 };

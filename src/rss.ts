@@ -15,6 +15,9 @@ import { requestUrl } from "obsidian";
 
 /** A single parsed feed entry, normalised across RSS and Atom. */
 export interface RssItem {
+	/** A stable identity within its feed — the guid / Atom id, else the link,
+	 * else the title and date — for remembering what has been read. */
+	id: string;
 	title: string;
 	/** Absolute link to the article, or "" when the feed gives none. */
 	link: string;
@@ -30,6 +33,10 @@ export interface RssItem {
 	 * the reader, which sanitises it. Lets an entry with no link (a
 	 * newsletter imported into a feed, #377) still be read. */
 	content: string;
+	/** Who wrote it, or "". */
+	author: string;
+	/** The entry's categories / tags, in feed order. */
+	categories: string[];
 }
 
 /** A parsed feed: its own title plus its items, newest first. */
@@ -130,17 +137,33 @@ function parseRssItem(el: Element): RssItem {
 	const description = text(el.querySelector("description"));
 	const encoded = text(tagNS(el, "content:encoded"));
 	const body = encoded || description;
+	const title = text(el.querySelector("title"));
+	const link = text(el.querySelector("link")) || guidLink(el);
+	const published = parseDate(
+		text(el.querySelector("pubDate")) ||
+			text(tagNS(el, "dc:date")),
+	);
 	return {
-		title: text(el.querySelector("title")),
-		link: text(el.querySelector("link")) || guidLink(el),
+		id: itemId(text(el.querySelector("guid")), link, title, published),
+		title,
+		link,
 		excerpt: stripHtml(description || encoded),
-		published: parseDate(
-			text(el.querySelector("pubDate")) ||
-				text(tagNS(el, "dc:date")),
-		),
+		published,
 		image: rssImage(el, body),
 		content: body,
+		author: text(tagNS(el, "dc:creator")) || text(el.querySelector("author")),
+		categories: uniq(Array.from(el.querySelectorAll("category")).map((c) => text(c))),
 	};
+}
+
+/** An entry's identity: what the feed calls it, else its address, else its
+ * title and date (a newsletter feed may have nothing better). */
+function itemId(declared: string, link: string, title: string, published: number | null): string {
+	return declared || link || `${title}|${published ?? ""}`;
+}
+
+function uniq(values: string[]): string[] {
+	return [...new Set(values.filter(Boolean))];
 }
 
 /** An RSS `<guid>` that is a permalink: the spec makes `isPermaLink` default
@@ -159,16 +182,26 @@ function parseAtomEntry(el: Element): RssItem {
 		text(el.querySelector("summary")) || text(el.querySelector("content"));
 	const body =
 		atomBody(atomChild(el, "content")) || atomBody(atomChild(el, "summary"));
+	const title = text(el.querySelector("title"));
+	const link = atomLink(el);
+	const published = parseDate(
+		text(el.querySelector("published")) ||
+			text(el.querySelector("updated")),
+	);
 	return {
-		title: text(el.querySelector("title")),
-		link: atomLink(el),
+		id: itemId(text(atomChild(el, "id")), link, title, published),
+		title,
+		link,
 		excerpt: stripHtml(summary),
-		published: parseDate(
-			text(el.querySelector("published")) ||
-				text(el.querySelector("updated")),
-		),
-		image: htmlImage(summary),
+		published,
+		image: htmlImage(body || summary),
 		content: body,
+		author: text(atomChild(el, "author")?.querySelector("name") ?? null),
+		categories: uniq(
+			Array.from(el.children)
+				.filter((c) => c.localName === "category")
+				.map((c) => c.getAttribute("term")?.trim() || text(c)),
+		),
 	};
 }
 
@@ -253,7 +286,9 @@ function text(el: Element | null): string {
 /** Strip HTML tags and entities down to a single-line plain-text excerpt. */
 function stripHtml(html: string): string {
 	if (!html) return "";
-	const doc = new DOMParser().parseFromString(html, "text/html");
+	// Block boundaries become spaces, or "<p>Hello,</p><p>This" reads "Hello,This".
+	const spaced = html.replace(/<\/(p|div|h[1-6]|li|tr|td|th|blockquote)\s*>|<br\s*\/?>/gi, "$& ");
+	const doc = new DOMParser().parseFromString(spaced, "text/html");
 	return (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 

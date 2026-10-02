@@ -1,16 +1,34 @@
-import { Component, moment as createMoment, Notice, Setting } from "obsidian";
+import { Component, type Menu, moment as createMoment, Notice, Setting } from "obsidian";
 import { setIcon } from "../glyphs";
-import { emptyState, feedHost } from "../cardbodies";
+import { emptyState } from "../cardbodies";
+import { clipTemplateEditor } from "../clipeditor";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
-import { cachedFeed, loadFeed, type RssItem } from "../rss";
-import { openRssItem } from "../rssreader";
+import { openFile } from "../opener";
+import { cachedFeed, loadFeed } from "../rss";
+import {
+	rssEntryRead,
+	rssSources,
+	rssTabEntries,
+	rssTabLabel,
+	rssTabs,
+	rssTabUnread,
+	type RssEntry,
+	type RssTab,
+} from "../rssfeeds";
+import { RSS_CLIP_VARIABLES, RSS_NOTE_DEFAULTS, rssClipVars } from "../rssnote";
+import { entryMarkdown, entryNote, openRssEntry, saveEntryNote, type RssOpenContext } from "../rssreader";
+import { onRssReadChange, setRssRead } from "../rssstate";
 import {
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
+	type RssConfig,
 	type RssLayout,
+	type RssOpenIn,
+	type RssReaderImages,
 	type RssSource,
 } from "../types";
+import { hearthMenu } from "../uidesign";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -37,7 +55,7 @@ export function renderRss(
 	component: Component,
 ): void {
 	const cfg = card.rss ?? {};
-	const sources = (cfg.sources ?? []).filter((s) => s.url.trim());
+	const sources = rssSources(card);
 	if (sources.length === 0) {
 		emptyState(body, "rss", t().cards.empty.rssNoSources);
 		return;
@@ -50,17 +68,7 @@ export function renderRss(
 	// Freshness window for the cache: at least a minute so re-renders don't spam.
 	const ttlMs = Math.max(refreshMin, 1) * 60_000;
 
-	/** A header tab: one source, or the merged "All" view over several. */
-	interface Tab {
-		id: string;
-		urls: string[];
-	}
-	const tabs: Tab[] = [];
-	if (cfg.mergeAll && sources.length > 1) {
-		tabs.push({ id: "all", urls: sources.map((s) => s.url) });
-	}
-	for (const s of sources) tabs.push({ id: s.id, urls: [s.url] });
-
+	const tabs = rssTabs(card);
 	let activeId = rssActiveTab.get(card) ?? tabs[0].id;
 	if (!tabs.some((tab) => tab.id === activeId)) activeId = tabs[0].id;
 
@@ -72,37 +80,29 @@ export function renderRss(
 	let loading = false;
 
 	const wrap = body.createDiv("hearth-rss");
+	const opener: RssOpenContext = { app: view.app, settings: view.plugin.settings, opener: view };
 
-	const sourceById = (id: string): RssSource | undefined =>
-		sources.find((s) => s.id === id);
-
-	/** Friendly label for a source: its name, else the feed's own title, else host. */
-	const sourceLabel = (source: RssSource): string =>
-		source.name.trim() || cachedFeed(source.url)?.title || feedHost(source.url);
-
-	const tabLabel = (tab: Tab): string =>
-		tab.id === "all"
-			? t().cards.rss.allTab
-			: sourceLabel(sourceById(tab.id) ?? { id: tab.id, name: "", url: tab.urls[0] });
-
-	const activeTab = (): Tab =>
+	const activeTab = (): RssTab =>
 		tabs.find((tab) => tab.id === activeId) ?? tabs[0];
 
-	const renderItem = (
-		container: HTMLElement,
-		item: RssItem,
-		badge: string,
-		source: string,
-	): void => {
-		const openItem = (): void =>
-			openRssItem(view.app, item, {
-				source,
-				disableExternal: disabled,
-				preferReader: cfg.openInReader,
-			});
+	/** The card's own toggles (unread only) are saved quietly: only this
+	 * card needs redrawing. */
+	const persist = (): void => {
+		void view.plugin.saveData(view.plugin.settings);
+	};
+
+	const renderItem = (container: HTMLElement, entry: RssEntry, merged: boolean): void => {
+		const item = entry.item;
+		const open = (): void => openRssEntry(opener, card, activeId, entry);
 		const row = container.createDiv("hearth-rss-item");
-		makeClickable(row, openItem, item.title || t().cards.rss.untitled);
-		row.addEventListener("click", openItem);
+		row.toggleClass("is-read", rssEntryRead(entry));
+		makeClickable(row, open, item.title || t().cards.rss.untitled);
+		row.addEventListener("click", open);
+		row.addEventListener("contextmenu", (evt) => {
+			evt.preventDefault();
+			rssEntryMenu(opener, card, activeId, entry).showAtMouseEvent(evt);
+		});
+		row.createSpan({ cls: "hearth-rss-dot", attr: { "aria-hidden": "true" } });
 
 		if (layout === "cards" && cfg.showImages !== false && item.image) {
 			const thumb = row.createDiv("hearth-rss-thumb");
@@ -124,7 +124,7 @@ export function renderRss(
 		}
 
 		const metaBits: string[] = [];
-		if (badge) metaBits.push(badge);
+		if (merged) metaBits.push(entry.feed);
 		if (cfg.showDate !== false && item.published) {
 			metaBits.push(
 				(createMoment(new Date(item.published)) as unknown as RelativeMoment).fromNow(),
@@ -139,27 +139,17 @@ export function renderRss(
 	const paint = (content: HTMLElement): void => {
 		const tab = activeTab();
 		const merged = tab.urls.length > 1;
-		const rows: { item: RssItem; badge: string; source: string }[] = [];
-		let anyCached = false;
-		for (const url of tab.urls) {
-			const feed = cachedFeed(url);
-			if (!feed) continue;
-			anyCached = true;
-			const src = sources.find((s) => s.url === url);
-			const source = src ? sourceLabel(src) : feed.title;
-			const badge = merged ? source : "";
-			for (const item of feed.items) rows.push({ item, badge, source });
-		}
-		if (merged) {
-			rows.sort((a, b) => (b.item.published ?? 0) - (a.item.published ?? 0));
-		}
-		const items = rows.slice(0, limit);
+		const all = rssTabEntries(card, tab);
+		const anyCached = tab.urls.some((url) => cachedFeed(url) !== null);
+		const items = (cfg.unreadOnly ? all.filter((e) => !rssEntryRead(e)) : all).slice(0, limit);
 
 		if (items.length === 0) {
 			if (loading) {
 				emptyState(content, "rss", t().cards.rss.loading);
 			} else if (disabled && !anyCached) {
 				emptyState(content, "wifi-off", t().cards.rss.disabled);
+			} else if (all.length > 0) {
+				emptyState(content, "check-check", t().cards.rss.allRead);
 			} else if (anyCached) {
 				emptyState(content, "rss", t().cards.rss.empty);
 			} else {
@@ -167,21 +157,31 @@ export function renderRss(
 			}
 			return;
 		}
-		for (const row of items) renderItem(content, row.item, row.badge, row.source);
+		for (const entry of items) renderItem(content, entry, merged);
+	};
+
+	const barButton = (bar: HTMLElement, icon: string, label: string, onClick: () => void): HTMLButtonElement => {
+		const btn = bar.createEl("button", { cls: "hearth-rss-refresh", attr: { "aria-label": label } });
+		setIcon(btn, icon);
+		btn.addEventListener("click", onClick);
+		return btn;
 	};
 
 	/** Rebuild tab bar + content from the current cache and loading flag. */
 	const rebuild = (): void => {
+		const scroll = wrap.querySelector(".hearth-rss-content")?.scrollTop ?? 0;
 		wrap.empty();
 
 		const bar = wrap.createDiv("hearth-rss-tabs");
 		const tabsEl = bar.createDiv("hearth-rss-tablist");
 		if (tabs.length > 1) {
 			for (const tab of tabs) {
-				const btn = tabsEl.createEl("button", {
-					cls: "hearth-rss-tab",
-					text: tabLabel(tab),
-				});
+				const btn = tabsEl.createEl("button", { cls: "hearth-rss-tab" });
+				btn.createSpan({ cls: "hearth-rss-tab-label", text: rssTabLabel(card, tab) });
+				const unread = rssTabUnread(tab);
+				if (unread > 0) {
+					btn.createSpan({ cls: "hearth-rss-tab-count", text: unread > 99 ? "99+" : String(unread) });
+				}
 				if (tab.id === activeId) btn.addClass("is-active");
 				btn.addEventListener("click", () => {
 					activeId = tab.id;
@@ -190,16 +190,22 @@ export function renderRss(
 				});
 			}
 		}
-		const refresh = bar.createEl("button", {
-			cls: "hearth-rss-refresh",
-			attr: { "aria-label": t().cards.rss.refresh },
+		const strings = t().cards.rss;
+		const filter = barButton(bar, "list-filter", cfg.unreadOnly ? strings.showAll : strings.unreadOnly, () => {
+			const rss = (card.rss ??= {});
+			rss.unreadOnly = rss.unreadOnly ? undefined : true;
+			cfg.unreadOnly = rss.unreadOnly;
+			persist();
+			rebuild();
 		});
-		setIcon(refresh, "refresh-cw");
+		filter.toggleClass("is-active", !!cfg.unreadOnly);
+		barButton(bar, "check-check", strings.markAllRead, () => setRssRead(rssTabEntries(card, activeTab()), true));
+		const refresh = barButton(bar, "refresh-cw", strings.refresh, () => load(true));
 		if (loading) refresh.addClass("is-loading");
-		refresh.addEventListener("click", () => load(true));
 
 		const content = wrap.createDiv(`hearth-rss-content hearth-rss-${layout}`);
 		paint(content);
+		content.scrollTop = scroll;
 	};
 
 	/** Show cached content immediately, then fetch and repaint. `force` bypasses
@@ -218,6 +224,11 @@ export function renderRss(
 		});
 	};
 
+	// Read anywhere — this card, another, the reader — shows here at once.
+	component.register(onRssReadChange(() => {
+		if (!destroyed) rebuild();
+	}));
+
 	load(false);
 	// The cache TTL above still uses the configured interval; only the timer is
 	// suppressed on the minimal tier, so the card loads on render and on the manual
@@ -228,6 +239,65 @@ export function renderRss(
 			window.setInterval(() => load(true), autoRefreshMin * 60_000),
 		);
 	}
+}
+
+
+/** An entry's menu — the right-click on the card, and the terminal card's
+ * `m`: every way to open it, mark it, save it or copy its link. */
+export function rssEntryMenu(ctx: RssOpenContext, card: DashboardCard, tabId: string, entry: RssEntry): Menu {
+	const strings = t().cards.rss;
+	const menu = hearthMenu();
+	const item = entry.item;
+	const linked = /^https?:\/\//i.test(item.link);
+	const readable = !!(item.content.trim() || item.excerpt.trim());
+	if (readable) {
+		menu.addItem((i) =>
+			i.setTitle(strings.readHere).setIcon("book-open").onClick(() => openRssEntry(ctx, card, tabId, entry, "dialog")),
+		);
+		menu.addItem((i) =>
+			i.setTitle(strings.openTab).setIcon("app-window").onClick(() => openRssEntry(ctx, card, tabId, entry, "tab")),
+		);
+	}
+	if (linked) {
+		menu.addItem((i) =>
+			i.setTitle(strings.openBrowser).setIcon("globe").onClick(() => openRssEntry(ctx, card, tabId, entry, "browser")),
+		);
+	}
+	menu.addSeparator();
+	const read = rssEntryRead(entry);
+	menu.addItem((i) =>
+		i
+			.setTitle(read ? strings.markUnread : strings.markRead)
+			.setIcon(read ? "circle-dot" : "check")
+			.onClick(() => setRssRead([entry], !read)),
+	);
+	if (card.rss?.note?.enabled !== false && readable) {
+		const existing = entryNote(ctx.app, card, entry);
+		menu.addItem((i) =>
+			i
+				.setTitle(existing ? strings.openNote : strings.saveNote)
+				.setIcon(existing ? "file-text" : "file-plus")
+				.onClick(() => {
+					if (existing) {
+						void openFile(ctx.opener, existing, "card");
+						return;
+					}
+					void saveEntryNote(ctx.app, card, entry).then((file) => {
+						if (file) new Notice(strings.reader.noteSaved(file.path));
+						else new Notice(strings.reader.noteFailed);
+					});
+				}),
+		);
+	}
+	if (linked) {
+		menu.addItem((i) =>
+			i
+				.setTitle(strings.copyLink)
+				.setIcon("link")
+				.onClick(() => void navigator.clipboard.writeText(item.link).then(() => new Notice(strings.linkCopied))),
+		);
+	}
+	return menu;
 }
 
 
@@ -463,16 +533,6 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 	}
 
 	new Setting(containerEl)
-		.setName(t().editors.rss.openInReader)
-		.setDesc(t().editors.rss.openInReaderDesc)
-		.addToggle((tg) =>
-			tg.setValue(cfg.openInReader ?? false).onChange((v) => {
-				cfg.openInReader = v || undefined;
-				ctx.opts.save();
-			}),
-		);
-
-	new Setting(containerEl)
 		.setName(t().editors.rss.showDate)
 		.setDesc(t().editors.rss.showDateDesc)
 		.addToggle((tg) =>
@@ -482,6 +542,99 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 				ctx.opts.rerender();
 			}),
 		);
+
+	rssReadingEditor(ctx, containerEl, cfg);
+	rssNoteEditor(ctx, containerEl, cfg);
+}
+
+
+/** The "Reading" section: where an entry opens, the reader's pictures, and
+ * the unread filter. */
+function rssReadingEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: RssConfig): void {
+	const s = t().editors.rss;
+	new Setting(containerEl).setName(s.reading).setHeading();
+
+	new Setting(containerEl)
+		.setName(s.openIn)
+		.setDesc(s.openInDesc)
+		.addDropdown((d) => {
+			d.addOption("browser", s.openInBrowser);
+			d.addOption("dialog", s.openInDialog);
+			d.addOption("tab", s.openInTab);
+			d.setValue(cfg.openIn ?? "browser").onChange((v) => {
+				cfg.openIn = v === "browser" ? undefined : (v as RssOpenIn);
+				ctx.opts.save();
+			});
+		});
+
+	new Setting(containerEl)
+		.setName(s.readerImages)
+		.setDesc(s.readerImagesDesc)
+		.addDropdown((d) => {
+			d.addOption("ask", s.imagesAsk);
+			d.addOption("always", s.imagesAlways);
+			d.addOption("never", s.imagesNever);
+			d.setValue(cfg.readerImages ?? "ask").onChange((v) => {
+				cfg.readerImages = v === "ask" ? undefined : (v as RssReaderImages);
+				ctx.opts.save();
+			});
+		});
+
+	new Setting(containerEl)
+		.setName(s.unreadOnly)
+		.setDesc(s.unreadOnlyDesc)
+		.addToggle((tg) =>
+			tg.setValue(cfg.unreadOnly ?? false).onChange((v) => {
+				cfg.unreadOnly = v || undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+}
+
+
+/** The "Save as note" section: the reader's note template, previewed with
+ * the card's newest entry when one has been fetched. */
+function rssNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: RssConfig): void {
+	const s = t().editors.rss;
+	const note = (cfg.note ??= {});
+	clipTemplateEditor(ctx, containerEl, note, {
+		heading: s.noteHeading,
+		desc: s.noteDesc,
+		enabledName: s.noteEnabled,
+		enabledDesc: s.noteEnabledDesc,
+		defaults: RSS_NOTE_DEFAULTS,
+		variables: RSS_CLIP_VARIABLES,
+		sample: () => {
+			const tab = rssTabs(ctx.card)[0];
+			const entry = tab ? rssTabEntries(ctx.card, tab)[0] : undefined;
+			if (entry) {
+				const markdown = entryMarkdown(entry.item);
+				return {
+					label: entry.item.title || entry.feed,
+					vars: rssClipVars(entry.item, { feed: entry.feed, feedUrl: entry.url, markdown }),
+					linkValue: entry.item.id,
+				};
+			}
+			const sample = t().editors.clip.sampleEntry;
+			const item = {
+				id: "https://example.com/digest-42",
+				title: sample.title,
+				link: "https://example.com/digest-42",
+				excerpt: sample.content,
+				published: Date.now() - 3_600_000,
+				image: "",
+				content: sample.content,
+				author: sample.author,
+				categories: ["newsletter"],
+			};
+			return {
+				label: null,
+				vars: rssClipVars(item, { feed: sample.feed, feedUrl: "https://example.com/feed.xml", markdown: sample.content }),
+				linkValue: item.id,
+			};
+		},
+	});
 }
 
 
@@ -550,6 +703,12 @@ export const rssCard: CardDefinition<"rss"> = {
 			copy.rss = {
 				...source.rss,
 				sources: source.rss.sources ? source.rss.sources.map((s) => ({ ...s })) : undefined,
+				note: source.rss.note
+					? {
+							...source.rss.note,
+							properties: source.rss.note.properties?.map((p) => ({ ...p })),
+						}
+					: undefined,
 			};
 	},
 	expressive: true,

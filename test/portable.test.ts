@@ -897,6 +897,7 @@ describe("the full settings backup carries every setting", () => {
 		const omitted = [
 			"lastSeenVersion",
 			"setupStatus",
+			"rssRead",
 			"authorKey",
 			"authorKeySaved",
 			"galleryUrl",

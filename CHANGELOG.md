@@ -111,15 +111,44 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   notes by the titles the explorer shows instead of their file names, through
   the plugin's own API (#375). On by default; **Settings → Hearth →
   Integrations → Front Matter Title** turns it off.
-- **Read feed entries in Hearth.** An RSS entry with no web link — an email
-  newsletter brought in through LetterFeed or FreshRSS, say — used to do
-  nothing when clicked; it now opens in a reader dialog showing the full text
-  the feed carried (#377). The feed's HTML is sanitised, links open in the
-  browser, colours and fonts follow your theme, tracking pixels are dropped and
-  no pictures load while external calls are off. A new **Read in Hearth**
-  option on the RSS card opens every entry with a body there, keeping the
-  page one button away; in terminal mode the item menu offers both.
-- **RSS entries whose only address is their `<guid>`** now open that page.
+- **An RSS reader inside Hearth** (#377). Entries open in a reader — a large
+  dialog over the board, or a tab of its own — with the card's feeds along the
+  top, the entries down the side and the entry at a reading width. Arrow keys
+  (or j/k) step through the entries and `[` `]` through the feeds; buttons open
+  the page in the browser, save the entry as a note, mark it unread and copy
+  its link, and the dialog moves into a tab with one click. An entry with no
+  web page — an email newsletter brought in through LetterFeed or FreshRSS —
+  used to do nothing when clicked; it now always opens there. **Open entries
+  in** on the card chooses the browser (the default), the dialog or the tab.
+  - The feed's HTML is sanitised; links open in the browser, colours and fonts
+    follow the theme, and pictures wait for **Load pictures** by default, since
+    a remote picture tells its sender the entry was opened (**Pictures in the
+    reader**: Ask, Always, Never). Tracking pixels never load, nor does
+    anything while external calls are off.
+  - Drawn in all three designs: Classic, Expressive and Terminal.
+- **Read and unread on RSS cards.** Opened entries count as read; unread ones
+  carry a dot and each feed's tab its unread count. A filter button (and
+  **Unread only** in the settings) lists only the unread, another marks the
+  feed read, and right-clicking an entry offers every action. In terminal mode
+  `u` toggles an entry, `A` marks the feed read and `f` filters. Read marks
+  live in Hearth's settings, so they sync with them.
+- **Save feed entries as notes**, through a note template like the Obsidian
+  Web Clipper's: a note name, a folder, typed properties (text, list, number,
+  checkbox, date, date & time) and a body, each taking `{{variables}}` and
+  filters (`{{published|date:"D MMMM YYYY"}}`, `{{title|lower|truncate:40}}`,
+  `{{categories|wikilink|join}}`). The editor lists the variables — click one
+  to insert it — and the filters, and previews the note from the card's
+  newest entry. Saved entries open their note instead.
+- RSS entries whose only address is their `<guid>` now open that page; entries
+  carry their author and categories for templates.
+
+### Changed
+
+- **Event notes use note templates.** The calendars' "Create note" is set up
+  the same way as a saved feed entry — name, folder, typed properties and body,
+  with variables, filters and a live preview — instead of per-field routing
+  rules. Cards set up the old way convert to the equivalent template and make
+  the same notes; `{{field:FORMAT}}` placeholders keep working.
 
 ### Fixed
 

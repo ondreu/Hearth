@@ -3,6 +3,9 @@ import { installGlyphMode } from "./glyphs";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { VIEW_TYPE_FOLDER } from "./cards/folder";
 import { FolderView } from "./folderview";
+import { flushRssState, initRssState } from "./rssstate";
+import { VIEW_TYPE_RSS_READER } from "./rssreader";
+import { RssReaderView } from "./rssreaderview";
 import { whenFrontMatterTitleReady } from "./frontmattertitle";
 import { effectiveHiddenInstantAnswers, HomeSettings, effectiveTerminalScheme, hydrateSettings, terminalModeActive, timersAllowed } from "./types";
 import { SearchTipsModal } from "./searchtips";
@@ -100,6 +103,7 @@ export default class HearthPlugin extends Plugin {
 		setLanguage();
 
 		await this.loadSettings();
+		initRssState(this);
 
 		// Hearth's dialogs and menus take the design of wherever they are opened
 		// from, which needs the last press remembered (see src/uidesign.ts).
@@ -120,6 +124,7 @@ export default class HearthPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_HOME, (leaf) => new HomeView(leaf, this));
 		// The folder browser, opened in a tab of its own (#375).
 		this.registerView(VIEW_TYPE_FOLDER, (leaf) => new FolderView(leaf, this));
+		this.registerView(VIEW_TYPE_RSS_READER, (leaf) => new RssReaderView(leaf, this));
 
 		// A renegotiated Operon session may be looking at different settings, so
 		// the cached taxonomy it filled is no longer trustworthy.
@@ -257,6 +262,7 @@ export default class HearthPlugin extends Plugin {
 		// plugin has no business re-rendering views or reading its own data file.
 		this.liveRefreshDebounced.cancel();
 		this.externalSettingsDebounced.cancel();
+		flushRssState();
 		// Views are detached automatically by Obsidian on plugin unload.
 		// The content-search cache holds lower-cased note bodies, though, so
 		// drop it rather than leave a copy of the vault behind after unload.
@@ -544,6 +550,9 @@ export default class HearthPlugin extends Plugin {
 		// a folder is far cheaper than a board, so it is simply redrawn.
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_FOLDER).forEach((leaf) => {
 			if (leaf.view instanceof FolderView) leaf.view.refresh();
+		});
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_READER).forEach((leaf) => {
+			if (leaf.view instanceof RssReaderView) leaf.view.refresh();
 		});
 	}
 

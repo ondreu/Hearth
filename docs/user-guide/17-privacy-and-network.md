@@ -56,6 +56,7 @@ There are eleven categories of outbound request. Nothing else exists.
 | [Wikipedia](https://www.wikipedia.org) | A `wiki …` query in the search bar | The words after *wiki* | None |
 | Your Jira Cloud or Server instance | Jira cards | A REST query, authenticated with the personal access token you entered on the card | Yours |
 | RSS and Atom feed hosts | RSS cards | A feed request | None |
+| The servers an RSS entry's pictures are on | The RSS reader, only when you load an entry's pictures (or set the card to always load them) | A picture request, without a referrer — which tells the sender the entry was opened. Tracking pixels are never loaded | None |
 | ICS and webcal hosts | Mini calendar subscriptions | A feed request | The feed URL you entered |
 | A web search engine | The search bar's *Search online* button | Only the text you typed in the search field | None |
 | Any host you name | A background image or title icon given as a web address | An image request | None |
