@@ -3388,6 +3388,7 @@ export const zh: Translations = {
 			disabled: "订阅源已关闭（对外调用被禁用）",
 			refresh: "刷新",
 			nothingToOpen: "此条目没有可打开的链接或正文。",
+			allFeeds: "全部订阅源",
 			allRead: "全部已读",
 			unreadOnly: "仅显示未读",
 			showAll: "显示全部条目",

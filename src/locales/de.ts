@@ -3694,6 +3694,7 @@ export const de: Translations = {
 			disabled: "Feeds sind aus (externe Aufrufe deaktiviert)",
 			refresh: "Aktualisieren",
 			nothingToOpen: "Dieser Eintrag hat weder Link noch Text zum Öffnen.",
+			allFeeds: "Alle Feeds",
 			allRead: "Alles gelesen",
 			unreadOnly: "Nur ungelesene zeigen",
 			showAll: "Alle Einträge zeigen",

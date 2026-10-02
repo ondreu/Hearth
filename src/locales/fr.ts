@@ -3627,6 +3627,7 @@ export const fr: Translations = {
 			disabled: "Les flux sont désactivés (appels externes désactivés)",
 			refresh: "Actualiser",
 			nothingToOpen: "Cet article n’a ni lien ni texte à ouvrir.",
+			allFeeds: "Tous les flux",
 			allRead: "Tout est lu",
 			unreadOnly: "Afficher les non lus seulement",
 			showAll: "Afficher tous les articles",

@@ -48,6 +48,7 @@ import {
 	type RssTab,
 } from "./rssfeeds";
 import { RSS_NOTE_DEFAULTS, rssClipVars } from "./rssnote";
+import { drawTabStrip } from "./tabstrip";
 import { onRssReadChange, setRssRead } from "./rssstate";
 import type { CardDesign, DashboardCard, HomeSettings, RssOpenIn } from "./types";
 import { currentUiDesign, DESIGN_ATTR, HearthModal } from "./uidesign";
@@ -343,6 +344,8 @@ export class RssReader {
 	private barEl: HTMLElement | null = null;
 	private listEl: HTMLElement | null = null;
 	private articleEl: HTMLElement | null = null;
+	/** Stops the feed strip watching its size; replaced by every redraw. */
+	private disposeStrip: () => void = () => {};
 	/** The entry the article pane last drew. */
 	private drawnEntry = "";
 
@@ -373,6 +376,7 @@ export class RssReader {
 
 	destroy(): void {
 		this.live = false;
+		this.disposeStrip();
 		this.unsubscribe();
 		this.root.remove();
 	}
@@ -515,15 +519,17 @@ export class RssReader {
 		const tabs = rssTabs(card);
 		const active = this.tab(card)?.id ?? "";
 		if (tabs.length > 1) this.iconButton(bar, "chevron-left", strings.prevFeed, () => this.stepFeed(-1));
-		const list = bar.createDiv("hearth-rss-tablist");
-		for (const tab of tabs) {
-			const btn = list.createEl("button", { cls: "hearth-rss-tab", attr: { type: "button" } });
-			btn.createSpan({ cls: "hearth-rss-tab-label", text: rssTabLabel(card, tab) });
-			const unread = rssTabUnread(tab);
-			if (unread > 0) btn.createSpan({ cls: "hearth-rss-tab-count", text: unread > 99 ? "99+" : String(unread) });
-			if (tab.id === active) btn.addClass("is-active");
-			btn.addEventListener("click", () => this.openFeed(card, tab));
-		}
+		this.disposeStrip();
+		this.disposeStrip = drawTabStrip(
+			bar,
+			tabs.map((tab) => ({ id: tab.id, label: rssTabLabel(card, tab), count: rssTabUnread(tab) })),
+			active,
+			(id) => {
+				const tab = tabs.find((tb) => tb.id === id);
+				if (tab) this.openFeed(card, tab);
+			},
+			t().cards.rss.allFeeds,
+		);
 		if (tabs.length > 1) this.iconButton(bar, "chevron-right", strings.nextFeed, () => this.stepFeed(1));
 		bar.createDiv("hearth-rss-reader-spacer");
 		this.iconButton(bar, "check-check", t().cards.rss.markAllRead, () => {

@@ -132,6 +132,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   feed read, and right-clicking an entry offers every action. In terminal mode
   `u` toggles an entry, `A` marks the feed read and `f` filters. Read marks
   live in Hearth's settings, so they sync with them.
+- **RSS feed tabs fit any card.** A tab is as wide as its feed's name instead
+  of a fixed width that cut names short; a row with more feeds than room
+  scrolls sideways (the mouse wheel too), fades at the edge with more beyond
+  it, keeps the open feed in view, and ends in a "+N" button listing every
+  feed. The reader's feed row works the same way.
 - **Save feed entries as notes**, through a note template like the Obsidian
   Web Clipper's: a note name, a folder, typed properties (text, list, number,
   checkbox, date, date & time) and a body, each taking `{{variables}}` and

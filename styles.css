@@ -4412,6 +4412,7 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 .hearth-rss-tablist {
+	position: relative;
 	display: flex;
 	gap: 4px;
 	overflow-x: auto;
@@ -4420,13 +4421,30 @@ button.hearth-kofi-btn:focus-visible {
 	min-width: 0;
 }
 
+/* The edge with more chips beyond it fades (src/tabstrip.ts). */
+.hearth-rss-tablist.is-fade-end {
+	mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.hearth-rss-tablist.is-fade-start {
+	mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+}
+
+.hearth-rss-tablist.is-fade-start.is-fade-end {
+	mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
 .hearth-rss-tablist::-webkit-scrollbar {
 	display: none;
 }
 
+/* A chip is as wide as its name; only a name longer than the whole row is
+   cut, with …. */
 .hearth-rss-tab {
+	display: inline-flex;
+	align-items: center;
 	flex: 0 0 auto;
-	max-width: 140px;
+	max-width: 100%;
 	padding: 2px 10px;
 	border: none;
 	border-radius: 999px;
@@ -4434,9 +4452,52 @@ button.hearth-kofi-btn:focus-visible {
 	color: var(--text-muted);
 	font-size: 0.78rem;
 	white-space: nowrap;
+	cursor: pointer;
+}
+
+.hearth-rss-tab-label {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.hearth-rss-tab-count {
+	flex: 0 0 auto;
+}
+
+/* "+3": the chips not fully in view, and a menu of every feed. */
+.hearth-rss-tabmore {
+	display: none;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 2px;
+	height: 22px;
+	padding: 0 7px;
+	border: none;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
 	cursor: pointer;
+}
+
+.hearth-rss-tabmore.is-shown {
+	display: inline-flex;
+}
+
+.hearth-rss-tabmore:hover {
+	color: var(--text-normal);
+}
+
+.hearth-rss-tabmore-icon {
+	display: inline-flex;
+}
+
+.hearth-rss-tabmore-icon :is(.svg-icon, svg) {
+	width: 14px;
+	height: 14px;
 }
 
 .hearth-rss-tab.is-active {
@@ -8531,7 +8592,6 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 .hearth-rss-reader-bar .hearth-rss-tab {
-	max-width: 200px;
 	padding: 3px 10px;
 	font-size: var(--font-ui-small);
 }
@@ -21912,6 +21972,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-tab.is-active {
 	background: var(--x-primary);
 	color: var(--x-on-primary);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-tabmore {
+	height: 24px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+	font-weight: 650;
 }
 
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-rss-refresh,

@@ -3689,6 +3689,7 @@ export const en = {
 			disabled: "Feeds are off (external calls disabled)",
 			refresh: "Refresh",
 			nothingToOpen: "This entry has no link or text to open.",
+			allFeeds: "All feeds",
 			allRead: "All caught up",
 			unreadOnly: "Show unread only",
 			showAll: "Show all entries",

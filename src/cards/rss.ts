@@ -28,6 +28,7 @@ import {
 	type RssReaderImages,
 	type RssSource,
 } from "../types";
+import { drawTabStrip } from "../tabstrip";
 import { hearthMenu } from "../uidesign";
 import { makeClickable } from "../ui";
 import { type HomeView } from "../view";
@@ -167,28 +168,32 @@ export function renderRss(
 		return btn;
 	};
 
+	/** Stops the tab strip watching its size; replaced by every redraw. */
+	let disposeStrip = (): void => {};
+	component.register(() => disposeStrip());
+
 	/** Rebuild tab bar + content from the current cache and loading flag. */
 	const rebuild = (): void => {
 		const scroll = wrap.querySelector(".hearth-rss-content")?.scrollTop ?? 0;
 		wrap.empty();
 
 		const bar = wrap.createDiv("hearth-rss-tabs");
-		const tabsEl = bar.createDiv("hearth-rss-tablist");
+		disposeStrip();
 		if (tabs.length > 1) {
-			for (const tab of tabs) {
-				const btn = tabsEl.createEl("button", { cls: "hearth-rss-tab" });
-				btn.createSpan({ cls: "hearth-rss-tab-label", text: rssTabLabel(card, tab) });
-				const unread = rssTabUnread(tab);
-				if (unread > 0) {
-					btn.createSpan({ cls: "hearth-rss-tab-count", text: unread > 99 ? "99+" : String(unread) });
-				}
-				if (tab.id === activeId) btn.addClass("is-active");
-				btn.addEventListener("click", () => {
-					activeId = tab.id;
-					rssActiveTab.set(card, tab.id);
+			disposeStrip = drawTabStrip(
+				bar,
+				tabs.map((tab) => ({ id: tab.id, label: rssTabLabel(card, tab), count: rssTabUnread(tab) })),
+				activeId,
+				(id) => {
+					activeId = id;
+					rssActiveTab.set(card, id);
 					load(false);
-				});
-			}
+				},
+				t().cards.rss.allFeeds,
+			);
+		} else {
+			// One feed has no tabs; the empty row keeps the buttons on the right.
+			bar.createDiv("hearth-rss-tablist");
 		}
 		const strings = t().cards.rss;
 		const filter = barButton(bar, "list-filter", cfg.unreadOnly ? strings.showAll : strings.unreadOnly, () => {
