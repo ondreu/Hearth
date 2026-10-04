@@ -909,8 +909,8 @@ async function notePreview(app: App, path: string): Promise<string> {
 	previewCache.delete(path);
 	previewCache.set(path, { mtime, text });
 	if (previewCache.size > PREVIEW_CACHE_MAX) {
-		const oldest = previewCache.keys().next().value as string | undefined;
-		if (oldest !== undefined) previewCache.delete(oldest);
+		const [oldest] = previewCache.keys();
+		previewCache.delete(oldest);
 	}
 	return text;
 }

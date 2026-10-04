@@ -8732,8 +8732,10 @@ h1.hearth-rss-reader-title {
 	border-radius: var(--radius-s);
 }
 
+/* Inline table widths are lifted in tidyReaderBody, so this only has to beat
+ * the theme's table rules, not the sender's markup. */
 .hearth-rss-reader-body table {
-	width: auto !important;
+	width: auto;
 }
 
 .hearth-rss-reader-nav {

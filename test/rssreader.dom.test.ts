@@ -158,6 +158,20 @@ describe("tidyReaderBody", () => {
 		expect(root.querySelector("td")!.getAttribute("style")).toBe("padding: 4px;");
 		expect(root.querySelector<HTMLElement>("font")!.hasAttribute("color")).toBe(false);
 	});
+
+	it("lifts a table's inline width but keeps its other styles", () => {
+		const root = tidy(
+			`<table style="width: 600px; min-width: 600px; border-collapse: collapse"><tr><td style="width: 50%">x</td></tr></table><div style="width: 600px">y</div>`,
+		);
+		expect(root.querySelector("table")!.getAttribute("style")).toBe("border-collapse: collapse;");
+		expect(root.querySelector("td")!.getAttribute("style")).toBe("width: 50%");
+		expect(root.querySelector("div")!.getAttribute("style")).toBe("width: 600px");
+	});
+
+	it("drops a table's style attribute once only its width was in it", () => {
+		const root = tidy(`<table style="width: 600px"><tr><td>x</td></tr></table>`);
+		expect(root.querySelector("table")!.hasAttribute("style")).toBe(false);
+	});
 });
 
 describe("holding picture addresses through the sanitiser", () => {

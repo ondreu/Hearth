@@ -53,6 +53,10 @@ import { onRssReadChange, setRssRead } from "./rssstate";
 import type { CardDesign, DashboardCard, HomeSettings, RssOpenIn } from "./types";
 import { currentUiDesign, DESIGN_ATTR, HearthModal } from "./uidesign";
 
+/* moment's export can type as `any` where @types/moment isn't in scope; pin
+ * the two calls the reader makes to an explicit shape (as clip.ts does). */
+const moment = createMoment as unknown as (input: Date) => { format(fmt: string): string; fromNow(): string };
+
 const WEB_LINK = /^https?:\/\//i;
 
 // ---- Deciding where an entry opens -------------------------------------------
@@ -125,6 +129,10 @@ const DROP =
 /** Inline style properties the theme owns in the reader. */
 const THEMED = ["color", "background", "background-color", "background-image", "font-family"];
 
+/** Inline table widths a newsletter fixes to its own column (`width: 600px`),
+ * lifted so the table reflows to the reader instead. */
+const TABLE_WIDTHS = ["width", "min-width"];
+
 /** Where a picture's address waits while the markup is sanitised: an `<img>`
  * with a `src` starts downloading the moment it is created in the page, which
  * the sanitiser's copy into the page would do. */
@@ -147,8 +155,8 @@ export function isPlainText(body: string): boolean {
  *   address always go; the rest go too when `images` is false, and are
  *   counted; the ones kept have their address held in {@link HELD_SRC} when
  *   `hold` is set, for {@link releaseImages} to put back;
- * - layout widths newsletters hard-code (`width="600"`) are lifted so the
- *   body reflows;
+ * - layout widths newsletters hard-code (`width="600"`, or a table's inline
+ *   `width`) are lifted so the body reflows;
  * - colours and typefaces are left to the theme: a newsletter's white table
  *   cell would otherwise hold a dark theme's white text.
  *
@@ -204,6 +212,7 @@ export function tidyReaderBody(
 	}
 	for (const el of Array.from(root.querySelectorAll<HTMLElement>("[style]"))) {
 		for (const prop of THEMED) el.style.removeProperty(prop);
+		if (el.localName === "table") for (const prop of TABLE_WIDTHS) el.style.removeProperty(prop);
 		if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
 	}
 	return { blocked };
@@ -578,7 +587,7 @@ export class RssReader {
 		this.drawnEntry = entry.key;
 		this.listEl?.querySelector(".is-current")?.scrollIntoView({ block: "nearest" });
 
-		const meta = [entry.feed, item.published ? createMoment(new Date(item.published)).format("LLL") : "", item.author]
+		const meta = [entry.feed, item.published ? moment(new Date(item.published)).format("LLL") : "", item.author]
 			.filter(Boolean)
 			.join(" · ");
 		if (meta) el.createDiv({ cls: "hearth-rss-reader-meta", text: meta });
@@ -735,7 +744,7 @@ export class RssReader {
 /** How long ago, for the list. */
 function ago(ms: number | null): string {
 	if (!ms) return "";
-	return (createMoment(new Date(ms)) as unknown as { fromNow(): string }).fromNow();
+	return moment(new Date(ms)).fromNow();
 }
 
 // ---- The dialog -----------------------------------------------------------------
