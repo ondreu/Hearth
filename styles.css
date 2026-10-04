@@ -10283,6 +10283,56 @@ button.hearth-clip-chip {
 	padding-bottom: 4px;
 }
 
+/* ---- Tablet button padding ------------------------------------------- */
+
+/* Obsidian's tablet layout pads every button that isn't a .clickable-icon:
+ * `.is-tablet button:not(.clickable-icon) { padding: 4px 20px }` (0,2,1),
+ * which outranks the one-class rules that size Hearth's icon buttons. A 24–44px
+ * icon button then carries 40px of side padding: it swells into an empty pill
+ * and its icon, a shrinkable flex item, collapses to nothing (#381). Restate
+ * each icon-only button's own padding at (0,2,2) — enough to beat that rule,
+ * still below the Expressive overrides (`.hearth-x-ui …`, (0,3,0)). Text
+ * buttons keep Obsidian's tablet padding; they only grow wider. Keep each
+ * value in step with the button's base rule. */
+body.is-tablet button:is(
+	.hearth-dash-btn,
+	.hearth-calendar-nav,
+	.hearth-sched-navbtn,
+	.hearth-card-expand,
+	.hearth-jira-refresh,
+	.hearth-rss-refresh,
+	.hearth-task-add,
+	.hearth-web-external
+) {
+	padding: 0;
+}
+
+body.is-tablet button:is(
+	.hearth-kanban-col-sort,
+	.hearth-kanban-col-done,
+	.hearth-kanban-col-hide,
+	.hearth-gallery-comment-remove
+) {
+	padding: 2px;
+}
+
+body.is-tablet button:is(.hearth-slideshow-btn, .hearth-git-refresh),
+body.is-tablet button.is-icon:where(.hearth-tool-btn) {
+	padding: 3px;
+}
+
+body.is-tablet button:is(.hearth-open-btn, .hearth-gallery-vote-btn, .hearth-market-icon-button) {
+	padding: 4px;
+}
+
+body.is-tablet button.hearth-card-action {
+	padding: 5px;
+}
+
+body.is-tablet button.hearth-gallery-icon-btn {
+	padding: 6px;
+}
+
 /* ---- Mobile search focus (keyboard up) ------------------------------- */
 
 /* While the search field is focused on mobile (keyboard up), hide the action

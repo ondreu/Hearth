@@ -160,6 +160,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **`FF hex to decimal` in the search bar now answers.** The search tips
   suggest it, but a query without a digit never reached the calculator, so a
   hex number written only in letters got no answer unless typed after `=`.
+- **Icon buttons keep their icons in Obsidian's tablet layout.** On a tablet
+  or an unfolded foldable, Obsidian pads every button 20px on each side, so
+  the dashboard switcher, the calendar and schedule arrows and other small
+  icon buttons showed as empty pills, and the rest swelled to twice their
+  width. They now keep the size they have on a phone or desktop
+  ([#381](https://github.com/ondreu/Hearth/issues/381)).
 
 ## [3.3.0]
 
