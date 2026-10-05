@@ -1038,6 +1038,85 @@ export function makeTileDraggable<T extends TileGeometry & { id: string }>(
 }
 
 
+/** How long a finger has to rest on a tile before it picks the tile up, and
+ *  how far it may wander meanwhile, on a board that scrolls by touch. */
+const TOUCH_HOLD_MS = 250;
+const TOUCH_HOLD_SLOP = 8;
+
+/** Wire the press that starts a tile drag, calling `grab` with the
+ *  pointerdown once the press is a drag.
+ *
+ *  A mouse or pen grabs at once, and so does a finger on a free-form board,
+ *  whose tiles claim the touch outright in arrange mode (`touch-action: none`
+ *  in styles.css, as the card overlay does). A stacked board, though, is a
+ *  column the finger has to scroll, so its tiles let a vertical pan through —
+ *  and a finger that moves straight away is scrolling. There the tile is only
+ *  picked up once the finger has rested on it for a moment; from then on the
+ *  touch is the drag's, and the browser is told not to scroll with it (which
+ *  would otherwise cancel the gesture half way, leaving the tile where it was). */
+function onTileGrab(view: HomeView, tile: HTMLElement, grab: (e: PointerEvent) => void): void {
+	const holdFirst = view.isStacked();
+	let timer = 0;
+	let grabbed = false;
+	let pointerId = -1;
+	let startX = 0;
+	let startY = 0;
+
+	const release = () => {
+		window.clearTimeout(timer);
+		timer = 0;
+		grabbed = false;
+		tile.removeClass("is-tile-held");
+	};
+
+	tile.addEventListener("pointerdown", (e) => {
+		if ((e.target as HTMLElement).closest(".hearth-tile-resize")) return;
+		e.stopPropagation();
+		release();
+		pointerId = e.pointerId;
+		if (e.pointerType !== "touch" || !holdFirst) {
+			grabbed = true;
+			grab(e);
+			return;
+		}
+		startX = e.clientX;
+		startY = e.clientY;
+		timer = window.setTimeout(() => {
+			timer = 0;
+			// The board may have redrawn under the finger meanwhile.
+			if (!tile.isConnected) return;
+			grabbed = true;
+			tile.addClass("is-tile-held");
+			grab(e);
+		}, TOUCH_HOLD_MS);
+	});
+	tile.addEventListener("pointermove", (e) => {
+		if (!timer || e.pointerId !== pointerId) return;
+		// Moved before the hold was up: a scroll, not a drag.
+		if (Math.hypot(e.clientX - startX, e.clientY - startY) > TOUCH_HOLD_SLOP) release();
+	});
+	tile.addEventListener("pointerup", (e) => {
+		if (e.pointerId === pointerId) release();
+	});
+	tile.addEventListener("pointercancel", (e) => {
+		if (e.pointerId === pointerId) release();
+	});
+	// Once the tile is held, the finger's moves are the drag's: cancelling them
+	// keeps the column from scrolling (and the browser from cancelling the
+	// pointer). Has to be a non-passive listener to be allowed to.
+	tile.addEventListener(
+		"touchmove",
+		(e) => {
+			if (grabbed && e.cancelable) e.preventDefault();
+		},
+		{ passive: false },
+	);
+	// A long press is also the system's cue for a context menu or a text
+	// selection, neither of which belongs on a tile being arranged.
+	tile.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+
+
 /** Free-form drag: the tile floats under the pointer via a transform (delta
  *  from the grab point) and lands on whatever cell the pointer is over on
  *  drop. Siblings don't move; tiles may overlap. A dashed ghost outline
@@ -1061,9 +1140,7 @@ function makeTileFreeFormDrag<T extends TileGeometry & { id: string }>(
 	// Dashed ghost showing the drop target cell under the pointer.
 	let ghost: HTMLElement | null = null;
 
-	tile.addEventListener("pointerdown", (e) => {
-		if ((e.target as HTMLElement).closest(".hearth-tile-resize")) return;
-		e.stopPropagation();
+	onTileGrab(view, tile, (e) => {
 		startX = e.clientX;
 		startY = e.clientY;
 		dragging = true;
@@ -1164,9 +1241,7 @@ function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 	let placeholder: HTMLElement | null = null;
 	let placeholderPos: { col: number; row: number } | null = null;
 
-	tile.addEventListener("pointerdown", (e) => {
-		if ((e.target as HTMLElement).closest(".hearth-tile-resize")) return;
-		e.stopPropagation();
+	onTileGrab(view, tile, (e) => {
 		startX = e.clientX;
 		startY = e.clientY;
 		dragging = true;

@@ -206,6 +206,12 @@ All three tile cards also offer *Auto-shift tiles (beta)*: when it is on, tiles
 shove each other aside as one is dragged, the way phone widgets do. It is off by
 default, which means tiles are pure free-form and may overlap.
 
+On a touch screen a button is moved with a finger too. On the stacked phone
+column, which you scroll with the same finger, rest it on the button for a
+moment until the button lifts, then drag; a finger that moves straight away
+scrolls the column instead. On a free-form board the button follows the finger
+at once.
+
 ## Things that live on the board rather than in settings
 
 To summarise, because it is the single most common source of "where is that

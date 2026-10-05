@@ -4041,9 +4041,34 @@ button.hearth-kofi-btn:focus-visible {
 	pointer-events: none;
 }
 
-/* In arrange mode, tiles show a grab cursor to signal they're repositionable. */
+/* In arrange mode, tiles show a grab cursor to signal they're repositionable.
+ * A press on one is a drag, so it must not select the label or raise the
+ * system's long-press callout either. */
 .hearth-grid.is-arranging .hearth-link-tile {
 	cursor: grab;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+}
+
+/* On a free-form board a finger on a tile drags it at once, so the tile claims
+ * the touch the way the card overlay does — otherwise the browser takes the
+ * move for a scroll and cancels the drag. A stacked board has to scroll with a
+ * finger, so there a tile is picked up by resting on it first (see
+ * `onTileGrab` in cardbodies.ts) and only lets the vertical pan through until
+ * then, like the card shield around it. */
+.hearth-grid:not(.is-stacked) .hearth-tiles-arrange .hearth-link-tile {
+	touch-action: none;
+}
+
+.hearth-grid.is-stacked .hearth-tiles-arrange .hearth-link-tile {
+	touch-action: pan-y;
+}
+
+/* Picked up by a held finger, before it moves: lifted, so the hold reads. */
+.hearth-link-tile.is-tile-held {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
 
 /* While any tile in a card is being resized or dragged, hide the card's
@@ -12870,6 +12895,14 @@ body.hearth-dv-resizing {
 
 .hearth-grid.is-arranging .hearth-tile-resize:hover {
 	opacity: 1;
+}
+
+/* A finger needs more than the mouse's 22px corner to land on. */
+@media (pointer: coarse) {
+	.hearth-tile-resize {
+		width: 32px;
+		height: 32px;
+	}
 }
 
 /* While a tile is being resized, bring it above its siblings. */
