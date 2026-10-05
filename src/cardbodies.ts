@@ -1201,6 +1201,13 @@ function makeTileFreeFormDrag<T extends TileGeometry & { id: string }>(
 			// already released
 		}
 		if (!wasMoved) return;
+		// A cancelled gesture (the system took the touch) has no drop point —
+		// its coordinates are 0,0 — so put the tile back rather than drop it in
+		// the top-left cell.
+		if (e.type === "pointercancel") {
+			view.render();
+			return;
+		}
 		// Drop on the cell under the pointer (free-form; may overlap others).
 		const cell = pickGridCell(container, e.clientX, e.clientY, tile, spec);
 		if (cell) pinTile(item, spec, cell.col, cell.row);
@@ -1361,6 +1368,11 @@ function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 			// already released
 		}
 		if (!wasMoved) return;
+		// Cancelled by the system: put everything back (see the free-form drag).
+		if (e.type === "pointercancel") {
+			view.render();
+			return;
+		}
 		if (dropPos) pinTile(item, spec, dropPos.col, dropPos.row);
 		void view.plugin.saveData(view.plugin.settings);
 		view.render();

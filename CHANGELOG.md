@@ -171,8 +171,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for a scroll, so the button snapped back to where it was; only its resize
   corner worked. On a free-form board a button now follows the finger at once.
   On the stacked phone column, which still has to scroll, rest the finger on
-  the button until it lifts, then drag. The resize corner is also larger on
-  touch screens.
+  the button until it lifts, then drag. A drag the system interrupts (a
+  notification, a system gesture) now puts the button back instead of
+  dropping it in the card's top-left corner. The resize corner is also larger
+  on touch screens.
 
 ## [3.3.0]
 
