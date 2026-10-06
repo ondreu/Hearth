@@ -16059,13 +16059,16 @@ body.hearth-dv-resizing {
  * the ordinary board renderer and keeps its frame, design and frost; only its
  * placement changes. view.ts forces `.hearth-fit` on, so the grid has a
  * definite height, and the card fills it instead of sitting at its stored
- * geometry (renderDashboard places it at 0,0 / 100%×100%).
+ * geometry (renderDashboard sets no inline position on it).
  *
  * The board goes edge to edge exactly as a plugin board does (the shared
  * rules under "Edge to edge" above), so the card loses its frame here too:
  * it *is* the board. Its surface tint and blur stay. */
 .hearth-grid.is-single > .hearth-card {
+	/* Every edge and both sizes, so the card never shrinks to its content. */
 	inset: 0;
+	width: 100%;
+	height: 100%;
 	border: 0;
 	border-radius: 0;
 	box-shadow: none;

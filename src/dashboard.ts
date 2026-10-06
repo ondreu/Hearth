@@ -172,15 +172,9 @@ export function renderDashboard(
 		// as the stacked layout says — bar a collapsed one, which is as tall as
 		// its own header until it is opened. Everywhere else they are placed
 		// absolutely from their stored geometry.
-		// A single card fills the whole board. Stated inline, like every other
-		// card's placement, so it never falls back to an absolutely positioned
-		// box sized to its content.
-		if (single) {
-			el.style.left = "0";
-			el.style.top = "0";
-			el.style.width = "100%";
-			el.style.height = "100%";
-		} else if (!stacked) applyCardPosition(el, card);
+		// A single card fills the whole board (`.hearth-grid.is-single` in
+		// styles.css) instead of taking its stored geometry.
+		if (!stacked && !single) applyCardPosition(el, card);
 		else if (!collapsed && !hidden) el.style.height = `${stackedHeight(card)}px`;
 
 		if (card.pinned) el.addClass("is-pinned");
