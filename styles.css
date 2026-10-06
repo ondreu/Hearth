@@ -15998,12 +15998,14 @@ body.hearth-dv-resizing {
  * A plugin board spends no space on itself. The hosted view is the board, so
  * everything Hearth would normally put around a grid of cards — the page
  * gutter, the column gap, the card frame — comes off, and the only chrome left
- * is the switcher row with the board's settings gear on the end of it.
+ * is the switcher row with the board's settings gear on the end of it. A
+ * single-card board (.hearth-single-card-view) is laid out the same way: its
+ * one card is the board.
  *
  * Written against `.hearth-view.hearth-plugin-view` (two classes on the root)
  * so it matches the specificity of the narrow-board padding rule above and wins
  * on source order, rather than by reaching for !important. */
-.hearth-view.hearth-plugin-view .hearth-scroll {
+.hearth-view:is(.hearth-plugin-view, .hearth-single-card-view) .hearth-scroll {
 	--hearth-scroll-pad-x: 0px;
 	--hearth-scroll-pad-top: 0px;
 	padding: 0;
@@ -16011,7 +16013,7 @@ body.hearth-dv-resizing {
 
 /* No column gap: the switcher row carries its own padding (below) and the board
  * begins immediately under it. */
-.hearth-view.hearth-plugin-view .hearth-inner {
+.hearth-view:is(.hearth-plugin-view, .hearth-single-card-view) .hearth-inner {
 	gap: 0;
 }
 
@@ -16019,12 +16021,12 @@ body.hearth-dv-resizing {
  * breathing room instead of borrowing the page gutter. The negative margin it
  * normally carries exists to pull a *header* up under it; with no header on a
  * plugin board it would pull the hosted view up under the buttons instead. */
-.hearth-view.hearth-plugin-view .hearth-dash-switcher-zone {
+.hearth-view:is(.hearth-plugin-view, .hearth-single-card-view) .hearth-dash-switcher-zone {
 	padding: 6px 8px;
 	gap: 8px;
 }
 
-.hearth-view.hearth-plugin-view .hearth-dash-switcher {
+.hearth-view:is(.hearth-plugin-view, .hearth-single-card-view) .hearth-dash-switcher {
 	margin-bottom: 0;
 }
 
@@ -16057,9 +16059,16 @@ body.hearth-dv-resizing {
  * the ordinary board renderer and keeps its frame, design and frost; only its
  * placement changes. view.ts forces `.hearth-fit` on, so the grid has a
  * definite height, and the card fills it instead of sitting at its stored
- * geometry (renderDashboard sets no inline position on it). */
+ * geometry (renderDashboard places it at 0,0 / 100%×100%).
+ *
+ * The board goes edge to edge exactly as a plugin board does (the shared
+ * rules under "Edge to edge" above), so the card loses its frame here too:
+ * it *is* the board. Its surface tint and blur stay. */
 .hearth-grid.is-single > .hearth-card {
 	inset: 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
 }
 
 /* A single-card board before it has its card: the empty state and the button
