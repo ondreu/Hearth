@@ -173,9 +173,11 @@ export function renderDashboard(
 		// its own header until it is opened. Everywhere else they are placed
 		// absolutely from their stored geometry.
 		// A single card fills the whole board (`.hearth-grid.is-single` in
-		// styles.css) instead of taking its stored geometry.
-		if (!stacked && !single) applyCardPosition(el, card);
-		else if (!collapsed && !hidden) el.style.height = `${stackedHeight(card)}px`;
+		// styles.css) and takes none of these: any inline size would override it.
+		if (!single) {
+			if (!stacked) applyCardPosition(el, card);
+			else if (!collapsed && !hidden) el.style.height = `${stackedHeight(card)}px`;
+		}
 
 		if (card.pinned) el.addClass("is-pinned");
 		// The card's kind, on the element. Only a couple of kinds contribute a

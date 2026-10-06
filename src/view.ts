@@ -70,6 +70,7 @@ const TERMINAL_EXCLUDED_CLASSES = [
 	"hearth-hide-header",
 	"hearth-mobile-only",
 	"hearth-plugin-view",
+	"hearth-single-card-view",
 	"hearth-empty-board",
 	"hearth-has-banner",
 ];
