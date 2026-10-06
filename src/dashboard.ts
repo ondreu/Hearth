@@ -24,6 +24,7 @@ import { openDashboardSettings } from "./dashboards";
 import { moveStacked, stackedCards, stackedHeight } from "./narrow";
 import { CardSettingsModal } from "./editors";
 import { stateDesign } from "./uidesign";
+import { renderSingleCardEmpty } from "./singlecard";
 import {
 	activeCards,
 	activeDashboard,
@@ -36,6 +37,7 @@ import {
 	effectiveFitToPage,
 	effectiveMaxWidth,
 	effectiveRowHeight,
+	isSingleCardBoard,
 	performanceTier,
 	removeCard,
 	renderCards,
@@ -74,6 +76,11 @@ export function renderDashboard(
 	// the free-form geometry to derive an order and never writes to it, so a
 	// board opened on a phone comes back to the desktop exactly as it was left.
 	const stacked = view.isStacked();
+	// A single-card board draws its one card over the whole fitted board rather
+	// than at its stored place on the grid (see src/singlecard.ts). The stored
+	// geometry is still seeded and kept, so switching back to cards puts it back
+	// where it was.
+	const single = isSingleCardBoard(activeDashboard(s));
 	const columns = effectiveColumns(s);
 	const rowHeight = effectiveRowHeight(s);
 
@@ -89,9 +96,12 @@ export function renderDashboard(
 	);
 	if (seeded || freed) void view.plugin.saveData(s);
 
-	renderToolbar(view, container);
+	// Nothing to arrange on a board of one card; its actions ride on the
+	// switcher row instead, as a plugin board's do.
+	if (!single) renderToolbar(view, container);
 
 	const grid = container.createDiv("hearth-grid");
+	grid.toggleClass("is-single", single);
 	grid.toggleClass("is-arranging", view.arrangeMode);
 	grid.toggleClass("is-stacked", stacked);
 	// Board-level defaults; per-card overrides are set in the render loop below.
@@ -104,16 +114,23 @@ export function renderDashboard(
 	// Fit-to-page locks the board to one screen, which a stacked board — a list
 	// that is meant to run past the bottom — cannot be; the view drops the class
 	// for the same reason, so read it as off here too.
-	const fit = effectiveFitToPage(s) && !stacked;
+	// A single card fills the fitted board through CSS, so there is no layout
+	// to squeeze into it.
+	const fit = effectiveFitToPage(s) && !stacked && !single;
 	// In fit-to-page mode the board is locked to one screen, so leave the
 	// min-height to CSS (which clips the overflow). Otherwise grow the board
 	// to fit its cards — except when stacked, where the cards are in normal flow
 	// and the column is already exactly as tall as they make it.
-	if (!fit && !stacked) grid.style.minHeight = `${layoutHeight(cards) + GRID_GAP}px`;
+	if (!fit && !stacked && !single) grid.style.minHeight = `${layoutHeight(cards) + GRID_GAP}px`;
 
 	// An empty board is left blank — no placeholder text or icon. The Arrange
 	// toolbar (with "Add card") is still available above.
-	if (cards.length === 0) return;
+	// A single-card board without its card is the exception: the board is
+	// nothing but that card, so say so and offer to add one.
+	if (cards.length === 0) {
+		if (single) renderSingleCardEmpty(view, grid);
+		return;
+	}
 
 	const commit = () => void view.plugin.saveData(s);
 
@@ -155,7 +172,7 @@ export function renderDashboard(
 		// as the stacked layout says — bar a collapsed one, which is as tall as
 		// its own header until it is opened. Everywhere else they are placed
 		// absolutely from their stored geometry.
-		if (!stacked) applyCardPosition(el, card);
+		if (!stacked && !single) applyCardPosition(el, card);
 		else if (!collapsed && !hidden) el.style.height = `${stackedHeight(card)}px`;
 
 		if (card.pinned) el.addClass("is-pinned");

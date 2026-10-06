@@ -590,6 +590,7 @@ export const fr: Translations = {
 			tabs: {
 				general: "Général",
 				plugin: "Vue de plugin",
+				single: "Carte",
 				header: "En-tête",
 				layout: "Disposition",
 				style: "Style",
@@ -598,13 +599,20 @@ export const fr: Translations = {
 			name: "Nom",
 			mode: "Type de tableau",
 			modeDesc:
-				"Un tableau de cartes Hearth, ou tout le tableau confié à la vue d'un plugin. Passer à une vue de plugin conserve les cartes de ce tableau — revenez en arrière et elles réapparaissent.",
+				"Un tableau de cartes Hearth, une seule carte Hearth occupant tout le tableau, ou tout le tableau confié à la vue d'un plugin. Changer de type conserve les cartes de ce tableau — revenez en arrière et elles réapparaissent.",
 			modeOptions: {
 				cards: "Cartes",
+				single: "Carte unique",
 				plugin: "Vue de plugin",
 			},
 			modePickViewHint:
 				"Ce tableau n'a pas encore de vue — choisissez-en une dans l'onglet Vue de plugin.",
+			modePickCardHint: "Ce tableau n'a pas encore de carte — ajoutez-en une dans l'onglet Carte.",
+			singleCard: "Carte",
+			singleCardDesc:
+				"Quelle carte de ce tableau l'occupe. Les autres restent sur le tableau et reviennent s'il repasse en mode cartes.",
+			singleCardEdit: "Modifier la carte",
+			singleCardAdd: "Ajouter une nouvelle carte",
 			pluginViewType: "Vue",
 			pluginViewTypeDesc:
 				"Quelle vue enregistrée remplit ce tableau. La liste contient toutes les vues actuellement disponibles, elle dépend donc des plugins activés.",
@@ -715,6 +723,8 @@ export const fr: Translations = {
 				"Le fond d'écran Hearth sur ce tableau : collines classiques, ou formes plates Material 3 Expressive dans votre couleur d'accent.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Par défaut sur un tableau de plugin (${state})`,
+			visibilityDefaultSingle: (state: string) =>
+				`Par défaut sur un tableau à carte unique (${state})`,
 			visibilityShown: "affiché",
 			visibilityHidden: "masqué",
 			visibilityShow: "Afficher le titre",
@@ -752,6 +762,8 @@ export const fr: Translations = {
 			fitOptionScroll: "Autoriser le défilement",
 			fitToPagePluginNote:
 				"Un tableau de plugin remplit toujours le panneau — la vue hébergée l'occupe et gère son propre défilement.",
+			fitToPageSingleNote:
+				"Un tableau à carte unique occupe toujours tout le volet — la carte le remplit et défile elle-même.",
 			themeColorTarget: "Couleur d'accent sur le titre",
 			themeColorTargetDesc:
 				"Quelles parties du logo de ce tableau suivent la couleur d'icône du thème. Remplace le paramètre global pour ce tableau ; les icônes d'onglet et du ruban de Hearth suivent toujours le paramètre global.",
@@ -3493,6 +3505,7 @@ export const fr: Translations = {
 			renderFailed: "Cette carte n'a pas pu être affichée — voir la console pour les détails",
 			leafPickView: "Choisissez une vue de plugin dans les paramètres de la carte",
 			boardPickView: "Choisissez une vue pour ce tableau dans ses paramètres",
+			boardPickCard: "Ce tableau n'a pas encore de carte — ajoutez-en une",
 			boardNeedsFile: "Choisissez un fichier pour ce tableau dans ses paramètres",
 			leafViewMissing:
 				"Cette vue n'est pas disponible — activez le plugin qui la fournit",

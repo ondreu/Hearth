@@ -15,6 +15,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Single-card dashboards.** A third *Dashboard type* beside Cards and Plugin
+  view: **Single card** gives the whole board to one of its own Hearth cards —
+  an RSS reader, a task list — at full size, the way a plugin view fills its
+  board. Pick the card on the board's new **Card** tab (or add one there); a
+  pencil on the switcher row opens the card's settings. The board keeps all of
+  its cards, so switching back to Cards puts them back where they were.
 - **Terminal mode (experimental).** A third design beside Classic and
   Expressive (**Settings → Hearth → Appearance → Terminal**, and in the setup
   wizard's look step) that draws the whole of

@@ -570,6 +570,7 @@ export const zh: Translations = {
 			tabs: {
 				general: "通用",
 				plugin: "插件视图",
+				single: "卡片",
 				header: "顶部",
 				layout: "布局",
 				style: "样式",
@@ -578,12 +579,19 @@ export const zh: Translations = {
 			name: "名称",
 			mode: "仪表板类型",
 			modeDesc:
-				"由 Hearth 卡片组成的面板，或将整个面板交给某个插件的视图。切换为插件视图时会保留本面板的卡片——切换回来即可恢复。",
+				"由 Hearth 卡片组成的面板、铺满整个面板的单张 Hearth 卡片，或将整个面板交给某个插件的视图。切换类型会保留此面板的卡片——切换回来即可恢复。",
 			modeOptions: {
 				cards: "卡片",
+				single: "单张卡片",
 				plugin: "插件视图",
 			},
 			modePickViewHint: "此面板尚未选择视图——请在“插件视图”标签页中选择。",
+			modePickCardHint: "此面板还没有卡片——请在“卡片”标签页中添加。",
+			singleCard: "卡片",
+			singleCardDesc:
+				"由此面板的哪张卡片铺满面板。其他卡片仍保留在面板上，切换回卡片模式时会重新出现。",
+			singleCardEdit: "编辑卡片",
+			singleCardAdd: "添加新卡片",
 			pluginViewType: "视图",
 			pluginViewTypeDesc:
 				"由哪个已注册的视图铺满本面板。列表为当前应用中的全部视图，因此取决于启用了哪些插件。",
@@ -683,6 +691,8 @@ export const zh: Translations = {
 			skyDesignDesc: "在此面板上使用经典手绘天空，或 Material 3 Expressive 风格的扁平天空。",
 			wallpaperDesignDesc: "此面板上的 Hearth 壁纸：经典山丘，或以你的强调色绘制的 Material 3 Expressive 扁平图形。",
 			visibilityDefaultPlugin: (state: string) => `插件视图面板的默认值（${state}）`,
+			visibilityDefaultSingle: (state: string) =>
+				`单卡片面板的默认值（${state}）`,
 			visibilityShown: "显示",
 			visibilityHidden: "隐藏",
 			visibilityShow: "显示标题",
@@ -718,6 +728,8 @@ export const zh: Translations = {
 			fitOptionFit: "适应单页",
 			fitOptionScroll: "允许滚动",
 			fitToPagePluginNote: "插件视图面板始终铺满窗格——所承载的视图会填满它并自行滚动。",
+			fitToPageSingleNote:
+				"单卡片面板始终铺满窗格——卡片会填满它并自行滚动。",
 			themeColorTarget: "标题上的强调色",
 			themeColorTargetDesc:
 				"此面板品牌标识的哪些部分跟随主题的图标颜色。仅为此面板覆盖全局设置；Hearth 的标签页与侧边栏图标仍跟随全局设置。",
@@ -3250,6 +3262,7 @@ export const zh: Translations = {
 			renderFailed: "此卡片无法绘制 — 详情请查看控制台",
 			leafPickView: "请在卡片设置中选择一个插件视图",
 			boardPickView: "请在仪表板设置中为本面板选择一个视图",
+			boardPickCard: "此面板还没有卡片——添加一张来铺满它",
 			boardNeedsFile: "请在仪表板设置中为本面板选择一个文件",
 			leafViewMissing: "此视图不可用 — 请启用提供它的插件",
 			vaultPetInstall: "安装 Vault Pet 插件即可在此养一只宠物",

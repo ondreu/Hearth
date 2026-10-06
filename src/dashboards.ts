@@ -32,6 +32,8 @@ import {
 	type HeaderAlign,
 	type HomeSettings,
 	isPluginBoard,
+	isSingleCardBoard,
+	singleBoardCard,
 	NARROW_WIDTH_MAX,
 	NARROW_WIDTH_MIN,
 	NARROW_WIDTH_STEP,
@@ -57,6 +59,8 @@ import { confirmAction } from "./ui";
 import type { WorkspacesInstance } from "./obsidian-ext";
 import { HearthTabbedModal, type HearthModalTab } from "./tabbedmodal";
 import { t } from "./i18n";
+import { addSingleBoardCard } from "./singlecard";
+import { openCardSettings } from "./dashboard";
 
 /**
  * Copy a board under a new name: same cards, same every override, its own
@@ -354,6 +358,10 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			...(plugin
 				? [{ id: "plugin", label: tabs.plugin, icon: "layout-panel-left" }]
 				: []),
+			// Likewise which card a single-card board shows.
+			...(isSingleCardBoard(this.dash)
+				? [{ id: "single", label: tabs.single, icon: "square" }]
+				: []),
 			{ id: "header", label: tabs.header, icon: "heading" },
 			{ id: "layout", label: tabs.layout, icon: "layout-dashboard" },
 			// Kept on a plugin board: the hosted view sits on one big card surface,
@@ -374,6 +382,9 @@ class DashboardSettingsModal extends HearthTabbedModal {
 				break;
 			case "plugin":
 				this.pluginSection(body);
+				break;
+			case "single":
+				this.singleSection(body);
 				break;
 			case "header":
 				this.headerSection(body);
@@ -445,6 +456,12 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			);
 			hint.settingEl.addClass("hearth-setting-note");
 		}
+		if (isSingleCardBoard(dash) && !singleBoardCard(dash)) {
+			const hint = new Setting(containerEl).setDesc(
+				t().dashboards.modal.modePickCardHint,
+			);
+			hint.settingEl.addClass("hearth-setting-note");
+		}
 
 		// The switcher's icons are drawn by the graphical switcher alone —
 		// terminal mode's tab bar names each board — which a plugin board still
@@ -510,6 +527,56 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					this.commit();
 				});
 			});
+	}
+
+	/**
+	 * Which card a single-card board shows. The choices are the board's own
+	 * cards — the same ones it shows as a grid when switched back to cards — and
+	 * a new one can be added straight from here.
+	 */
+	private singleSection(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const strings = t().dashboards.modal;
+		const current = singleBoardCard(dash);
+
+		if (dash.cards.length > 0) {
+			new Setting(containerEl)
+				.setName(strings.singleCard)
+				.setDesc(strings.singleCardDesc)
+				.addDropdown((dd) => {
+					for (const card of dash.cards) {
+						const kind = t().editors.kinds[card.kind];
+						const title = card.title?.trim();
+						dd.addOption(card.id, title ? `${title} (${kind})` : kind);
+					}
+					dd.setValue(current?.id ?? "").onChange((v) => {
+						dash.singleCardId = v || undefined;
+						this.commit();
+						this.render();
+					});
+				});
+		}
+
+		const actions = new Setting(containerEl);
+		if (current) {
+			actions.addButton((b) =>
+				b.setButtonText(strings.singleCardEdit).onClick(() => {
+					// The card editor re-renders the view itself; it only works on the
+					// board on screen, which is the one it opens over.
+					if (dash.id !== this.view.plugin.settings.activeDashboardId) {
+						this.view.plugin.setActiveDashboard(dash.id);
+					}
+					this.close();
+					openCardSettings(this.view, current);
+				}),
+			);
+		}
+		actions.addButton((b) => {
+			b.setButtonText(strings.singleCardAdd).onClick(() =>
+				addSingleBoardCard(this.view, dash, () => this.render()),
+			);
+			if (!current) b.setCta();
+		});
 	}
 
 	/**
@@ -664,6 +731,9 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const strings = t().dashboards.modal;
 		if (isPluginBoard(this.dash)) {
 			return strings.visibilityDefaultPlugin(strings.visibilityHidden);
+		}
+		if (isSingleCardBoard(this.dash)) {
+			return strings.visibilityDefaultSingle(strings.visibilityHidden);
 		}
 		return strings.titleVisibilityDefault(
 			globalOn ? strings.visibilityShown : strings.visibilityHidden,
@@ -1307,10 +1377,14 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		// A plugin board is always fitted — the hosted view needs a definite
 		// height to fill and scrolls itself inside it — so the choice isn't
 		// offered there. The width controls above still apply.
-		if (isPluginBoard(dash)) {
+		if (isPluginBoard(dash) || isSingleCardBoard(dash)) {
 			const note = new Setting(containerEl)
 				.setName(t().dashboards.modal.fitToPage)
-				.setDesc(t().dashboards.modal.fitToPagePluginNote);
+				.setDesc(
+					isPluginBoard(dash)
+						? t().dashboards.modal.fitToPagePluginNote
+						: t().dashboards.modal.fitToPageSingleNote,
+				);
 			note.settingEl.addClass("hearth-setting-note");
 			return;
 		}

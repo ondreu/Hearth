@@ -146,7 +146,7 @@ Backgrounds are covered in [chapter 11](11-appearance.md).
 ## Two special kinds of dashboard
 
 Almost everything above describes a **cards dashboard**, the normal kind. There
-are two variations worth knowing about now.
+are a few variations worth knowing about now.
 
 ### Plugin view dashboards
 
@@ -156,6 +156,15 @@ your RSS reader, a Kanban board, a Canvas, an outline, a specific PDF — at ful
 size and fully working, with the dashboard switcher, header and background still
 around it. The board keeps its cards while it is in this mode, and switching it
 back to **Cards** brings them back untouched.
+
+See [chapter 5](05-dashboards.md).
+
+### Single-card dashboards
+
+Set *Dashboard type* to **Single card** and the board shows just one of its own
+Hearth cards — an RSS card, a task list — filling the whole board instead of a
+grid. Like a plugin view board it keeps its other cards, and switching back to
+**Cards** brings them all back.
 
 See [chapter 5](05-dashboards.md).
 

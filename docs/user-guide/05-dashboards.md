@@ -49,7 +49,7 @@ the Arrange toolbar. The dialog has up to six tabs.
 | Setting | Meaning |
 | --- | --- |
 | *Name* | What this board is called in the switcher and in exports |
-| *Dashboard type* | **Cards** (the normal board) or **Plugin view** (see below) |
+| *Dashboard type* | **Cards** (the normal board), **Single card** or **Plugin view** (see below) |
 | *Switcher icon* | An emoji or short text on the switcher button. Empty shows the number |
 | *Switcher Lucide icon* | A Lucide icon such as `home`, `star`, `layout-dashboard`. Takes precedence over the emoji |
 | *Linked workspace* | Automatically switch to this dashboard when the named Obsidian workspace loads. Requires the core Workspaces plugin |
@@ -108,6 +108,31 @@ Backgrounds in detail are [chapter 11](11-appearance.md).
 ### Plugin view tab
 
 Only relevant when *Dashboard type* is **Plugin view**. See the next section.
+
+### Card tab
+
+Only relevant when *Dashboard type* is **Single card**. See
+[Single-card dashboards](#single-card-dashboards) below.
+
+## Single-card dashboards
+
+Setting a board's *Dashboard type* to **Single card** gives the whole board to
+one Hearth card — an RSS reader, a task list, a calendar — at full size, the way
+a plugin view board gives it to another plugin. The switcher, header and
+background stay around it, and the board is always fitted to the pane: the card
+fills it and scrolls itself.
+
+The card is one of the board's own cards. On the **Card** tab, *Card* picks
+which one (unset means the first), and *Add a new card* opens the card picker and
+shows the new card straight away. The other cards are kept, so switching the
+board back to **Cards** puts every card back where it was. Pinned cards are not
+shown on a single-card board.
+
+There is nothing to arrange, so the Arrange toolbar is replaced by two buttons at
+the end of the switcher row: a pencil that opens the card's own settings, and the
+dashboard settings. As on a plugin view board, the title and search start hidden
+and the board fills the pane's width; the Header and Layout tabs can turn them
+back on.
 
 ## Plugin view dashboards
 

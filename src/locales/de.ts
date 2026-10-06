@@ -625,6 +625,7 @@ export const de: Translations = {
 			tabs: {
 				general: "Allgemein",
 				plugin: "Plugin-Ansicht",
+				single: "Karte",
 				header: "Kopfzeile",
 				layout: "Layout",
 				style: "Stil",
@@ -633,13 +634,20 @@ export const de: Translations = {
 			name: "Name",
 			mode: "Dashboard-Typ",
 			modeDesc:
-				"Ein Board aus Hearth-Karten oder das ganze Board für die Ansicht eines Plugins. Beim Wechsel zur Plugin-Ansicht bleiben die Karten dieses Boards erhalten - wechsle zurück und sie sind wieder da.",
+				"Ein Board aus Hearth-Karten, eine einzelne Hearth-Karte über das ganze Board oder das ganze Board für die Ansicht eines Plugins. Beim Wechsel des Typs bleiben die Karten dieses Boards erhalten — wechsle zurück und sie sind wieder da.",
 			modeOptions: {
 				cards: "Karten",
+				single: "Einzelne Karte",
 				plugin: "Plugin-Ansicht",
 			},
 			modePickViewHint:
 				"Dieses Board hat noch keine Ansicht - wähle eine auf dem Reiter „Plugin-Ansicht“.",
+			modePickCardHint: "Dieses Board hat noch keine Karte — füge im Tab „Karte“ eine hinzu.",
+			singleCard: "Karte",
+			singleCardDesc:
+				"Welche Karte dieses Boards es ausfüllt. Die anderen bleiben auf dem Board und kommen zurück, wenn es wieder auf Karten umgestellt wird.",
+			singleCardEdit: "Karte bearbeiten",
+			singleCardAdd: "Neue Karte hinzufügen",
 			pluginViewType: "Ansicht",
 			pluginViewTypeDesc:
 				"Welche registrierte Ansicht dieses Board füllt. Die Liste enthält jede Ansicht, die die App gerade hat, und folgt daher den aktivierten Plugins.",
@@ -750,6 +758,8 @@ export const de: Translations = {
 				"Das Hearth-Hintergrundbild auf diesem Board: klassische Hügel oder flache Formen im Stil von Material 3 Expressive in deiner Akzentfarbe.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Standard auf einem Plugin-Board (${state})`,
+			visibilityDefaultSingle: (state: string) =>
+				`Standard auf einem Einzelkarten-Board (${state})`,
 			visibilityShown: "angezeigt",
 			visibilityHidden: "ausgeblendet",
 			visibilityShow: "Titel anzeigen",
@@ -787,6 +797,8 @@ export const de: Translations = {
 			fitOptionScroll: "Scrollen erlauben",
 			fitToPagePluginNote:
 				"Ein Plugin-Board passt immer in den Bereich - die gehostete Ansicht füllt ihn und scrollt selbst.",
+			fitToPageSingleNote:
+				"Ein Einzelkarten-Board füllt immer den Bereich — die Karte füllt ihn aus und scrollt selbst.",
 			themeColorTarget: "Akzentfarbe am Titel",
 			themeColorTargetDesc:
 				"Welche Teile des Brandings dieses Boards der Icon-Farbe des Themes folgen. Überschreibt die globale Einstellung für dieses Board; Hearth-Tab- und Ribbon-Icons folgen weiter der globalen.",
@@ -3553,6 +3565,7 @@ export const de: Translations = {
 			renderFailed: "Diese Karte konnte nicht gezeichnet werden - Details findest du in der Konsole",
 			leafPickView: "Wähle eine Plugin-Ansicht in den Karteneinstellungen",
 			boardPickView: "Wähle eine Ansicht für dieses Board in den Dashboard-Einstellungen",
+			boardPickCard: "Dieses Board hat noch keine Karte — füge eine hinzu",
 			boardNeedsFile: "Wähle eine Datei für dieses Board in den Dashboard-Einstellungen",
 			leafViewMissing:
 				"Diese Ansicht ist nicht verfügbar - aktiviere das Plugin, das sie bereitstellt",

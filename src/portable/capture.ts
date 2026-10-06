@@ -64,7 +64,7 @@ import {
 	effectiveTitle,
 	effectiveTitleIcon,
 	type HomeSettings,
-	isPluginBoard,
+	isFullBoard,
 	performanceTier,
 } from "../types";
 import { exportSettingsPayload, layoutPayload, scrubCard } from "../layout";
@@ -202,14 +202,15 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
  * is this board's card now, and it is free to be pinned or not on its own.
  *
  * A plugin board is the exception, and only because it renders no cards at all —
- * asked through `isPluginBoard`, which is what the renderer asks. The board's
+ * asked through `isFullBoard`, which is what the renderer asks. A single-card
+ * board is the same exception: it renders its one card and no pinned ones. The board's
  * `mode` is the answer; `pluginView` is kept when a board is switched back to
  * cards (so switching to plugin view and back doesn't lose the configuration),
  * so reading that instead would drop the pinned cards from an ordinary board
  * that had once been a plugin board.
  */
 function withPinnedCards(board: Dashboard, s: HomeSettings): void {
-	if (isPluginBoard(board)) return;
+	if (isFullBoard(board)) return;
 	if (!s.pinnedCards.length) return;
 	const taken = new Set(board.cards.map((card) => card.id));
 	board.cards = [

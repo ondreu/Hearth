@@ -613,6 +613,7 @@ export const en = {
 			tabs: {
 				general: "General",
 				plugin: "Plugin view",
+				single: "Card",
 				header: "Header",
 				layout: "Layout",
 				style: "Style",
@@ -621,13 +622,20 @@ export const en = {
 			name: "Name",
 			mode: "Dashboard type",
 			modeDesc:
-				"A board of Hearth cards, or the whole board given over to one plugin's view. Switching to a plugin view keeps this board's cards — switch back and they return.",
+				"A board of Hearth cards, a single Hearth card filling the whole board, or the whole board given over to one plugin's view. Switching type keeps this board's cards — switch back and they return.",
 			modeOptions: {
 				cards: "Cards",
+				single: "Single card",
 				plugin: "Plugin view",
 			},
 			modePickViewHint:
 				"This board has no view yet — choose one on the Plugin view tab.",
+			modePickCardHint: "This board has no card yet — add one on the Card tab.",
+			singleCard: "Card",
+			singleCardDesc:
+				"Which of this board's cards fills it. The others stay on the board and come back if it is switched back to cards.",
+			singleCardEdit: "Edit card",
+			singleCardAdd: "Add a new card",
 			pluginViewType: "View",
 			pluginViewTypeDesc:
 				"Which registered view fills this board. The list is every view the app has right now, so it follows which plugins are enabled.",
@@ -738,6 +746,8 @@ export const en = {
 				"Hearth's wallpaper on this board: classic hills, or flat Material 3 Expressive shapes in your accent colour.",
 			visibilityDefaultPlugin: (state: string) =>
 				`Default on a plugin board (${state})`,
+			visibilityDefaultSingle: (state: string) =>
+				`Default on a single-card board (${state})`,
 			visibilityShown: "shown",
 			visibilityHidden: "hidden",
 			visibilityShow: "Show title",
@@ -775,6 +785,8 @@ export const en = {
 			fitOptionScroll: "Allow scrolling",
 			fitToPagePluginNote:
 				"A plugin board always fits the pane — the hosted view fills it and scrolls itself.",
+			fitToPageSingleNote:
+				"A single-card board always fits the pane — the card fills it and scrolls itself.",
 			themeColorTarget: "Accent colour on the title",
 			themeColorTargetDesc:
 				"Which parts of this board's brand mark follow the theme's icon colour. Overrides the global setting for this board; Hearth's tab and ribbon icons keep following the global one.",
@@ -3548,6 +3560,7 @@ export const en = {
 			renderFailed: "This card couldn't be drawn — see the console for details",
 			leafPickView: "Pick a plugin view in card settings",
 			boardPickView: "Pick a view for this board in dashboard settings",
+			boardPickCard: "This board has no card yet — add one to fill it",
 			boardNeedsFile: "Pick a file for this board in dashboard settings",
 			leafViewMissing:
 				"This view isn't available — enable the plugin that provides it",

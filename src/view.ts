@@ -16,6 +16,7 @@ import {
 	renderPluginBoardActions,
 } from "./pluginboard";
 import { renderDashboardSwitcher } from "./dashboards";
+import { renderSingleCardActions } from "./singlecard";
 import { renderMobileActionBar } from "./mobileactions";
 import { isNarrowWidth, observeNarrowWidth, PHONE_PREVIEW_WIDTH } from "./narrow";
 import { applyBackground, renderBanner } from "./background";
@@ -33,6 +34,7 @@ import {
 } from "./scrollmemory";
 import {
 	activeIsPluginBoard,
+	activeIsSingleCardBoard,
 	bannerActive,
 	effectiveCardDesign,
 	effectiveCompact,
@@ -265,8 +267,10 @@ export class HomeView extends ItemView {
 
 	/** Whether the board reflows into a single stacked column — narrow, and the
 	 * setting left on. Narrow without stacking keeps the free-form layout,
-	 * scaled down as it always was. */
+	 * scaled down as it always was. A single-card board never stacks: its one
+	 * card already fills the board at any width. */
 	isStacked(): boolean {
+		if (activeIsSingleCardBoard(this.plugin.settings)) return false;
 		return this.isNarrow() && effectiveStackOnNarrow(this.plugin.settings);
 	}
 
@@ -427,8 +431,10 @@ export class HomeView extends ItemView {
 		// A plugin board has no cards to arrange and no reflow to preview, so both
 		// of those modes are dropped on the way in rather than hidden: switching to
 		// one while arranging must not leave the view in a mode with no controls.
+		// A single-card board is the same: one card, drawn at full size.
 		const pluginBoard = activeIsPluginBoard(this.plugin.settings);
-		if (pluginBoard) {
+		const singleBoard = activeIsSingleCardBoard(this.plugin.settings);
+		if (pluginBoard || singleBoard) {
 			this.arrangeMode = false;
 			this.phonePreview = false;
 		}
@@ -503,6 +509,9 @@ export class HomeView extends ItemView {
 		// The whole board is one hosted view: it fills the pane and scrolls itself,
 		// on a single card surface instead of a grid of them.
 		root.toggleClass("hearth-plugin-view", pluginBoard);
+		// Likewise for a single card: it fills the fitted board instead of sitting
+		// at its stored place on the grid.
+		root.toggleClass("hearth-single-card-view", singleBoard);
 
 		// With no cards to show (and not arranging), centre the search field
 		// vertically so the page reads as a clean launcher.
@@ -511,6 +520,7 @@ export class HomeView extends ItemView {
 		const emptyBoard =
 			!mobileOnly &&
 			!pluginBoard &&
+			!singleBoard &&
 			!this.arrangeMode &&
 			renderCards(this.plugin.settings).length === 0;
 		root.toggleClass("hearth-empty-board", emptyBoard);
@@ -540,7 +550,9 @@ export class HomeView extends ItemView {
 		// instead would give the board no height at all to hand over.
 		scroll.toggleClass(
 			"hearth-fit",
-			pluginBoard || (effectiveFitToPage(this.plugin.settings) && !stacked),
+			pluginBoard ||
+				singleBoard ||
+				(effectiveFitToPage(this.plugin.settings) && !stacked),
 		);
 
 		if (banner) renderBanner(this, scroll, child);
@@ -575,6 +587,7 @@ export class HomeView extends ItemView {
 			// A plugin board has no toolbar of its own — its one action rides on
 			// the switcher row, so the board below it starts at the next pixel.
 			if (pluginBoard) renderPluginBoardActions(this, switcher);
+			else if (singleBoard) renderSingleCardActions(this, switcher);
 		}
 
 		if (effectiveShowTitle(this.plugin.settings) || effectiveShowSearch(this.plugin.settings)) {

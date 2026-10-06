@@ -16050,6 +16050,34 @@ body.hearth-dv-resizing {
 	flex: 1 1 auto;
 }
 
+/* ---- Single-card boards ----------------------------------------------
+ *
+ * A dashboard whose whole board is one of its own Hearth cards
+ * (Dashboard.mode === "single"; see src/singlecard.ts). The card is built by
+ * the ordinary board renderer and keeps its frame, design and frost; only its
+ * placement changes. view.ts forces `.hearth-fit` on, so the grid has a
+ * definite height, and the card fills it instead of sitting at its stored
+ * geometry (renderDashboard sets no inline position on it). */
+.hearth-grid.is-single > .hearth-card {
+	inset: 0;
+}
+
+/* A single-card board before it has its card: the empty state and the button
+ * that adds one, centred on the board. */
+.hearth-single-card-empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+}
+
+.hearth-single-card-empty > .hearth-card-empty {
+	height: auto;
+}
+
 /* ==========================================================================
    Dashboard gallery
    --------------------------------------------------------------------------

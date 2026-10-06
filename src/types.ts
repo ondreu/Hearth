@@ -1096,13 +1096,19 @@ export interface LeafViewConfig {
  * exactly where they are, so a plugin board is one click away from every other
  * board rather than a tab of its own.
  *
+ * `"single"` sits between the two: the whole board is one of Hearth's own
+ * cards — an RSS reader, a task list — drawn at full size the way a plugin
+ * board draws its hosted view. The card is one of the board's own cards (see
+ * {@link Dashboard.singleCardId}), so switching back to `"cards"` puts it back
+ * on the grid with everything else.
+ *
  * Undefined means `"cards"`, so every board saved before this existed keeps
  * rendering as it did.
  */
-export type DashboardMode = "cards" | "plugin";
+export type DashboardMode = "cards" | "single" | "plugin";
 
 /** Every {@link DashboardMode}, in the order the settings dropdown lists them. */
-export const DASHBOARD_MODES: readonly DashboardMode[] = ["cards", "plugin"];
+export const DASHBOARD_MODES: readonly DashboardMode[] = ["cards", "single", "plugin"];
 
 /**
  * What a `"plugin"` dashboard hosts, and how.
@@ -2262,6 +2268,11 @@ export interface Dashboard extends BannerOverrides {
 	 * and kept when the mode is switched back and forth so flipping the type
 	 * twice doesn't lose the choice. */
 	pluginView?: PluginBoardConfig;
+	/** Which of this board's own cards a `"single"` board shows. Unset, or
+	 * naming a card that is no longer on the board, falls back to the board's
+	 * first card — see {@link singleBoardCard}. Ignored on any other mode and
+	 * kept when the mode is switched, like `pluginView`. */
+	singleCardId?: string;
 	/** Optional emoji/short text shown on the switcher button instead of its
 	 * 1-based number. */
 	icon?: string;
@@ -3055,11 +3066,42 @@ export function activeCards(s: HomeSettings): DashboardCard[] {
 /** Cards to render on the active board: its own cards plus every pinned card.
  *
  * A plugin board renders no cards at all — not even pinned ones, which have
- * nowhere to sit on a board that is one full-size hosted view. */
+ * nowhere to sit on a board that is one full-size hosted view. A single-card
+ * board renders exactly its one card, and no pinned ones for the same reason. */
 export function renderCards(s: HomeSettings): DashboardCard[] {
 	const dash = activeDashboard(s);
 	if (isPluginBoard(dash)) return [];
+	if (isSingleCardBoard(dash)) {
+		const card = singleBoardCard(dash);
+		return card ? [card] : [];
+	}
 	return [...dash.cards, ...s.pinnedCards];
+}
+
+/** Whether `dash` gives its whole board to one of its own cards. Like
+ * {@link isPluginBoard}, only the exact mode counts. */
+export function isSingleCardBoard(dash: Dashboard | undefined): boolean {
+	return dash?.mode === "single";
+}
+
+/** Whether the *active* board is a single-card board. */
+export function activeIsSingleCardBoard(s: HomeSettings): boolean {
+	return isSingleCardBoard(activeDashboard(s));
+}
+
+/** Whether `dash` is given over to one full-size thing — a hosted plugin view
+ * or a single card — rather than a grid. Such a board has nothing to arrange,
+ * is always fitted to the pane, and starts with the header out of its way. */
+export function isFullBoard(dash: Dashboard | undefined): boolean {
+	return isPluginBoard(dash) || isSingleCardBoard(dash);
+}
+
+/** The card a single-card board shows: the one {@link Dashboard.singleCardId}
+ * names, else the board's first card (a board just switched to this mode, or
+ * one whose chosen card was removed), else none. */
+export function singleBoardCard(dash: Dashboard): DashboardCard | undefined {
+	const id = dash.singleCardId;
+	return (id ? dash.cards.find((c) => c.id === id) : undefined) ?? dash.cards[0];
 }
 
 /** Whether `dash` gives its whole board to a hosted plugin view. Undefined
@@ -3109,7 +3151,7 @@ export function effectiveShowSearch(s: HomeSettings): boolean {
 	// A plugin board is given over to the hosted view, so the search section is
 	// off there unless the board asks for it back. The board's own override
 	// still wins either way — this only changes what "no override" means.
-	return dash.showSearch ?? (isPluginBoard(dash) ? false : s.showSearch);
+	return dash.showSearch ?? (isFullBoard(dash) ? false : s.showSearch);
 }
 
 /**
@@ -3316,7 +3358,7 @@ export function effectiveShowTitle(s: HomeSettings): boolean {
 	const dash = activeDashboard(s);
 	// Same reasoning as effectiveShowSearch: the hosted view is the board, so
 	// the title block starts out of its way and can be switched back on.
-	return dash.header?.showTitle ?? (isPluginBoard(dash) ? false : s.showTitle);
+	return dash.header?.showTitle ?? (isFullBoard(dash) ? false : s.showTitle);
 }
 
 /** Title text for the active board's title block. */
@@ -3426,7 +3468,7 @@ export function effectiveFullWidth(s: HomeSettings): boolean {
 	// A hosted view is chrome of its own — a reader, a board, a canvas — and
 	// looks wrong boxed into a column of body text, so a plugin board fills the
 	// pane unless it says otherwise.
-	return dash.fullWidth ?? (isPluginBoard(dash) ? true : s.fullWidth);
+	return dash.fullWidth ?? (isFullBoard(dash) ? true : s.fullWidth);
 }
 
 /**
