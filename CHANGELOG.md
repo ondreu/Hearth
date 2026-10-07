@@ -15,18 +15,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
-- **Single-card dashboards.** A third *Dashboard type* beside Cards and Plugin
-  view: **Single card** gives the whole board to one of its own Hearth cards —
-  an RSS reader, a task list — at full size, the way a plugin view fills its
-  board. Pick the card on the board's new **Card** tab (or add one there); a
-  pencil on the switcher row opens the card's settings. The board keeps all of
-  its cards, so switching back to Cards puts them back where they were.
 - **Terminal mode (experimental).** A third design beside Classic and
   Expressive (**Settings → Hearth → Appearance → Terminal**, and in the setup
-  wizard's look step) that draws the whole of
-  Hearth as a text interface, the way a terminal tool such as `htop` looks:
-  one character grid in a bundled monospaced font, every card a box drawn in
-  line characters that joins its neighbours, and keys for everything.
+  wizard's look step) that draws the whole of Hearth as a text interface, the
+  way a terminal tool such as `htop` looks: one character grid in a bundled
+  monospaced font, every card a box drawn in line characters that joins its
+  neighbours, and keys for everything.
   - Cards keep their places on the board, rounded to the grid; a narrow pane
     stacks them in one column. Tab moves between cards, the arrows move inside
     one, Enter opens, Space ticks or folds, `m` opens the card menu, `z` zooms
@@ -51,16 +45,76 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     Paper) and a font size. Switching terminal mode off brings every board
     back exactly as it was.
   - Settings that would change nothing while terminal mode is on are hidden
-    until it is switched off. These include:
-    - a card's Style tab and the sizing of its buttons
-    - the board dialog's Style and Background tabs, the header's icon,
-      alignment and sizes, and the width
-    - the wallpaper, card surfaces and compact spacing
-    - designs and animations of the weather and market cards, picture and
-      icon options, pixel sizes, live preview and open buttons on notes
-    The vault-wide settings stay while a plugin board, which terminal mode
-    leaves as it is, still uses them. The time grid's now line and the Git
-    card's paths now follow their settings in terminal mode too.
+    until it is switched off: a card's Style tab and button sizing; the board
+    dialog's Style and Background tabs, the header's icon, alignment and sizes,
+    and the width; the wallpaper, card surfaces and compact spacing; designs
+    and animations of the weather and market cards, picture and icon options,
+    pixel sizes, live preview and open buttons on notes. Vault-wide settings
+    stay while a plugin board, which terminal mode leaves as it is, still uses
+    them.
+- **Single-card dashboards.** A third *Dashboard type* beside Cards and Plugin
+  view: **Single card** gives the whole board to one of its own Hearth cards —
+  an RSS reader, a task list — at full size, the way a plugin view fills its
+  board. Pick the card on the board's new **Card** tab (or add one there); a
+  pencil on the switcher row opens the card's settings. The board keeps all of
+  its cards, so switching back to Cards puts them back where they were.
+- **An RSS reader inside Hearth** (#377). Entries open in a reader — a large
+  dialog over the board, or a tab of its own — with the card's feeds along the
+  top, the entries down the side and the entry at a reading width. Arrow keys
+  (or j/k) step through the entries and `[` `]` through the feeds; buttons open
+  the page in the browser, save the entry as a note, mark it unread and copy
+  its link, and the dialog moves into a tab with one click. **Open entries in**
+  on the card chooses the browser (the default), the dialog or the tab; an
+  entry with no web page — an email newsletter brought in through LetterFeed or
+  FreshRSS — always opens in the reader. Drawn in all three designs.
+  - The feed's HTML is sanitised; links open in the browser, colours and fonts
+    follow the theme, and pictures wait for **Load pictures** by default, since
+    a remote picture tells its sender the entry was opened (**Pictures in the
+    reader**: Ask, Always, Never). Tracking pixels never load, nor does
+    anything while external calls are off.
+  - **Read and unread.** Opened entries count as read; unread ones carry a dot
+    and each feed's tab its unread count. A filter button (and **Unread only**
+    in the settings) lists only the unread, another marks the feed read, and
+    right-clicking an entry offers every action. In terminal mode `u` toggles
+    an entry, `A` marks the feed read and `f` filters. Read marks live in
+    Hearth's settings, so they sync with them.
+  - **Save entries as notes**, through a note template like the Obsidian Web
+    Clipper's: a note name, a folder, typed properties (text, list, number,
+    checkbox, date, date & time) and a body, each taking `{{variables}}` and
+    filters (`{{published|date:"D MMMM YYYY"}}`, `{{title|lower|truncate:40}}`,
+    `{{categories|wikilink|join}}`). The editor lists the variables — click one
+    to insert it — and the filters, and previews the note from the card's
+    newest entry. Saved entries open their note instead. Entries now carry
+    their author and categories for templates.
+- **The folder browser in a tab of its own** (#375). A button in the folder
+  browser's top row moves it from the dialog to a new tab, where the folder has
+  the whole page; a Folder card set to *Open the browser → In a new tab* opens
+  it there directly.
+  - Walking into a folder is a step in the tab's back and forward history, the
+    tab reopens on the same folder after a restart, and it follows the folder
+    live. Opening a folder that already has a tab brings that tab forward.
+  - The tab takes the dialog's design — Classic or Expressive from the card
+    that opened it, and terminal mode in its colour scheme — and follows
+    changes to them while it is open.
+- **Tiles with note previews in the folder browser** (#375). The browser gets
+  its own layout, separate from the card's: a list, or larger tiles that show
+  each note's name and the first lines of its text — small by default, with a
+  size setting — without its properties, code blocks or embeds. A switch
+  beside the order picker changes the layout on the spot. A note is read only
+  once its tile comes near the screen.
+  - Each subfolder is a panel of its own under a heading bar, and folds down
+    to its heading from the chevron at its start; a button in the top row
+    folds or unfolds them all. Folds last for the session.
+  - On the Full performance tier, pictures show themselves on their tiles and
+    a note shows its first embedded image as a cover (*Image previews*, on by
+    default). Lighter tiers skip them: there are no thumbnails, so each one is
+    the whole picture decoded.
+- **Front Matter Title integration** (#375). With the
+  [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin)
+  plugin's file-explorer feature on, Folder cards and the folder browser list
+  notes by the titles the explorer shows instead of their file names, through
+  the plugin's own API. On by default; **Settings → Hearth → Integrations →
+  Front Matter Title** turns it off.
 - **World tension card.** Kagi News' World Tension index — a language model's
   0–100 reading of the day's world news, from *Cool* to *Burning* — on the
   board, in the Integrations section of the card picker.
@@ -88,70 +142,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     city names. The calculator reads `en` as "to" (`100 euros en dollars`,
     `10 km en miles`), `20 % de 150`, and `binaire`, `décimal` and
     `hexadécimal`. The search tips show French examples.
-- **The folder browser in a tab of its own.** A button in the folder browser's
-  top row moves it from the dialog to a new tab, where the folder has the
-  whole page; a Folder card set to *Open the browser → In a new tab* opens it
-  there directly (#375).
-  - Walking into a folder is a step in the tab's back and forward history, the
-    tab reopens on the same folder after a restart, and it follows the folder
-    live. Opening a folder that already has a tab brings that tab forward.
-  - The tab takes the dialog's design — Classic or Expressive from the card
-    that opened it, and terminal mode in its colour scheme — and follows
-    changes to them while it is open.
-- **Tiles with note previews in the folder browser.** The browser gets its own
-  layout, separate from the card's: a list, or larger tiles that show each
-  note's name and the first lines of its text — small by default, with a size
-  setting — without its properties, code blocks or embeds (#375). A switch
-  beside the order picker changes the layout on the spot. A note is read only
-  once its tile comes near the screen.
-  - Each subfolder is a panel of its own under a heading bar, and folds down
-    to its heading from the chevron at its start; a button in the top row
-    folds or unfolds them all. Folds last for the session.
-  - On the Full performance tier, pictures show themselves on their tiles and
-    a note shows its first embedded image as a cover (*Image previews*, on by
-    default). Lighter tiers skip them: there are no thumbnails, so each one is
-    the whole picture decoded.
-- **Front Matter Title integration.** With the
-  [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin)
-  plugin's file-explorer feature on, Folder cards and the folder browser list
-  notes by the titles the explorer shows instead of their file names, through
-  the plugin's own API (#375). On by default; **Settings → Hearth →
-  Integrations → Front Matter Title** turns it off.
-- **An RSS reader inside Hearth** (#377). Entries open in a reader — a large
-  dialog over the board, or a tab of its own — with the card's feeds along the
-  top, the entries down the side and the entry at a reading width. Arrow keys
-  (or j/k) step through the entries and `[` `]` through the feeds; buttons open
-  the page in the browser, save the entry as a note, mark it unread and copy
-  its link, and the dialog moves into a tab with one click. An entry with no
-  web page — an email newsletter brought in through LetterFeed or FreshRSS —
-  used to do nothing when clicked; it now always opens there. **Open entries
-  in** on the card chooses the browser (the default), the dialog or the tab.
-  - The feed's HTML is sanitised; links open in the browser, colours and fonts
-    follow the theme, and pictures wait for **Load pictures** by default, since
-    a remote picture tells its sender the entry was opened (**Pictures in the
-    reader**: Ask, Always, Never). Tracking pixels never load, nor does
-    anything while external calls are off.
-  - Drawn in all three designs: Classic, Expressive and Terminal.
-- **Read and unread on RSS cards.** Opened entries count as read; unread ones
-  carry a dot and each feed's tab its unread count. A filter button (and
-  **Unread only** in the settings) lists only the unread, another marks the
-  feed read, and right-clicking an entry offers every action. In terminal mode
-  `u` toggles an entry, `A` marks the feed read and `f` filters. Read marks
-  live in Hearth's settings, so they sync with them.
-- **RSS feed tabs fit any card.** A tab is as wide as its feed's name instead
-  of a fixed width that cut names short; a row with more feeds than room
-  scrolls sideways (the mouse wheel too), fades at the edge with more beyond
-  it, keeps the open feed in view, and ends in a "+N" button listing every
-  feed. The reader's feed row works the same way.
-- **Save feed entries as notes**, through a note template like the Obsidian
-  Web Clipper's: a note name, a folder, typed properties (text, list, number,
-  checkbox, date, date & time) and a body, each taking `{{variables}}` and
-  filters (`{{published|date:"D MMMM YYYY"}}`, `{{title|lower|truncate:40}}`,
-  `{{categories|wikilink|join}}`). The editor lists the variables — click one
-  to insert it — and the filters, and previews the note from the card's
-  newest entry. Saved entries open their note instead.
-- RSS entries whose only address is their `<guid>` now open that page; entries
-  carry their author and categories for templates.
 
 ### Changed
 
@@ -160,12 +150,29 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   with variables, filters and a live preview — instead of per-field routing
   rules. Cards set up the old way convert to the equivalent template and make
   the same notes; `{{field:FORMAT}}` placeholders keep working.
+- **RSS feed tabs fit any card.** A tab is as wide as its feed's name instead
+  of a fixed width that cut names short; a row with more feeds than room
+  scrolls sideways (the mouse wheel too), fades at the edge with more beyond
+  it, keeps the open feed in view, and ends in a "+N" button listing every
+  feed. The reader's feed row works the same way.
+- **The card gallery fits a phone.** At 620px and narrower, its category rail
+  becomes a dropdown.
+- *Mobile mode (search only)* is marked **Legacy** in the settings.
 
 ### Fixed
 
-- **`FF hex to decimal` in the search bar now answers.** The search tips
-  suggest it, but a query without a digit never reached the calculator, so a
-  hex number written only in letters got no answer unless typed after `=`.
+- **Phone fixes from a mobile review** (#370):
+  - Card and dashboard settings no longer let the footer sit over the rows in
+    the middle of the list; on a phone the footer is pinned to the bottom.
+  - Markets cards on a phone send requests Yahoo accepts; it refused the ones
+    Obsidian's mobile HTTP client sent, the likely cause of "Unavailable".
+  - Date fields in the task dialog and the Operon card keep room for the
+    calendar icon Obsidian pins to their start.
+  - The search bar's results close when you tap or scroll outside them.
+  - Live-preview note cards (Daily note) and hosted views lose the ~84px gap
+    Obsidian's phone header left at their top.
+  - Toggles in Hearth's settings keep their own width at the end of the row
+    instead of squeezing the setting's name.
 - **Icon buttons keep their icons in Obsidian's tablet layout.** On a tablet
   or an unfolded foldable, Obsidian pads every button 20px on each side, so
   the dashboard switcher, the calendar and schedule arrows and other small
@@ -181,6 +188,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   notification, a system gesture) now puts the button back instead of
   dropping it in the card's top-left corner. The resize corner is also larger
   on touch screens.
+- **`FF hex to decimal` in the search bar now answers.** The search tips
+  suggest it, but a query without a digit never reached the calculator, so a
+  hex number written only in letters got no answer unless typed after `=`.
+- **RSS entries whose only address is their `<guid>` now open that page.**
 
 ## [3.3.0]
 
