@@ -26,11 +26,12 @@ import {
 	ROOT,
 } from "../../cards/folder";
 import type { BookmarkItem } from "../../bookmarks";
-import { showFileMenu } from "../../filemenu";
+import { EXPLORER_SOURCE, showFileMenu, type FileMenuOptions } from "../../filemenu";
 import { FOLDER_SORT_DEFAULT, parentPath, type FolderEntry } from "../../foldercontents";
 import { explorerTitles } from "../../frontmattertitle";
 import { t } from "../../i18n";
 import type { BookmarksInstance } from "../../obsidian-ext";
+import { openFile } from "../../opener";
 import type { TuiContext, TuiRenderer } from "../card";
 import { asciify, type Line } from "../text";
 import { hearthMenu } from "../../uidesign";
@@ -85,6 +86,16 @@ function folderNodes(ctx: TuiContext, folder: TFolder, limit: number): TreeNode[
 	return nodes;
 }
 
+/** A Folder card's rows stand in for the file explorer, as the graphical
+ * card's do: their menu is the explorer's (#389). */
+function explorerMenu(ctx: TuiContext): FileMenuOptions {
+	return {
+		app: ctx.view.app,
+		source: EXPLORER_SOURCE,
+		open: (file, state) => void openFile(ctx.view, file, "card", null, state),
+	};
+}
+
 function entryNode(ctx: TuiContext, entry: FolderEntry, inCard: boolean): TreeNode {
 	const app = ctx.view.app;
 	const file = app.vault.getAbstractFileByPath(entry.path);
@@ -107,10 +118,13 @@ function entryNode(ctx: TuiContext, entry: FolderEntry, inCard: boolean): TreeNo
 				: undefined,
 			menu: (evt) => {
 				const own = (menu: Menu) => {
-					menu.addItem((i) => i.setTitle(t().cards.folder.browse).setIcon("folder-tree").onClick(() => browse(ctx, entry.path)));
+					menu.addItem((i) =>
+						i.setSection("open").setTitle(t().cards.folder.browse).setIcon("folder-tree").onClick(() => browse(ctx, entry.path)),
+					);
 					if (inCard) {
 						menu.addItem((i) =>
 							i
+								.setSection("open")
 								.setTitle(t().tui.open)
 								.setIcon("folder-open")
 								.onClick(() => {
@@ -120,10 +134,10 @@ function entryNode(ctx: TuiContext, entry: FolderEntry, inCard: boolean): TreeNo
 						);
 					}
 				};
-				// The folder's own entries first, then what the vault offers
-				// for a folder anywhere else (#389).
+				// The folder's own entries first, then what the file explorer
+				// offers for it (#389).
 				if (folder) {
-					showFileMenu(folder, evt, { app, source: "hearth-terminal", extend: own });
+					showFileMenu(folder, evt, { ...explorerMenu(ctx), extend: own });
 					return;
 				}
 				const menu = hearthMenu();
@@ -140,7 +154,7 @@ function entryNode(ctx: TuiContext, entry: FolderEntry, inCard: boolean): TreeNo
 			if (file instanceof TFile) openCardFile(ctx.view, file, evt);
 		},
 		menu: (evt) => {
-			if (file instanceof TFile) fileMenu(ctx.view, file, evt);
+			if (file instanceof TFile) showFileMenu(file, evt, explorerMenu(ctx));
 		},
 	};
 }

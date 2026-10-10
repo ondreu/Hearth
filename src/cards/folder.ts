@@ -4,7 +4,7 @@ import { currentUiDesign, DESIGN_ATTR, HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { explorerChildOrder, explorerSortAsFolderSort } from "../explorerorder";
-import { wireFileMenu, type FileMenuOptions } from "../filemenu";
+import { EXPLORER_SOURCE, wireFileMenu, type FileMenuOptions } from "../filemenu";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type FileIconOptions } from "../fileicons";
 import { isImageFile } from "../filetypes";
 import {
@@ -361,18 +361,16 @@ function renderFolderTiles(
 }
 
 
-/** What a right-click on a card's row offers (#389): the file opens the way
+/** What a right-click on a card's row offers (#389): what the file explorer
+ * offers for it, the card standing in for the explorer. A file opens the way
  * the card opens notes. */
 function cardFileMenu(view: HomeView): FileMenuOptions {
 	return {
 		app: view.app,
-		source: FILE_MENU_SOURCE,
-		open: (file) => void openFile(view, file, "card"),
+		source: EXPLORER_SOURCE,
+		open: (file, state) => void openFile(view, file, "card", null, state),
 	};
 }
-
-/** The `source` the folder card and its browser give `file-menu` handlers. */
-const FILE_MENU_SOURCE = "hearth-folder";
 
 
 /** The icon a row shows. Resolved from the vault's own object, so a folder the
@@ -858,10 +856,10 @@ export class FolderBrowser {
 	private fileMenu(): FileMenuOptions {
 		return {
 			app: this.host.app,
-			source: FILE_MENU_SOURCE,
-			open: (file) => {
+			source: EXPLORER_SOURCE,
+			open: (file, state) => {
 				this.host.opened?.();
-				void openFile(this.host.opener, file, "card");
+				void openFile(this.host.opener, file, "card", null, state);
 			},
 		};
 	}

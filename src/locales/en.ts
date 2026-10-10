@@ -4849,6 +4849,20 @@ export const en = {
 			'Not a Hearth settings backup — no "hearthSettings" marker or layout found.',
 	},
 
+	// ---- A vault item's menu (src/filemenu.ts) ----------------------------
+	fileMenu: {
+		newNote: "New note",
+		newFolder: "New folder",
+		rename: "Rename…",
+		makeCopy: "Make a copy",
+		delete: "Delete",
+		untitled: "Untitled",
+		folderName: "Folder name",
+		newName: "New name",
+		exists: (name: string) => `“${name}” already exists.`,
+		invalidName: "A name can't contain / \\ or :.",
+	},
+
 	// ---- Terminal mode (src/tui/) -----------------------------------------
 	tui: {
 		boardLabel: "Dashboard, terminal mode",

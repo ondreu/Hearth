@@ -210,7 +210,7 @@ export function fileMenu(view: HomeView, file: TFile, evt: MouseEvent | Keyboard
 	showFileMenu(file, evt, {
 		app: view.app,
 		source: "hearth-terminal",
-		open: (f) => openCardFile(view, f),
+		open: (f, state) => void openFile(view, f, "card", null, state),
 		extend,
 	});
 }
