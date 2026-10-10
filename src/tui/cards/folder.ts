@@ -10,7 +10,7 @@
  * Bookmarks draw their groups the same way, open at first like the core
  * pane's, and follow every kind of bookmark the graphical card follows.
  */
-import { TFile, TFolder, type TAbstractFile } from "obsidian";
+import { TFile, TFolder, type Menu, type TAbstractFile } from "obsidian";
 import { bookmarkPathName, openBookmark, pruneBookmarks } from "../../cards/bookmarks";
 import {
 	browsedPath,
@@ -26,6 +26,7 @@ import {
 	ROOT,
 } from "../../cards/folder";
 import type { BookmarkItem } from "../../bookmarks";
+import { showFileMenu } from "../../filemenu";
 import { FOLDER_SORT_DEFAULT, parentPath, type FolderEntry } from "../../foldercontents";
 import { explorerTitles } from "../../frontmattertitle";
 import { t } from "../../i18n";
@@ -105,19 +106,28 @@ function entryNode(ctx: TuiContext, entry: FolderEntry, inCard: boolean): TreeNo
 					}
 				: undefined,
 			menu: (evt) => {
-				const menu = hearthMenu();
-				menu.addItem((i) => i.setTitle(t().cards.folder.browse).setIcon("folder-tree").onClick(() => browse(ctx, entry.path)));
-				if (inCard) {
-					menu.addItem((i) =>
-						i
-							.setTitle(t().tui.open)
-							.setIcon("folder-open")
-							.onClick(() => {
-								browsedPath.set(ctx.card, entry.path);
-								ctx.redraw();
-							}),
-					);
+				const own = (menu: Menu) => {
+					menu.addItem((i) => i.setTitle(t().cards.folder.browse).setIcon("folder-tree").onClick(() => browse(ctx, entry.path)));
+					if (inCard) {
+						menu.addItem((i) =>
+							i
+								.setTitle(t().tui.open)
+								.setIcon("folder-open")
+								.onClick(() => {
+									browsedPath.set(ctx.card, entry.path);
+									ctx.redraw();
+								}),
+						);
+					}
+				};
+				// The folder's own entries first, then what the vault offers
+				// for a folder anywhere else (#389).
+				if (folder) {
+					showFileMenu(folder, evt, { app, source: "hearth-terminal", extend: own });
+					return;
 				}
+				const menu = hearthMenu();
+				own(menu);
 				showMenuFor(menu, evt);
 			},
 		};

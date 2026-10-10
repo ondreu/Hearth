@@ -1,4 +1,4 @@
-import { debounce, ItemView, type TAbstractFile, type ViewStateResult, type WorkspaceLeaf } from "obsidian";
+import { ItemView, type ViewStateResult, type WorkspaceLeaf } from "obsidian";
 import {
 	defaultBrowseState,
 	FolderBrowser,
@@ -6,10 +6,10 @@ import {
 	readBrowseState,
 	ROOT,
 	VIEW_TYPE_FOLDER,
+	watchBrowsedFolder,
 	type BrowserHost,
 	type FolderBrowseState,
 } from "./cards/folder";
-import { browserTouches } from "./foldercontents";
 import type HearthPlugin from "./main";
 import { applyPageDesign, vaultUiDesign } from "./uidesign";
 
@@ -24,8 +24,7 @@ import { applyPageDesign, vaultUiDesign } from "./uidesign";
  *
  * The browser itself is the dialog's (`FolderBrowser` in `cards/folder.ts`):
  * this view only hosts it — persists its state, names the tab, and redraws it
- * when the folder it shows changes on disk, which the dialog, opened for a
- * moment, never needed to.
+ * when the folder it shows changes on disk, as the dialog does.
  */
 export class FolderView extends ItemView {
 	private state: FolderBrowseState = defaultBrowseState(ROOT);
@@ -118,22 +117,9 @@ export class FolderView extends ItemView {
 		this.contentEl.empty();
 	}
 
-	/** Redraw when something on the page — the folder shown, and the levels
-	 * below it the page draws — is added, removed, renamed or re-titled. */
+	/** Redraw when something on the page changes on disk. */
 	private watchVault(): void {
-		const redraw = debounce(() => this.browser?.draw(), 300, true);
-		const check = (file: TAbstractFile, oldPath?: string) => {
-			const at = this.state.path;
-			if (browserTouches(at, file.path) || (oldPath !== undefined && browserTouches(at, oldPath))) {
-				redraw();
-			}
-		};
-		this.registerEvent(this.app.vault.on("create", (file) => check(file)));
-		this.registerEvent(this.app.vault.on("delete", (file) => check(file)));
-		this.registerEvent(this.app.vault.on("rename", (file, oldPath) => check(file, oldPath)));
-		// A note's title (Front Matter Title) and its preview come from its
-		// content, which a metadata update follows.
-		this.registerEvent(this.app.metadataCache.on("changed", (file) => check(file)));
+		for (const ref of watchBrowsedFolder(this.app, () => this.browser)) this.registerEvent(ref);
 	}
 
 	/** Have the tab's header say the folder now shown. `updateHeader` is not

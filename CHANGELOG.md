@@ -167,6 +167,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the same way on import. The launchpad gains *Add command*, which picks a
   command and adds its button in one step, and *Button size* in the fixed
   style. This does not round-trip: a version before 3.4.0 shows the launchpad.
+- **Right-click a file or folder on a Folder card** for the menu it has in the
+  file explorer (#389): for a file, *Open*, *Open in new tab* and *Open to the
+  right*, then whatever Obsidian and your other plugins add to a file's or a
+  folder's menu. It works on the card's rows and tiles, and in the folder
+  browser — entries and section headings alike — in the dialog and in a tab;
+  on touch, a long press opens it. Terminal mode's Folder card offers the same
+  on folders as well as files. The browser dialog now also follows renames,
+  moves and deletions while it is open, as the tab already did.
 
 ### Fixed
 

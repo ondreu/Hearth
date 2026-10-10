@@ -9,9 +9,8 @@
  */
 import { Menu, TFile, type TAbstractFile } from "obsidian";
 import { groupForFile } from "../../filetypes";
-import { t } from "../../i18n";
+import { showFileMenu, showMenuFor } from "../../filemenu";
 import { openFile } from "../../opener";
-import { hearthMenu } from "../../uidesign";
 import type { HomeView } from "../../view";
 import type { TuiContext, TuiItem, TuiOutput } from "../card";
 import {
@@ -208,31 +207,15 @@ export function openCardFile(view: HomeView, file: TFile, evt?: MouseEvent | Key
  * card offers what it offers anywhere else in the vault.
  */
 export function fileMenu(view: HomeView, file: TFile, evt: MouseEvent | KeyboardEvent, extend?: (menu: Menu) => void): void {
-	const menu = hearthMenu();
-	menu.addItem((i) => i.setTitle(t().tui.open).setIcon("file").onClick(() => openCardFile(view, file)));
-	menu.addItem((i) =>
-		i.setTitle(t().tui.openNewTab).setIcon("file-plus").onClick(() => void view.app.workspace.getLeaf("tab").openFile(file)),
-	);
-	menu.addItem((i) =>
-		i.setTitle(t().tui.openSplit).setIcon("columns-3").onClick(() => void view.app.workspace.getLeaf("split").openFile(file)),
-	);
-	extend?.(menu);
-	menu.addSeparator();
-	view.app.workspace.trigger("file-menu", menu, file, "hearth-terminal");
-	showMenuFor(menu, evt);
+	showFileMenu(file, evt, {
+		app: view.app,
+		source: "hearth-terminal",
+		open: (f) => openCardFile(view, f),
+		extend,
+	});
 }
 
-/** Show a menu at the pointer, or beside the focused element when it was
- * opened from the keyboard. */
-export function showMenuFor(menu: Menu, evt: MouseEvent | KeyboardEvent): void {
-	if (evt instanceof MouseEvent && (evt.clientX || evt.clientY)) {
-		menu.showAtMouseEvent(evt);
-		return;
-	}
-	const el = evt.target instanceof HTMLElement ? evt.target : document.activeElement;
-	const box = el instanceof HTMLElement ? el.getBoundingClientRect() : { left: 0, bottom: 0 };
-	menu.showAtPosition({ x: box.left + 16, y: box.bottom });
-}
+export { showMenuFor };
 
 /** Whether `f` is a file (not a folder). */
 export function isFile(f: TAbstractFile | null | undefined): f is TFile {
