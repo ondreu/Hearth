@@ -1,13 +1,15 @@
-import { getLinkpath, Keymap, Setting, TAbstractFile, TFile, TFolder, type App } from "obsidian";
+import { Component, debounce, getLinkpath, Keymap, Setting, TAbstractFile, TFile, TFolder, type App, type EventRef } from "obsidian";
 import { setIcon } from "../glyphs";
 import { currentUiDesign, DESIGN_ATTR, HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { explorerChildOrder, explorerSortAsFolderSort } from "../explorerorder";
+import { EXPLORER_SOURCE, wireFileMenu, type FileMenuOptions } from "../filemenu";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type FileIconOptions } from "../fileicons";
 import { isImageFile } from "../filetypes";
 import {
 	asFolderSort,
+	browserTouches,
 	filterFolderEntries,
 	FOLDER_SORT_DEFAULT,
 	FOLDER_SORTS,
@@ -327,6 +329,7 @@ function renderFolderList(
 		}
 		row.addEventListener("click", (evt) => activate(entry, evt));
 		makeClickable(row, () => activate(entry), entry.name);
+		wireFileMenu(row, entry.path, cardFileMenu(view));
 	}
 }
 
@@ -353,7 +356,20 @@ function renderFolderTiles(
 		}
 		tile.addEventListener("click", (evt) => activate(entry, evt));
 		makeClickable(tile, () => activate(entry), entry.name);
+		wireFileMenu(tile, entry.path, cardFileMenu(view));
 	}
+}
+
+
+/** What a right-click on a card's row offers (#389): what the file explorer
+ * offers for it, the card standing in for the explorer. A file opens the way
+ * the card opens notes. */
+function cardFileMenu(view: HomeView): FileMenuOptions {
+	return {
+		app: view.app,
+		source: EXPLORER_SOURCE,
+		open: (file, state) => void openFile(view, file, "card", null, state),
+	};
 }
 
 
@@ -668,6 +684,7 @@ export class FolderBrowser {
 		const go = () => this.navigate(folder.path);
 		head.addEventListener("click", go);
 		makeClickable(head, go, folder.name);
+		wireFileMenu(head, folder.path, this.fileMenu());
 
 		let body: HTMLElement | null = null;
 		const show = () => {
@@ -830,6 +847,21 @@ export class FolderBrowser {
 		};
 		el.addEventListener("click", (evt) => activate(evt));
 		makeClickable(el, () => activate(), entry.name);
+		wireFileMenu(el, entry.path, this.fileMenu());
+	}
+
+	/** What a right-click on an entry or a section heading offers (#389). Its
+	 * Open is a plain click's: the note opens and the dialog gets out of the
+	 * way; the new-tab and split entries leave it open, as a modifier does. */
+	private fileMenu(): FileMenuOptions {
+		return {
+			app: this.host.app,
+			source: EXPLORER_SOURCE,
+			open: (file, state) => {
+				this.host.opened?.();
+				void openFile(this.host.opener, file, "card", null, state);
+			},
+		};
 	}
 
 	private navigate(path: string): void {
@@ -848,9 +880,36 @@ export function folderTitle(app: App, path: string): string {
 	return path === ROOT ? app.vault.getName() : path.split("/").pop() || path;
 }
 
+/**
+ * Redraw `browser` when something on its page — the folder shown, and the
+ * levels below it the page draws — is added, removed, renamed or re-titled.
+ * The events to register with whatever holds the browser, so they go when it
+ * does.
+ */
+export function watchBrowsedFolder(app: App, browser: () => FolderBrowser | null): EventRef[] {
+	const redraw = debounce(() => browser()?.draw(), 300, true);
+	const check = (file: TAbstractFile, oldPath?: string) => {
+		const at = browser()?.state.path;
+		if (at === undefined) return;
+		if (browserTouches(at, file.path) || (oldPath !== undefined && browserTouches(at, oldPath))) {
+			redraw();
+		}
+	};
+	return [
+		app.vault.on("create", (file) => check(file)),
+		app.vault.on("delete", (file) => check(file)),
+		app.vault.on("rename", (file, oldPath) => check(file, oldPath)),
+		// A note's title (Front Matter Title) and its preview come from its
+		// content, which a metadata update follows.
+		app.metadataCache.on("changed", (file) => check(file)),
+	];
+}
+
 /** The dialog the browser opens in by default. */
 class FolderBrowserModal extends HearthModal {
 	private browser: FolderBrowser | null = null;
+	/** Holds the vault watch for as long as the dialog is open. */
+	private watch: Component | null = null;
 
 	constructor(private readonly view: HomeView, private readonly opts: BrowseOptions) {
 		super(view.app);
@@ -879,9 +938,16 @@ class FolderBrowserModal extends HearthModal {
 		};
 		this.browser = new FolderBrowser(host, this.contentEl.createDiv(), stateOf(this.opts));
 		this.browser.draw();
+		// The dialog used to be a moment's look, but what its entries' menus
+		// offer — rename, move, delete — changes the page under it (#389).
+		this.watch = new Component();
+		this.watch.load();
+		for (const ref of watchBrowsedFolder(this.app, () => this.browser)) this.watch.registerEvent(ref);
 	}
 
 	onClose(): void {
+		this.watch?.unload();
+		this.watch = null;
 		this.browser?.destroy();
 		this.browser = null;
 		this.contentEl.empty();

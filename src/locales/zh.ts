@@ -4458,6 +4458,19 @@ export const zh: Translations = {
 			'这不是 Hearth 设置备份 — 未找到 "hearthSettings" 标记或布局。',
 	},
 
+	fileMenu: {
+		newNote: "新建笔记",
+		newFolder: "新建文件夹",
+		rename: "重命名…",
+		makeCopy: "创建副本",
+		delete: "删除",
+		untitled: "未命名",
+		folderName: "文件夹名称",
+		newName: "新名称",
+		exists: (name: string) => `“${name}”已存在。`,
+		invalidName: "名称不能包含 /、\\ 或 :。",
+	},
+
 	// ---- 终端模式 (src/tui/) ---------------------------------------------
 	tui: {
 		boardLabel: "仪表板，终端模式",

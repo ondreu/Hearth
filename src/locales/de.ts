@@ -4847,6 +4847,19 @@ export const de: Translations = {
 			'Keine Hearth-Einstellungs-Sicherung - kein „hearthSettings“-Marker oder Layout gefunden.',
 	},
 
+	fileMenu: {
+		newNote: "Neue Notiz",
+		newFolder: "Neuer Ordner",
+		rename: "Umbenennen …",
+		makeCopy: "Kopie erstellen",
+		delete: "Löschen",
+		untitled: "Unbenannt",
+		folderName: "Ordnername",
+		newName: "Neuer Name",
+		exists: (name: string) => `„${name}“ existiert bereits.`,
+		invalidName: "Ein Name darf weder / noch \\ oder : enthalten.",
+	},
+
 	// ---- Terminalmodus (src/tui/) -----------------------------------------
 	tui: {
 		boardLabel: "Dashboard, Terminalmodus",

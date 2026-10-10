@@ -4735,6 +4735,19 @@ export const fr: Translations = {
 			"Pas une sauvegarde de paramètres Hearth — aucun marqueur \"hearthSettings\" ni disposition trouvé.",
 	},
 
+	fileMenu: {
+		newNote: "Nouvelle note",
+		newFolder: "Nouveau dossier",
+		rename: "Renommer…",
+		makeCopy: "Faire une copie",
+		delete: "Supprimer",
+		untitled: "Sans titre",
+		folderName: "Nom du dossier",
+		newName: "Nouveau nom",
+		exists: (name: string) => `« ${name} » existe déjà.`,
+		invalidName: "Un nom ne peut pas contenir / \\ ou :.",
+	},
+
 	// ---- Terminal mode (src/tui/) -----------------------------------------
 	tui: {
 		boardLabel: "Tableau de bord, mode Terminal",
