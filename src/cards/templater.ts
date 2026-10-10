@@ -39,7 +39,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * A launchpad whose tiles create notes: each one names a Templater template, a
  * destination folder and a filename pattern, and one click makes the note.
  *
- * It is the Links and Commands cards' third sibling — same tiles, same
+ * It is the Links card's sibling — same tiles, same
  * arrange-mode drag and resize — and deliberately so. "New meeting note", "New
  * book note", "Capture an idea" are launcher actions in every sense except that
  * Obsidian has no command to bind them to: Templater registers commands only for

@@ -132,7 +132,7 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * is only primitives. */
 	cloneConfig?(source: DashboardCard, copy: DashboardCard): void;
 	liveness: CardLiveness;
-	/** Extra class(es) on the card root element (links/commands: "is-tile-card").
+	/** Extra class(es) on the card root element (links/templater: "is-tile-card").
 	 * A function form lets the classes depend on the card's own config — the
 	 * search-bar card drops its frame with "is-seamless" — and may return several
 	 * space-separated classes. Read through `cardClasses()`. */
@@ -159,7 +159,7 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * opens follow; kinds without it follow the card's `design`. */
 	ownDesign?(card: DashboardCard, fallback: CardDesign): CardDesign;
 	/** The card's body is a launchpad — a grid of buttons the user arranges
-	 * (links, commands, templater). The Layout tab offers such a kind the
+	 * (links, templater). The Layout tab offers such a kind the
 	 * button-sizing settings (`tileSizingSettings`), since how big the buttons
 	 * are is a question about the card's layout rather than its content. */
 	tileButtons?: boolean;

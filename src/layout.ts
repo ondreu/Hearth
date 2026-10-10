@@ -7,7 +7,6 @@ import {
 	CLOCK_FACES,
 	type ClockConfig,
 	type ClockFace,
-	type CommandItem,
 	type Dashboard,
 	type DashboardCard,
 	type MobileCardOptions,
@@ -84,6 +83,7 @@ import {
 } from "./types";
 import { CARD_KINDS } from "./cards";
 import { tileCols, tileMinSize } from "./tiles";
+import { commandsCardAsLaunchpad } from "./launchpadmigration";
 import { isEmbeddableBaseViewName } from "./bases";
 import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
@@ -449,7 +449,9 @@ function sanitizeMobileOptions(raw: unknown): MobileCardOptions | undefined {
 
 export function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
 	if (!raw || typeof raw !== "object") return null;
-	const r = raw as Record<string, unknown>;
+	// A Commands card from before 3.4.0 arrives as the launchpad it became, the
+	// same fold the settings migration applies on load (#388).
+	const r = commandsCardAsLaunchpad(raw as Record<string, unknown>);
 	const kind = CARD_KINDS.includes(r.kind as CardKind)
 		? (r.kind as CardKind)
 		: null;
@@ -547,11 +549,6 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 			.map(sanitizeLink)
 			.filter((l): l is LinkItem => l !== null);
 	}
-	if (Array.isArray(r.commands)) {
-		card.commands = r.commands
-			.map(sanitizeCommand)
-			.filter((c): c is CommandItem => c !== null);
-	}
 	if (r.clock && typeof r.clock === "object") {
 		card.clock = sanitizeClock(r.clock as Record<string, unknown>);
 	}
@@ -638,16 +635,6 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	}
 
 	return card;
-}
-
-function sanitizeCommand(raw: unknown): CommandItem | null {
-	if (!raw || typeof raw !== "object") return null;
-	const r = raw as Record<string, unknown>;
-	const id = str(r.id);
-	if (!id) return null;
-	const cmd: CommandItem = { id, name: str(r.name) ?? id, icon: str(r.icon) };
-	readTileGeometry(cmd, r);
-	return cmd;
 }
 
 function sanitizeClock(r: Record<string, unknown>): ClockConfig {

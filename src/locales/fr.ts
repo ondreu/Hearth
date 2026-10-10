@@ -475,7 +475,7 @@ export const fr: Translations = {
 				recent: "Fichiers récents",
 				favorites: "Favoris",
 				bookmarks: "Signets",
-				commands: "Commandes",
+				links: "Liens",
 				stats: "Statistiques du coffre",
 				heatmap: "Activité",
 				rss: "Lecture",
@@ -1756,7 +1756,6 @@ export const fr: Translations = {
 			recent: "Fichiers récents",
 			folder: "Contenu d'un dossier",
 			links: "Liens / lanceur",
-			commands: "Commandes",
 			templater: "Nouvelle note depuis un modèle",
 			clock: "Horloge et accueil",
 			tasks: "Tâches",
@@ -2441,24 +2440,11 @@ export const fr: Translations = {
 			moveDown: "Descendre",
 			removeLink: "Retirer le lien",
 			addLink: "Ajouter un lien",
-		},
-		commands: {
-			autoShift: "Décalage automatique des tuiles (bêta)",
-			autoShiftDesc:
-				"Activé : les tuiles s'écartent quand on en déplace une (comme les widgets " +
-				"d'un téléphone). Désactivé par défaut — les tuiles sont libres et peuvent se chevaucher.",
+			addCommand: "Ajouter une commande",
 			buttonSize: "Taille des boutons",
 			buttonSizeDesc:
-				"Taille par défaut des tuiles de commande. Redimensionnez une tuile en " +
-				"tirant son coin inférieur droit, ou définissez une taille par tuile ci-dessous.",
-			heading: "Commandes",
-			iconOptionalPlaceholder: "Icône (facultatif)",
-			sizePlaceholder: "Taille",
-			tileSizeAria: "Taille de la tuile en pixels (facultatif)",
-			moveUp: "Monter",
-			moveDown: "Descendre",
-			removeCommand: "Retirer la commande",
-			addCommand: "Ajouter une commande",
+				"Taille par défaut des tuiles. Redimensionnez une tuile en tirant son coin " +
+				"inférieur droit en mode organisation.",
 		},
 		templater: {
 			missing: "Templater n'est pas activé",
@@ -3480,7 +3466,6 @@ export const fr: Translations = {
 			folderMissing: (path: string) =>
 				path ? `Aucun dossier à « ${path} »` : "Choisissez un dossier dans les paramètres de la carte",
 			linksEmpty: "Ajoutez des liens dans les paramètres",
-			commandsEmpty: "Ajoutez des commandes dans les paramètres de la carte",
 			templaterEnable: "Activez le plugin Templater pour créer des notes depuis des modèles",
 			templaterEmpty: "Ajoutez un modèle dans les paramètres de la carte",
 			tasksEnable:
@@ -4246,7 +4231,6 @@ export const fr: Translations = {
 		recent: "Fichiers récents",
 		folder: "Dossier",
 		links: "Liens / lanceur",
-		commands: "Commandes",
 		templater: "Nouvelle note depuis un modèle",
 		clock: "Horloge et accueil",
 		tasks: "Tâches",
@@ -4291,8 +4275,7 @@ export const fr: Translations = {
 		favorites: "Les notes mises en favori dans Hearth",
 		recent: "Les fichiers ouverts le plus récemment",
 		folder: "Le contenu d'un dossier, sur un niveau, avec un navigateur derrière",
-		links: "Un lanceur de liens, notes et dossiers",
-		commands: "Des boutons qui exécutent des commandes Obsidian",
+		links: "Un lanceur de liens, notes, commandes et dossiers",
 		templater: "Des boutons qui créent une note depuis un modèle Templater, dans le dossier choisi",
 		clock: "L'heure, la date et un message d'accueil",
 		tasks: "Les cases à cocher de votre coffre, en liste ou en tableau",

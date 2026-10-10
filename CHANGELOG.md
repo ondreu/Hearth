@@ -158,6 +158,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **The card gallery fits a phone.** At 620px and narrower, its category rail
   becomes a dropdown.
 - *Mobile mode (search only)* is marked **Legacy** in the settings.
+- **The Commands card is now part of Links / launchpad** (#388). The two cards
+  drew the same buttons; the launchpad's can also be renamed, so commands from
+  one plugin no longer all read as that plugin's cut-off name. Every Commands
+  card becomes a launchpad on first load — same place, title, button sizing,
+  button sizes and positions, icons and commands, each button labelled with
+  the name it showed. Older layout exports, backups and shared boards convert
+  the same way on import. The launchpad gains *Add command*, which picks a
+  command and adds its button in one step, and *Button size* in the fixed
+  style. This does not round-trip: a version before 3.4.0 shows the launchpad.
 
 ### Fixed
 

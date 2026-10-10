@@ -14,8 +14,8 @@ Hearth → Mobile → Mobile action bar*.
 **Arrange** button in the top-right of the Home view. Cards can be added, moved,
 resized, configured and removed only while arranging.
 
-**Auto-shift tiles** — A beta option on the Links, Commands and New note from
-template cards. When on, tiles shove each other aside as one is dragged, the way
+**Auto-shift tiles** — A beta option on the Links and New note from template
+cards. When on, tiles shove each other aside as one is dragged, the way
 phone widgets do. Off by default, which leaves tiles free-form and able to
 overlap.
 
@@ -179,7 +179,7 @@ everything. See the Terminal mode section of the Appearance chapter.
 
 **Tier** — See *Performance tier*.
 
-**Tile** — One button on a Links, Commands or New note from template card. Tiles
+**Tile** — One button on a Links or New note from template card. Tiles
 can be resized by dragging their bottom-right corner, in half-cell steps.
 
 **Title block** — The large heading at the top of the Home view and the mark

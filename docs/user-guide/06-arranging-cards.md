@@ -174,9 +174,9 @@ overriding something.
 
 ## Card sizing on tile cards
 
-Three cards — **Links / launchpad**, **Commands** and **New note from
-template** — are grids of buttons rather than single panels, and they have their
-own sizing model on top of the card's.
+Two cards — **Links / launchpad** and **New note from template** — are grids
+of buttons rather than single panels, and they have their own sizing model on
+top of the card's.
 
 *Button sizing* offers two styles:
 

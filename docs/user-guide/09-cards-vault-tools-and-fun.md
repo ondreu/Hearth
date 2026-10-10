@@ -2,7 +2,7 @@
 
 This chapter documents three categories from Hearth's Add card picker: **Vault
 insight** (Query, Search bar, Vault statistics, Activity heatmap), **Tools**
-(Links / launchpad, Commands, Text / jot-down, Calculator, Web page) and **Fun**
+(Links / launchpad, Text / jot-down, Calculator, Web page) and **Fun**
 (Pet, Vault Pet).
 
 Cards are added with **Arrange → Add card** in Hearth's Home view and configured
@@ -135,11 +135,14 @@ that property, to draw a writing-volume heatmap.
 
 ## The Links / launchpad card
 
-**What it shows:** a grid of buttons, each opening a note, a URL or a command.
+**What it shows:** a launchpad for links, notes, commands and folders — a grid
+of buttons, each opening a note or folder, a URL, or running a command.
 
 **Requires:** nothing.
 
-Each link has a **label**, an **icon**, and a **target**. The target is one of:
+Each button has a **label**, an **icon**, and a **target**. The label is yours
+to set, so several commands from one plugin can each get a short name of their
+own instead of the plugin's long one. The target is one of:
 
 | Type | Target |
 | --- | --- |
@@ -151,16 +154,22 @@ The icon field accepts a Lucide icon id (`home`, `star`, `calendar` — browse
 them at lucide.dev/icons) or the vault path of an image such as
 `Attachments/icon.png`, so you can use your own picture as a button icon.
 
-Links can be reordered with move up and move down, and removed.
+*Add link* adds an empty button to fill in. *Add command* opens the command
+picker and adds a finished button in one step, named and iconed after the
+command; rename it afterwards if you like. A command button without an icon
+draws the command icon.
+
+Buttons can be reordered with move up and move down, and removed.
 
 ### Button sizing
 
-The Links card, the Commands card and the New note from template card share a
+The Links card and the New note from template card share a
 sizing model, documented in full in [chapter 6](06-arranging-cards.md). In
 summary: *Button sizing* is either **Fill the card** (buttons grow and shrink
 with the card, down to a *Minimum button size*, after which the card scrolls) or
 **Fixed size (legacy)**. Each button can be made two or three cells wide or tall
-by dragging its bottom-right corner in arrange mode, in half-cell steps.
+by dragging its bottom-right corner in arrange mode, in half-cell steps. In the
+fixed style, *Button size* sets the default size of the buttons.
 
 *Auto-shift tiles (beta)*, off by default, makes tiles shove each other aside as
 one is dragged, the way phone widgets do. With it off, tiles are pure free-form
@@ -168,19 +177,15 @@ and may overlap.
 
 ---
 
-## The Commands card
+## The former Commands card
 
-**What it shows:** buttons that run Obsidian commands.
-
-**Requires:** nothing.
-
-This is the Links card narrowed to one target type. Each entry is a command
-chosen from a picker, with an optional label, an optional icon and an optional
-per-tile size in pixels.
-
-*Button size* sets the default tile size; individual tiles can be resized by
-dragging their bottom-right corner. *Auto-shift tiles (beta)* behaves as it does
-on the Links card.
+Until 3.4.0 Hearth had a separate Commands card: the Links card narrowed to
+commands, whose buttons could not be renamed. It is now part of the Links /
+launchpad card. Every Commands card you had becomes a launchpad automatically
+the first time 3.4.0 loads — same place, title, button sizing, button sizes and
+positions, icons and commands, with each button's label set to the command name
+it showed before. Layout exports, backups and shared boards made with an older
+version are converted the same way when you import them.
 
 ---
 

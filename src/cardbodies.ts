@@ -35,7 +35,7 @@ import { type HomeView } from "./view";
  * (daily, embed, slideshow), the Markdown-embed core (used by the
  * embed, daily, dataview and text cards), the daily-note path resolvers (daily,
  * embed, calendar, stats, heatmap), the vault-activity helpers (calendar,
- * heatmap), the free-form tile drag/resize grid (links, commands), the embed
+ * heatmap), the free-form tile drag/resize grid (links, templater), the embed
  * view-state cluster (embed, plus `watchedCardPath`) and `feedHost` (calendar,
  * rss). A helper stays here when two or more kinds need it; anything used by a
  * single kind lives in that kind's module.

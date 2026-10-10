@@ -496,14 +496,14 @@ export class CardSettingsModal extends HearthTabbedModal {
 	}
 
 	/**
-	 * How big the buttons are on a launchpad-like card (links, commands,
+	 * How big the buttons are on a launchpad-like card (links and
 	 * templater): which of the two sizing styles the card is on and, when they
 	 * fill the card, how many buttons wide it is — which is what decides how big
 	 * a button is, since a filled button is a fraction of the card.
 	 *
 	 * It sits in the Layout tab, under the card's own size, because that is the
 	 * question it answers: how the card's buttons are laid out, not what is on
-	 * them. The three cards share it — they draw the same grid.
+	 * them. The two cards share it — they draw the same grid.
 	 */
 	private buttonsSection(containerEl: HTMLElement): void {
 		// Terminal mode lays the buttons out as a row of `[ label ]`s at the

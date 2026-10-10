@@ -84,11 +84,10 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			{ id: "heatmap", icon: "activity", category: "vault", requires: null, build: { kind: "heatmap", title: "Activity", heatmap: {}, w: 6, h: 3 } },
 
 			// ---- Tools ----
-			// The three launchpad-like cards are built on the scaled button style:
+			// The launchpad-like cards are built on the scaled button style:
 			// a card added today sizes its buttons as a fraction of itself. Cards
 			// stored before that carry no `tileSizing` and keep the fixed style.
 			{ id: "links", icon: "layout-grid", category: "tools", requires: null, build: { kind: "links", title: "Links", links: [], tileSizing: "scale", w: 6, h: 2 } },
-			{ id: "commands", icon: "terminal-square", category: "tools", requires: null, build: { kind: "commands", title: "Commands", commands: [], tileSizing: "scale", w: 6, h: 2 } },
 			{ id: "text", icon: "pencil", category: "tools", requires: null, build: { kind: "text", title: "Notes", text: "", w: 4, h: 2 } },
 			{ id: "calculator", icon: "calculator", category: "tools", requires: null, build: { kind: "calculator", title: "Calculator", calculator: {}, w: 4, h: 3 } },
 			{ id: "web", icon: "globe", category: "tools", requires: null, build: { kind: "web", title: "Web", url: "", w: 6, h: 4 } },
@@ -275,7 +274,6 @@ function maximalCard(): DashboardCard {
 		kind: "tasks",
 		title: "Everything",
 		links: [{ label: "A", href: "a" } as never],
-		commands: [{ id: "c", name: "C" }],
 		templater: {
 			items: [{ id: "t1", label: "Meeting", icon: "file-plus-2", template: "Templates/Meeting.md" }],
 		},
@@ -340,7 +338,6 @@ describe("cloneCard deep-clone independence", () => {
 
 		// Mutate every nested structure on the copy...
 		copy.links![0].label = "B";
-		copy.commands![0].name = "D";
 		copy.templater!.items![0].label = "Standup";
 		copy.templater!.items!.push({ id: "t2", label: "Book", icon: "book", template: "Templates/Book.md" });
 		(copy.secondView as { target: string }).target = "sv2";
@@ -387,7 +384,6 @@ describe("cloneCard deep-clone independence", () => {
 		// ...and confirm none of it reached the original.
 		const pristine = maximalCard();
 		expect(orig.links).toEqual(pristine.links);
-		expect(orig.commands).toEqual(pristine.commands);
 		expect(orig.templater).toEqual(pristine.templater);
 		expect(orig.secondView).toEqual(pristine.secondView);
 		expect(orig.slideshow).toEqual(pristine.slideshow);
@@ -433,7 +429,6 @@ describe("liveness classification", () => {
 			recent: "static",
 			folder: "vault",
 			links: "static",
-			commands: "static",
 			templater: "static",
 			clock: "static",
 			tasks: "vault",

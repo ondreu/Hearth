@@ -1,5 +1,5 @@
 /**
- * The geometry behind the launchpad-like cards' buttons — Links, Commands and
+ * The geometry behind the launchpad-like cards' buttons — Links and
  * Templater. Pure arithmetic: no DOM, no Obsidian API, so every rule here is
  * unit-testable. `src/cardbodies.ts` holds the DOM side (the grid element, the
  * resize handle and the drag engine) and reads its numbers from here.

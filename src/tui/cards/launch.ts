@@ -1,12 +1,11 @@
 /**
- * The launchpad cards as text: Links, Commands and New note from template.
+ * The launchpad cards as text: Links and New note from template.
  *
  * Their tiles become `[ label ]` buttons in the card's own order, laid out
  * left to right and wrapping at the card's width — the free-form tile geometry
  * is a graphical idea, and a row of buttons is the text interface's. A tile's
  * icon becomes its terminal glyph in front of the label.
  */
-import { runCommand } from "../../cards/commands";
 import { openLink } from "../../cards/links";
 import { runTemplaterItem, tileLabel } from "../../cards/templater";
 import { isEmojiIcon } from "../../fileicons";
@@ -42,20 +41,6 @@ export const linksTui: TuiRenderer = {
 			links.map((link) => ({
 				label: label(link.icon, link.label || link.target),
 				activate: () => openLink(ctx.view, link),
-			})),
-		);
-	},
-};
-
-export const commandsTui: TuiRenderer = {
-	render(ctx) {
-		const commands = ctx.card.commands ?? [];
-		if (commands.length === 0) return messageOutput(t().cards.empty.commandsEmpty, ctx.cols);
-		return grid(
-			ctx,
-			commands.map((cmd) => ({
-				label: label(cmd.icon, cmd.name || cmd.id),
-				activate: () => runCommand(ctx.view, cmd),
 			})),
 		);
 	},

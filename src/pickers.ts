@@ -76,7 +76,7 @@ export class FolderPickerModal extends HearthFuzzySuggestModal<TFolder> {
 
 /**
  * A fuzzy picker over every registered command, used to add command tiles to a
- * "commands" card from the dashboard.
+ * launchpad from the dashboard.
  */
 export class CommandPickerModal extends HearthFuzzySuggestModal<Command> {
 	private onChoose: (command: Command) => void;
