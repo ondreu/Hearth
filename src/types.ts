@@ -1,6 +1,7 @@
 import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
+import { foldCommandsCards } from "./launchpadmigration";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
 import type { ClipTemplate } from "./clip";
@@ -28,7 +29,6 @@ export type CardKind =
 	| "recent"
 	| "folder"
 	| "links"
-	| "commands"
 	| "templater"
 	| "clock"
 	| "tasks"
@@ -88,11 +88,10 @@ export interface JiraConfig {
 	cacheMin?: number;
 }
 
-/** A single command tile inside a "commands" card. */
 /**
  * The size and position a single button carries inside a launchpad-like card
- * (Links, Commands, Templater). Shared by every tile item type, because the
- * three cards run the same grid, the same drag and the same resize.
+ * (Links, Templater). Shared by every tile item type, because the
+ * two cards run the same grid, the same drag and the same resize.
  *
  * There are two generations of sizing, kept side by side so a card can switch
  * between them without losing either:
@@ -144,20 +143,11 @@ export interface TileGeometry {
 	scaleRow?: number;
 }
 
-export interface CommandItem extends TileGeometry {
-	/** Obsidian command id, e.g. "editor:toggle-bold". */
-	id: string;
-	/** Display name (captured when the command was picked). */
-	name: string;
-	/** Optional Lucide icon id; falls back to a generic command icon. */
-	icon?: string;
-}
-
 /**
  * A single tile inside a "templater" card: one template, one destination.
  *
- * Deliberately shaped like {@link LinkItem} and {@link CommandItem} — same
- * label/icon/size/position fields — because the three render through the same
+ * Deliberately shaped like {@link LinkItem} — same
+ * label/icon/size/position fields — because the two render through the same
  * tile machinery and share their arrange-mode drag and resize. What differs is
  * only what a click *does*.
  */
@@ -1824,8 +1814,6 @@ export interface DashboardCard {
 	text?: string;
 	/** kind === "links": the launchpad tiles. */
 	links?: LinkItem[];
-	/** kind === "commands": command-palette tiles. */
-	commands?: CommandItem[];
 	/** kind === "templater": the new-note-from-template tiles. */
 	templater?: TemplaterConfig;
 	/** kind === "recent": how many recent files to show. Clamped to what Hearth's
@@ -1952,7 +1940,7 @@ export interface DashboardCard {
 	 * only the results show. No effect on non-base embeds. */
 	hideBaseHeader?: boolean;
 
-	/** kind === "links" / "commands" / "templater": how the card's buttons are
+	/** kind === "links" / "templater": how the card's buttons are
 	 * sized.
 	 *
 	 * - `"fixed"` (the default when absent) — the original behaviour: a button
@@ -1974,24 +1962,24 @@ export interface DashboardCard {
 	 * card's own settings switch either way at any time. */
 	tileSizing?: "fixed" | "scale";
 
-	/** kind === "links" / "commands" / "templater": with `tileSizing: "scale"`,
+	/** kind === "links" / "templater": with `tileSizing: "scale"`,
 	 * how many cells wide the card's button grid is — so a one-cell button is
 	 * this fraction of the card. Omitted means TILE_COLS_DEFAULT. Ignored by the
 	 * fixed style. */
 	tileCols?: number;
 
-	/** kind === "links" / "commands" / "templater": with `tileSizing: "scale"`,
+	/** kind === "links" / "templater": with `tileSizing: "scale"`,
 	 * how small a cell may get (px) before the card scrolls instead of shrinking
 	 * its buttons any further. Omitted means TILE_MIN_DEFAULT; clamped to
 	 * [TILE_MIN_MIN, TILE_MIN_MAX] on read. Ignored by the fixed style. */
 	tileMinSize?: number;
 
-	/** kind === "commands" / "templater": pixel size of the tiles (min column
+	/** kind === "links" / "templater": pixel size of the tiles (min column
 	 * width) in the fixed style. Omitted means the default tile size. Ignored by
 	 * the scaled style, which sizes buttons from `tileCols`. */
 	tileSize?: number;
 
-	/** kind === "links" / "commands" / "templater" (beta): when true, tiles auto-shift out
+	/** kind === "links" / "templater" (beta): when true, tiles auto-shift out
 	 * of the way (swap with a placeholder) as one is dragged, so the layout
 	 * reorders live like phone widgets. Default off — tiles are pure
 	 * free-form and may overlap. */
@@ -3882,8 +3870,9 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  *
  * Returns `true` when it performed a destructive/one-way migration whose result
  * must be flushed back to storage (the `commandId` → `target` fold, the
- * `lowPower` → performance tier fold, and the `logo`/`logoIcon` → `titleIcon`
- * fold), so the caller knows to persist. The purely additive back-fills above
+ * `lowPower` → performance tier fold, the `logo`/`logoIcon` → `titleIcon`
+ * fold, and the Commands card → launchpad fold), so the caller knows to
+ * persist. The purely additive back-fills above
  * remain in-memory until the next ordinary save, exactly as before.
  */
 export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): boolean {
@@ -4045,9 +4034,19 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	// whose action is chosen here; fall back to the original New-note behaviour.
 	if ((s.newNoteButtonMode as string) === "split") s.newNoteButtonMode = "newNote";
 	const migratedTitleIcon = migrateTitleIcon(s, raw);
+	// One-way migration (added 3.4.0): the retired Commands card becomes a
+	// Links / launchpad card whose buttons run the same commands (#388). Every
+	// board and the pinned cards — the two places a card is stored. Convergent:
+	// a folded card is no longer a Commands card, so later loads are no-ops.
+	// Does NOT round-trip below 3.4.0, which shows the launchpad it became.
+	let migratedCommands = false;
+	for (const dash of s.dashboards) {
+		if (foldCommandsCards(dash.cards)) migratedCommands = true;
+	}
+	if (foldCommandsCards(s.pinnedCards)) migratedCommands = true;
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
-	return migratedCommandId || migratedLowPower || migratedTitleIcon;
+	return migratedCommandId || migratedLowPower || migratedTitleIcon || migratedCommands;
 }
 
 /** The pre-2.2 title mark: an emoji/text `logo` beside a Lucide `logoIcon` that

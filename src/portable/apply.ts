@@ -29,6 +29,7 @@ import {
 	newDashboardId,
 } from "../types";
 import { CARD_KINDS, cloneCard } from "../cards";
+import { LEGACY_COMMANDS_KIND } from "../launchpadmigration";
 import {
 	applyLayout,
 	applySettings,
@@ -487,6 +488,9 @@ function checkEnvironment(
 	// Unknown card kinds are worth reporting even when the board's own cards
 	// survived — a pinned card or a newer kind named in `requires` counts too.
 	for (const kind of pkg.requires?.cardKinds ?? []) {
+		// A retired kind this build folds into a current one on the way in is
+		// not missing: an old package's Commands card lands as a launchpad.
+		if (kind === LEGACY_COMMANDS_KIND) continue;
 		if (!CARD_KINDS.includes(kind as never)) warn(result, "unknownCardKind", kind);
 	}
 }

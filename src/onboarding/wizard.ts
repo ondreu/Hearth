@@ -81,7 +81,7 @@ const PLAN_ICONS: Record<string, string> = {
 	calendar: "calendar",
 	weather: "cloud-sun",
 	stats: "bar-chart-3",
-	commands: "zap",
+	links: "zap",
 	templater: "file-plus-2",
 	recent: "history",
 	favorites: "star",

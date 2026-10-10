@@ -455,7 +455,7 @@ export const zh: Translations = {
 				recent: "最近文件",
 				favorites: "收藏",
 				bookmarks: "书签",
-				commands: "命令",
+				links: "链接",
 				stats: "仓库统计",
 				heatmap: "活跃度",
 				rss: "阅读",
@@ -1587,7 +1587,7 @@ export const zh: Translations = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "卡片设置",
-		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
+		/** Shown as the tooltip on tile icon fields (launchpad, templater). */
 		iconHelp:
 			"输入 Lucide 图标 id（例如 “home”、“star”、“calendar”）— 可在 " +
 			"lucide.dev/icons 浏览。也可以输入仓库中的图片路径（例如 " +
@@ -1638,7 +1638,6 @@ export const zh: Translations = {
 			recent: "最近文件",
 			folder: "文件夹内容",
 			links: "链接 / 启动台",
-			commands: "命令",
 			templater: "从模板新建笔记",
 			clock: "时钟与问候",
 			tasks: "任务",
@@ -2255,24 +2254,10 @@ export const zh: Translations = {
 			moveDown: "下移",
 			removeLink: "移除链接",
 			addLink: "添加链接",
-		},
-		commands: {
-			autoShift: "磁贴自动避让（测试版）",
-			autoShiftDesc:
-				"开启后，拖动一个磁贴时其他磁贴会互相推开（类似手机小组件）。" +
-				"默认关闭 — 磁贴完全自由摆放，可能相互重叠。",
+			addCommand: "添加命令",
 			buttonSize: "按钮大小",
 			buttonSizeDesc:
-				"命令磁贴的默认大小。拖动某个磁贴的右下角可单独调整大小，" +
-				"也可以在下方为每个磁贴设定尺寸。",
-			heading: "命令",
-			iconOptionalPlaceholder: "图标（可选）",
-			sizePlaceholder: "尺寸",
-			tileSizeAria: "磁贴尺寸（像素，可选）",
-			moveUp: "上移",
-			moveDown: "下移",
-			removeCommand: "移除命令",
-			addCommand: "添加命令",
+				"磁贴的默认大小。在排列模式下拖动某个磁贴的右下角可单独调整大小。",
 		},
 		templater: {
 			missing: "Templater 未启用",
@@ -3238,7 +3223,6 @@ export const zh: Translations = {
 			folderMissing: (path: string) =>
 				path ? `找不到文件夹“${path}”` : "请在卡片设置中选择文件夹",
 			linksEmpty: "请在设置中添加链接",
-			commandsEmpty: "请在卡片设置中添加命令",
 			templaterEnable: "请启用 Templater 插件以从模板创建笔记",
 			templaterEmpty: "请在卡片设置中添加一个模板",
 			tasksEnable: "请启用 TaskNotes 插件，或把来源切换为复选框",
@@ -4006,7 +3990,6 @@ export const zh: Translations = {
 		recent: "最近文件",
 		folder: "文件夹",
 		links: "链接 / 启动台",
-		commands: "命令",
 		templater: "从模板新建笔记",
 		clock: "时钟与问候",
 		tasks: "任务",
@@ -4054,8 +4037,7 @@ export const zh: Translations = {
 		favorites: "您在 Hearth 中标星的笔记",
 		recent: "您最近打开的文件",
 		folder: "文件夹下一层的内容，并可继续展开浏览",
-		links: "链接、笔记与文件夹的启动台",
-		commands: "运行 Obsidian 命令的按钮",
+		links: "链接、笔记、命令与文件夹的启动台",
 		templater: "从 Templater 模板在您指定的文件夹中创建笔记的按钮",
 		clock: "时间、日期与一句问候",
 		tasks: "来自仓库的复选框，以列表或看板呈现",

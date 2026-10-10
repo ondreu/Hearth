@@ -44,8 +44,8 @@ Cards are covered in chapters [7](07-cards-notes-and-files.md) through
 
 ### 3. It launches
 
-Hearth's **Links / launchpad** and **Commands** cards turn any note, folder,
-URL or Obsidian command into a button on a grid. The **New note from template**
+Hearth's **Links / launchpad** card turns any note, folder, URL or Obsidian
+command into a button on a grid. The **New note from template**
 card turns each of your Templater templates into a button that creates a note
 in a folder and under a filename pattern you choose. On mobile there is a
 dedicated action bar of buttons under the search field. The result is a

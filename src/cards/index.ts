@@ -19,7 +19,6 @@ import { textCard } from "./text";
 import { recentCard } from "./recent";
 import { folderCard } from "./folder";
 import { linksCard } from "./links";
-import { commandsCard } from "./commands";
 import { templaterCard } from "./templater";
 import { clockCard } from "./clock";
 import { tasksCard } from "./tasks";
@@ -71,7 +70,6 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	recent: recentCard,
 	folder: folderCard,
 	links: linksCard,
-	commands: commandsCard,
 	templater: templaterCard,
 	clock: clockCard,
 	tasks: tasksCard,
@@ -137,7 +135,7 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 	},
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
-	{ category: "tools", templates: ["links", "commands", "text", "calculator", "web"] },
+	{ category: "tools", templates: ["links", "text", "calculator", "web"] },
 	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
 	{ category: "fun", templates: ["pet", "vault-pet", "vault-pet-house"] },
 ];

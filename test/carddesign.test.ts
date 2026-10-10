@@ -26,7 +26,6 @@ describe("which kinds draw an Expressive design", () => {
 				"calculator",
 				"calendar",
 				"clock",
-				"commands",
 				"favorites",
 				"folder",
 				"git",

@@ -139,7 +139,7 @@ filter and sort, an event, the folder browser, the full forecast, an
 instrument's chart and a confirmation open on a tonal surface with large
 corners, pill buttons and filled fields, dressed like the card they came from. The cards that have
 an Expressive design are clock, mini calendar, full calendar, tasks, statistics,
-activity heatmap, links, commands, new note, favourites, bookmarks, recent
+activity heatmap, links, new note, favourites, bookmarks, recent
 files, folder, query, search bar, calculator, Git, RSS, Jira and Operon, plus
 weather and markets. Cards whose content is your own — notes, embeds, web pages,
 Dataview and Datacore, hosted views, the slideshow and the pets — stay as they

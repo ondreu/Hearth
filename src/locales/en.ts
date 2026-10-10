@@ -495,7 +495,7 @@ export const en = {
 				recent: "Recent files",
 				favorites: "Favorites",
 				bookmarks: "Bookmarks",
-				commands: "Commands",
+				links: "Links",
 				stats: "Vault statistics",
 				heatmap: "Activity",
 				rss: "Reading",
@@ -1756,7 +1756,7 @@ export const en = {
 	// ---- Card settings editor ------------------------------------------
 	editors: {
 		title: "Card settings",
-		/** Shown as the tooltip on tile icon fields (launchpad, commands). */
+		/** Shown as the tooltip on tile icon fields (launchpad, templater). */
 		iconHelp:
 			"Enter a Lucide icon id (e.g. “home”, “star”, “calendar”) — browse them at " +
 			"lucide.dev/icons. You can also enter a vault image path (e.g. " +
@@ -1808,7 +1808,6 @@ export const en = {
 			recent: "Recent files",
 			folder: "Folder contents",
 			links: "Links / launchpad",
-			commands: "Commands",
 			templater: "New note from template",
 			clock: "Clock & greeting",
 			tasks: "Tasks",
@@ -2491,24 +2490,11 @@ export const en = {
 			moveDown: "Move down",
 			removeLink: "Remove link",
 			addLink: "Add link",
-		},
-		commands: {
-			autoShift: "Auto-shift tiles (beta)",
-			autoShiftDesc:
-				"When on, tiles shove each other aside as one is dragged (like phone " +
-				"widgets). Off by default — tiles are pure free-form and may overlap.",
+			addCommand: "Add command",
 			buttonSize: "Button size",
 			buttonSizeDesc:
-				"Default size of the command tiles. Resize an individual tile by " +
-				"dragging its bottom-right corner, or set a per-tile size below.",
-			heading: "Commands",
-			iconOptionalPlaceholder: "Icon (optional)",
-			sizePlaceholder: "Size",
-			tileSizeAria: "Tile size in pixels (optional)",
-			moveUp: "Move up",
-			moveDown: "Move down",
-			removeCommand: "Remove command",
-			addCommand: "Add command",
+				"Default size of the buttons. Resize one by dragging its bottom-right " +
+				"corner in arrange mode.",
 		},
 		templater: {
 			missing: "Templater isn't enabled",
@@ -3535,7 +3521,6 @@ export const en = {
 			folderMissing: (path: string) =>
 				path ? `No folder at "${path}"` : "Pick a folder in card settings",
 			linksEmpty: "Add links in settings",
-			commandsEmpty: "Add commands in card settings",
 			templaterEnable: "Enable the Templater plugin to create notes from templates",
 			templaterEmpty: "Add a template in card settings",
 			tasksEnable:
@@ -4317,7 +4302,6 @@ export const en = {
 		recent: "Recent files",
 		folder: "Folder",
 		links: "Links / launchpad",
-		commands: "Commands",
 		templater: "New note from template",
 		clock: "Clock & greeting",
 		tasks: "Tasks",
@@ -4365,8 +4349,7 @@ export const en = {
 		favorites: "The notes you starred in Hearth",
 		recent: "The files you opened most recently",
 		folder: "What is in a folder, one level down, with a browser behind it",
-		links: "A launchpad of links, notes and folders",
-		commands: "Buttons that run Obsidian commands",
+		links: "A launchpad for links, notes, commands and folders",
 		templater: "Buttons that make a note from a Templater template, in a folder you pick",
 		clock: "The time, the date and a greeting",
 		tasks: "Checkboxes from your vault, as a list or a board",

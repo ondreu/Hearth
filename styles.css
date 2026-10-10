@@ -3991,7 +3991,7 @@ button.hearth-kofi-btn:focus-visible {
 	display: none;
 }
 
-/* In arrange mode, tile cards (links/commands) keep their drag overlay active
+/* In arrange mode, tile cards (links/templater) keep their drag overlay active
  * so the card can still be dragged from empty areas of its body. Tiles and
  * their resize handles sit above the overlay so they're interactive. */
 .hearth-grid.is-arranging .hearth-card.is-tile-card .hearth-link-tile {
@@ -12853,7 +12853,7 @@ body.hearth-dv-resizing {
 	border-radius: 8px;
 }
 
-/* ---- Tile resize handle (commands & links) -------------------------- */
+/* ---- Tile resize handle (links & templater) -------------------------- */
 .hearth-tiles-sized .hearth-link-tile {
 	position: relative;
 }
@@ -20852,7 +20852,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--x-on-container);
 }
 
-/* ---- Tiles: links, commands, templater, favourites -------------------- */
+/* ---- Tiles: links, templater, favourites ------------------------------ */
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-link-tile,
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-fav-card {
 	border: none;

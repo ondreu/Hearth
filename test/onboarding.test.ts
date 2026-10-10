@@ -360,9 +360,12 @@ describe("planCards", () => {
 		expect(bare).toContain("pet");
 
 		const capture = planCards(blankAnswers({ purposes: ["capture"] }), emptyDetection());
-		const actions = capture.find((p) => p.id === "commands")!.card.commands ?? [];
+		const quick = capture.find((p) => p.id === "links")!.card;
+		expect(quick.kind).toBe("links");
+		const actions = quick.links ?? [];
 		expect(actions.length).toBeGreaterThanOrEqual(4);
-		expect(capture.some((p) => p.card.kind === "links")).toBe(false);
+		expect(actions.every((a) => a.type === "command" && a.target && a.label)).toBe(true);
+		expect(new Set(actions.map((a) => a.id)).size).toBe(actions.length);
 	});
 
 	it("adds the Reading card once there is a feed to read", () => {

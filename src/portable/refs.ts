@@ -146,7 +146,9 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "links[].target", scope: "linkUrl", when: tileTargetIsUrl },
 	{ at: "links[].icon", scope: "asset", when: iconOwnerIsImage },
 
-	// commands
+	// commands — the Commands card retired in 3.4.0 (#388). A board captured
+	// now holds launchpads instead, but a package written before still carries
+	// these, and its icons are materialized before the card is folded.
 	{ at: "commands[].id", scope: "commandId" },
 	{ at: "commands[].icon", scope: "asset", when: iconOwnerIsImage },
 

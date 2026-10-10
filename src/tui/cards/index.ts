@@ -12,7 +12,7 @@ import { favoritesTui, recentTui } from "./files";
 import { bookmarksTui, folderTui } from "./folder";
 import { gitTui } from "./git";
 import { jiraTui } from "./jira";
-import { commandsTui, linksTui, templaterTui } from "./launch";
+import { linksTui, templaterTui } from "./launch";
 import { dataviewTui } from "./dataview";
 import { marketTui } from "./market";
 import { dailyTui, embedTui, periodicTui, textTui } from "./notes";
@@ -30,7 +30,6 @@ export const TUI_RENDERERS: Partial<Record<CardKind, TuiRenderer>> = {
 	calculator: calculatorTui,
 	calendar: calendarTui,
 	clock: clockTui,
-	commands: commandsTui,
 	daily: dailyTui,
 	dataview: dataviewTui,
 	embed: embedTui,

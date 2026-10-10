@@ -4,6 +4,7 @@ import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { openFile, openLink as openLinkTarget } from "../opener";
 import { CommandPickerModal } from "../pickers";
+import { FIXED_TILE_BASE, tileSizing } from "../tiles";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
 import { makeClickable } from "../ui";
@@ -24,7 +25,7 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 	for (const link of links) {
 		const tile = grid.createDiv("hearth-link-tile");
 		applyTileSize(tile, link, spec);
-		applyTileVisual(view, tile, link.icon, "link");
+		applyTileVisual(view, tile, link.icon, linkFallbackIcon(link));
 		tile.createDiv({ cls: "hearth-link-label", text: link.label || link.target });
 		const open = () => openLink(view, link);
 		// In arrange mode, clicking a tile must NOT trigger its action — the
@@ -45,6 +46,13 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 	// Flag tiles obscured behind a sibling so the overlap is visible (always,
 	// not just in arrange mode — a hidden tile is a problem either way).
 	markOverlappingTiles(grid);
+}
+
+
+/** The icon a button without one draws: a command reads as a command, as it
+ * did on the retired Commands card, whose buttons this card now holds. */
+export function linkFallbackIcon(link: LinkItem): string {
+	return link.type === "command" ? "terminal-square" : "link";
 }
 
 
@@ -82,6 +90,32 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					ctx.opts.save();
 				}),
 			);
+	}
+
+	// Only the fixed style has a pixel size to set; the scaled one sizes its
+	// buttons from the card's column count (see the Layout tab).
+	if (tileSizing(card) === "fixed" && !ctx.terminal) {
+		const buttonSize = new Setting(containerEl)
+			.setName(t().editors.links.buttonSize)
+			.setDesc(t().editors.links.buttonSizeDesc);
+		buttonSize.addSlider((s) => {
+			s.setLimits(60, 180, 10)
+				.setValue(card.tileSize ?? FIXED_TILE_BASE)
+				.onChange((v) => {
+					card.tileSize = v === FIXED_TILE_BASE ? undefined : v;
+					ctx.opts.save();
+				});
+		});
+		buttonSize.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(t().settings.resetSlider)
+				.onClick(() => {
+					card.tileSize = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				}),
+		);
 	}
 
 	links.forEach((link, index) => {
@@ -123,9 +157,8 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		if (link.type === "command") {
 			// Commands are addressed by an opaque id (e.g. "editor:toggle-bold")
 			// that users can't be expected to know, so offer a fuzzy picker over
-			// the registered commands instead of a raw text field. This mirrors
-			// how the "commands" card adds tiles and is what makes command links
-			// actually fire.
+			// the registered commands instead of a raw text field. It is what
+			// makes command links actually fire.
 			row.addButton((b) => {
 				const current = link.target
 					? ctx.app.commands.listCommands().find((c) => c.id === link.target)
@@ -190,19 +223,37 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		);
 	});
 
-	new Setting(containerEl).addButton((b) =>
-		b.setButtonText(t().editors.links.addLink).onClick(() => {
-			links.push({
-				id: `link-${Date.now().toString(36)}`,
-				label: "",
-				icon: "link",
-				target: "",
-				type: "note",
-			});
-			ctx.opts.save();
-			ctx.requestRender();
-		}),
-	);
+	new Setting(containerEl)
+		.addButton((b) =>
+			b.setButtonText(t().editors.links.addLink).onClick(() => {
+				links.push({
+					id: `link-${Date.now().toString(36)}`,
+					label: "",
+					icon: "link",
+					target: "",
+					type: "note",
+				});
+				ctx.opts.save();
+				ctx.requestRender();
+			}),
+		)
+		// A command in one step — pick it and the button is done, named and
+		// iconed after it — rather than adding a link and switching its type.
+		.addButton((b) =>
+			b.setButtonText(t().editors.links.addCommand).onClick(() => {
+				new CommandPickerModal(ctx.app, (command) => {
+					links.push({
+						id: `link-${Date.now().toString(36)}`,
+						label: command.name,
+						icon: command.icon ?? "",
+						target: command.id,
+						type: "command",
+					});
+					ctx.opts.save();
+					ctx.requestRender();
+				}).open();
+			}),
+		);
 }
 
 /** A free-form launchpad of link tiles. */

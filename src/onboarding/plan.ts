@@ -46,6 +46,7 @@ import {
 	type DashboardCard,
 	type Dashboard,
 	type HomeSettings,
+	type LinkItem,
 	type TemplaterItem,
 	type WeatherPlace,
 	newDashboardId,
@@ -400,10 +401,10 @@ export function planCards(
 		// One launchpad of actions every vault has, rather than two empty ones
 		// waiting to be filled: it works on the first click and shows what the
 		// card is for, and adding your own is then an edit, not a chore.
-		add("commands", "capture", "main", {
-			kind: "commands",
+		add("links", "capture", "main", {
+			kind: "links",
 			title: "Quick actions",
-			commands: quickActions(detection),
+			links: quickActions(detection),
 			tileSizing: "scale",
 			w: 8,
 			h: 2,
@@ -539,18 +540,23 @@ export function feedUrl(answers: SetupAnswers): string {
 
 /** The Quick actions card's buttons: core commands present in every vault,
  * plus today's note when Daily notes is on. */
-function quickActions(detection: SetupDetection): NonNullable<DashboardCard["commands"]> {
+function quickActions(detection: SetupDetection): LinkItem[] {
 	const names = t().setup.plan.actions;
-	const actions: NonNullable<DashboardCard["commands"]> = [
-		{ id: "file-explorer:new-file", name: names.newNote, icon: "file-plus-2" },
-	];
+	const action = (command: string, label: string, icon: string): LinkItem => ({
+		id: `action-${command}`,
+		label,
+		icon,
+		target: command,
+		type: "command",
+	});
+	const actions = [action("file-explorer:new-file", names.newNote, "file-plus-2")];
 	if (detection.integrations.some((i) => i.id === "dailyNotes")) {
-		actions.push({ id: "daily-notes", name: names.today, icon: "calendar-check" });
+		actions.push(action("daily-notes", names.today, "calendar-check"));
 	}
 	actions.push(
-		{ id: "switcher:open", name: names.switcher, icon: "file-search" },
-		{ id: "global-search:open", name: names.search, icon: "search" },
-		{ id: "command-palette:open", name: names.palette, icon: "terminal-square" },
+		action("switcher:open", names.switcher, "file-search"),
+		action("global-search:open", names.search, "search"),
+		action("command-palette:open", names.palette, "terminal-square"),
 	);
 	return actions;
 }
