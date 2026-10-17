@@ -267,7 +267,10 @@ async function openGraph(view: HomeView, options: Record<string, unknown>): Prom
 		new Notice(t().cards.bookmarks.needsGraph);
 		return;
 	}
-	await targetLeaf(view, "card").setViewState({ type: "graph", state: options, active: true });
+	// The graph view reads its saved settings from `state.options` — the shape
+	// the core Bookmarks plugin hands it — not from the options object itself
+	// (#395). Passed bare, every bookmark opened the same, unfiltered graph.
+	await targetLeaf(view, "card").setViewState({ type: "graph", state: { options }, active: true });
 }
 
 
