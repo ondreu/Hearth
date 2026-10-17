@@ -3322,7 +3322,16 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 		if (cache && !cache.listItems?.some((li) => li.task !== undefined)) continue;
 		const content = await view.app.vault.cachedRead(file);
 		const lines = content.split("\n");
+		// Checkboxes inside fenced code blocks are examples, not tasks (issue #400).
+		let fence: string | null = null;
 		lines.forEach((line, i) => {
+			const f = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
+			if (f) {
+				if (fence === null) fence = f[1];
+				else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
+				return;
+			}
+			if (fence !== null) return;
 			const match = /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(line);
 			if (!match) return;
 			const symbol = match[1];
@@ -4906,7 +4915,9 @@ async function setCheckboxSymbol(
 	const marker = line
 		.slice(0, match[0].length)
 		.replace(CHECKBOX_MARKER, (_m, pre: string, _state: string, post: string) => `${pre}${symbol}${post}`);
-	const body = extended ? withDoneDate(rest, done, moment().format("YYYY-MM-DD")) : rest;
+	// `rest` keeps the space after `]`; withDoneDate trims it, so put it back —
+	// `- [x]Item` isn't a task to Obsidian (issue #400).
+	const body = extended ? ` ${withDoneDate(rest, done, moment().format("YYYY-MM-DD"))}` : rest;
 	lines[hit.line] = `${marker}${body}`.trimEnd();
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
