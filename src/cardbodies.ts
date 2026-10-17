@@ -24,7 +24,7 @@ import {
 	type TileSpans,
 	type TileSpec,
 } from "./tiles";
-import { type DashboardCard, type EmbedView, type HeatmapConfig, type TileGeometry } from "./types";
+import { type DashboardCard, type HeatmapConfig, type TileGeometry } from "./types";
 import { type HomeView } from "./view";
 
 /**
@@ -199,52 +199,8 @@ export function redrawCard(body: HTMLElement): boolean {
 
 // ---- Embed (note / image / base / ...) ---------------------------------
 
-/** Which embed view (0 = primary, 1 = second) each card is currently showing.
- * Transient (not persisted): a WeakMap keyed by the card object so the choice
- * survives body redraws and full view rebuilds — the card objects live in
- * settings and are reused — but resets to the primary when Obsidian reloads. */
-export const activeEmbedView = new WeakMap<DashboardCard, number>();
-
-
-/** The resolved views an embed card can switch between: always the primary
- * (`target`/`scale`/`editable`), plus the second view when it carries a target.
- * Cards without a valid second view return a single-element list. */
-export function embedViews(card: DashboardCard): EmbedView[] {
-	const views: EmbedView[] = [
-		{
-			target: card.target,
-			baseView: card.baseView,
-			scale: card.scale,
-			imageFit: card.imageFit,
-			imagePosition: card.imagePosition,
-			editable: card.editable,
-			livePreview: card.livePreview,
-		},
-	];
-	if (card.secondView?.target?.trim()) views.push(card.secondView);
-	return views;
-}
-
-
-/** The index of the view a card is currently showing, clamped to the views that
- * still exist (so removing the second view falls back to the primary). */
-export function activeEmbedIndex(card: DashboardCard): number {
-	const count = embedViews(card).length;
-	const stored = activeEmbedView.get(card) ?? 0;
-	return Math.min(Math.max(0, stored), count - 1);
-}
-
-
-/** The embed view a card is currently showing (the primary unless the user has
- * switched to the second view and it still exists). */
-export function activeEmbedViewParams(card: DashboardCard): EmbedView {
-	return embedViews(card)[activeEmbedIndex(card)];
-}
-
-
 /** The "Live preview" toggle shared by every card that can edit a note in
- * place (embed — primary and second view — and daily). `target` is whichever
- * object owns the flag: the card itself, or one of its embed views. */
+ * place (embed and daily). `target` is the object that owns the flag. */
 export function livePreviewSetting(
 	ctx: CardEditorContext,
 	containerEl: HTMLElement,
@@ -700,9 +656,7 @@ export function dailyNoteFinder(
 /** The vault path an embed/daily card currently tracks, used to refresh the card
  * live when that file changes. Returns null when there's nothing to watch. */
 export function watchedCardPath(view: HomeView, card: DashboardCard): string | null {
-	// Track the view the card is currently showing, so switching to the second
-	// view live-refreshes on that file's changes (and back again).
-	if (card.kind === "embed") return activeEmbedViewParams(card).target?.trim() || null;
+	if (card.kind === "embed") return card.target?.trim() || null;
 	if (card.kind === "daily") {
 		const options = dailyNotesOptions(view);
 		if (!options) return null;

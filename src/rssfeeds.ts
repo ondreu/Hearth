@@ -5,6 +5,7 @@
  * place so the reader steps through exactly the list the card shows.
  */
 import { feedHost } from "./cardbodies";
+import { withViews } from "./cardviews";
 import { t } from "./i18n";
 import { cachedFeed, type RssItem } from "./rss";
 import { isRssRead, rssReadKey, unreadCount } from "./rssstate";
@@ -99,9 +100,10 @@ export function findRssCard(
 	settings: { dashboards: { cards: DashboardCard[] }[]; pinnedCards?: DashboardCard[] },
 	id: string,
 ): DashboardCard | null {
+	// A view can be an RSS card too (#385), so the views are searched as well.
 	for (const d of settings.dashboards) {
-		const card = d.cards.find((c) => c.id === id && c.kind === "rss");
+		const card = withViews(d.cards).find((c) => c.id === id && c.kind === "rss");
 		if (card) return card;
 	}
-	return settings.pinnedCards?.find((c) => c.id === id && c.kind === "rss") ?? null;
+	return withViews(settings.pinnedCards ?? []).find((c) => c.id === id && c.kind === "rss") ?? null;
 }

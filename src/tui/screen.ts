@@ -517,6 +517,7 @@ class TuiHelpModal extends HearthModal {
 			["z", h.zoom],
 			["o", h.detail],
 			["e", h.settings],
+			["v  V", t().views.tuiHelp],
 			["Esc", h.escape],
 			["/  F3", h.search],
 			["1 – 9", h.boards],

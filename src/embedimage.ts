@@ -1,4 +1,4 @@
-import type { EmbedImageFit, EmbedImagePosition, EmbedView } from "./types";
+import type { DashboardCard, EmbedImageFit, EmbedImagePosition } from "./types";
 
 /**
  * The embed card's picture-formatting half: how an embedded image fills its
@@ -77,14 +77,14 @@ const POSITION_ALIGN: Record<EmbedImagePosition, string> = {
 
 /** The fit mode a view is set to, falling back to "natural" for anything a
  * hand-edited `data.json` (or an older Hearth) left behind. */
-export function embedImageFit(view: Pick<EmbedView, "imageFit">): EmbedImageFit {
+export function embedImageFit(view: Pick<DashboardCard, "imageFit">): EmbedImageFit {
 	const fit = view.imageFit;
 	return fit && EMBED_IMAGE_FITS.includes(fit) ? fit : "natural";
 }
 
 /** The anchor point a view is set to, falling back to the centre. */
 export function embedImagePosition(
-	view: Pick<EmbedView, "imagePosition">,
+	view: Pick<DashboardCard, "imagePosition">,
 ): EmbedImagePosition {
 	const position = view.imagePosition;
 	return position && EMBED_IMAGE_POSITIONS.includes(position) ? position : "center";

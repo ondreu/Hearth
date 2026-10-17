@@ -1,6 +1,7 @@
 import {
 	Component,
 	debounce,
+	Notice,
 	type TAbstractFile,
 } from "obsidian";
 import { setIcon } from "./glyphs";
@@ -12,10 +13,27 @@ import { t } from "./i18n";
 import type { HomeView } from "./view";
 import {
 	createVaultEventHub,
+	scopedVaultEventHub,
 	type VaultEvent,
 	type VaultEventHub,
 	watchedCardReactsToKind,
 } from "./cardevents";
+import {
+	activeViewCard,
+	cardViews,
+	detachView,
+	hasViews,
+	mergeCards,
+	removeView,
+	resolveViewSwitcher,
+	setActiveViewIndex,
+	splitForNarrow,
+	splitViews,
+	stepViewIndex,
+	stripFrame,
+} from "./cardviews";
+import type { CardTemplateDef } from "./cards/definition";
+import { enableViewRotation, enableViewSwipe, mountViewSwitcher, type ViewSwitcherHandle, viewIdentity } from "./viewswitcher";
 import { cardClasses, cardDefinition, cardFromTemplate, cloneCard, resolveCardDesign } from "./cards";
 import { openCardPicker } from "./cardpicker";
 import { openGallery } from "./gallerybrowse";
@@ -29,6 +47,7 @@ import {
 	activeCards,
 	activeDashboard,
 	type DashboardCard,
+	type HomeSettings,
 	effectiveArrangeButtonVisibility,
 	effectiveCardBorderWidth,
 	effectiveCardOpacity,
@@ -150,9 +169,14 @@ export function renderDashboard(
 	// hidden on a phone could only be restored from a desktop. Outside arrange
 	// mode the rendered board is unchanged — hidden stays hidden.
 	const arrangingStack = stacked && view.arrangeMode;
-	for (const card of stacked
-		? stackedCards(cards, { includeHidden: arrangingStack })
-		: cards) {
+
+	/**
+	 * Draw one card. `part` is set only when a card with views is split across
+	 * the narrow column (see below): it is the view this element shows, with no
+	 * switcher. Otherwise the card shows whichever of its views is on show and,
+	 * when it has views, a switcher between them (#385).
+	 */
+	const drawCard = (card: DashboardCard, part: DashboardCard | null): void => {
 		// A card asked to collapse gets a title row and nothing else until someone
 		// taps it — which is the whole point of the option: an expensive card
 		// costs one row on a phone instead of a screenful, and its body is never
@@ -167,7 +191,10 @@ export function renderDashboard(
 
 		const el = grid.createDiv("hearth-card");
 		el.toggleClass("is-mobile-hidden", hidden);
-		gridLayout.elements.set(card, el);
+		// The drag engine and the fitted layout place one element per card. A
+		// split card's further parts only ever appear in the stacked column,
+		// which neither of them touches.
+		if (part === null || part === card) gridLayout.elements.set(card, el);
 		// Stacked cards are in normal flow: full width from CSS, and only as tall
 		// as the stacked layout says — bar a collapsed one, which is as tall as
 		// its own header until it is opened. Everywhere else they are placed
@@ -180,25 +207,6 @@ export function renderDashboard(
 		}
 
 		if (card.pinned) el.addClass("is-pinned");
-		// The card's kind, on the element. Only a couple of kinds contribute a
-		// `cardClass`, so this is the one place a reader of the rendered board
-		// can ask what a card *is* — which the gallery's snapshot does, to leave
-		// a clock alone and censor everything that holds somebody's notes.
-		el.dataset.kind = card.kind;
-		const kindClasses = cardClasses(card);
-		if (kindClasses.length) el.addClass(...kindClasses);
-		const design = resolveCardDesign(s, card);
-		// The frame follows the card's design whatever its kind: an Expressive
-		// card sits on a tonal, opaque surface with Material's large corners
-		// (see "The Expressive card frame" in styles.css). The body's own
-		// Expressive drawing is only for kinds that have one.
-		el.toggleClass("is-x-frame", design === "expressive");
-		if (cardDefinition(card).expressive && design === "expressive") {
-			el.addClass("is-expressive");
-		}
-		// Stated whether or not the kind draws an Expressive body, so a dialog
-		// or menu opened from the card takes the card's design (src/uidesign.ts).
-		stateDesign(el, design);
 		if (card.accent) {
 			el.style.setProperty("--card-accent", card.accent);
 			el.addClass("has-accent");
@@ -214,28 +222,58 @@ export function renderDashboard(
 				`${resolveCardBorderWidth(s, card)}px`,
 			);
 		}
-		// Cards whose resolved blur is > 0 feed the shared frost layer (see
-		// updateFrostLayers / the .hearth-frost note in styles.css). The value is
-		// stashed on the element so the frost rebuild can group cards by blur
-		// without re-reading settings, and blur-off cards never enter a layer.
-		// A seamless card paints no surface of its own, so frosting the wallpaper
-		// behind it would leave a blurred rectangle floating on the board with no
-		// card on it. Such a card never joins a frost layer.
-		// An Expressive frame is opaque, so there is nothing behind it to frost.
-		const cardBlur =
-			kindClasses.includes("is-seamless") || design === "expressive" ? 0 : resolveCardBlur(s, card);
-		if (cardBlur > 0) {
-			el.addClass("has-blur");
-			el.dataset.blur = String(cardBlur);
-		}
+
+		// Everything about the frame that follows the *kind* on show rather than
+		// the card. On a card with views it is redone on every switch, since the
+		// views can be of different kinds; `kindClasses` remembers what the last
+		// call added so the next can take it off again.
+		let kindClasses: string[] = [];
+		const dress = (shown: DashboardCard): void => {
+			// The card's kind, on the element. Only a couple of kinds contribute a
+			// `cardClass`, so this is the one place a reader of the rendered board
+			// can ask what a card *is* — which the gallery's snapshot does, to leave
+			// a clock alone and censor everything that holds somebody's notes.
+			el.dataset.kind = shown.kind;
+			if (kindClasses.length) el.removeClass(...kindClasses);
+			kindClasses = cardClasses(shown);
+			if (kindClasses.length) el.addClass(...kindClasses);
+			const design = resolveCardDesign(s, shown);
+			// The frame follows the card's design whatever its kind: an Expressive
+			// card sits on a tonal, opaque surface with Material's large corners
+			// (see "The Expressive card frame" in styles.css). The body's own
+			// Expressive drawing is only for kinds that have one.
+			el.toggleClass("is-x-frame", design === "expressive");
+			el.toggleClass("is-expressive", !!cardDefinition(shown).expressive && design === "expressive");
+			// Stated whether or not the kind draws an Expressive body, so a dialog
+			// or menu opened from the card takes the card's design (src/uidesign.ts).
+			stateDesign(el, design);
+			// Cards whose resolved blur is > 0 feed the shared frost layer (see
+			// updateFrostLayers / the .hearth-frost note in styles.css). The value is
+			// stashed on the element so the frost rebuild can group cards by blur
+			// without re-reading settings, and blur-off cards never enter a layer.
+			// A seamless card paints no surface of its own, so frosting the wallpaper
+			// behind it would leave a blurred rectangle floating on the board with no
+			// card on it. Such a card never joins a frost layer.
+			// An Expressive frame is opaque, so there is nothing behind it to frost.
+			const cardBlur =
+				kindClasses.includes("is-seamless") || design === "expressive" ? 0 : resolveCardBlur(s, card);
+			el.toggleClass("has-blur", cardBlur > 0);
+			if (cardBlur > 0) el.dataset.blur = String(cardBlur);
+			else delete el.dataset.blur;
+		};
+		const firstShown = part ?? activeViewCard(card);
+		dress(firstShown);
 
 		const head = el.createDiv("hearth-card-head");
+		// A split part is headed by its view's label: the column shows them one
+		// under another, and the card's one title over each would say nothing.
+		const heading = part ? viewIdentity(view, part).label : (card.title ?? "");
+		const named = heading.trim();
 		if (view.arrangeMode) {
 			renderCardControls(view, card, head, commit, stacked ? cards : null);
 		} else {
-			const named = (card.title ?? "").trim();
 			head.toggleClass("is-untitled", !named);
-			const titleEl = head.createDiv({ cls: "hearth-card-title", text: card.title ?? "" });
+			const titleEl = head.createDiv({ cls: "hearth-card-title", text: heading });
 			// An untitled card is headerless on a normal board, so collapsing one
 			// would leave a blank bar with nothing to tap and nothing to read.
 			// Fall back to the card kind's own name — "Tasks", "Calendar".
@@ -253,20 +291,55 @@ export function renderDashboard(
 		if (hidden) {
 			body.addClass("is-hidden-note");
 			body.createSpan({ text: t().editors.kinds[card.kind] });
-			continue;
+			return;
 		}
 
 		// One mount for both paths, so a card expanded on a phone is built exactly
-		// as it would have been had it never been collapsed — its header extras
+		// as it would have been had it never been collapsed — its switcher
 		// included.
 		const mount = () => {
-			const redraw = mountCardBody(view, card, body, component, events);
-			// Post-render header/floating extras (the embed card's second-view
-			// switcher). Not shown while arranging, where the header holds the title
-			// editor.
-			if (!view.arrangeMode) {
-				cardDefinition(card).mountExtras?.(view, card, el, head, redraw);
-			}
+			// The body is mounted under a component of the card's own, so a card
+			// with views can swap one body for another without the whole board
+			// being rebuilt: the swapped-out body's children, timers and vault
+			// subscriptions all end with its component.
+			let bodyComponent = component.addChild(new Component());
+			// The body as it is before any kind draws into it, so a switch can
+			// put it back before the next view draws: a kind leaves its marks on
+			// the body (and overlay buttons on the card) for its own CSS, and the
+			// next view must not inherit them.
+			const bodyBase = body.className;
+			const mountShown = (shown: DashboardCard) => {
+				resetCardBody(body, bodyBase);
+				mountCardBody(view, shown, body, bodyComponent, scopedVaultEventHub(events, bodyComponent));
+			};
+			mountShown(firstShown);
+			// A split part, a card without views, and every card while arranging
+			// (where the header holds the title editor) get no switcher.
+			if (part || !hasViews(card) || view.arrangeMode) return;
+
+			let switcher: ViewSwitcherHandle | null = null;
+			const select = (index: number) => {
+				if (setActiveViewIndex(card, index)) commit();
+				const shown = activeViewCard(card);
+				const blurBefore = el.dataset.blur;
+				component.removeChild(bodyComponent);
+				bodyComponent = component.addChild(new Component());
+				dress(shown);
+				mountShown(shown);
+				switcher?.update();
+				// A view of another kind can change whether the card is frosted;
+				// the frost layers are rebuilt with the edge merge.
+				if (!stacked && el.dataset.blur !== blurBefore) applyEdgeMerging(grid);
+			};
+			// A seamless kind hides the header outside arranging, so a header
+			// switcher on it would have nowhere to show.
+			const titled = !!named && !el.hasClass("is-seamless");
+			switcher = mountViewSwitcher({ view, card, cardEl: el, head, titled, select });
+			if (!switcher) return;
+			el.addClass("has-views");
+			const step = (delta: number) => select(stepViewIndex(card, delta));
+			if (switcher.settings.swipe) enableViewSwipe(body, component, step);
+			if (timersAllowed(s)) enableViewRotation(el, component, switcher.settings.rotateSec, () => step(1));
 		};
 
 		if (collapsed) {
@@ -282,7 +355,9 @@ export function renderDashboard(
 		// order is moved from the card header. A collapsed card is as tall as its
 		// own title row and has no height to set.
 		if (view.arrangeMode && !stacked) {
-			enableDragResize(view, el, grid, card, gridLayout, component, commit);
+			enableDragResize(view, el, grid, card, gridLayout, component, commit, (target) =>
+				mergeByDrop(view, target, card),
+			);
 		} else if (view.arrangeMode) {
 			// A shield over the card body, so arranging a stacked board can't tick a
 			// task or follow a link by accident — the same protection the free-form
@@ -294,6 +369,19 @@ export function renderDashboard(
 			el.createDiv("hearth-card-shield");
 			if (!collapsed) enableStackedResize(el, card, component, () => persistAndRender(view));
 		}
+	};
+
+	for (const card of stacked
+		? stackedCards(cards, { includeHidden: arrangingStack })
+		: cards) {
+		// A card with views that asked to be split on a narrow board is drawn as
+		// one card per view, one under another. Render-only, like the rest of the
+		// stacked layout; and not while arranging, where the card is moved and
+		// sized as the one card it is.
+		const split =
+			stacked && !view.arrangeMode && hasViews(card) && resolveViewSwitcher(card, true).narrow === "split";
+		if (split) for (const part of splitForNarrow(card)) drawCard(card, part);
+		else drawCard(card, null);
 	}
 
 	// Hold each card's animation while that card is off screen — below the fold
@@ -662,6 +750,23 @@ function renderCardControls(
 		});
 	}
 
+	// A card with views shows one at a time while arranging too; this steps
+	// through them, so each can be checked against the card's size.
+	if (hasViews(card)) {
+		const views = cardViews(card);
+		const next = views[stepViewIndex(card, 1)];
+		const cycle = actions.createEl("button", {
+			cls: "hearth-card-action",
+			attr: { "aria-label": t().views.nextViewAria(viewIdentity(view, next).label), type: "button" },
+		});
+		setIcon(cycle, "layers");
+		cycle.addEventListener("pointerdown", (e) => e.stopPropagation());
+		cycle.addEventListener("click", () => {
+			if (setActiveViewIndex(card, stepViewIndex(card, 1))) commit();
+			view.render();
+		});
+	}
+
 	const settingsBtn = actions.createEl("button", {
 		cls: "hearth-card-action",
 		attr: { "aria-label": t().dashboard.cardSettings },
@@ -677,6 +782,55 @@ function renderCardControls(
 	setIcon(remove, "trash-2");
 	remove.addEventListener("pointerdown", (e) => e.stopPropagation());
 	remove.addEventListener("click", () => confirmRemoveCard(view, card));
+}
+
+/**
+ * Make `other` a view of `host` (#385): `other` leaves the board — or the
+ * pinned row — and comes back as the next view(s) of `host`, which then shows
+ * the first of them so the merge is visible. Shared by drop-to-merge and the
+ * card editor's "Merge a card into this one".
+ */
+export function mergeCardInto(view: HomeView, host: DashboardCard, other: DashboardCard): void {
+	if (host === other) return;
+	const s = view.plugin.settings;
+	const first = cardViews(host).length;
+	removeCard(s, other);
+	mergeCards(host, other);
+	setActiveViewIndex(host, first);
+	new Notice(t().views.merged);
+	persistAndRender(view);
+}
+
+/** Drop-to-merge from the arrange board: dragged card `dragged` let go over
+ * `target`. */
+function mergeByDrop(view: HomeView, target: DashboardCard, dragged: DashboardCard): void {
+	mergeCardInto(view, target, dragged);
+}
+
+/** Put cards that were views back on the board next to where they came from:
+ * each takes the first free slot, as a newly added card does, on the board (or
+ * pinned row) its card is on. */
+export function placeDetachedCards(view: HomeView, host: DashboardCard, detached: DashboardCard[]): void {
+	if (detached.length === 0) return;
+	const s = view.plugin.settings;
+	const pinned = s.pinnedCards.includes(host);
+	const board = s.dashboards.find((d) => d.cards.includes(host)) ?? activeDashboard(s);
+	for (const card of detached) {
+		placeFreeform(
+			card,
+			[...board.cards, ...s.pinnedCards],
+			effectiveMaxWidth(s),
+			effectiveColumns(s),
+			GRID_GAP,
+			effectiveRowHeight(s) || ROW_HEIGHT,
+		);
+		if (pinned) {
+			card.pinned = true;
+			s.pinnedCards.push(card);
+		} else {
+			board.cards.push(card);
+		}
+	}
 }
 
 /** Open the full settings editor for a single card, driven entirely from the
@@ -704,7 +858,62 @@ export function openCardSettings(view: HomeView, card: DashboardCard): void {
 			target.cards.push(cloneCard(card));
 			void view.plugin.saveData(s);
 		},
+		viewLabel: (v) => viewIdentity(view, v).label,
+		viewIcon: (v) => viewIdentity(view, v).icon,
+		mergeCandidates: () =>
+			mergeCandidates(s, card).map((c) => {
+				const kind = t().editors.kinds[c.kind];
+				const title = c.title?.trim();
+				const count = cardViews(c).length;
+				const name = title ? `${title} (${kind})` : kind;
+				return { id: c.id, label: count > 1 ? t().views.editor.withViews(name, count) : name };
+			}),
+		mergeCard: (id) => {
+			const other = mergeCandidates(s, card).find((c) => c.id === id);
+			if (other) mergeCardInto(view, card, other);
+		},
+		addNewView: (onAdded) => {
+			openCardPicker(view.app, {
+				hearthVersion: view.plugin.manifest.version,
+				onChoose: (template) => {
+					const index = addViewFromTemplate(card, template);
+					setActiveViewIndex(card, index);
+					persistAndRender(view);
+					onAdded(index);
+				},
+			});
+		},
+		detachView: (index) => {
+			const detached = detachView(card, index);
+			if (!detached) return;
+			placeDetachedCards(view, card, [detached]);
+			persistAndRender(view);
+		},
+		removeView: (index) => {
+			if (removeView(card, index)) persistAndRender(view);
+		},
+		splitViews: () => {
+			placeDetachedCards(view, card, splitViews(card));
+			persistAndRender(view);
+		},
 	}).open();
+}
+
+/** The cards that can be merged into `card` from its editor: the others on
+ * its board (the active one, for a pinned card) and the other pinned cards. */
+function mergeCandidates(s: HomeSettings, card: DashboardCard): DashboardCard[] {
+	const board = s.dashboards.find((d) => d.cards.includes(card)) ?? activeDashboard(s);
+	return [...board.cards, ...s.pinnedCards].filter((c) => c !== card);
+}
+
+/** Add a fresh card made from `template` to `card` as its last view. Returns
+ * the new view's index. */
+function addViewFromTemplate(card: DashboardCard, template: CardTemplateDef): number {
+	const fresh = stripFrame(cardFromTemplate(template));
+	const taken = new Set(cardViews(card).map((c) => c.id));
+	while (taken.has(fresh.id)) fresh.id = `${fresh.id}-x`;
+	card.views = [...(card.views ?? []), fresh];
+	return cardViews(card).length - 1;
 }
 
 /** Open the "Add card" picker and put the chosen card into a free slot on the

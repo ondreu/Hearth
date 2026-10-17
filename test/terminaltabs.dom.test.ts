@@ -34,10 +34,10 @@ function cardTabs(terminal: boolean): string[] {
 
 describe("card settings tabs", () => {
 	it("offers Style outside terminal mode", () => {
-		expect(cardTabs(false)).toEqual(["content", "style", "layout"]);
+		expect(cardTabs(false)).toEqual(["content", "views", "style", "layout"]);
 	});
 
 	it("leaves Style out in terminal mode", () => {
-		expect(cardTabs(true)).toEqual(["content", "layout"]);
+		expect(cardTabs(true)).toEqual(["content", "views", "layout"]);
 	});
 });

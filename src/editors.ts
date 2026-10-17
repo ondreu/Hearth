@@ -27,6 +27,8 @@ import {
 	terminalModeActive,
 } from "./types";
 import { confirmAction, designSetting } from "./ui";
+import { activeViewCard, activeViewIndex, cardViews, syncViewDesign } from "./cardviews";
+import { renderViewIdentity, renderViewPicker, renderViewsTab, type ViewsEditorHost } from "./viewseditor";
 
 
 export interface CardSettingsOptions {
@@ -53,6 +55,24 @@ export interface CardSettingsOptions {
 	otherDashboards: { id: string; name: string }[];
 	/** Copy this card onto the end of another dashboard. */
 	copyToDashboard: (targetId: string) => void;
+
+	// ---- Views (#385) ----
+	/** How a view reads in the switcher: its label and its Lucide icon. */
+	viewLabel: (view: DashboardCard) => string;
+	viewIcon: (view: DashboardCard) => string;
+	/** Other cards on this card's board that can be merged into it, now. */
+	mergeCandidates: () => { id: string; label: string }[];
+	/** Merge the card with this id into this one, as its next view(s). */
+	mergeCard: (id: string) => void;
+	/** Pick a new card from the card picker and add it as a view; `onAdded`
+	 * gets its index. */
+	addNewView: (onAdded: (index: number) => void) => void;
+	/** Move view `index` out onto the board as a card of its own. */
+	detachView: (index: number) => void;
+	/** Delete view `index`. */
+	removeView: (index: number) => void;
+	/** Turn every view back into a card of its own. */
+	splitViews: () => void;
 }
 
 
@@ -74,17 +94,48 @@ export class CardSettingsModal extends HearthTabbedModal {
 	 * editors trigger, but is fresh for each modal open. */
 	private session: Record<string, unknown> = {};
 
+	/** Which of the card's views the Content tab edits (#385); 0 is the card
+	 * itself, and the only choice for a card without views. Starts on the view
+	 * the card is showing. */
+	private editing: number;
+
 	constructor(app: App, card: DashboardCard, opts: CardSettingsOptions) {
 		super(app);
 		this.card = card;
 		this.opts = opts;
+		this.editing = activeViewIndex(card);
+	}
+
+	/** The card object the Content tab edits: the card, or one of its views. */
+	private get target(): DashboardCard {
+		const views = cardViews(this.card);
+		if (this.editing >= views.length) this.editing = 0;
+		return views[this.editing];
+	}
+
+	/** What the views editor needs (src/viewseditor.ts). */
+	private viewsHost(): ViewsEditorHost {
+		return {
+			app: this.app,
+			card: this.card,
+			opts: this.opts,
+			editing: () => this.editing,
+			setEditing: (index) => {
+				this.editing = index;
+			},
+			render: () => this.render(),
+			showContent: () => {
+				this.app.saveLocalStorage(this.hearthTabStorageKey(), "content");
+				this.hearthRenderShell(false);
+			},
+		};
 	}
 
 	/** Bundle the modal state a kind editor needs into a CardEditorContext. */
 	private editorContext(): CardEditorContext {
 		return {
 			app: this.app,
-			card: this.card,
+			card: this.target,
 			opts: this.opts,
 			requestRender: () => this.render(),
 			session: this.session,
@@ -120,6 +171,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 		const tabs = t().editors.tabs;
 		return [
 			{ id: "content", label: tabs.content, icon: "square-pen" },
+			{ id: "views", label: t().views.editor.tab, icon: "layers" },
 			...(this.terminal ? [] : [{ id: "style", label: tabs.style, icon: "palette" }]),
 			{ id: "layout", label: tabs.layout, icon: "layout-dashboard" },
 		];
@@ -130,9 +182,13 @@ export class CardSettingsModal extends HearthTabbedModal {
 			// Each section its own group in the Expressive design (see
 			// hearthGroupBreak); a kind's editor splits further by its headings.
 			case "content":
+				renderViewPicker(body, this.viewsHost());
 				this.identitySection(body);
 				this.hearthGroupBreak(body);
 				this.contentSection(body);
+				break;
+			case "views":
+				renderViewsTab(body, this.viewsHost());
 				break;
 			case "style":
 				this.colorsSection(body);
@@ -153,7 +209,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	/** Type and title — what the card is, shown at the top of the Content tab. */
 	private identitySection(containerEl: HTMLElement): void {
-		const card = this.card;
+		const card = this.target;
 
 		new Setting(containerEl)
 			.setName(t().editors.type)
@@ -173,18 +229,24 @@ export class CardSettingsModal extends HearthTabbedModal {
 		// card's "this runs a live view, it costs more" performance hint).
 		cardDefinition(card).editorTypeNote?.(containerEl, this.opts.settings);
 
-		new Setting(containerEl)
-			.setName(t().editors.cardTitle)
-			.setDesc(t().editors.cardTitleDesc)
-			.addText((txt) =>
-				txt
-					.setPlaceholder(t().editors.cardTitlePlaceholder)
-					.setValue(card.title ?? "")
-					.onChange((v) => {
-						card.title = v;
-						this.opts.save();
-					}),
-			);
+		// The title is the card's, shown in its header whichever view is on
+		// show, so it is only offered on the card itself; a view is named by
+		// its label in the switcher instead.
+		if (card === this.card) {
+			new Setting(containerEl)
+				.setName(t().editors.cardTitle)
+				.setDesc(t().editors.cardTitleDesc)
+				.addText((txt) =>
+					txt
+						.setPlaceholder(t().editors.cardTitlePlaceholder)
+						.setValue(card.title ?? "")
+						.onChange((v) => {
+							card.title = v;
+							this.opts.save();
+						}),
+				);
+		}
+		renderViewIdentity(containerEl, this.viewsHost(), card);
 	}
 
 	/** Persistent footer shared by every tab: remove the card, or close. */
@@ -216,14 +278,15 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 	/** Kind-specific content controls — delegated to the card's own module. */
 	private contentSection(containerEl: HTMLElement): void {
-		cardDefinition(this.card).renderEditor?.(containerEl, this.editorContext());
+		cardDefinition(this.target).renderEditor?.(containerEl, this.editorContext());
 	}
 
 	private colorsSection(containerEl: HTMLElement): void {
 		const card = this.card;
 		// Every kind is offered the choice, since every kind takes the design's
-		// frame; weather and market keep theirs in their own editor.
-		if (!cardDefinition(card).ownDesign) {
+		// frame; weather and market keep theirs in their own editor. A card with
+		// views is offered it while any of its views follows the card's design.
+		if (cardViews(card).some((v) => !cardDefinition(v).ownDesign)) {
 			designSetting(containerEl, {
 				name: t().editors.design.name,
 				desc: t().editors.design.desc,
@@ -231,6 +294,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 				fallback: effectiveCardDesign(this.opts.settings, undefined),
 				set: (design) => {
 					card.design = design;
+					syncViewDesign(card);
 					this.opts.save();
 					this.opts.rerender();
 					// The surface settings below come and go with the design.
@@ -278,7 +342,7 @@ export class CardSettingsModal extends HearthTabbedModal {
 
 		this.hearthGroupBreak(containerEl);
 		// Opacity, blur and border shape the Classic frame only.
-		if (resolveCardDesign(this.opts.settings, card) === "expressive") {
+		if (resolveCardDesign(this.opts.settings, activeViewCard(card)) === "expressive") {
 			const note = new Setting(containerEl).setDesc(t().settings.dashboard.cardSurfaceExpressive);
 			note.settingEl.addClass("hearth-setting-note");
 			const icon = createSpan("hearth-setting-note-icon");
@@ -508,9 +572,10 @@ export class CardSettingsModal extends HearthTabbedModal {
 	private buttonsSection(containerEl: HTMLElement): void {
 		// Terminal mode lays the buttons out as a row of `[ label ]`s at the
 		// card's width, whatever their sizing.
-		if (!cardDefinition(this.card).tileButtons || this.terminal) return;
+		if (!cardDefinition(this.target).tileButtons || this.terminal) return;
 		const strings = t().editors.tiles;
-		const card = this.card;
+		// The buttons are the view's: the view the Content tab is editing.
+		const card = this.target;
 		new Setting(containerEl).setName(strings.heading).setHeading();
 		new Setting(containerEl)
 			.setName(strings.sizing)

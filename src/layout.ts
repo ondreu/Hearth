@@ -84,6 +84,7 @@ import {
 import { CARD_KINDS } from "./cards";
 import { tileCols, tileMinSize } from "./tiles";
 import { commandsCardAsLaunchpad } from "./launchpadmigration";
+import { sanitizeViewSwitcher, secondViewAsView, stripFrame } from "./cardviews";
 import { isEmbeddableBaseViewName } from "./bases";
 import { EMBED_IMAGE_FITS, EMBED_IMAGE_POSITIONS } from "./embedimage";
 import {
@@ -173,9 +174,11 @@ const RANGE = {
  * everywhere, rather than one per export path.
  */
 export function scrubCard(card: DashboardCard): DashboardCard {
-	return card.jira?.pat === undefined
-		? card
-		: { ...card, jira: { ...card.jira, pat: undefined } };
+	const own =
+		card.jira?.pat === undefined ? card : { ...card, jira: { ...card.jira, pat: undefined } };
+	// A view is a whole card and can be a Jira card with its own token (#385).
+	if (!card.views?.some((v) => v.jira?.pat !== undefined)) return own;
+	return { ...own, views: card.views.map(scrubCard) };
 }
 
 /** Build the portable layout payload (the dashboard setup and its globals).
@@ -366,26 +369,6 @@ function sanitizeImagePosition(raw: unknown): EmbedImagePosition | undefined {
 		: undefined;
 }
 
-function sanitizeEmbedView(
-	raw: unknown,
-): DashboardCard["secondView"] | undefined {
-	if (!raw || typeof raw !== "object") return undefined;
-	const r = raw as Record<string, unknown>;
-	const target = str(r.target);
-	if (target === undefined) return undefined;
-	const view: NonNullable<DashboardCard["secondView"]> = { target };
-	const baseView = sanitizeBaseViewName(r.baseView);
-	if (baseView !== undefined) view.baseView = baseView;
-	if (typeof r.scale === "number") view.scale = r.scale;
-	const imageFit = sanitizeImageFit(r.imageFit);
-	if (imageFit !== undefined) view.imageFit = imageFit;
-	const imagePosition = sanitizeImagePosition(r.imagePosition);
-	if (imagePosition !== undefined) view.imagePosition = imagePosition;
-	if (typeof r.editable === "boolean") view.editable = r.editable;
-	if (typeof r.livePreview === "boolean") view.livePreview = r.livePreview;
-	return view;
-}
-
 /** Copy a tile's size and position across: both styles' fields, so an imported
  * layout keeps whichever the card is on — and the other one too, for when it is
  * switched back. See `TileGeometry` in types.ts. */
@@ -447,11 +430,12 @@ function sanitizeMobileOptions(raw: unknown): MobileCardOptions | undefined {
 	return Object.keys(mobile).length > 0 ? mobile : undefined;
 }
 
-export function sanitizeCard(raw: unknown, index: number): DashboardCard | null {
+export function sanitizeCard(raw: unknown, index: number, asView = false): DashboardCard | null {
 	if (!raw || typeof raw !== "object") return null;
 	// A Commands card from before 3.4.0 arrives as the launchpad it became, the
-	// same fold the settings migration applies on load (#388).
-	const r = commandsCardAsLaunchpad(raw as Record<string, unknown>);
+	// same fold the settings migration applies on load (#388); an embed card's
+	// old `secondView` arrives as the view it became (#385).
+	const r = secondViewAsView(commandsCardAsLaunchpad(raw as Record<string, unknown>));
 	const kind = CARD_KINDS.includes(r.kind as CardKind)
 		? (r.kind as CardKind)
 		: null;
@@ -498,8 +482,6 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	if (target !== undefined) card.target = target;
 	const baseView = sanitizeBaseViewName(r.baseView);
 	if (baseView !== undefined) card.baseView = baseView;
-	const secondView = sanitizeEmbedView(r.secondView);
-	if (secondView) card.secondView = secondView;
 	const url = str(r.url);
 	if (url !== undefined) card.url = url;
 	const text = str(r.text);
@@ -630,8 +612,34 @@ export function sanitizeCard(raw: unknown, index: number): DashboardCard | null 
 	if (r.leafView && typeof r.leafView === "object") {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
 	}
-	if (r.secondView && typeof r.secondView === "object") {
-		card.secondView = sanitizeEmbedView(r.secondView);
+	const viewLabel = str(r.viewLabel);
+	if (viewLabel !== undefined) card.viewLabel = viewLabel;
+	const viewIcon = str(r.viewIcon);
+	if (viewIcon !== undefined) card.viewIcon = viewIcon;
+
+	// A view is a card without a frame and without views of its own: one level
+	// only, so a hostile or corrupt layout can't nest cards without end.
+	if (asView) return stripFrame(card);
+	if (Array.isArray(r.views)) {
+		const taken = new Set([card.id]);
+		const views = r.views
+			.map((v, i) => sanitizeCard(v, i, true))
+			.filter((v): v is DashboardCard => v !== null);
+		for (const v of views) {
+			// Ids key per-card memory, so a view must not share one with its
+			// card or a sibling.
+			if (taken.has(v.id)) v.id = `${card.id}-view-${taken.size + 1}`;
+			while (taken.has(v.id)) v.id = `${v.id}-x`;
+			taken.add(v.id);
+		}
+		if (views.length > 0) card.views = views;
+	}
+	if (card.views) {
+		const viewSwitcher = sanitizeViewSwitcher(r.viewSwitcher);
+		if (viewSwitcher) card.viewSwitcher = viewSwitcher;
+		if (typeof r.activeView === "number" && Number.isInteger(r.activeView) && r.activeView > 0) {
+			card.activeView = Math.min(r.activeView, card.views.length);
+		}
 	}
 
 	return card;

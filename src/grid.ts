@@ -505,6 +505,10 @@ export function enableDragResize(
 	layout: GridLayout,
 	component: Component,
 	onCommit: () => void,
+	/** Drop-to-merge (#385): called instead of committing a move when the card
+	 * is held over another card and let go there. Omitted, a card can't be
+	 * merged by dragging. */
+	onMergeDrop?: (target: DashboardCard) => void,
 ): void {
 	const overlay = cardEl.createDiv("hearth-card-overlay");
 	// One resize grip per edge and corner, so the card can be resized from any
@@ -517,6 +521,44 @@ export function enableDragResize(
 	let ctx: DragContext | null = null;
 	let guideX: HTMLElement | null = null;
 	let guideY: HTMLElement | null = null;
+
+	// Drop-to-merge. Hovering over the middle of another card only arms a merge
+	// after a short hold, so a card dragged *across* the board on its way
+	// somewhere else never merges into whatever it passes over.
+	let mergeCandidate: { card: DashboardCard; el: HTMLElement } | null = null;
+	let mergeArmed = false;
+	let mergeTimer = 0;
+	const clearMerge = () => {
+		if (mergeTimer) window.clearTimeout(mergeTimer);
+		mergeTimer = 0;
+		mergeCandidate?.el.removeClass("is-merge-target");
+		cardEl.removeClass("is-merge-source");
+		mergeCandidate = null;
+		mergeArmed = false;
+	};
+	component.register(clearMerge);
+	const trackMerge = (clientX: number, clientY: number) => {
+		if (!onMergeDrop) return;
+		let hit: { card: DashboardCard; el: HTMLElement } | null = null;
+		for (const [other, el] of layout.elements) {
+			if (other === card || !el.isConnected) continue;
+			if (mergeZoneHit(el.getBoundingClientRect(), clientX, clientY)) {
+				hit = { card: other, el };
+				break;
+			}
+		}
+		if (hit?.card === mergeCandidate?.card) return;
+		clearMerge();
+		if (!hit) return;
+		mergeCandidate = hit;
+		mergeTimer = window.setTimeout(() => {
+			mergeTimer = 0;
+			if (!mergeCandidate) return;
+			mergeArmed = true;
+			mergeCandidate.el.addClass("is-merge-target");
+			cardEl.addClass("is-merge-source");
+		}, MERGE_HOLD_MS);
+	};
 
 	/** Redraw the board from the stored geometry, in whichever coordinate space
 	 * the board is currently using: fitted boards re-derive the shared vertical
@@ -646,6 +688,7 @@ export function enableDragResize(
 			cardEl.style.left = `${left}px`;
 			cardEl.style.width = `${ctx.startWidth}px`;
 			cardEl.style.top = `${top}px`;
+			trackMerge(e.clientX, e.clientY);
 		} else {
 			const dir = ctx.dir ?? "se";
 			const right = ctx.startLeft + ctx.startWidth;
@@ -705,6 +748,21 @@ export function enableDragResize(
 		// Drop any queued mid-drag reflow; this handler recomputes everything
 		// synchronously below from the final committed geometry.
 		cancelReflow();
+		if (mergeArmed && mergeCandidate && onMergeDrop && e.type === "pointerup") {
+			// Let go over an armed card: merge rather than move. The dragged card
+			// keeps its stored geometry (it is leaving the board anyway), and the
+			// caller rebuilds the board.
+			const target = mergeCandidate.card;
+			clearMerge();
+			cardEl.removeClass("is-moving");
+			showGuide("x", null);
+			showGuide("y", null);
+			ctx = null;
+			reposition();
+			onMergeDrop(target);
+			return;
+		}
+		clearMerge();
 		// Persist the live pixel geometry back into the fractional/pixel model,
 		// undoing any fit-to-page squeeze the card was drawn with.
 		const geo = cardGeometryFromScreen(screenRect(cardEl), ctx.boardWidth, ctx.vScale);
@@ -741,6 +799,29 @@ export function enableDragResize(
 		component.registerDomEvent(el, "pointerup", end);
 		component.registerDomEvent(el, "pointercancel", end);
 	}
+}
+
+/** How long a dragged card has to be held over another before letting go
+ * merges the two (#385). */
+const MERGE_HOLD_MS = 450;
+
+/** Whether a pointer at (`x`, `y`) is over the middle of `rect` — its central
+ * half on both axes — which is where a dragged card has to be held to merge
+ * into it. The edges stay free for what dragging is mostly for: lining cards
+ * up against each other. */
+export function mergeZoneHit(
+	rect: { left: number; top: number; width: number; height: number },
+	x: number,
+	y: number,
+): boolean {
+	const insetX = rect.width / 4;
+	const insetY = rect.height / 4;
+	return (
+		x >= rect.left + insetX &&
+		x <= rect.left + rect.width - insetX &&
+		y >= rect.top + insetY &&
+		y <= rect.top + rect.height - insetY
+	);
 }
 
 /** Grow the board so it always contains its lowest card (plus breathing room).

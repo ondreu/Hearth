@@ -2,6 +2,7 @@ import { Platform } from "obsidian";
 import type { DatacoreLanguage } from "./datacore";
 import { normalizeAuthorKey } from "./identity";
 import { foldCommandsCards } from "./launchpadmigration";
+import { foldSecondViews } from "./cardviews";
 import { DEFAULT_GALLERY_URL, normalizeGalleryUrl } from "./gallery/client";
 import { type PublishedEntry, readGalleryEntries } from "./gallery/published";
 import type { ClipTemplate } from "./clip";
@@ -1640,29 +1641,51 @@ export type EmbedImagePosition =
 	| "bottom"
 	| "bottom-right";
 
-/** A secondary embed a card can switch to. Only `target` is required; `scale`
- * and `editable` mirror the primary embed's fields and default to that view's
- * behaviour when omitted. A card with a valid second view shows a switcher —
- * inline in the header when the card has a title, or as a floating
- * mouseover-only control when it's untitled (headerless). */
-export interface EmbedView {
-	/** Vault path of the file to embed (.md, image, .base, ...). */
-	target?: string;
-	/** Bases view name to embed when target is a .base file; omitted means default view. */
-	baseView?: string;
-	/** Zoom factor for the embedded content (1 = 100%); omitted means no scaling. */
-	scale?: number;
-	/** How an embedded picture fills the card; omitted means "natural" (the
-	 * picture at its own size). Ignored by every other file type. */
-	imageFit?: EmbedImageFit;
-	/** Where a formatted picture sits, and which part of it a crop keeps;
-	 * omitted means "center". Only read when `imageFit` frames the picture. */
-	imagePosition?: EmbedImagePosition;
-	/** Edit the embedded note's text in place instead of read-only (Markdown only). */
-	editable?: boolean;
-	/** Edit through Obsidian's own Live Preview editor rather than Hearth's plain
-	 * raw-Markdown box. Only meaningful together with `editable`. */
-	livePreview?: boolean;
+/** Where a card's view switcher sits. "auto" is the header on a titled card
+ * and the top-right corner on an untitled (headerless) one; "hidden" draws no
+ * control at all, leaving the switch to swiping, rotation or the keyboard. */
+export type ViewSwitcherPlacement =
+	| "auto"
+	| "header"
+	| "top-left"
+	| "top-right"
+	| "bottom-left"
+	| "bottom-right"
+	| "hidden";
+
+/** How the switcher draws its choices: a row of tabs, one drop-down button,
+ * a row of dots, or a row of icons. */
+export type ViewSwitcherStyle = "tabs" | "dropdown" | "dots" | "icons";
+
+/** What a tab says: its label, its icon, or both. */
+export type ViewSwitcherLabel = "label" | "icon" | "both";
+
+/** When a floating switcher shows: always, or only while the pointer is over
+ * the card (a switcher in the header always shows). */
+export type ViewSwitcherReveal = "always" | "hover";
+
+/** What a card with views does in the narrow (stacked) layout: keep the
+ * switcher, or lay every view out as a card of its own, one under another. */
+export type ViewSwitcherNarrow = "switcher" | "split";
+
+/** How a card's view switcher looks and behaves (#385). Every field is
+ * optional; see `resolveViewSwitcher` in src/cardviews.ts for the
+ * defaults. */
+export interface ViewSwitcherConfig {
+	placement?: ViewSwitcherPlacement;
+	style?: ViewSwitcherStyle;
+	label?: ViewSwitcherLabel;
+	reveal?: ViewSwitcherReveal;
+	/** Keep the view on show across reloads (written to the card). Off by
+	 * default, so switching views does not rewrite data.json — and so does not
+	 * hand a synced vault a change on every click. */
+	rememberView?: boolean;
+	/** Move to the next view every this many seconds; 0 or absent is off. */
+	rotateSec?: number;
+	/** Switch views with a horizontal swipe on a touch screen. On unless turned
+	 * off. */
+	swipe?: boolean;
+	narrow?: ViewSwitcherNarrow;
 }
 
 /** One hand-picked picture in a "slideshow" card. Kept as its own object (rather
@@ -1929,12 +1952,6 @@ export interface DashboardCard {
 	 * `imageFit` frames the picture. */
 	imagePosition?: EmbedImagePosition;
 
-	/** kind === "embed": an optional second view the card can switch to. When it
-	 * carries a target, a switcher toggles the body between the primary embed
-	 * (`target`/`scale`/`editable`) and this one — shown in the card header when
-	 * the card has a title, or as a floating mouseover-only control otherwise. */
-	secondView?: EmbedView;
-
 	/** kind === "embed": hide the Bases view's own toolbar/header (the view
 	 * switcher and filter/property controls) when embedding a `.base` file, so
 	 * only the results show. No effect on non-base embeds. */
@@ -2020,6 +2037,33 @@ export interface DashboardCard {
 	 * with it. The weather and market cards keep theirs in their own config.
 	 * See {@link effectiveCardDesign} and `resolveCardDesign` in cards/. */
 	design?: CardDesign;
+
+	// ---- Views (#385) ----
+	/**
+	 * Further views this card can switch between. The card itself is the first
+	 * view; each entry here is a whole card of any kind, drawn in this card's
+	 * frame. A view keeps only its content: where the card sits, how big it is
+	 * and how its frame looks (colours, surface, design) are this card's, so a
+	 * view's own copies of those fields are ignored (see `VIEW_FRAME_KEYS` in
+	 * src/cardviews.ts). Absent or empty means an ordinary single-view card.
+	 */
+	views?: DashboardCard[];
+	/** How the switcher between {@link views} looks and behaves. Every field is
+	 * optional and absent means the default, so a card only carries what
+	 * someone actually chose. */
+	viewSwitcher?: ViewSwitcherConfig;
+	/** The view on show when the card is drawn, as an index into the card and
+	 * its views (0 = the card itself). Only written while
+	 * `viewSwitcher.rememberView` is on; otherwise the choice lives in memory
+	 * and a reload starts on the first view. */
+	activeView?: number;
+	/** This view's label in the switcher. Falls back to what the kind can say
+	 * about its content (an embed's file name), then to the kind's name. Read
+	 * on the card itself (its first view) and on every view. */
+	viewLabel?: string;
+	/** This view's Lucide icon in the switcher. Falls back to the kind's own
+	 * icon. */
+	viewIcon?: string;
 
 	// ---- Layout (legacy grid cell units) ----
 	// Kept as the seed for the free-form coordinates below: older layouts (and
@@ -3871,7 +3915,8 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * Returns `true` when it performed a destructive/one-way migration whose result
  * must be flushed back to storage (the `commandId` → `target` fold, the
  * `lowPower` → performance tier fold, the `logo`/`logoIcon` → `titleIcon`
- * fold, and the Commands card → launchpad fold), so the caller knows to
+ * fold, the Commands card → launchpad fold and the embed `secondView` → views
+ * fold), so the caller knows to
  * persist. The purely additive back-fills above
  * remain in-memory until the next ordinary save, exactly as before.
  */
@@ -4044,9 +4089,20 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 		if (foldCommandsCards(dash.cards)) migratedCommands = true;
 	}
 	if (foldCommandsCards(s.pinnedCards)) migratedCommands = true;
+	// One-way (added with #385): the embed card's single `secondView` becomes
+	// the card's first view (see `secondViewAsView`). Does NOT round-trip to a
+	// build without views, which shows the card's first file only. The views of
+	// every card then get the Commands fold above too — a view can be any card.
+	let migratedViews = false;
+	for (const cards of [...s.dashboards.map((d) => d.cards), s.pinnedCards]) {
+		if (foldSecondViews(cards)) migratedViews = true;
+		for (const card of cards) {
+			if (foldCommandsCards(card?.views)) migratedCommands = true;
+		}
+	}
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
-	return migratedCommandId || migratedLowPower || migratedTitleIcon || migratedCommands;
+	return migratedCommandId || migratedLowPower || migratedTitleIcon || migratedCommands || migratedViews;
 }
 
 /** The pre-2.2 title mark: an emoji/text `logo` beside a Lucide `logoIcon` that

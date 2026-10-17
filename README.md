@@ -160,11 +160,20 @@ categories below. Cards backed by a community plugin are always listed, marked
 jump to install it. If the card you want doesn't exist, **Request a card** at
 the bottom of the rail opens a pre-filled GitHub issue or email.
 
+### Cards with several views
+
+Any card can hold more views — each a card of any type — and switch between
+them: projects, tasks and a calendar behind one frame. Add or merge them from the
+card's **Views** tab (or, while arranging, hold a card over another and let go),
+and set up the switcher there: in the header, in a corner or hidden; tabs,
+icons, dots or a drop-down; with swiping and timed rotation. On a narrow board
+the views can stay behind the switcher or stack as separate cards.
+
 ### Notes & files
 
 | Card | What it shows | Needs |
 | --- | --- | --- |
-| **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom, optional in-place editing (raw or Live Preview) and a second view you can flip to | — |
+| **Embedded note** | Any note, rendered live by Obsidian, with per-card zoom and optional in-place editing (raw or Live Preview) | — |
 | **Daily note** | Always today's note, created on first click | Daily notes (core) |
 | **Periodic note** | Always the current week's, month's, quarter's or year's note, created on first click from your own template | [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes) or [Journals](https://github.com/srg-kostyrko/obsidian-journal) |
 | **Embedded image** | A picture from the vault — fill and crop, fit, stretch or scroll, anchored to any of nine points | — |

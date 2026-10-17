@@ -1,11 +1,7 @@
 import { Component, MarkdownRenderer, Setting, TFile } from "obsidian";
 import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
-	activeEmbedIndex,
-	activeEmbedView,
-	activeEmbedViewParams,
 	cardOverlayButton,
-	embedViews,
 	emptyState,
 	livePreviewSetting,
 	renderEditableEmbed,
@@ -32,17 +28,9 @@ import {
 	type DashboardCard,
 	type EmbedImageFit,
 	type EmbedImagePosition,
-	type EmbedView,
 } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
-
-/** Whether the embed view a card is currently showing is edited in place. Used
- * by the body watcher to decide whether a modify event should redraw. */
-export function activeEmbedViewEditable(card: DashboardCard): boolean {
-	return !!activeEmbedViewParams(card).editable;
-}
 
 
 export function renderEmbed(
@@ -51,8 +39,7 @@ export function renderEmbed(
 	body: HTMLElement,
 	component: Component,
 ): void {
-	const active = activeEmbedViewParams(card);
-	const target = active.target?.trim();
+	const target = card.target?.trim();
 	if (!target) {
 		emptyState(body, "file-plus", t().cards.empty.embedPickFile);
 		return;
@@ -103,8 +90,8 @@ export function renderEmbed(
 	// Editable Markdown notes are edited in place rather than rendered read-only —
 	// either in Obsidian's own Live Preview editor, or in Hearth's plain
 	// raw-Markdown box (the fallback when hosting the real editor isn't possible).
-	if (active.editable && isMarkdown && !excalidraw) {
-		if (active.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
+	if (card.editable && isMarkdown && !excalidraw) {
+		if (card.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
 		renderEditableEmbed(view, file, body, component);
 		return;
 	}
@@ -122,19 +109,19 @@ export function renderEmbed(
 	// A picture with a fit mode set is drawn by Hearth rather than transcluded,
 	// so it can be sized against the card (see renderFormattedImage). Zoom is
 	// part of that sizing there, which is why the host zoom below skips it.
-	const fit = isImageFile(file) ? embedImageFit(active) : "natural";
+	const fit = isImageFile(file) ? embedImageFit(card) : "natural";
 	const framed = framesEmbedImage(fit);
 
 	// Optional zoom: scale the rendered content and widen it inversely so it
 	// still fills the card width before scaling (the body handles overflow).
-	const scale = embedImageScale(active.scale);
+	const scale = embedImageScale(card.scale);
 	if (scale !== 1 && !framed) {
 		host.addClass("is-scaled");
 		host.style.setProperty("--hearth-embed-scale", String(scale));
 	}
 
 	if (framed) {
-		renderFormattedImage(view, file, body, host, fit, embedImagePosition(active), scale);
+		renderFormattedImage(view, file, body, host, fit, embedImagePosition(card), scale);
 	} else if (isMarkdown && !excalidraw) {
 		// Render the note's actual content so all Markdown (headings, lists,
 		// callouts, links…) shows. A bare ![[embed]] only renders a placeholder
@@ -144,7 +131,7 @@ export function renderEmbed(
 		// Images, canvas, .base and Excalidraw go through Obsidian's own
 		// transclusion embed, which handles those file types uniformly. Bases can
 		// optionally target a named view with Obsidian's documented #View subpath.
-		const baseView = active.baseView?.trim();
+		const baseView = card.baseView?.trim();
 		const embedTarget =
 			ext === "base" && isEmbeddableBaseViewName(baseView) ? `${target}#${baseView}` : target;
 		void MarkdownRenderer.render(view.app, `![[${embedTarget}]]`, host, target, component);
@@ -209,62 +196,25 @@ function renderFormattedImage(
 }
 
 
-/** A short label for a view's switcher button — the embedded file's basename,
- * or a placeholder when the view has no target yet. */
-function embedViewLabel(view: HomeView, ev: EmbedView, index: number): string {
-	const target = ev.target?.trim();
-	if (!target) return t().cards.embed.viewFallback(index + 1);
+/** How an embed card reads in a view switcher (#385): the embedded file's name,
+ * and an icon for its type. Nothing when no file is chosen yet, so the switcher
+ * falls back to the kind's own name and icon. */
+function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: string; icon?: string } {
+	const target = card.target?.trim();
+	if (!target) return {};
 	const file = view.app.vault.getAbstractFileByPath(target);
-	return file instanceof TFile ? file.basename : target;
-}
-
-
-/**
- * Mount the second-view switcher for an embed card, when it has one. A titled
- * card gets an inline segmented control in its header; an untitled (headerless)
- * card gets a floating control that CSS reveals on hover. Selecting a view
- * records the choice (transiently) and redraws just the card body.
- *
- * `head` is the card's header element (hidden by CSS when untitled) and `redraw`
- * re-renders the body via the same closure the live-refresh watchers use.
- */
-export function mountEmbedViewSwitcher(
-	view: HomeView,
-	card: DashboardCard,
-	cardEl: HTMLElement,
-	head: HTMLElement,
-	redraw: () => void,
-): void {
-	if (card.kind !== "embed") return;
-	const views = embedViews(card);
-	if (views.length < 2) return;
-
-	const titled = !!(card.title ?? "").trim();
-	const host = titled
-		? head.createDiv("hearth-embed-switch is-inline")
-		: cardEl.createDiv("hearth-embed-switch is-floating");
-
-	const build = () => {
-		host.empty();
-		const activeIdx = activeEmbedIndex(card);
-		views.forEach((ev, index) => {
-			const label = embedViewLabel(view, ev, index);
-			const btn = host.createEl("button", { cls: "hearth-embed-switch-btn", text: label });
-			btn.toggleClass("is-active", index === activeIdx);
-			btn.setAttribute("title", label);
-			btn.setAttribute("aria-label", t().cards.embed.switchTo(label));
-			// Don't let a click on the switcher start a card drag / bubble to the card.
-			btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				if (index === activeIdx) return;
-				activeEmbedView.set(card, index);
-				redraw();
-				build();
-			});
-		});
-	};
-	build();
+	if (!(file instanceof TFile)) return { label: target };
+	const ext = file.extension.toLowerCase();
+	const icon = isExcalidraw(file)
+		? "pen-tool"
+		: isImageFile(file)
+			? "image"
+			: ext === "base"
+				? "database"
+				: ext === "canvas"
+					? "layout-dashboard"
+					: "file-text";
+	return { label: file.basename, icon };
 }
 
 
@@ -289,14 +239,13 @@ function renderEmbedOpenButton(view: HomeView, file: TFile, body: HTMLElement): 
  * the modes where that leaves it something to decide — where it sits.
  *
  * Shown only when the view's target names a picture, since every other file
- * type ignores the fields. Shared by both embed views, so the second view
- * formats its picture exactly like the primary one does.
+ * type ignores the fields.
  */
 function imageFormatSettings(
 	ctx: CardEditorContext,
 	containerEl: HTMLElement,
 	target: string | undefined,
-	view: Pick<EmbedView, "imageFit" | "imagePosition">,
+	view: Pick<DashboardCard, "imageFit" | "imagePosition">,
 ): void {
 	if (!isImagePath(target)) return;
 	const strings = t().editors.embed;
@@ -333,7 +282,7 @@ function imageFormatSettings(
 }
 
 
-/** The zoom slider, shared by both embed views. Its description depends on what
+/** The zoom slider. Its description depends on what
  * is being zoomed: a framed picture is scaled inside the frame it was fitted to
  * (so zooming a cropped picture crops further), everything else is scaled as a
  * whole with the card scrolling around it. */
@@ -341,7 +290,7 @@ function zoomSetting(
 	ctx: CardEditorContext,
 	containerEl: HTMLElement,
 	target: string | undefined,
-	view: Pick<EmbedView, "imageFit" | "scale">,
+	view: Pick<DashboardCard, "imageFit" | "scale">,
 ): void {
 	const framed = isImagePath(target) && framesEmbedImage(embedImageFit(view));
 	new Setting(containerEl)
@@ -431,10 +380,9 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			}),
 		);
 	if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
-	// The open button sits on the card, whichever view is showing; terminal
-	// mode draws none on a note (its card menu opens it instead).
-	const secondTarget = card.secondView?.target?.trim();
-	if (!drawnAsText(ctx, card.target) || (secondTarget && !drawnAsText(ctx, secondTarget))) {
+	// Terminal mode draws no open button on a note (its card menu opens it
+	// instead).
+	if (!drawnAsText(ctx, card.target)) {
 		new Setting(containerEl)
 			.setName(t().editors.embed.openButton)
 			.setDesc(t().editors.embed.openButtonDesc)
@@ -446,9 +394,8 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				}),
 			);
 	}
-	// Hide-base-header is only relevant to .base embeds; shown when either
-	// view targets one.
-	if (isBaseTarget(card.target) || isBaseTarget(card.secondView?.target)) {
+	// Hide-base-header is only relevant to .base embeds.
+	if (isBaseTarget(card.target)) {
 		new Setting(containerEl)
 			.setName(t().editors.embed.hideBaseHeader)
 			.setDesc(t().editors.embed.hideBaseHeaderDesc)
@@ -460,7 +407,6 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				}),
 			);
 	}
-	embedSecondView(ctx, containerEl);
 }
 
 
@@ -538,102 +484,6 @@ export function baseViewSetting(ctx: CardEditorContext,
 }
 
 
-/** Second-view controls for an embed card: pick a second file to embed, and
- * (once one is set) its own zoom and editable options. When set, the card
- * shows a switcher between the two views. */
-export function embedSecondView(ctx: CardEditorContext, containerEl: HTMLElement): void {
-	const card = ctx.card;
-
-	new Setting(containerEl)
-		.setName(t().editors.embed.secondViewHeading)
-		.setHeading();
-
-	const setting = new Setting(containerEl)
-		.setName(t().editors.embed.secondViewFile)
-		.setDesc(t().editors.embed.secondViewFileDesc);
-	setting.addText((txt) =>
-		txt
-			.setPlaceholder(t().editors.embed.filePlaceholder)
-			.setValue(card.secondView?.target ?? "")
-			.onChange((v) => {
-				setSecondViewTarget(ctx, v);
-			}),
-	);
-	setting.addExtraButton((b) =>
-		b
-			.setIcon("file-symlink")
-			.setTooltip(t().editors.embed.pickFile)
-			.onClick(() => {
-				new FilePickerModal(ctx.app, (file) => {
-					setSecondViewTarget(ctx, file.path, true);
-				}).open();
-			}),
-	);
-	if (card.secondView?.target) {
-		setting.addExtraButton((b) =>
-			b
-				.setIcon("trash-2")
-				.setTooltip(t().editors.embed.secondViewClear)
-				.onClick(() => {
-					card.secondView = undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-		);
-	}
-
-	// Zoom and editable mirror the primary embed's options, but only make
-	// sense once a second file is chosen.
-	if (card.secondView?.target) {
-		const view = card.secondView;
-		baseViewSetting(ctx, 
-			containerEl,
-			view.target,
-			() => view.baseView,
-			(v: string | undefined) => {
-				view.baseView = v;
-				ctx.opts.save();
-			},
-		);
-		imageFormatSettings(ctx, containerEl, view.target, view);
-		if (!drawnAsText(ctx, view.target)) zoomSetting(ctx, containerEl, view.target, view);
-		new Setting(containerEl)
-			.setName(t().editors.embed.editable)
-			.setDesc(t().editors.embed.editableDesc)
-			.addToggle((tg) =>
-				tg.setValue(view.editable ?? false).onChange((v) => {
-					view.editable = v || undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-			);
-		if (view.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, view);
-	}
-}
-
-
-/** Set (or clear) the second view's embed target, creating the config object
- * on first use and dropping it entirely when emptied. */
-export function setSecondViewTarget(ctx: CardEditorContext, value: string, rerender = false): void {
-	const target = value.trim();
-	const previousTarget = ctx.card.secondView?.target?.trim() ?? "";
-	const targetChanged = target !== previousTarget;
-	const wasBase = isBaseTarget(previousTarget);
-	const isBase = isBaseTarget(target);
-	if (!target) {
-		ctx.card.secondView = undefined;
-	} else {
-		const next: EmbedView = { ...(ctx.card.secondView ?? {}) };
-		next.target = target;
-		if (!isBase || targetChanged) next.baseView = undefined;
-		ctx.card.secondView = next;
-	}
-	ctx.opts.save();
-	const imageChanged = isImagePath(previousTarget) !== isImagePath(target);
-	if (rerender || wasBase !== isBase || imageChanged || (isBase && targetChanged))
-		ctx.requestRender();
-}
-
 /** Embedded note / image / base / excalidraw / canvas. One kind, five presets. */
 export const embedCard: CardDefinition<"embed"> = {
 	kind: "embed",
@@ -646,14 +496,10 @@ export const embedCard: CardDefinition<"embed"> = {
 	],
 	render: (view, card, body, component) => renderEmbed(view, card, body, component),
 	renderEditor: (container, ctx) => embedEditor(ctx, container),
-	cloneConfig: (source, copy) => {
-		if (source.secondView) copy.secondView = { ...source.secondView };
-	},
 	liveness: {
 		mode: "watch-file",
 		watchedPath: (view, card) => watchedCardPath(view, card),
-		editableInPlace: (card) => activeEmbedViewEditable(card),
+		editableInPlace: (card) => !!card.editable,
 	},
-	mountExtras: (view, card, cardEl, head, redraw) =>
-		mountEmbedViewSwitcher(view, card, cardEl, head, redraw),
+	viewIdentity: (view, card) => embedViewIdentity(view, card),
 };

@@ -277,7 +277,8 @@ function maximalCard(): DashboardCard {
 		templater: {
 			items: [{ id: "t1", label: "Meeting", icon: "file-plus-2", template: "Templates/Meeting.md" }],
 		},
-		secondView: { target: "sv" },
+		views: [{ id: "v1", kind: "text", x: 0, y: 0, w: 1, h: 1, text: "hello", links: [{ label: "V", href: "v" } as never] }],
+		viewSwitcher: { style: "dots" },
 		slideshow: { slides: [{ id: "s1", path: "Photos/a.png", caption: "A" }] },
 		periodic: { granularity: "week" },
 		tasks: {
@@ -340,7 +341,9 @@ describe("cloneCard deep-clone independence", () => {
 		copy.links![0].label = "B";
 		copy.templater!.items![0].label = "Standup";
 		copy.templater!.items!.push({ id: "t2", label: "Book", icon: "book", template: "Templates/Book.md" });
-		(copy.secondView as { target: string }).target = "sv2";
+		copy.views![0].text = "changed";
+		copy.views![0].links![0].label = "W";
+		copy.viewSwitcher!.style = "tabs";
 		copy.slideshow!.slides![0].caption = "B";
 		copy.slideshow!.slides!.push({ id: "s2", path: "Photos/b.png" });
 		copy.periodic!.granularity = "month";
@@ -385,7 +388,9 @@ describe("cloneCard deep-clone independence", () => {
 		const pristine = maximalCard();
 		expect(orig.links).toEqual(pristine.links);
 		expect(orig.templater).toEqual(pristine.templater);
-		expect(orig.secondView).toEqual(pristine.secondView);
+		expect(orig.views).toEqual(pristine.views);
+		expect(orig.viewSwitcher).toEqual(pristine.viewSwitcher);
+		expect(copy.views![0].id).not.toBe(orig.views![0].id);
 		expect(orig.slideshow).toEqual(pristine.slideshow);
 		expect(orig.periodic).toEqual(pristine.periodic);
 		expect(orig.tasks).toEqual(pristine.tasks);

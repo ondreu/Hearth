@@ -21,6 +21,8 @@ import { Component, debounce, type Menu } from "obsidian";
 import type { HomeView } from "../view";
 import { createVaultEventHub, type VaultEventHub } from "../cardevents";
 import { cloneCard } from "../cards";
+import { activeViewCard, activeViewIndex, cardViews, hasViews, setActiveViewIndex, stepViewIndex } from "../cardviews";
+import { viewIdentity } from "../viewswitcher";
 import { confirmRemoveCard, mountCardBody, openCardSettings, persistAndRender } from "../dashboard";
 import { ensureFreeform, ensureLayout, GRID_GAP, ROW_HEIGHT } from "../grid";
 import { moveStacked, stackedCards, stackedHeight } from "../narrow";
@@ -251,27 +253,30 @@ export class TuiBoard {
 	private mountBody(card: DashboardCard): void {
 		const rect = this.rects.get(card.id);
 		if (!rect || this.isCollapsed(card) || card.mobile?.hidden || !this.bodyComponent || !this.events) return;
+		// A card with views draws the one on show (#385); the frame, focus and
+		// geometry stay the card's.
+		const shown = activeViewCard(card);
 		const el = this.boardEl.createDiv({ cls: "hearth-tui-body", attr: { "data-card": card.id } });
-		el.dataset.kind = card.kind;
+		el.dataset.kind = shown.kind;
 		this.placeBody(el, rect);
 		this.bodies.set(card.id, el);
 		el.addEventListener("pointerdown", () => this.focusCard(card.id), { capture: true });
 		// Arranging must not tick a task or follow a link by accident.
 		if (this.view.arrangeMode) el.addClass("is-shielded");
 
-		const renderer = tuiRenderer(card, this.view);
+		const renderer = tuiRenderer(shown, this.view);
 		if (!renderer) {
 			// No text renderer: the kind's graphical body, inside the frame. It
 			// gets the element structure its own CSS and helpers expect.
 			el.addClass("is-graphical");
 			const shell = el.createDiv("hearth-card hearth-tui-guicard");
-			shell.dataset.kind = card.kind;
+			shell.dataset.kind = shown.kind;
 			const body = shell.createDiv("hearth-card-body");
-			mountCardBody(this.view, card, body, this.bodyComponent, this.events);
+			mountCardBody(this.view, shown, body, this.bodyComponent, this.events);
 			return;
 		}
 
-		const host = new TuiCardHost(this.view, card, renderer, el, {
+		const host = new TuiCardHost(this.view, shown, renderer, el, {
 			zoomed: false,
 			persistent: this.bodyComponent,
 			size: () => {
@@ -287,7 +292,7 @@ export class TuiBoard {
 		});
 		this.hosts.set(card.id, host);
 		el.addEventListener("click", (e) => host.click(e));
-		host.redraw = mountCardBody(this.view, card, el, this.bodyComponent, this.events, (child) =>
+		host.redraw = mountCardBody(this.view, shown, el, this.bodyComponent, this.events, (child) =>
 			host.draw(child),
 		);
 	}
@@ -413,6 +418,12 @@ export class TuiBoard {
 		const collapsed = this.isCollapsed(card);
 		let title = cardTitle(card);
 		if (!title && (arranging || collapsed || card.mobile?.hidden)) title = cardName(card);
+		// Which view is on show, and how many there are: `v` steps through them.
+		if (hasViews(card)) {
+			const views = cardViews(card);
+			const label = viewIdentity(this.view, views[activeViewIndex(card)]).label;
+			title = `${title ? `${title} · ` : ""}${label} ${activeViewIndex(card) + 1}/${views.length}`;
+		}
 		if (collapsed) title = `▸ ${title}`;
 		else if (this.stacked && card.mobile?.collapsed) title = `▾ ${title}`;
 		let x = r.col + 2;
@@ -545,7 +556,7 @@ export class TuiBoard {
 		const host = this.hosts.get(card.id);
 		if (host?.key(evt)) return true;
 
-		const renderer = tuiRenderer(card, this.view);
+		const renderer = tuiRenderer(activeViewCard(card), this.view);
 		switch (key) {
 			case "Enter":
 				if (this.stacked && card.mobile?.collapsed && this.isCollapsed(card)) this.toggleExpanded(card);
@@ -573,6 +584,11 @@ export class TuiBoard {
 				return true;
 			case "e":
 				openCardSettings(this.view, card);
+				return true;
+			case "v":
+			case "V":
+				if (!hasViews(card)) return false;
+				this.stepView(card, key === "V" ? -1 : 1);
 				return true;
 		}
 		if (key.startsWith("Arrow")) return this.moveFocusSpatially(card, key);
@@ -769,11 +785,24 @@ export class TuiBoard {
 
 	/** The card's menu: its own entries, then the ones every card has. */
 	openCardMenu(card: DashboardCard, evt?: MouseEvent | KeyboardEvent): void {
-		const renderer = tuiRenderer(card, this.view);
+		const renderer = tuiRenderer(activeViewCard(card), this.view);
 		const host = this.hosts.get(card.id);
 		const menu = hearthMenu();
 		if (renderer?.menu && host) {
 			renderer.menu(host.context(new Component()), menu);
+			menu.addSeparator();
+		}
+		if (hasViews(card)) {
+			cardViews(card).forEach((v, index) => {
+				const id = viewIdentity(this.view, v);
+				menu.addItem((i) =>
+					i
+						.setTitle(t().views.switchTo(id.label))
+						.setIcon(id.icon)
+						.setChecked(index === activeViewIndex(card))
+						.onClick(() => this.showView(card, index)),
+				);
+			});
 			menu.addSeparator();
 		}
 		if (renderer?.detail && host) {
@@ -814,10 +843,23 @@ export class TuiBoard {
 		showMenu(menu, evt, this.boardEl, this.rects.get(card.id), this.cell);
 	}
 
-	/** Open `card` large, in a dialog. */
+	/** Open `card` large, in a dialog — the view on show, for a card with views. */
 	zoom(card: DashboardCard): void {
 		if (!this.events) return;
-		openTuiZoom(this.view, card);
+		openTuiZoom(this.view, activeViewCard(card));
+	}
+
+	/** Show view `index` of `card`. The view may be drawn graphically where the
+	 * last was text (or the other way round), so the whole board is rebuilt
+	 * rather than the one card. */
+	private showView(card: DashboardCard, index: number): void {
+		if (setActiveViewIndex(card, index)) void this.view.plugin.saveData(this.s);
+		this.view.render();
+	}
+
+	/** Step `card` one view forward or back (`v` / `V`). */
+	private stepView(card: DashboardCard, delta: 1 | -1): void {
+		this.showView(card, stepViewIndex(card, delta));
 	}
 
 	/** Redraw every card by hand (F5). Returns how many were redrawn. */

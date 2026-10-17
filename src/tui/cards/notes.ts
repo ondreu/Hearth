@@ -9,7 +9,7 @@
  * — those have no text form.
  */
 import { Menu, TFile } from "obsidian";
-import { dailyNoteFinder, dailyNotesOptions, moment, processFile, activeEmbedViewParams, activeEmbedView, embedViews } from "../../cardbodies";
+import { dailyNoteFinder, dailyNotesOptions, moment, processFile } from "../../cardbodies";
 import { resolvePeriodicNote } from "../../cards/periodic";
 import { isExcalidraw } from "../../filetypes";
 import { t } from "../../i18n";
@@ -136,7 +136,7 @@ export const periodicTui: TuiRenderer = {
 /** The file an embed card shows now, when it is a note terminal mode can draw
  * as text. */
 function embeddedNote(view: HomeView, card: DashboardCard): TFile | null {
-	const target = activeEmbedViewParams(card).target?.trim();
+	const target = card.target?.trim();
 	if (!target) return null;
 	const file = view.app.vault.getAbstractFileByPath(target);
 	if (!(file instanceof TFile)) return null;
@@ -148,48 +148,23 @@ export const embedTui: TuiRenderer = {
 	// Only a note has a text form. A picture, a canvas, a base or a drawing is
 	// drawn the way it always is, inside the terminal frame.
 	graphicalFor: (view, card) => {
-		const target = activeEmbedViewParams(card).target?.trim();
+		const target = card.target?.trim();
 		if (!target) return false;
 		const file = view.app.vault.getAbstractFileByPath(target);
 		return file instanceof TFile && !embeddedNote(view, card);
 	},
 	render(ctx) {
-		const target = activeEmbedViewParams(ctx.card).target?.trim();
+		const target = ctx.card.target?.trim();
 		if (!target) return { lines: message(t().cards.empty.embedPickFile, ctx.cols) };
 		const file = embeddedNote(ctx.view, ctx.card);
 		if (!file) return { lines: message(t().tui.cards.notFound(target), ctx.cols) };
-		const out = noteOutput(ctx, file, activeEmbedViewParams(ctx.card).editable === true);
-		const views = embedViews(ctx.card);
-		if (views.length > 1) out.hint = `${out.hint ?? ""} ${activeEmbedIndexOf(ctx)}/${views.length}`.trim();
-		return out;
+		return noteOutput(ctx, file, ctx.card.editable === true);
 	},
 	key(ctx, evt) {
-		if (evt.key === "v" && embedViews(ctx.card).length > 1) {
-			switchEmbedView(ctx);
-			return true;
-		}
-		return markdownKey(ctx, evt, activeEmbedViewParams(ctx.card).editable === true);
+		return markdownKey(ctx, evt, ctx.card.editable === true);
 	},
 	detail: (ctx) => openNote(ctx.view, embeddedNote(ctx.view, ctx.card)),
-	menu(ctx, menu) {
-		if (embedViews(ctx.card).length > 1) {
-			menu.addItem((i) => i.setTitle(t().tui.cards.switchView).setIcon("arrow-left-right").onClick(() => switchEmbedView(ctx)));
-		}
-	},
 };
-
-function activeEmbedIndexOf(ctx: TuiContext): number {
-	return (activeEmbedView.get(ctx.card) ?? 0) + 1;
-}
-
-/** Show the embed card's other view. The other view may be a picture, which
- * is drawn graphically, so the whole board is rebuilt rather than the card. */
-function switchEmbedView(ctx: TuiContext): void {
-	const count = embedViews(ctx.card).length;
-	const next = ((activeEmbedView.get(ctx.card) ?? 0) + 1) % count;
-	activeEmbedView.set(ctx.card, next);
-	ctx.view.render();
-}
 
 // ---- Jot-down --------------------------------------------------------------------
 

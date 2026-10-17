@@ -254,5 +254,10 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 	// config. Each cloneConfig is guarded by the presence of its own field, so
 	// this only deep-clones what is actually there.
 	for (const def of Object.values(CARD_DEFINITIONS)) def.cloneConfig?.(card, copy);
+	// Views are whole cards: each is cloned the same way, with an id of its own
+	// derived from the copy's so siblings cloned in the same millisecond can't
+	// collide (#385).
+	if (card.views) copy.views = card.views.map((v, i) => ({ ...cloneCard(v), id: `${copy.id}-v${i + 1}` }));
+	if (card.viewSwitcher) copy.viewSwitcher = { ...card.viewSwitcher };
 	return copy;
 }

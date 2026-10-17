@@ -137,15 +137,6 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * search-bar card drops its frame with "is-seamless" — and may return several
 	 * space-separated classes. Read through `cardClasses()`. */
 	cardClass?: string | ((card: DashboardCard) => string | undefined);
-	/** Post-render header/floating extras, drawn outside arrange mode (embed's
-	 * second-view switcher). */
-	mountExtras?(
-		view: HomeView,
-		card: DashboardCard,
-		cardEl: HTMLElement,
-		head: HTMLElement,
-		redraw: () => void,
-	): void;
 	/** The kind has a Material 3 Expressive design, drawn by styles.css under
 	 * `.hearth-card.is-expressive` and switched by the card's `design` (else the
 	 * vault's `cardDesign`). Every kind takes the design's frame, so the
@@ -163,6 +154,12 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * button-sizing settings (`tileSizingSettings`), since how big the buttons
 	 * are is a question about the card's layout rather than its content. */
 	tileButtons?: boolean;
+	/** How a card of this kind reads in a view switcher (#385), when its content
+	 * says more than the kind's name does — an embed card names its file.
+	 * Either field may be left out; the switcher falls back to the kind's name
+	 * and its first template's icon. A view's own `viewLabel`/`viewIcon` wins
+	 * over both. */
+	viewIdentity?(view: HomeView, card: DashboardCard): { label?: string; icon?: string };
 	/** A note shown under the type dropdown in the editor (leaf's perf warning).
 	 * Gets the global settings so a note can react to them — the leaf card's
 	 * warning says something extra while the performance tier is stepped down. */

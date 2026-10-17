@@ -69,6 +69,7 @@ import {
 } from "../types";
 import { exportSettingsPayload, layoutPayload, scrubCard } from "../layout";
 import { resolveTaskFields } from "../taskfields";
+import { withViews } from "../cardviews";
 import {
 	CARD_PLUGIN_REQUIREMENTS,
 	type DashboardPayload,
@@ -318,7 +319,8 @@ function requirementsFor(
 	const cardKinds = new Set<string>();
 	const viewTypes = new Set<string>();
 
-	for (const card of cards) {
+	// A view needs what its kind needs, just as a card does (#385).
+	for (const card of withViews(cards.filter(Boolean))) {
 		if (!card?.kind) continue;
 		cardKinds.add(card.kind);
 		for (const id of CARD_PLUGIN_REQUIREMENTS[card.kind] ?? []) plugins.add(id);
@@ -404,8 +406,9 @@ export function captureDashboard(
 	// part of the picture and the two vault-wide lists a card can read are
 	// folded onto the cards that read them.
 	withPinnedCards(board, s);
-	foldFavorites(board.cards, s);
-	const needsTaskFields = foldTaskFields(board.cards, s);
+	// Views are cards too (#385): the lists are folded onto them the same way.
+	foldFavorites(withViews(board.cards), s);
+	const needsTaskFields = foldTaskFields(withViews(board.cards), s);
 
 	const payload: DashboardPayload = { dashboard: board };
 

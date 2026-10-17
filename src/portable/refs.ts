@@ -131,6 +131,9 @@ const iconOwnerIsImage = (o: Record<string, unknown>): boolean =>
 export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	// embed / daily / periodic
 	{ at: "target", scope: "vaultPath" },
+	// The embed card's second view before #385. A board captured now holds it
+	// as a view (walked like any card, see `cardReferences`), but a package
+	// written before still carries it.
 	{ at: "secondView.target", scope: "vaultPath" },
 
 	// web
@@ -388,6 +391,11 @@ export function cardReferences(
 		if (rule.kind !== undefined && rule.kind !== card.kind) continue;
 		walkRule(card, rule, prefix, (ref) => found.push(ref), options);
 	}
+	// A view is a whole card of any kind, so it references whatever that kind
+	// does (#385).
+	card.views?.forEach((v, i) => {
+		found.push(...cardReferences(v, `${prefix}.views[${i}]`, options));
+	});
 	return found;
 }
 

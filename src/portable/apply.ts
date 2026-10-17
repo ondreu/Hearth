@@ -52,6 +52,7 @@ import {
 	warn,
 } from "./schema";
 import { boardReferences } from "./refs";
+import { withViews } from "../cardviews";
 
 /** Parse failure reasons, as message keys the caller turns into words. */
 export type ReadError = "invalidJson" | "notAnObject" | "notHearth" | "emptyPayload";
@@ -419,7 +420,7 @@ function adoptLegacyExtras(board: Dashboard, payload: DashboardPayload): void {
 	}
 	const favorites = payload.favorites?.filter((p): p is string => typeof p === "string");
 	if (favorites?.length) {
-		for (const card of board.cards) {
+		for (const card of withViews(board.cards)) {
 			if (card.kind !== "favorites" || card.favorites !== undefined) continue;
 			card.favorites = [...favorites];
 		}

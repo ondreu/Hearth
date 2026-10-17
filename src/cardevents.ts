@@ -20,7 +20,8 @@ export interface VaultEvent {
 }
 
 export interface VaultEventHub {
-	subscribe(listener: (ev: VaultEvent) => void): void;
+	/** Listen for vault events. Returns the function that stops listening. */
+	subscribe(listener: (ev: VaultEvent) => void): () => void;
 }
 
 /**
@@ -65,6 +66,26 @@ export function createVaultEventHub(
 				register(metadataCache.on("changed", (file) => dispatch({ kind: "meta", file })));
 			}
 			listeners.push(listener);
+			return () => {
+				const i = listeners.indexOf(listener);
+				if (i >= 0) listeners.splice(i, 1);
+			};
+		},
+	};
+}
+
+/**
+ * A view of `hub` whose subscriptions end when `component` unloads. A card that
+ * can swap what it shows without the whole board being rebuilt (a card with
+ * views, #385) mounts each body under a component of its own and hands it one
+ * of these, so the body it swaps out stops listening along with it.
+ */
+export function scopedVaultEventHub(hub: VaultEventHub, component: { register(cb: () => void): void }): VaultEventHub {
+	return {
+		subscribe(listener) {
+			const off = hub.subscribe(listener);
+			component.register(off);
+			return off;
 		},
 	};
 }

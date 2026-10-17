@@ -11666,51 +11666,106 @@ body.hearth-dv-resizing {
 	background: transparent;
 }
 
-/* ---- Embed second-view switcher ------------------------------------- */
-/* A small segmented control toggling an embed card between its two views. */
-.hearth-embed-switch {
+/* ---- View switcher (cards with views, #385) ---------------------------
+ *
+ * The control that switches a card between its views. It sits in the header
+ * of a titled card or floats over one of its corners (src/viewswitcher.ts),
+ * drawn as tabs, icons, dots or a single drop-down button. However many views
+ * there are, it never grows the card: a row too wide for its place scrolls
+ * sideways, its scrollbar hidden, and keeps the view on show in sight. */
+.hearth-view-switch {
 	display: inline-flex;
+	align-items: center;
 	gap: 2px;
 	padding: 2px;
+	min-width: 0;
 	border-radius: 8px;
 	background: var(--background-modifier-hover);
 	border: 1px solid var(--background-modifier-border);
+	overflow-x: auto;
+	scrollbar-width: none;
 }
 
-/* In a titled card's header, sit at the far right of the title row. */
-.hearth-embed-switch.is-inline {
+.hearth-view-switch::-webkit-scrollbar {
+	display: none;
+}
+
+/* In a titled card's header, at the far right of the title row. */
+.hearth-view-switch.is-header {
 	margin-left: auto;
 	max-width: 62%;
+	flex-shrink: 1;
 }
 
-/* Untitled (headerless) cards: float over the top-right corner and reveal only
- * on hover / keyboard focus, so the switch stays out of the way otherwise. */
-.hearth-embed-switch.is-floating {
+.hearth-card.has-views .hearth-card-head .hearth-card-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-right: 8px;
+}
+
+/* Over one of the card's corners. */
+.hearth-view-switch.is-floating {
 	position: absolute;
-	top: 6px;
-	right: 6px;
 	z-index: 5;
-	opacity: 0;
-	pointer-events: none;
+	max-width: calc(100% - 12px);
 	background: var(--background-secondary);
 	transition: opacity 140ms ease;
 }
 
-.hearth-card:hover .hearth-embed-switch.is-floating,
-.hearth-embed-switch.is-floating:focus-within {
+.hearth-view-switch.is-top-left {
+	top: 6px;
+	left: 6px;
+}
+
+.hearth-view-switch.is-top-right {
+	top: 6px;
+	right: 6px;
+}
+
+.hearth-view-switch.is-bottom-left {
+	bottom: 6px;
+	left: 6px;
+}
+
+.hearth-view-switch.is-bottom-right {
+	bottom: 6px;
+	right: 6px;
+}
+
+/* A floating switcher can stay out of the way until the pointer is over the
+ * card, or it has keyboard focus. */
+.hearth-view-switch.is-reveal-hover {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.hearth-card:hover .hearth-view-switch.is-reveal-hover,
+.hearth-view-switch.is-reveal-hover:focus-within {
 	opacity: 1;
 	pointer-events: auto;
 }
 
-.hearth-embed-switch-btn {
+/* A touch screen has no hover to reveal it with, so it always shows there. */
+@media (hover: none) {
+	.hearth-view-switch.is-reveal-hover {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
+.hearth-view-switch-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
 	max-width: 140px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 	padding: 2px 9px;
 	border: none;
 	border-radius: 6px;
 	background: transparent;
+	box-shadow: none;
 	color: var(--text-muted);
 	font-size: 0.72rem;
 	font-weight: 600;
@@ -11721,14 +11776,131 @@ body.hearth-dv-resizing {
 		color 140ms ease;
 }
 
-.hearth-embed-switch-btn:hover {
+.hearth-view-switch-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-view-switch-icon,
+.hearth-view-switch-chevron {
+	display: inline-flex;
+	flex-shrink: 0;
+}
+
+.hearth-view-switch-icon svg,
+.hearth-view-switch-chevron svg {
+	width: 13px;
+	height: 13px;
+}
+
+.hearth-view-switch-btn:hover {
 	color: var(--text-normal);
 }
 
-.hearth-embed-switch-btn.is-active {
+.hearth-view-switch-btn.is-active {
 	background: var(--background-primary);
 	color: var(--text-normal);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.hearth-view-switch.is-style-icons .hearth-view-switch-btn {
+	padding: 3px 6px;
+}
+
+.hearth-view-switch.is-style-dropdown .hearth-view-switch-btn {
+	max-width: 180px;
+}
+
+/* Dots: a quiet row of points, the one on show filled in. */
+.hearth-view-switch.is-style-dots {
+	gap: 0;
+	padding: 3px 4px;
+}
+
+.hearth-view-switch-btn.is-dot {
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	justify-content: center;
+	background: transparent;
+	box-shadow: none;
+}
+
+.hearth-view-switch-btn.is-dot::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--text-faint);
+	transition:
+		background 140ms ease,
+		transform 140ms ease;
+}
+
+.hearth-view-switch-btn.is-dot.is-active {
+	background: transparent;
+	box-shadow: none;
+}
+
+.hearth-view-switch-btn.is-dot.is-active::before {
+	background: var(--card-accent, var(--interactive-accent));
+	transform: scale(1.3);
+}
+
+/* Drop-to-merge on the arrange board: the card under the pointer, once the
+ * hold has armed the merge, and the card being dropped into it. */
+.hearth-card.is-merge-target {
+	outline: 2px dashed var(--interactive-accent);
+	outline-offset: 3px;
+}
+
+.hearth-card.is-merge-source {
+	opacity: 0.7;
+}
+
+/* The card editor: which view the Content tab edits, and the Views tab's list. */
+.hearth-view-picker {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 4px;
+}
+
+.hearth-view-picker-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hearth-view-picker-chip.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.hearth-view-picker-icon,
+.hearth-view-row-icon {
+	display: inline-flex;
+	vertical-align: middle;
+}
+
+.hearth-view-picker-icon svg,
+.hearth-view-row-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-view-row-icon {
+	margin-right: 6px;
+	color: var(--text-muted);
+}
+
+.hearth-danger-icon:hover {
+	color: var(--text-error);
 }
 
 /* ---- Slideshow card --------------------------------------------------

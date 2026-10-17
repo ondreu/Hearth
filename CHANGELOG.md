@@ -58,6 +58,32 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   board. Pick the card on the board's new **Card** tab (or add one there); a
   pencil on the switcher row opens the card's settings. The board keeps all of
   its cards, so switching back to Cards puts them back where they were.
+- **Cards with several views** (#385). Any card can now hold more views —
+  each a card of any type — and switch between them, so one spot on the board
+  can be a small workspace: projects, tasks, a habit tracker and a calendar
+  behind one frame. Each view keeps its own content and settings; the size,
+  colours and surface are the card's.
+  - **Getting views in.** The card's new **Views** tab adds a fresh card from
+    the picker, or merges in a card already on the board. While arranging,
+    holding a card over the middle of another for a moment and letting go does
+    the same. The tab also reorders views, shows one, moves one back out as a
+    card of its own, deletes one, or splits the card back into separate cards.
+  - **Editing a view.** A row at the top of the Content tab picks which view
+    the tab edits, with each view's label and icon in the switcher.
+  - **The switcher is yours to set up:** in the header or any corner, or
+    hidden; tabs, icons, dots or a drop-down; label, icon or both; always shown
+    or only on hover. Views can also change by swiping on a touch screen, or on
+    a timer that pauses while the card is pointed at or typed into. The view on
+    show resets on restart unless **Remember the view on show** is on, so
+    switching doesn't rewrite a synced vault.
+  - **On a narrow board** the card keeps its switcher, or shows every view as a
+    card of its own, one under another.
+  - Terminal mode draws the view on show; `v` and `V` step through them, and
+    the card menu lists them.
+  - The Embedded note card's **second view** is now its first extra view,
+    converted on load with its file and options, so it draws as it did. Does
+    not round-trip to an earlier version, which shows the card's first file
+    only.
 - **An RSS reader inside Hearth** (#377). Entries open in a reader — a large
   dialog over the board, or a tab of its own — with the card's feeds along the
   top, the entries down the side and the entry at a reading width. Arrow keys

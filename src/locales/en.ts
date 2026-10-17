@@ -1891,11 +1891,6 @@ export const en = {
 			hideBaseHeader: "Hide base header",
 			hideBaseHeaderDesc:
 				"For embedded .base files, hide the Bases view's own toolbar (view switcher and filter/property controls) so only the results show.",
-			secondViewHeading: "Second view",
-			secondViewFile: "Second file to embed",
-			secondViewFileDesc:
-				"Optional. When set, the card shows a switcher between the two views — in the header when the card has a title, or floating (on hover) when it doesn't.",
-			secondViewClear: "Remove second view",
 			openButton: "Open button",
 			openButtonDesc:
 				"Show a button that opens the embedded file in its own tab. Off by default.",
@@ -3661,9 +3656,6 @@ export const en = {
 			editHint: "Double-click to edit",
 			emptyNotePlaceholder: "Empty note…",
 			emptyNoteHint: "Empty note — double-click to edit",
-			/** Switcher button label when a view has no file chosen yet. */
-			viewFallback: (n: number) => `View ${n}`,
-			switchTo: (label: string) => `Switch to ${label}`,
 		},
 		slideshow: {
 			previous: "Previous picture",
@@ -4850,6 +4842,103 @@ export const en = {
 	},
 
 	// ---- A vault item's menu (src/filemenu.ts) ----------------------------
+	// ---- Cards with views (#385, src/cardviews.ts) -------------------------
+	views: {
+		switcherAria: "Views",
+		switchTo: (label: string) => `Switch to ${label}`,
+		chooseView: "Choose a view",
+		nextViewAria: (label: string) => `Show the next view (${label})`,
+		merged: "Merged. The card's settings, under Views, can move it back out.",
+		tuiHelp: "Next or previous view of a card with views",
+		editor: {
+			tab: "Views",
+			heading: "Views",
+			headingDesc:
+				"A card can hold several views, each a card of any type, and switch between them. Each view keeps its own content; the size, colours and surface are the card's.",
+			kindShown: (kind: string) => `${kind} · on show`,
+			edit: "Edit this view's content",
+			show: "Show this view on the card",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			detach: "Move out as a card of its own",
+			detached: "Moved out onto the board as a card of its own.",
+			remove: "Delete this view",
+			removeTitle: "Delete this view?",
+			removeMessage: (label: string) => `“${label}” and its content will be deleted from this card.`,
+			removeConfirm: "Delete",
+			add: "Add a view",
+			addDesc: "A new card of any type, as the next view of this one.",
+			addNew: "New view…",
+			merge: "Merge a card into this one",
+			mergeDesc:
+				"A card already on this board becomes the next view of this one, keeping its content. Holding a card over another while arranging and letting go does the same.",
+			mergeButton: "Merge",
+			withViews: (name: string, count: number) => `${name}, ${count} views`,
+			split: "Split into separate cards",
+			splitDesc: "Every view goes back on the board as a card of its own.",
+			splitButton: "Split",
+			splitTitle: "Split this card?",
+			splitMessage: (count: number) => `Its ${count} views become ${count} separate cards on the board.`,
+			splitConfirm: "Split",
+			editing: "Editing view",
+			editingDesc: "Which view the settings below change.",
+			label: "Label in the switcher",
+			labelDesc: "Left empty, the switcher names the view after its content or its type.",
+			icon: "Icon in the switcher",
+			iconDesc: "A Lucide icon name. Left empty, the view's type decides.",
+			switcher: "Switcher",
+			placement: "Position",
+			placementDesc:
+				"Where the switcher sits. Automatic puts it in the header of a titled card and in the top-right corner of an untitled one.",
+			placements: {
+				auto: "Automatic",
+				header: "In the header",
+				"top-left": "Top left corner",
+				"top-right": "Top right corner",
+				"bottom-left": "Bottom left corner",
+				"bottom-right": "Bottom right corner",
+				hidden: "Hidden",
+			},
+			hiddenNote: "No switcher is drawn. Views change by swiping, by rotation, or from the card's settings.",
+			style: "Style",
+			styleDesc: "How the choices are drawn. A drop-down suits many views on a narrow card.",
+			styles: {
+				tabs: "Tabs",
+				dropdown: "Drop-down",
+				dots: "Dots",
+				icons: "Icons",
+			},
+			labelStyle: "Tabs show",
+			labelStyleDesc: "What each tab carries.",
+			labels: {
+				label: "Label",
+				icon: "Icon",
+				both: "Icon and label",
+			},
+			reveal: "Show the switcher",
+			revealDesc: "A switcher in a corner can stay out of the way until the pointer is over the card.",
+			reveals: {
+				always: "Always",
+				hover: "On hover",
+			},
+			rotate: "Rotate every (seconds)",
+			rotateDesc:
+				"Move to the next view on a timer, pausing while the card is pointed at or being typed into. Empty is off; at least 3 seconds.",
+			rotateOff: "Off",
+			swipe: "Swipe to switch",
+			swipeDesc: "On a touch screen, a sideways swipe across the card moves to the next or previous view.",
+			remember: "Remember the view on show",
+			rememberDesc:
+				"Start on the last view shown, after a restart too. Every switch is then saved, which a synced vault receives as a change.",
+			narrow: "On a narrow board",
+			narrowDesc: "Keep the switcher, or show every view as a card of its own, one under another.",
+			narrows: {
+				switcher: "Keep the switcher",
+				split: "One card per view",
+			},
+		},
+	},
+
 	fileMenu: {
 		newNote: "New note",
 		newFolder: "New folder",
@@ -4944,7 +5033,6 @@ export const en = {
 			editingFoot: "esc or ctrl+enter to finish · saved as you type",
 			edit: "Edit",
 			notFound: (path: string) => `Not found: ${path}`,
-			switchView: "Switch to the other view",
 			due: "DUE",
 			task: "TASK",
 			tasksFoot: "space ticks · enter opens · f filter · s sort · b board · + add",

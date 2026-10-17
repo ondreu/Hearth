@@ -11,7 +11,9 @@ import {
 	framesEmbedImage,
 } from "../src/embedimage";
 import { isImagePath } from "../src/filetypes";
-import type { EmbedImageFit, EmbedImagePosition, EmbedView } from "../src/types";
+import type { DashboardCard, EmbedImageFit, EmbedImagePosition } from "../src/types";
+
+type EmbedView = Pick<DashboardCard, "target" | "imageFit" | "imagePosition" | "scale">;
 
 /**
  * The embed card's picture formatting: which fit mode and anchor point a view
