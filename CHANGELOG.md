@@ -210,8 +210,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 - Dragging a checkbox task to another column on a Tasks Kanban board no longer
   drops the space after its checkbox (`- [x]Item`), which turned the task into
-  a plain list item. Checkboxes inside code blocks are no longer picked up as
-  tasks (#400).
+  a plain list item. Checkboxes and `##` headings inside code blocks are no
+  longer picked up as tasks or board columns, and a moved card no longer lands
+  inside a code block (#400).
 - Several Operon cards added from the same template can now be configured
   independently; before, changing the filters of one changed them on all of
   them until Obsidian was restarted (#394).

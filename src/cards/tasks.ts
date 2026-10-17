@@ -16,6 +16,12 @@ import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
 import { t } from "../i18n";
+import {
+	insertCardBlock,
+	KANBAN_CARD_RE,
+	type KanbanColumn,
+	parseKanbanColumns,
+} from "../kanbanboard";
 import { openFile, openLink, targetLeaf } from "../opener";
 import { FilePickerModal } from "../pickers";
 import {
@@ -107,21 +113,6 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * auto-detect a board when none is configured and to confirm a chosen file is
  * actually a Kanban board. */
 const KANBAN_FRONTMATTER_KEY = "kanban-plugin";
-
-
-/** Marks the start of the Kanban plugin's trailing settings block
- * (`%% kanban:settings`). Everything from this line to end-of-file is board
- * metadata, not cards, so parsing and card insertion stop here. */
-const KANBAN_SETTINGS_RE = /^\s*%%\s*kanban:settings/i;
-
-
-/** A Kanban board column: its `##` heading text and the line range
- * `[headingLine, endLine)` (endLine exclusive) that holds its cards. */
-interface KanbanColumn {
-	heading: string;
-	headingLine: number;
-	endLine: number;
-}
 
 
 // ---- Tasks ---------------------------------------------------------------
@@ -3660,45 +3651,6 @@ function resolveKanbanFile(app: App, cfg: TasksConfig): TFile | null {
 }
 
 
-/** Parse a Kanban board's `##` headings into ordered columns with the line
- * range that holds each column's cards. Frontmatter and the trailing
- * `%% kanban:settings` block are excluded. `footerStart` marks where the
- * settings block begins (or EOF), so callers never write past the cards. */
-function parseKanbanColumns(lines: string[]): { columns: KanbanColumn[]; footerStart: number } {
-	let footerStart = lines.length;
-	for (let i = 0; i < lines.length; i++) {
-		if (KANBAN_SETTINGS_RE.test(lines[i])) {
-			footerStart = i;
-			break;
-		}
-	}
-	// Skip YAML frontmatter so a `---` fence isn't mistaken for content.
-	let start = 0;
-	if (lines[0]?.trim() === "---") {
-		for (let i = 1; i < footerStart; i++) {
-			if (lines[i].trim() === "---") {
-				start = i + 1;
-				break;
-			}
-		}
-	}
-	const columns: KanbanColumn[] = [];
-	for (let i = start; i < footerStart; i++) {
-		const m = /^##\s+(.+?)\s*$/.exec(lines[i]);
-		if (!m) continue;
-		if (columns.length) columns[columns.length - 1].endLine = i;
-		columns.push({ heading: m[1].trim(), headingLine: i, endLine: footerStart });
-	}
-	return { columns, footerStart };
-}
-
-
-/** The checkbox-item pattern shared by the Kanban parser (a card is a plain
- * Markdown task item, same as a checkbox task). The status char may be any
- * single character so custom statuses (`[/]`, `[-]`, …) are handled too. */
-const KANBAN_CARD_RE = /^\s*[-*+]\s\[(.)\]\s*(.*)$/;
-
-
 /** The extent of a Kanban card starting at `cardLine`: its item line plus any
  * deeper-indented, non-blank continuation lines (the card's description). `end`
  * is the exclusive line after the block; `descLines` is the continuation text
@@ -3852,13 +3804,14 @@ async function collectKanbanTasks(
 	if (!file) return { hits: [], columns: [], file: null };
 	const content = await view.app.vault.cachedRead(file);
 	const lines = content.split("\n");
-	const { columns } = parseKanbanColumns(lines);
+	const { columns, fenced } = parseKanbanColumns(lines);
 	const extended = cfg.kanbanExtended ?? false;
 	const hits: TaskHit[] = [];
 	for (const col of columns) {
 		let i = col.headingLine + 1;
 		while (i < col.endLine) {
-			const m = KANBAN_CARD_RE.exec(lines[i]);
+			// A checkbox inside a code block is an example, not a card (#400).
+			const m = fenced[i] ? null : KANBAN_CARD_RE.exec(lines[i]);
 			if (!m) {
 				i++;
 				continue;
@@ -4857,28 +4810,6 @@ async function writeMetadataFrontmatter(view: HomeView, file: TFile, meta: TaskM
 function extractMetadataTail(text: string): string {
 	const idx = text.search(new RegExp(`[${TASK_EMOJI_CLASS}]`, "u"));
 	return idx >= 0 ? text.slice(idx).trim() : "";
-}
-
-
-/** Insert a card block after the last existing card in the named column (or
- * right after the heading when the column is empty), keeping a blank line
- * before whatever follows. Mutates `lines`. Returns false if the column heading
- * isn't found. */
-function insertCardBlock(lines: string[], heading: string, block: string[]): boolean {
-	const { columns } = parseKanbanColumns(lines);
-	const target = columns.find((c) => c.heading === heading);
-	if (!target) return false;
-	let insertAt = target.headingLine + 1;
-	for (let i = target.headingLine + 1; i < target.endLine; i++) {
-		if (KANBAN_CARD_RE.test(lines[i])) insertAt = i + 1;
-	}
-	// When the column is empty, skip a blank line right under the heading so the
-	// card sits directly below it rather than after the gap.
-	if (insertAt === target.headingLine + 1 && lines[insertAt]?.trim() === "") insertAt++;
-	const toInsert = [...block];
-	if (lines[insertAt] != null && lines[insertAt].trim() !== "") toInsert.push("");
-	lines.splice(insertAt, 0, ...toInsert);
-	return true;
 }
 
 
