@@ -1189,6 +1189,12 @@ export const fr: Translations = {
 				"Appliquer les modifications de tableaux faites sur un autre appareil dès que la synchro " +
 				"les apporte, au lieu d'attendre le prochain redémarrage d'Obsidian. Laissez activé sauf " +
 				"si un tableau qui se recharge en cours de session vous gêne.",
+			deviceLocalState: "Garder l'état d'affichage sur cet appareil",
+			deviceLocalStateDesc:
+				"Mémoriser le tableau actif et la position de défilement sur cet appareil " +
+				"uniquement : changer de tableau ne modifie plus data.json et le défilement " +
+				"ne réécrit plus workspace.json. Utile quand le coffre est synchronisé avec Git. " +
+				"Les positions de défilement sont alors oubliées au redémarrage d'Obsidian.",
 			legacyTag: "Ancien",
 			mobileSearchOnly: "Mode mobile (recherche seule)",
 			mobileSearchOnlyDesc:

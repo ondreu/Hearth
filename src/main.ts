@@ -28,6 +28,7 @@ import { BoardRefreshTracker } from "./boardrefresh";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
 import { installUiDesign } from "./uidesign";
+import { ACTIVE_DASHBOARD_KEY, settingsForDisk, validLocalDashboardId } from "./devicestate";
 import {
 	adoptSettings,
 	isPluginDataPath,
@@ -90,6 +91,11 @@ export default class HearthPlugin extends Plugin {
 	/** The exact text last written to (or read from) `data.json`, so a change on
 	 * disk can be dismissed with a string compare before anything is parsed. */
 	private lastSeenSettingsJson: string | null = null;
+
+	/** The active dashboard `data.json` holds on disk. With `deviceLocalState`
+	 * on, it is what every save writes back, so switching boards leaves the
+	 * file alone (#392). See src/devicestate.ts. */
+	private diskActiveDashboardId = "";
 
 	/** Debounced adoption of settings written by something other than this
 	 * window. resetTimer=true so a sync landing a config folder file by file
@@ -314,8 +320,16 @@ export default class HearthPlugin extends Plugin {
 	setActiveDashboard(id: string) {
 		if (this.settings.activeDashboardId === id) return;
 		this.settings.activeDashboardId = id;
-		void this.saveData(this.settings);
+		// Device-local: the switch is all that changed, and it doesn't belong in
+		// data.json, so there is nothing to write there.
+		if (this.settings.deviceLocalState) this.rememberActiveDashboardLocally();
+		else void this.saveData(this.settings);
 		this.refreshViews();
+	}
+
+	/** Record this device's active dashboard in the vault's localStorage. */
+	private rememberActiveDashboardLocally() {
+		this.app.saveLocalStorage(ACTIVE_DASHBOARD_KEY, this.settings.activeDashboardId);
 	}
 
 	private cycleDashboard(direction: 1 | -1) {
@@ -486,6 +500,14 @@ export default class HearthPlugin extends Plugin {
 		// deprecated field. Persist immediately when that happens.
 		const { settings, migrated } = hydrateSettings(raw);
 		this.settings = settings;
+		this.diskActiveDashboardId = settings.activeDashboardId;
+		if (settings.deviceLocalState) {
+			const local = validLocalDashboardId(
+				settings,
+				this.app.loadLocalStorage(ACTIVE_DASHBOARD_KEY),
+			);
+			if (local) settings.activeDashboardId = local;
+		}
 		if (migrated) await this.saveSettings();
 	}
 
@@ -499,6 +521,15 @@ export default class HearthPlugin extends Plugin {
 	 * simply falls through to that comparison, which reaches the same answer.
 	 */
 	override async saveData(data: unknown): Promise<void> {
+		// With device-local state on, the active dashboard stays out of the file:
+		// it goes to localStorage, and data.json keeps the board it already holds.
+		if (data === this.settings) {
+			if (this.settings.deviceLocalState) {
+				this.rememberActiveDashboardLocally();
+				data = settingsForDisk(this.settings, this.diskActiveDashboardId);
+			}
+			this.diskActiveDashboardId = (data as HomeSettings).activeDashboardId;
+		}
 		await super.saveData(data);
 		this.lastSeenSettingsJson = JSON.stringify(data, null, 2);
 	}
@@ -631,12 +662,20 @@ export default class HearthPlugin extends Plugin {
 		if (!looksLikeSavedSettings(raw)) return;
 
 		const { settings: next } = hydrateSettings(raw);
+		this.diskActiveDashboardId = next.activeDashboardId;
+		// Device-local: another device's board choice is not ours to follow, so
+		// keep the board on screen (as long as the synced settings still have it).
+		const local = next.deviceLocalState
+			? validLocalDashboardId(next, this.settings.activeDashboardId)
+			: null;
+		if (local) next.activeDashboardId = local;
 		if (sameSettings(this.settings, next)) return;
 
 		adoptSettings(this.settings, next);
 		// activeDashboardId is one field shared with every other device, so a
 		// synced board choice would otherwise drag a phone off its mobile board.
-		this.applyMobileDefaultDashboard();
+		// Device-local state already keeps it out of the sync.
+		if (!next.deviceLocalState) this.applyMobileDefaultDashboard();
 		this.refreshBrandIcons();
 		this.refreshViews();
 	}

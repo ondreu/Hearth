@@ -196,6 +196,8 @@ export class HomeView extends ItemView {
 	 */
 	getState(): Record<string, unknown> {
 		const base = super.getState();
+		// Device-local state (#392): offsets stay in memory, out of workspace.json.
+		if (this.plugin.settings.deviceLocalState) return base;
 		const memory = pruneScrollMemory(
 			this.scrollMemory,
 			this.plugin.settings.dashboards.map((d) => d.id),
@@ -214,7 +216,13 @@ export class HomeView extends ItemView {
 	 */
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
 		await super.setState(state, result);
-		this.scrollMemory = readScrollMemory(state);
+		// With device-local state on, getState never hands the offsets out, so a
+		// state without them is this tab's own coming back (history, a layout
+		// reload) — not a reason to forget where it was.
+		const persisted = readScrollMemory(state);
+		if (!this.plugin.settings.deviceLocalState || Object.keys(persisted).length > 0) {
+			this.scrollMemory = persisted;
+		}
 		// State can land either side of the first render, depending on how the
 		// leaf was created. If the board is already built, move it now; if it
 		// isn't, the render coming up will read the memory itself.
@@ -369,7 +377,7 @@ export class HomeView extends ItemView {
 		);
 		if (next === this.scrollMemory) return;
 		this.scrollMemory = next;
-		void this.app.workspace.requestSaveLayout();
+		if (!this.plugin.settings.deviceLocalState) void this.app.workspace.requestSaveLayout();
 	}
 
 	/** Stop and forget any restore in flight — the scroller is the user's now. */

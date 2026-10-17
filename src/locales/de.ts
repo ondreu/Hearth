@@ -1240,6 +1240,12 @@ export const de: Translations = {
 				"Wende Dashboard-Änderungen von einem anderen Gerät an, sobald der Sync sie " +
 				"hereinbringt, statt erst beim nächsten Obsidian-Neustart. Lasse dies an, außer " +
 				"wenn ein Board, das sich mitten in der Sitzung neu lädt, dich stört.",
+			deviceLocalState: "Ansichtszustand auf diesem Gerät behalten",
+			deviceLocalStateDesc:
+				"Aktives Dashboard und Scrollposition nur auf diesem Gerät merken, damit " +
+				"ein Board-Wechsel data.json nicht ändert und Scrollen workspace.json nicht " +
+				"neu schreibt. Nützlich, wenn der Vault per Git synchronisiert wird. " +
+				"Scrollpositionen gehen dann beim Neustart von Obsidian verloren.",
 			legacyTag: "Veraltet",
 			mobileSearchOnly: "Mobilmodus (nur Suche)",
 			mobileSearchOnlyDesc:

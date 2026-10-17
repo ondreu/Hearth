@@ -1485,6 +1485,16 @@ export class HomeSettingTab extends PluginSettingTab {
 					this.save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName(t().settings.behaviour.deviceLocalState)
+			.setDesc(t().settings.behaviour.deviceLocalStateDesc)
+			.addToggle((tg) =>
+				tg.setValue(s.deviceLocalState).onChange(async (v) => {
+					s.deviceLocalState = v;
+					this.save();
+				}),
+			);
 	}
 
 	// ---- Opening notes ---------------------------------------------------

@@ -1231,6 +1231,12 @@ export const en = {
 				"Apply dashboard changes made on another device as soon as sync brings " +
 				"them in, instead of at the next Obsidian restart. Leave this on unless " +
 				"a board reloading mid-session gets in your way.",
+			deviceLocalState: "Keep view state on this device",
+			deviceLocalStateDesc:
+				"Remember the active dashboard and scroll position on this device only, " +
+				"so switching boards doesn't change data.json and scrolling doesn't " +
+				"rewrite workspace.json. Useful when the vault is synced with Git. " +
+				"Scroll positions are then forgotten when Obsidian restarts.",
 			legacyTag: "Legacy",
 			mobileSearchOnly: "Mobile mode (search only)",
 			mobileSearchOnlyDesc:

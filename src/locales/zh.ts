@@ -1124,6 +1124,11 @@ export const zh: Translations = {
 			liveSettingsSyncDesc:
 				"同步送达其他设备上所做的面板更改后立即应用，而不必等到下次重启 " +
 				"Obsidian。除非面板在使用过程中重新加载会造成困扰，否则请保持开启。",
+			deviceLocalState: "仅在本设备保存视图状态",
+			deviceLocalStateDesc:
+				"仅在本设备上记住当前面板和滚动位置，切换面板不会修改 data.json，" +
+				"滚动也不会重写 workspace.json。适合用 Git 同步仓库时使用。" +
+				"开启后，滚动位置会在 Obsidian 重启时丢失。",
 			legacyTag: "旧版",
 			mobileSearchOnly: "移动模式（仅搜索）",
 			mobileSearchOnlyDesc:

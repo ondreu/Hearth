@@ -278,6 +278,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		focusSearchOnOpen: s.focusSearchOnOpen,
 		liveRefresh: s.liveRefresh,
 		liveSettingsSync: s.liveSettingsSync,
+		deviceLocalState: s.deviceLocalState,
 		mobileSearchOnly: s.mobileSearchOnly,
 		stackOnNarrow: s.stackOnNarrow,
 		narrowWidth: s.narrowWidth,
@@ -2290,6 +2291,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	if (typeof data.liveRefresh === "boolean") s.liveRefresh = data.liveRefresh;
 	if (typeof data.liveSettingsSync === "boolean")
 		s.liveSettingsSync = data.liveSettingsSync;
+	if (typeof data.deviceLocalState === "boolean")
+		s.deviceLocalState = data.deviceLocalState;
 	if (typeof data.mobileSearchOnly === "boolean")
 		s.mobileSearchOnly = data.mobileSearchOnly;
 	if (typeof data.stackOnNarrow === "boolean")

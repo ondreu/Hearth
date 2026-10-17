@@ -2578,6 +2578,12 @@ export interface HomeSettings {
 	 * copy it read at startup and writes that stale copy back on its next save.
 	 * See `src/settingssync.ts`. */
 	liveSettingsSync: boolean;
+	/** Keep what this device is looking at out of synced files (#392): the
+	 * active dashboard is remembered in the vault's localStorage instead of
+	 * `data.json`, and scroll offsets stay in memory instead of
+	 * `workspace.json`. Off by default, which keeps both where they always
+	 * were. See `src/devicestate.ts`. */
+	deviceLocalState: boolean;
 	/** On mobile, show only the search field and hide the dashboard. Has no
 	 * effect on desktop, where the full dashboard is always shown. */
 	mobileSearchOnly: boolean;
@@ -2907,6 +2913,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	focusSearchOnOpen: false,
 	liveRefresh: false,
 	liveSettingsSync: true,
+	deviceLocalState: false,
 	mobileSearchOnly: false,
 	showMobileActionBar: true,
 	// Backfilled by migrateSettings so a fresh install gets the defaults below

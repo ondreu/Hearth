@@ -168,6 +168,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     city names. The calculator reads `en` as "to" (`100 euros en dollars`,
     `10 km en miles`), `20 % de 150`, and `binaire`, `décimal` and
     `hexadécimal`. The search tips show French examples.
+- **Keep view state on this device** (#392). A new switch under
+  **Settings → Hearth → Behaviour** for vaults synced with Git: the active
+  dashboard is remembered on this device instead of in `data.json`, so
+  switching boards no longer marks the plugin's settings as modified or drags
+  another device's board along on the next sync, and scroll positions stay in
+  memory instead of rewriting `workspace.json` on every scroll (they are then
+  forgotten when Obsidian restarts). Off by default, which keeps today's
+  behaviour.
 
 ### Changed
 
