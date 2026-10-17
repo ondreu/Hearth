@@ -253,6 +253,20 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 
 	// Not every category needs to be crowded, but an empty one is a rail entry
 	// that leads to a blank page.
+	// The card editor mutates a card's nested config in place, so a template
+	// that hands out the same object twice ties those cards together (#394).
+	it("builds a fresh nested config on every call", () => {
+		for (const tpl of CARD_TEMPLATES) {
+			const a = tpl.build() as unknown as Record<string, unknown>;
+			const b = tpl.build() as unknown as Record<string, unknown>;
+			for (const [key, value] of Object.entries(a)) {
+				if (value && typeof value === "object") {
+					expect(b[key], `${tpl.id}.${key}`).not.toBe(value);
+				}
+			}
+		}
+	});
+
 	it("gives every category at least one template", () => {
 		for (const category of CARD_CATEGORIES) {
 			expect(

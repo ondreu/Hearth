@@ -1244,7 +1244,9 @@ function template(id: string, name: string, icon: string, cfg: OperonConfig, w: 
 		id,
 		name,
 		icon,
-		build: () => ({ kind: "operon" as const, title: name, operon: cfg, w, h }),
+		// A fresh config per card: the editor mutates it in place, so a shared
+		// object would tie every card built from this template together (#394).
+		build: () => ({ kind: "operon" as const, title: name, operon: { ...cfg }, w, h }),
 		// Operon itself runs on mobile, but its developer API does not, so the
 		// accessor being present is not enough: on a phone the requirement can
 		// never be met, and the picker says so rather than pretending the card

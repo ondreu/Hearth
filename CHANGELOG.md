@@ -208,6 +208,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- Several Operon cards added from the same template can now be configured
+  independently; before, changing the filters of one changed them on all of
+  them until Obsidian was restarted (#394).
 - **Phone fixes from a mobile review** (#370):
   - Card and dashboard settings no longer let the footer sit over the rows in
     the middle of the list; on a phone the footer is pinned to the bottom.
