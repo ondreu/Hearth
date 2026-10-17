@@ -208,6 +208,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- In an embedded note, parts of the note that sit at a fixed spot inside it —
+  such as the icon in a Tasks query's filter box — now scroll with the rest of
+  the note instead of staying where they were (#402).
 - Dragging a checkbox task to another column on a Tasks Kanban board no longer
   drops the space after its checkbox (`- [x]Item`), which turned the task into
   a plain list item. Checkboxes and `##` headings inside code blocks are no

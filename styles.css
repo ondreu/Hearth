@@ -1968,8 +1968,16 @@ button.hearth-tips-example:hover {
  * theme's `.markdown-rendered` overflow can't stack a second vertical scrollbar
  * next to it. Fills the body and scrolls vertically only — horizontal overflow
  * is clipped so text wraps (code blocks scroll within themselves via Obsidian's
- * own `pre` styling). */
+ * own `pre` styling).
+ *
+ * `position: relative` makes the host the containing block for anything the
+ * embedded content positions absolutely. Without it that block is the card
+ * (itself absolutely positioned on the grid), which sits outside this scroll
+ * container — so such an element stays put while the rest scrolls past it,
+ * e.g. the icon in a Tasks query's filter box (#402). Reading view's own
+ * scroller is positioned for the same reason. */
 .hearth-embed {
+	position: relative;
 	overflow-y: auto;
 	overflow-x: hidden;
 	height: 100%;
@@ -3486,6 +3494,9 @@ button.hearth-kofi-btn:focus-visible {
 }
 
 .hearth-jot-preview {
+	/* The scroll container is the containing block for absolutely positioned
+	 * content, as on .hearth-embed (#402). */
+	position: relative;
 	height: 100%;
 	overflow: auto;
 	cursor: text;
