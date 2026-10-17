@@ -267,10 +267,15 @@ async function openGraph(view: HomeView, options: Record<string, unknown>): Prom
 		new Notice(t().cards.bookmarks.needsGraph);
 		return;
 	}
-	// The graph view reads its saved settings from `state.options` — the shape
-	// the core Bookmarks plugin hands it — not from the options object itself
-	// (#395). Passed bare, every bookmark opened the same, unfiltered graph.
-	await targetLeaf(view, "card").setViewState({ type: "graph", state: { options }, active: true });
+	const leaf = targetLeaf(view, "card");
+	await leaf.setViewState({ type: "graph", active: true });
+	// The graph view ignores its view state: on load it takes the graph
+	// plugin's global options, so whatever graph was opened last (#395). The
+	// core Bookmarks plugin applies a bookmark's options to the open view's
+	// data engine instead, and so must we. Private API, hence the duck check.
+	const engine = (leaf.view as { dataEngine?: { setOptions?: (o: Record<string, unknown>) => void } })
+		.dataEngine;
+	if (typeof engine?.setOptions === "function") engine.setOptions(options);
 }
 
 
