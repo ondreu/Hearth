@@ -2212,7 +2212,11 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.searchInstantAnswers = data.searchInstantAnswers;
 	const hiddenInstant = sanitizeInstantFeatures(data.hiddenInstantAnswers);
 	if (hiddenInstant) s.hiddenInstantAnswers = hiddenInstant;
-	if (data.searchEngine === "builtin" || data.searchEngine === "omnisearch") {
+	if (
+		data.searchEngine === "builtin" ||
+		data.searchEngine === "omnisearch" ||
+		data.searchEngine === "quickswitcher"
+	) {
 		s.searchEngine = data.searchEngine;
 	}
 	if (isWebSearchEngineId(data.webSearchEngine)) s.webSearchEngine = data.webSearchEngine;

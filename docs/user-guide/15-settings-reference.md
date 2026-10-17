@@ -123,7 +123,7 @@ Two sections: Search bar, Search filters.
 | *Instant answers* | On | Answer the query itself above the notes — sums, currencies, stocks, weather, Wikipedia, chance, dates and the time elsewhere. One toggle per answer under it; boards and Search bar cards can switch more off. See [chapter 4](04-search.md#instant-answers) |
 | *Search tips* | — | Opens the dialog listing everything the search bar understands |
 | *Search note contents* | On | Also match text inside note bodies, not just names, tags and properties. Body matches appear after name matches with a snippet |
-| *Search engine* | Hearth (built-in) | **Hearth (built-in)** or **Omnisearch**. Omnisearch requires that community plugin to be installed and enabled |
+| *Search engine* | Hearth (built-in) | **Hearth (built-in)**, **Omnisearch** or **Quick switcher** (matches like Obsidian's Quick switcher: files only, aliases included). Omnisearch requires that community plugin to be installed and enabled |
 | *Show "New note" button* | On | Show the action button beside the search field |
 | *Search-bar button* | New note | What the button does: **New note** or **Search online** |
 | *Online search engine* | DuckDuckGo | Which engine the *Search online* button opens. Also available: DuckDuckGo without AI, Brave, Kagi, Google, Mojeek, Ecosia, Qwant. The arrow beside the button searches with any of the others for one query without changing this |

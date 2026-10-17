@@ -930,9 +930,11 @@ export const zh: Translations = {
 				"名称匹配之后。",
 			searchEngine: "搜索引擎",
 			searchEngineDesc:
-				"为搜索栏提供支持的引擎。Omnisearch 需要安装并启用 Omnisearch 社区插件。",
+				"为搜索栏提供支持的引擎。快速切换会像 Obsidian 的快速切换一样匹配：仅文件，包含别名。" +
+				"Omnisearch 需要安装并启用 Omnisearch 社区插件。",
 			searchEngineBuiltin: "Hearth（内置）",
 			searchEngineOmnisearch: "Omnisearch",
+			searchEngineQuickSwitcher: "快速切换",
 			omnisearchMissing:
 				"Omnisearch 未安装或未启用。请先安装并启用，然后再次选择。",
 			omnisearchInstallLink: "在社区插件中打开 Omnisearch",

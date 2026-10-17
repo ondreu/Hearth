@@ -1015,10 +1015,13 @@ export const de: Translations = {
 				"Eigenschaften. Inhaltstreffer erscheinen nach Namentreffern mit einem Ausschnitt.",
 			searchEngine: "Suchfunktion",
 			searchEngineDesc:
-				"Welche Engine die Suchleiste antreibt. Omnisearch erfordert, dass das " +
-				"Omnisearch-Community-Plugin installiert und aktiviert ist.",
+				"Welche Engine die Suchleiste antreibt. Schnellwechsler sucht wie der " +
+				"Schnellwechsler von Obsidian: nur Dateien, Aliasse inklusive. " +
+				"Omnisearch erfordert, dass das Omnisearch-Community-Plugin " +
+				"installiert und aktiviert ist.",
 			searchEngineBuiltin: "Hearth (integriert)",
 			searchEngineOmnisearch: "Omnisearch",
+			searchEngineQuickSwitcher: "Schnellwechsler",
 			omnisearchMissing:
 				"Omnisearch ist nicht installiert oder aktiviert. Installiere und aktiviere es, " +
 				"und wähle es dann erneut aus.",

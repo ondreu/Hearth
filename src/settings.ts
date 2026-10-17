@@ -858,6 +858,7 @@ export class HomeSettingTab extends PluginSettingTab {
 			.addDropdown((d) => {
 				d.addOption("builtin", t().settings.appearance.searchEngineBuiltin)
 					.addOption("omnisearch", t().settings.appearance.searchEngineOmnisearch)
+					.addOption("quickswitcher", t().settings.appearance.searchEngineQuickSwitcher)
 					.setValue(s.searchEngine)
 					.onChange(async (v) => {
 						const engine = v as HomeSettings["searchEngine"];

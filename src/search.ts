@@ -7,6 +7,7 @@ import {
 	mergeRanked,
 	QueryFilter,
 	QueryHit,
+	queryMode,
 	runQuery,
 	searchFileContents,
 	slotsAboveBody,
@@ -15,6 +16,7 @@ import { InstantAnswers, type InstantRow } from "./instantview";
 import { type InstantFeature, instantOnly } from "./instant";
 import { markSearchTipsSeen, SearchTipsModal, searchTipsSeen } from "./searchtips";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
+import { searchLikeQuickSwitcher } from "./quickswitcher";
 import { openFile as openInLeaf } from "./opener";
 import { renderHighlighted } from "./ui";
 import { t } from "./i18n";
@@ -367,6 +369,21 @@ export class SearchSection {
 			isOmnisearchAvailable(this.view.app)
 		) {
 			this.runOmnisearch(query, filter);
+			return;
+		}
+
+		// Quick switcher mode: files and aliases matched the way Obsidian's own
+		// switcher does, without body search. Like Omnisearch, it leaves the
+		// folders chip and tag/property syntax to the built-in engine.
+		if (
+			this.view.plugin.settings.searchEngine === "quickswitcher" &&
+			query &&
+			filter.includeFiles &&
+			queryMode(query) === "name"
+		) {
+			this.renderFileRows(
+				searchLikeQuickSwitcher(this.view.app, query, { filter, limit: MAX_RESULTS }),
+			);
 			return;
 		}
 

@@ -225,6 +225,23 @@ falls back to its built-in engine rather than showing you an empty search.
 Tag, frontmatter and command modes are Hearth's own and continue to work the
 same way; it is the plain-text query that is handed to Omnisearch.
 
+## Matching like the Quick switcher
+
+Set *Search engine* to **Quick switcher** to have the search bar answer the way
+Obsidian's own Quick switcher (Ctrl/Cmd+O) does:
+
+- only files are listed — folders never are;
+- the query is fuzzy-matched against each file's path, and against the
+  aliases in a note's frontmatter; when an alias matches better than the path,
+  the result shows that alias under the note's name;
+- results are ordered purely by that match score;
+- which file types appear follows the Quick switcher's own *Show attachments*
+  and *Show all file types* options.
+
+Note bodies are not searched in this mode, even with body search switched on.
+Tag, frontmatter and command modes, and the *Folders* chip, keep using Hearth's
+own engine.
+
 ## File icons in results
 
 If you use the [Iconic](https://obsidian.md/plugins?id=iconic) or

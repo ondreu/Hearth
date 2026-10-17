@@ -2522,10 +2522,11 @@ export interface HomeSettings {
 	 * in instant.ts). A board and a search-bar card can only switch more off,
 	 * so an imported board can't turn on an answer the vault has off. */
 	hiddenInstantAnswers: string[];
-	/** Which engine powers the search bar: Hearth's built-in vault search, or the
+	/** Which engine powers the search bar: Hearth's built-in vault search, the
 	 * Omnisearch community plugin (only usable when Omnisearch is installed and
-	 * enabled — Hearth falls back to the built-in engine otherwise). */
-	searchEngine: "builtin" | "omnisearch";
+	 * enabled — Hearth falls back to the built-in engine otherwise), or matching
+	 * the way Obsidian's own Quick switcher does (see quickswitcher.ts). */
+	searchEngine: "builtin" | "omnisearch" | "quickswitcher";
 	/** Which web search engine the “Search online” button opens. The dropdown
 	 * beside the button can search elsewhere for one query without changing
 	 * this. See {@link WebSearchEngineId}. */

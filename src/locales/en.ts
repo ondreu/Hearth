@@ -1004,10 +1004,13 @@ export const en = {
 				"properties. Body matches appear after name matches with a snippet.",
 			searchEngine: "Search engine",
 			searchEngineDesc:
-				"Which engine powers the search bar. Omnisearch requires the " +
-				"Omnisearch community plugin to be installed and enabled.",
+				"Which engine powers the search bar. Quick switcher matches the way " +
+				"Obsidian’s Quick switcher does: files only, aliases included. " +
+				"Omnisearch requires the Omnisearch community plugin to be installed " +
+				"and enabled.",
 			searchEngineBuiltin: "Hearth (built-in)",
 			searchEngineOmnisearch: "Omnisearch",
+			searchEngineQuickSwitcher: "Quick switcher",
 			omnisearchMissing:
 				"Omnisearch isn’t installed or enabled. Install and enable it, " +
 				"then select it again.",

@@ -967,10 +967,13 @@ export const fr: Translations = {
 				"propriétés. Ces résultats apparaissent après les correspondances de nom, avec un extrait.",
 			searchEngine: "Moteur de recherche",
 			searchEngineDesc:
-				"Le moteur qui alimente la barre de recherche. Omnisearch nécessite que le " +
-				"module complémentaire Omnisearch soit installé et activé.",
+				"Le moteur qui alimente la barre de recherche. Le sélecteur rapide cherche " +
+				"comme celui d’Obsidian : fichiers uniquement, alias compris. " +
+				"Omnisearch nécessite que le module complémentaire Omnisearch soit " +
+				"installé et activé.",
 			searchEngineBuiltin: "Hearth (intégré)",
 			searchEngineOmnisearch: "Omnisearch",
+			searchEngineQuickSwitcher: "Sélecteur rapide",
 			omnisearchMissing:
 				"Omnisearch n'est pas installé ou activé. Installez-le et activez-le, " +
 				"puis sélectionnez-le à nouveau.",

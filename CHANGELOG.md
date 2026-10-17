@@ -176,6 +176,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   memory instead of rewriting `workspace.json` on every scroll (they are then
   forgotten when Obsidian restarts). Off by default, which keeps today's
   behaviour.
+- **Quick switcher search engine** (#393). *Search engine* under
+  **Settings → Hearth → Search** gains a third choice beside Hearth and
+  Omnisearch: **Quick switcher**, which answers plain queries the way
+  Obsidian's own Quick switcher does — files only (no folders), one fuzzy
+  match on the path, and frontmatter aliases matched too, with a matching
+  alias shown under the note's name. Which file types appear follows the
+  Quick switcher's own *Show attachments* and *Show all file types* options.
+  Tag, property and command syntax and the Folders chip keep using Hearth's
+  engine; note bodies are not searched in this mode.
 
 ### Changed
 
