@@ -50,6 +50,58 @@ export function stripTaskMetadata(text: string): string {
 const CHECKBOX_LINE_RE = /^\s*[-*+]\s\[(.)\]\s*(.*)$/;
 
 
+/** The checkbox marker at the start of a list item, capturing the state char so
+ * only that bracket is flipped (never a stray "[x]" elsewhere in the text). The
+ * state char may be any single character to support custom statuses. */
+export const CHECKBOX_MARKER = /^(\s*[-*+]\s\[)(.)(\])/;
+
+
+/** Add or remove the Tasks-plugin done-date marker (✅ YYYY-MM-DD) on a card's
+ * text: any existing ✅ field is dropped, then today's is appended when `done`.
+ * Used to keep the completion date in sync as cards are checked/unchecked. */
+export function withDoneDate(text: string, done: boolean, today: string): string {
+	const re = new RegExp(`✅[^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
+	const base = text.replace(re, "").replace(/\s+/g, " ").trim();
+	return done ? `${base} ✅ ${today}`.trim() : base;
+}
+
+
+/** Rewrite a checkbox line's status symbol, leaving the rest of the line as is.
+ * With `doneDate` (metadata managed) the ✅ date is stamped when `done` and
+ * cleared otherwise. Returns null when the line isn't a checkbox. */
+export function setCheckboxLineSymbol(
+	line: string,
+	symbol: string,
+	doneDate: { done: boolean; today: string } | null,
+): string | null {
+	const match = CHECKBOX_MARKER.exec(line);
+	if (!match) return null;
+	const marker = `${match[1]}${symbol}${match[3]}`;
+	const rest = line.slice(match[0].length);
+	// `rest` keeps the space after `]`, but withDoneDate trims it — put it back,
+	// as `- [x]Item` isn't a task to Obsidian (issue #400).
+	const body = doneDate ? ` ${withDoneDate(rest, doneDate.done, doneDate.today)}` : rest;
+	return `${marker}${body}`.trimEnd();
+}
+
+
+/** For each line, whether it is a fenced code block's fence or content — those
+ * render as text, not as tasks. A fence closes only on the same character, and
+ * only when at least as long as the one that opened the block. */
+export function fencedLineMask(lines: string[]): boolean[] {
+	let fence: string | null = null;
+	return lines.map((text) => {
+		const f = /^\s{0,3}(`{3,}|~{3,})/.exec(text);
+		if (f) {
+			if (fence === null) fence = f[1];
+			else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
+			return true;
+		}
+		return fence !== null;
+	});
+}
+
+
 /** One dated checkbox task, as read from a note line. */
 export interface CheckboxTask {
 	path: string;
@@ -121,15 +173,10 @@ export function parseCheckboxTask(path: string, line: number, text: string): Che
  * code blocks (they render as text, not tasks). */
 export function parseCheckboxTasks(path: string, content: string): CheckboxTask[] {
 	const out: CheckboxTask[] = [];
-	let fence: string | null = null;
-	content.split("\n").forEach((text, i) => {
-		const f = /^\s{0,3}(`{3,}|~{3,})/.exec(text);
-		if (f) {
-			if (fence === null) fence = f[1];
-			else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
-			return;
-		}
-		if (fence !== null) return;
+	const lines = content.split("\n");
+	const fenced = fencedLineMask(lines);
+	lines.forEach((text, i) => {
+		if (fenced[i]) return;
 		const task = parseCheckboxTask(path, i, text);
 		if (task) out.push(task);
 	});

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
 	checkboxTaskEvents,
 	checkboxTaskMeta,
+	fencedLineMask,
 	parseCheckboxTask,
 	parseCheckboxTasks,
 	readEmojiField,
+	setCheckboxLineSymbol,
 	stripTaskMetadata,
 	type CheckboxLayerOptions,
 } from "../src/checkboxtasks";
@@ -113,5 +115,37 @@ describe("shared emoji helpers", () => {
 	it("read one field and strip them all", () => {
 		expect(readEmojiField("Do it 📅 tomorrow ⏫", "📅")).toBe("tomorrow");
 		expect(stripTaskMetadata("Do it 📅 2026-10-01 ⏫")).toBe("Do it");
+	});
+});
+
+
+describe("setCheckboxLineSymbol (issue #400)", () => {
+	const today = "2026-10-17";
+
+	it("keeps the space after the checkbox when stamping the done date", () => {
+		expect(setCheckboxLineSymbol("- [ ] Item", "x", { done: true, today })).toBe("- [x] Item ✅ 2026-10-17");
+	});
+
+	it("keeps the space when the status is set without a done date", () => {
+		expect(setCheckboxLineSymbol("- [x] Item ✅ 2026-10-01", "/", { done: false, today })).toBe("- [/] Item");
+	});
+
+	it("leaves the text untouched in plain mode", () => {
+		expect(setCheckboxLineSymbol("  * [ ] Item  📅 2026-10-20", "x", null)).toBe("  * [x] Item  📅 2026-10-20");
+	});
+
+	it("returns null for a line that isn't a checkbox", () => {
+		expect(setCheckboxLineSymbol("- Item", "x", null)).toBeNull();
+	});
+});
+
+describe("fencedLineMask (issue #400)", () => {
+	it("marks fences and their content, not the lines around them", () => {
+		const lines = ["- [ ] real", "```md", "- [ ] example", "~~~", "```", "- [ ] also real"];
+		expect(fencedLineMask(lines)).toEqual([false, true, true, true, true, false]);
+	});
+
+	it("closes only on a fence at least as long as the opener", () => {
+		expect(fencedLineMask(["````", "```", "- [ ] x", "````", "- [ ] y"])).toEqual([true, true, true, true, false]);
 	});
 });

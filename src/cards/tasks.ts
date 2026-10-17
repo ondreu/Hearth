@@ -57,7 +57,15 @@ import {
 	taskFieldValues,
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
-import { readEmojiField, stripTaskMetadata, TASK_EMOJI_CLASS } from "../checkboxtasks";
+import {
+	CHECKBOX_MARKER,
+	fencedLineMask,
+	readEmojiField,
+	setCheckboxLineSymbol,
+	stripTaskMetadata,
+	TASK_EMOJI_CLASS,
+	withDoneDate,
+} from "../checkboxtasks";
 import {
 	applyInlineTags,
 	filterHashtagLabel,
@@ -3323,15 +3331,9 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 		const content = await view.app.vault.cachedRead(file);
 		const lines = content.split("\n");
 		// Checkboxes inside fenced code blocks are examples, not tasks (issue #400).
-		let fence: string | null = null;
+		const fenced = fencedLineMask(lines);
 		lines.forEach((line, i) => {
-			const f = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
-			if (f) {
-				if (fence === null) fence = f[1];
-				else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
-				return;
-			}
-			if (fence !== null) return;
+			if (fenced[i]) return;
 			const match = /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(line);
 			if (!match) return;
 			const symbol = match[1];
@@ -3993,14 +3995,6 @@ function sameCardLine(lineText: string, hitText: string): boolean {
 }
 
 
-/** Add or remove the Tasks-plugin done-date marker (✅ YYYY-MM-DD) on a card's
- * text: any existing ✅ field is dropped, then today's is appended when `done`.
- * Used to keep the completion date in sync as cards are checked/unchecked. */
-function withDoneDate(text: string, done: boolean, today: string): string {
-	const re = new RegExp(`✅[^\\n\\r${TASK_EMOJI_CLASS}]*`, "gu");
-	const base = text.replace(re, "").replace(/\s+/g, " ").trim();
-	return done ? `${base} ✅ ${today}`.trim() : base;
-}
 
 
 /** Set (or, when null, remove) a Tasks-plugin date field (e.g. 📅/⏳/🛫) on a
@@ -4888,10 +4882,6 @@ function insertCardBlock(lines: string[], heading: string, block: string[]): boo
 }
 
 
-/** The checkbox marker at the start of a list item, capturing the state char so
- * only that bracket is flipped (never a stray "[x]" elsewhere in the text). The
- * state char may be any single character to support custom statuses. */
-const CHECKBOX_MARKER = /^(\s*[-*+]\s\[)(.)(\])/;
 
 
 /** Set a checkbox task's status symbol in place (used when a checkbox card is
@@ -4910,15 +4900,10 @@ async function setCheckboxSymbol(
 	const line = lines[hit.line];
 	const match = line != null ? CHECKBOX_MARKER.exec(line) : null;
 	if (!match) return false;
-	const rest = line.slice(match[0].length);
-	if (stripTaskMetadata(rest) !== stripTaskMetadata(hit.text)) return false;
-	const marker = line
-		.slice(0, match[0].length)
-		.replace(CHECKBOX_MARKER, (_m, pre: string, _state: string, post: string) => `${pre}${symbol}${post}`);
-	// `rest` keeps the space after `]`; withDoneDate trims it, so put it back —
-	// `- [x]Item` isn't a task to Obsidian (issue #400).
-	const body = extended ? ` ${withDoneDate(rest, done, moment().format("YYYY-MM-DD"))}` : rest;
-	lines[hit.line] = `${marker}${body}`.trimEnd();
+	if (stripTaskMetadata(line.slice(match[0].length)) !== stripTaskMetadata(hit.text)) return false;
+	const next = setCheckboxLineSymbol(line, symbol, extended ? { done, today: moment().format("YYYY-MM-DD") } : null);
+	if (next === null) return false;
+	lines[hit.line] = next;
 	await view.app.vault.modify(hit.file, lines.join("\n"));
 	return true;
 }
