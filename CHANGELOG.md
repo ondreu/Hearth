@@ -11,6 +11,92 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [3.5.0]
+
+### Added
+
+- **Cards with several views** (#385). Any card can now hold more views —
+  each a card of any type — and switch between them, so one spot on the board
+  can be a small workspace: projects, tasks, a habit tracker and a calendar
+  behind one frame. Each view keeps its own content and settings; the size,
+  colours and surface are the card's.
+  - **Getting views in.** The card's new **Views** tab adds a fresh card from
+    the picker, or merges in a card already on the board. While arranging,
+    holding a card over the middle of another for a moment and letting go does
+    the same. The tab also reorders views, shows one, moves one back out as a
+    card of its own, deletes one, or splits the card back into separate cards.
+  - **Editing a view.** A row at the top of the Content tab picks which view
+    the tab edits, with each view's label and icon in the switcher.
+  - **The switcher is yours to set up:** in the header or any corner, or
+    hidden; tabs, icons, dots or a drop-down; label, icon or both; always shown
+    or only on hover. Views can also change by swiping on a touch screen, or on
+    a timer that pauses while the card is pointed at or typed into. The view on
+    show resets on restart unless **Remember the view on show** is on, so
+    switching doesn't rewrite a synced vault.
+  - **On a narrow board** the card keeps its switcher, or shows every view as a
+    card of its own, one under another.
+  - Terminal mode draws the view on show; `v` and `V` step through them, and
+    the card menu lists them.
+  - The Embedded note card's **second view** is now its first extra view,
+    converted on load with its file and options, so it draws as it did. Does
+    not round-trip to an earlier version, which shows the card's first file
+    only.
+- **Keep view state on this device** (#392). A new switch under
+  **Settings → Hearth → Behaviour** for vaults synced with Git: the active
+  dashboard is remembered on this device instead of in `data.json`, so
+  switching boards no longer marks the plugin's settings as modified or drags
+  another device's board along on the next sync, and scroll positions stay in
+  memory instead of rewriting `workspace.json` on every scroll (they are then
+  forgotten when Obsidian restarts). Off by default, which keeps today's
+  behaviour.
+- **Quick switcher search engine** (#393). *Search engine* under
+  **Settings → Hearth → Search** gains a third choice beside Hearth and
+  Omnisearch: **Quick switcher**, which answers plain queries the way
+  Obsidian's own Quick switcher does — files only (no folders), one fuzzy
+  match on the path, and frontmatter aliases matched too, with a matching
+  alias shown under the note's name. Which file types appear follows the
+  Quick switcher's own *Show attachments* and *Show all file types* options.
+  Tag, property and command syntax and the Folders chip keep using Hearth's
+  engine; note bodies are not searched in this mode.
+
+### Changed
+
+- **The Commands card is now part of Links / launchpad** (#388). The two cards
+  drew the same buttons; the launchpad's can also be renamed, so commands from
+  one plugin no longer all read as that plugin's cut-off name. Every Commands
+  card becomes a launchpad on first load — same place, title, button sizing,
+  button sizes and positions, icons and commands, each button labelled with
+  the name it showed. Older layout exports, backups and shared boards convert
+  the same way on import. The launchpad gains *Add command*, which picks a
+  command and adds its button in one step, and *Button size* in the fixed
+  style. This does not round-trip: a version before 3.5.0 shows the launchpad.
+- **Right-click a file or folder on a Folder card** for the menu it has in the
+  file explorer (#389): *New note*, *New folder*, *New canvas* and *New base*
+  on a folder; *Open*, *Open in new tab* and *Open to the right* on a file;
+  *Make a copy*, *Rename*, *Delete*, and everything Obsidian and your other
+  plugins add to the explorer's menu — including those that add only there,
+  such as *Search in folder* and Sync's version history. It works on the card's rows and tiles,
+  and in the folder browser — entries and section headings alike — in the
+  dialog and in a tab; on touch, a long press opens it. Terminal mode's
+  Folder card offers the same. A new folder and a rename ask for the name in
+  a small dialog. The explorer's own *Reveal file in navigation* is not
+  offered, as it is not in the explorer. The browser dialog now also follows
+  renames, moves and deletions while it is open, as the tab already did.
+
+### Fixed
+
+- In an embedded note, parts of the note that sit at a fixed spot inside it —
+  such as the icon in a Tasks query's filter box — now scroll with the rest of
+  the note instead of staying where they were (#402).
+- Dragging a checkbox task to another column on a Tasks Kanban board no longer
+  drops the space after its checkbox (`- [x]Item`), which turned the task into
+  a plain list item. Checkboxes and `##` headings inside code blocks are no
+  longer picked up as tasks or board columns, and a moved card no longer lands
+  inside a code block (#400).
+- Several Operon cards added from the same template can now be configured
+  independently; before, changing the filters of one changed them on all of
+  them until Obsidian was restarted (#394).
+
 ## [3.4.0]
 
 ### Added
@@ -58,32 +144,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   board. Pick the card on the board's new **Card** tab (or add one there); a
   pencil on the switcher row opens the card's settings. The board keeps all of
   its cards, so switching back to Cards puts them back where they were.
-- **Cards with several views** (#385). Any card can now hold more views —
-  each a card of any type — and switch between them, so one spot on the board
-  can be a small workspace: projects, tasks, a habit tracker and a calendar
-  behind one frame. Each view keeps its own content and settings; the size,
-  colours and surface are the card's.
-  - **Getting views in.** The card's new **Views** tab adds a fresh card from
-    the picker, or merges in a card already on the board. While arranging,
-    holding a card over the middle of another for a moment and letting go does
-    the same. The tab also reorders views, shows one, moves one back out as a
-    card of its own, deletes one, or splits the card back into separate cards.
-  - **Editing a view.** A row at the top of the Content tab picks which view
-    the tab edits, with each view's label and icon in the switcher.
-  - **The switcher is yours to set up:** in the header or any corner, or
-    hidden; tabs, icons, dots or a drop-down; label, icon or both; always shown
-    or only on hover. Views can also change by swiping on a touch screen, or on
-    a timer that pauses while the card is pointed at or typed into. The view on
-    show resets on restart unless **Remember the view on show** is on, so
-    switching doesn't rewrite a synced vault.
-  - **On a narrow board** the card keeps its switcher, or shows every view as a
-    card of its own, one under another.
-  - Terminal mode draws the view on show; `v` and `V` step through them, and
-    the card menu lists them.
-  - The Embedded note card's **second view** is now its first extra view,
-    converted on load with its file and options, so it draws as it did. Does
-    not round-trip to an earlier version, which shows the card's first file
-    only.
 - **An RSS reader inside Hearth** (#377). Entries open in a reader — a large
   dialog over the board, or a tab of its own — with the card's feeds along the
   top, the entries down the side and the entry at a reading width. Arrow keys
@@ -168,23 +228,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     city names. The calculator reads `en` as "to" (`100 euros en dollars`,
     `10 km en miles`), `20 % de 150`, and `binaire`, `décimal` and
     `hexadécimal`. The search tips show French examples.
-- **Keep view state on this device** (#392). A new switch under
-  **Settings → Hearth → Behaviour** for vaults synced with Git: the active
-  dashboard is remembered on this device instead of in `data.json`, so
-  switching boards no longer marks the plugin's settings as modified or drags
-  another device's board along on the next sync, and scroll positions stay in
-  memory instead of rewriting `workspace.json` on every scroll (they are then
-  forgotten when Obsidian restarts). Off by default, which keeps today's
-  behaviour.
-- **Quick switcher search engine** (#393). *Search engine* under
-  **Settings → Hearth → Search** gains a third choice beside Hearth and
-  Omnisearch: **Quick switcher**, which answers plain queries the way
-  Obsidian's own Quick switcher does — files only (no folders), one fuzzy
-  match on the path, and frontmatter aliases matched too, with a matching
-  alias shown under the note's name. Which file types appear follows the
-  Quick switcher's own *Show attachments* and *Show all file types* options.
-  Tag, property and command syntax and the Folders chip keep using Hearth's
-  engine; note bodies are not searched in this mode.
 
 ### Changed
 
@@ -201,41 +244,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **The card gallery fits a phone.** At 620px and narrower, its category rail
   becomes a dropdown.
 - *Mobile mode (search only)* is marked **Legacy** in the settings.
-- **The Commands card is now part of Links / launchpad** (#388). The two cards
-  drew the same buttons; the launchpad's can also be renamed, so commands from
-  one plugin no longer all read as that plugin's cut-off name. Every Commands
-  card becomes a launchpad on first load — same place, title, button sizing,
-  button sizes and positions, icons and commands, each button labelled with
-  the name it showed. Older layout exports, backups and shared boards convert
-  the same way on import. The launchpad gains *Add command*, which picks a
-  command and adds its button in one step, and *Button size* in the fixed
-  style. This does not round-trip: a version before 3.4.0 shows the launchpad.
-- **Right-click a file or folder on a Folder card** for the menu it has in the
-  file explorer (#389): *New note*, *New folder*, *New canvas* and *New base*
-  on a folder; *Open*, *Open in new tab* and *Open to the right* on a file;
-  *Make a copy*, *Rename*, *Delete*, and everything Obsidian and your other
-  plugins add to the explorer's menu — including those that add only there,
-  such as *Search in folder* and Sync's version history. It works on the card's rows and tiles,
-  and in the folder browser — entries and section headings alike — in the
-  dialog and in a tab; on touch, a long press opens it. Terminal mode's
-  Folder card offers the same. A new folder and a rename ask for the name in
-  a small dialog. The explorer's own *Reveal file in navigation* is not
-  offered, as it is not in the explorer. The browser dialog now also follows
-  renames, moves and deletions while it is open, as the tab already did.
 
 ### Fixed
 
-- In an embedded note, parts of the note that sit at a fixed spot inside it —
-  such as the icon in a Tasks query's filter box — now scroll with the rest of
-  the note instead of staying where they were (#402).
-- Dragging a checkbox task to another column on a Tasks Kanban board no longer
-  drops the space after its checkbox (`- [x]Item`), which turned the task into
-  a plain list item. Checkboxes and `##` headings inside code blocks are no
-  longer picked up as tasks or board columns, and a moved card no longer lands
-  inside a code block (#400).
-- Several Operon cards added from the same template can now be configured
-  independently; before, changing the filters of one changed them on all of
-  them until Obsidian was restarted (#394).
 - **Phone fixes from a mobile review** (#370):
   - Card and dashboard settings no longer let the footer sit over the rows in
     the middle of the list; on a phone the footer is pinned to the bottom.
