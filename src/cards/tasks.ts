@@ -66,6 +66,9 @@ import {
 	cloneTaskMatrix,
 	groupByQuadrant,
 	linePriorityValues,
+	MATRIX_AXIS_LABELS,
+	matrixArrangement,
+	matrixAxisLabels,
 	MATRIX_NO_PRIORITY,
 	type MatrixPriorityOption,
 	type MatrixSource,
@@ -75,6 +78,7 @@ import {
 	resolveTaskMatrix,
 	TASK_MATRIX_QUADRANTS,
 	toggleMatrixPriority,
+	withQuadrantLabel,
 } from "../taskmatrix";
 import { renderTaskMatrixFrame, type TaskMatrixFrame } from "../taskmatrixview";
 import { descriptionEditor, renderDescriptionLines } from "../taskdescriptionview";
@@ -114,6 +118,8 @@ import {
 	type TaskValueMap,
 	type TaskFieldStyle,
 	type TaskFilterConfig,
+	type TaskMatrixAxisLabel,
+	type TaskMatrixConfig,
 	type TaskMatrixQuadrant,
 	type TaskMeta,
 	type TaskPriorityLevel,
@@ -968,10 +974,11 @@ function renderTaskFields(
 	today: string,
 	layout: "list" | "kanban",
 	refresh: () => void,
+	omitPriority = false,
 ): void {
 	const fields = activeTaskFields(cfg, view.plugin.settings);
-	if (fields === null) renderLegacyTaskFields(view, cfg, hit, hosts, today, layout);
-	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh);
+	if (fields === null) renderLegacyTaskFields(view, cfg, hit, hosts, today, layout, omitPriority);
+	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh, omitPriority);
 }
 
 
@@ -993,8 +1000,11 @@ function renderLegacyTaskFields(
 	hosts: TaskFieldHosts,
 	today: string,
 	layout: "list" | "kanban",
+	omitPriority = false,
 ): void {
 	const source = cfg.source ?? "checkbox";
+	// The matrix says a task's priority by where it puts the task.
+	const priority = omitPriority ? undefined : hit.priority;
 
 	if (layout === "list") {
 		// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
@@ -1009,16 +1019,16 @@ function renderLegacyTaskFields(
 		}
 		// The list has room for the dot and its label (a bare dot is easy to
 		// miss); board cards stay dot-only for compactness.
-		if (hit.priority) renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
+		if (priority) renderPriorityChip(hosts.meta, priority, "dotlabel");
 	} else {
 		// Kanban priority shows as a single coloured dot inline with the title;
 		// the other sources keep their labelled chip in the meta row below.
-		if (source === "kanban" && hit.priority) {
-			renderPriorityChip(hosts.inline, hit.priority, "dot");
+		if (source === "kanban" && priority) {
+			renderPriorityChip(hosts.inline, priority, "dot");
 		}
 		if (hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
-		if (source !== "kanban" && hit.priority) {
-			renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
+		if (source !== "kanban" && priority) {
+			renderPriorityChip(hosts.meta, priority, "dotlabel");
 		}
 	}
 
@@ -1095,6 +1105,7 @@ function renderCustomTaskFields(
 	layout: "list" | "kanban",
 	fields: TaskFieldDef[],
 	refresh: () => void,
+	omitPriority = false,
 ): void {
 	for (const field of fields) {
 		const display = fieldStyle(field);
@@ -1165,6 +1176,8 @@ function renderCustomTaskFields(
 			}
 
 			const builtin = sourceBuiltin(key.source);
+			// The matrix says a task's priority by where it puts the task.
+			if (builtin === "priority" && omitPriority) continue;
 			const editable = taskKeyEditable(hit, key.source);
 			for (const raw of keyValues(view, hit, key.source)) {
 				// Resolved from the raw value: displayValue() tries its aliases itself,
@@ -2820,8 +2833,19 @@ function matrixQuadrantLabels(): Record<TaskMatrixQuadrant, string> {
 	return { do: m.do, schedule: m.schedule, delegate: m.delegate, eliminate: m.eliminate };
 }
 
+/** The built-in names of the axis ends and the unsorted strip. */
+function matrixAxisDefaults(): Record<TaskMatrixAxisLabel, string> {
+	const m = t().cards.tasks.matrix;
+	return { urgent: m.urgent, notUrgent: m.notUrgent, important: m.important, notImportant: m.notImportant, unsorted: m.unsorted };
+}
+
+/** The axis and strip names this card shows: its own, else the built-in. */
+export function matrixNames(cfg: TasksConfig): Record<TaskMatrixAxisLabel, string> {
+	return matrixAxisLabels(cfg.matrix, matrixAxisDefaults());
+}
+
 /** The card's matrix with its defaults filled in. */
-function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
+export function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
 	const values = matrixPriorityOptions(app, cfg)
 		.map((o) => o.value)
 		.filter((v) => v !== MATRIX_NO_PRIORITY);
@@ -2830,7 +2854,7 @@ function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
 
 /** Whether a card's tasks carry a priority the matrix can read and write. A
  * Kanban board or a checkbox card read as plain text has no priority marks. */
-function matrixReadsPriorities(cfg: TasksConfig): boolean {
+export function matrixReadsPriorities(cfg: TasksConfig): boolean {
 	const source = matrixSource(cfg);
 	if (source === "kanban") return cfg.kanbanExtended ?? false;
 	if (source === "checkbox") return cfg.checkboxExtended ?? true;
@@ -2843,7 +2867,7 @@ function matrixReadsPriorities(cfg: TasksConfig): boolean {
  * makes, so it lands as the Tasks-plugin emoji on a line and as the priority
  * property on a task note. A task already in the quadrant is left alone.
  */
-function moveTaskToQuadrant(
+export function moveTaskToQuadrant(
 	view: HomeView,
 	cfg: TasksConfig,
 	matrix: ResolvedTaskMatrix,
@@ -2864,7 +2888,7 @@ function moveTaskToQuadrant(
 /** The matrix's right-click menu for a task: move it to another quadrant (the
  * way to do it without dragging, which touch screens can't), followed by the
  * line task's own items. */
-function matrixTaskMenu(
+export function matrixTaskMenu(
 	view: HomeView,
 	cfg: TasksConfig,
 	matrix: ResolvedTaskMatrix,
@@ -2888,7 +2912,7 @@ function matrixTaskMenu(
 	if (matrix.showUnsorted && matrixMoveNeeded(hit.priority, matrix, null, source)) {
 		menu.addItem((item) =>
 			item
-				.setTitle(tm.moveTo(tm.unsorted))
+				.setTitle(tm.moveTo(matrixNames(cfg).unsorted))
 				.setIcon("inbox")
 				.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, null, refresh)),
 		);
@@ -2927,7 +2951,7 @@ function renderMatrixCard(
 	fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
 	const block = cardEl.createDiv("hearth-kanban-card-block");
 	const meta = cardEl.createDiv("hearth-kanban-card-meta");
-	renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh);
+	renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh, true);
 	const open = () => void openTask(view, cfg, hit, refresh);
 	cardEl.addEventListener("click", open);
 	makeClickable(cardEl, open, hit.text || hit.file.basename);
@@ -2961,6 +2985,8 @@ function renderTaskMatrix(
 	const source = matrixSource(cfg);
 	const { quadrants, unsorted } = groupByQuadrant(hits, (h) => h.priority, matrix, source);
 	const tm = t().cards.tasks.matrix;
+	const names = matrixNames(cfg);
+	const arrangement = matrixArrangement(cfg.matrix);
 	const frame = {} as TaskMatrixFrame<TaskHit>["quadrants"];
 	for (const id of TASK_MATRIX_QUADRANTS) {
 		frame[id] = {
@@ -2974,17 +3000,28 @@ function renderTaskMatrix(
 		// Drawn even when empty: dropping a task on it is how its priority is
 		// cleared.
 		unsorted: matrix.showUnsorted ? unsorted : null,
+		cells: arrangement.cells,
+		across: [
+			{ id: arrangement.across[0], label: names[arrangement.across[0]] },
+			{ id: arrangement.across[1], label: names[arrangement.across[1]] },
+		],
+		down: [
+			{ id: arrangement.down[0], label: names[arrangement.down[0]] },
+			{ id: arrangement.down[1], label: names[arrangement.down[1]] },
+		],
 		labels: {
-			urgent: tm.urgent,
-			notUrgent: tm.notUrgent,
-			important: tm.important,
-			notImportant: tm.notImportant,
-			unsorted: tm.unsorted,
+			unsorted: names.unsorted,
 			unsortedHint: tm.unsortedHint,
 			empty: tm.empty,
+			rename: tm.renameHint,
 		},
 		renderItem: (hit, host) => renderMatrixCard(view, cfg, matrix, hit, host, today, openStatus, refresh),
 		onDrop: (hit, target) => moveTaskToQuadrant(view, cfg, matrix, hit, target, refresh),
+		onRename: (id, label) => {
+			cfg.matrix = withQuadrantLabel(cfg.matrix, id, label);
+			void view.plugin.saveData(view.plugin.settings);
+			refresh();
+		},
 	});
 }
 
@@ -6707,10 +6744,11 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 }
 
 /**
- * The matrix layout's settings: for each quadrant its name and the priorities
- * that put a task there (toggled as chips — a priority belongs to one quadrant
- * at most, so turning it on in one takes it off another), and whether tasks no
- * quadrant claims are shown.
+ * The matrix layout's settings, in the order a user meets the questions: how
+ * the cross is laid out (with a small preview of it), what the axes and the
+ * strip are called, and for each quadrant its name and the priorities that put
+ * a task there — toggled as chips; a priority belongs to one quadrant at most,
+ * so turning it on in one takes it off another.
  */
 function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: TasksConfig): void {
 	const te = t().editors.tasks;
@@ -6722,20 +6760,100 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 	if (!matrixReadsPriorities(cfg)) {
 		host.createDiv({ cls: "setting-item-description hearth-matrix-editor-warn", text: t().cards.empty.matrixNeedsPriorities });
 	}
+	const body = host.createDiv("hearth-matrix-editor-body");
+	// Saves and redraws the board behind the editor; the editor itself is
+	// redrawn in place only where something it shows has changed.
+	// A name being typed is only saved: redrawing either would take the focus
+	// out of the field mid-word, and the board catches up when the editor
+	// closes.
+	const commit = (next: TaskMatrixConfig | undefined, redraw: boolean, typing = false) => {
+		cfg.matrix = next && Object.keys(next).length ? next : undefined;
+		ctx.opts.save();
+		if (typing) return;
+		ctx.opts.rerender();
+		if (redraw) draw();
+	};
+	const set = <K extends keyof TaskMatrixConfig>(key: K, value: TaskMatrixConfig[K] | undefined) => {
+		const next: TaskMatrixConfig = { ...(cfg.matrix ?? {}) };
+		if (value === undefined) delete next[key];
+		else next[key] = value;
+		return next;
+	};
 
-	const draw = (body: HTMLElement) => {
+	const draw = () => {
 		body.empty();
 		const resolved = resolvedMatrix(ctx.app, cfg);
+		const names = matrixNames(cfg);
+		const arrangement = matrixArrangement(cfg.matrix);
+		const byRows = cfg.matrix?.urgency === "rows";
+
+		// ---- Layout, with a preview of the cross as it will be drawn.
+		new Setting(body).setName(te.matrixLayout).setHeading();
+		const preview = body.createDiv("hearth-matrix-preview");
+		preview.createDiv("hearth-matrix-preview-corner");
+		for (const end of arrangement.across) preview.createDiv({ cls: "hearth-matrix-preview-axis is-top", text: names[end] });
+		arrangement.cells.forEach((id, n) => {
+			if (n % 2 === 0) {
+				preview.createDiv({ cls: "hearth-matrix-preview-axis is-side", text: names[arrangement.down[n / 2]] });
+			}
+			const cell = preview.createDiv(`hearth-matrix-preview-q is-${id}`);
+			cell.createSpan("hearth-matrix-q-dot");
+			cell.createSpan({ text: resolved[id].label });
+		});
+
+		new Setting(body)
+			.setName(te.matrixUrgency)
+			.setDesc(te.matrixUrgencyDesc)
+			.addDropdown((d) =>
+				d
+					.addOption("columns", te.matrixUrgencyColumns)
+					.addOption("rows", te.matrixUrgencyRows)
+					.setValue(byRows ? "rows" : "columns")
+					.onChange((v) => commit(set("urgency", v === "rows" ? "rows" : undefined), true)),
+			);
+		new Setting(body).setName(te.matrixUrgentSide).addDropdown((d) =>
+			d
+				.addOption("first", byRows ? te.matrixSideTop : te.matrixSideLeft)
+				.addOption("second", byRows ? te.matrixSideBottom : te.matrixSideRight)
+				.setValue(cfg.matrix?.urgentFirst === false ? "second" : "first")
+				.onChange((v) => commit(set("urgentFirst", v === "second" ? false : undefined), true)),
+		);
+		new Setting(body).setName(te.matrixImportantSide).addDropdown((d) =>
+			d
+				.addOption("first", byRows ? te.matrixSideLeft : te.matrixSideTop)
+				.addOption("second", byRows ? te.matrixSideRight : te.matrixSideBottom)
+				.setValue(cfg.matrix?.importantFirst === false ? "second" : "first")
+				.onChange((v) => commit(set("importantFirst", v === "second" ? false : undefined), true)),
+		);
+
+		// ---- Names of the axis ends and the strip.
+		new Setting(body).setName(te.matrixNames).setDesc(te.matrixNamesDesc).setHeading();
+		const defaults = matrixAxisDefaults();
+		for (const id of MATRIX_AXIS_LABELS) {
+			new Setting(body).setName(te.matrixAxisName[id]).addText((txt) =>
+				txt
+					.setPlaceholder(defaults[id])
+					.setValue(cfg.matrix?.axisLabels?.[id] ?? "")
+					.onChange((v) => {
+						const labels = { ...(cfg.matrix?.axisLabels ?? {}) };
+						if (v.trim()) labels[id] = v.trim();
+						else delete labels[id];
+						commit(set("axisLabels", Object.keys(labels).length ? labels : undefined), false, true);
+					}),
+			);
+		}
+
+		// ---- The quadrants: name and priorities.
+		new Setting(body).setName(te.matrixQuadrants).setDesc(te.matrixQuadrantsDesc).setHeading();
 		const current = {} as Record<TaskMatrixQuadrant, string[]>;
 		for (const id of TASK_MATRIX_QUADRANTS) current[id] = [...resolved[id].priorities];
-		const write = (next: Record<TaskMatrixQuadrant, string[]>) => {
+		const writePriorities = (next: Record<TaskMatrixQuadrant, string[]>) => {
 			const quadrants = { ...(cfg.matrix?.quadrants ?? {}) };
 			for (const id of TASK_MATRIX_QUADRANTS) quadrants[id] = { ...(quadrants[id] ?? {}), priorities: next[id] };
-			cfg.matrix = { ...(cfg.matrix ?? {}), quadrants };
-			ctx.opts.save();
-			ctx.opts.rerender();
+			commit(set("quadrants", quadrants), true);
 		};
-		for (const id of TASK_MATRIX_QUADRANTS) {
+		// In the order they sit on the cross, so the list reads like the card.
+		for (const id of arrangement.cells) {
 			const row = new Setting(body).setName(te.matrixQuadrant[id]);
 			row.settingEl.addClass("hearth-matrix-editor-row", `is-${id}`);
 			const writeValue = matrixWriteValue(resolved, id);
@@ -6746,26 +6864,14 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 							options.find((o) => o.value === (writeValue ?? MATRIX_NO_PRIORITY))?.label ?? String(writeValue),
 						),
 			);
-			row.addText((txt) =>
-				txt
-					.setPlaceholder(matrixQuadrantLabels()[id])
+			row.controlEl.createSpan({ cls: "hearth-matrix-editor-label", text: te.matrixName });
+			row.addText((txt) => {
+				txt.setPlaceholder(matrixQuadrantLabels()[id])
 					.setValue(cfg.matrix?.quadrants?.[id]?.label ?? "")
-					.onChange((v) => {
-						const quadrants = { ...(cfg.matrix?.quadrants ?? {}) };
-						const own = { ...(quadrants[id] ?? {}) };
-						if (v.trim()) own.label = v.trim();
-						else delete own.label;
-						quadrants[id] = own;
-						cfg.matrix = { ...(cfg.matrix ?? {}), quadrants };
-						// Saved without a redraw, which would take the focus out of
-						// the field mid-word; the board catches up when the editor
-						// closes.
-						ctx.opts.save();
-					}),
-			);
-			const chips = row.controlEl.createDiv("hearth-matrix-editor-chips");
-			// The chips go under the name, across the row's full width.
-			row.settingEl.appendChild(chips);
+					.onChange((v) => commit(withQuadrantLabel(cfg.matrix, id, v), false, true));
+				txt.inputEl.setAttribute("aria-label", `${te.matrixName}: ${te.matrixQuadrant[id]}`);
+			});
+			const chips = row.settingEl.createDiv("hearth-matrix-editor-chips");
 			for (const option of options) {
 				const on = current[id].includes(option.value);
 				const chip = chips.createEl("button", {
@@ -6780,34 +6886,22 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 					chip.addClass("is-elsewhere");
 					chip.setAttribute("title", te.matrixChipElsewhere(resolved[owner].label));
 				}
-				chip.addEventListener("click", () => {
-					write(toggleMatrixPriority(current, id, option.value, values, source));
-					draw(body);
-				});
+				chip.addEventListener("click", () => writePriorities(toggleMatrixPriority(current, id, option.value, values, source)));
 			}
 		}
+
 		const unsorted = new Setting(body).setName(te.matrixShowUnsorted).setDesc(te.matrixShowUnsortedDesc);
 		unsorted.addToggle((tg) =>
-			tg.setValue(cfg.matrix?.showUnsorted !== false).onChange((v) => {
-				cfg.matrix = { ...(cfg.matrix ?? {}), showUnsorted: v ? undefined : false };
-				if (!cfg.matrix.quadrants && cfg.matrix.showUnsorted === undefined) cfg.matrix = undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			}),
+			tg.setValue(cfg.matrix?.showUnsorted !== false).onChange((v) => commit(set("showUnsorted", v ? undefined : false), false)),
 		);
 		unsorted.addExtraButton((b) =>
 			b
 				.setIcon("rotate-ccw")
 				.setTooltip(te.matrixReset)
-				.onClick(() => {
-					cfg.matrix = undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-					ctx.opts.rerender();
-				}),
+				.onClick(() => commit(undefined, true)),
 		);
 	};
-	draw(host.createDiv("hearth-matrix-editor-body"));
+	draw();
 }
 
 

@@ -22,7 +22,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   to …** in its right-click menu, for touch screens) rewrites that priority, so
   the list, the board and other plugins agree. Which priorities each quadrant
   holds, and what it is called, are set per card; tasks no quadrant holds wait
-  in an *Unsorted* strip, where a drop clears the priority.
+  in an *Unsorted* strip, where a drop clears the priority. The cross can be
+  laid out either way round (urgent left or right, important top or bottom,
+  urgency across or down), the axes and quadrants renamed (a quadrant also by
+  double-clicking its name), and terminal mode draws it as text (`m`).
 - **Create note from a task.** The quick view of a checkbox or Kanban task has
   a **Create note** button that makes the task a note in a chosen folder, from
   a chosen template (run through Templater when it is one), and turns the task

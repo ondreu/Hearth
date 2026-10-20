@@ -168,6 +168,15 @@ the board and other plugins see the same thing.
 - Ticking, opening and right-clicking a task work as in the list. The filter
   and sort apply too; *Max tasks shown* does not, since a quadrant would
   otherwise hide tasks without saying so.
+- A task in the matrix doesn't show its priority: where it sits says it.
+- Double-click a quadrant's name to rename it in place; clearing the name puts
+  the built-in one back.
+
+*Layout of the cross* in the card's settings sets where things go, with a
+preview: *Urgency runs* across (columns, the classic matrix) or down (rows),
+*Urgent side* left or right (top or bottom), and *Important side* top or bottom
+(left or right). *Axis names* renames Urgent, Not urgent, Important, Not
+important and the Unsorted strip.
 
 Which priorities each quadrant holds is set under *Eisenhower matrix* in the
 card's settings: each quadrant has a row of priority chips to toggle, and a
@@ -183,8 +192,13 @@ TaskNotes' own priorities are dealt out the same way, most important first;
 with only three of them, Eliminate takes the tasks without a priority.
 
 The matrix needs a priority to read: for the checkbox and Kanban sources,
-*Dates & priorities* has to be on. Terminal mode shows a matrix card as its
-list.
+*Dates & priorities* has to be on.
+
+In terminal mode the matrix is drawn as text: the axis names over two columns,
+each row of the cross under its own axis name, and the Unsorted tasks below.
+The arrows move between tasks and columns, Shift+arrows move a task into the
+neighbouring quadrant (Shift+down from the bottom row: to Unsorted), and `m`
+switches between the matrix and the list.
 
 ### Dates, priorities and recurrence
 

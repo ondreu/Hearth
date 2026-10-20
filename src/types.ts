@@ -450,10 +450,24 @@ export interface TaskMatrixQuadrantConfig {
 }
 
 /** The tasks card's matrix layout settings. */
+/** One end of a matrix axis, as named on the cross: the two urgency ends,
+ * the two importance ends, and the strip of tasks no quadrant holds. */
+export type TaskMatrixAxisLabel = "urgent" | "notUrgent" | "important" | "notImportant" | "unsorted";
+
 export interface TaskMatrixConfig {
 	quadrants?: Partial<Record<TaskMatrixQuadrant, TaskMatrixQuadrantConfig>>;
 	/** Show the strip of tasks no quadrant claims under the cross. Default on. */
 	showUnsorted?: boolean;
+	/** Which way urgency runs: across the columns (default, the classic
+	 * matrix) or down the rows, with importance taking the other axis. */
+	urgency?: "columns" | "rows";
+	/** Urgent first along its axis (left, or top) — default — or second. */
+	urgentFirst?: boolean;
+	/** Important first along its axis (top, or left) — default — or second. */
+	importantFirst?: boolean;
+	/** The user's own names for the axis ends and the unsorted strip; an unset
+	 * one uses the built-in name. */
+	axisLabels?: Partial<Record<TaskMatrixAxisLabel, string>>;
 }
 
 /**

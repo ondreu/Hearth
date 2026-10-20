@@ -1,5 +1,5 @@
 import { PRIORITY_EMOJI, priorityKey } from "./priority";
-import type { TaskMatrixConfig, TaskMatrixQuadrant, TaskMatrixQuadrantConfig } from "./types";
+import type { TaskMatrixAxisLabel, TaskMatrixConfig, TaskMatrixQuadrant, TaskMatrixQuadrantConfig } from "./types";
 
 /**
  * The tasks card's Eisenhower matrix: four quadrants laid out as a cross
@@ -196,6 +196,79 @@ export function toggleMatrixPriority(
 	return next;
 }
 
+// ---- Where the quadrants sit ---------------------------------------------------
+
+/** The axis ends a label can be given, in the editor's order. */
+export const MATRIX_AXIS_LABELS: readonly TaskMatrixAxisLabel[] = ["urgent", "notUrgent", "important", "notImportant", "unsorted"];
+
+/** The quadrant at the meeting of an urgency end and an importance end. */
+function quadrantAt(urgent: boolean, important: boolean): TaskMatrixQuadrant {
+	if (important) return urgent ? "do" : "schedule";
+	return urgent ? "delegate" : "eliminate";
+}
+
+/**
+ * How the cross is laid out: which axis end heads each column (`across`, left
+ * to right) and each row (`down`, top to bottom), and the quadrants in reading
+ * order (`cells`: top-left, top-right, bottom-left, bottom-right). The default
+ * is the classic matrix — urgent on the left, important on top — and each of
+ * the three settings flips one thing: urgency down the side instead of across,
+ * urgent second, important second.
+ */
+export function matrixArrangement(cfg: TaskMatrixConfig | undefined): {
+	across: [TaskMatrixAxisLabel, TaskMatrixAxisLabel];
+	down: [TaskMatrixAxisLabel, TaskMatrixAxisLabel];
+	cells: [TaskMatrixQuadrant, TaskMatrixQuadrant, TaskMatrixQuadrant, TaskMatrixQuadrant];
+} {
+	const urgency: [TaskMatrixAxisLabel, TaskMatrixAxisLabel] =
+		cfg?.urgentFirst === false ? ["notUrgent", "urgent"] : ["urgent", "notUrgent"];
+	const importance: [TaskMatrixAxisLabel, TaskMatrixAxisLabel] =
+		cfg?.importantFirst === false ? ["notImportant", "important"] : ["important", "notImportant"];
+	const byRows = cfg?.urgency === "rows";
+	const across = byRows ? importance : urgency;
+	const down = byRows ? urgency : importance;
+	const at = (row: TaskMatrixAxisLabel, col: TaskMatrixAxisLabel) => {
+		const ends = [row, col];
+		return quadrantAt(ends.includes("urgent"), ends.includes("important"));
+	};
+	return {
+		across,
+		down,
+		cells: [at(down[0], across[0]), at(down[0], across[1]), at(down[1], across[0]), at(down[1], across[1])],
+	};
+}
+
+/** The axis names with the user's own filled in over `defaults`. */
+export function matrixAxisLabels(
+	cfg: TaskMatrixConfig | undefined,
+	defaults: Record<TaskMatrixAxisLabel, string>,
+): Record<TaskMatrixAxisLabel, string> {
+	const out = { ...defaults };
+	for (const id of MATRIX_AXIS_LABELS) {
+		const own = cfg?.axisLabels?.[id]?.trim();
+		if (own) out[id] = own;
+	}
+	return out;
+}
+
+/** Set (or, when blank, clear) quadrant `id`'s own name, returning the new
+ * config. Clearing the last setting of a quadrant drops its entry. */
+export function withQuadrantLabel(
+	cfg: TaskMatrixConfig | undefined,
+	id: TaskMatrixQuadrant,
+	label: string,
+): TaskMatrixConfig {
+	const quadrants = { ...(cfg?.quadrants ?? {}) };
+	const own: TaskMatrixQuadrantConfig = { ...(quadrants[id] ?? {}) };
+	if (label.trim()) own.label = label.trim();
+	else delete own.label;
+	if (Object.keys(own).length) quadrants[id] = own;
+	else delete quadrants[id];
+	const out: TaskMatrixConfig = { ...(cfg ?? {}), quadrants };
+	if (!Object.keys(quadrants).length) delete out.quadrants;
+	return out;
+}
+
 /** Validate a persisted matrix configuration, keeping only known shapes.
  * Undefined when nothing is left, so a card doesn't carry an empty object. */
 export function sanitizeTaskMatrix(raw: unknown): TaskMatrixConfig | undefined {
@@ -203,6 +276,17 @@ export function sanitizeTaskMatrix(raw: unknown): TaskMatrixConfig | undefined {
 	const r = raw as Record<string, unknown>;
 	const out: TaskMatrixConfig = {};
 	if (typeof r.showUnsorted === "boolean") out.showUnsorted = r.showUnsorted;
+	if (r.urgency === "columns" || r.urgency === "rows") out.urgency = r.urgency;
+	if (typeof r.urgentFirst === "boolean") out.urgentFirst = r.urgentFirst;
+	if (typeof r.importantFirst === "boolean") out.importantFirst = r.importantFirst;
+	if (r.axisLabels && typeof r.axisLabels === "object") {
+		const labels: TaskMatrixConfig["axisLabels"] = {};
+		for (const id of MATRIX_AXIS_LABELS) {
+			const v = (r.axisLabels as Record<string, unknown>)[id];
+			if (typeof v === "string" && v.trim()) labels[id] = v.trim();
+		}
+		if (Object.keys(labels).length) out.axisLabels = labels;
+	}
 	const q = r.quadrants;
 	if (q && typeof q === "object") {
 		const quadrants: TaskMatrixConfig["quadrants"] = {};
@@ -226,6 +310,7 @@ export function sanitizeTaskMatrix(raw: unknown): TaskMatrixConfig | undefined {
 export function cloneTaskMatrix(cfg: TaskMatrixConfig | undefined): TaskMatrixConfig | undefined {
 	if (!cfg) return undefined;
 	const out: TaskMatrixConfig = { ...cfg };
+	if (cfg.axisLabels) out.axisLabels = { ...cfg.axisLabels };
 	if (cfg.quadrants) {
 		out.quadrants = {};
 		for (const id of TASK_MATRIX_QUADRANTS) {

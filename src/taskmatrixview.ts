@@ -1,4 +1,3 @@
-import { TASK_MATRIX_QUADRANTS } from "./taskmatrix";
 import type { TaskMatrixQuadrant } from "./types";
 
 /**
@@ -16,21 +15,58 @@ const DRAG_TYPE = "application/hearth-matrix-task";
 
 export interface TaskMatrixFrame<T> {
 	quadrants: Record<TaskMatrixQuadrant, { label: string; items: T[]; droppable: boolean }>;
+	/** The quadrants in reading order: top-left, top-right, bottom-left,
+	 * bottom-right (see `matrixArrangement`). */
+	cells: readonly TaskMatrixQuadrant[];
+	/** The axis ends heading the columns (left, right) and the rows (top,
+	 * bottom), each with the id it is styled by. */
+	across: readonly [{ id: string; label: string }, { id: string; label: string }];
+	down: readonly [{ id: string; label: string }, { id: string; label: string }];
 	/** Tasks no quadrant claims; null hides the strip. */
 	unsorted: T[] | null;
 	labels: {
-		urgent: string;
-		notUrgent: string;
-		important: string;
-		notImportant: string;
 		unsorted: string;
 		unsortedHint: string;
 		empty: string;
+		/** Tooltip on a quadrant's name when it can be renamed in place. */
+		rename: string;
 	};
 	/** Draw one task into `host`; returns its element, which is made draggable. */
 	renderItem: (item: T, host: HTMLElement) => HTMLElement;
 	/** A task was dropped on a quadrant, or on the strip (null). */
 	onDrop: (item: T, target: TaskMatrixQuadrant | null) => void;
+	/** A quadrant was renamed in place ("" puts the built-in name back).
+	 * Without it, names can't be edited on the card. */
+	onRename?: (id: TaskMatrixQuadrant, label: string) => void;
+}
+
+/** Swap a quadrant's name for an input; Enter or leaving the field keeps the
+ * new name, Escape keeps the old one. */
+function startRename(titleEl: HTMLElement, current: string, done: (label: string) => void): void {
+	const input = createEl("input", { cls: "hearth-matrix-q-rename", attr: { type: "text", value: current } });
+	input.value = current;
+	titleEl.replaceWith(input);
+	input.focus();
+	input.select();
+	let finished = false;
+	const finish = (keep: boolean) => {
+		if (finished) return;
+		finished = true;
+		input.replaceWith(titleEl);
+		if (keep && input.value.trim() !== current) done(input.value.trim());
+	};
+	input.addEventListener("keydown", (e) => {
+		e.stopPropagation();
+		if (e.key === "Enter") {
+			e.preventDefault();
+			finish(true);
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			finish(false);
+		}
+	});
+	input.addEventListener("click", (e) => e.stopPropagation());
+	input.addEventListener("blur", () => finish(true));
 }
 
 /** Make `zone` accept matrix drags, resolving the payload against `items`. */
@@ -84,26 +120,33 @@ export function renderTaskMatrixFrame<T>(container: HTMLElement, frame: TaskMatr
 		}
 	};
 
-	// The axis across the top, aligned with the two quadrant columns below.
+	// The axis across the top, aligned with the two quadrant columns below,
+	// and the one down the side, beside the two rows.
 	root.createDiv("hearth-matrix-corner");
 	const top = root.createDiv("hearth-matrix-axis is-top");
-	top.createDiv({ cls: "hearth-matrix-axis-label is-urgent", text: frame.labels.urgent });
-	top.createDiv({ cls: "hearth-matrix-axis-label is-not-urgent", text: frame.labels.notUrgent });
-
+	for (const end of frame.across) top.createDiv({ cls: `hearth-matrix-axis-label is-${end.id}`, text: end.label });
 	const side = root.createDiv("hearth-matrix-axis is-side");
-	side.createDiv({ cls: "hearth-matrix-axis-label is-important", text: frame.labels.important });
-	side.createDiv({ cls: "hearth-matrix-axis-label is-not-important", text: frame.labels.notImportant });
+	for (const end of frame.down) side.createDiv({ cls: `hearth-matrix-axis-label is-${end.id}`, text: end.label });
 
 	// The cross itself: four quadrants with the two axes drawn through them.
 	const grid = root.createDiv("hearth-matrix-grid");
-	for (const id of TASK_MATRIX_QUADRANTS) {
+	for (const id of frame.cells) {
 		const q = frame.quadrants[id];
 		const cell = grid.createDiv(`hearth-matrix-q is-${id}`);
 		cell.toggleClass("is-locked", !q.droppable);
 		cell.dataset.quadrant = id;
 		const head = cell.createDiv("hearth-matrix-q-head");
 		head.createSpan("hearth-matrix-q-dot");
-		head.createSpan({ cls: "hearth-matrix-q-title", text: q.label });
+		const title = head.createSpan({ cls: "hearth-matrix-q-title", text: q.label });
+		const rename = frame.onRename;
+		if (rename) {
+			title.setAttribute("title", frame.labels.rename);
+			title.addEventListener("dblclick", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				startRename(title, q.label, (label) => rename(id, label));
+			});
+		}
 		head.createSpan({ cls: "hearth-matrix-q-count", text: String(q.items.length) });
 		const body = cell.createDiv("hearth-matrix-q-body");
 		if (q.items.length) drawItems(body, q.items);

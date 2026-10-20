@@ -21792,6 +21792,62 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--x-on-container);
 }
 
+/* Matrix: quadrants as tonal containers in their own colour, the counts as
+ * pills, the axes in the accent's tone — the Kanban columns' recipe. */
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix {
+	--hearth-matrix-gap: 12px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q {
+	border-radius: 20px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 13%, var(--background-primary));
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-head {
+	padding: 9px 12px 5px;
+	font-weight: 750;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 24%, var(--background-primary));
+	color: color-mix(in srgb, var(--hearth-matrix-q) 70%, var(--text-normal));
+	font-weight: 700;
+	text-align: center;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-body {
+	padding: 2px 8px 8px;
+	gap: 6px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-axis-label {
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-grid::before {
+	background: linear-gradient(to bottom, transparent, var(--x-container) 12%, var(--x-container) 88%, transparent);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-grid::after {
+	background: linear-gradient(to right, transparent, var(--x-container) 12%, var(--x-container) 88%, transparent);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-unsorted {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-surface);
+	padding: 8px 10px 10px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-unsorted-head {
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
 /* ---- Full calendar (schedule) --------------------------------------- */
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-title {
 	font-size: 1rem;
@@ -25549,6 +25605,18 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	min-width: 0;
 }
 
+/* A quadrant's name renamed in place (double-click it). */
+.hearth-matrix-q-rename {
+	flex: 1;
+	min-width: 0;
+	padding: 1px 4px;
+	border-radius: 4px;
+	border: 1px solid var(--interactive-accent);
+	background: var(--background-primary);
+	font: inherit;
+	color: var(--text-normal);
+}
+
 /* A narrow card keeps the cross but gives the room to the tasks: the axis
  * labels go, and the quadrants close up. */
 @container (max-width: 340px) {
@@ -25632,6 +25700,64 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-matrix-editor-chip.is-elsewhere {
 	opacity: 0.55;
 	border-style: dashed;
+}
+
+.hearth-matrix-editor-label {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+}
+
+/* The editor's preview of the cross: the axis names and the quadrant names,
+ * where the card will draw them. */
+.hearth-matrix-preview {
+	display: grid;
+	grid-template-columns: auto repeat(2, minmax(0, 1fr));
+	gap: 4px 6px;
+	max-width: 420px;
+	margin: 4px 0 12px;
+	font-size: 0.78rem;
+}
+
+.hearth-matrix-preview-axis {
+	font-size: 0.66rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-matrix-preview-axis.is-side {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	align-self: center;
+}
+
+.hearth-matrix-preview-q {
+	--hearth-matrix-q: var(--color-red);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px 10px;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 12%, transparent);
+	font-weight: 600;
+}
+
+.hearth-matrix-preview-q.is-schedule {
+	--hearth-matrix-q: var(--color-blue);
+}
+
+.hearth-matrix-preview-q.is-delegate {
+	--hearth-matrix-q: var(--color-orange);
+}
+
+.hearth-matrix-preview-q.is-eliminate {
+	--hearth-matrix-q: var(--text-faint);
 }
 
 .hearth-matrix-editor-warn {

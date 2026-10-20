@@ -37,7 +37,14 @@ import {
 	type TaskHit,
 	type TaskLoad,
 	keyValues,
+	matrixNames,
+	matrixReadsPriorities,
+	matrixTaskMenu,
+	matrixTasks,
+	moveTaskToQuadrant,
+	resolvedMatrix,
 } from "../../cards/tasks";
+import { groupByQuadrant, matrixArrangement, matrixWriteValue } from "../../taskmatrix";
 import { t } from "../../i18n";
 import { openLink } from "../../opener";
 import { priorityClass } from "../../priority";
@@ -54,12 +61,12 @@ import {
 	sourceBuiltin,
 } from "../../taskfields";
 import { isTaskFilterActive } from "../../taskfilter";
-import type { TasksConfig } from "../../types";
+import type { TaskMatrixQuadrant, TasksConfig } from "../../types";
 import { PromptModal } from "../../ui";
 import { hearthMenu } from "../../uidesign";
 import type { HomeView } from "../../view";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "../card";
-import { asciify, fit, padEnd, spread, styleLine, type Line, type Seg, type TuiStyle } from "../text";
+import { asciify, centerLine, fit, padEnd, spread, styleLine, type Line, type Seg, type TuiStyle } from "../text";
 import { showMenuFor } from "./common";
 
 // ---- Loading --------------------------------------------------------------------
@@ -564,6 +571,176 @@ function boardKey(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { k
 	return false;
 }
 
+// ---- Matrix layout ---------------------------------------------------------------
+
+/** One task drawn in the matrix: where it sits, for the arrow keys. */
+interface MatrixSpot {
+	hit: TaskHit;
+	/** The quadrant, or null for the unsorted strip. */
+	quadrant: TaskMatrixQuadrant | null;
+	/** 0 or 1 for the quadrant's column; the strip spans both (-1). */
+	col: number;
+	/** 0 or 1 for the quadrant's row; 2 for the strip. */
+	row: number;
+}
+
+/** The colour a quadrant's mark is drawn in, matching the card's tints. */
+const QUADRANT_STYLE: Record<TaskMatrixQuadrant, TuiStyle> = {
+	do: "red",
+	schedule: "blue",
+	delegate: "yellow",
+	eliminate: "dim",
+};
+
+/**
+ * The matrix as text: the axis names across the top, then each row of the
+ * cross — its axis name, the two quadrants side by side split by a `│` — with
+ * a `─┼─` line between the rows and the unsorted tasks under it all. A task is
+ * one line (box, title, due); each is its own item, so the selection, Enter,
+ * Space and the menu work as in the list, the arrows also step between the
+ * columns, and Shift+arrows move a task into the neighbouring quadrant.
+ */
+function matrixOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TuiOutput {
+	const { view } = ctx;
+	const { today, openStatus } = load;
+	if (!matrixReadsPriorities(cfg)) return { lines: [[{ text: t().cards.empty.matrixNeedsPriorities, style: "dim" }]], foot: t().tui.cards.matrixFoot };
+	const refresh = refreshOf(ctx);
+	const matrix = resolvedMatrix(view.app, cfg);
+	const names = matrixNames(cfg);
+	const arrangement = matrixArrangement(cfg.matrix);
+	const { quadrants, unsorted } = groupByQuadrant(matrixTasks(cfg, load.hits, today), (h) => h.priority, matrix, cfg.source ?? "checkbox");
+	const gap = 3;
+	const w = Math.max(8, Math.floor((ctx.cols - gap) / 2));
+	const lines: Line[] = [];
+	const items: TuiItem[] = [];
+	const spots: MatrixSpot[] = [];
+	// A quadrant shows this many tasks before "+ n more" (all when zoomed).
+	const cap = ctx.zoomed ? Number.MAX_SAFE_INTEGER : Math.max(2, Math.floor((ctx.rows - 6) / 2) - 1);
+
+	const taskCell = (hit: TaskHit, width: number): Line => {
+		const checked = taskChecked(cfg, hit, today);
+		// Measured wide and trimmed: the date takes the room it needs, no more.
+		const due = dueMark(hit, today, 24);
+		const box: Seg = {
+			text: checked ? "[x] " : "[ ] ",
+			style: checked ? "green" : "accent",
+			onClick: () => toggleTask(view, cfg, hit, today, openStatus, refresh),
+		};
+		const right: Line = due.text.trim() ? [{ text: " " }, { ...due, text: due.text.trim() }] : [];
+		return spread([box, ...taskText(view, hit, hit.done ? ["dim", "strike"] : [])], right, width);
+	};
+	const addItem = (spot: MatrixSpot, line: number, from: number, to: number) => {
+		spots.push(spot);
+		items.push({
+			line,
+			range: [from, to],
+			activate: () => void openTask(view, cfg, spot.hit, refresh),
+			toggle: () => toggleTask(view, cfg, spot.hit, today, openStatus, refresh),
+			menu: (evt) => showMenuFor(matrixTaskMenu(view, cfg, matrix, spot.hit, refresh), evt),
+		});
+	};
+
+	// The axis names across the top, each centred over its column.
+	lines.push([
+		...centerLine([{ text: names[arrangement.across[0]].toUpperCase(), style: "header" }], w),
+		{ text: " ".repeat(gap) },
+		...centerLine([{ text: names[arrangement.across[1]].toUpperCase(), style: "header" }], w),
+	]);
+	for (let r = 0; r < 2; r++) {
+		if (r === 1) lines.push([{ text: "─".repeat(w + 1), style: "faint" }, { text: "┼", style: "faint" }, { text: "─".repeat(w + 1), style: "faint" }]);
+		lines.push([{ text: `▸ ${names[arrangement.down[r]].toUpperCase()}`, style: "dim" }]);
+		const pair = [arrangement.cells[r * 2], arrangement.cells[r * 2 + 1]];
+		// The quadrant names, with the count and the mark in its colour.
+		lines.push(
+			pair.flatMap((id, c) => {
+				const head = fit(
+					[
+						{ text: "● ", style: QUADRANT_STYLE[id] },
+						{ text: asciify(matrix[id].label), style: "bold" },
+						{ text: ` ${quadrants[id].length}`, style: "dim" },
+						...(matrixWriteValue(matrix, id) === undefined ? [{ text: " -", style: "faint" as TuiStyle }] : []),
+					],
+					w,
+				);
+				return c === 0 ? [...head, { text: " │ ", style: "faint" }] : head;
+			}),
+		);
+		const shown = pair.map((id) => quadrants[id].slice(0, cap));
+		const more = pair.map((id) => quadrants[id].length - Math.min(cap, quadrants[id].length));
+		const height = Math.max(1, ...shown.map((l, i) => l.length + (more[i] > 0 ? 1 : 0)));
+		for (let k = 0; k < height; k++) {
+			const line = lines.length;
+			const row: Line = [];
+			pair.forEach((id, c) => {
+				const hit = shown[c][k];
+				let cell: Line;
+				if (hit) {
+					cell = taskCell(hit, w);
+					addItem({ hit, quadrant: id, col: c, row: r }, line, c * (w + gap), c * (w + gap) + w);
+				} else if (k === shown[c].length && more[c] > 0) cell = fit([{ text: t().tui.cards.matrixMore(more[c]), style: "dim" }], w);
+				else if (k === 0 && !quadrants[id].length) cell = fit([{ text: t().cards.tasks.matrix.empty, style: "faint" }], w);
+				else cell = [{ text: " ".repeat(w) }];
+				row.push(...cell);
+				if (c === 0) row.push({ text: " │ ", style: "faint" });
+			});
+			lines.push(row);
+		}
+	}
+	if (matrix.showUnsorted && unsorted.length) {
+		lines.push([{ text: "┄".repeat(ctx.cols), style: "faint" }]);
+		lines.push([{ text: asciify(names.unsorted), style: "bold" }, { text: ` ${unsorted.length}`, style: "dim" }]);
+		for (const hit of unsorted.slice(0, ctx.zoomed ? unsorted.length : cap)) {
+			addItem({ hit, quadrant: null, col: -1, row: 2 }, lines.length, 0, ctx.cols);
+			lines.push(taskCell(hit, ctx.cols));
+		}
+		if (!ctx.zoomed && unsorted.length > cap) lines.push([{ text: t().tui.cards.matrixMore(unsorted.length - cap), style: "dim" }]);
+	}
+	ctx.state.matrixSpots = spots;
+	const open = spots.filter((s) => !taskChecked(cfg, s.hit, today)).length;
+	return { lines, items, hint: filterHint(cfg, open), foot: t().tui.cards.matrixFoot, sticky: 1 };
+}
+
+/** The matrix's arrow keys: left/right step to the other column (the task at
+ * the same height there, or its last), Shift+arrows move the task into the
+ * neighbouring quadrant — and Shift+down out of the bottom row, into the
+ * unsorted strip. Up and down without Shift are the frame's own. */
+function matrixKey(ctx: TuiContext, cfg: TasksConfig, evt: KeyboardEvent): boolean {
+	const spots = ctx.state.matrixSpots as MatrixSpot[] | undefined;
+	const spot = spots?.[ctx.selected];
+	if (!spots || !spot) return false;
+	const horizontal = evt.key === "ArrowLeft" || evt.key === "ArrowRight";
+	const vertical = evt.key === "ArrowUp" || evt.key === "ArrowDown";
+	if (!horizontal && !(vertical && evt.shiftKey)) return false;
+	const arrangement = matrixArrangement(cfg.matrix);
+	if (evt.shiftKey) {
+		let col = spot.col;
+		let row = spot.row;
+		if (horizontal) col = evt.key === "ArrowLeft" ? 0 : 1;
+		else row = evt.key === "ArrowUp" ? row - 1 : row + 1;
+		// From the strip, up goes to the bottom row on the left.
+		if (spot.row === 2 && evt.key === "ArrowUp") {
+			row = 1;
+			col = 0;
+		}
+		if (spot.row === 2 && horizontal) return true;
+		if (row < 0) return true;
+		const target = row >= 2 ? null : arrangement.cells[row * 2 + Math.max(0, col)];
+		if (target === spot.quadrant) return true;
+		const matrix = resolvedMatrix(ctx.view.app, cfg);
+		if (target === null && !matrix.showUnsorted) return true;
+		moveTaskToQuadrant(ctx.view, cfg, matrix, spot.hit, target, refreshOf(ctx));
+		return true;
+	}
+	if (spot.row === 2) return false;
+	const other = spot.col === 0 ? 1 : 0;
+	if ((evt.key === "ArrowLeft" && spot.col === 0) || (evt.key === "ArrowRight" && spot.col === 1)) return true;
+	const here = spots.filter((s) => s.row === spot.row && s.col === spot.col).indexOf(spot);
+	const there = spots.filter((s) => s.row === spot.row && s.col === other);
+	const pick = there[Math.min(here, there.length - 1)];
+	if (pick) ctx.select(spots.indexOf(pick));
+	return true;
+}
+
 // ---- The renderer ---------------------------------------------------------------
 
 export const tasksTui: TuiRenderer = {
@@ -572,6 +749,7 @@ export const tasksTui: TuiRenderer = {
 		const load = loaded(ctx, cfg);
 		if (!load) return { lines: [[{ text: t().tui.cards.loading, style: "dim" }]] };
 		if (load.kind === "message") return { lines: [[{ text: load.text, style: "dim" }]] };
+		if (cfg.layout === "matrix") return matrixOutputFor(ctx, cfg, load);
 		return cfg.layout === "kanban" ? boardOutputFor(ctx, cfg, load) : listOutputFor(ctx, cfg, load);
 	},
 	key(ctx, evt) {
@@ -594,8 +772,15 @@ export const tasksTui: TuiRenderer = {
 				void ctx.view.plugin.saveData(ctx.view.plugin.settings);
 				ctx.redraw();
 				return true;
+			case "m":
+				// The same for the matrix.
+				cfg.layout = cfg.layout === "matrix" ? undefined : "matrix";
+				void ctx.view.plugin.saveData(ctx.view.plugin.settings);
+				ctx.redraw();
+				return true;
 		}
 		if (cfg.layout === "kanban") return boardKey(ctx, cfg, load, evt);
+		if (cfg.layout === "matrix" && matrixKey(ctx, cfg, evt)) return true;
 		if (evt.key === "+") {
 			addTask(ctx, cfg, load);
 			return true;
@@ -613,6 +798,16 @@ export const tasksTui: TuiRenderer = {
 				.setIcon("columns-3")
 				.onClick(() => {
 					cfg.layout = cfg.layout === "kanban" ? undefined : "kanban";
+					void ctx.view.plugin.saveData(ctx.view.plugin.settings);
+					ctx.redraw();
+				}),
+		);
+		menu.addItem((i) =>
+			i
+				.setTitle(cfg.layout === "matrix" ? t().tui.cards.showList : t().tui.cards.showMatrix)
+				.setIcon("grid-2x2")
+				.onClick(() => {
+					cfg.layout = cfg.layout === "matrix" ? undefined : "matrix";
 					void ctx.view.plugin.saveData(ctx.view.plugin.settings);
 					ctx.redraw();
 				}),

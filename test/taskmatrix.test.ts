@@ -3,6 +3,8 @@ import {
 	defaultMatrixPriorities,
 	groupByQuadrant,
 	linePriorityValues,
+	matrixArrangement,
+	matrixAxisLabels,
 	MATRIX_NO_PRIORITY,
 	matrixMoveNeeded,
 	matrixPriorityKey,
@@ -11,6 +13,7 @@ import {
 	resolveTaskMatrix,
 	sanitizeTaskMatrix,
 	toggleMatrixPriority,
+	withQuadrantLabel,
 } from "../src/taskmatrix";
 
 const LABELS = { do: "Do", schedule: "Schedule", delegate: "Delegate", eliminate: "Eliminate" };
@@ -154,5 +157,68 @@ describe("sanitizeTaskMatrix", () => {
 		).toEqual({ showUnsorted: false, quadrants: { do: { label: "Now", priorities: ["high"] } } });
 		expect(sanitizeTaskMatrix({})).toBeUndefined();
 		expect(sanitizeTaskMatrix("x")).toBeUndefined();
+	});
+});
+
+describe("matrixArrangement", () => {
+	it("is the classic matrix by default: urgent left, important on top", () => {
+		expect(matrixArrangement(undefined)).toEqual({
+			across: ["urgent", "notUrgent"],
+			down: ["important", "notImportant"],
+			cells: ["do", "schedule", "delegate", "eliminate"],
+		});
+	});
+
+	it("puts urgent on the right", () => {
+		const a = matrixArrangement({ urgentFirst: false });
+		expect(a.across).toEqual(["notUrgent", "urgent"]);
+		expect(a.cells).toEqual(["schedule", "do", "eliminate", "delegate"]);
+	});
+
+	it("puts important at the bottom", () => {
+		expect(matrixArrangement({ importantFirst: false }).cells).toEqual(["delegate", "eliminate", "do", "schedule"]);
+	});
+
+	it("runs urgency down the rows, importance across", () => {
+		const a = matrixArrangement({ urgency: "rows" });
+		expect(a.across).toEqual(["important", "notImportant"]);
+		expect(a.down).toEqual(["urgent", "notUrgent"]);
+		expect(a.cells).toEqual(["do", "delegate", "schedule", "eliminate"]);
+		expect(matrixArrangement({ urgency: "rows", urgentFirst: false, importantFirst: false }).cells).toEqual([
+			"eliminate",
+			"schedule",
+			"delegate",
+			"do",
+		]);
+	});
+
+	it("keeps every quadrant exactly once in every arrangement", () => {
+		for (const urgency of ["columns", "rows"] as const)
+			for (const urgentFirst of [true, false])
+				for (const importantFirst of [true, false]) {
+					const cells = matrixArrangement({ urgency, urgentFirst, importantFirst }).cells;
+					expect([...cells].sort()).toEqual(["delegate", "do", "eliminate", "schedule"]);
+				}
+	});
+});
+
+describe("names", () => {
+	const defaults = { urgent: "Urgent", notUrgent: "Not urgent", important: "Important", notImportant: "Not important", unsorted: "Unsorted" };
+
+	it("fills the user's axis names over the built-in ones", () => {
+		expect(matrixAxisLabels({ axisLabels: { urgent: " Now ", unsorted: "  " } }, defaults)).toEqual({ ...defaults, urgent: "Now" });
+	});
+
+	it("sets and clears a quadrant name, keeping its priorities", () => {
+		const named = withQuadrantLabel({ quadrants: { do: { priorities: ["high"] } } }, "do", " First ");
+		expect(named.quadrants?.do).toEqual({ priorities: ["high"], label: "First" });
+		expect(withQuadrantLabel(named, "do", "").quadrants?.do).toEqual({ priorities: ["high"] });
+		expect(withQuadrantLabel({ quadrants: { do: { label: "x" } } }, "do", "")).toEqual({});
+	});
+
+	it("keeps the layout and the names through sanitizing", () => {
+		expect(
+			sanitizeTaskMatrix({ urgency: "rows", urgentFirst: false, importantFirst: "no", axisLabels: { urgent: "Now", bogus: "x", important: 3 } }),
+		).toEqual({ urgency: "rows", urgentFirst: false, axisLabels: { urgent: "Now" } });
 	});
 });

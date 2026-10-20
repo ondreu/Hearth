@@ -18,13 +18,10 @@ beforeAll(async () => {
 });
 
 const LABELS = {
-	urgent: "Urgent",
-	notUrgent: "Not urgent",
-	important: "Important",
-	notImportant: "Not important",
 	unsorted: "Unsorted",
 	unsortedHint: "hint",
 	empty: "Drop tasks here",
+	rename: "Double-click to rename",
 };
 
 function frame(drops: [string, TaskMatrixQuadrant | null][], unsorted: string[] | null = ["loose"]): TaskMatrixFrame<string> {
@@ -35,6 +32,15 @@ function frame(drops: [string, TaskMatrixQuadrant | null][], unsorted: string[] 
 			delegate: { label: "Delegate", items: ["c"], droppable: true },
 			eliminate: { label: "Eliminate", items: [], droppable: false },
 		},
+		cells: ["do", "schedule", "delegate", "eliminate"],
+		across: [
+			{ id: "urgent", label: "Urgent" },
+			{ id: "notUrgent", label: "Not urgent" },
+		],
+		down: [
+			{ id: "important", label: "Important" },
+			{ id: "notImportant", label: "Not important" },
+		],
 		unsorted,
 		labels: LABELS,
 		renderItem: (item, host) => host.createDiv({ cls: "item", text: item }),
@@ -72,6 +78,42 @@ describe("renderTaskMatrixFrame", () => {
 		expect(quads[3].classList.contains("is-locked")).toBe(true);
 		expect(host.querySelector(".hearth-matrix-unsorted .item")?.textContent).toBe("loose");
 		expect(Array.from(host.querySelectorAll(".hearth-matrix-item")).every((e) => e.getAttribute("draggable") === "true")).toBe(true);
+	});
+
+	it("lays the quadrants out in the order it is given", () => {
+		const host = document.body.createDiv();
+		renderTaskMatrixFrame(host, { ...frame([]), cells: ["eliminate", "delegate", "schedule", "do"] });
+		const quads = Array.from(host.querySelectorAll<HTMLElement>(".hearth-matrix-q"));
+		expect(quads.map((q) => q.dataset.quadrant)).toEqual(["eliminate", "delegate", "schedule", "do"]);
+	});
+
+	it("renames a quadrant in place on double-click", () => {
+		const host = document.body.createDiv();
+		const renamed: [TaskMatrixQuadrant, string][] = [];
+		renderTaskMatrixFrame(host, { ...frame([]), onRename: (id, label) => renamed.push([id, label]) });
+		const title = host.querySelector(".hearth-matrix-q.is-delegate .hearth-matrix-q-title") as HTMLElement;
+		expect(title.getAttribute("title")).toBe("Double-click to rename");
+		title.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+		const input = host.querySelector(".hearth-matrix-q-rename") as HTMLInputElement;
+		expect(input.value).toBe("Delegate");
+		input.value = "Hand off";
+		input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+		expect(renamed).toEqual([["delegate", "Hand off"]]);
+		expect(host.querySelector(".hearth-matrix-q-rename")).toBeNull();
+		// Escape keeps the old name.
+		title.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+		const again = host.querySelector(".hearth-matrix-q-rename") as HTMLInputElement;
+		again.value = "Nope";
+		again.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+		expect(renamed).toHaveLength(1);
+	});
+
+	it("can't be renamed without a handler", () => {
+		const host = document.body.createDiv();
+		renderTaskMatrixFrame(host, frame([]));
+		const title = host.querySelector(".hearth-matrix-q-title") as HTMLElement;
+		title.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+		expect(host.querySelector(".hearth-matrix-q-rename")).toBeNull();
 	});
 
 	it("leaves the strip out when asked", () => {
