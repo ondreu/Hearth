@@ -6,7 +6,6 @@ import {
 	Setting,
 	TextComponent,
 	TFile,
-	TFolder,
 	type App,
 	type Menu,
 } from "obsidian";
@@ -23,7 +22,7 @@ import {
 	parseKanbanColumns,
 } from "../kanbanboard";
 import { openFile, openLink, targetLeaf } from "../opener";
-import { FilePickerModal } from "../pickers";
+import { FilePickerModal, FolderPickerModal } from "../pickers";
 import {
 	PRIORITY_EMOJI,
 	priorityClass,
@@ -64,6 +63,24 @@ import {
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
 import {
+	cloneTaskMatrix,
+	groupByQuadrant,
+	linePriorityValues,
+	MATRIX_NO_PRIORITY,
+	type MatrixPriorityOption,
+	type MatrixSource,
+	matrixMoveNeeded,
+	matrixWriteValue,
+	type ResolvedTaskMatrix,
+	resolveTaskMatrix,
+	TASK_MATRIX_QUADRANTS,
+	toggleMatrixPriority,
+} from "../taskmatrix";
+import { renderTaskMatrixFrame, type TaskMatrixFrame } from "../taskmatrixview";
+import { descriptionEditor, renderDescriptionLines } from "../taskdescriptionview";
+import { createDestinationFolder } from "../newnote";
+import { createNoteFromTemplate, isTemplaterAvailable, normalizeFolderPath, resolveTemplateFile } from "../templater";
+import {
 	CHECKBOX_MARKER,
 	fencedLineMask,
 	readEmojiField,
@@ -97,6 +114,7 @@ import {
 	type TaskValueMap,
 	type TaskFieldStyle,
 	type TaskFilterConfig,
+	type TaskMatrixQuadrant,
 	type TaskMeta,
 	type TaskPriorityLevel,
 	type TasksConfig,
@@ -952,7 +970,7 @@ function renderTaskFields(
 	refresh: () => void,
 ): void {
 	const fields = activeTaskFields(cfg, view.plugin.settings);
-	if (fields === null) renderLegacyTaskFields(cfg, hit, hosts, today, layout);
+	if (fields === null) renderLegacyTaskFields(view, cfg, hit, hosts, today, layout);
 	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh);
 }
 
@@ -969,6 +987,7 @@ function renderTaskFields(
  * chip aligning the title) are particular to it rather than general.
  */
 function renderLegacyTaskFields(
+	view: HomeView,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	hosts: TaskFieldHosts,
@@ -997,7 +1016,7 @@ function renderLegacyTaskFields(
 		if (source === "kanban" && hit.priority) {
 			renderPriorityChip(hosts.inline, hit.priority, "dot");
 		}
-		if (hit.description) renderTaskDescription(hosts.block, hit.description);
+		if (hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
 		if (source !== "kanban" && hit.priority) {
 			renderPriorityChip(hosts.meta, hit.priority, "dotlabel");
 		}
@@ -1013,7 +1032,7 @@ function renderLegacyTaskFields(
 	// second copy here.
 	if (taskMetaEnabled(cfg, hit)) renderTaskTagChips(hosts.meta, hit);
 
-	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description);
+	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
 }
 
 
@@ -1093,7 +1112,7 @@ function renderCustomTaskFields(
 		for (const key of field.keys) {
 			if (isDescriptionSource(key.source)) {
 				// A description is a block of text; there is no colour in it to take.
-				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description);
+				if (!ambient && hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
 				continue;
 			}
 			// The dot-and-label form belongs to a priority; any other key in the
@@ -1183,17 +1202,20 @@ function renderCustomTaskFields(
 
 
 
-/** Render a card's description as muted plain-text sub-bullets (one per line),
- * with no Markdown formatting applied. */
-function renderTaskDescription(parent: HTMLElement, description: string): void {
-	const lines = description.split("\n").map((l) => l.trim()).filter(Boolean);
-	if (!lines.length) return;
-	const wrap = parent.createDiv("hearth-task-desc");
-	for (const line of lines) {
-		const item = wrap.createDiv("hearth-task-desc-line");
-		item.createSpan({ cls: "hearth-task-desc-bullet", text: "•" });
-		item.createSpan({ cls: "hearth-task-desc-text", text: line });
-	}
+/** Render a task's description as muted sub-bullets (one per line), with the
+ * inline formatting a sub-bullet keeps (src/taskdescriptionview.ts). Links
+ * open their target without also opening the task. */
+function renderTaskDescription(
+	parent: HTMLElement,
+	description: string,
+	view: HomeView | null = null,
+	sourcePath = "",
+): void {
+	renderDescriptionLines(parent, description, (target, external, ev) => {
+		if (!view) return;
+		if (external) window.open(target, "_blank");
+		else void openLink(view, target, sourcePath, "link", ev);
+	});
 }
 
 
@@ -2078,13 +2100,21 @@ export function boardTasks(cfg: TasksConfig, hits: TaskHit[], today: string): Ta
 /** The list layout's tasks: completed ones hidden unless asked for, the
  * card's filter applied, then capped to the card's count. */
 export function listTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
+	const limit = cfg.count && cfg.count > 0 ? cfg.count : 10;
+	return matrixTasks(cfg, hits, today).slice(0, limit);
+}
+
+/** The list's tasks before its cap — completed ones hidden unless asked for,
+ * the card's filter applied — which is exactly what the matrix shows: a
+ * quadrant that silently lost tasks to a count meant for one list would
+ * misreport itself. */
+export function matrixTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
 	let list = cfg.showCompleted ? hits : hits.filter((h) => !h.done);
 	if (isTaskFilterActive(cfg.taskFilter)) {
 		const filter = cfg.taskFilter as TaskFilterConfig;
 		list = list.filter((h) => taskMatchesFilter(asTaskFilterHit(h), filter, today));
 	}
-	const limit = cfg.count && cfg.count > 0 ? cfg.count : 10;
-	return list.slice(0, limit);
+	return list;
 }
 
 /** Whether a task's box is ticked: a recurring task shows today's occurrence,
@@ -2154,6 +2184,14 @@ async function loadAndRenderTasks(
 		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
 		if (source === "tasknotes") taskNotesAddButton(view, actions);
 		renderTaskKanban(view, cfg, boardTasks(cfg, hits, today), container, refresh, boardColumns);
+		return;
+	}
+
+	if (cfg.layout === "matrix") {
+		// The matrix sorts and filters like the list (it is a list split four
+		// ways), so it gets the list's controls.
+		renderTasksListHeader(view, cfg, filterChoices, boardColumns, container, refresh);
+		renderTaskMatrix(view, cfg, matrixTasks(cfg, hits, today), container, refresh, today, openStatus);
 		return;
 	}
 
@@ -2739,6 +2777,218 @@ function renderTaskKanban(
 }
 
 
+// ---- Eisenhower matrix ---------------------------------------------------
+
+/** The source a card's priorities are compared as. */
+function matrixSource(cfg: TasksConfig): MatrixSource {
+	return cfg.source ?? "checkbox";
+}
+
+/**
+ * The priorities a card's tasks can carry, highest first, with the names the
+ * editor shows: the Tasks plugin's five levels for checkbox and Kanban tasks,
+ * TaskNotes' own configured priorities (most important first) for task notes.
+ * "No priority" comes last; it is what the unsorted strip holds unless a
+ * quadrant claims it.
+ */
+export function matrixPriorityOptions(app: App, cfg: TasksConfig): MatrixPriorityOption[] {
+	const tt = t().cards.tasks;
+	let options: MatrixPriorityOption[];
+	if (matrixSource(cfg) === "tasknotes") {
+		const defined = [...readTaskNotesSetup(app).priorities]
+			.filter((p) => p.value.trim().toLowerCase() !== MATRIX_NO_PRIORITY)
+			.sort((a, b) => b.weight - a.weight);
+		options = defined.length
+			? defined.map((p) => ({ value: p.value, label: p.label || p.value }))
+			: ["high", "normal", "low"].map((value) => ({ value, label: value }));
+	} else {
+		const names: Record<string, string> = {
+			highest: tt.priorityHighest,
+			high: tt.priorityHigh,
+			medium: tt.priorityMedium,
+			low: tt.priorityLow,
+			lowest: tt.priorityLowest,
+		};
+		options = linePriorityValues().map((value) => ({ value, label: names[value] ?? value }));
+	}
+	return [...options, { value: MATRIX_NO_PRIORITY, label: tt.priorityNone }];
+}
+
+/** The built-in quadrant names. */
+function matrixQuadrantLabels(): Record<TaskMatrixQuadrant, string> {
+	const m = t().cards.tasks.matrix;
+	return { do: m.do, schedule: m.schedule, delegate: m.delegate, eliminate: m.eliminate };
+}
+
+/** The card's matrix with its defaults filled in. */
+function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
+	const values = matrixPriorityOptions(app, cfg)
+		.map((o) => o.value)
+		.filter((v) => v !== MATRIX_NO_PRIORITY);
+	return resolveTaskMatrix(cfg.matrix, values, matrixQuadrantLabels(), matrixSource(cfg));
+}
+
+/** Whether a card's tasks carry a priority the matrix can read and write. A
+ * Kanban board or a checkbox card read as plain text has no priority marks. */
+function matrixReadsPriorities(cfg: TasksConfig): boolean {
+	const source = matrixSource(cfg);
+	if (source === "kanban") return cfg.kanbanExtended ?? false;
+	if (source === "checkbox") return cfg.checkboxExtended ?? true;
+	return true;
+}
+
+/**
+ * Put a task into quadrant `target` (null: the unsorted strip) by writing the
+ * quadrant's priority onto it — the same write the priority chip's picker
+ * makes, so it lands as the Tasks-plugin emoji on a line and as the priority
+ * property on a task note. A task already in the quadrant is left alone.
+ */
+function moveTaskToQuadrant(
+	view: HomeView,
+	cfg: TasksConfig,
+	matrix: ResolvedTaskMatrix,
+	hit: TaskHit,
+	target: TaskMatrixQuadrant | null,
+	refresh: () => void,
+): void {
+	const source = matrixSource(cfg);
+	if (!matrixMoveNeeded(hit.priority, matrix, target, source)) return;
+	const value = target ? matrixWriteValue(matrix, target) : null;
+	if (value === undefined) return;
+	void writeTaskFieldValue(view, cfg, hit, builtinSource("priority"), value).then((ok) => {
+		if (!ok) new Notice(t().notices.taskChangedOnDisk);
+		refresh();
+	});
+}
+
+/** The matrix's right-click menu for a task: move it to another quadrant (the
+ * way to do it without dragging, which touch screens can't), followed by the
+ * line task's own items. */
+function matrixTaskMenu(
+	view: HomeView,
+	cfg: TasksConfig,
+	matrix: ResolvedTaskMatrix,
+	hit: TaskHit,
+	refresh: () => void,
+): Menu {
+	const menu = hearthMenu();
+	const source = matrixSource(cfg);
+	const tm = t().cards.tasks.matrix;
+	for (const id of TASK_MATRIX_QUADRANTS) {
+		if (matrixWriteValue(matrix, id) === undefined) continue;
+		const here = !matrixMoveNeeded(hit.priority, matrix, id, source);
+		menu.addItem((item) =>
+			item
+				.setTitle(tm.moveTo(matrix[id].label))
+				.setIcon(here ? "check" : "move")
+				.setDisabled(here)
+				.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, id, refresh)),
+		);
+	}
+	if (matrix.showUnsorted && matrixMoveNeeded(hit.priority, matrix, null, source)) {
+		menu.addItem((item) =>
+			item
+				.setTitle(tm.moveTo(tm.unsorted))
+				.setIcon("inbox")
+				.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, null, refresh)),
+		);
+	}
+	if (hit.line >= 0) taskMenu(view, cfg, hit, refresh, menu);
+	return menu;
+}
+
+/** One task inside a quadrant: drawn as a board card, with the list's
+ * checkbox (which ticks any source's task the same way the list does). */
+function renderMatrixCard(
+	view: HomeView,
+	cfg: TasksConfig,
+	matrix: ResolvedTaskMatrix,
+	hit: TaskHit,
+	host: HTMLElement,
+	today: string,
+	openStatus: string,
+	refresh: () => void,
+): HTMLElement {
+	const cardEl = host.createDiv("hearth-kanban-card hearth-matrix-card");
+	cardEl.toggleClass("is-done", hit.done);
+	const textRow = cardEl.createDiv("hearth-kanban-card-row");
+	const check = textRow.createEl("input", {
+		cls: hit.recurrence ? "hearth-task-check hearth-task-check-recurring" : "hearth-task-check",
+		attr: { type: "checkbox" },
+	});
+	check.checked = taskChecked(cfg, hit, today);
+	if (hit.recurrence) check.setAttribute("aria-label", t().cards.tasks.markOccurrence);
+	const stop = (e: Event) => e.stopPropagation();
+	check.addEventListener("click", stop);
+	check.addEventListener("mousedown", stop);
+	check.addEventListener("pointerdown", stop);
+	check.addEventListener("change", () => toggleTask(view, cfg, hit, today, openStatus, refresh));
+	const cardText = textRow.createDiv({ cls: "hearth-kanban-card-text" });
+	fillTaskText(view, cardText, hit.text || hit.file.basename, hit.file.path);
+	const block = cardEl.createDiv("hearth-kanban-card-block");
+	const meta = cardEl.createDiv("hearth-kanban-card-meta");
+	renderTaskFields(view, cfg, hit, { inline: textRow, meta, block, root: cardEl }, today, "kanban", refresh);
+	const open = () => void openTask(view, cfg, hit, refresh);
+	cardEl.addEventListener("click", open);
+	makeClickable(cardEl, open, hit.text || hit.file.basename);
+	cardEl.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		matrixTaskMenu(view, cfg, matrix, hit, refresh).showAtMouseEvent(e);
+	});
+	return cardEl;
+}
+
+/**
+ * The matrix layout: the card's tasks in a cross of four quadrants by
+ * priority, with whatever no quadrant claims in a strip below. Dragging a task
+ * between them rewrites its priority.
+ */
+function renderTaskMatrix(
+	view: HomeView,
+	cfg: TasksConfig,
+	hits: TaskHit[],
+	container: HTMLElement,
+	refresh: () => void,
+	today: string,
+	openStatus: string,
+): void {
+	if (!matrixReadsPriorities(cfg)) {
+		emptyState(container, "grid-2x2", t().cards.empty.matrixNeedsPriorities);
+		return;
+	}
+	const matrix = resolvedMatrix(view.app, cfg);
+	const source = matrixSource(cfg);
+	const { quadrants, unsorted } = groupByQuadrant(hits, (h) => h.priority, matrix, source);
+	const tm = t().cards.tasks.matrix;
+	const frame = {} as TaskMatrixFrame<TaskHit>["quadrants"];
+	for (const id of TASK_MATRIX_QUADRANTS) {
+		frame[id] = {
+			label: matrix[id].label,
+			items: quadrants[id],
+			droppable: matrixWriteValue(matrix, id) !== undefined,
+		};
+	}
+	renderTaskMatrixFrame<TaskHit>(container, {
+		quadrants: frame,
+		// Drawn even when empty: dropping a task on it is how its priority is
+		// cleared.
+		unsorted: matrix.showUnsorted ? unsorted : null,
+		labels: {
+			urgent: tm.urgent,
+			notUrgent: tm.notUrgent,
+			important: tm.important,
+			notImportant: tm.notImportant,
+			unsorted: tm.unsorted,
+			unsortedHint: tm.unsortedHint,
+			empty: tm.empty,
+		},
+		renderItem: (hit, host) => renderMatrixCard(view, cfg, matrix, hit, host, today, openStatus, refresh),
+		onDrop: (hit, target) => moveTaskToQuadrant(view, cfg, matrix, hit, target, refresh),
+	});
+}
+
+
 /** Render a compact "+ Add card" control at the bottom of a Kanban column. On
  * click it swaps to a small form: a text input plus, in extended mode, a due
  * date and priority picker whose values are written onto the card as
@@ -2782,14 +3032,15 @@ function renderKanbanAddCard(
 		const bodyWrap = form.createDiv({ cls: "hearth-taskdetail" });
 		const bodyRow = bodyWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
 		const bodyLabel = bodyRow.createSpan({ cls: "hearth-taskdetail-label" });
-		const bodyArea = bodyRow.createEl("textarea", {
-			cls: "hearth-taskdetail-desc",
-			attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
-		});
+		const bodyEditor = descriptionEditor(bodyRow, "");
+		const bodyArea = bodyEditor.area;
 
 		let prefillText = "";
 		const applyPrefill = () => {
 			bodyLabel.setText(noteToggle.checked ? t().cards.tasks.noteBody : t().cards.tasks.description);
+			// A note body is a whole note, where any Markdown goes.
+			bodyEditor.setGuided(!noteToggle.checked);
+			bodyArea.placeholder = noteToggle.checked ? "" : t().cards.tasks.descriptionPlaceholder;
 			// Keep the body field out of the way for a plain (non-extended) checkbox
 			// add until the user opts into notes or extended metadata.
 			if (opts.extended || noteToggle.checked) bodyWrap.show();
@@ -3028,11 +3279,7 @@ function buildTaskDetailFields(
 	if (allowDescription) {
 		const descRow = grid.createDiv({ cls: "hearth-taskdetail-row is-description" });
 		descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
-		descArea = descRow.createEl("textarea", {
-			cls: "hearth-taskdetail-desc",
-			attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
-		});
-		descArea.value = description;
+		descArea = descriptionEditor(descRow, description).area;
 	}
 
 	return () => {
@@ -3088,6 +3335,15 @@ class TaskMetadataModal extends HearthModal {
 	onClose(): void {
 		this.contentEl.empty();
 	}
+}
+
+
+/** Where the quick view's "Create note" puts the note, for its tooltip. */
+function createNoteTooltip(cfg: TasksConfig): string {
+	const tt = t().cards.tasks;
+	const folder = normalizeFolderPath(cfg.convertNoteFolder ?? "") || tt.createNoteDefaultFolder;
+	const template = cfg.convertNoteTemplate?.trim();
+	return template ? tt.createNoteTooltipTemplate(folder, template) : tt.createNoteTooltip(folder);
 }
 
 
@@ -3163,14 +3419,14 @@ class TaskDetailModal extends HearthModal {
 				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
 				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
 				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
-				const area = descRow.createEl("textarea", {
-					cls: "hearth-taskdetail-desc",
-					attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
-				});
+				const area = descriptionEditor(descRow, "").area;
 				this.linkedDescArea = area;
 				void readNoteDescription(view, hit.linkedFile).then((desc) => {
 					// Don't clobber edits the user already started typing.
-					if (!area.value) area.value = desc;
+					if (!area.value) {
+						area.value = desc;
+						area.dispatchEvent(new Event("input"));
+					}
 				});
 			}
 		} else {
@@ -3195,22 +3451,20 @@ class TaskDetailModal extends HearthModal {
 				const descWrap = contentEl.createDiv({ cls: "hearth-taskdetail" });
 				const descRow = descWrap.createDiv({ cls: "hearth-taskdetail-row is-description" });
 				descRow.createSpan({ cls: "hearth-taskdetail-label", text: t().cards.tasks.description });
-				const area = descRow.createEl("textarea", {
-					cls: "hearth-taskdetail-desc",
-					attr: { rows: "3", placeholder: t().cards.tasks.descriptionPlaceholder },
-				});
+				const area = descriptionEditor(descRow, linked ? "" : (hit.description ?? "")).area;
 				this.descArea = area;
 				if (linked && hit.linkedFile) {
 					void readNoteDescription(view, hit.linkedFile).then((desc) => {
 						// Don't clobber edits the user already started typing.
-						if (!area.value) area.value = desc;
+						if (!area.value) {
+							area.value = desc;
+							area.dispatchEvent(new Event("input"));
+						}
 					});
-				} else {
-					area.value = hit.description ?? "";
 				}
 			} else if (hit.description) {
 				// A task note's description isn't Hearth's to rewrite — show it as it is.
-				renderTaskDescription(contentEl, hit.description);
+				renderTaskDescription(contentEl, hit.description, view, hit.file.path);
 			}
 		}
 
@@ -3266,6 +3520,34 @@ class TaskDetailModal extends HearthModal {
 					void openTaskFile(view, hit);
 				}),
 		);
+		// A line task can be made into a note of its own, in the folder and from
+		// the template the card names; the task becomes a link to it. A card that
+		// already links to a note is one.
+		if (hit.line >= 0 && !isNoteTask(view, hit)) {
+			// The conversion rewrites the task's line from what is on disk, so edits
+			// still sitting in this sheet would be lost (or trip its changed-on-disk
+			// guard): they have to be saved first.
+			let dirty = false;
+			contentEl.addEventListener("input", () => (dirty = true));
+			contentEl.addEventListener("change", () => (dirty = true));
+			actions.addButton((b) =>
+				b
+					.setButtonText(t().cards.tasks.createNote)
+					.setIcon("file-plus")
+					.setTooltip(createNoteTooltip(cfg))
+					.onClick(() => {
+						if (dirty) {
+							new Notice(t().cards.tasks.createNoteSaveFirst);
+							return;
+						}
+						this.close();
+						void convertTaskToNote(view, cfg, hit).then((note) => {
+							this.refresh();
+							if (note) void openFile(view, note, "card");
+						});
+					}),
+			);
+		}
 		actions.addExtraButton((b) =>
 			b
 				.setIcon("trash-2")
@@ -3751,6 +4033,14 @@ function soleLinkedNote(view: HomeView, text: string, sourcePath: string): TFile
 }
 
 
+/** Whether a line task is a note already: a Kanban card linked to one, or any
+ * task whose text is just a link to a note (what converting one leaves). */
+function isNoteTask(view: HomeView, hit: TaskHit): boolean {
+	if (hit.linkedFile) return true;
+	return soleLinkedNote(view, stripInlineTags(stripTaskMetadata(hit.text)), hit.file.path) !== null;
+}
+
+
 /** Read a linked note's body (frontmatter stripped) as plain description lines,
  * with any leading list marker removed. Joined with "\n"; empty when the note
  * has no body. Used to show a converted card's description "inside the note". */
@@ -4160,8 +4450,7 @@ async function addKanbanCardAsNote(
 		(title || "Untitled").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled";
 	let note: TFile;
 	try {
-		const parent = view.app.fileManager.getNewFileParent(board.path);
-		const folder = parent instanceof TFolder ? parent : view.app.vault.getRoot();
+		const folder = await createDestinationFolder(view.app, cfg.convertNoteFolder ?? "", board.path);
 		note = await view.app.fileManager.createNewMarkdownFile(folder, safeTitle);
 	} catch {
 		return false;
@@ -4260,11 +4549,19 @@ function attachKanbanCardMenu(
  * a Kanban card convert or delete it. Null when there is nothing to offer (a
  * plain checkbox with metadata off). Shared by the graphical card's right-click
  * and terminal mode's. */
-export function taskMenu(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Menu | null {
+export function taskMenu(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	refresh: () => void,
+	into?: Menu,
+): Menu | null {
 	const isKanban = !!hit.boardColumn;
 	const canEditMeta = taskMetaEnabled(cfg, hit);
-	if (!canEditMeta && !isKanban) return null;
-	const menu = hearthMenu();
+	if (!canEditMeta && !isKanban) return into ?? null;
+	// Appending to another menu (the matrix's) sets this one's items apart.
+	if (into) into.addSeparator();
+	const menu = into ?? hearthMenu();
 	if (canEditMeta) {
 		menu.addItem((item) =>
 			item
@@ -4295,16 +4592,17 @@ export function taskMenu(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh
 				}),
 		);
 	}
+	// Any line task can become a note of its own; one that is a link to a note
+	// already has nothing to convert.
+	if (!isNoteTask(view, hit)) {
+		menu.addItem((item) =>
+			item
+				.setTitle(t().cards.tasks.convertToNote)
+				.setIcon("file-output")
+				.onClick(() => void convertTaskToNote(view, cfg, hit).then(refresh)),
+		);
+	}
 	if (isKanban) {
-		// A card already linked to a note has nothing to convert.
-		if (!hit.linkedFile) {
-			menu.addItem((item) =>
-				item
-					.setTitle(t().cards.tasks.convertToNote)
-					.setIcon("file-output")
-					.onClick(() => void convertKanbanCardToNote(view, cfg, hit).then(refresh)),
-			);
-		}
 		// Deleting stands apart from the rest, when there is a rest.
 		if (canEditMeta || !hit.linkedFile) menu.addSeparator();
 		menu.addItem((item) =>
@@ -4655,70 +4953,100 @@ async function renameKanbanColumn(
 }
 
 
-/** Convert a Kanban card into its own note (like the Kanban plugin): create a
- * note in the user's default new-note location named after the card, then
- * replace the card's text with a link to it — preserving the checkbox state and
- * any Tasks-plugin metadata tail. */
-async function convertKanbanCardToNote(view: HomeView, cfg: TasksConfig, hit: TaskHit): Promise<void> {
+/**
+ * Turn a line task — a Kanban card or a checkbox — into a note of its own and
+ * replace the task's text with a link to it, keeping the checkbox state and any
+ * Tasks-plugin metadata tail. The note is created in the card's configured
+ * folder (else Obsidian's default location for new notes) from its configured
+ * template: a Templater template runs through Templater when it is installed,
+ * any other is filled in with {{title}}/{{date}}/{{time}}. The task's
+ * description lines move into the note as bullet points. Returns the note, or
+ * null when nothing was changed.
+ */
+async function convertTaskToNote(view: HomeView, cfg: TasksConfig, hit: TaskHit): Promise<TFile | null> {
+	const app = view.app;
 	const board = hit.file;
-	const content = await view.app.vault.read(board);
+	const content = await app.vault.read(board);
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
 	const m = cur != null ? KANBAN_CARD_RE.exec(cur) : null;
-	if (!m || stripTaskMetadata(m[2]) !== stripTaskMetadata(hit.text)) {
+	if (!m || !sameCardLine(m[2], hit.text)) {
 		new Notice(t().notices.taskChangedOnDisk);
-		return;
+		return null;
 	}
-	// Sanitise the card title for use as a filename.
-	const title = (stripTaskMetadata(m[2]) || "Untitled").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled";
-	// The card's nested lines are its description — they move into the note (as
-	// bullet points), not left orphaned on the board.
-	const { end, descLines } = cardBlockRange(lines, hit.line);
-	let note: TFile;
-	try {
-		const parent = view.app.fileManager.getNewFileParent(board.path);
-		const folder = parent instanceof TFolder ? parent : view.app.vault.getRoot();
-		note = await view.app.fileManager.createNewMarkdownFile(folder, title);
-	} catch {
-		new Notice(t().notices.couldNotConvertCard);
-		return;
-	}
-	// Seed the note body: an optional template (Obsidian-core-style
-	// {{title}}/{{date}}/{{time}} substitution) followed by the card's
-	// description as bullet points. A missing/unreadable template is skipped
-	// rather than aborting the convert.
-	const bodyParts: string[] = [];
-	const templatePath = cfg.convertNoteTemplate?.trim();
-	if (templatePath) {
-		const tpl =
-			view.app.vault.getAbstractFileByPath(templatePath) ??
-			view.app.vault.getAbstractFileByPath(`${templatePath}.md`);
-		if (tpl instanceof TFile) {
-			try {
-				bodyParts.push(applyConvertTemplate(await view.app.vault.read(tpl), title));
-			} catch {
-				// Template unreadable — carry on without it.
-			}
+	// Sanitise the task title for use as a filename. Its tags stay on the task
+	// (below), not in the note's name.
+	const tags = inlineTags(m[2]);
+	const title = (stripInlineTags(stripTaskMetadata(m[2])) || "Untitled").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled";
+	// The task's nested lines are its description — they move into the note (as
+	// bullet points), not left orphaned under the link. A checkbox's stop at its
+	// first sub-task, which stays where it is.
+	const { descLines } = hit.boardColumn ? cardBlockRange(lines, hit.line) : checkboxBlockRange(lines, hit.line);
+	const bullets = descLines.map((l) => `- ${l.trim()}`).join("\n");
+	const folder = await createDestinationFolder(app, cfg.convertNoteFolder ?? "", board.path);
+	const template = resolveTemplateFile(app, cfg.convertNoteTemplate ?? "");
+	let templateText = "";
+	if (template) {
+		try {
+			templateText = await app.vault.read(template);
+		} catch {
+			// Template unreadable — carry on without it.
 		}
 	}
-	if (descLines.length) bodyParts.push(descLines.map((l) => `- ${l.trim()}`).join("\n"));
-	if (bodyParts.length) await view.app.vault.modify(note, bodyParts.join("\n\n"));
 
-	// Optionally scrape the card's Tasks-plugin metadata into the note's YAML
-	// frontmatter (read straight off the card text so it works even when the
-	// card wasn't parsed in extended mode). When scraping, the metadata now
-	// lives in the note, so the emoji tail is dropped from the board link.
+	let note: TFile | null = null;
+	if (template && /<%[\s\S]*?%>/.test(templateText) && isTemplaterAvailable(app)) {
+		// Templater syntax only means something to Templater, so it makes the
+		// note. A cancelled prompt or a template error (Templater reports its
+		// own) leaves the task as it was.
+		note = await createNoteFromTemplate(app, { template, folder: folder.path, filename: title });
+		if (!note) return null;
+		if (bullets) {
+			const made = note;
+			await app.vault.process(made, (body) => `${body.replace(/\s+$/, "")}${body.trim() ? "\n\n" : ""}${bullets}\n`);
+		}
+	} else {
+		try {
+			note = await app.fileManager.createNewMarkdownFile(folder, title);
+		} catch {
+			new Notice(t().notices.couldNotConvertCard);
+			return null;
+		}
+		// Seed the note body: the template (Obsidian-core-style substitution)
+		// followed by the description as bullet points.
+		const bodyParts: string[] = [];
+		if (templateText) bodyParts.push(applyConvertTemplate(templateText, title));
+		if (bullets) bodyParts.push(bullets);
+		if (bodyParts.length) await app.vault.modify(note, bodyParts.join("\n\n"));
+	}
+
+	// Optionally scrape the task's Tasks-plugin metadata into the note's YAML
+	// frontmatter (read straight off the line so it works even when the line
+	// wasn't parsed in extended mode). When scraping, the metadata now lives in
+	// the note, so the emoji tail is dropped from the link.
 	const scrape = cfg.convertMetadataToFrontmatter ?? false;
 	if (scrape) await writeTaskFrontmatter(view, note, m[2]);
 
-	const link = view.app.fileManager.generateMarkdownLink(note, board.path);
-	const meta = scrape ? "" : extractMetadataTail(m[2]);
-	// Everything before the card's text (indent + `- [x] `) is preserved; the
-	// card's description lines are removed from the board (they moved into the
-	// note), leaving just the link line.
-	const prefix = cur.slice(0, cur.length - m[2].length);
-	lines.splice(hit.line, end - hit.line, `${prefix}${link}${meta ? ` ${meta}` : ""}`);
-	await view.app.vault.modify(board, lines.join("\n"));
+	// The task's line is read again: Templater may have taken a while, and the
+	// note it was given could have been edited meanwhile.
+	const fresh = (await app.vault.read(board)).split("\n");
+	const again = fresh[hit.line];
+	const am = again != null ? KANBAN_CARD_RE.exec(again) : null;
+	if (!am || am[2] !== m[2]) {
+		new Notice(t().notices.taskChangedOnDisk);
+		return note;
+	}
+	const range = hit.boardColumn ? cardBlockRange(fresh, hit.line) : checkboxBlockRange(fresh, hit.line);
+	const link = applyInlineTags(app.fileManager.generateMarkdownLink(note, board.path), tags);
+	// The tags are on the link already, wherever the line had them.
+	const meta = scrape ? "" : stripInlineTags(extractMetadataTail(m[2]));
+	// Everything before the task's text (indent + `- [x] `) is preserved; its
+	// description lines are removed (they moved into the note), leaving just
+	// the link line.
+	const prefix = again.slice(0, again.length - am[2].length);
+	fresh.splice(hit.line, range.end - hit.line, `${prefix}${link}${meta ? ` ${meta}` : ""}`);
+	await app.vault.modify(board, fresh.join("\n"));
+	return note;
 }
 
 
@@ -6021,50 +6349,6 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				}),
 			);
 
-		// Convert-to-note options (the card right-click "Convert to note"
-		// action): seed the new note from a template, and/or scrape the card's
-		// metadata into the note's frontmatter instead of onto the board link.
-		const tplSetting = new Setting(containerEl)
-			.setName(t().editors.tasks.convertTemplate)
-			.setDesc(t().editors.tasks.convertTemplateDesc);
-		tplSetting.addText((txt) =>
-			txt
-				.setPlaceholder(t().editors.tasks.convertTemplatePlaceholder)
-				.setValue(cfg.convertNoteTemplate ?? "")
-				.onChange((v) => {
-					cfg.convertNoteTemplate = v.trim() || undefined;
-					ctx.opts.save();
-				}),
-		);
-		tplSetting.addExtraButton((b) =>
-			b
-				.setIcon("file-symlink")
-				.setTooltip(t().editors.tasks.pickTemplate)
-				.onClick(() => {
-					new FilePickerModal(
-						ctx.app,
-						(file) => {
-							cfg.convertNoteTemplate = file.path;
-							ctx.opts.save();
-							ctx.requestRender();
-						},
-						t().editors.tasks.pickTemplate,
-					).open();
-				}),
-		);
-
-		new Setting(containerEl)
-			.setName(t().editors.tasks.convertScrape)
-			.setDesc(t().editors.tasks.convertScrapeDesc)
-			.addToggle((tg) =>
-				tg
-					.setValue(cfg.convertMetadataToFrontmatter ?? false)
-					.onChange((v) => {
-						cfg.convertMetadataToFrontmatter = v || undefined;
-						ctx.opts.save();
-					}),
-			);
-
 		// Terminal mode adds a task as a card on the board, from a prompt.
 		if (!ctx.terminal) {
 			new Setting(containerEl)
@@ -6171,6 +6455,80 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			});
 	}
 
+	// Notes made from tasks — the quick view's "Create note" and the right-click
+	// "Convert to note": where they go, what they start from, and whether the
+	// task's metadata moves into their frontmatter. A TaskNotes task is a note
+	// already.
+	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+		new Setting(containerEl).setName(t().editors.tasks.noteFromTask).setDesc(t().editors.tasks.noteFromTaskDesc).setHeading();
+		const folderSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.convertFolder)
+			.setDesc(t().editors.tasks.convertFolderDesc);
+		folderSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.convertFolderPlaceholder)
+				.setValue(cfg.convertNoteFolder ?? "")
+				.onChange((v) => {
+					cfg.convertNoteFolder = normalizeFolderPath(v) || undefined;
+					ctx.opts.save();
+				}),
+		);
+		folderSetting.addExtraButton((b) =>
+			b
+				.setIcon("folder")
+				.setTooltip(t().editors.tasks.pickFolder)
+				.onClick(() => {
+					new FolderPickerModal(ctx.app, (folder) => {
+						cfg.convertNoteFolder = normalizeFolderPath(folder.path) || undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}).open();
+				}),
+		);
+
+		const tplSetting = new Setting(containerEl)
+			.setName(t().editors.tasks.convertTemplate)
+			.setDesc(t().editors.tasks.convertTemplateDesc);
+		tplSetting.addText((txt) =>
+			txt
+				.setPlaceholder(t().editors.tasks.convertTemplatePlaceholder)
+				.setValue(cfg.convertNoteTemplate ?? "")
+				.onChange((v) => {
+					cfg.convertNoteTemplate = v.trim() || undefined;
+					ctx.opts.save();
+				}),
+		);
+		tplSetting.addExtraButton((b) =>
+			b
+				.setIcon("file-symlink")
+				.setTooltip(t().editors.tasks.pickTemplate)
+				.onClick(() => {
+					new FilePickerModal(
+						ctx.app,
+						(file) => {
+							cfg.convertNoteTemplate = file.path;
+							ctx.opts.save();
+							ctx.requestRender();
+						},
+						t().editors.tasks.pickTemplate,
+					).open();
+				}),
+		);
+
+		new Setting(containerEl)
+			.setName(t().editors.tasks.convertScrape)
+			.setDesc(t().editors.tasks.convertScrapeDesc)
+			.addToggle((tg) =>
+				tg
+					.setValue(cfg.convertMetadataToFrontmatter ?? false)
+					.onChange((v) => {
+						cfg.convertMetadataToFrontmatter = v || undefined;
+						ctx.opts.save();
+					}),
+			);
+		new Setting(containerEl).setName(t().editors.tasks.display).setHeading();
+	}
+
 	// Quick-view on click applies to line-based tasks (checkboxes and Kanban
 	// cards); TaskNotes tasks always open in their own editor.
 	if ((cfg.source ?? "checkbox") !== "tasknotes") {
@@ -6191,12 +6549,15 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		.addDropdown((d) => {
 			d.addOption("list", t().editors.tasks.layoutList);
 			d.addOption("kanban", t().editors.tasks.layoutKanban);
+			d.addOption("matrix", t().editors.tasks.layoutMatrix);
 			d.setValue(cfg.layout ?? "list").onChange((v) => {
-				cfg.layout = v === "kanban" ? "kanban" : undefined;
+				cfg.layout = v === "kanban" || v === "matrix" ? v : undefined;
 				ctx.opts.save();
 				ctx.requestRender();
 			});
 		});
+
+	if (cfg.layout === "matrix") matrixEditor(ctx, containerEl, cfg);
 
 	if (
 		cfg.layout === "kanban" &&
@@ -6345,6 +6706,111 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	}
 }
 
+/**
+ * The matrix layout's settings: for each quadrant its name and the priorities
+ * that put a task there (toggled as chips — a priority belongs to one quadrant
+ * at most, so turning it on in one takes it off another), and whether tasks no
+ * quadrant claims are shown.
+ */
+function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: TasksConfig): void {
+	const te = t().editors.tasks;
+	const source = matrixSource(cfg);
+	const options = matrixPriorityOptions(ctx.app, cfg);
+	const values = options.map((o) => o.value);
+	const host = containerEl.createDiv("hearth-matrix-editor");
+	new Setting(host).setName(te.matrixHeading).setDesc(te.matrixDesc).setHeading();
+	if (!matrixReadsPriorities(cfg)) {
+		host.createDiv({ cls: "setting-item-description hearth-matrix-editor-warn", text: t().cards.empty.matrixNeedsPriorities });
+	}
+
+	const draw = (body: HTMLElement) => {
+		body.empty();
+		const resolved = resolvedMatrix(ctx.app, cfg);
+		const current = {} as Record<TaskMatrixQuadrant, string[]>;
+		for (const id of TASK_MATRIX_QUADRANTS) current[id] = [...resolved[id].priorities];
+		const write = (next: Record<TaskMatrixQuadrant, string[]>) => {
+			const quadrants = { ...(cfg.matrix?.quadrants ?? {}) };
+			for (const id of TASK_MATRIX_QUADRANTS) quadrants[id] = { ...(quadrants[id] ?? {}), priorities: next[id] };
+			cfg.matrix = { ...(cfg.matrix ?? {}), quadrants };
+			ctx.opts.save();
+			ctx.opts.rerender();
+		};
+		for (const id of TASK_MATRIX_QUADRANTS) {
+			const row = new Setting(body).setName(te.matrixQuadrant[id]);
+			row.settingEl.addClass("hearth-matrix-editor-row", `is-${id}`);
+			const writeValue = matrixWriteValue(resolved, id);
+			row.setDesc(
+				writeValue === undefined
+					? te.matrixQuadrantEmpty
+					: te.matrixQuadrantWrites(
+							options.find((o) => o.value === (writeValue ?? MATRIX_NO_PRIORITY))?.label ?? String(writeValue),
+						),
+			);
+			row.addText((txt) =>
+				txt
+					.setPlaceholder(matrixQuadrantLabels()[id])
+					.setValue(cfg.matrix?.quadrants?.[id]?.label ?? "")
+					.onChange((v) => {
+						const quadrants = { ...(cfg.matrix?.quadrants ?? {}) };
+						const own = { ...(quadrants[id] ?? {}) };
+						if (v.trim()) own.label = v.trim();
+						else delete own.label;
+						quadrants[id] = own;
+						cfg.matrix = { ...(cfg.matrix ?? {}), quadrants };
+						// Saved without a redraw, which would take the focus out of
+						// the field mid-word; the board catches up when the editor
+						// closes.
+						ctx.opts.save();
+					}),
+			);
+			const chips = row.controlEl.createDiv("hearth-matrix-editor-chips");
+			// The chips go under the name, across the row's full width.
+			row.settingEl.appendChild(chips);
+			for (const option of options) {
+				const on = current[id].includes(option.value);
+				const chip = chips.createEl("button", {
+					cls: "hearth-matrix-editor-chip",
+					text: option.label,
+					attr: { type: "button", "aria-pressed": on ? "true" : "false" },
+				});
+				chip.toggleClass("is-on", on);
+				// Where the value sits now, when it is another quadrant's.
+				const owner = TASK_MATRIX_QUADRANTS.find((q) => q !== id && current[q].includes(option.value));
+				if (owner) {
+					chip.addClass("is-elsewhere");
+					chip.setAttribute("title", te.matrixChipElsewhere(resolved[owner].label));
+				}
+				chip.addEventListener("click", () => {
+					write(toggleMatrixPriority(current, id, option.value, values, source));
+					draw(body);
+				});
+			}
+		}
+		const unsorted = new Setting(body).setName(te.matrixShowUnsorted).setDesc(te.matrixShowUnsortedDesc);
+		unsorted.addToggle((tg) =>
+			tg.setValue(cfg.matrix?.showUnsorted !== false).onChange((v) => {
+				cfg.matrix = { ...(cfg.matrix ?? {}), showUnsorted: v ? undefined : false };
+				if (!cfg.matrix.quadrants && cfg.matrix.showUnsorted === undefined) cfg.matrix = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+		unsorted.addExtraButton((b) =>
+			b
+				.setIcon("rotate-ccw")
+				.setTooltip(te.matrixReset)
+				.onClick(() => {
+					cfg.matrix = undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				}),
+		);
+	};
+	draw(host.createDiv("hearth-matrix-editor-body"));
+}
+
+
 /** Tasks pulled from the vault, as a list or kanban board. Redraws live, but a
  * folder-scoped card ignores changes it can provably never read. */
 export const tasksCard: CardDefinition<"tasks"> = {
@@ -6373,6 +6839,7 @@ export const tasksCard: CardDefinition<"tasks"> = {
 				taskFields: source.tasks.taskFields
 					? cloneTaskFields(source.tasks.taskFields)
 					: undefined,
+				matrix: cloneTaskMatrix(source.tasks.matrix),
 			};
 	},
 	expressive: true,

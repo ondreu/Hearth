@@ -140,6 +140,12 @@ export function installObsidianDom(): void {
 	elProto.empty = function (this: Element) { while (this.firstChild) this.removeChild(this.firstChild); };
 	elProto.detach = function (this: Element) { this.remove(); };
 	elProto.setText = function (this: Element, text: string) { this.textContent = text; };
+	// "Appends a text node to the node" (obsidian.d.ts, on Node).
+	nodeProto.appendText = function (this: Node, val: string) { this.appendChild((this.ownerDocument ?? (this as Document)).createTextNode(val)); };
+	// hide() sets `display: none`; show() restores it; toggle() picks one.
+	elProto.hide = function (this: HTMLElement) { Object.assign(this.style, { display: "none" }); };
+	elProto.show = function (this: HTMLElement) { this.style.removeProperty("display"); };
+	elProto.toggle = function (this: HTMLElement, show: boolean) { if (show) this.style.removeProperty("display"); else Object.assign(this.style, { display: "none" }); };
 	// HTMLElement and SVGElement both carry these (obsidian.d.ts): styles are
 	// assigned onto `style`, props are custom properties set one by one.
 	elProto.setCssStyles = function (this: HTMLElement, styles: Partial<CSSStyleDeclaration>) {

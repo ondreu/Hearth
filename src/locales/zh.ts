@@ -2333,10 +2333,10 @@ export const zh: Translations = {
 			quickViewDesc:
 				"点击任务会打开一个紧凑弹窗 — 其元数据和描述可就地编辑，并带有打开完整笔记" +
 				"或删除任务的按钮 — 而不是直接打开笔记。关闭则点击即打开笔记。",
-			convertTemplate: "转换为笔记的模板",
+			convertTemplate: "笔记模板",
 			convertTemplateDesc:
-				"当您右键卡片并选择“转换为笔记”时，用此模板作为新笔记的初始内容。" +
-				"支持 {{title}}、{{date}} 和 {{time}}。留空则创建空白笔记。",
+				"笔记以此模板开始。若已安装 Templater，Templater 模板会交由 Templater 处理；" +
+				"否则会替换 {{title}}、{{date}} 和 {{time}}。留空则创建空白笔记。",
 			convertTemplatePlaceholder: "例如 Templates/Task.md",
 			pickTemplate: "选择一篇模板笔记",
 			convertScrape: "把元数据提取到 frontmatter",
@@ -2346,14 +2346,40 @@ export const zh: Translations = {
 			newTaskAsNote: "新任务作为笔记",
 			newTaskAsNoteDesc:
 				"直接把每张新卡片创建为独立笔记（看板上留一个链接），而不是行内复选框 — " +
-				"并应用上面的模板与元数据入 frontmatter 选项，就像“转换为笔记”一样。",
+				"并应用“由任务创建笔记”中的文件夹、模板与 frontmatter 选项，就像“转换为笔记”一样。",
 			layout: "布局",
 			layoutDesc:
 				"列表，或按状态分组的看板。在看板上可以在列之间拖动卡片、拖动列标题重排、" +
 				"用某列的眼睛图标隐藏它，用勾选图标让它自动完成卡片。" +
-				"右键卡片可将其转换为独立笔记。",
+				"右键卡片可将其转换为独立笔记。在艾森豪威尔矩阵中，在象限之间拖动任务即可更改其优先级。",
 			layoutList: "列表",
 			layoutKanban: "看板",
+			layoutMatrix: "艾森豪威尔矩阵",
+			matrixHeading: "艾森豪威尔矩阵",
+			matrixDesc:
+				"任务按优先级落入对应象限。为每个象限选择所含的优先级；把任务拖入某个象限" +
+				"（或在右键菜单中选择“移动到…”）会为它设置该象限的第一个（最高）优先级。",
+			matrixQuadrant: {
+				do: "立即做——紧急且重要",
+				schedule: "计划——重要但不紧急",
+				delegate: "委派——紧急但不重要",
+				eliminate: "删除——既不紧急也不重要",
+			},
+			matrixQuadrantWrites: (priority: string) => `拖到这里的任务会设为：${priority}。`,
+			matrixQuadrantEmpty: "未选择优先级——此象限保持为空，不接受拖放。",
+			matrixChipElsewhere: (quadrant: string) => `当前在“${quadrant}”——点击移到这里`,
+			matrixShowUnsorted: "显示未分类任务",
+			matrixShowUnsortedDesc: "矩阵下方的一栏，列出没有象限包含的任务。把任务拖到这里会清除其优先级。",
+			matrixReset: "将矩阵恢复为默认设置",
+			noteFromTask: "由任务创建笔记",
+			noteFromTaskDesc:
+				"任务的“创建笔记”按钮和右键“转换为笔记”会生成：以任务命名、位于此文件夹、" +
+				"基于此模板的笔记。任务会变成指向它的链接。",
+			convertFolder: "文件夹",
+			convertFolderDesc: "笔记创建的位置；不存在的文件夹会被创建。留空则使用 Obsidian 新笔记的默认位置。",
+			convertFolderPlaceholder: "例如 项目/任务",
+			pickFolder: "选择文件夹",
+			display: "显示",
 			kanbanColumns: "看板列",
 			kanbanHidden: (columns: string) => `已隐藏：${columns}`,
 			kanbanDoneColumns: (columns: string) => `自动完成：${columns}`,
@@ -3230,6 +3256,7 @@ export const zh: Translations = {
 			tasksEnable: "请启用 TaskNotes 插件，或把来源切换为复选框",
 			tasksEmpty: "没有未完成的任务",
 			tasksNoMatch: "没有任务符合筛选条件",
+			matrixNeedsPriorities: "矩阵按优先级排列任务——请在此卡片设置中开启“日期与优先级”以便读取。",
 			kanbanNoBoard:
 				"未找到 Kanban 看板 — 请在卡片设置中选择一篇看板笔记，或用 Kanban 插件创建一个",
 			dataviewEnable: "请启用 Dataview 插件以运行查询",
@@ -3816,7 +3843,64 @@ export const zh: Translations = {
 			},
 			taskCount: (n: number) => `${n} 个任务`,
 			description: "描述",
-			descriptionPlaceholder: "备注…（纯文本）",
+			descriptionPlaceholder: "每行一个要点——支持 **粗体**、[[链接]] 和 #标签",
+			descHelp: {
+				summary: "这里支持哪些格式？",
+				intro: "每一行都会成为任务下的一个要点；空行会被丢弃。行内格式会保留，需要独立块的内容则不会。",
+				works: "支持",
+				fails: "不支持",
+				worksItems: [
+					["**粗体**", "粗体"],
+					["*斜体*", "斜体"],
+					["~~删除~~", "删除线"],
+					["==高亮==", "高亮"],
+					["`代码`", "行内代码"],
+					["[[笔记]]", "笔记链接"],
+					["[网站](https://example.com)", "网页链接"],
+					["#标签", "标签"],
+				],
+				failsItems: [
+					["# 标题", "标题"],
+					["- [ ] 步骤", "复选框——会变成子任务"],
+					["> 引用", "引用"],
+					["```", "代码块"],
+					["| a | b |", "表格"],
+					["![[图片.png]]", "嵌入和图片"],
+					["  缩进", "缩进——所有行会被拉平"],
+				],
+				issues: {
+					heading: "标题不会保留——会显示为以 # 开头的文本。",
+					checkbox: "复选框会让这一行变成子任务，而不是描述的一部分。",
+					quote: "引用不会保留——会显示为以 > 开头的文本。",
+					codeblock: "代码块不会保留——每一行都会变成单独的要点。",
+					table: "表格不会保留——每一行都会变成单独的要点。",
+					rule: "分隔线会显示为普通的短横线。",
+					embed: "嵌入会显示为链接文本，而不是图片或笔记。",
+					indent: "缩进会被移除——所有行都在同一层级。",
+				},
+				issueLine: (line: number, message: string) => `第 ${line} 行：${message}`,
+				moreIssues: (n: number) => `…还有 ${n} 处`,
+			},
+			createNote: "创建笔记",
+			createNoteSaveFirst: "请先保存更改——创建笔记会根据文件重写任务。",
+			createNoteDefaultFolder: "默认文件夹",
+			createNoteTooltip: (folder: string) => `将此任务在 ${folder} 中创建为笔记并在此链接`,
+			createNoteTooltipTemplate: (folder: string, template: string) =>
+				`基于 ${template} 将此任务在 ${folder} 中创建为笔记并在此链接`,
+			matrix: {
+				do: "立即做",
+				schedule: "计划",
+				delegate: "委派",
+				eliminate: "删除",
+				urgent: "紧急",
+				notUrgent: "不紧急",
+				important: "重要",
+				notImportant: "不重要",
+				unsorted: "未分类",
+				unsortedHint: "没有象限包含其优先级——拖入矩阵即可",
+				empty: "将任务拖到这里",
+				moveTo: (quadrant: string) => `移动到${quadrant}`,
+			},
 			tags: "标签",
 			tagsPlaceholder: "#工作 #家庭/杂事",
 			renameColumnHint: "双击以重命名",

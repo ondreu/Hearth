@@ -67,8 +67,9 @@ export function blankNoteName(pattern: string, now: Date, promptValue = ""): str
 /** Resolve (creating it if need be) the folder a new note should land in. A
  * path that can't be made — a name the filesystem refuses, a file sitting where
  * the folder should be — falls back to the vault's default location rather than
- * failing the click. */
-async function destinationFolder(app: App, folder: string): Promise<TFolder> {
+ * failing the click. `sourcePath` is the note the new one is made from, which
+ * Obsidian's "same folder as current file" default location is relative to. */
+export async function createDestinationFolder(app: App, folder: string, sourcePath = ""): Promise<TFolder> {
 	const path = normalizeFolderPath(folder);
 	if (path) {
 		const existing = app.vault.getAbstractFileByPath(path);
@@ -83,7 +84,7 @@ async function destinationFolder(app: App, folder: string): Promise<TFolder> {
 			// Fall through to the default location below.
 		}
 	}
-	const parent = app.fileManager.getNewFileParent("");
+	const parent = app.fileManager.getNewFileParent(sourcePath);
 	return parent instanceof TFolder ? parent : app.vault.getRoot();
 }
 
@@ -172,7 +173,7 @@ async function createBlankNote(
 	try {
 		const promptValue = await promptValueFor(app, pattern, label);
 		if (promptValue === null) return;
-		const folder = await destinationFolder(app, settings.newNoteFolder);
+		const folder = await createDestinationFolder(app, settings.newNoteFolder);
 		const file = await app.fileManager.createNewMarkdownFile(
 			folder,
 			blankNoteName(pattern, new Date(), promptValue),

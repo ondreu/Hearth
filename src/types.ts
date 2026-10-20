@@ -415,8 +415,16 @@ export interface TasksConfig {
 	/** Max tasks shown, soonest/overdue due date first. Default 10. */
 	count?: number;
 	/** "list" (default) renders a flat list; "kanban" groups tasks into status
-	 * columns that tasks can be dragged between. */
-	layout?: "list" | "kanban";
+	 * columns that tasks can be dragged between; "matrix" lays them out as an
+	 * Eisenhower matrix, one quadrant per group of priorities. */
+	layout?: "list" | "kanban" | "matrix";
+	/** Matrix layout: which priorities each quadrant holds, its name, and
+	 * whether tasks no quadrant claims are shown. See src/taskmatrix.ts. */
+	matrix?: TaskMatrixConfig;
+	/** Create-note-from-task (the quick view's button and "Convert to note"):
+	 * the folder the note is created in. Empty uses Obsidian's default location
+	 * for new notes. */
+	convertNoteFolder?: string;
 	/** Kanban: explicit left-to-right order of column keys (drag to reorder).
 	 * Columns not listed keep their default order after the listed ones. */
 	kanbanOrder?: string[];
@@ -425,6 +433,27 @@ export interface TasksConfig {
 	/** Kanban: column keys that mark a card done when it lands in them (dragged
 	 * or added). Toggled per column from the board header. */
 	kanbanDoneColumns?: string[];
+}
+
+/** A quadrant of the tasks card's Eisenhower matrix: urgent & important (do),
+ * important (schedule), urgent (delegate), neither (eliminate). */
+export type TaskMatrixQuadrant = "do" | "schedule" | "delegate" | "eliminate";
+
+/** One quadrant's own settings. Both are optional: an unset label uses the
+ * built-in name, unset priorities the default assignment. */
+export interface TaskMatrixQuadrantConfig {
+	label?: string;
+	/** The priority values that land a task here, highest first; the first is
+	 * written onto a task dropped into the quadrant. "none" stands for a task
+	 * without a priority. An empty list leaves the quadrant empty. */
+	priorities?: string[];
+}
+
+/** The tasks card's matrix layout settings. */
+export interface TaskMatrixConfig {
+	quadrants?: Partial<Record<TaskMatrixQuadrant, TaskMatrixQuadrantConfig>>;
+	/** Show the strip of tasks no quadrant claims under the cross. Default on. */
+	showUnsorted?: boolean;
 }
 
 /**

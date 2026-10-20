@@ -15,6 +15,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Eisenhower matrix for the Tasks card.** A third layout draws the card's
+  tasks as a cross of four quadrants — Do, Schedule, Delegate, Eliminate —
+  under *Urgent / Not urgent* and *Important / Not important*. A task sits in
+  the quadrant of its priority, and dragging it to another quadrant (or **Move
+  to …** in its right-click menu, for touch screens) rewrites that priority, so
+  the list, the board and other plugins agree. Which priorities each quadrant
+  holds, and what it is called, are set per card; tasks no quadrant holds wait
+  in an *Unsorted* strip, where a drop clears the priority.
+- **Create note from a task.** The quick view of a checkbox or Kanban task has
+  a **Create note** button that makes the task a note in a chosen folder, from
+  a chosen template (run through Templater when it is one), and turns the task
+  into a link to it. *Convert to note* now works for checkbox tasks too, and
+  both, like *New tasks as notes*, use the folder and template set under the
+  card's new *Notes from tasks* section.
+
 - **Cards with several views** (#385). Any card can now hold more views —
   each a card of any type — and switch between them, so one spot on the board
   can be a small workspace: projects, tasks, a habit tracker and a calendar
@@ -60,6 +75,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   engine; note bodies are not searched in this mode.
 
 ### Changed
+
+- **Task descriptions say what they can hold.** The description field has a
+  *What formatting works here?* guide — inline Markdown (bold, italic,
+  strikethrough, highlight, code, links, tags) works, block Markdown
+  (headings, checkboxes, quotes, code blocks, tables, embeds, indentation)
+  doesn't — and flags a line that won't survive, with what will happen to it,
+  before it is saved. Cards now draw a description's inline formatting, with
+  clickable links, instead of the raw Markdown.
 
 - **The Commands card is now part of Links / launchpad** (#388). The two cards
   drew the same buttons; the launchpad's can also be renamed, so commands from

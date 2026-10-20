@@ -2584,11 +2584,11 @@ export const en = {
 				"description, editable in place, with buttons to open the full note " +
 				"or delete the task — instead of opening the note straight away. Off " +
 				"opens the note on click.",
-			convertTemplate: "Convert-to-note template",
+			convertTemplate: "Note template",
 			convertTemplateDesc:
-				"When you right-click a card and choose “Convert to note”, seed the " +
-				"new note from this template. Supports {{title}}, {{date}} and " +
-				"{{time}}. Leave empty to create a blank note.",
+				"The note starts from this template. A Templater template runs through " +
+				"Templater when it is installed; otherwise {{title}}, {{date}} and " +
+				"{{time}} are filled in. Leave empty for a blank note.",
 			convertTemplatePlaceholder: "e.g. Templates/Task.md",
 			pickTemplate: "Pick a template note",
 			convertScrape: "Scrape metadata to frontmatter",
@@ -2599,16 +2599,48 @@ export const en = {
 			newTaskAsNote: "New tasks as notes",
 			newTaskAsNoteDesc:
 				"Create each new card as its own note (a link on the board) straight " +
-				"away, instead of an inline checkbox — applying the template and " +
-				"metadata-to-frontmatter options above, just like Convert to note.",
+				"away, instead of an inline checkbox — applying the folder, template and " +
+				"frontmatter options under “Notes from tasks”, just like Convert to note.",
 			layout: "Layout",
 			layoutDesc:
 				"List, or a Kanban board grouped by status. On the board, drag cards " +
 				"between columns, drag column headers to reorder, use a column's eye " +
 				"icon to hide it, and its check icon to make it auto-complete cards. " +
-				"Right-click a card to convert it into its own note.",
+				"Right-click a card to convert it into its own note. In the Eisenhower matrix, drag tasks between quadrants to change their priority.",
 			layoutList: "List",
 			layoutKanban: "Kanban board",
+			layoutMatrix: "Eisenhower matrix",
+			matrixHeading: "Eisenhower matrix",
+			matrixDesc:
+				"Tasks sit in the quadrant of their priority. Choose which priorities " +
+				"each quadrant holds; dragging a task into a quadrant (or “Move to…” in " +
+				"its right-click menu) gives it that quadrant's first — highest — priority.",
+			matrixQuadrant: {
+				do: "Do — urgent & important",
+				schedule: "Schedule — important, not urgent",
+				delegate: "Delegate — urgent, not important",
+				eliminate: "Eliminate — neither",
+			},
+			matrixQuadrantWrites: (priority: string) => `A task dropped here gets: ${priority}.`,
+			matrixQuadrantEmpty: "No priority chosen — this quadrant stays empty and takes no drops.",
+			matrixChipElsewhere: (quadrant: string) => `Now in “${quadrant}” — click to move it here`,
+			matrixShowUnsorted: "Show unsorted tasks",
+			matrixShowUnsortedDesc:
+				"A strip under the matrix with the tasks no quadrant holds. Dropping a " +
+				"task on it clears its priority.",
+			matrixReset: "Reset the matrix to its defaults",
+			noteFromTask: "Notes from tasks",
+			noteFromTaskDesc:
+				"What the task's “Create note” button and the right-click “Convert to " +
+				"note” make: a note named after the task, in this folder, from this " +
+				"template. The task becomes a link to it.",
+			convertFolder: "Folder",
+			convertFolderDesc:
+				"Where the note is created; a missing folder is made. Leave empty for " +
+				"Obsidian's default location for new notes.",
+			convertFolderPlaceholder: "e.g. Projects/Tasks",
+			pickFolder: "Pick a folder",
+			display: "Display",
 			kanbanColumns: "Kanban columns",
 			kanbanHidden: (columns: string) => `Hidden: ${columns}`,
 			kanbanDoneColumns: (columns: string) => `Auto-complete: ${columns}`,
@@ -3531,6 +3563,9 @@ export const en = {
 				"Enable the TaskNotes plugin, or switch source to checkboxes",
 			tasksEmpty: "No open tasks",
 			tasksNoMatch: "No tasks match the filter",
+			matrixNeedsPriorities:
+				"The matrix sorts tasks by priority — turn on “Dates & priorities” in " +
+				"this card's settings so it can read them.",
 			kanbanNoBoard:
 				"No Kanban board found — pick a board note in card settings, or create one with the Kanban plugin",
 			dataviewEnable: "Enable the Dataview plugin to run queries",
@@ -4129,7 +4164,66 @@ export const en = {
 			},
 			taskCount: (n: number) => (n === 1 ? "1 task" : `${n} tasks`),
 			description: "Description",
-			descriptionPlaceholder: "Notes… (plain text)",
+			descriptionPlaceholder: "One bullet per line — **bold**, [[links]] and #tags work",
+			descHelp: {
+				summary: "What formatting works here?",
+				intro:
+					"Each line becomes one bullet under the task; blank lines are dropped. " +
+					"Inline formatting is kept — anything that needs a block of its own is not.",
+				works: "Works",
+				fails: "Doesn't work",
+				worksItems: [
+					["**bold**", "Bold"],
+					["*italic*", "Italic"],
+					["~~struck~~", "Strikethrough"],
+					["==marked==", "Highlight"],
+					["`code`", "Inline code"],
+					["[[Note]]", "Link to a note"],
+					["[site](https://example.com)", "Web link"],
+					["#tag", "Tag"],
+				],
+				failsItems: [
+					["# Heading", "Headings"],
+					["- [ ] step", "Checkboxes — they become a sub-task"],
+					["> quote", "Quotes"],
+					["```", "Code blocks"],
+					["| a | b |", "Tables"],
+					["![[image.png]]", "Embeds and images"],
+					["  nested", "Indentation — lines are flattened"],
+				],
+				issues: {
+					heading: "headings aren't kept — it shows as text starting with #.",
+					checkbox: "a checkbox makes this line a sub-task, not part of the description.",
+					quote: "quotes aren't kept — it shows as text starting with >.",
+					codeblock: "code blocks aren't kept — every line becomes its own bullet.",
+					table: "tables aren't kept — each row becomes its own bullet.",
+					rule: "a divider shows as plain dashes.",
+					embed: "embeds show as link text, not the image or note.",
+					indent: "indentation is removed — every line sits at one level.",
+				},
+				issueLine: (line: number, message: string) => `Line ${line}: ${message}`,
+				moreIssues: (n: number) => `…and ${n} more`,
+			},
+			createNote: "Create note",
+			createNoteSaveFirst: "Save your changes first — creating the note rewrites the task from the file.",
+			createNoteDefaultFolder: "the default folder",
+			createNoteTooltip: (folder: string) => `Make this task a note in ${folder} and link it here`,
+			createNoteTooltipTemplate: (folder: string, template: string) =>
+				`Make this task a note in ${folder} from ${template} and link it here`,
+			matrix: {
+				do: "Do",
+				schedule: "Schedule",
+				delegate: "Delegate",
+				eliminate: "Eliminate",
+				urgent: "Urgent",
+				notUrgent: "Not urgent",
+				important: "Important",
+				notImportant: "Not important",
+				unsorted: "Unsorted",
+				unsortedHint: "No quadrant holds their priority — drag one into the matrix",
+				empty: "Drop tasks here",
+				moveTo: (quadrant: string) => `Move to ${quadrant}`,
+			},
 			tags: "Tags",
 			tagsPlaceholder: "#work #home/errands",
 			renameColumnHint: "Double-click to rename",

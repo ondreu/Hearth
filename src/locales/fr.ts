@@ -2534,11 +2534,11 @@ export const fr: Translations = {
 				"description, modifiables sur place, avec des boutons pour ouvrir la note complète " +
 				"ou supprimer la tâche — au lieu d'ouvrir directement la note. Désactivé : " +
 				"le clic ouvre la note.",
-			convertTemplate: "Modèle de conversion en note",
+			convertTemplate: "Modèle de note",
 			convertTemplateDesc:
-				"Quand vous faites clic droit sur une carte et choisissez « Convertir en note », la " +
-				"nouvelle note part de ce modèle. Prend en charge {{title}}, {{date}} et " +
-				"{{time}}. Laissez vide pour créer une note vide.",
+				"La note part de ce modèle. Un modèle Templater passe par Templater s'il " +
+				"est installé ; sinon {{title}}, {{date}} et {{time}} sont remplacés. " +
+				"Laisser vide pour une note vierge.",
 			convertTemplatePlaceholder: "ex. Modèles/Tâche.md",
 			pickTemplate: "Choisir une note modèle",
 			convertScrape: "Déplacer les métadonnées dans le frontmatter",
@@ -2549,16 +2549,48 @@ export const fr: Translations = {
 			newTaskAsNote: "Nouvelles tâches en notes",
 			newTaskAsNoteDesc:
 				"Créer chaque nouvelle carte directement comme une note à part (un lien sur le Kanban) " +
-				"au lieu d'une case à cocher — en appliquant le modèle et les options " +
-				"métadonnées-vers-frontmatter ci-dessus, comme Convertir en note.",
+				"au lieu d'une case à cocher — en appliquant le dossier, le modèle et les options " +
+				"de frontmatter de « Notes à partir des tâches », comme Convertir en note.",
 			layout: "Disposition",
 			layoutDesc:
 				"Liste, ou Kanban groupé par statut. Sur le Kanban, glissez les cartes " +
 				"entre colonnes, glissez les en-têtes de colonne pour les réordonner, utilisez l'œil " +
 				"d'une colonne pour la masquer, et sa coche pour qu'elle termine automatiquement les cartes. " +
-				"Clic droit sur une carte pour la convertir en note à part.",
+				"Clic droit sur une carte pour la convertir en note à part. Dans la matrice d'Eisenhower, glissez les tâches entre les quadrants pour changer leur priorité.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban",
+			layoutMatrix: "Matrice d'Eisenhower",
+			matrixHeading: "Matrice d'Eisenhower",
+			matrixDesc:
+				"Les tâches se rangent dans le quadrant de leur priorité. Choisissez les " +
+				"priorités de chaque quadrant ; glisser une tâche dans un quadrant (ou " +
+				"« Déplacer vers… » dans son menu contextuel) lui donne sa première — la plus haute — priorité.",
+			matrixQuadrant: {
+				do: "Faire — urgent et important",
+				schedule: "Planifier — important, pas urgent",
+				delegate: "Déléguer — urgent, pas important",
+				eliminate: "Éliminer — ni l'un ni l'autre",
+			},
+			matrixQuadrantWrites: (priority: string) => `Une tâche déposée ici reçoit : ${priority}.`,
+			matrixQuadrantEmpty: "Aucune priorité choisie — ce quadrant reste vide et n'accepte rien.",
+			matrixChipElsewhere: (quadrant: string) => `Actuellement dans « ${quadrant} » — cliquer pour la déplacer ici`,
+			matrixShowUnsorted: "Afficher les tâches non classées",
+			matrixShowUnsortedDesc:
+				"Une bande sous la matrice avec les tâches qu'aucun quadrant ne contient. " +
+				"Y déposer une tâche efface sa priorité.",
+			matrixReset: "Rétablir la matrice par défaut",
+			noteFromTask: "Notes à partir des tâches",
+			noteFromTaskDesc:
+				"Ce que créent le bouton « Créer une note » d'une tâche et « Convertir en " +
+				"note » du menu contextuel : une note au nom de la tâche, dans ce dossier, " +
+				"à partir de ce modèle. La tâche devient un lien vers elle.",
+			convertFolder: "Dossier",
+			convertFolderDesc:
+				"Où la note est créée ; un dossier manquant est créé. Laisser vide pour " +
+				"l'emplacement par défaut des nouvelles notes d'Obsidian.",
+			convertFolderPlaceholder: "ex. Projets/Tâches",
+			pickFolder: "Choisir un dossier",
+			display: "Affichage",
 			kanbanColumns: "Colonnes Kanban",
 			kanbanHidden: (columns: string) => `Masquées : ${columns}`,
 			kanbanDoneColumns: (columns: string) => `Achèvement auto : ${columns}`,
@@ -3476,6 +3508,9 @@ export const fr: Translations = {
 				"Activez le plugin TaskNotes, ou passez la source sur les cases à cocher",
 			tasksEmpty: "Aucune tâche ouverte",
 			tasksNoMatch: "Aucune tâche ne correspond au filtre",
+			matrixNeedsPriorities:
+				"La matrice range les tâches par priorité — activez « Dates et priorités » " +
+				"dans les réglages de cette carte pour qu'elle puisse les lire.",
 			kanbanNoBoard:
 				"Aucun Kanban trouvé — choisissez une note Kanban dans les paramètres de la carte, ou créez-en une avec le plugin Kanban",
 			dataviewEnable: "Activez le plugin Dataview pour exécuter des requêtes",
@@ -4058,7 +4093,67 @@ export const fr: Translations = {
 			},
 			taskCount: (n: number) => (n <= 1 ? `${n} tâche` : `${n} tâches`),
 			description: "Description",
-			descriptionPlaceholder: "Notes… (texte simple)",
+			descriptionPlaceholder: "Une puce par ligne — **gras**, [[liens]] et #tags fonctionnent",
+			descHelp: {
+				summary: "Quelle mise en forme fonctionne ici ?",
+				intro:
+					"Chaque ligne devient une puce sous la tâche ; les lignes vides sont " +
+					"retirées. La mise en forme dans la ligne est conservée — tout ce qui " +
+					"demande un bloc à part ne l'est pas.",
+				works: "Fonctionne",
+				fails: "Ne fonctionne pas",
+				worksItems: [
+					["**gras**", "Gras"],
+					["*italique*", "Italique"],
+					["~~barré~~", "Barré"],
+					["==surligné==", "Surlignage"],
+					["`code`", "Code en ligne"],
+					["[[Note]]", "Lien vers une note"],
+					["[site](https://example.com)", "Lien web"],
+					["#tag", "Tag"],
+				],
+				failsItems: [
+					["# Titre", "Titres"],
+					["- [ ] étape", "Cases à cocher — elles deviennent une sous-tâche"],
+					["> citation", "Citations"],
+					["```", "Blocs de code"],
+					["| a | b |", "Tableaux"],
+					["![[image.png]]", "Intégrations et images"],
+					["  indenté", "Indentation — les lignes sont aplaties"],
+				],
+				issues: {
+					heading: "les titres ne sont pas conservés — elle s'affiche comme texte commençant par #.",
+					checkbox: "une case à cocher fait de cette ligne une sous-tâche, pas une partie de la description.",
+					quote: "les citations ne sont pas conservées — elle s'affiche comme texte commençant par >.",
+					codeblock: "les blocs de code ne sont pas conservés — chaque ligne devient une puce.",
+					table: "les tableaux ne sont pas conservés — chaque rangée devient une puce.",
+					rule: "un séparateur s'affiche comme de simples tirets.",
+					embed: "les intégrations s'affichent comme texte du lien, pas comme image ou note.",
+					indent: "l'indentation est retirée — toutes les lignes sont au même niveau.",
+				},
+				issueLine: (line: number, message: string) => `Ligne ${line} : ${message}`,
+				moreIssues: (n: number) => `…et ${n} de plus`,
+			},
+			createNote: "Créer une note",
+			createNoteSaveFirst: "Enregistrez d'abord vos modifications — créer la note réécrit la tâche depuis le fichier.",
+			createNoteDefaultFolder: "le dossier par défaut",
+			createNoteTooltip: (folder: string) => `Faire de cette tâche une note dans ${folder} et la lier ici`,
+			createNoteTooltipTemplate: (folder: string, template: string) =>
+				`Faire de cette tâche une note dans ${folder} à partir de ${template} et la lier ici`,
+			matrix: {
+				do: "Faire",
+				schedule: "Planifier",
+				delegate: "Déléguer",
+				eliminate: "Éliminer",
+				urgent: "Urgent",
+				notUrgent: "Pas urgent",
+				important: "Important",
+				notImportant: "Pas important",
+				unsorted: "Non classées",
+				unsortedHint: "Aucun quadrant ne contient leur priorité — glissez-en une dans la matrice",
+				empty: "Déposez des tâches ici",
+				moveTo: (quadrant: string) => `Déplacer vers ${quadrant}`,
+			},
 			tags: "Tags",
 			tagsPlaceholder: "#travail #maison/courses",
 			renameColumnHint: "Double-cliquer pour renommer",
