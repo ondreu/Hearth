@@ -693,12 +693,15 @@ body.is-translucent .hearth-view.hearth-macos *:not(#hearth-boost)::after {
 /* While the mobile keyboard is open, constrain the scroll area to the visible
    viewport height and allow scrolling so nothing hides behind the keyboard
    (overrides fit-to-page clipping for the duration). Keyed off the focus flag
-   as well as the viewport heuristic — focus is set reliably from search.ts even
-   on devices where the visualViewport size change doesn't register. */
+   as well as the viewport heuristic — focus is set reliably from search.ts
+   (and view.ts for card fields, see trackFieldFocus) even on devices where
+   the visualViewport size change doesn't register. */
 .hearth-view.hearth-kbd-open .hearth-scroll,
 .hearth-view.hearth-kbd-open .hearth-scroll.hearth-fit,
 .hearth-view.hearth-search-active .hearth-scroll,
-.hearth-view.hearth-search-active .hearth-scroll.hearth-fit {
+.hearth-view.hearth-search-active .hearth-scroll.hearth-fit,
+.hearth-view.hearth-field-active .hearth-scroll,
+.hearth-view.hearth-field-active .hearth-scroll.hearth-fit {
 	height: var(--hearth-vh, 100%);
 	overflow-y: auto;
 }
@@ -10292,7 +10295,8 @@ button.hearth-clip-chip {
 
 /* Hide while the on-screen keyboard is up so it doesn't sit on top of it or
  * cover the search results dropdown. */
-.hearth-view.hearth-kbd-open .hearth-mobile-actions {
+.hearth-view.hearth-kbd-open .hearth-mobile-actions,
+.hearth-view.hearth-field-active .hearth-mobile-actions {
 	display: none;
 }
 
@@ -10378,19 +10382,22 @@ body.is-tablet button.hearth-gallery-icon-btn {
  * to the top so the results list stays above the keyboard instead of behind it.
  * Set on focus from search.ts, so it's reliable even when the viewport-size
  * keyboard heuristic doesn't fire. */
-.hearth-view.hearth-search-active .hearth-mobile-actions {
+.hearth-view.hearth-search-active .hearth-mobile-actions,
+.hearth-view.hearth-field-active .hearth-mobile-actions {
 	display: none;
 }
 
 .hearth-view.hearth-search-active .hearth-scroll,
-.hearth-view.hearth-kbd-open .hearth-scroll {
+.hearth-view.hearth-kbd-open .hearth-scroll,
+.hearth-view.hearth-field-active .hearth-scroll {
 	justify-content: flex-start;
 	/* Let the field/results scroll into the visible area above the keyboard. */
 	overflow-y: auto;
 }
 
 .hearth-view.hearth-search-active .hearth-inner,
-.hearth-view.hearth-kbd-open .hearth-inner {
+.hearth-view.hearth-kbd-open .hearth-inner,
+.hearth-view.hearth-field-active .hearth-inner {
 	justify-content: flex-start;
 }
 

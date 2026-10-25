@@ -232,6 +232,7 @@ export class HomeView extends ItemView {
 	async onOpen(): Promise<void> {
 		this.render();
 		this.trackViewport();
+		this.trackFieldFocus();
 		this.trackWidth();
 		this.maybeFocusSearch();
 	}
@@ -307,11 +308,16 @@ export class HomeView extends ItemView {
 		if (!vv || !Platform.isMobile) return;
 
 		const update = () => {
+			// getBoundingClientRect is visual-viewport relative, so the visible
+			// height left for the view is vv.height minus that top. Adding
+			// vv.offsetTop would count the panned distance twice: harmless at
+			// OT=0 (e.g. the search field pinned to the top), but once the
+			// browser pans the visual viewport to reveal a focused field deep
+			// in the board the variable overshoots by exactly that pan (#417).
 			const top = this.contentEl.getBoundingClientRect().top;
-			const visibleBottom = vv.offsetTop + vv.height;
 			this.contentEl.style.setProperty(
 				"--hearth-vh",
-				`${Math.max(0, Math.round(visibleBottom - top))}px`,
+				`${Math.max(0, Math.round(vv.height - top))}px`,
 			);
 			// Keyboard up when the visual viewport is meaningfully shorter than
 			// the layout viewport.
@@ -328,6 +334,57 @@ export class HomeView extends ItemView {
 			vv.removeEventListener("scroll", update);
 		});
 		update();
+	}
+
+	/**
+	 * The search field's keyboard handling (scroll into view + a focus class
+	 * that doesn't depend on the visualViewport size heuristic) generalised to
+	 * every other text field on the board (#417). Card editors — the jot-down
+	 * textarea, the editable embed, a hosted Live Preview editor, a Bases view —
+	 * sit deep inside the scroll area, so the browser's own scroll-into-view on
+	 * focus pans the visual viewport and the board jumps behind the keyboard,
+	 * while the header search (pinned to the top) never moves. Re-settle the
+	 * focused field once the keyboard has animated up, and flag the view so CSS
+	 * keeps the scroll area capped even where the size heuristic misfires.
+	 * The search input keeps its own handling and is left out.
+	 */
+	private trackFieldFocus(): void {
+		if (!Platform.isMobile) return;
+		const root = this.contentEl;
+		const isField = (el: Element | null): el is HTMLElement =>
+			el instanceof HTMLElement &&
+			!el.closest(".hearth-search-input") &&
+			el.matches("input, textarea, select, [contenteditable]:not([contenteditable='false'])") &&
+			root.contains(el);
+		const onFocusIn = (e: FocusEvent) => {
+			const target = e.target as Element | null;
+			if (!isField(target)) return;
+			const field = target;
+			root.addClass("hearth-field-active");
+			// Let the viewport settle first, as the search field does — the
+			// keyboard is still animating and an immediate scroll fights the
+			// browser's own scroll-into-view on focus.
+			window.setTimeout(() => {
+				if (root.ownerDocument.activeElement === field && field.isConnected) {
+					field.scrollIntoView({ block: "nearest" });
+				}
+			}, 300);
+		};
+		const onFocusOut = () => {
+			// Delay like the search blur handler: focus moving between two
+			// fields (or onto a search result) must not drop the flag between.
+			window.setTimeout(() => {
+				if (!isField(root.ownerDocument.activeElement)) {
+					root.removeClass("hearth-field-active");
+				}
+			}, 200);
+		};
+		root.addEventListener("focusin", onFocusIn);
+		root.addEventListener("focusout", onFocusOut);
+		this.register(() => {
+			root.removeEventListener("focusin", onFocusIn);
+			root.removeEventListener("focusout", onFocusOut);
+		});
 	}
 
 	/**

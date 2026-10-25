@@ -1,4 +1,4 @@
-import { Component, debounce, MarkdownRenderer } from "obsidian";
+import { Component, debounce, MarkdownRenderer, Platform } from "obsidian";
 import { wireMarkdownCheckboxes, wireMarkdownLinks } from "../cardbodies";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
@@ -60,7 +60,11 @@ export function renderText(
 		area.value = card.text ?? "";
 		preview.hide();
 		area.show();
-		area.focus();
+		// On mobile let the delegated focus handler (trackFieldFocus) settle
+		// the scroll once the keyboard is up instead of the browser jumping
+		// there mid-animation (#417).
+		if (Platform.isMobile) area.focus({ preventScroll: true });
+		else area.focus();
 	};
 	const leaveEdit = () => {
 		area.hide();

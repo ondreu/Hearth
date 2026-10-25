@@ -1,4 +1,4 @@
-import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, Setting, TFile } from "obsidian";
+import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, Platform, Setting, TFile } from "obsidian";
 import { setIcon } from "./glyphs";
 import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
@@ -529,7 +529,10 @@ export function renderEditableEmbed(
 			editing = true;
 			preview.hide();
 			area.show();
-			area.focus();
+			// On mobile let the delegated focus handler (trackFieldFocus)
+			// settle the scroll once the keyboard is up (#417).
+			if (Platform.isMobile) area.focus({ preventScroll: true });
+			else area.focus();
 		});
 	};
 	const leaveEdit = () => {

@@ -662,10 +662,12 @@ export class SearchSection {
 		if (!Platform.isMobile || !vv || !this.resultsEl) return;
 		// hide() sets display:none; only cap a list that's actually showing.
 		if (this.resultsEl.style.display === "none") return;
+		// getBoundingClientRect is visual-viewport relative, so the space above
+		// the keyboard is vv.height minus that top — vv.offsetTop must not be
+		// added back (see trackViewport in view.ts, #417).
 		const top = this.resultsEl.getBoundingClientRect().top;
-		const visibleBottom = vv.offsetTop + vv.height;
 		// Leave a small gap so the last row isn't flush against the keyboard.
-		const avail = visibleBottom - top - 12;
+		const avail = vv.height - top - 12;
 		// Never collapse below a couple of rows even if the measurement is momentarily
 		// off (e.g. mid keyboard animation); the internal scroll handles overflow.
 		this.resultsEl.style.maxHeight = `${Math.max(140, Math.round(avail))}px`;
