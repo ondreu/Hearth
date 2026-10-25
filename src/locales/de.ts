@@ -2595,11 +2595,11 @@ export const de: Translations = {
 				"Beschreibung, direkt bearbeitbar, mit Schaltflächen zum Öffnen der vollständigen Notiz " +
 				"oder Löschen der Aufgabe - statt die Notiz sofort zu öffnen. Aus " +
 				"öffnet die Notiz bei Klick.",
-			convertTemplate: "Vorlage zum Umwandeln in Notiz",
+			convertTemplate: "Notizvorlage",
 			convertTemplateDesc:
-				"Wenn du eine Karte rechtsklickst und „In Notiz umwandeln“ wählst, wird die " +
-				"neue Notiz aus dieser Vorlage erstellt. Unterstützt {{title}}, {{date}} und " +
-				"{{time}}. Leer lassen, um eine leere Notiz zu erstellen.",
+				"Die Notiz startet mit dieser Vorlage. Eine Templater-Vorlage läuft über " +
+				"Templater, wenn es installiert ist; sonst werden {{title}}, {{date}} und " +
+				"{{time}} ersetzt. Leer lassen für eine leere Notiz.",
 			convertTemplatePlaceholder: "z. B. Templates/Task.md",
 			pickTemplate: "Vorlagen-Notiz wählen",
 			convertScrape: "Metadaten in Frontmatter übernehmen",
@@ -2610,16 +2610,73 @@ export const de: Translations = {
 			newTaskAsNote: "Neue Aufgaben als Notizen",
 			newTaskAsNoteDesc:
 				"Jede neue Karte sofort als eigene Notiz erstellen (ein Link auf dem Board), " +
-				"statt als Inline-Checkbox - mit der Vorlage und " +
-				"den Frontmatter-Optionen oben, genau wie „In Notiz umwandeln“.",
+				"statt als Inline-Checkbox - mit Ordner, Vorlage und " +
+				"Frontmatter-Optionen unter „Notizen aus Aufgaben“, genau wie „In Notiz umwandeln“.",
 			layout: "Layout",
 			layoutDesc:
 				"Liste oder ein nach Status gruppiertes Kanban-Board. Auf dem Board Karten " +
 				"zwischen Spalten ziehen, Spaltenköpfe zum Sortieren ziehen, mit dem " +
 				"Augen-Symbol einer Spalte sie ausblenden und mit dem Häkchen-Symbol Aufgaben automatisch " +
-				"abschließen lassen. Eine Karte rechtsklicken, um sie in eine eigene Notiz umzuwandeln.",
+				"abschließen lassen. Eine Karte rechtsklicken, um sie in eine eigene Notiz umzuwandeln. In der Eisenhower-Matrix Aufgaben zwischen Quadranten ziehen, um ihre Priorität zu ändern.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban-Board",
+			layoutMatrix: "Eisenhower-Matrix",
+			matrixLayout: "Aufbau des Kreuzes",
+			matrixUrgency: "Dringlichkeit verläuft",
+			matrixUrgencyDesc: "Welche Achse dringend von nicht dringend trennt; die Wichtigkeit nimmt die andere.",
+			matrixUrgencyColumns: "Quer (Spalten)",
+			matrixUrgencyRows: "Senkrecht (Zeilen)",
+			matrixUrgentSide: "Seite für dringend",
+			matrixImportantSide: "Seite für wichtig",
+			matrixSideLeft: "Links",
+			matrixSideRight: "Rechts",
+			matrixSideTop: "Oben",
+			matrixSideBottom: "Unten",
+			matrixNames: "Achsennamen",
+			matrixNamesDesc: "Wie die Enden der Achsen und die Leiste der nicht zugeordneten Aufgaben auf der Karte heißen. Leer nimmt den eingebauten Namen.",
+			matrixAxisName: {
+				urgent: "Dringend",
+				notUrgent: "Nicht dringend",
+				important: "Wichtig",
+				notImportant: "Nicht wichtig",
+				unsorted: "Leiste „Nicht zugeordnet“",
+			},
+			matrixQuadrants: "Quadranten",
+			matrixQuadrantsDesc:
+				"Name jedes Quadranten und die Prioritäten, die eine Aufgabe hineinbringen. " +
+				"Ein Name lässt sich auch auf der Karte per Doppelklick ändern.",
+			matrixName: "Name",
+			matrixHeading: "Eisenhower-Matrix",
+			matrixDesc:
+				"Aufgaben stehen im Quadranten ihrer Priorität. Wähle, welche Prioritäten " +
+				"jeder Quadrant enthält; eine Aufgabe in einen Quadranten zu ziehen (oder " +
+				"„Verschieben nach…“ im Rechtsklick-Menü) gibt ihr dessen erste – höchste – Priorität.",
+			matrixQuadrant: {
+				do: "Erledigen – dringend & wichtig",
+				schedule: "Planen – wichtig, nicht dringend",
+				delegate: "Delegieren – dringend, nicht wichtig",
+				eliminate: "Streichen – weder noch",
+			},
+			matrixQuadrantWrites: (priority: string) => `Eine hier abgelegte Aufgabe bekommt: ${priority}.`,
+			matrixQuadrantEmpty: "Keine Priorität gewählt – dieser Quadrant bleibt leer und nimmt nichts an.",
+			matrixChipElsewhere: (quadrant: string) => `Zurzeit in „${quadrant}“ – klicken, um sie hierher zu verschieben`,
+			matrixShowUnsorted: "Nicht zugeordnete Aufgaben zeigen",
+			matrixShowUnsortedDesc:
+				"Eine Leiste unter der Matrix mit den Aufgaben, die kein Quadrant enthält. " +
+				"Eine dort abgelegte Aufgabe verliert ihre Priorität.",
+			matrixReset: "Matrix auf Standard zurücksetzen",
+			noteFromTask: "Notizen aus Aufgaben",
+			noteFromTaskDesc:
+				"Was die Schaltfläche „Notiz erstellen“ einer Aufgabe und „In Notiz " +
+				"umwandeln“ im Rechtsklick-Menü anlegen: eine nach der Aufgabe benannte " +
+				"Notiz in diesem Ordner aus dieser Vorlage. Die Aufgabe wird zu einem Link darauf.",
+			convertFolder: "Ordner",
+			convertFolderDesc:
+				"Wo die Notiz angelegt wird; ein fehlender Ordner wird erstellt. Leer " +
+				"lassen für Obsidians Standardort für neue Notizen.",
+			convertFolderPlaceholder: "z. B. Projekte/Aufgaben",
+			pickFolder: "Ordner wählen",
+			display: "Anzeige",
 			kanbanColumns: "Kanban-Spalten",
 			kanbanHidden: (columns: string) => `Ausgeblendet: ${columns}`,
 			kanbanDoneColumns: (columns: string) => `Auto-Abschluss: ${columns}`,
@@ -3536,6 +3593,9 @@ export const de: Translations = {
 				"Aktiviere das TaskNotes-Plugin oder wechsle die Quelle zu Checkboxen",
 			tasksEmpty: "Keine offenen Aufgaben",
 			tasksNoMatch: "Keine Aufgaben passen zum Filter",
+			matrixNeedsPriorities:
+				"Die Matrix ordnet Aufgaben nach Priorität – schalte „Termine & Prioritäten“ " +
+				"in den Einstellungen dieser Karte ein, damit sie sie lesen kann.",
 			kanbanNoBoard:
 				"Kein Kanban-Board gefunden - wähle eine Board-Notiz in den Karteneinstellungen oder erstelle eine mit dem Kanban-Plugin",
 			dataviewEnable: "Aktiviere das Dataview-Plugin, um Abfragen auszuführen",
@@ -4129,7 +4189,68 @@ export const de: Translations = {
 			},
 			taskCount: (n: number) => (n === 1 ? "1 Aufgabe" : `${n} Aufgaben`),
 			description: "Beschreibung",
-			descriptionPlaceholder: "Notizen… (reiner Text)",
+			descriptionPlaceholder: "Ein Punkt pro Zeile – **fett**, [[Links]] und #Tags gehen",
+			descHelp: {
+				summary: "Welche Formatierung geht hier?",
+				intro:
+					"Jede Zeile wird ein Aufzählungspunkt unter der Aufgabe; leere Zeilen " +
+					"entfallen. Formatierung innerhalb der Zeile bleibt – alles, was einen " +
+					"eigenen Block braucht, nicht.",
+				works: "Geht",
+				fails: "Geht nicht",
+				worksItems: [
+					["**fett**", "Fett"],
+					["*kursiv*", "Kursiv"],
+					["~~durch~~", "Durchgestrichen"],
+					["==markiert==", "Hervorhebung"],
+					["`Code`", "Code in der Zeile"],
+					["[[Notiz]]", "Link auf eine Notiz"],
+					["[Seite](https://example.com)", "Weblink"],
+					["#tag", "Tag"],
+				],
+				failsItems: [
+					["# Überschrift", "Überschriften"],
+					["- [ ] Schritt", "Checkboxen – sie werden zur Unteraufgabe"],
+					["> Zitat", "Zitate"],
+					["```", "Codeblöcke"],
+					["| a | b |", "Tabellen"],
+					["![[bild.png]]", "Einbettungen und Bilder"],
+					["  eingerückt", "Einrückung – Zeilen werden flach"],
+				],
+				issues: {
+					heading: "Überschriften bleiben nicht – sie erscheint als Text mit #.",
+					checkbox: "eine Checkbox macht die Zeile zur Unteraufgabe statt zur Beschreibung.",
+					quote: "Zitate bleiben nicht – sie erscheint als Text mit >.",
+					codeblock: "Codeblöcke bleiben nicht – jede Zeile wird ein eigener Punkt.",
+					table: "Tabellen bleiben nicht – jede Zeile wird ein eigener Punkt.",
+					rule: "eine Trennlinie erscheint als einfache Striche.",
+					embed: "Einbettungen erscheinen als Linktext, nicht als Bild oder Notiz.",
+					indent: "die Einrückung entfällt – alle Zeilen stehen auf einer Ebene.",
+				},
+				issueLine: (line: number, message: string) => `Zeile ${line}: ${message}`,
+				moreIssues: (n: number) => `…und ${n} weitere`,
+			},
+			createNote: "Notiz erstellen",
+			createNoteSaveFirst: "Erst die Änderungen speichern – das Erstellen der Notiz schreibt die Aufgabe aus der Datei neu.",
+			createNoteDefaultFolder: "dem Standardordner",
+			createNoteTooltip: (folder: string) => `Aus dieser Aufgabe eine Notiz in ${folder} machen und hier verlinken`,
+			createNoteTooltipTemplate: (folder: string, template: string) =>
+				`Aus dieser Aufgabe eine Notiz in ${folder} aus ${template} machen und hier verlinken`,
+			matrix: {
+				do: "Erledigen",
+				schedule: "Planen",
+				delegate: "Delegieren",
+				eliminate: "Streichen",
+				urgent: "Dringend",
+				notUrgent: "Nicht dringend",
+				important: "Wichtig",
+				notImportant: "Nicht wichtig",
+				unsorted: "Nicht zugeordnet",
+				unsortedHint: "Kein Quadrant enthält ihre Priorität – in die Matrix ziehen",
+				empty: "Aufgaben hier ablegen",
+				moveTo: (quadrant: string) => `Verschieben nach ${quadrant}`,
+				renameHint: "Doppelklick zum Umbenennen",
+			},
 			tags: "Tags",
 			tagsPlaceholder: "#arbeit #zuhause/besorgungen",
 			renameColumnHint: "Doppelklicken zum Umbenennen",
@@ -5041,17 +5162,20 @@ export const de: Translations = {
 			notFound: (path: string) => `Nicht gefunden: ${path}`,
 			due: "FÄLLIG",
 			task: "AUFGABE",
-			tasksFoot: "Leertaste hakt ab · Enter öffnet · f Filter · s Sortieren · b Board · + neu",
+			tasksFoot: "Leertaste hakt ab · Enter öffnet · f Filter · s Sortieren · b Board · m Matrix · + neu",
 			tasksOpen: (n: number) => `${n} offen`,
 			tasksNoAdd: "Die Quelle dieser Karte hat kein schnelles Hinzufügen. Füge stattdessen einer Notiz eine Checkbox hinzu.",
 			tasksAddTo: (column: string) => `Neue Karte in ${column}`,
 			columnLeft: "Spalte nach links",
 			columnRight: "Spalte nach rechts",
 			boardNoColumns: "Alle Spalten sind ausgeblendet. Blende sie in den Karteneinstellungen wieder ein.",
-			boardFoot: "Pfeile bewegen · Umschalt+Pfeile verschieben die Karte · Leertaste hakt ab · f Filter · b Liste",
+			boardFoot: "Pfeile bewegen · Umschalt+Pfeile verschieben die Karte · Leertaste hakt ab · f Filter · b Liste · m Matrix",
 			boardHint: (cards: number, columns: number) => `${cards} in ${columns}`,
 			showList: "Als Liste zeigen",
 			showBoard: "Als Board zeigen",
+			matrixFoot: "Pfeile bewegen · Umschalt+Pfeile verschieben die Aufgabe in einen Quadranten · Leertaste hakt ab · Enter öffnet · m Liste",
+			matrixMore: (n: number) => `+ ${n} weitere`,
+			showMatrix: "Als Matrix zeigen",
 			calNothing: "Nichts geplant. Enter öffnet die tägliche Notiz.",
 			calNothingNoNotes: "Nichts geplant.",
 			calEvents: (n: number) => (n === 1 ? "1 Termin" : `${n} Termine`),

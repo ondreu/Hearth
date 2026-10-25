@@ -1,3 +1,4 @@
+import { sanitizeTaskMatrix } from "./taskmatrix";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
@@ -877,6 +878,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (typeof r.checkboxExtended === "boolean")
 		cfg.checkboxExtended = r.checkboxExtended;
 	if (typeof r.taskQuickView === "boolean") cfg.taskQuickView = r.taskQuickView;
+	const convertNoteFolder = str(r.convertNoteFolder);
+	if (convertNoteFolder !== undefined) cfg.convertNoteFolder = convertNoteFolder;
 	const convertNoteTemplate = str(r.convertNoteTemplate);
 	if (convertNoteTemplate !== undefined)
 		cfg.convertNoteTemplate = convertNoteTemplate;
@@ -922,7 +925,9 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (taskFields) cfg.taskFields = taskFields;
 	if (typeof r.showCompleted === "boolean") cfg.showCompleted = r.showCompleted;
 	if (typeof r.count === "number") cfg.count = r.count;
-	if (r.layout === "list" || r.layout === "kanban") cfg.layout = r.layout;
+	if (r.layout === "list" || r.layout === "kanban" || r.layout === "matrix") cfg.layout = r.layout;
+	const matrix = sanitizeTaskMatrix(r.matrix);
+	if (matrix) cfg.matrix = matrix;
 	const kanbanOrder = strArray(r.kanbanOrder);
 	if (kanbanOrder) cfg.kanbanOrder = kanbanOrder;
 	const kanbanHidden = strArray(r.kanbanHidden);

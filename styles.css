@@ -21792,6 +21792,62 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--x-on-container);
 }
 
+/* Matrix: quadrants as tonal containers in their own colour, the counts as
+ * pills, the axes in the accent's tone — the Kanban columns' recipe. */
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix {
+	--hearth-matrix-gap: 12px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q {
+	border-radius: 20px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 13%, var(--background-primary));
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-head {
+	padding: 9px 12px 5px;
+	font-weight: 750;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-count {
+	min-width: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 24%, var(--background-primary));
+	color: color-mix(in srgb, var(--hearth-matrix-q) 70%, var(--text-normal));
+	font-weight: 700;
+	text-align: center;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-q-body {
+	padding: 2px 8px 8px;
+	gap: 6px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-axis-label {
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-grid::before {
+	background: linear-gradient(to bottom, transparent, var(--x-container) 12%, var(--x-container) 88%, transparent);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-grid::after {
+	background: linear-gradient(to right, transparent, var(--x-container) 12%, var(--x-container) 88%, transparent);
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-unsorted {
+	border: none;
+	border-radius: 20px;
+	background: var(--x-surface);
+	padding: 8px 10px 10px;
+}
+
+:is(.hearth-card.is-expressive, .hearth-x-modal) .hearth-matrix-unsorted-head {
+	color: var(--x-on-container);
+	font-weight: 750;
+}
+
 /* ---- Full calendar (schedule) --------------------------------------- */
 :is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-sched-title {
 	font-size: 1rem;
@@ -25281,4 +25337,627 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 :is(.hearth-tui, .hearth-t-modal) .hearth-tui-reverse.hearth-tui-colored {
 	color: var(--tui-sel-fg);
+}
+
+/* ---- Tasks: Eisenhower matrix ---------------------------------------- */
+
+/* The matrix fills the card: a top axis (urgent / not urgent) over the two
+ * columns, a side axis (important / not important) beside the two rows, and
+ * the four quadrants between them with the cross drawn through the gaps. The
+ * host is the size container the narrow rules below query. */
+.hearth-matrix-host {
+	flex: 1;
+	min-height: 0;
+	container-type: inline-size;
+	display: flex;
+	flex-direction: column;
+}
+
+.hearth-matrix {
+	--hearth-matrix-gap: 10px;
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	gap: 4px 6px;
+}
+
+.hearth-matrix-axis.is-top {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--hearth-matrix-gap);
+}
+
+.hearth-matrix-axis.is-side {
+	display: grid;
+	grid-template-rows: repeat(2, minmax(0, 1fr));
+	gap: var(--hearth-matrix-gap);
+}
+
+.hearth-matrix-axis-label {
+	font-size: 0.66rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The side labels read bottom-to-top, like a chart's y axis. */
+.hearth-matrix-axis.is-side .hearth-matrix-axis-label {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hearth-matrix-grid {
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-rows: repeat(2, minmax(0, 1fr));
+	gap: var(--hearth-matrix-gap);
+	min-height: 0;
+}
+
+/* The cross: two hairlines through the middle of the gaps, fading out at the
+ * ends so they read as axes rather than a frame. */
+.hearth-matrix-grid::before,
+.hearth-matrix-grid::after {
+	content: "";
+	position: absolute;
+	pointer-events: none;
+	border-radius: 2px;
+}
+
+.hearth-matrix-grid::before {
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	width: 2px;
+	transform: translateX(-50%);
+	background: linear-gradient(
+		to bottom,
+		transparent,
+		var(--background-modifier-border-hover) 12%,
+		var(--background-modifier-border-hover) 88%,
+		transparent
+	);
+}
+
+.hearth-matrix-grid::after {
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 2px;
+	transform: translateY(-50%);
+	background: linear-gradient(
+		to right,
+		transparent,
+		var(--background-modifier-border-hover) 12%,
+		var(--background-modifier-border-hover) 88%,
+		transparent
+	);
+}
+
+/* A quadrant is a tinted lane like a Kanban column — its colour says which one
+ * it is — scaled by the card's opacity so a see-through card stays one. */
+.hearth-matrix-q {
+	--hearth-matrix-q: var(--color-red);
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	border-radius: 8px;
+	background: color-mix(
+		in srgb,
+		var(--hearth-matrix-q) calc(var(--card-opacity, 1) * 8%),
+		transparent
+	);
+	transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.hearth-matrix-q.is-schedule {
+	--hearth-matrix-q: var(--color-blue);
+}
+
+.hearth-matrix-q.is-delegate {
+	--hearth-matrix-q: var(--color-orange);
+}
+
+.hearth-matrix-q.is-eliminate {
+	--hearth-matrix-q: var(--text-faint);
+}
+
+.hearth-matrix-q-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 9px 3px;
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.hearth-matrix-q-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--hearth-matrix-q);
+}
+
+.hearth-matrix-q-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-normal);
+}
+
+.hearth-matrix-q-count {
+	flex: none;
+	color: var(--text-faint);
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-matrix-q-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding: 2px 6px 6px;
+}
+
+/* A quadrant scrolls; its tasks keep their height rather than squeezing. */
+.hearth-matrix-q-body > * {
+	flex-shrink: 0;
+}
+
+.hearth-matrix-q-empty {
+	margin: auto;
+	padding: 6px;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	text-align: center;
+}
+
+/* A quadrant with no priority takes no drops; it says so by staying quiet. */
+.hearth-matrix-q.is-locked .hearth-matrix-q-empty {
+	visibility: hidden;
+}
+
+/* While a task is dragged, the places it can go light up a little; the one
+ * under the pointer gets the outline. */
+.hearth-matrix.is-dragging .hearth-matrix-q:not(.is-locked),
+.hearth-matrix.is-dragging .hearth-matrix-unsorted {
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hearth-matrix-q, var(--interactive-accent)) 35%, transparent);
+}
+
+.hearth-matrix-q.is-drop-target,
+.hearth-matrix-unsorted.is-drop-target {
+	background: color-mix(in srgb, var(--hearth-matrix-q, var(--interactive-accent)) 16%, transparent);
+	box-shadow: inset 0 0 0 2px var(--hearth-matrix-q, var(--interactive-accent));
+}
+
+/* Tasks inside are board cards, a touch tighter. */
+.hearth-matrix-card {
+	padding: 5px 7px;
+	font-size: 0.8rem;
+}
+
+/* Tasks no quadrant holds: a dashed strip under the cross, which is also where
+ * a task is dropped to clear its priority. */
+.hearth-matrix-unsorted {
+	--hearth-matrix-q: var(--interactive-accent);
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 9.5em;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 5px 8px 7px;
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: 8px;
+}
+
+.hearth-matrix-unsorted-head {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.hearth-matrix-unsorted-hint {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 400;
+	font-size: 0.7rem;
+	color: var(--text-faint);
+}
+
+.hearth-matrix-unsorted-body {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.hearth-matrix-unsorted-body:empty {
+	display: none;
+}
+
+.hearth-matrix-unsorted-body .hearth-matrix-card {
+	flex: 1 1 150px;
+	min-width: 0;
+}
+
+/* A quadrant's name renamed in place (double-click it). */
+.hearth-matrix-q-rename {
+	flex: 1;
+	min-width: 0;
+	padding: 1px 4px;
+	border-radius: 4px;
+	border: 1px solid var(--interactive-accent);
+	background: var(--background-primary);
+	font: inherit;
+	color: var(--text-normal);
+}
+
+/* A narrow card keeps the cross but gives the room to the tasks: the axis
+ * labels go, and the quadrants close up. */
+@container (max-width: 340px) {
+	.hearth-matrix {
+		--hearth-matrix-gap: 6px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr) auto;
+	}
+
+	.hearth-matrix-corner,
+	.hearth-matrix-axis.is-top,
+	.hearth-matrix-axis.is-side {
+		display: none;
+	}
+
+	.hearth-matrix-q-head {
+		padding: 5px 7px 2px;
+	}
+
+	.hearth-matrix-q-body {
+		padding: 2px 4px 4px;
+	}
+
+	.hearth-matrix-unsorted-hint {
+		display: none;
+	}
+}
+
+/* The matrix editor: each quadrant's priorities as toggle chips under its
+ * name, the quadrant's colour on the left edge so it matches the card. */
+.hearth-matrix-editor-row {
+	flex-wrap: wrap;
+	border-left: 3px solid var(--color-red);
+	padding-left: 10px;
+}
+
+.hearth-matrix-editor-row.is-schedule {
+	border-left-color: var(--color-blue);
+}
+
+.hearth-matrix-editor-row.is-delegate {
+	border-left-color: var(--color-orange);
+}
+
+.hearth-matrix-editor-row.is-eliminate {
+	border-left-color: var(--text-faint);
+}
+
+.hearth-matrix-editor-chips {
+	flex-basis: 100%;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding-top: 8px;
+}
+
+.hearth-matrix-editor-chip {
+	height: auto;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 0.78rem;
+	box-shadow: none;
+	border: 1px solid var(--background-modifier-border);
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-matrix-editor-chip:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-matrix-editor-chip.is-on {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+/* Held by another quadrant: clickable, but dimmed so the row reads as "these
+ * are the ones here". */
+.hearth-matrix-editor-chip.is-elsewhere {
+	opacity: 0.55;
+	border-style: dashed;
+}
+
+.hearth-matrix-editor-label {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+}
+
+/* The editor's preview of the cross: the axis names and the quadrant names,
+ * where the card will draw them. */
+.hearth-matrix-preview {
+	display: grid;
+	grid-template-columns: auto repeat(2, minmax(0, 1fr));
+	gap: 4px 6px;
+	max-width: 420px;
+	margin: 4px 0 12px;
+	font-size: 0.78rem;
+}
+
+.hearth-matrix-preview-axis {
+	font-size: 0.66rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-matrix-preview-axis.is-side {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	align-self: center;
+}
+
+.hearth-matrix-preview-q {
+	--hearth-matrix-q: var(--color-red);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px 10px;
+	border-radius: 8px;
+	background: color-mix(in srgb, var(--hearth-matrix-q) 12%, transparent);
+	font-weight: 600;
+}
+
+.hearth-matrix-preview-q.is-schedule {
+	--hearth-matrix-q: var(--color-blue);
+}
+
+.hearth-matrix-preview-q.is-delegate {
+	--hearth-matrix-q: var(--color-orange);
+}
+
+.hearth-matrix-preview-q.is-eliminate {
+	--hearth-matrix-q: var(--text-faint);
+}
+
+.hearth-matrix-editor-warn {
+	color: var(--text-warning);
+	padding: 0 0 8px;
+}
+
+/* ---- Tasks: description formatting ----------------------------------- */
+
+/* The inline Markdown a description line keeps, drawn small and quiet to
+ * match the muted sub-bullets. */
+.hearth-task-desc-text code {
+	font-family: var(--font-monospace);
+	font-size: 0.92em;
+	padding: 0 3px;
+	border-radius: 3px;
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-task-desc-text strong {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.hearth-task-desc-text mark,
+.hearth-taskdesc-preview mark {
+	background: var(--text-highlight-bg);
+	color: inherit;
+	border-radius: 2px;
+	padding: 0 1px;
+}
+
+.hearth-task-desc-tag {
+	color: var(--tag-color, var(--text-accent));
+}
+
+/* The description editor: the textarea, a live warning for lines a sub-bullet
+ * can't hold, and the collapsible guide to what works. */
+.hearth-taskdesc-field {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.hearth-taskdetail-desc.has-issues {
+	border-color: color-mix(in srgb, var(--text-warning) 65%, var(--background-modifier-border));
+}
+
+.hearth-taskdesc-help {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.hearth-taskdesc-issues {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.hearth-taskdesc-issues.is-empty {
+	display: none;
+}
+
+.hearth-taskdesc-issue {
+	display: flex;
+	align-items: flex-start;
+	gap: 5px;
+	font-size: 0.72rem;
+	line-height: 1.35;
+	color: var(--text-warning);
+}
+
+.hearth-taskdesc-issue.is-more {
+	padding-left: 17px;
+}
+
+.hearth-taskdesc-issue-icon,
+.hearth-taskdesc-col-icon {
+	flex: none;
+	display: inline-flex;
+}
+
+.hearth-taskdesc-issue-icon .svg-icon {
+	width: 12px;
+	height: 12px;
+	margin-top: 1px;
+}
+
+.hearth-taskdesc-guide > summary {
+	width: fit-content;
+	font-size: 0.72rem;
+	color: var(--text-faint);
+	cursor: pointer;
+	user-select: none;
+}
+
+.hearth-taskdesc-guide > summary:hover {
+	color: var(--text-muted);
+}
+
+.hearth-taskdesc-guide[open] {
+	padding: 6px 8px 8px;
+	border-radius: 6px;
+	background: var(--background-secondary);
+}
+
+.hearth-taskdesc-intro {
+	margin: 4px 0 8px;
+	font-size: 0.74rem;
+	line-height: 1.4;
+	color: var(--text-muted);
+}
+
+.hearth-taskdesc-cols {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 8px 16px;
+}
+
+.hearth-taskdesc-col {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.hearth-taskdesc-col-head {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 2px;
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.hearth-taskdesc-col.is-works .hearth-taskdesc-col-head {
+	color: var(--color-green);
+}
+
+.hearth-taskdesc-col.is-fails .hearth-taskdesc-col-head {
+	color: var(--color-red);
+}
+
+.hearth-taskdesc-col-icon .svg-icon {
+	width: 12px;
+	height: 12px;
+}
+
+.hearth-taskdesc-item {
+	display: grid;
+	grid-template-columns: minmax(0, 10em) minmax(0, 1fr);
+	align-items: baseline;
+	gap: 0 8px;
+	font-size: 0.74rem;
+	line-height: 1.45;
+	color: var(--text-muted);
+}
+
+.hearth-taskdesc-sample {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.7rem;
+	padding: 0 4px;
+	border-radius: 3px;
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	justify-self: start;
+	max-width: 100%;
+}
+
+.hearth-taskdesc-result {
+	min-width: 0;
+}
+
+.hearth-taskdesc-preview {
+	color: var(--text-normal);
+}
+
+.hearth-taskdesc-preview code {
+	font-family: var(--font-monospace);
+	font-size: 0.92em;
+}
+
+.hearth-taskdesc-result .hearth-taskdesc-name {
+	color: var(--text-faint);
+}
+
+.hearth-taskdesc-result .hearth-taskdesc-name::before {
+	content: " — ";
+}
+
+.hearth-taskdesc-col.is-fails .hearth-taskdesc-sample {
+	text-decoration: line-through;
+	text-decoration-color: var(--text-faint);
+	color: var(--text-muted);
 }

@@ -13,7 +13,8 @@ from each card's own gear button while arranging; see
 
 ## The Tasks card
 
-**What it shows:** your tasks, as a list or as a drag-and-drop Kanban board.
+**What it shows:** your tasks, as a list, a drag-and-drop Kanban board or an
+Eisenhower matrix.
 
 **Requires:** nothing for Markdown checkboxes. The TaskNotes or Kanban community
 plugins for those sources.
@@ -48,8 +49,8 @@ sub-bullets under the task exactly as a Kanban card's description is. The
 description stops at the first nested checkbox: a sub-task is a task in its own
 right and shows as one, rather than as a line of its parent's description.
 
-A description is edited in the quick view and in *Edit details*, as plain text —
-one sub-bullet is written under the checkbox per line you type. Only those lines
+A description is edited in the quick view and in *Edit details* — one sub-bullet
+is written under the checkbox per line you type. Only those lines
 are rewritten, and only when you actually change the description: a sub-task,
 anything nested under it, and an untouched description keep exactly the shape
 the note gave them.
@@ -88,9 +89,53 @@ Reads a single Kanban-plugin board note, one column per heading.
 change in Kanban's own format, so the note stays fully editable in the Kanban
 plugin. Hearth is not a second, disagreeing owner of the board.
 
-### Layout: list or board
+### Description formatting
 
-*Layout* is either **List** or **Kanban board**.
+Every line of a description is stored as one sub-bullet under the task, so it
+can carry what a bullet can and no more. Under the description field, *What
+formatting works here?* opens the same list:
+
+| Works | Doesn't work |
+| --- | --- |
+| `**bold**`, `*italic*`, `~~strikethrough~~`, `==highlight==`, `` `code` `` | Headings (`# …`) — shown as text starting with `#` |
+| `[[Note]]` and `[text](https://…)` links — clickable on the card | Checkboxes (`- [ ] …`) — the line becomes a sub-task |
+| `#tags` | Quotes, code blocks, tables, dividers |
+| | Embeds and images (`![[…]]`) — shown as link text |
+| | Indentation — every line sits at one level |
+
+While you type, a line that falls in the right-hand column is flagged under the
+field with its line number and what will happen to it, before anything is
+saved. Blank lines are dropped. A card shows its description with the
+formatting from the left-hand column applied.
+
+### Notes from tasks
+
+The quick view of a checkbox or Kanban task has a **Create note** button. It
+makes a note named after the task and replaces the task's text with a link to
+it — the checkbox, its state and its dates stay on the task's line, and the
+task's description moves into the note as bullet points. The note opens once
+it is made. The same thing is **Convert to note** in the task's right-click
+menu.
+
+Where the note goes and what it starts from are set under *Notes from tasks* in
+the card's settings:
+
+- *Folder* — where the note is created; a folder that doesn't exist yet is
+  made. Empty uses Obsidian's default location for new notes.
+- *Note template* — the note's starting content. A template written for
+  [Templater](https://github.com/SilentVoid13/Templater) is run through
+  Templater when it is installed; any other template has `{{title}}`,
+  `{{date}}` and `{{time}}` (and `{{date:FORMAT}}`) filled in.
+- *Scrape metadata to frontmatter* — move the task's dates, priority and repeat
+  into the note's frontmatter instead of keeping them on the task's line.
+
+Edits not yet saved in the quick view have to be saved first; **Create note**
+says so rather than losing them. A task that is already a link to a note, and
+a TaskNotes task, are notes already and don't get the button.
+
+### Layout: list, board or matrix
+
+*Layout* is **List**, **Kanban board** or **Eisenhower matrix**.
 
 On a board:
 
@@ -98,7 +143,7 @@ On a board:
 - Drag column headers to reorder columns.
 - Use a column's eye icon to hide it.
 - Use a column's check icon to make it auto-complete cards dropped into it.
-- Right-click a card to convert it into its own note.
+- Right-click a card to convert it into its own note (see *Notes from tasks*).
 
 The card's settings summarise the current column state — which are hidden, which
 auto-complete, whether a custom order is set — and offer *Show all* and *Reset
@@ -106,6 +151,54 @@ column order, visibility & done columns*.
 
 Completed tasks always appear in the Done column on a board, regardless of the
 *Show completed* setting.
+
+#### The Eisenhower matrix
+
+The matrix draws the card as a cross: *Urgent* and *Not urgent* across the top,
+*Important* and *Not important* down the side, and a quadrant in each corner —
+**Do**, **Schedule**, **Delegate** and **Eliminate**. A task sits in the
+quadrant of its **priority**; the matrix keeps nothing of its own, so the list,
+the board and other plugins see the same thing.
+
+- Drag a task into another quadrant to give it that quadrant's priority. On a
+  touch screen, use **Move to …** in the task's long-press menu.
+- Tasks whose priority no quadrant holds — usually tasks with no priority —
+  wait in the **Unsorted** strip under the cross. Dropping a task on the strip
+  clears its priority.
+- Ticking, opening and right-clicking a task work as in the list. The filter
+  and sort apply too; *Max tasks shown* does not, since a quadrant would
+  otherwise hide tasks without saying so.
+- A task in the matrix doesn't show its priority: where it sits says it.
+- Double-click a quadrant's name to rename it in place; clearing the name puts
+  the built-in one back.
+
+*Layout of the cross* in the card's settings sets where things go, with a
+preview: *Urgency runs* across (columns, the classic matrix) or down (rows),
+*Urgent side* left or right (top or bottom), and *Important side* top or bottom
+(left or right). *Axis names* renames Urgent, Not urgent, Important, Not
+important and the Unsorted strip.
+
+Which priorities each quadrant holds is set under *Eisenhower matrix* in the
+card's settings: each quadrant has a row of priority chips to toggle, and a
+name of its own if you'd rather not use the built-in one. A priority belongs to
+one quadrant at most — turning it on in one takes it off another. A task
+dropped into a quadrant gets its **first** (highest) priority; the row says
+which. *No priority* is a chip like the others, so tasks without one can live
+in a quadrant instead of the strip. *Show unsorted tasks* hides the strip.
+
+The defaults, for checkbox and Kanban tasks, are Highest → Do, High →
+Schedule, Medium → Delegate, and Low and Lowest → Eliminate. For TaskNotes,
+TaskNotes' own priorities are dealt out the same way, most important first;
+with only three of them, Eliminate takes the tasks without a priority.
+
+The matrix needs a priority to read: for the checkbox and Kanban sources,
+*Dates & priorities* has to be on.
+
+In terminal mode the matrix is drawn as text: the axis names over two columns,
+each row of the cross under its own axis name, and the Unsorted tasks below.
+The arrows move between tasks and columns, Shift+arrows move a task into the
+neighbouring quadrant (Shift+down from the bottom row: to Unsorted), and `m`
+switches between the matrix and the list.
 
 ### Dates, priorities and recurrence
 
