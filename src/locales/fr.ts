@@ -965,6 +965,10 @@ export const fr: Translations = {
 			searchContentsDesc:
 				"Chercher aussi dans le texte des notes, pas seulement les noms, tags et " +
 				"propriétés. Ces résultats apparaissent après les correspondances de nom, avec un extrait.",
+			searchScrollToMatch: "Aller au passage trouvé",
+			searchScrollToMatchDesc:
+				"En ouvrant une note depuis la recherche, faire défiler jusqu'au premier " +
+				"passage trouvé dans le texte et le surligner.",
 			searchEngine: "Moteur de recherche",
 			searchEngineDesc:
 				"Le moteur qui alimente la barre de recherche. Le sélecteur rapide cherche " +

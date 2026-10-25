@@ -17,7 +17,10 @@ export interface QueryBadge {
 
 /** A single query result. `matches` holds char ranges into the display name for
  * highlighting (name/path matches only). `badge` is shown instead of the folder
- * path when a hit matched via a tag, property or note body. */
+ * path when a hit matched via a tag, property or note body. `bodyMatch` is the
+ * offset of that body match in the note text (UTF-16 indices, index-aligned
+ * with the folded copy used for matching) — set only on excerpt hits, so an
+ * open can scroll to it (#397). */
 export interface QueryHit {
 	file: TAbstractFile;
 	score: number;
@@ -27,6 +30,7 @@ export interface QueryHit {
 	rank?: number;
 	badge?: QueryBadge;
 	matches?: [number, number][];
+	bodyMatch?: { offset: number; length: number };
 }
 
 /** Which file-type group (and folders) a query is restricted to. */
@@ -396,6 +400,7 @@ export async function searchFileContents(
 			rank: RANK.BODY,
 			score: 0,
 			badge: { icon: "file-search", label, matches, excerpt: true },
+			bodyMatch: { offset: idx, length: needle.length },
 		});
 		if (hits.length >= opts.limit) break;
 	}

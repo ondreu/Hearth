@@ -815,6 +815,16 @@ export class HomeSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t().settings.appearance.searchScrollToMatch)
+			.setDesc(t().settings.appearance.searchScrollToMatchDesc)
+			.addToggle((t) =>
+				t.setValue(s.searchScrollToMatch).onChange(async (v) => {
+					s.searchScrollToMatch = v;
+					this.save();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(t().settings.appearance.searchInstantAnswers)
 			.setDesc(t().settings.appearance.searchInstantAnswersDesc)
 			.addToggle((t) =>

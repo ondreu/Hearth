@@ -17,6 +17,9 @@ interface OmnisearchResult {
 	/** A short body snippet around the best match (may contain <mark> markup,
 	 * which Hearth strips — it renders its own highlighting). */
 	excerpt: string;
+	/** Body matches with offsets into the note text, best first. Present in
+	 * the public API; Hearth uses the first one to scroll to the match (#397). */
+	matches?: { match: string; offset: number }[];
 }
 
 /** The slice of Omnisearch's public API Hearth calls. Exposed by the plugin at
@@ -74,6 +77,18 @@ export function cleanExcerpt(
 	return { label, matches: highlightRanges(label, words) };
 }
 
+/** The first body match of an Omnisearch result, or undefined when the result
+ * carries no usable offset (title-only hit, or an API shape without matches).
+ * Pure and exported for tests. */
+export function omnisearchBodyMatch(
+	result: Pick<OmnisearchResult, "matches">,
+): { offset: number; length: number } | undefined {
+	const first = result.matches?.[0];
+	if (!first || !Number.isInteger(first.offset) || first.offset < 0) return undefined;
+	if (!first.match) return undefined;
+	return { offset: first.offset, length: first.match.length };
+}
+
 /** The literal text Omnisearch wrapped in `<mark>` — the matched words exactly
  * as the note spells them, accents and inflection included. */
 function markedWords(excerpt: string): string[] {
@@ -127,14 +142,18 @@ export async function searchWithOmnisearch(
 		// the row without saying anything about why it matched.
 		const words = result.foundWords.filter((w) => w.length > 1);
 		const excerpt = cleanExcerpt(result.excerpt, words);
+		const badge = excerpt.label
+			? { icon: "file-search", label: excerpt.label, matches: excerpt.matches, excerpt: true }
+			: undefined;
 		hits.push({
 			file,
 			// Folded, so a stemmed "banan" still lights up "Banánové" in the title.
 			matches: highlightRanges(file.basename, words),
 			score: result.score,
-			badge: excerpt.label
-				? { icon: "file-search", label: excerpt.label, matches: excerpt.matches, excerpt: true }
-				: undefined,
+			badge,
+			// Scroll target for #397: only body hits carry one, so a title-only
+			// match still opens at the top.
+			bodyMatch: badge ? omnisearchBodyMatch(result) : undefined,
 		});
 		if (hits.length >= opts.limit) break;
 	}

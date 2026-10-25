@@ -1013,6 +1013,10 @@ export const de: Translations = {
 			searchContentsDesc:
 				"Finde auch Text in Notizinhalten, nicht nur Namen, Tags und " +
 				"Eigenschaften. Inhaltstreffer erscheinen nach Namentreffern mit einem Ausschnitt.",
+			searchScrollToMatch: "Zum Suchtreffer springen",
+			searchScrollToMatchDesc:
+				"Beim Öffnen einer Notiz aus den Suchergebnissen zum ersten Treffer " +
+				"im Notiztext springen und ihn markieren.",
 			searchEngine: "Suchfunktion",
 			searchEngineDesc:
 				"Welche Engine die Suchleiste antreibt. Schnellwechsler sucht wie der " +

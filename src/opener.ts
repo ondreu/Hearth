@@ -1,5 +1,6 @@
-import { Keymap, type App, type OpenViewState, type PaneType, type TFile, type UserEvent, type WorkspaceLeaf } from "obsidian";
+import { Keymap, MarkdownView, type App, type OpenViewState, type PaneType, type TFile, type UserEvent, type WorkspaceLeaf } from "obsidian";
 import type { GlobalSearchInstance } from "./obsidian-ext";
+import type { QueryHit } from "./query";
 import {
 	OPEN_IN_MODES,
 	type HomeSettings,
@@ -147,6 +148,81 @@ export async function openFile(
 	state?: OpenViewState,
 ): Promise<void> {
 	await targetLeaf(from, source, evt).openFile(file, state);
+}
+
+/** Zero-based line number of `offset` (a UTF-16 index) in `text`. Offsets past
+ * the end clamp to the last line. Pure, exported for tests. */
+export function offsetToLine(text: string, offset: number): number {
+	const at = Math.max(0, Math.min(offset, text.length));
+	let line = 0;
+	for (let i = 0; i < at; i++) {
+		if (text.charCodeAt(i) === 10) line++;
+	}
+	return line;
+}
+
+/**
+ * Open a search hit, scrolling to the body match when there is one (#397).
+ *
+ * Only excerpt (note-body) hits of markdown notes jump: title, tag, property
+ * and folder hits open at the top like before. The jump needs two parts —
+ * `eState.line` so a freshly mounted MarkdownView lands on the line even
+ * before its editor is laid out (the same reason tasks pass it, see
+ * `openTaskFile`), then a cursor + selection once the editor exists, which is
+ * what visibly highlights the term like a find hit. Gated by the
+ * `searchScrollToMatch` setting (on by default); anything unexpected (binary
+ * file, stale offset, Reading view without an editor) silently falls back to a
+ * plain open.
+ */
+export async function openSearchHit(
+	from: OpenFrom,
+	hit: QueryHit,
+	source: OpenSource,
+	evt?: UserEvent | null,
+): Promise<void> {
+	const h = host(from);
+	const file = hit.file;
+	if (!(file instanceof TFile)) return;
+	const bodyMatch = h.settings.searchScrollToMatch
+		&& file.extension === "md"
+		&& hit.badge?.excerpt
+		? hit.bodyMatch
+		: undefined;
+	if (!bodyMatch) {
+		await targetLeaf(from, source, evt).openFile(file);
+		return;
+	}
+	const { offset, length } = bodyMatch;
+	const leaf = targetLeaf(from, source, evt);
+	let openState: OpenViewState | undefined;
+	try {
+		const text = await h.app.vault.cachedRead(file);
+		openState = { eState: { line: offsetToLine(text, offset) } };
+	} catch {
+		openState = undefined;
+	}
+	await leaf.openFile(file, openState);
+	try {
+		if (!(leaf.view instanceof MarkdownView)) return;
+		const editor = leaf.view.editor;
+		if (!editor) return;
+		const docLength = editor.getValue().length;
+		// The indexed text can be stale (edited since the search ran); clamp
+		// rather than throwing the cursor at the end of the note.
+		const at = Math.max(0, Math.min(offset, docLength));
+		const len = Math.max(1, Math.min(length, docLength - at));
+		const pos = editor.offsetToPos(at);
+		const endPos = editor.offsetToPos(at + len);
+		editor.setCursor(pos);
+		editor.scrollIntoView(
+			{ from: { line: Math.max(0, pos.line - 10), ch: 0 }, to: { line: pos.line + 10, ch: 0 } },
+		);
+		// Backwards (end first) so the caret stays at the match start, like a
+		// find hit in Obsidian/Omnisearch.
+		editor.setSelection(endPos, pos);
+	} catch {
+		// A plain open already happened; highlighting is best-effort.
+	}
 }
 
 /**

@@ -928,6 +928,9 @@ export const zh: Translations = {
 			searchContentsDesc:
 				"除名称、标签和属性外，也匹配笔记正文中的文本。正文匹配会带摘要显示在" +
 				"名称匹配之后。",
+			searchScrollToMatch: "滚动到搜索匹配",
+			searchScrollToMatchDesc:
+				"从搜索结果打开笔记时，跳转到正文中的首个匹配并高亮显示。",
 			searchEngine: "搜索引擎",
 			searchEngineDesc:
 				"为搜索栏提供支持的引擎。快速切换会像 Obsidian 的快速切换一样匹配：仅文件，包含别名。" +

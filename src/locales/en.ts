@@ -1002,6 +1002,10 @@ export const en = {
 			searchContentsDesc:
 				"Also match text inside note bodies, not just names, tags and " +
 				"properties. Body matches appear after name matches with a snippet.",
+			searchScrollToMatch: "Scroll to search match",
+			searchScrollToMatchDesc:
+				"When opening a note from search results, jump to the first match " +
+				"in the note body and highlight it.",
 			searchEngine: "Search engine",
 			searchEngineDesc:
 				"Which engine powers the search bar. Quick switcher matches the way " +

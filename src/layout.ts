@@ -246,6 +246,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		newNoteFolder: s.newNoteFolder,
 		newNoteFilename: s.newNoteFilename,
 		searchContents: s.searchContents,
+		searchScrollToMatch: s.searchScrollToMatch,
 		searchInstantAnswers: s.searchInstantAnswers,
 		hiddenInstantAnswers: s.hiddenInstantAnswers,
 		searchEngine: s.searchEngine,
@@ -2213,6 +2214,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	if (newNoteFilename !== undefined) s.newNoteFilename = newNoteFilename;
 	if (typeof data.searchContents === "boolean")
 		s.searchContents = data.searchContents;
+	if (typeof data.searchScrollToMatch === "boolean")
+		s.searchScrollToMatch = data.searchScrollToMatch;
 	if (typeof data.searchInstantAnswers === "boolean")
 		s.searchInstantAnswers = data.searchInstantAnswers;
 	const hiddenInstant = sanitizeInstantFeatures(data.hiddenInstantAnswers);

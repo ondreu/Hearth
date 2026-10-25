@@ -3,7 +3,7 @@ import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
-import { openFile } from "../opener";
+import { openSearchHit } from "../opener";
 import {
 	mergeRanked,
 	runQuery,
@@ -96,7 +96,7 @@ function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): v
 			if (hit.badge) row.createDiv({ cls: "hearth-task-status", text: hit.badge.label });
 		}
 		const open = () => {
-			if (hit.file instanceof TFile) void openFile(view, hit.file, "search");
+			if (hit.file instanceof TFile) void openSearchHit(view, hit, "search");
 		};
 		row.addEventListener("click", open);
 		makeClickable(row, open, name);
@@ -118,7 +118,7 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 		const name = hit.file instanceof TFile ? hit.file.basename : hit.file.name;
 		tile.createDiv({ cls: "hearth-link-label", text: name });
 		const open = () => {
-			if (hit.file instanceof TFile) void openFile(view, hit.file, "search");
+			if (hit.file instanceof TFile) void openSearchHit(view, hit, "search");
 		};
 		tile.addEventListener("click", open);
 		makeClickable(tile, open, name);

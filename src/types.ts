@@ -2557,6 +2557,9 @@ export interface HomeSettings {
 	newNoteFilename: string;
 	/** Also search inside note bodies (full-text), not just names/tags/properties. */
 	searchContents: boolean;
+	/** When opening a note from search results, scroll to the first body match
+	 * and highlight it (#397). Only body hits jump; on by default. */
+	searchScrollToMatch: boolean;
 	/** Answer queries that have an answer of their own — a sum, a currency
 	 * conversion, a `$` market lookup, a date, the time somewhere — above the
 	 * notes in the search results (see instant.ts). */
@@ -2931,6 +2934,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	newNoteFolder: "",
 	newNoteFilename: "",
 	searchContents: true,
+	searchScrollToMatch: true,
 	searchInstantAnswers: true,
 	hiddenInstantAnswers: [],
 	searchEngine: "builtin",

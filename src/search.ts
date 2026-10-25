@@ -17,7 +17,7 @@ import { type InstantFeature, instantOnly } from "./instant";
 import { markSearchTipsSeen, SearchTipsModal, searchTipsSeen } from "./searchtips";
 import { isOmnisearchAvailable, searchWithOmnisearch } from "./omnisearch";
 import { searchLikeQuickSwitcher } from "./quickswitcher";
-import { openFile as openInLeaf } from "./opener";
+import { openSearchHit } from "./opener";
 import { renderHighlighted } from "./ui";
 import { t } from "./i18n";
 import { effectiveHiddenFilters, effectiveHiddenInstantAnswers, effectiveSearchPlaceholder } from "./types";
@@ -574,7 +574,7 @@ export class SearchSection {
 					text.createDiv("hearth-result-path").setText(parentPath);
 				}
 			}
-			this.commitRow(row, () => this.openFile(hit.file));
+			this.commitRow(row, () => this.openFile(hit));
 		});
 		this.finishResults();
 	}
@@ -708,10 +708,11 @@ export class SearchSection {
 		}
 	}
 
-	private openFile(file: TAbstractFile): void {
+	private openFile(hit: QueryHit): void {
+		const file = hit.file;
 		if (file instanceof TFile) {
 			this.pushHistory(file.path);
-			void openInLeaf(this.view, file, "search");
+			void openSearchHit(this.view, hit, "search");
 			this.hide();
 		} else if (file instanceof TFolder) {
 			// Reveal the folder in the file explorer.
