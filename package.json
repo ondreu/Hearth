@@ -33,7 +33,7 @@
 		"tslib": "^2.6.2",
 		"typescript": "^5.4.0",
 		"typescript-eslint": "^8.63.0",
-		"vitest": "^4.1.11"
+		"vitest": "^4.1.12"
 	},
 	"dependencies": {
 		"@noble/ed25519": "^3.2.0",
