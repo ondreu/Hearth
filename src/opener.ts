@@ -1,4 +1,4 @@
-import { Keymap, MarkdownView, type App, type OpenViewState, type PaneType, type TFile, type UserEvent, type WorkspaceLeaf } from "obsidian";
+import { Keymap, MarkdownView, TFile, type App, type OpenViewState, type PaneType, type UserEvent, type WorkspaceLeaf } from "obsidian";
 import type { GlobalSearchInstance } from "./obsidian-ext";
 import type { QueryHit } from "./query";
 import {
