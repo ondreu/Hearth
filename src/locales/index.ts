@@ -1,5 +1,6 @@
 import { de } from "./de";
 import { en } from "./en";
+import { ko } from "./ko";
 import { fr } from "./fr";
 import { zh } from "./zh";
 
@@ -20,6 +21,7 @@ export type Translations = typeof en;
  */
 export const LOCALES: Record<string, Translations> = {
 	en,
+	ko,
 	de,
 	fr,
 	zh,

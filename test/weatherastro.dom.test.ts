@@ -21,6 +21,7 @@ let paintDaylight: typeof import("../src/cards/weatherastro").paintDaylight;
 beforeAll(async () => {
 	installObsidianDom();
 	// jsdom has neither; the daylight style asks both.
+	// eslint-disable-next-line @typescript-eslint/unbound-method -- existence check reads the property, never calls it unbound
 	window.matchMedia ??= ((query: string) => ({ matches: false, media: query })) as unknown as typeof window.matchMedia;
 	(window as unknown as { ResizeObserver: unknown }).ResizeObserver ??= class {
 		observe(): void {}
