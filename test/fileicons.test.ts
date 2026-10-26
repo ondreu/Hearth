@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	iconicIconForFile,
 	iconicIconForPath,
+	iconicIconForPlugin,
 	iconizeIconForPath,
 	iconizeNameToLucide,
 	isEmojiIcon,
@@ -161,5 +163,92 @@ describe("iconicIconForPath", () => {
 		expect(iconicIconForPath(fileIcons, "Notes/Absent.md")).toBeNull();
 		expect(iconicIconForPath(undefined, "Notes/Recipe.md")).toBeNull();
 		expect(iconicIconForPath(42, "Notes/Recipe.md")).toBeNull();
+	});
+});
+
+describe("iconicIconForFile", () => {
+	const fileIcons = { "Notes/Recipe.md": { icon: "lucide-chef-hat" } };
+	const rule = { icon: "lucide-flame" };
+
+	it("lets a rule icon win over a manual icon, as Iconic itself does", () => {
+		expect(iconicIconForFile(rule, fileIcons, "Notes/Recipe.md")).toBe("lucide-flame");
+	});
+
+	it("reads a rule icon for a file with no manual icon (#421)", () => {
+		expect(iconicIconForFile(rule, fileIcons, "Notes/Plain.md")).toBe("lucide-flame");
+	});
+
+	it("falls back to the manual icon when the rule only sets a colour", () => {
+		expect(iconicIconForFile({ icon: null }, fileIcons, "Notes/Recipe.md")).toBe(
+			"lucide-chef-hat",
+		);
+		expect(iconicIconForFile({}, fileIcons, "Notes/Recipe.md")).toBe("lucide-chef-hat");
+	});
+
+	it("falls back to the manual icon when nothing rules", () => {
+		expect(iconicIconForFile(null, fileIcons, "Notes/Recipe.md")).toBe("lucide-chef-hat");
+	});
+
+	it("survives a missing ruling and a missing map", () => {
+		expect(iconicIconForFile(undefined, undefined, "Notes/Recipe.md")).toBeNull();
+	});
+});
+
+describe("iconicIconForPlugin", () => {
+	/** A plugin instance shaped like Iconic's — settings plus the rule engine it
+	 * exposes — with no Obsidian API involved. `calls` records which rulebook was
+	 * asked, so the page routing is observable. */
+	function iconicPlugin(rulings: Record<"file" | "folder", Record<string, string>>, fileIcons = {}) {
+		const calls: string[] = [];
+		return {
+			calls,
+			plugin: {
+				settings: { fileIcons },
+				ruleManager: {
+					checkRuling: (page: "file" | "folder", path: string) => {
+						calls.push(`${page}:${path}`);
+						const icon = rulings[page][path];
+						return icon ? { icon } : null;
+					},
+				},
+			},
+		};
+	}
+
+	it("draws the icon a rule sets, with no manual icon stored", () => {
+		const { plugin } = iconicPlugin({ file: { "Notes/Plain.md": "lucide-flame" }, folder: {} });
+		expect(iconicIconForPlugin(plugin, "file", "Notes/Plain.md")).toBe("lucide-flame");
+	});
+
+	it("asks the rulebook that matches the item, files and folders apart", () => {
+		const { plugin, calls } = iconicPlugin({
+			file: { "Notes/Plain.md": "lucide-file" },
+			folder: { Notes: "lucide-folder-open" },
+		});
+		expect(iconicIconForPlugin(plugin, "folder", "Notes")).toBe("lucide-folder-open");
+		expect(calls).toEqual(["folder:Notes"]);
+	});
+
+	it("keeps the manual icon when the rule engine throws", () => {
+		// A broken engine must cost the rule icon, not the icon underneath it.
+		const plugin = {
+			settings: { fileIcons: { "Notes/Recipe.md": { icon: "lucide-chef-hat" } } },
+			ruleManager: {
+				checkRuling: () => {
+					throw new Error("internals changed");
+				},
+			},
+		};
+		expect(iconicIconForPlugin(plugin, "file", "Notes/Recipe.md")).toBe("lucide-chef-hat");
+	});
+
+	it("reads the manual icon when Iconic has no rule engine at all", () => {
+		// Iconic before the rulebook existed exposes no checkRuling.
+		const plugin = { settings: { fileIcons: { "Notes/Recipe.md": { icon: "lucide-chef-hat" } } } };
+		expect(iconicIconForPlugin(plugin, "file", "Notes/Recipe.md")).toBe("lucide-chef-hat");
+	});
+
+	it("returns null when Iconic is not installed", () => {
+		expect(iconicIconForPlugin(undefined, "file", "Notes/Recipe.md")).toBeNull();
 	});
 });

@@ -111,6 +111,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- Icons a file gets from an Iconic rulebook rule now show in Hearth's cards,
+  not only icons set on the file by hand. Iconic keeps the two apart and never
+  writes a rule's icon into its per-file map, so the Recent files card — and
+  every other card that draws file icons — fell back to Hearth's own file-type
+  icon for anything a rule governed (#421).
 - In an embedded note, parts of the note that sit at a fixed spot inside it —
   such as the icon in a Tasks query's filter box — now scroll with the rest of
   the note instead of staying where they were (#402).

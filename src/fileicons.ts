@@ -159,15 +159,75 @@ export function iconicIconForPath(fileIcons: unknown, path: string): string | nu
 	return typeof icon === "string" && icon ? icon : null;
 }
 
+/** An icon as Iconic's rule engine reports it. Only the icon is read; the
+ * colour is dropped for the same reason as in {@link iconicIconForPath}. */
+export interface IconicRuling {
+	icon?: string | null;
+}
+
+/**
+ * The icon to draw for `path` from Iconic: the one its rulebook rules over the
+ * file, else the one stored for it by hand.
+ *
+ * The ruling wins because that is what Iconic itself does — its Files pane
+ * resolves `checkRuling(...) ?? file`, so a rule overrides a manual icon
+ * visually without deleting it. A ruling that carries no icon (a colour-only
+ * rule) falls through to the manual icon instead of blanking it (#421).
+ */
+export function iconicIconForFile(
+	ruling: IconicRuling | null | undefined,
+	fileIcons: unknown,
+	path: string,
+): string | null {
+	const fromRule = ruling?.icon;
+	if (typeof fromRule === "string" && fromRule) return fromRule;
+	return iconicIconForPath(fileIcons, path);
+}
+
 // ---- Reading the plugins ------------------------------------------------
 
 /** Iconic's plugin instance keeps its settings — including the path→icon map —
- * on the instance itself. */
-function iconicIcon(app: App, path: string): string | null {
-	const plugin = app.plugins.plugins[ICONIC_PLUGIN_ID] as
-		| { settings?: { fileIcons?: unknown } }
-		| undefined;
-	return iconicIconForPath(plugin?.settings?.fileIcons, path);
+ * on the instance itself, and settles its rulebook into `ruleManager`. */
+interface IconicPluginInstance {
+	settings?: { fileIcons?: unknown };
+	ruleManager?: {
+		checkRuling?: (page: "file" | "folder", path: string) => IconicRuling | null;
+	};
+}
+
+/**
+ * Ask Iconic's rule engine which rule currently governs `path`, or null when no
+ * rule does.
+ *
+ * The rulebook is stored apart from `fileIcons` and is never written into it —
+ * Iconic only overrides icons visually — so this is the only place a rule-set
+ * icon can be read from. Files and folders have separate rulebooks, hence the
+ * page argument.
+ *
+ * Wrapped on its own, not left to {@link resolveFileIcon}'s catch: a rule engine
+ * that changed shape must cost the user the rule icon, not the manual icon
+ * underneath it.
+ */
+function iconicRuling(
+	plugin: IconicPluginInstance,
+	page: "file" | "folder",
+	path: string,
+): IconicRuling | null {
+	try {
+		return plugin.ruleManager?.checkRuling?.(page, path) ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/** Iconic's icon for `path`: its ruling if one applies, else the stored icon. */
+export function iconicIconForPlugin(
+	plugin: IconicPluginInstance | undefined,
+	page: "file" | "folder",
+	path: string,
+): string | null {
+	if (!plugin) return null;
+	return iconicIconForFile(iconicRuling(plugin, page, path), plugin.settings?.fileIcons, path);
 }
 
 /** Iconize exposes its data blob through `getData()`; older builds only had the
@@ -217,13 +277,13 @@ export function hasFileIconPlugin(app: App): boolean {
 	}
 }
 
-/**
- * The icon to draw for `file`: a custom one from Iconic or Iconize when the
- * user has set one, otherwise Hearth's own file-type icon.
+/** The icon to draw for `file`: a custom one from Iconic or Iconize when the
+ * user has set one or rules one in, otherwise Hearth's own file-type icon.
  *
  * Iconic is consulted first — it is the maintained plugin, so in a vault
- * migrating from Iconize its choice is the more recent one. Within Iconize, the
- * data file wins over frontmatter, matching Iconize's own precedence.
+ * migrating from Iconize its choice is the more recent one. Within Iconic a
+ * rulebook ruling beats a manual icon, mirroring Iconic's own precedence;
+ * within Iconize the data file wins over frontmatter, matching Iconize's.
  *
  * Never throws: any failure reading plugin internals falls through to
  * {@link iconForFile}.
@@ -237,8 +297,10 @@ export function resolveFileIcon(
 	if (!opts.enabled) return fallback;
 	try {
 		const path = file.path;
+		// Rules are per page in Iconic: files and folders have separate rulebooks.
+		const iconic = app.plugins.plugins[ICONIC_PLUGIN_ID] as IconicPluginInstance | undefined;
 		const raw =
-			iconicIcon(app, path) ??
+			iconicIconForPlugin(iconic, file instanceof TFile ? "file" : "folder", path) ??
 			iconizeIcon(app, path) ??
 			frontmatterIcon(app, file, opts.frontmatterProperty);
 		if (!raw) return fallback;
