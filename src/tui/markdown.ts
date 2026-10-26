@@ -34,6 +34,11 @@ export interface MarkdownSource {
 	/** Hide a leading `---` frontmatter block (true for notes, false for the
 	 * jot-down card, whose text isn't a note). */
 	frontmatter: boolean;
+	/** Added to every checkbox's line before the edit is written back — the
+	 * line the text starts on in the note it was taken from. A card drawing one
+	 * section of a note (#396) passes the section's first line, so a tick lands
+	 * on the line the user clicked rather than on that line of the section. */
+	lineOffset?: number;
 }
 
 /** The Tasks plugin's emoji signifiers, as the words a terminal would write. */
@@ -271,7 +276,8 @@ export function markdownOutput(ctx: TuiContext, src: MarkdownSource): TuiOutput 
 
 	if (src.text === null) return { lines: [[{ text: t().tui.cards.loading, style: "dim" }]] };
 	const toggle = (source: number) => {
-		void src.edit((text) => toggleLine(text, source)).then(() => ctx.redraw());
+		const offset = src.lineOffset ?? 0;
+		void src.edit((text) => toggleLine(text, source + offset)).then(() => ctx.redraw());
 	};
 	const body = src.text;
 	if (!body.trim()) {

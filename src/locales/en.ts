@@ -1850,6 +1850,19 @@ export const en = {
 			command: "Command",
 		},
 		embed: {
+		section: "Section",
+		sectionDesc:
+			"Show only part of the note: a heading (with everything under it) or a single block. Leave empty for the whole note.",
+		sectionPlaceholder: "#Heading or #^block-id",
+		sectionPick: "Pick a heading or block",
+		sectionPickerPlaceholder: "Pick a heading or block of this note",
+		sectionMissing: (section: string) =>
+			`This note has no “${section}” — pick another heading or block.`,
+		sectionHeading: "Show section heading",
+		sectionHeadingDesc:
+			"Draw the section's own heading inside the card. Turn off when the card's title already says what it shows.",
+		sectionReadOnly:
+			"A section is drawn read-only — its checkboxes still tick in the note. Clear the section to edit the note in the card.",
 			file: "File to embed",
 			fileDesc: "A note, image, canvas or .base file in your vault.",
 			filePlaceholder: "File path to embed",
@@ -3567,6 +3580,7 @@ export const en = {
 			searchNoQuery: "Set a query in card settings",
 			searchNoMatches: "No matches",
 			embedPickFile: "Pick a file to embed in settings",
+			embedSectionMissing: (section: string) => `Section not found: ${section}`,
 			slideshowEmpty: "Add pictures in card settings",
 			slideshowFolderEmpty: "No images in this folder",
 			embedEnableBases: "Enable the core Bases plugin to embed .base files",
@@ -5162,6 +5176,7 @@ export const en = {
 			untick: "Untick",
 			noteFoot: "space ticks · enter follows a link · o opens the note",
 			noteFootEdit: "i edits · space ticks · enter follows a link · o opens the note",
+			sectionEmpty: "This section has nothing under it yet.",
 			editing: "Editing",
 			editingFoot: "esc or ctrl+enter to finish · saved as you type",
 			edit: "Edit",

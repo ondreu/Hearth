@@ -134,3 +134,44 @@ describe("toggleCheckboxAt", () => {
 		expect(toggleCheckboxAt(note, 0, true)).toBe("---\na: 1\n---\n\ntext\n\n- [x] task\n\n> quote\n");
 	});
 });
+
+
+describe("checkbox scan limited to a line range (#396)", () => {
+	// The section a card draws, and the whole note it came from.
+	const note = [
+		"# Today",
+		"- [ ] first",
+		"- [ ] second",
+		"# Backlog",
+		"- [ ] third",
+	].join("\n");
+	const section = { from: 1, to: 2 };
+
+	it("counts only the checkboxes inside the range", () => {
+		expect(checkboxLines(note, { range: section })).toEqual([1, 2]);
+		expect(countCheckboxes(note, { range: section })).toBe(2);
+		expect(countCheckboxes(note)).toBe(3);
+	});
+
+	it("writes the tick to the line the range's ordinal names, not the note's", () => {
+		// Ordinal 1 of the section is "second" — the note's own ordinal 1 would
+		// also be "second" here, so ask with an offset section to be sure.
+		const later = { from: 3, to: 4 };
+		expect(toggleCheckboxAt(note, 0, true, { range: later })).toBe(
+			["# Today", "- [ ] first", "- [ ] second", "# Backlog", "- [x] third"].join("\n"),
+		);
+		expect(toggleCheckboxAt(note, 1, true, { range: section })).toBe(
+			["# Today", "- [ ] first", "- [x] second", "# Backlog", "- [ ] third"].join("\n"),
+		);
+	});
+
+	it("still respects the frontmatter skip inside the range", () => {
+		const withFm = "---\na: 1\n---\n- [ ] one\n- [ ] two";
+		expect(checkboxLines(withFm, { range: { from: 0, to: 4 } })).toEqual([3, 4]);
+	});
+
+	it("finds nothing in an empty range", () => {
+		expect(checkboxLines(note, { range: { from: 3, to: 2 } })).toEqual([]);
+		expect(toggleCheckboxAt(note, 0, true, { range: { from: 3, to: 2 } })).toBeNull();
+	});
+});

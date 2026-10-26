@@ -13,6 +13,7 @@ import { dailyNoteFinder, dailyNotesOptions, moment, processFile } from "../../c
 import { resolvePeriodicNote } from "../../cards/periodic";
 import { isExcalidraw } from "../../filetypes";
 import { t } from "../../i18n";
+import { noteSection, sectionSubpath, type NoteSection } from "../../notesection";
 import { openFile } from "../../opener";
 import type { DashboardCard } from "../../types";
 import type { HomeView } from "../../view";
@@ -42,8 +43,15 @@ function fileText(ctx: TuiContext, file: TFile): string | null {
 	return typeof cached === "string" ? cached : null;
 }
 
-/** A note file drawn as source. */
-function noteOutput(ctx: TuiContext, file: TFile, editable: boolean): TuiOutput {
+/** A note file drawn as source — the whole of it, or the section `slice` names
+ * (#396), in which case only its checkboxes are live: an editor edits a whole
+ * note, so a section is drawn read-only. */
+function noteOutput(
+	ctx: TuiContext,
+	file: TFile,
+	editable: boolean,
+	slice?: NoteSection,
+): TuiOutput {
 	const { view } = ctx;
 	const key = `text:${file.path}`;
 	const edit = (fn: (text: string) => string) =>
@@ -62,14 +70,21 @@ function noteOutput(ctx: TuiContext, file: TFile, editable: boolean): TuiOutput 
 		);
 	}
 	const out = markdownOutput(ctx, {
-		text: fileText(ctx, file),
+		text: slice ? slice.text : fileText(ctx, file),
 		sourcePath: file.path,
-		editable,
+		editable: slice ? false : editable,
 		edit,
-		placeholder: t().cards.embed.emptyNoteHint,
-		frontmatter: true,
+		placeholder: slice ? t().tui.cards.sectionEmpty : t().cards.embed.emptyNoteHint,
+		frontmatter: !slice,
+		// A tick in a section is still written to the note, at the line the
+		// section's text starts on.
+		lineOffset: slice?.from,
 	});
-	return { ...out, hint: out.hint ?? asciify(file.basename) };
+	const part = slice ? sectionSubpath(slice.subpath)?.slice(1) : undefined;
+	return {
+		...out,
+		hint: out.hint ?? asciify(part ? `${file.basename} › ${part}` : file.basename),
+	};
 }
 
 function openNote(view: HomeView, file: TFile | null): void {
@@ -158,10 +173,18 @@ export const embedTui: TuiRenderer = {
 		if (!target) return { lines: message(t().cards.empty.embedPickFile, ctx.cols) };
 		const file = embeddedNote(ctx.view, ctx.card);
 		if (!file) return { lines: message(t().tui.cards.notFound(target), ctx.cols) };
-		return noteOutput(ctx, file, ctx.card.editable === true);
+		const section = ctx.card.section?.trim();
+		if (!section) return noteOutput(ctx, file, ctx.card.editable === true);
+		const raw = fileText(ctx, file);
+		if (raw === null) return { lines: [[{ text: t().tui.cards.loading, style: "dim" }]] };
+		const slice = noteSection(raw, ctx.view.app.metadataCache.getFileCache(file), section, {
+			hideHeading: ctx.card.hideSectionHeading === true,
+		});
+		if (!slice) return { lines: message(t().cards.empty.embedSectionMissing(section), ctx.cols) };
+		return noteOutput(ctx, file, false, slice);
 	},
 	key(ctx, evt) {
-		return markdownKey(ctx, evt, ctx.card.editable === true);
+		return markdownKey(ctx, evt, ctx.card.editable === true && !ctx.card.section?.trim());
 	},
 	detail: (ctx) => openNote(ctx.view, embeddedNote(ctx.view, ctx.card)),
 };

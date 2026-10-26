@@ -77,6 +77,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Tag, property and command syntax and the Folders chip keep using Hearth's
   engine; note bodies are not searched in this mode.
 
+- **Show one section of a note** (#396). *Section* under the Embedded note
+  card's Content settings takes a heading — `#Today`, or just `Today` — and the
+  card draws that heading with everything under it, sub-headings included, or a
+  single `#^block-id` for one block. Several cards can show different parts of
+  the same note side by side without splitting the note up. A picker at the end
+  of the field lists the note's own headings and blocks. The section is drawn
+  read-only, since an editor edits a whole note, but its task checkboxes still
+  tick in the note — the tick is written to the line that was clicked, not to
+  the same-numbered task of the whole note — and *Open button* opens the note
+  with the cursor on that heading. A heading renamed since then shows *Section
+  not found* instead of quietly drawing the whole note. Terminal mode draws the
+  section too.
 ### Changed
 
 - **Task descriptions say what they can hold.** The description field has a

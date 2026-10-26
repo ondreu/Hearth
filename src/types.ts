@@ -1862,6 +1862,21 @@ export interface DashboardCard {
 	// ---- Content (per kind) ----
 	/** kind === "embed": vault path of the file to embed (.md, image, .base, ...). */
 	target?: string;
+	/**
+	 * kind === "embed": draw only this part of the note — `#Heading` (the
+	 * heading and everything under it) or `#^block-id` — instead of the whole
+	 * file (#396). Markdown notes only, and read-only: a note is edited whole,
+	 * but a checkbox clicked in the section is written back to its line.
+	 *
+	 * Free text rather than a derived boolean: headings get renamed, and a card
+	 * that silently fell back to the whole note would be lying about what it
+	 * shows. Undefined draws the whole note, which is what every card did before
+	 * this existed.
+	 */
+	section?: string;
+	/** kind === "embed": hide the section's own heading line, for a card whose
+	 * title already says what the section is (#396). Undefined shows it. */
+	hideSectionHeading?: boolean;
 	/** kind === "embed": Bases view name to embed when target is a .base file;
 	 * omitted means the default view. */
 	baseView?: string;

@@ -1858,6 +1858,19 @@ export const de: Translations = {
 			command: "Befehl",
 		},
 		embed: {
+		section: "Abschnitt",
+		sectionDesc:
+			"Nur einen Teil der Notiz anzeigen: eine Überschrift (mit allem darunter) oder einen einzelnen Block. Leer lassen für die ganze Notiz.",
+		sectionPlaceholder: "#Überschrift oder #^block-id",
+		sectionPick: "Überschrift oder Block wählen",
+		sectionPickerPlaceholder: "Überschrift oder Block dieser Notiz wählen",
+		sectionMissing: (section: string) =>
+			`Diese Notiz hat kein „${section}“ – bitte eine andere Überschrift oder einen anderen Block wählen.`,
+		sectionHeading: "Überschrift des Abschnitts anzeigen",
+		sectionHeadingDesc:
+			"Die eigene Überschrift des Abschnitts in der Karte anzeigen. Ausschalten, wenn der Kartentitel schon sagt, was zu sehen ist.",
+		sectionReadOnly:
+			"Ein Abschnitt wird schreibgeschützt dargestellt – seine Kontrollkästchen werden weiterhin in die Notiz geschrieben. Abschnitt leeren, um die Notiz in der Karte zu bearbeiten.",
 			file: "Einzubettende Datei",
 			fileDesc: "Eine Notiz, ein Bild, ein Canvas oder eine .base-Datei in deinem Vault.",
 			filePlaceholder: "Einzubettender Dateipfad",
@@ -3572,6 +3585,7 @@ export const de: Translations = {
 			searchNoQuery: "Lege eine Abfrage in den Karteneinstellungen fest",
 			searchNoMatches: "Keine Treffer",
 			embedPickFile: "Wähle eine Datei zum Einbetten in den Einstellungen",
+			embedSectionMissing: (section: string) => `Abschnitt nicht gefunden: ${section}`,
 			slideshowEmpty: "Füge Bilder in den Karteneinstellungen hinzu",
 			slideshowFolderEmpty: "Keine Bilder in diesem Ordner",
 			embedEnableBases: "Aktiviere das Kern-Plugin Bases, um .base-Dateien einzubetten",
@@ -5160,6 +5174,7 @@ export const de: Translations = {
 			untick: "Haken entfernen",
 			noteFoot: "Leertaste hakt ab · Enter folgt einem Link · o öffnet die Notiz",
 			noteFootEdit: "i bearbeitet · Leertaste hakt ab · Enter folgt einem Link · o öffnet die Notiz",
+			sectionEmpty: "Unter dieser Überschrift steht noch nichts.",
 			editing: "Bearbeiten",
 			editingFoot: "Esc oder Strg+Enter beendet · wird beim Tippen gespeichert",
 			edit: "Bearbeiten",

@@ -470,7 +470,7 @@ export function secondViewAsView(raw: Record<string, unknown>): Record<string, u
 		w: 1,
 		h: 1,
 	};
-	for (const key of ["target", "baseView", "scale", "imageFit", "imagePosition", "editable", "livePreview"]) {
+	for (const key of ["target", "baseView", "section", "hideSectionHeading", "scale", "imageFit", "imagePosition", "editable", "livePreview"]) {
 		if (second[key] !== undefined) view[key] = second[key];
 	}
 	for (const key of ["hideBaseHeader", "showOpenButton"]) {

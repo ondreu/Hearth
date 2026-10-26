@@ -7,6 +7,7 @@ import { localDayKey } from "./dates";
 import { heatmapByDay, needsMetadata, type HeatmapNote } from "./heatmapmetric";
 import { t } from "./i18n";
 import { mountMarkdownEditor } from "./leafview";
+import { noteSection } from "./notesection";
 import { internalLinkText, openLink, openSearch } from "./opener";
 import {
 	TILE_GAP,
@@ -397,6 +398,42 @@ export async function renderMarkdownFile(
 	await MarkdownRenderer.render(view.app, stripFrontmatter(raw), host, file.path, component);
 	wireMarkdownLinks(view, host, file.path);
 	wireMarkdownCheckboxes(host, processFile(view, file));
+}
+
+
+/**
+ * Render one section of a Markdown note (#396): a heading and everything under
+ * it, or a single `^block`.
+ *
+ * The slice is ordinary note text rendered the ordinary way, so links resolve
+ * and headings, callouts and embeds all behave as they do on the whole note.
+ * The one thing that is *not* ordinary is the checkbox wiring: the Nth input on
+ * screen is the Nth checkbox of the section, which is only the Nth checkbox of
+ * the note when the card is given the slice's own line range — hence `range`
+ * in the scan options below.
+ *
+ * Returns false when the note has no such heading or block, having drawn
+ * nothing, so the caller can say which part is missing.
+ */
+export async function renderMarkdownSection(
+	view: HomeView,
+	file: TFile,
+	host: HTMLElement,
+	component: Component,
+	section: string,
+	hideHeading: boolean,
+): Promise<boolean> {
+	const raw = await view.app.vault.cachedRead(file);
+	const slice = noteSection(raw, view.app.metadataCache.getFileCache(file), section, {
+		hideHeading,
+	});
+	if (!slice) return false;
+	await MarkdownRenderer.render(view.app, slice.text, host, file.path, component);
+	wireMarkdownLinks(view, host, file.path);
+	wireMarkdownCheckboxes(host, processFile(view, file), {
+		range: { from: slice.from, to: slice.to },
+	});
+	return true;
 }
 
 

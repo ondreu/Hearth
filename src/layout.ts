@@ -485,6 +485,10 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	if (target !== undefined) card.target = target;
 	const baseView = sanitizeBaseViewName(r.baseView);
 	if (baseView !== undefined) card.baseView = baseView;
+	const section = str(r.section);
+	if (section !== undefined) card.section = section;
+	if (typeof r.hideSectionHeading === "boolean")
+		card.hideSectionHeading = r.hideSectionHeading;
 	const url = str(r.url);
 	if (url !== undefined) card.url = url;
 	const text = str(r.text);

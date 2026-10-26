@@ -1057,6 +1057,7 @@ export const ko: Translations = {
 			untick: "체크 해제",
 			noteFoot: "space: 체크 · enter: 링크 따라가기 · o: 노트 열기",
 			noteFootEdit: "i: 편집 · space: 체크 · enter: 링크 따라가기 · o: 노트 열기",
+			sectionEmpty: "이 제목 아래에는 아직 내용이 없습니다.",
 			editing: "편집 중",
 			editingFoot: "esc 또는 ctrl+enter: 편집 마치기 · 입력하는 대로 저장됨",
 			edit: "편집",
@@ -1287,6 +1288,19 @@ export const ko: Translations = {
 			livePreview: "실시간 미리 보기", livePreviewDesc: "일반 원시 Markdown 입력란 대신 Obsidian 실시간 미리 보기 편집기를 사용합니다. 끄면 두 번 클릭해 원시 Markdown을 편집합니다.",
 			hideBaseHeader: "Base 머리글 숨기기", hideBaseHeaderDesc: "삽입한 .base 파일의 도구 모음(보기 전환, 필터, 속성 제어)을 숨기고 결과만 표시합니다.",
 			openButton: "열기 버튼", openButtonDesc: "삽입한 파일을 별도 탭에서 여는 버튼을 표시합니다. 기본값은 끄기입니다.",
+			section: "구역",
+			sectionDesc:
+				"노트의 일부만 표시합니다: 제목(그 아래 전체 포함) 또는 하나의 블록. 비워 두면 노트 전체를 표시합니다.",
+			sectionPlaceholder: "#제목 또는 #^블록 ID",
+			sectionPick: "제목 또는 블록 선택",
+			sectionPickerPlaceholder: "이 노트의 제목 또는 블록 선택",
+			sectionMissing: (section: string) =>
+				`이 노트에 “${section}”이(가) 없습니다 — 다른 제목이나 블록을 선택하세요.`,
+			sectionHeading: "구역 제목 표시",
+			sectionHeadingDesc:
+				"카드 안에 구역의 제목을 표시합니다. 카드 제목이 이미 내용을 말해 준다면 끄세요.",
+			sectionReadOnly:
+				"구역은 읽기 전용으로 표시됩니다 — 체크박스는 계속 노트에 기록됩니다. 노트를 카드에서 편집하려면 구역을 비우세요.",
 		},
 		slideshow: {
 			...en.editors.slideshow,
@@ -1873,6 +1887,7 @@ export const ko: Translations = {
 			searchNoQuery: "카드 설정에서 검색어를 지정하세요.",
 			searchNoMatches: "일치하는 항목이 없습니다.",
 			embedPickFile: "설정에서 삽입할 파일을 선택하세요.",
+			embedSectionMissing: (section: string) => `구역을 찾을 수 없음: ${section}`,
 			slideshowEmpty: "카드 설정에서 이미지를 추가하세요.",
 			slideshowFolderEmpty: "이 폴더에 이미지가 없습니다.",
 			embedEnableBases: ".base 파일을 삽입하려면 기본 Bases 플러그인을 활성화하세요.",

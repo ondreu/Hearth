@@ -28,11 +28,37 @@ events without losing your cursor.
 | Setting | Meaning |
 | --- | --- |
 | *File to embed* | A note, image, canvas or `.base` file in your vault. There is a file picker |
+| *Section* | Optional. Show only one part of the note — a heading and everything under it (`#Heading`), or a single block (`#^block-id`). Markdown notes only. See [Showing one section of a note](#showing-one-section-of-a-note) |
+| *Show section heading* | Draw the section's own heading inside the card. Appears once a section is set |
 | *Zoom* | Scales the embedded content. Applies when you close the dialog |
 | *Editable* | Edit the embedded note's text in place, saving to the vault. Markdown notes only |
 | *Live preview* | Edit in Obsidian's own Live Preview editor instead of the plain raw-Markdown box, so formatting renders as you type. Off shows the raw Markdown source, edited on double-click |
 | *Second file to embed* | Optional. When set, the card shows a switcher between the two views — in the header when the card has a title, or floating on hover when it does not |
 | *Open button* | Show a button that opens the embedded file in its own tab. Off by default |
+
+### Showing one section of a note
+
+A card can show one part of a note instead of the whole thing, so several cards
+can show different parts of the same note side by side — today's tasks, the
+backlog, a reminder — without splitting the note up or duplicating its text.
+
+Put a heading or a block in *Section*:
+
+- `#Today`, `Today` or `## Today` — the heading (the level you type does not
+  matter; the heading's own level decides where its section ends) and everything
+  under it, sub-headings included.
+- `#^quote` — a single block, the line carrying `^quote` in the note.
+- A whole `![[Note#Today]]` link also works: the note part and any alias are
+  ignored, because the file is chosen in *File to embed*.
+
+The button at the end of the field lists the note's own headings and blocks, so
+you do not have to remember how a heading is spelled.
+
+A section is drawn read-only: an editor edits a whole note. Its task checkboxes
+still work — ticking one writes to the note's own line — and *Open button* opens
+the note with the cursor on that section's heading. A heading that has been
+renamed since shows *Section not found* rather than quietly falling back to the
+whole note.
 
 ### Embedding a `.base` file
 
@@ -49,6 +75,8 @@ This requires Obsidian's core **Bases** plugin.
 ### Empty states
 
 - *Pick a file to embed in settings* — no file chosen yet.
+- *Section not found: …* — the section names a heading or block this note does
+  not have (renamed, deleted, or a typo).
 - *Enable the core Bases plugin to embed .base files*.
 - *Enable the core Canvas plugin to embed canvases*.
 - *Install the Excalidraw plugin to embed drawings*.

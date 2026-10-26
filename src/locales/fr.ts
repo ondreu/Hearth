@@ -1798,6 +1798,19 @@ export const fr: Translations = {
 			command: "Commande",
 		},
 		embed: {
+		section: "Section",
+		sectionDesc:
+			"N'afficher qu'une partie de la note : un titre (avec tout ce qui suit) ou un bloc. Laisser vide pour la note entière.",
+		sectionPlaceholder: "#Titre ou #^id-de-bloc",
+		sectionPick: "Choisir un titre ou un bloc",
+		sectionPickerPlaceholder: "Choisir un titre ou un bloc de cette note",
+		sectionMissing: (section: string) =>
+			`Cette note n'a pas de « ${section} » — choisissez un autre titre ou bloc.`,
+		sectionHeading: "Afficher le titre de la section",
+		sectionHeadingDesc:
+			"Afficher le titre de la section dans la carte. À désactiver quand le titre de la carte dit déjà ce qu'elle montre.",
+		sectionReadOnly:
+			"Une section est affichée en lecture seule — ses cases à cocher sont toujours écrites dans la note. Videz la section pour modifier la note dans la carte.",
 			file: "Fichier à intégrer",
 			fileDesc: "Une note, une image, un canvas ou un fichier .base de votre coffre.",
 			filePlaceholder: "Chemin du fichier à intégrer",
@@ -3512,6 +3525,7 @@ export const fr: Translations = {
 			searchNoQuery: "Définissez une requête dans les paramètres de la carte",
 			searchNoMatches: "Aucun résultat",
 			embedPickFile: "Choisissez un fichier à intégrer dans les paramètres",
+			embedSectionMissing: (section: string) => `Section introuvable : ${section}`,
 			slideshowEmpty: "Ajoutez des images dans les paramètres de la carte",
 			slideshowFolderEmpty: "Aucune image dans ce dossier",
 			embedEnableBases: "Activez le module principal Bases pour intégrer des fichiers .base",
@@ -5049,6 +5063,7 @@ export const fr: Translations = {
 			untick: "Décocher",
 			noteFoot: "espace coche · entrée suit un lien · o ouvre la note",
 			noteFootEdit: "i modifie · espace coche · entrée suit un lien · o ouvre la note",
+			sectionEmpty: "Rien sous ce titre pour l'instant.",
 			editing: "Édition",
 			editingFoot: "échap ou ctrl+entrée pour finir · enregistré pendant la saisie",
 			edit: "Modifier",

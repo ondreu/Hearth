@@ -32,6 +32,12 @@ export interface CheckboxScanOptions {
 	 * Defaults to true; the text card (whose content is a jotted snippet, not a
 	 * note) passes false. */
 	skipFrontmatter?: boolean;
+	/** Only count the checkboxes inside these lines, 0-based and inclusive —
+	 * the line range of a section of the note a card draws instead of the whole
+	 * note (#396). A card drawing a section must pass the same range it
+	 * rendered, or the Nth input it found would be mapped onto the Nth checkbox
+	 * of the *note* and a tick would land on the wrong line. */
+	range?: { from: number; to: number };
 }
 
 
@@ -53,9 +59,13 @@ function frontmatterLines(text: string): number {
 export function checkboxLines(text: string, opts: CheckboxScanOptions = {}): number[] {
 	const lines = text.split("\n");
 	const start = opts.skipFrontmatter === false ? 0 : frontmatterLines(text);
+	// A section slice: only the lines the card actually rendered count, so its
+	// ordinals line up with the inputs on screen.
+	const from = opts.range ? Math.max(start, opts.range.from) : start;
+	const to = opts.range ? Math.min(lines.length - 1, opts.range.to) : lines.length - 1;
 	const found: number[] = [];
 	let fence: string | null = null;
-	for (let i = start; i < lines.length; i++) {
+	for (let i = from; i <= to; i++) {
 		const line = lines[i];
 		const fenceMatch = FENCE_RE.exec(line);
 		if (fenceMatch) {

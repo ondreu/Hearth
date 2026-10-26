@@ -1,4 +1,4 @@
-import { Component, MarkdownRenderer, Setting, TFile } from "obsidian";
+import { type App, Component, MarkdownRenderer, type OpenViewState, Setting, TFile } from "obsidian";
 import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
 	cardOverlayButton,
@@ -7,6 +7,7 @@ import {
 	renderEditableEmbed,
 	renderLivePreviewEmbed,
 	renderMarkdownFile,
+	renderMarkdownSection,
 	watchedCardPath,
 	wireMarkdownLinks,
 } from "../cardbodies";
@@ -22,8 +23,10 @@ import {
 } from "../embedimage";
 import { EXCALIDRAW_PLUGIN_ID, isExcalidraw, isImageFile, isImagePath } from "../filetypes";
 import { t } from "../i18n";
+import { noteSection, sectionSubpath } from "../notesection";
 import { openFile } from "../opener";
 import { FilePickerModal } from "../pickers";
+import { HearthFuzzySuggestModal } from "../uidesign";
 import {
 	type DashboardCard,
 	type EmbedImageFit,
@@ -81,16 +84,20 @@ export function renderEmbed(
 	// button is that way. Off unless asked for — unlike the Daily card's button,
 	// which predates the setting and stays on by default — so no existing board
 	// grows a control it never had.
-	if (card.showOpenButton === true) renderEmbedOpenButton(view, file, body);
+	if (card.showOpenButton === true) renderEmbedOpenButton(view, file, body, card.section);
 
 	const ext = file.extension.toLowerCase();
 	const isMarkdown = ext === "md" || ext === "markdown";
 	const excalidraw = isExcalidraw(file);
+	const section = isMarkdown && !excalidraw ? card.section?.trim() : undefined;
 
 	// Editable Markdown notes are edited in place rather than rendered read-only —
 	// either in Obsidian's own Live Preview editor, or in Hearth's plain
 	// raw-Markdown box (the fallback when hosting the real editor isn't possible).
-	if (card.editable && isMarkdown && !excalidraw) {
+	// A section card (#396) is the exception: an editor edits a whole note, so
+	// the section wins and the card stays rendered (its checkboxes still write
+	// through to the note).
+	if (card.editable && isMarkdown && !excalidraw && !section) {
 		if (card.livePreview && renderLivePreviewEmbed(view, file, body, component)) return;
 		renderEditableEmbed(view, file, body, component);
 		return;
@@ -126,7 +133,26 @@ export function renderEmbed(
 		// Render the note's actual content so all Markdown (headings, lists,
 		// callouts, links…) shows. A bare ![[embed]] only renders a placeholder
 		// outside a real Markdown view, which looks empty on the dashboard.
-		void renderMarkdownFile(view, file, host, component);
+		// A section card draws just the part it names (#396); a heading that has
+		// since been renamed is said out loud rather than quietly showing the
+		// whole note, which would be a card lying about what it is.
+		if (section) {
+			void renderMarkdownSection(
+				view,
+				file,
+				host,
+				component,
+				section,
+				card.hideSectionHeading === true,
+			).then((found) => {
+				if (found) return;
+				host.remove();
+				body.removeClass("is-embed-host");
+				emptyState(body, "file-question", t().cards.empty.embedSectionMissing(section));
+			});
+		} else {
+			void renderMarkdownFile(view, file, host, component);
+		}
 	} else {
 		// Images, canvas, .base and Excalidraw go through Obsidian's own
 		// transclusion embed, which handles those file types uniformly. Bases can
@@ -214,7 +240,11 @@ function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: strin
 				: ext === "canvas"
 					? "layout-dashboard"
 					: "file-text";
-	return { label: file.basename, icon };
+		// A section card is told apart from the note's other sections by the heading
+	// it draws (#396), since every one of them is the same file.
+	const section = card.section?.trim();
+	const part = section ? sectionSubpath(section)?.slice(1) : undefined;
+	return { label: part ? `${file.basename} › ${part}` : file.basename, icon };
 }
 
 
@@ -227,10 +257,40 @@ function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: strin
  * card's. It lives on the card element rather than the body so it doesn't take
  * part in the body's scroll or flow. Where the file lands follows the global
  * open-behaviour setting (#106). */
-function renderEmbedOpenButton(view: HomeView, file: TFile, body: HTMLElement): void {
+function renderEmbedOpenButton(
+	view: HomeView,
+	file: TFile,
+	body: HTMLElement,
+	section?: string,
+): void {
 	cardOverlayButton(body, "square-arrow-out-up-right", t().cards.embed.openFile, (evt) => {
-		void openFile(view, file, "card", evt);
+		void openEmbeddedFile(view, file, section, evt);
 	});
+}
+
+
+/**
+ * Open the embedded file — and for a section card (#396), with the cursor on
+ * the section's own heading instead of at the top of the note, the same place
+ * following a `[[Note#Heading]]` link would take the user.
+ *
+ * The section is resolved on the click rather than at render time: the note may
+ * have been renamed or edited since the card was drawn, and a card that opened
+ * the wrong place would be worse than one that opens the top.
+ */
+async function openEmbeddedFile(
+	view: HomeView,
+	file: TFile,
+	section: string | undefined,
+	evt: MouseEvent,
+): Promise<void> {
+	let state: OpenViewState | undefined;
+	if (section?.trim()) {
+		const raw = await view.app.vault.cachedRead(file);
+		const slice = noteSection(raw, view.app.metadataCache.getFileCache(file), section);
+		if (slice) state = { eState: { line: slice.anchor } };
+	}
+	await openFile(view, file, "card", evt, state);
 }
 
 
@@ -317,17 +377,139 @@ function zoomSetting(
 }
 
 
+/** Whether `target` names a Markdown note — the only kind of file a section
+ * (#396) applies to, and the only kind terminal mode draws as text. */
+function isMarkdownNote(app: App, target: string | undefined): boolean {
+	const file = app.vault.getAbstractFileByPath(target?.trim() ?? "");
+	if (!(file instanceof TFile) || isExcalidraw(file)) return false;
+	const ext = file.extension.toLowerCase();
+	return ext === "md" || ext === "markdown";
+}
+
+
 /** Whether terminal mode draws a view pointed at `target` as text — a note is;
  * a picture, a canvas, a base or a drawing is drawn as it always is, inside
  * the terminal frame, and keeps every setting (see `embedTui.graphicalFor`).
  * An empty or missing target counts as not, so nothing is hidden before the
  * view has something to show. */
 function drawnAsText(ctx: CardEditorContext, target: string | undefined): boolean {
-	if (!ctx.terminal) return false;
+	return ctx.terminal && isMarkdownNote(ctx.app, target);
+}
+
+
+/**
+ * Restrict the card to one section of the note (#396): a heading (with
+ * everything under it) or a single `^block`.
+ *
+ * Offered only for Markdown notes, because it is the only file type that has
+ * headings. The field takes what a person would paste — `#Heading`, `Heading`,
+ * or a whole `![[Note#Heading]]` link — and the list button picks one of the
+ * headings and blocks the note actually has, since nobody remembers how a
+ * heading is spelled in a note they wrote months ago.
+ */
+function sectionSettings(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	target: string | undefined,
+): void {
+	if (!isMarkdownNote(ctx.app, target)) return;
+	const strings = t().editors.embed;
+	const setting = new Setting(containerEl)
+		.setName(strings.section)
+		.setDesc(strings.sectionDesc);
+	setting.addText((txt) => {
+		txt
+			.setPlaceholder(strings.sectionPlaceholder)
+			.setValue(ctx.card.section ?? "")
+			.onChange((value) => setSection(ctx, value));
+		// The heading toggle below only exists while a section is set, so the
+		// dialog is rebuilt when the field is left rather than on every keystroke
+		// (which would also throw away the caret).
+		txt.inputEl.addEventListener("change", () => ctx.requestRender());
+	});
+	setting.addExtraButton((b) =>
+		b
+			.setIcon("list")
+			.setTooltip(strings.sectionPick)
+			.onClick(() => {
+				const file = ctx.app.vault.getAbstractFileByPath(target?.trim() ?? "");
+				if (!(file instanceof TFile)) return;
+				new SectionPickerModal(ctx.app, file, (subpath) => {
+					setSection(ctx, subpath);
+					ctx.requestRender();
+				}).open();
+			}),
+	);
+
+	const section = ctx.card.section?.trim();
+	if (!section) return;
+	// Say so when the note has no such heading (renamed since, or a typo), so
+	// the empty card is explained here rather than on the dashboard.
 	const file = ctx.app.vault.getAbstractFileByPath(target?.trim() ?? "");
-	if (!(file instanceof TFile)) return false;
-	const ext = file.extension.toLowerCase();
-	return (ext === "md" || ext === "markdown") && !isExcalidraw(file);
+	if (file instanceof TFile) {
+		void ctx.app.vault.cachedRead(file).then((raw) => {
+			if (!setting.settingEl.isConnected) return;
+			const current = ctx.card.section?.trim();
+			if (!current) return;
+			if (!noteSection(raw, ctx.app.metadataCache.getFileCache(file), current))
+				setting.setDesc(strings.sectionMissing(current));
+		});
+	}
+	new Setting(containerEl)
+		.setName(strings.sectionHeading)
+		.setDesc(strings.sectionHeadingDesc)
+		.addToggle((tg) =>
+			tg.setValue(ctx.card.hideSectionHeading !== true).onChange((value) => {
+				ctx.card.hideSectionHeading = value ? undefined : true;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			}),
+		);
+}
+
+
+/** Store the section the field holds, normalizing nothing: `noteSection` does
+ * that at render time, and the field should show what the user typed. An empty
+ * field goes back to the whole note, and takes the heading toggle with it. */
+function setSection(ctx: CardEditorContext, value: string): void {
+	const next = value.trim();
+	if (next === (ctx.card.section ?? "")) return;
+	ctx.card.section = next || undefined;
+	if (!next) ctx.card.hideSectionHeading = undefined;
+	ctx.opts.save();
+	ctx.opts.rerender();
+}
+
+
+/** Pick one of a note's headings or blocks (#396), by the fuzzy search every
+ * other Hearth picker uses. */
+class SectionPickerModal extends HearthFuzzySuggestModal<string> {
+	private readonly file: TFile;
+	private readonly onChoose: (subpath: string) => void;
+
+	constructor(app: App, file: TFile, onChoose: (subpath: string) => void) {
+		super(app);
+		this.file = file;
+		this.onChoose = onChoose;
+		this.setPlaceholder(t().editors.embed.sectionPickerPlaceholder);
+	}
+
+	getItems(): string[] {
+		const cache = this.app.metadataCache.getFileCache(this.file);
+		const headings = (cache?.headings ?? []).map(
+			(h) => `${"#".repeat(h.level)} ${h.heading}`,
+		);
+		const blocks = Object.keys(cache?.blocks ?? {}).map((id) => `#^${id}`);
+		return [...headings, ...blocks];
+	}
+
+	getItemText(item: string): string {
+		return item;
+	}
+
+	onChooseItem(item: string): void {
+		this.onChoose(item);
+	}
 }
 
 
@@ -365,21 +547,29 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 		},
 	);
 	imageFormatSettings(ctx, containerEl, card.target, card);
+	sectionSettings(ctx, containerEl, card.target);
 	// A note drawn as text has no zoom, and terminal mode edits it in a plain
 	// text field rather than in live preview.
 	if (!drawnAsText(ctx, card.target)) zoomSetting(ctx, containerEl, card.target, card);
-	new Setting(containerEl)
-		.setName(t().editors.embed.editable)
-		.setDesc(t().editors.embed.editableDesc)
-		.addToggle((tg) =>
-			tg.setValue(card.editable ?? false).onChange((v) => {
-				card.editable = v || undefined;
-				ctx.opts.save();
-				// The live-preview choice below only exists while editing is on.
-				ctx.requestRender();
-			}),
-		);
-	if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
+	const section = card.section?.trim();
+	if (section) {
+		// An editor edits a whole note, so a section is drawn rendered (its
+		// checkboxes still write back). Saying it beats a toggle that vanished.
+		containerEl.createDiv({ cls: "hearth-setting-note", text: t().editors.embed.sectionReadOnly });
+	} else {
+		new Setting(containerEl)
+			.setName(t().editors.embed.editable)
+			.setDesc(t().editors.embed.editableDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.editable ?? false).onChange((v) => {
+					card.editable = v || undefined;
+					ctx.opts.save();
+					// The live-preview choice below only exists while editing is on.
+					ctx.requestRender();
+				}),
+			);
+		if (card.editable && !ctx.terminal) livePreviewSetting(ctx, containerEl, card);
+	}
 	// Terminal mode draws no open button on a note (its card menu opens it
 	// instead).
 	if (!drawnAsText(ctx, card.target)) {
@@ -499,7 +689,9 @@ export const embedCard: CardDefinition<"embed"> = {
 	liveness: {
 		mode: "watch-file",
 		watchedPath: (view, card) => watchedCardPath(view, card),
-		editableInPlace: (card) => !!card.editable,
+		// A section card is always rendered (an editor edits whole notes), so an
+		// edit to the note must redraw it like any other read-only embed.
+		editableInPlace: (card) => !!card.editable && !card.section?.trim(),
 	},
 	viewIdentity: (view, card) => embedViewIdentity(view, card),
 };
