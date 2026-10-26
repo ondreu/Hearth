@@ -1615,13 +1615,25 @@ export const en = {
 				"Off shows Hearth's file-type icon for every file, ignoring both plugins.",
 			enableDescNoPlugin:
 				"Neither Iconic nor Iconize is enabled right now, so every file " +
-				"shows Hearth's file-type icon. This can stay on — it takes effect " +
-				"as soon as one of them is installed.",
+				"shows Hearth's file-type icon unless the frontmatter option " +
+				"below is on. This can stay on — it takes effect as soon as one " +
+				"of them is installed.",
 			property: "Iconize frontmatter property",
 			propertyDesc:
 				"Property Iconize stores a note's icon in, for icons set through " +
-				"frontmatter rather than its menu. Match this to Iconize's own " +
-				"setting if you renamed it (its default is “icon”).",
+				"frontmatter rather than its menu. A comma separated list is " +
+				"accepted, so a property written by another plugin can be added " +
+				"after it. Match this to Iconize's own setting if you renamed it " +
+				"(its default is “icon”).",
+			frontmatterWithoutPlugin: "Read frontmatter icons without an icon plugin",
+			frontmatterWithoutPluginDesc:
+				"Show the icon a note's frontmatter names even with neither Iconic " +
+				"nor Iconize installed — useful when another plugin (Notebook " +
+				"Navigator, Pretty Properties, AutoIcon) or you yourself write it. " +
+				"Off by default: “icon” is a common property name, and a vault " +
+				"using it for something else would see those values drawn as " +
+				"icons. Only emoji and icon ids Obsidian knows are shown; anything " +
+				"else keeps Hearth's file-type icon.",
 		},
 		frontMatterTitle: {
 			heading: "Front Matter Title",

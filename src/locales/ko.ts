@@ -587,9 +587,11 @@ export const ko: Translations = {
 			headingDesc: "Iconic 또는 Iconize에서 설정한 파일별 아이콘을 최근 항목, 즐겨찾기, 검색 결과 등 Hearth의 파일 목록에 사용합니다.",
 			enable: "Iconic / Iconize 아이콘 사용",
 			enableDesc: "끄면 두 플러그인과 관계없이 Hearth의 파일 유형 아이콘을 표시합니다.",
-			enableDescNoPlugin: "Iconic과 Iconize가 활성화되어 있지 않아 Hearth 파일 유형 아이콘을 표시합니다. 이 설정은 켜 둬도 플러그인을 설치하면 적용됩니다.",
+			enableDescNoPlugin: "Iconic과 Iconize가 모두 비활성화되어 있어 아래 frontmatter 옵션이 꺼져 있으면 Hearth의 파일 유형 아이콘을 표시합니다. 이 설정은 켜 둬도 플러그인을 설치하면 적용됩니다.",
 			property: "Iconize frontmatter 속성",
-			propertyDesc: "메뉴 대신 frontmatter로 설정한 아이콘에 사용할 속성입니다. Iconize의 속성 이름과 일치시키세요. 기본값은 icon입니다.",
+			propertyDesc: "메뉴 대신 frontmatter로 설정한 아이콘에 사용할 속성입니다. 쉼표로 구분해 여러 속성을 지정할 수 있어 다른 플러그인이 쓰는 속성을 덧붙일 수 있습니다. Iconize의 속성 이름과 일치시키세요. 기본값은 icon입니다.",
+			frontmatterWithoutPlugin: "아이콘 플러그인 없이 frontmatter 아이콘 읽기",
+			frontmatterWithoutPluginDesc: "Iconic이나 Iconize가 없어도 노트의 frontmatter에 적힌 아이콘을 표시합니다. 다른 플러그인(Notebook Navigator, Pretty Properties, AutoIcon)이나 직접 적은 아이콘에 유용합니다. 기본값은 꺼짐입니다. icon은 흔한 속성 이름이라 다른 용도로 쓰는 보관소에서는 그 값이 아이콘으로 표시될 수 있습니다. Obsidian이 아는 아이콘 ID와 이모지만 표시하며, 그 밖의 값은 Hearth의 파일 유형 아이콘을 유지합니다.",
 		},
 		frontMatterTitle: {
 			...en.settings.frontMatterTitle,

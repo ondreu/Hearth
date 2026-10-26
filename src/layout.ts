@@ -315,6 +315,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		// File icons (Iconic / Iconize)
 		customFileIcons: s.customFileIcons,
 		iconizeIconProperty: s.iconizeIconProperty,
+		frontmatterIconsWithoutPlugin: s.frontmatterIconsWithoutPlugin,
 
 		// Front Matter Title
 		frontMatterTitles: s.frontMatterTitles,
@@ -2398,6 +2399,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.customFileIcons = data.customFileIcons;
 	const iconizeProperty = str(data.iconizeIconProperty)?.trim();
 	if (iconizeProperty) s.iconizeIconProperty = iconizeProperty;
+	if (typeof data.frontmatterIconsWithoutPlugin === "boolean")
+		s.frontmatterIconsWithoutPlugin = data.frontmatterIconsWithoutPlugin;
 	// Front Matter Title
 	if (typeof data.frontMatterTitles === "boolean")
 		s.frontMatterTitles = data.frontMatterTitles;

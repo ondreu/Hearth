@@ -2183,6 +2183,16 @@ export class HomeSettingTab extends PluginSettingTab {
 			});
 			this.addTextReset(property, txt, "iconizeIconProperty");
 		});
+
+		new Setting(containerEl)
+			.setName(t().settings.fileIcons.frontmatterWithoutPlugin)
+			.setDesc(t().settings.fileIcons.frontmatterWithoutPluginDesc)
+			.addToggle((tog) =>
+				tog.setValue(s.frontmatterIconsWithoutPlugin).onChange(async (v) => {
+					s.frontmatterIconsWithoutPlugin = v;
+					this.save();
+				}),
+			);
 	}
 
 	// ---- Front Matter Title ----------------------------------------------

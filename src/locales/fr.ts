@@ -1564,13 +1564,24 @@ export const fr: Translations = {
 				"Désactivé : l'icône de type de fichier de Hearth pour tous les fichiers, en ignorant les deux plugins.",
 			enableDescNoPlugin:
 				"Ni Iconic ni Iconize n'est activé pour l'instant, donc tous les fichiers " +
-				"affichent l'icône de type de Hearth. Vous pouvez laisser activé — cela prendra effet " +
+				"affichent l'icône de type de Hearth, sauf si l'option de frontmatter " +
+				"ci-dessous est activée. Vous pouvez laisser activé — cela prendra effet " +
 				"dès que l'un d'eux sera installé.",
 			property: "Propriété de frontmatter d'Iconize",
 			propertyDesc:
 				"La propriété où Iconize stocke l'icône d'une note, pour les icônes définies via " +
-				"le frontmatter plutôt que son menu. Faites-la correspondre au paramètre d'Iconize " +
-				"si vous l'avez renommée (par défaut « icon »).",
+				"le frontmatter plutôt que son menu. Une liste séparée par des virgules est " +
+				"acceptée, pour ajouter une propriété écrite par un autre plugin. Faites-la " +
+				"correspondre au paramètre d'Iconize si vous l'avez renommée (par défaut « icon »).",
+			frontmatterWithoutPlugin: "Lire les icônes du frontmatter sans plugin d'icônes",
+			frontmatterWithoutPluginDesc:
+				"Afficher l'icône indiquée dans le frontmatter d'une note même sans Iconic ni " +
+				"Iconize — utile quand un autre plugin (Notebook Navigator, Pretty Properties, " +
+				"AutoIcon) ou vous-même l'écrivez. Désactivé par défaut : « icon » est un nom de " +
+				"propriété courant, et un coffre qui l'utilise pour autre chose verrait ces " +
+				"valeurs dessinées comme des icônes. Seuls les emojis et les identifiants " +
+				"d'icônes connus d'Obsidian sont affichés ; le reste garde l'icône de type de " +
+				"fichier de Hearth.",
 		},
 		frontMatterTitle: {
 			heading: "Front Matter Title",

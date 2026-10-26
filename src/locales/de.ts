@@ -1625,13 +1625,23 @@ export const de: Translations = {
 				"Aus zeigt Hearths Dateitypsymbol für jede Datei und ignoriert beide Plugins.",
 			enableDescNoPlugin:
 				"Weder Iconic noch Iconize ist gerade aktiviert, daher zeigt jede Datei " +
-				"Hearths Dateitypsymbol. Dies kann an bleiben - es greift, " +
-				"sobald eines davon installiert ist.",
+				"Hearths Dateitypsymbol - außer die Frontmatter-Option unten ist an. " +
+				"Dies kann an bleiben - es greift, sobald eines davon installiert ist.",
 			property: "Iconize-Frontmatter-Eigenschaft",
 			propertyDesc:
 				"Eigenschaft, in der Iconize das Symbol einer Notiz speichert, für Symbole, die über " +
-				"Frontmatter statt über sein Menü gesetzt wurden. Gleiche dies mit Iconizes eigener " +
-				"Einstellung ab, falls du sie umbenannt hast (Standard ist „icon“).",
+				"Frontmatter statt über sein Menü gesetzt wurden. Eine kommagetrennte Liste ist " +
+				"erlaubt, damit sich eine von einem anderen Plugin geschriebene Eigenschaft ergänzen " +
+				"lässt. Gleiche dies mit Iconizes eigener Einstellung ab, falls du sie umbenannt hast " +
+				"(Standard ist „icon“).",
+			frontmatterWithoutPlugin: "Frontmatter-Symbole ohne Symbol-Plugin lesen",
+			frontmatterWithoutPluginDesc:
+				"Zeigt das Symbol, das im Frontmatter einer Notiz steht, auch ohne installiertes " +
+				"Iconic oder Iconize - nützlich, wenn ein anderes Plugin (Notebook Navigator, " +
+				"Pretty Properties, AutoIcon) oder du selbst es schreibt. Standard ist aus: „icon“ " +
+				"ist ein häufiger Eigenschaftsname, und ein Vault, der ihn anders meint, würde " +
+				"diese Werte als Symbole sehen. Gezeigt werden nur Emoji und Symbol-IDs, die " +
+				"Obsidian kennt; alles andere behält Hearths Dateitypsymbol.",
 		},
 		frontMatterTitle: {
 			heading: "Front Matter Title",

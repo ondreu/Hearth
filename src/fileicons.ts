@@ -21,6 +21,11 @@ import { type HomeSettings } from "./types";
  * icon packs (Font Awesome, Remix, …), which are SVG blobs on disk — rendering
  * those means injecting third-party markup, so those files keep Hearth's
  * built-in icon instead.
+ *
+ * A note's icon can also live in a frontmatter property, which needs no plugin
+ * at all to read — plugins other than Iconize write it too (Pretty Properties,
+ * Notebook Navigator, AutoIcon). That path is opt-in; see
+ * {@link frontmatterIcon}.
  */
 
 /** The community-plugin id Iconic registers itself under. */
@@ -49,10 +54,16 @@ export type ResolvedIcon =
 export interface FileIconOptions {
 	/** Master switch for the whole integration. */
 	enabled: boolean;
-	/** The frontmatter property Iconize reads a note's icon from. Iconize lets
-	 * the user rename it, so it mirrors Iconize's default rather than assuming
-	 * it (same reasoning as the TaskNotes field names). */
+	/** The frontmatter property (or comma separated properties) a note's icon
+	 * lives in. Iconize lets the user rename its property, so this mirrors its
+	 * default rather than assuming it (same reasoning as the TaskNotes field
+	 * names). */
 	frontmatterProperty: string;
+	/** Read that property on every note even when neither icon plugin is
+	 * enabled (#398). Off by default: `icon` is a common enough property name
+	 * that a vault using it for its own purposes would otherwise see it turn
+	 * into icons the moment Hearth lists the file. */
+	frontmatterWithoutPlugin: boolean;
 }
 
 // ---- Pure helpers (unit-tested) -----------------------------------------
@@ -122,6 +133,43 @@ export function normalizeStoredIcon(
 		for (const candidate of [fromIconize, `lucide-${fromIconize}`]) {
 			if (isKnown(candidate)) return { kind: "lucide", id: candidate };
 		}
+	}
+	return null;
+}
+
+/**
+ * Split the settings field into property names. The field takes a comma
+ * separated list so a vault whose icons are written by a plugin Hearth doesn't
+ * know by name — Pretty Properties, Notebook Navigator and AutoIcon all write
+ * frontmatter — can point Hearth at that plain property instead of waiting for
+ * a per-plugin integration (#398).
+ */
+export function iconProperties(property: string): string[] {
+	return property
+		.split(",")
+		.map((part) => part.trim())
+		.filter((part) => part.length > 0);
+}
+
+/**
+ * The icon value stored under one of `properties` in a note's frontmatter, or
+ * null when none of them holds a non-empty string.
+ *
+ * Property names are matched case-insensitively: Obsidian keeps whatever
+ * casing the user typed, so a vault writing `Icon:` would otherwise read as no
+ * icon even though Obsidian's own properties pane shows the value. The first
+ * property in the list wins, which is what makes a user-added list predictable.
+ */
+export function frontmatterIconValue(
+	frontmatter: Record<string, unknown> | undefined,
+	properties: string[],
+): string | null {
+	if (!frontmatter) return null;
+	const byLoweredKey = new Map<string, unknown>();
+	for (const [key, value] of Object.entries(frontmatter)) byLoweredKey.set(key.toLowerCase(), value);
+	for (const property of properties) {
+		const value = frontmatter[property] ?? byLoweredKey.get(property.toLowerCase());
+		if (typeof value === "string" && value.trim()) return value;
 	}
 	return null;
 }
@@ -241,40 +289,52 @@ function iconizeIcon(app: App, path: string): string | null {
 	return iconizeIconForPath(data, path);
 }
 
+/** Whether a community plugin is enabled right now. `app.plugins` is
+ * undocumented, so a failure to read it reads as "not enabled" rather than
+ * throwing out of an icon lookup. */
+function isPluginEnabled(app: App, id: string): boolean {
+	try {
+		return app.plugins.enabledPlugins.has(id);
+	} catch {
+		return false;
+	}
+}
+
 /**
- * Iconize's other storage location: a frontmatter property on the note itself.
- * Read through Obsidian's metadata cache, so this one costs nothing and keeps
+ * A note's icon from a frontmatter property — Iconize's other storage
+ * location, and the only one that works without an icon plugin installed.
+ * Read through Obsidian's metadata cache, so this costs nothing and keeps
  * working regardless of what Iconize does to its internals.
  *
- * Gated on Iconize being enabled, deliberately. `icon` is a common enough
- * property name that a vault using it for its own purposes — a template field,
- * a Dataview column — would otherwise find those values turning into icons in
- * Hearth without ever having installed an icon plugin.
+ * Reading it with neither plugin installed is opt-in (#398). `icon` is a
+ * common enough property name that a vault using it for its own purposes — a
+ * template field, a Dataview column — would otherwise find those values
+ * turning into icons in Hearth without ever having installed an icon plugin.
+ * Plain enough that the user has to ask for it, in other words.
  */
-function frontmatterIcon(app: App, file: TAbstractFile, property: string): string | null {
-	const key = property.trim();
-	if (!key) return null;
-	if (!app.plugins.enabledPlugins.has(ICONIZE_PLUGIN_ID)) return null;
+function frontmatterIcon(
+	app: App,
+	file: TAbstractFile,
+	property: string,
+	withoutPlugin: boolean,
+): string | null {
+	const properties = iconProperties(property);
+	if (properties.length === 0) return null;
+	if (!withoutPlugin && !isPluginEnabled(app, ICONIZE_PLUGIN_ID)) return null;
 	// getFileCache takes a TFile; folders have no frontmatter to read.
 	if (!(file instanceof TFile)) return null;
 	// FrontMatterCache is indexed as `any`; widening it to unknown keeps the
-	// value check below honest.
+	// value check in `frontmatterIconValue` honest.
 	const frontmatter: Record<string, unknown> | undefined =
 		app.metadataCache.getFileCache(file)?.frontmatter;
-	const value = frontmatter?.[key];
-	return typeof value === "string" && value.trim() ? value : null;
+	return frontmatterIconValue(frontmatter, properties);
 }
 
 /** Whether either icon plugin is currently enabled. Used to decide whether the
  * settings row is worth explaining, not to gate resolution — resolution already
  * falls back on its own. */
 export function hasFileIconPlugin(app: App): boolean {
-	try {
-		const enabled = app.plugins.enabledPlugins;
-		return enabled.has(ICONIC_PLUGIN_ID) || enabled.has(ICONIZE_PLUGIN_ID);
-	} catch {
-		return false;
-	}
+	return isPluginEnabled(app, ICONIC_PLUGIN_ID) || isPluginEnabled(app, ICONIZE_PLUGIN_ID);
 }
 
 /** The icon to draw for `file`: a custom one from Iconic or Iconize when the
@@ -302,7 +362,7 @@ export function resolveFileIcon(
 		const raw =
 			iconicIconForPlugin(iconic, file instanceof TFile ? "file" : "folder", path) ??
 			iconizeIcon(app, path) ??
-			frontmatterIcon(app, file, opts.frontmatterProperty);
+			frontmatterIcon(app, file, opts.frontmatterProperty, opts.frontmatterWithoutPlugin);
 		if (!raw) return fallback;
 		const ids = knownIconIds();
 		return normalizeStoredIcon(raw, (id) => ids.has(id)) ?? fallback;
@@ -314,11 +374,12 @@ export function resolveFileIcon(
 }
 
 /** The resolver options carried by the user's settings. A one-liner, but it
- * keeps every call site from having to remember which two fields matter. */
+ * keeps every call site from having to remember which fields matter. */
 export function fileIconOptions(settings: HomeSettings): FileIconOptions {
 	return {
 		enabled: settings.customFileIcons,
 		frontmatterProperty: settings.iconizeIconProperty,
+		frontmatterWithoutPlugin: settings.frontmatterIconsWithoutPlugin,
 	};
 }
 

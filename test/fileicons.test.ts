@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	frontmatterIconValue,
+	iconProperties,
 	iconicIconForFile,
 	iconicIconForPath,
 	iconicIconForPlugin,
@@ -250,5 +252,57 @@ describe("iconicIconForPlugin", () => {
 
 	it("returns null when Iconic is not installed", () => {
 		expect(iconicIconForPlugin(undefined, "file", "Notes/Recipe.md")).toBeNull();
+	});
+});
+
+describe("iconProperties", () => {
+	it("splits a comma separated list and trims each name", () => {
+		expect(iconProperties("icon, pp-icon")).toEqual(["icon", "pp-icon"]);
+		expect(iconProperties("  icon  ")).toEqual(["icon"]);
+	});
+
+	it("drops empty entries, so a stray comma names nothing", () => {
+		expect(iconProperties("icon, ,")).toEqual(["icon"]);
+	});
+
+	it("returns no property for a blank setting", () => {
+		expect(iconProperties("")).toEqual([]);
+		expect(iconProperties("   ")).toEqual([]);
+	});
+});
+
+describe("frontmatterIconValue", () => {
+	// Obsidian's frontmatter cache carries its own `position` entry alongside
+	// the user's properties.
+	const frontmatter: Record<string, unknown> = {
+		icon: "lucide-chef-hat",
+		"pp-color": "#ff0000",
+		position: { start: { line: 0, col: 0, offset: 0 }, end: { line: 4, col: 3, offset: 40 } },
+	};
+
+	it("reads the first property that holds a value", () => {
+		expect(frontmatterIconValue(frontmatter, ["icon"])).toBe("lucide-chef-hat");
+		expect(frontmatterIconValue(frontmatter, ["missing", "icon"])).toBe("lucide-chef-hat");
+		expect(frontmatterIconValue(frontmatter, ["icon", "pp-color"])).toBe("lucide-chef-hat");
+	});
+
+	it("matches property names regardless of casing", () => {
+		// Obsidian keeps whatever casing the user typed.
+		expect(frontmatterIconValue({ Icon: "📕" }, ["icon"])).toBe("📕");
+	});
+
+	it("ignores values that aren't a non-empty string", () => {
+		expect(frontmatterIconValue({ icon: 3 }, ["icon"])).toBeNull();
+		expect(frontmatterIconValue({ icon: ["lucide-home"] }, ["icon"])).toBeNull();
+		expect(frontmatterIconValue({ icon: "   " }, ["icon"])).toBeNull();
+	});
+
+	it("doesn't mistake Obsidian's own position entry for an icon", () => {
+		expect(frontmatterIconValue(frontmatter, ["position"])).toBeNull();
+	});
+
+	it("returns null with no frontmatter, and with no property names", () => {
+		expect(frontmatterIconValue(undefined, ["icon"])).toBeNull();
+		expect(frontmatterIconValue(frontmatter, [])).toBeNull();
 	});
 });

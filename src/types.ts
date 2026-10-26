@@ -2812,10 +2812,16 @@ export interface HomeSettings {
 	 * Harmless with neither plugin installed — there is simply nothing to read,
 	 * and every file keeps its type icon. */
 	customFileIcons: boolean;
-	/** Frontmatter property Iconize stores a note's icon in. Iconize lets the
-	 * user rename it, so — as with the TaskNotes fields above — this mirrors its
-	 * default rather than assuming nobody changed it. */
+	/** Frontmatter property (or comma separated properties) a note's icon
+	 * lives in. Iconize lets the user rename it, so — as with the TaskNotes
+	 * fields above — this mirrors its default rather than assuming nobody
+	 * changed it. */
 	iconizeIconProperty: string;
+	/** Read that property on notes even when neither Iconic nor Iconize is
+	 * enabled, so icons written by any other plugin (or by hand) show up too
+	 * (#398). Off by default: `icon` is a common property name in vaults that
+	 * mean something else by it. */
+	frontmatterIconsWithoutPlugin: boolean;
 
 	// ---- Front Matter Title ----
 	/** Show the titles the Front Matter Title plugin gives notes in the file
@@ -3049,6 +3055,11 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// to see. "icon" is Iconize's own default property name.
 	customFileIcons: true,
 	iconizeIconProperty: "icon",
+	// Off by default, unlike the two above: with no icon plugin installed a
+	// frontmatter `icon` is more likely to be a template field or a Dataview
+	// column than an icon, and turning it into one without being asked would be
+	// a surprise in an existing vault (#398).
+	frontmatterIconsWithoutPlugin: false,
 
 	// On by default for the same reason: with the plugin absent (or its explorer
 	// feature off) nothing changes, and with it on the folder card matches the

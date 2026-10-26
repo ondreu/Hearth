@@ -1463,12 +1463,19 @@ export const zh: Translations = {
 			enable: "使用来自 Iconic / Iconize 的图标",
 			enableDesc: "关闭后所有文件都显示 Hearth 的文件类型图标，忽略这两个插件。",
 			enableDescNoPlugin:
-				"目前 Iconic 与 Iconize 都未启用，因此所有文件都显示 Hearth 的文件类型图标。" +
-				"此项可以保持开启 — 一旦其中之一被安装即会生效。",
+				"目前 Iconic 与 Iconize 都未启用，因此除非下方 frontmatter 选项已开启，" +
+				"所有文件都显示 Hearth 的文件类型图标。此项可以保持开启 — 一旦其中之一被安装即会生效。",
 			property: "Iconize frontmatter 属性",
 			propertyDesc:
 				"Iconize 存放笔记图标的属性，用于通过 frontmatter 而非菜单设置的图标。" +
+				"可以用逗号分隔多个属性，以便加入其他插件写入的属性。" +
 				"如果您重命名过，请与 Iconize 自己的设置保持一致（其默认值为 “icon”）。",
+			frontmatterWithoutPlugin: "无需图标插件也读取 frontmatter 图标",
+			frontmatterWithoutPluginDesc:
+				"即使没有安装 Iconic 或 Iconize，也显示笔记 frontmatter 中指定的图标 — " +
+				"适用于其他插件（Notebook Navigator、Pretty Properties、AutoIcon）或手动写入的图标。" +
+				"默认关闭：“icon” 是很常见的属性名，用它表示其他含义的库会把这些值显示成图标。" +
+				"只显示表情和 Obsidian 已知的图标 ID，其他情况保留 Hearth 的文件类型图标。",
 		},
 		frontMatterTitle: {
 			heading: "Front Matter Title",
