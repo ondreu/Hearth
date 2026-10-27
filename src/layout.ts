@@ -501,6 +501,12 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	if (typeof r.count === "number") card.count = r.count;
 	if (typeof r.recentAuto === "boolean") card.recentAuto = r.recentAuto;
 	if (r.fileView === "list" || r.fileView === "tiles") card.fileView = r.fileView;
+	// A card's own name for its notes (#399). Kept as written: an empty string
+	// is a card whose Advanced toggle is on with no property picked yet, which
+	// draws file names either way, and trimming here would turn the user's
+	// in-progress field into "off" behind their back on the next save.
+	const titleProperty = str(r.titleProperty);
+	if (titleProperty !== undefined) card.titleProperty = titleProperty;
 	if (typeof r.scale === "number") card.scale = r.scale;
 	const cardImageFit = sanitizeImageFit(r.imageFit);
 	if (cardImageFit !== undefined) card.imageFit = cardImageFit;

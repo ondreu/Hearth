@@ -14,7 +14,7 @@ import {
 import { type DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-import { fitItemsToBody, fileViewSetting, renderFileItems } from "./fileview";
+import { displayTitleSetting, fitItemsToBody, fileViewSetting, renderFileItems } from "./fileview";
 
 
 // ---- Recent files -------------------------------------------------------
@@ -98,6 +98,9 @@ export function recentEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 	}
 
 	recentTypesEditor(ctx, containerEl, card);
+
+	// Last, because it is the one setting most vaults never open (#399).
+	displayTitleSetting(ctx, containerEl, t().editors.recent);
 }
 
 

@@ -59,6 +59,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     converted on load with its file and options, so it draws as it did. Does
     not round-trip to an earlier version, which shows the card's first file
     only.
+- **Card names from frontmatter** (#399). Recent files and Favorites cards can
+  name a note by a frontmatter property instead of its file name — `aliases`, or
+  a `title` the vault keeps for the purpose — so a card in a narrow column stays
+  readable in a vault whose file names start with codes or dates. Behind
+  *Advanced* in the card's settings: a list uses its first non-blank entry,
+  property names are matched regardless of case, and a note without the property
+  keeps its file name. Both cards also fall back to the titles Front Matter Title
+  gives the file explorer, which only Folder cards did before.
 - **Keep view state on this device** (#392). A new switch under
   **Settings → Hearth → Behaviour** for vaults synced with Git: the active
   dashboard is remembered on this device instead of in `data.json`, so

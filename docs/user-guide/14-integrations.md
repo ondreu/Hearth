@@ -162,7 +162,8 @@ Iconize's own default is `icon`.
 [Front Matter Title](https://obsidian.md/plugins?id=obsidian-front-matter-title-plugin)
 shows a note in the file explorer by a title from its frontmatter, Folder cards
 and the folder browser list the note by that same title instead of its file
-name — and sort by it under the name orders.
+name — and sort by it under the name orders. Recent files and Favorites cards
+fall back to it too, for any note whose file name they would otherwise show.
 
 **Configured in:** *Settings → Hearth → Integrations → Front Matter Title*.
 

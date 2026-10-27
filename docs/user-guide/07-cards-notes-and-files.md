@@ -278,9 +278,20 @@ the *Base view* and *Hide base header* options.
 | *Fit to card height* | List as many files as the card is tall enough to show, instead of a fixed number. Resizing the card then changes how many appear |
 | *Number of files* | How many recently-opened files to list, when not fitting to height. There is a ceiling, which is as far back as Hearth's recent-file history goes |
 | *File types* | Only list files of the selected types. Pick any combination; selecting none shows every type |
+| *Advanced → Title from a property* | Name each note by a frontmatter property instead of its file name — `aliases`, or a `title` your vault keeps for the purpose. A note without it keeps its file name |
 
 If you use Iconic or Iconize, each file shows its own icon here. See
 [chapter 14](14-integrations.md).
+
+**Titles from frontmatter.** A vault that names its files with a code or a date
+(`2026-10-14 meeting`, `PRJ-118 spec`) reads badly on a narrow card, because the
+row can only show the beginning. The *Advanced* toggle above names those notes
+from a property instead: a list such as `aliases` uses its first non-blank entry,
+a plain string is shown as it is, and property names are matched regardless of
+case. Anything without a value stays listed by its file name, so turning this on
+never hides a note. With [Front Matter Title](14-integrations.md) on, a note the
+card doesn't retitle is listed by the title the file explorer shows — the same
+order the Folder card follows.
 
 ---
 
@@ -457,6 +468,11 @@ the card's settings (*Add favorite*, plus move up, move down and remove).
 A single card can be given a list of its own with *Give this card its own list*.
 Turning it on starts from the list the card is showing now; turning it back off
 drops the card's own list and returns it to following the vault-wide favourites.
+
+The *Advanced → Title from a property* setting of the Recent files card works
+here too: set it to `aliases` or `title` and each favourite is named from its
+frontmatter instead of its file name, which is what makes a narrow Favorites
+column readable in a vault whose file names start with codes or dates.
 
 ---
 

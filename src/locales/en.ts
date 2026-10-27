@@ -2096,6 +2096,16 @@ export const en = {
 			displayDesc: "A compact list of rows, or a grid of tiles with the icon above the name.",
 			displayList: "List",
 			displayTiles: "Tiles",
+			titleAdvanced: "Advanced",
+			titleAdvancedDesc:
+				"Name notes by a frontmatter property instead of the file name — aliases, " +
+				"or a title your vault keeps for the purpose. Notes without it keep their " +
+				"file name. Off shows file names.",
+			titleProperty: "Title from a property",
+			titlePropertyDesc:
+				"A property whose first non-blank entry names the note. Names are matched " +
+				"regardless of case; a note without it is listed under its file name.",
+			titlePropertyPlaceholder: "aliases",
 			fit: "Fit to card height",
 			fitDesc:
 				"List as many files as the card is tall enough to show, instead of a " +
@@ -2852,6 +2862,16 @@ export const en = {
 			displayDesc: "A compact list of rows, or a grid of tiles with the icon above the name.",
 			displayList: "List",
 			displayTiles: "Tiles",
+			titleAdvanced: "Advanced",
+			titleAdvancedDesc:
+				"Name notes by a frontmatter property instead of the file name — aliases, " +
+				"or a title your vault keeps for the purpose. Notes without it keep their " +
+				"file name. Off shows file names.",
+			titleProperty: "Title from a property",
+			titlePropertyDesc:
+				"A property whose first non-blank entry names the note. Names are matched " +
+				"regardless of case; a note without it is listed under its file name.",
+			titlePropertyPlaceholder: "aliases",
 			heading: "Favorites",
 			headingDesc: "Notes shown by every favorites card.",
 			ownList: "Give this card its own list",

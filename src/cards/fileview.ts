@@ -1,6 +1,8 @@
 import { type Component, debounce, Setting, TFile } from "obsidian";
-import { setIcon } from "../glyphs";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
+import { fileLabel } from "../filelabel";
+import { explorerTitles } from "../frontmattertitle";
+import { setIcon } from "../glyphs";
 import { openFile } from "../opener";
 import { rowsThatFit } from "../recentfiles";
 import type { DashboardCard, FileView } from "../types";
@@ -43,15 +45,19 @@ export function renderFileItems(
 		? { item: "hearth-fav-card", icon: "hearth-fav-icon", label: "hearth-fav-name" }
 		: { item: "hearth-list-item", icon: "hearth-list-icon", label: "hearth-list-label" };
 	const icons = fileIconOptions(view.plugin.settings);
+	// The row's name, once for the whole list: the card's property (#399), else
+	// the title the file explorer shows, else the file name.
+	const label = fileLabel(view.app, card, explorerTitles(view.app, view.plugin.settings));
 	for (const item of items) {
 		const el = container.createDiv(cls.item);
 		if ("file" in item) {
 			const file = item.file;
+			const text = label(file);
 			applyFileIcon(el.createDiv(cls.icon), resolveFileIcon(view.app, file, icons));
-			el.createDiv({ cls: cls.label, text: file.basename });
+			el.createDiv({ cls: cls.label, text });
 			const open = () => void openFile(view, file, "card");
 			el.addEventListener("click", open);
-			makeClickable(el, open, file.basename);
+			makeClickable(el, open, text);
 		} else {
 			el.addClass("is-missing");
 			setIcon(el.createDiv(cls.icon), "file-x");
@@ -137,3 +143,64 @@ export function fileViewSetting(
 			});
 		});
 }
+
+
+/** The strings {@link displayTitleSetting} needs; both file-list editors pass
+ * their own copy of the same three labels. */
+export interface TitlePropertyStrings {
+	titleAdvanced: string;
+	titleAdvancedDesc: string;
+	titleProperty: string;
+	titlePropertyDesc: string;
+	titlePropertyPlaceholder: string;
+}
+
+/**
+ * Naming a note from a frontmatter property (#399), behind an Advanced toggle
+ * like the heatmap card's custom metric: a vault that doesn't need it never
+ * meets the question, and one that does finds a single field once it opts in.
+ *
+ * The toggle *is* the card field — on means "there is a property to read", kept
+ * with an empty value until something is typed, so the state the dialog shows is
+ * the state the card draws. Turning it off drops the property, because a card
+ * that shows file names while a name is stored behind it is the kind of setting
+ * people find years later and can't explain.
+ */
+export function displayTitleSetting(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	strings: TitlePropertyStrings,
+): void {
+	const on = ctx.card.titleProperty !== undefined;
+	new Setting(containerEl)
+		.setName(strings.titleAdvanced)
+		.setDesc(strings.titleAdvancedDesc)
+		.addToggle((tg) =>
+			tg.setValue(on).onChange((v) => {
+				if (v) ctx.card.titleProperty ??= "";
+				else delete ctx.card.titleProperty;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				// Show/hide the property field below.
+				ctx.requestRender();
+			}),
+		);
+	if (!on) return;
+	new Setting(containerEl)
+		.setName(strings.titleProperty)
+		.setDesc(strings.titlePropertyDesc)
+		.addText((txt) =>
+			txt
+				.setPlaceholder(strings.titlePropertyPlaceholder)
+				.setValue(ctx.card.titleProperty ?? "")
+				// Saved on every keystroke so the card behind the dialog follows
+				// along; the dialog itself is not rebuilt, which would take the
+				// caret with it.
+				.onChange((v) => {
+					ctx.card.titleProperty = v;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+		);
+}
+

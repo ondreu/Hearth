@@ -2104,6 +2104,17 @@ export const de: Translations = {
 			displayDesc: "Eine kompakte Liste von Zeilen oder ein Raster aus Kacheln mit dem Symbol über dem Namen.",
 			displayList: "Liste",
 			displayTiles: "Kacheln",
+			titleAdvanced: "Erweitert",
+			titleAdvancedDesc:
+				"Notizen nach einer Frontmatter-Eigenschaft benennen statt nach dem Dateinamen - " +
+				"aliases, oder ein title, den dein Vault dafür führt. Notizen ohne die " +
+				"Eigenschaft behalten ihren Dateinamen. Aus zeigt Dateinamen.",
+			titleProperty: "Titel aus einer Eigenschaft",
+			titlePropertyDesc:
+				"Eine Eigenschaft, deren erster nicht leerer Eintrag die Notiz benennt. Namen " +
+				"werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen; Notizen ohne " +
+				"sie erscheinen mit ihrem Dateinamen.",
+			titlePropertyPlaceholder: "aliases",
 			fit: "An Kartenhöhe anpassen",
 			fitDesc:
 				"Liste so viele Dateien, wie die Karte hoch genug anzeigt, statt einer " +
@@ -2861,6 +2872,17 @@ export const de: Translations = {
 			displayDesc: "Eine kompakte Liste von Zeilen oder ein Raster aus Kacheln mit dem Symbol über dem Namen.",
 			displayList: "Liste",
 			displayTiles: "Kacheln",
+			titleAdvanced: "Erweitert",
+			titleAdvancedDesc:
+				"Notizen nach einer Frontmatter-Eigenschaft benennen statt nach dem Dateinamen - " +
+				"aliases, oder ein title, den dein Vault dafür führt. Notizen ohne die " +
+				"Eigenschaft behalten ihren Dateinamen. Aus zeigt Dateinamen.",
+			titleProperty: "Titel aus einer Eigenschaft",
+			titlePropertyDesc:
+				"Eine Eigenschaft, deren erster nicht leerer Eintrag die Notiz benennt. Namen " +
+				"werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen; Notizen ohne " +
+				"sie erscheinen mit ihrem Dateinamen.",
+			titlePropertyPlaceholder: "aliases",
 			heading: "Favoriten",
 			headingDesc: "Notizen, die jede Favoriten-Karte zeigt.",
 			ownList: "Dieser Karte eine eigene Liste geben",

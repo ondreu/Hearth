@@ -1890,6 +1890,14 @@ export const zh: Translations = {
 			displayDesc: "紧凑的列表行，或图标位于名称上方的磁贴网格。",
 			displayList: "列表",
 			displayTiles: "磁贴",
+			titleAdvanced: "高级",
+			titleAdvancedDesc:
+				"用 Frontmatter 属性代替文件名来命名笔记——例如 aliases，或你的库专门用作标题的 title。" +
+				"没有该属性的笔记仍显示文件名；关闭时显示文件名。",
+			titleProperty: "从属性获取标题",
+			titlePropertyDesc:
+				"用该属性的第一个非空值作为笔记名称。属性名不区分大小写；没有该属性的笔记按文件名显示。",
+			titlePropertyPlaceholder: "aliases",
 			fit: "适应卡片高度",
 			fitDesc:
 				"按卡片高度能容纳的数量列出文件，而不是固定数量。调整卡片大小会改变显示数量。",
@@ -2571,6 +2579,14 @@ export const zh: Translations = {
 			displayDesc: "紧凑的列表行，或图标位于名称上方的磁贴网格。",
 			displayList: "列表",
 			displayTiles: "磁贴",
+			titleAdvanced: "高级",
+			titleAdvancedDesc:
+				"用 Frontmatter 属性代替文件名来命名笔记——例如 aliases，或你的库专门用作标题的 title。" +
+				"没有该属性的笔记仍显示文件名；关闭时显示文件名。",
+			titleProperty: "从属性获取标题",
+			titlePropertyDesc:
+				"用该属性的第一个非空值作为笔记名称。属性名不区分大小写；没有该属性的笔记按文件名显示。",
+			titlePropertyPlaceholder: "aliases",
 			heading: "收藏",
 			headingDesc: "每张收藏卡片显示的笔记。",
 			ownList: "为这张卡片单独设置列表",

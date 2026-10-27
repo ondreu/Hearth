@@ -250,6 +250,13 @@ export default class HearthPlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			if (this.applyMobileDefaultDashboard()) this.refreshViews();
+			// Notes' frontmatter arrives asynchronously, and a board drawn before
+			// the cache is warm would list notes under their file names where a
+			// card asked for a property (#399) — those cards don't redraw by
+			// themselves, so the names would stay wrong until something else did.
+			this.registerEvent(
+				this.app.metadataCache.on("resolved", () => this.refreshViews()),
+			);
 			// Front Matter Title can still be starting up when the first boards
 			// draw; once it is running, their folder cards can show its titles.
 			whenFrontMatterTitleReady(this.app, () => this.refreshViews());

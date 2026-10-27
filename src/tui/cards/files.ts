@@ -10,6 +10,8 @@ import { TFile } from "obsidian";
 import { favoritesFor } from "../../cards/favorites";
 import { fileViewFor } from "../../cards/fileview";
 import { groupForFile } from "../../filetypes";
+import { fileLabel } from "../../filelabel";
+import { explorerTitles } from "../../frontmattertitle";
 import { t } from "../../i18n";
 import { clampRecentCount, RECENT_HISTORY_MAX, recentFilePaths } from "../../recentfiles";
 import type { DashboardCard } from "../../types";
@@ -24,13 +26,16 @@ type Entry = { file: TFile } | { missing: string };
  * on a list row. */
 function drawFiles(ctx: TuiContext, entries: Entry[], right: (file: TFile) => string): TuiOutput {
 	const { view } = ctx;
+	// The same name the graphical card shows (#399): the card's property, else
+	// the explorer's title, else the file name.
+	const label = fileLabel(view.app, ctx.card, explorerTitles(view.app, view.plugin.settings));
 	if (fileViewFor(ctx.card) === "tiles") {
 		const grid = buttonGrid(
 			ctx,
 			entries.map((e) =>
 				"file" in e
 					? {
-							label: e.file.basename,
+							label: label(e.file),
 							activate: (evt) => openCardFile(view, e.file, evt),
 							menu: (evt) => fileMenu(view, e.file, evt),
 						}
@@ -48,7 +53,7 @@ function drawFiles(ctx: TuiContext, entries: Entry[], right: (file: TFile) => st
 		const tagText = fileTag(file).padEnd(5, " ");
 		const r = right(file);
 		const line: Line = spread(
-			[{ text: tagText, style: fileTagStyle(file) }, { text: asciify(file.basename) }],
+			[{ text: tagText, style: fileTagStyle(file) }, { text: asciify(label(file)) }],
 			r ? [{ text: ` ${r}`, style: "dim" }] : [],
 			ctx.cols,
 		);

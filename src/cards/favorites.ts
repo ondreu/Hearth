@@ -6,7 +6,7 @@ import { FilePickerModal } from "../pickers";
 import type { DashboardCard } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-import { type FileItem, fileViewSetting, renderFileItems } from "./fileview";
+import { type FileItem, displayTitleSetting, fileViewSetting, renderFileItems } from "./fileview";
 
 
 // ---- Favorites (curated note cards) ------------------------------------
@@ -119,6 +119,9 @@ export function favoritesEditor(ctx: CardEditorContext, containerEl: HTMLElement
 			).open();
 		}),
 	);
+
+	// Last, because it is the one setting most vaults never open (#399).
+	displayTitleSetting(ctx, containerEl, t().editors.favorites);
 }
 
 /** The user's starred notes: the vault-wide list, or this card's own when an

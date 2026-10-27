@@ -321,7 +321,7 @@ Operon is documented in full in [chapter 14](14-integrations.md).
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| *Use titles from Front Matter Title* | On | Folder cards and the folder browser list notes by the titles the file explorer shows for them. Off lists every note by its file name |
+| *Use titles from Front Matter Title* | On | Folder cards and the folder browser list notes by the titles the file explorer shows for them, and Recent files and Favorites cards fall back to them. Off lists every note by its file name |
 
 ---
 

@@ -2043,6 +2043,18 @@ export const fr: Translations = {
 			displayDesc: "Une liste compacte de lignes, ou une grille de tuiles avec l'icône au-dessus du nom.",
 			displayList: "Liste",
 			displayTiles: "Tuiles",
+			titleAdvanced: "Avancé",
+			titleAdvancedDesc:
+				"Nommer les notes d'après une propriété du frontmatter plutôt que d'après le nom " +
+				"du fichier - aliases, ou un title que votre coffre réserve à cet usage. Les " +
+				"notes sans cette propriété gardent leur nom de fichier. Désactivé affiche " +
+				"les noms de fichier.",
+			titleProperty: "Titre depuis une propriété",
+			titlePropertyDesc:
+				"Une propriété dont la première entrée non vide nomme la note. Les noms sont " +
+				"comparés sans tenir compte de la casse ; une note sans cette propriété est " +
+				"listée sous son nom de fichier.",
+			titlePropertyPlaceholder: "aliases",
 			fit: "Ajuster à la hauteur de la carte",
 			fitDesc:
 				"Lister autant de fichiers que la hauteur de la carte le permet, au lieu d'un " +
@@ -2801,6 +2813,18 @@ export const fr: Translations = {
 			displayDesc: "Une liste compacte de lignes, ou une grille de tuiles avec l'icône au-dessus du nom.",
 			displayList: "Liste",
 			displayTiles: "Tuiles",
+			titleAdvanced: "Avancé",
+			titleAdvancedDesc:
+				"Nommer les notes d'après une propriété du frontmatter plutôt que d'après le nom " +
+				"du fichier - aliases, ou un title que votre coffre réserve à cet usage. Les " +
+				"notes sans cette propriété gardent leur nom de fichier. Désactivé affiche " +
+				"les noms de fichier.",
+			titleProperty: "Titre depuis une propriété",
+			titlePropertyDesc:
+				"Une propriété dont la première entrée non vide nomme la note. Les noms sont " +
+				"comparés sans tenir compte de la casse ; une note sans cette propriété est " +
+				"listée sous son nom de fichier.",
+			titlePropertyPlaceholder: "aliases",
 			heading: "Favoris",
 			headingDesc: "Notes affichées par toutes les cartes Favoris.",
 			ownList: "Donner à cette carte sa propre liste",

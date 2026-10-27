@@ -1935,6 +1935,24 @@ export interface DashboardCard {
 	 * without restyling one somebody already arranged.
 	 */
 	fileView?: FileView;
+	/**
+	 * kind === "favorites" | "recent": the frontmatter property a note's row is
+	 * named from, instead of its file name (#399) — `aliases`, or a `title` the
+	 * vault keeps for the purpose.
+	 *
+	 * Undefined is the ordinary case and shows file names, which is what every
+	 * file-listing card did before this field existed; the editor only offers it
+	 * behind its Advanced toggle, because a vault that doesn't need it should
+	 * never be asked about it. A note without the property (or with it blank)
+	 * keeps its file name, so one card can mix both kinds of note: nobody
+	 * disappears from a list for missing a field.
+	 *
+	 * Card-level rather than a vault setting because the answer depends on what
+	 * the card is for — a "what am I working on" card may want `title` while a
+	 * list of reference notes wants nothing — and because a vault-wide name for
+	 * every listing would silently rewrite boards nobody asked about.
+	 */
+	titleProperty?: string;
 	/** kind === "clock": time/greeting/date display options. */
 	clock?: ClockConfig;
 	/** kind === "tasks": source, folder scope and display options. */
