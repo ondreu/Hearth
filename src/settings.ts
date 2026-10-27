@@ -25,6 +25,7 @@ import { makeClickable, scrollParent } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { formatSkyValue, parseSkyValue } from "./sky";
 import { shapePath, sparklePath } from "./shapes";
+import { type BackGesture, backGestureTarget, isEditableTarget } from "./settingsnav";
 import {
 	type IntegrationEntry,
 	type IntegrationGroup,
@@ -221,6 +222,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		// The pane is closing, so there may be a keystroke from a moment ago that
 		// has not reached disk yet.
 		this.flushSave();
+		this.unbindBackGestures();
 		super.hide();
 	}
 
@@ -249,6 +251,12 @@ export class HomeSettingTab extends PluginSettingTab {
 	/** Each section's wrapper on the current page, by title, so a catalogue
 	 * row's "Show" button can scroll to it without rebuilding the pane. */
 	private sectionEls = new Map<string, HTMLElement>();
+
+	/** The element the back-gesture listeners are attached to, and the single
+	 * handler they share, so a re-render into the same host does not stack
+	 * duplicate listeners and `hide()` can detach them. */
+	private backGestureEl: HTMLElement | null = null;
+	private backGestureHandler: ((evt: Event) => void) | null = null;
 
 	/**
 	 * Obsidian 1.13 reworked the settings modal around declarative setting
@@ -334,6 +342,7 @@ export class HomeSettingTab extends PluginSettingTab {
 		this.sectionEls.clear();
 		containerEl.addClass("hearth-settings");
 		this.applyPaneDesign(containerEl);
+		this.bindBackGestures(containerEl);
 
 		// Whole-pane backstop. #52 reports a completely blank settings pane — no
 		// content, no error in the (main-window) console — for some users on
@@ -404,6 +413,61 @@ export class HomeSettingTab extends PluginSettingTab {
 	private navigate(route: SettingsRoute): void {
 		this.app.saveLocalStorage(ACTIVE_TAB_KEY, route);
 		this.rerender(false);
+	}
+
+	/**
+	 * Listen for the two gestures that mean "back" but never reached this pane:
+	 * Escape and the mouse's back button (#413). Both are answered by Obsidian
+	 * first — Escape closes the settings window, the button walks the note
+	 * history — so the listeners go on the *window* in the capture phase, the
+	 * earliest point in the event's path; {@link onBackGesture} then checks the
+	 * event actually passed through this pane.
+	 *
+	 * Re-rendering into the same host is the common case (a tab switch, a list
+	 * mutation), so binding is idempotent per element. The window is taken from
+	 * the element, because on Obsidian 1.13 the settings pane can live in a
+	 * window of its own.
+	 */
+	private bindBackGestures(el: HTMLElement): void {
+		if (this.backGestureEl === el) return;
+		this.unbindBackGestures();
+		const handler = (evt: Event) => this.onBackGesture(evt);
+		const win = el.win;
+		win.addEventListener("keydown", handler, true);
+		win.addEventListener("mouseup", handler, true);
+		this.backGestureEl = el;
+		this.backGestureHandler = handler;
+	}
+
+	private unbindBackGestures(): void {
+		const el = this.backGestureEl;
+		const handler = this.backGestureHandler;
+		if (!el || !handler) return;
+		const win = el.win;
+		win.removeEventListener("keydown", handler, true);
+		win.removeEventListener("mouseup", handler, true);
+		this.backGestureEl = null;
+		this.backGestureHandler = null;
+	}
+
+	/** Answer a back gesture that started inside the pane, and only that: the
+	 * window listener sees everything the user does in any tab or plugin's
+	 * settings. `composedPath` rather than `contains`, because a Node from the
+	 * separate 1.13 settings window fails an `instanceof` against this one. */
+	private onBackGesture(evt: Event): void {
+		const el = this.backGestureEl;
+		if (!el || !evt.composedPath().includes(el)) return;
+		const gesture: BackGesture =
+			evt.type === "keydown"
+				? { kind: "key", key: (evt as KeyboardEvent).key }
+				: { kind: "mouse", button: (evt as MouseEvent).button };
+		const editable = gesture.kind === "key" && isEditableTarget(evt.target);
+		if (!backGestureTarget(this.activeRoute(), gesture, editable)) return;
+		// Take the gesture before the app sees it, or the settings window closes
+		// and the note history walks back instead.
+		evt.preventDefault();
+		evt.stopImmediatePropagation();
+		this.navigate("index");
 	}
 
 	/** The index: every category as a full-width row, grouped under headings.

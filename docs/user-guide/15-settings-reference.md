@@ -5,8 +5,10 @@ page presents them, with what each one does and its default value where the
 default is meaningful.
 
 To reach it: **Obsidian Settings → Hearth**. The page opens on an index of eight
-categories, grouped into four headings. Choosing one opens that category; a back
-link returns to the index.
+categories, grouped into four headings. Choosing one opens that category; the
+back link at the top of the page, Escape, or the mouse's back button returns to
+the index. On the index itself those gestures keep their usual meaning, so
+Escape still closes the settings window.
 
 | Index group | Categories |
 | --- | --- |

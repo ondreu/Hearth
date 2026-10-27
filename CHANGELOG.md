@@ -97,6 +97,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   with the cursor on that heading. A heading renamed since then shows *Section
   not found* instead of quietly drawing the whole note. Terminal mode draws the
   section too.
+- **Escape and the mouse's back button leave a settings category** (#413). On a
+  category page either one returns to the index, as they do in Obsidian's own
+  settings. On the index they keep their usual meaning — Escape still closes the
+  settings window. Text fields and dropdowns are left alone, since Escape
+  already cancels an edit or closes the list there.
 ### Changed
 
 - **Task descriptions say what they can hold.** The description field has a
