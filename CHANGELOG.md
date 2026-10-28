@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [3.5.0]
+## [3.6.0]
 
 ### Added
 
@@ -26,12 +26,80 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   laid out either way round (urgent left or right, important top or bottom,
   urgency across or down), the axes and quadrants renamed (a quadrant also by
   double-clicking its name), and terminal mode draws it as text (`m`).
+
 - **Create note from a task.** The quick view of a checkbox or Kanban task has
   a **Create note** button that makes the task a note in a chosen folder, from
   a chosen template (run through Templater when it is one), and turns the task
   into a link to it. *Convert to note* now works for checkbox tasks too, and
   both, like *New tasks as notes*, use the folder and template set under the
   card's new *Notes from tasks* section.
+
+- **Card names from frontmatter** (#399). Recent files and Favorites cards can
+  name a note by a frontmatter property instead of its file name — `aliases`, or
+  a `title` the vault keeps for the purpose — so a card in a narrow column stays
+  readable in a vault whose file names start with codes or dates. Behind
+  *Advanced* in the card's settings: a list uses its first non-blank entry,
+  property names are matched regardless of case, and a note without the property
+  keeps its file name. Both cards also fall back to the titles Front Matter Title
+  gives the file explorer, which only Folder cards did before.
+
+- **Show one section of a note** (#396). *Section* under the Embedded note
+  card's Content settings takes a heading — `#Today`, or just `Today` — and the
+  card draws that heading with everything under it, sub-headings included, or a
+  single `#^block-id` for one block. Several cards can show different parts of
+  the same note side by side without splitting the note up. A picker at the end
+  of the field lists the note's own headings and blocks. The section is drawn
+  read-only, since an editor edits a whole note, but its task checkboxes still
+  tick in the note — the tick is written to the line that was clicked, not to
+  the same-numbered task of the whole note — and *Open button* opens the note
+  with the cursor on that heading. A heading renamed since then shows *Section
+  not found* instead of quietly drawing the whole note. Terminal mode draws the
+  section too.
+
+- **Escape and the mouse's back button leave a settings category** (#413). On a
+  category page either one returns to the index, as they do in Obsidian's own
+  settings. On the index they keep their usual meaning — Escape still closes the
+  settings window. Text fields and dropdowns are left alone, since Escape
+  already cancels an edit or closes the list there.
+
+- **Korean** (#423). Hearth's interface is translated into Korean — the settings
+  panes, card editors, boards, layout export/import, the gallery and terminal
+  mode — beside the five locales it already had. Product names, filter syntax,
+  placeholders and icon ids stay in English.
+
+### Changed
+
+- **Task descriptions say what they can hold.** The description field has a
+  *What formatting works here?* guide — inline Markdown (bold, italic,
+  strikethrough, highlight, code, links, tags) works, block Markdown
+  (headings, checkboxes, quotes, code blocks, tables, embeds, indentation)
+  doesn't — and flags a line that won't survive, with what will happen to it,
+  before it is saved. Cards now draw a description's inline formatting, with
+  clickable links, instead of the raw Markdown.
+
+### Fixed
+
+- Icons a file gets from an Iconic rulebook rule now show in Hearth's cards,
+  not only icons set on the file by hand. Iconic keeps the two apart and never
+  writes a rule's icon into its per-file map, so the Recent files card — and
+  every other card that draws file icons — fell back to Hearth's own file-type
+  icon for anything a rule governed (#421).
+
+- **Search jumps to the match** (#397). Opening a note from the search results
+  now scrolls to the first matching line in its body and selects the text, for
+  both the built-in and Omnisearch engines. *Scroll to search match* under
+  **Settings → Hearth → Appearance** turns it off; it is on by default.
+
+- The dashboard no longer over-scrolls when the Android keyboard opens in a card
+  editor (#417). Editors sit deep in the scroll area, so the browser pans the
+  visual viewport to reveal them and the dashboard's height accounted for that
+  pan twice; the header search never moves, which is why only card editors
+  showed it. The field is also re-settled once the keyboard has finished
+  animating up.
+
+## [3.5.0]
+
+### Added
 
 - **Cards with several views** (#385). Any card can now hold more views —
   each a card of any type — and switch between them, so one spot on the board
@@ -59,14 +127,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
     converted on load with its file and options, so it draws as it did. Does
     not round-trip to an earlier version, which shows the card's first file
     only.
-- **Card names from frontmatter** (#399). Recent files and Favorites cards can
-  name a note by a frontmatter property instead of its file name — `aliases`, or
-  a `title` the vault keeps for the purpose — so a card in a narrow column stays
-  readable in a vault whose file names start with codes or dates. Behind
-  *Advanced* in the card's settings: a list uses its first non-blank entry,
-  property names are matched regardless of case, and a note without the property
-  keeps its file name. Both cards also fall back to the titles Front Matter Title
-  gives the file explorer, which only Folder cards did before.
 - **Keep view state on this device** (#392). A new switch under
   **Settings → Hearth → Behaviour** for vaults synced with Git: the active
   dashboard is remembered on this device instead of in `data.json`, so
@@ -85,32 +145,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   Tag, property and command syntax and the Folders chip keep using Hearth's
   engine; note bodies are not searched in this mode.
 
-- **Show one section of a note** (#396). *Section* under the Embedded note
-  card's Content settings takes a heading — `#Today`, or just `Today` — and the
-  card draws that heading with everything under it, sub-headings included, or a
-  single `#^block-id` for one block. Several cards can show different parts of
-  the same note side by side without splitting the note up. A picker at the end
-  of the field lists the note's own headings and blocks. The section is drawn
-  read-only, since an editor edits a whole note, but its task checkboxes still
-  tick in the note — the tick is written to the line that was clicked, not to
-  the same-numbered task of the whole note — and *Open button* opens the note
-  with the cursor on that heading. A heading renamed since then shows *Section
-  not found* instead of quietly drawing the whole note. Terminal mode draws the
-  section too.
-- **Escape and the mouse's back button leave a settings category** (#413). On a
-  category page either one returns to the index, as they do in Obsidian's own
-  settings. On the index they keep their usual meaning — Escape still closes the
-  settings window. Text fields and dropdowns are left alone, since Escape
-  already cancels an edit or closes the list there.
 ### Changed
-
-- **Task descriptions say what they can hold.** The description field has a
-  *What formatting works here?* guide — inline Markdown (bold, italic,
-  strikethrough, highlight, code, links, tags) works, block Markdown
-  (headings, checkboxes, quotes, code blocks, tables, embeds, indentation)
-  doesn't — and flags a line that won't survive, with what will happen to it,
-  before it is saved. Cards now draw a description's inline formatting, with
-  clickable links, instead of the raw Markdown.
 
 - **The Commands card is now part of Links / launchpad** (#388). The two cards
   drew the same buttons; the launchpad's can also be renamed, so commands from
@@ -136,11 +171,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- Icons a file gets from an Iconic rulebook rule now show in Hearth's cards,
-  not only icons set on the file by hand. Iconic keeps the two apart and never
-  writes a rule's icon into its per-file map, so the Recent files card — and
-  every other card that draws file icons — fell back to Hearth's own file-type
-  icon for anything a rule governed (#421).
 - In an embedded note, parts of the note that sit at a fixed spot inside it —
   such as the icon in a Tasks query's filter box — now scroll with the rest of
   the note instead of staying where they were (#402).
@@ -152,7 +182,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - Several Operon cards added from the same template can now be configured
   independently; before, changing the filters of one changed them on all of
   them until Obsidian was restarted (#394).
-
 ## [3.4.0]
 
 ### Added
