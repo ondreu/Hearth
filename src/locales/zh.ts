@@ -3454,6 +3454,7 @@ export const zh: Translations = {
 			pause: "暂停幻灯片",
 			play: "继续播放幻灯片",
 			openImage: "打开此图片",
+			jump: "跳转到图片",
 		},
 		text: {
 			placeholder: "随手记点什么…",

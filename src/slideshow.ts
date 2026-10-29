@@ -355,6 +355,23 @@ export function pictureLabel(picture: SlideshowPicture): string {
 	return picture.caption?.trim() || picture.name;
 }
 
+/**
+ * The picture a number typed over the counter lands on, or null when what was
+ * typed is not a number at all.
+ *
+ * The field the viewer types into shows "180/365", so the number is read
+ * one-based, and an out-of-range value is clamped rather than ignored: 999 in a
+ * 40-picture slideshow is a slip, and the last picture is a better answer than
+ * nothing happening at all. A pasted "180/365" reads as 180, which a plain
+ * integer prefix already covers.
+ */
+export function slideshowJumpIndex(raw: string, count: number): number | null {
+	if (!Number.isFinite(count) || count < 1) return null;
+	const typed = Number.parseInt(raw.trim(), 10);
+	if (!Number.isFinite(typed)) return null;
+	return Math.min(Math.max(typed, 1), Math.floor(count)) - 1;
+}
+
 
 // ---- Remembered positions ------------------------------------------------
 

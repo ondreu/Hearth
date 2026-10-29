@@ -215,6 +215,14 @@ The **Once a day** mode works its picture out from today's date rather than from
 a running timer, so the picture stays put all day however often the board is
 redrawn. Both daily and manual modes remember where they were left.
 
+The position indicator between the arrows is also the way to jump: click
+**180/365**, type the number of the picture you want and press Enter to go
+straight to it, or Escape (or a click elsewhere) to leave the card where it was.
+The rotation holds while the field is open, so a short timer cannot change the
+picture under the cursor. A number past the end of the set lands on the last
+picture, and a jump counts as a step like any other: a daily or by-hand card
+carries on from the picture you chose, a timer card restarts its clock.
+
 ### Display
 
 | Setting | Meaning |

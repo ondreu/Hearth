@@ -15,6 +15,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Jump to a picture in a slideshow.** Clicking the `180/365` position
+  indicator beside the arrows turns it into a number field: type the picture's
+  number, press Enter, and the card goes straight there — no clicking through
+  half a year after the machine lost its place. Escape, or a click elsewhere,
+  leaves the card where it was. The rotation holds while the field is open, so
+  a short timer cannot change the picture under the cursor; a number past the
+  end of the set lands on the last picture; and a jump counts as a step like any
+  other, so a daily or by-hand card carries on from the picture chosen while a
+  timer card simply restarts its clock. No button is added: the indicator itself
+  is the way in.
+
 - **Eisenhower matrix for the Tasks card.** A third layout draws the card's
   tasks as a cross of four quadrants — Do, Schedule, Delegate, Eliminate —
   under *Urgent / Not urgent* and *Important / Not important*. A task sits in
