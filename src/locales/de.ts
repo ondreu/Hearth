@@ -3787,6 +3787,7 @@ export const de: Translations = {
 			pause: "Diashow pausieren",
 			play: "Diashow fortsetzen",
 			openImage: "Dieses Bild öffnen",
+			jump: "Zu einem Bild springen",
 		},
 		text: {
 			placeholder: "Etwas notieren…",

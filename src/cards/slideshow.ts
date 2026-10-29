@@ -28,6 +28,7 @@ import {
 	slideshowAdvance,
 	slideshowDayCount,
 	slideshowIntervalMs,
+	slideshowJumpIndex,
 	slideshowOrder,
 	slideshowPeriod,
 	slideshowReactsTo,
@@ -307,11 +308,15 @@ export function renderSlideshow(
 		cfg.controls === false || count < 2 ? null : stage.createDiv("hearth-slideshow-controls");
 	let pauseButton: HTMLButtonElement | null = null;
 	let counter: HTMLElement | null = null;
+	/** Whether the counter is a number field right now — see `openJump`. */
+	let jumping = false;
+	let jumpInput: HTMLInputElement | null = null;
 
 	const updateChrome = () => {
 		const picture = pictures[index];
 		if (caption) caption.setText(pictureLabel(picture));
-		if (counter) counter.setText(`${index + 1}/${count}`);
+		// With the field open the counter is hidden and the field carries the text.
+		if (counter && !jumping) counter.setText(`${index + 1}/${count}`);
 		if (pauseButton) {
 			const paused = state.paused === true;
 			setIcon(pauseButton, paused ? "play" : "pause");
@@ -432,6 +437,70 @@ export function renderSlideshow(
 		schedule();
 	};
 
+	// ---- Jump to a picture ----
+
+	/**
+	 * Turn the counter into a field, so a number can be typed over "180/365".
+	 *
+	 * The rotation is held while the field is open — a short timer would
+	 * otherwise change the picture under the cursor mid-number — and the field
+	 * takes the counter's place rather than sitting beside it, so the controls
+	 * keep their width and the card grows no extra chrome.
+	 */
+	const openJump = () => {
+		if (!controls || !counter || jumping) return;
+		jumping = true;
+		stop();
+		const input = controls.createEl("input", {
+			cls: "hearth-slideshow-jump",
+			type: "text",
+			attr: { inputmode: "numeric", "aria-label": t().cards.slideshow.jump },
+		});
+		input.value = `${index + 1}`;
+		counter.addClass("is-jumping");
+		controls.insertBefore(input, counter);
+		jumpInput = input;
+		// The card must not read these as its own clicks — in arrange mode they
+		// would start a drag.
+		input.addEventListener("pointerdown", (e) => e.stopPropagation());
+		input.addEventListener("click", (e) => e.stopPropagation());
+		input.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				e.stopPropagation();
+				closeJump(true);
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				closeJump(false);
+			}
+		});
+		// Clicking away cancels: one click opens the field, so it is easy to open
+		// by accident, and nothing should move a picture nobody asked for.
+		input.addEventListener("blur", () => closeJump(false));
+		window.setTimeout(() => {
+			input.focus();
+			input.select();
+		}, 0);
+	};
+
+	/** Read the field, put the counter back, and move if the number says so. */
+	const closeJump = (commit: boolean) => {
+		const input = jumpInput;
+		if (!input) return;
+		jumpInput = null;
+		jumping = false;
+		const target = commit ? slideshowJumpIndex(input.value, count) : null;
+		input.remove();
+		counter?.removeClass("is-jumping");
+		// A jump is a step like any other: a daily or by-hand card re-anchors on
+		// the picture chosen (tomorrow continues from it), a timer card just
+		// restarts its clock.
+		if (target !== null && target !== index) swap(target, "next");
+		schedule();
+		updateChrome();
+	};
+
 	if (controls) mountControls();
 
 	// First paint: no transition, and the caption/counter filled in for it.
@@ -489,8 +558,29 @@ export function renderSlideshow(
 			});
 		}
 		button("chevron-right", t().cards.slideshow.next, () => step(1));
-		counter = controls.createDiv({ cls: "hearth-slideshow-count" });
-		counter.setAttribute("aria-hidden", "true");
+		// The counter is also the way in to a jump, so no extra button has to sit
+		// in the controls. It stays a div wearing a button's role rather than a
+		// real button, so it goes on reading as plain text until it is used.
+		counter = controls.createDiv({
+			cls: "hearth-slideshow-count",
+			attr: {
+				role: "button",
+				tabindex: "0",
+				"aria-label": t().cards.slideshow.jump,
+				title: t().cards.slideshow.jump,
+			},
+		});
+		counter.addEventListener("pointerdown", (e) => e.stopPropagation());
+		counter.addEventListener("click", (e) => {
+			e.stopPropagation();
+			openJump();
+		});
+		counter.addEventListener("keydown", (e) => {
+			if (e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			e.stopPropagation();
+			openJump();
+		});
 	}
 }
 

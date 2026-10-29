@@ -1994,7 +1994,7 @@ export const ko: Translations = {
 		},
 		vaultPet: { ...en.cards.vaultPet, openHouse: "펫 하우스 열기" },
 		embed: { ...en.cards.embed, openFile: "이 파일 열기", editHint: "두 번 클릭해 편집", emptyNotePlaceholder: "빈 노트…", emptyNoteHint: "빈 노트 — 두 번 클릭해 편집" },
-		slideshow: { ...en.cards.slideshow, previous: "이전 이미지", next: "다음 이미지", pause: "슬라이드 쇼 일시 정지", play: "슬라이드 쇼 계속", openImage: "이 이미지 열기" },
+		slideshow: { ...en.cards.slideshow, previous: "이전 이미지", next: "다음 이미지", pause: "슬라이드 쇼 일시 정지", play: "슬라이드 쇼 계속", openImage: "이 이미지 열기", jump: "이미지로 이동" },
 		text: { ...en.cards.text, placeholder: "메모를 입력하세요…" },
 		calculator: { ...en.cards.calculator, placeholder: "2 + 2, 10 km to miles, 10 € to USD…" },
 		web: { ...en.cards.web, openInBrowser: "브라우저에서 열기", mayRefuse: "이 사이트는 삽입을 거부할 수 있습니다." },

@@ -3782,6 +3782,7 @@ export const en = {
 			pause: "Pause the slideshow",
 			play: "Resume the slideshow",
 			openImage: "Open this picture",
+			jump: "Jump to a picture",
 		},
 		text: {
 			placeholder: "Jot something down…",

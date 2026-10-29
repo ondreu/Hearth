@@ -21,6 +21,7 @@ import {
 	slideshowDayCount,
 	slideshowDayNumber,
 	slideshowIntervalMs,
+	slideshowJumpIndex,
 	slideshowOrder,
 	slideshowPeriod,
 	slideshowReactsTo,
@@ -447,5 +448,32 @@ describe("remembered positions", () => {
 		store = rememberSlideshowPosition(store, "b", { path: "b2" }, 2);
 		store = rememberSlideshowPosition(store, "d", { path: "d" }, 2);
 		expect(Object.keys(store)).toEqual(["b", "d"]);
+	});
+});
+
+describe("slideshowJumpIndex", () => {
+	// The field reads "180/365", so a number typed into it is one-based.
+	it("reads the number the way the counter shows it", () => {
+		expect(slideshowJumpIndex("1", 365)).toBe(0);
+		expect(slideshowJumpIndex("180", 365)).toBe(179);
+		expect(slideshowJumpIndex("365", 365)).toBe(364);
+	});
+
+	// A slip of the finger shouldn't do nothing at all.
+	it("clamps a number the set doesn't reach", () => {
+		expect(slideshowJumpIndex("999", 40)).toBe(39);
+		expect(slideshowJumpIndex("0", 40)).toBe(0);
+		expect(slideshowJumpIndex("-7", 40)).toBe(0);
+	});
+
+	// Pasting the counter's own text back in works, and so does a stray space.
+	it("reads a pasted counter, spaces and all", () => {
+		expect(slideshowJumpIndex(" 180/365 ", 365)).toBe(179);
+	});
+
+	it("has nothing to jump to when there is no number", () => {
+		expect(slideshowJumpIndex("", 365)).toBeNull();
+		expect(slideshowJumpIndex("abc", 365)).toBeNull();
+		expect(slideshowJumpIndex("12", 0)).toBeNull();
 	});
 });

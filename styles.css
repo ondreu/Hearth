@@ -12150,6 +12150,40 @@ body.hearth-dv-resizing {
 	font-size: 0.68rem;
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
+	/* Also the way in to a jump — clicking it opens a field over itself — so it
+	 * has to read as pressable, without taking on a button's box and shifting the
+	 * controls. */
+	cursor: pointer;
+	border-radius: 4px;
+	transition: color 140ms ease;
+}
+
+.hearth-slideshow-count:hover,
+.hearth-slideshow-count:focus-visible {
+	color: var(--text-normal);
+}
+
+/* Out of the way while the field stands in its place. */
+.hearth-slideshow-count.is-jumping {
+	display: none;
+}
+
+/* The number field the counter becomes: sized to the counter it replaces, so the
+ * controls don't jump when it opens. */
+.hearth-slideshow-jump {
+	width: 3.6em;
+	height: 1.7em;
+	min-height: 0;
+	padding: 0 3px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	box-shadow: none;
+	color: var(--text-normal);
+	font-size: 0.68rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
 }
 
 /* A reader who asked for less motion still gets the slideshow — it just stops
