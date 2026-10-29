@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { backGestureTarget, isEditableTarget, type BackGesture } from "../src/settingsnav";
+import {
+	backGestureTarget,
+	gestureIsPanesOwn,
+	isBareTarget,
+	isEditableTarget,
+	isInsideShell,
+	type BackGesture,
+} from "../src/settingsnav";
 
 /**
  * Which back gesture leaves a settings category (#413).
@@ -77,5 +84,77 @@ describe("isEditableTarget", () => {
 		expect(isEditableTarget(null)).toBe(false);
 		expect(isEditableTarget(undefined)).toBe(false);
 		expect(isEditableTarget("appearance")).toBe(false);
+	});
+});
+
+describe("gestureIsPanesOwn", () => {
+	it("takes Escape even when nothing in the pane has focus", () => {
+		// The regression this rule exists for: a category page is opened by
+		// clicking an index row, the row goes away with the re-render, and focus
+		// drops to the body — so the event's path never passes through the pane.
+		// Routing on the path alone meant Escape only worked after a control had
+		// been touched, i.e. after focus was back inside the pane (#413).
+		expect(gestureIsPanesOwn({ kind: "key", inPane: false, inShell: true, paneShown: true })).toBe(
+			true,
+		);
+	});
+
+	it("takes a gesture that started inside the pane", () => {
+		expect(gestureIsPanesOwn({ kind: "key", inPane: true, inShell: true, paneShown: true })).toBe(
+			true,
+		);
+		expect(gestureIsPanesOwn({ kind: "mouse", inPane: true, inShell: true, paneShown: true })).toBe(
+			true,
+		);
+	});
+
+	it("leaves a keystroke alone when another pane has the window", () => {
+		expect(gestureIsPanesOwn({ kind: "key", inPane: false, inShell: true, paneShown: false })).toBe(
+			false,
+		);
+		expect(gestureIsPanesOwn({ kind: "key", inPane: false, inShell: false, paneShown: true })).toBe(
+			false,
+		);
+	});
+
+	it("leaves a mouse press outside the pane alone", () => {
+		// A button press lands on what is under the pointer, so one outside the
+		// pane is the user's business elsewhere — the note history, say.
+		expect(
+			gestureIsPanesOwn({ kind: "mouse", inPane: false, inShell: true, paneShown: true }),
+		).toBe(false);
+	});
+});
+
+describe("isBareTarget", () => {
+	it("recognises the document a keystroke lands on when nothing has focus", () => {
+		expect(isBareTarget({ tagName: "BODY" })).toBe(true);
+		expect(isBareTarget({ tagName: "body" })).toBe(true);
+		expect(isBareTarget({ tagName: "HTML" })).toBe(true);
+		expect(isBareTarget({ nodeType: 9 })).toBe(true);
+	});
+
+	it("does not treat a control or a container as the bare document", () => {
+		expect(isBareTarget({ tagName: "DIV" })).toBe(false);
+		expect(isBareTarget({ tagName: "INPUT", type: "text" })).toBe(false);
+		expect(isBareTarget(null)).toBe(false);
+		expect(isBareTarget(undefined)).toBe(false);
+		expect(isBareTarget("body")).toBe(false);
+	});
+});
+
+describe("isInsideShell", () => {
+	const inner = { tagName: "DIV" };
+	const shell = { contains: (node: unknown) => node === shell || node === inner };
+
+	it("accepts what the shell contains and the shell itself", () => {
+		expect(isInsideShell(inner, shell)).toBe(true);
+		expect(isInsideShell(shell, shell)).toBe(true);
+	});
+
+	it("rejects anything outside it, and a shell that cannot answer", () => {
+		expect(isInsideShell({ tagName: "DIV" }, shell)).toBe(false);
+		expect(isInsideShell(null, shell)).toBe(false);
+		expect(isInsideShell(inner, null)).toBe(false);
 	});
 });
