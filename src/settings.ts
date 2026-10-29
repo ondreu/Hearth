@@ -25,7 +25,14 @@ import { makeClickable, scrollParent } from "./ui";
 import { isOmnisearchAvailable, OMNISEARCH_PLUGIN_ID } from "./omnisearch";
 import { formatSkyValue, parseSkyValue } from "./sky";
 import { shapePath, sparklePath } from "./shapes";
-import { type BackGesture, backGestureTarget, isEditableTarget } from "./settingsnav";
+import {
+	type BackGesture,
+	backGestureTarget,
+	gestureIsPanesOwn,
+	isBareTarget,
+	isEditableTarget,
+	isInsideShell,
+} from "./settingsnav";
 import {
 	type IntegrationEntry,
 	type IntegrationGroup,
@@ -456,9 +463,23 @@ export class HomeSettingTab extends PluginSettingTab {
 	 * separate 1.13 settings window fails an `instanceof` against this one. */
 	private onBackGesture(evt: Event): void {
 		const el = this.backGestureEl;
-		if (!el || !evt.composedPath().includes(el)) return;
+		if (!el) return;
+		const kind: BackGesture["kind"] = evt.type === "keydown" ? "key" : "mouse";
+		// A keystroke lands on whatever holds focus, and this pane's own content
+		// usually holds none right after it renders — so the gesture is routed by
+		// the settings window's shell (the modal the pane is drawn in) rather than
+		// by the pane's own path. Without a modal ancestor only the pane counts,
+		// which is the old, narrower rule.
+		const shell = el.closest(".modal") ?? el;
+		const owns = gestureIsPanesOwn({
+			kind,
+			inPane: evt.composedPath().includes(el),
+			inShell: isInsideShell(evt.target, shell) || isBareTarget(evt.target),
+			paneShown: el.isConnected && el.isShown(),
+		});
+		if (!owns) return;
 		const gesture: BackGesture =
-			evt.type === "keydown"
+			kind === "key"
 				? { kind: "key", key: (evt as KeyboardEvent).key }
 				: { kind: "mouse", button: (evt as MouseEvent).button };
 		const editable = gesture.kind === "key" && isEditableTarget(evt.target);
