@@ -19,6 +19,7 @@ type HomeViewClass = typeof import("../src/view").HomeView;
 interface FocusPaths {
 	focusSearch: (this: FakeView) => boolean;
 	maybeFocusSearch: (this: FakeView) => void;
+	searchHadFocus: (this: FakeView) => boolean;
 }
 
 interface FakeView {
@@ -111,5 +112,26 @@ describe("maybeFocusSearch (the startup path)", () => {
 
 		paths.maybeFocusSearch.call(view);
 		expect(document.activeElement).toBe(document.body);
+	});
+});
+
+describe("searchHadFocus (what a rebuild puts back)", () => {
+	it("is true only while the cursor is in the field", () => {
+		const view = fakeView();
+		expect(paths.searchHadFocus.call(view)).toBe(false);
+
+		field(view).focus();
+		expect(paths.searchHadFocus.call(view)).toBe(true);
+
+		// Somewhere else on the board: a rebuild must not pull the cursor back
+		// into the search field behind the user's back.
+		document.body.createEl("input", { cls: "card-editor" }).focus();
+		expect(paths.searchHadFocus.call(view)).toBe(false);
+	});
+
+	it("is false on a board without a search field", () => {
+		const view = fakeView({ search: false });
+
+		expect(paths.searchHadFocus.call(view)).toBe(false);
 	});
 });
