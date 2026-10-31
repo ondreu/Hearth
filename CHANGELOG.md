@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [3.6.0]
+## [3.7.0]
 
 ### Added
 
@@ -40,6 +40,88 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the card gets shorter, so a small card is a player rather than a clipped one.
   On the Expressive design the artwork, play button and queue take the design's
   accents. Playback always starts paused.
+
+- **A video as the board's backdrop** (#416). *Vault video* joins the background
+  types: point it at an MP4 or WEBM in your vault and the board sits behind a
+  muted, looping clip instead of an animated GIF or WEBP. The decode happens off
+  the main thread, which is the reason those animated images stuttered — but a
+  clip is still the most expensive backdrop Hearth paints, so it is the one kind
+  the performance tier decides for you, and the setting says so where you choose
+  it. On *Full* it plays. From *Balanced* down it holds still on its first frame
+  — a still picture rather than a black hole — and the *Minimal* tier replaces
+  it with its flat colour like every other backdrop. A paused clip is also what
+  a reader whose system asks for reduced motion gets, and it stops whenever the
+  window it sits in is not the one being used.
+
+- **A heatmap card can pick its own colour** (#430). The grid used to be tinted
+  with Obsidian's global accent, which a low-saturation theme makes almost the
+  same shade as an empty square. *Grid → Color* in the card's settings tints the
+  squares with a colour of your own, on either design, while the fade from one
+  note to many stays as it was; leaving it alone — or pressing the reset button —
+  keeps following the theme's accent. Two grids tracking different things can now
+  look different. Shade and darkening modes are not part of this change.
+
+- **Hiding a filter chip can now hide the type from search too** (#434). A chip
+  hidden under *Settings → Search → Filter chips* used to vanish from the row
+  while search kept returning that kind of file, which read as the setting not
+  working. The new *Search only the shown types* switch (off by default) turns
+  the row into a whitelist: results hold nothing but the types whose chips are
+  shown, every chip counts as picked, and switching one off narrows the search
+  further. It is per board as well, and a Search bar card can turn it on for its
+  own bar. Every engine follows it — the built-in search, note-body matches,
+  Omnisearch, the Quick switcher and the recents list.
+
+- **A folder can be opened in Obsidian's own file explorer** (#448). Three
+  places, one destination: the Folder card's *Opening a subfolder* dropdown
+  gains *In the file explorer* beside its browser and in-card choices, the
+  Bookmarks card gains one setting — *Opening a folder bookmark*, in the folder
+  browser (the default, unchanged) or in the file explorer — and a launchpad
+  button can be a **Folder**, with the card's own *Opening a folder button*
+  setting choosing between the browser and the sidebar the same way. Both
+  settings are one dropdown in the card's settings, and the launchpad's appears
+  only once the card has a folder button, so nothing new is drawn on any board.
+  Revealing puts the folder in the sidebar, opening the explorer there if it was
+  closed. The reveal is the core file explorer's own `revealInFolder` —
+  undocumented, so when it can't be done (plugin off, or the internal changes
+  shape) the click opens Hearth's folder browser instead of doing nothing.
+
+### Changed
+
+- **“Search filters” is now “Filter chips”**, the name the per-board override
+  already used. What it controls is the row of chips, not which files are
+  searched; the new switch above is the one that decides the latter.
+
+### Fixed
+
+- **A board with a card holding several views no longer jumps to that card**
+  (#440). Opening the dashboard, or switching one of the card's views, left the
+  board where it was until the switcher was drawn — and then the board scrolled
+  down to bring the row of tabs into view, even when the row was nowhere near
+  the edge. The row scrolls sideways when there are more tabs than fit, so it is
+  the row that is moved now, and the board is never asked to move at all. A board
+  that had already saved the jump as its position keeps it until it is scrolled
+  back to the top once; nothing else is needed.
+
+- **A folder browser tab keeps its own page across a restart** (#439). Opening a
+  folder in a tab and sorting it by date came back after a restart on the same
+  folder, but sorted the explorer's way again: the folder reached the tab's view
+  state, the sort only reached a debounced layout save. Both go the same way
+  now. The sections folded while reading are remembered as well — on the device,
+  so a folder folded in one browser is folded in the next one and after a
+  restart, without writing to `data.json`.
+
+- Currency conversion no longer hangs on a single host, and no longer forgets
+  its rates between sessions. The rates are the ECB's own daily reference file,
+  asked first, with Frankfurter's mirror only as a fallback, and the last good
+  table is kept on the device — so a restart or an offline session converts with
+  the rates it already had instead of reporting that none are available. Both
+  are asked at their canonical address (the old `api.frankfurter.app` host only
+  redirects now). BGN left the supported units, as the ECB stopped publishing a
+  rate for the lev when Bulgaria adopted the euro (#422).
+
+## [3.6.0]
+
+### Added
 
 - **Jump to a picture in a slideshow.** Clicking the `180/365` position
   indicator beside the arrows turns it into a number field: type the picture's
@@ -104,55 +186,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   mode — beside the five locales it already had. Product names, filter syntax,
   placeholders and icon ids stay in English.
 
-- **A video as the board's backdrop** (#416). *Vault video* joins the background
-  types: point it at an MP4 or WEBM in your vault and the board sits behind a
-  muted, looping clip instead of an animated GIF or WEBP. The decode happens off
-  the main thread, which is the reason those animated images stuttered — but a
-  clip is still the most expensive backdrop Hearth paints, so it is the one kind
-  the performance tier decides for you, and the setting says so where you choose
-  it. On *Full* it plays. From *Balanced* down it holds still on its first frame
-  — a still picture rather than a black hole — and the *Minimal* tier replaces
-  it with its flat colour like every other backdrop. A paused clip is also what
-  a reader whose system asks for reduced motion gets, and it stops whenever the
-  window it sits in is not the one being used.
-
-- **A heatmap card can pick its own colour** (#430). The grid used to be tinted
-  with Obsidian's global accent, which a low-saturation theme makes almost the
-  same shade as an empty square. *Grid → Color* in the card's settings tints the
-  squares with a colour of your own, on either design, while the fade from one
-  note to many stays as it was; leaving it alone — or pressing the reset button —
-  keeps following the theme's accent. Two grids tracking different things can now
-  look different. Shade and darkening modes are not part of this change.
-
-- **Hiding a filter chip can now hide the type from search too** (#434). A chip
-  hidden under *Settings → Search → Filter chips* used to vanish from the row
-  while search kept returning that kind of file, which read as the setting not
-  working. The new *Search only the shown types* switch (off by default) turns
-  the row into a whitelist: results hold nothing but the types whose chips are
-  shown, every chip counts as picked, and switching one off narrows the search
-  further. It is per board as well, and a Search bar card can turn it on for its
-  own bar. Every engine follows it — the built-in search, note-body matches,
-  Omnisearch, the Quick switcher and the recents list.
-
-- **A folder can be opened in Obsidian's own file explorer** (#448). Three
-  places, one destination: the Folder card's *Opening a subfolder* dropdown
-  gains *In the file explorer* beside its browser and in-card choices, the
-  Bookmarks card gains one setting — *Opening a folder bookmark*, in the folder
-  browser (the default, unchanged) or in the file explorer — and a launchpad
-  button can be a **Folder**, with the card's own *Opening a folder button*
-  setting choosing between the browser and the sidebar the same way. Both
-  settings are one dropdown in the card's settings, and the launchpad's appears
-  only once the card has a folder button, so nothing new is drawn on any board.
-  Revealing puts the folder in the sidebar, opening the explorer there if it was
-  closed. The reveal is the core file explorer's own `revealInFolder` —
-  undocumented, so when it can't be done (plugin off, or the internal changes
-  shape) the click opens Hearth's folder browser instead of doing nothing.
-
 ### Changed
-
-- **“Search filters” is now “Filter chips”**, the name the per-board override
-  already used. What it controls is the row of chips, not which files are
-  searched; the new switch above is the one that decides the latter.
 
 - **Task descriptions say what they can hold.** The description field has a
   *What formatting works here?* guide — inline Markdown (bold, italic,
@@ -163,32 +197,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   clickable links, instead of the raw Markdown.
 
 ### Fixed
-
-- **A board with a card holding several views no longer jumps to that card**
-  (#440). Opening the dashboard, or switching one of the card's views, left the
-  board where it was until the switcher was drawn — and then the board scrolled
-  down to bring the row of tabs into view, even when the row was nowhere near
-  the edge. The row scrolls sideways when there are more tabs than fit, so it is
-  the row that is moved now, and the board is never asked to move at all. A board
-  that had already saved the jump as its position keeps it until it is scrolled
-  back to the top once; nothing else is needed.
-
-- **A folder browser tab keeps its own page across a restart** (#439). Opening a
-  folder in a tab and sorting it by date came back after a restart on the same
-  folder, but sorted the explorer's way again: the folder reached the tab's view
-  state, the sort only reached a debounced layout save. Both go the same way
-  now. The sections folded while reading are remembered as well — on the device,
-  so a folder folded in one browser is folded in the next one and after a
-  restart, without writing to `data.json`.
-
-- Currency conversion no longer hangs on a single host, and no longer forgets
-  its rates between sessions. The rates are the ECB's own daily reference file,
-  asked first, with Frankfurter's mirror only as a fallback, and the last good
-  table is kept on the device — so a restart or an offline session converts with
-  the rates it already had instead of reporting that none are available. Both
-  are asked at their canonical address (the old `api.frankfurter.app` host only
-  redirects now). BGN left the supported units, as the ECB stopped publishing a
-  rate for the lev when Bulgaria adopted the euro (#422).
 
 - Icons a file gets from an Iconic rulebook rule now show in Hearth's cards,
   not only icons set on the file by hand. Iconic keeps the two apart and never
