@@ -1,4 +1,4 @@
-import { type Component, TFile } from "obsidian";
+import { type Component, Platform, TFile } from "obsidian";
 import {
 	daylightFromHour,
 	drawSky,
@@ -17,6 +17,7 @@ import {
 	effectiveSkyDesign,
 	motionAllowed,
 	skyDensity,
+	videoBackgroundPlays,
 } from "./types";
 import { drawHarbour, drawWallpaper } from "./wallpaper";
 import { cachedWeather, loadWeather, type WeatherRequest } from "./weather";
@@ -127,6 +128,13 @@ function paintBackground(
 		return;
 	}
 
+	// A clip from the vault needs an element, not a CSS background: it has to be
+	// started, paused and torn down, none of which `background-image` can do.
+	if (bg.kind === "video") {
+		applyVaultVideo(view, layer, bg, component);
+		return;
+	}
+
 	// A picture from the web is an outbound request whoever it was configured by,
 	// so "Disable external calls" blocks it. `paintable` normally means we are
 	// never called for one; this is the check at the point the request would
@@ -146,6 +154,94 @@ function paintBackground(
 		const safe = url.replace(/["\\]/g, "\\$&");
 		layer.style.backgroundImage = `url("${safe}")`;
 	}
+}
+
+/**
+ * Play a vault video as the board's backdrop.
+ *
+ * Video rather than an animated image because the decode moves off the main
+ * thread — an animated GIF or WEBP is re-decoded there frame by frame, which is
+ * what makes those backdrops stutter on a slow machine. It is still the most
+ * expensive backdrop Hearth paints, so it is gated harder than any other kind:
+ * only the `full` performance tier lets it play (see
+ * {@link videoBackgroundPlays}), and even there it holds still while the window
+ * is not the one being used. Every other case leaves it paused on its first
+ * frame, which is why the element is given a real `preload` value — a paused
+ * video with no data loaded paints nothing at all.
+ *
+ * The teardown is not optional. A `<video>` removed from the document keeps its
+ * decoder alive until the element is collected, and this view is rebuilt often,
+ * so without it the feature would leak one running decoder per rebuild — the
+ * exact cost it exists to avoid.
+ */
+function applyVaultVideo(
+	view: HomeView,
+	layer: HTMLElement,
+	bg: BackgroundConfig,
+	component: Component,
+): void {
+	const file = view.app.vault.getAbstractFileByPath(bg.value);
+	if (!(file instanceof TFile)) return;
+
+	const settings = view.plugin.settings;
+	const doc = layer.ownerDocument;
+	const win = doc.defaultView;
+
+	// Autoplay with no sound: a wallpaper that talks is a bug. `muted` plus
+	// `playsinline` is also what a mobile webview requires before it will start
+	// a video at all.
+	const video = layer.createEl("video", { cls: "hearth-bg-video" });
+	video.muted = true;
+	video.loop = true;
+	video.playsInline = true;
+	video.setAttribute("muted", "");
+	video.setAttribute("playsinline", "");
+	video.src = view.app.vault.getResourcePath(file);
+
+	// The system's own reduced-motion request is honoured here for the same
+	// reason the painted sky's animation is: a reader who asked their machine to
+	// hold still did not mean "except behind this one plugin".
+	const reducedMotion = win?.matchMedia("(prefers-reduced-motion: reduce)") ?? null;
+	const wanted = (): boolean =>
+		videoBackgroundPlays(settings) && reducedMotion?.matches !== true;
+
+	// The window gate of motion.ts, restated for an element a CSS class cannot
+	// freeze. Mobile has no second window to lose focus to, and the on-screen
+	// keyboard moves focus around while the board is plainly being looked at.
+	const windowActive = (): boolean =>
+		!doc.hidden && (Platform.isMobile || !settings.pauseWhenUnfocused || doc.hasFocus());
+
+	const apply = (): void => {
+		if (wanted() && windowActive()) {
+			// A rejection here is not an error: iOS in low power mode, and any
+			// webview that dislikes the markup, refuse autoplay outright — and a
+			// frozen first frame is the right outcome then.
+			void video.play().catch(() => undefined);
+		} else {
+			video.pause();
+		}
+	};
+
+	// Only fetch enough to paint the first frame when it is not going to play.
+	video.preload = wanted() ? "auto" : "metadata";
+	apply();
+
+	// A paused video paints nothing until something has been decoded, and a file
+	// that is only metadata-deep has decoded nothing — seeking a hair past zero
+	// is what turns "frozen" into "a still picture" instead of a black board.
+	component.registerDomEvent(video, "loadedmetadata", () => {
+		if (video.paused && video.currentTime === 0) video.currentTime = 0.001;
+	});
+	component.registerDomEvent(doc, "visibilitychange", apply);
+	if (win && !Platform.isMobile) {
+		component.registerDomEvent(win, "focus", apply);
+		component.registerDomEvent(win, "blur", apply);
+	}
+	component.register(() => {
+		video.pause();
+		video.removeAttribute("src");
+		video.load();
+	});
 }
 
 /** How often the backdrop refetches its forecast. Fixed rather than

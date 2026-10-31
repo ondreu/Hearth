@@ -16,7 +16,7 @@ every overriding control tells you what it is overriding.
 Vault-wide: **Settings → Hearth → Appearance → Background**.
 Per dashboard: *Dashboard settings → Background*.
 
-### The seven background types
+### The eight background types
 
 | Type | What it is |
 | --- | --- |
@@ -25,8 +25,34 @@ Per dashboard: *Dashboard settings → Background*.
 | *None* | Your theme's own background, untouched |
 | *Solid color* | Any CSS colour, for example `#1e1e2e` or `rgb(30,30,46)` |
 | *Vault image* | An image path in your vault, for example `Attachments/bg.png` |
+| *Vault video* | An MP4 or WEBM path in your vault, for example `Attachments/loop.mp4`. Muted and looping, and only while the performance tier is *Full* — see below |
 | *Image URL* | A direct image URL |
 | *Live weather sky* | A painted sky — see below |
+
+### A video backdrop
+
+A clip can sit behind the board instead of a picture. It is muted and loops, and
+because the decode happens off the main thread it does not stutter the way an
+animated GIF or WEBP does — that stutter is the animated image being re-decoded
+frame by frame on the same thread that draws the page.
+
+It is also the most expensive thing Hearth paints, and the only background whose
+cost the performance tier decides for you:
+
+| Performance tier | What a video backdrop does |
+| --- | --- |
+| *Full* | Plays |
+| *Balanced*, *Reduced* | Holds still on its first frame — a still picture of the clip |
+| *Minimal* | Replaced by the mode's flat colour, like every other background |
+
+Two more things stop it: a system that asks for reduced motion, and a window
+that is not the one being used (with *Pause when unfocused* on). In both cases it
+freezes where it is, so the board still has a backdrop. The setting says all of
+this where you choose it, so a frozen clip does not read as a broken one.
+
+Keep the clip small — a short loop at 720p is enough behind cards, and a long one
+costs more to decode. A video is a vault file, so a shared layout does not carry
+it: the recipient needs the same file at the same path.
 
 ### Opacity and blur
 
@@ -35,9 +61,9 @@ Per dashboard: *Dashboard settings → Background*.
 
 The defaults suit Hearth's own wallpaper: opacity 0.8 and no blur. It is a flat,
 already muted drawing, so it needs little dimming and has no detail to soften;
-the card surfaces keep the content readable. Switching to a vault image or an
-image URL dims a photo to 0.35 and blurs it by 2, so text reads over it, and
-switching back lifts it again. Either way the sliders are right there to change
+the card surfaces keep the content readable. Switching to a vault image, a
+video or an image URL dims a photo to 0.35 and blurs it by 2, so text reads over
+it, and switching back lifts it again. Either way the sliders are right there to change
 it.
 
 ### Full background or banner

@@ -235,6 +235,10 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 /** Referencing fields on the board itself, relative to the `Dashboard`. */
 export const BOARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "background.value", scope: "asset", when: (o) => o.kind === "image" },
+	// A video wallpaper is a vault file like an image one, so it is carried the
+	// same way — and reported as skipped by type where the package cannot hold
+	// it, rather than silently pointing at a file the recipient does not have.
+	{ at: "background.value", scope: "asset", when: (o) => o.kind === "video" },
 	{ at: "background.value", scope: "publicUrl", when: (o) => o.kind === "url" },
 	{ at: "background.value", scope: "place", when: (o) => o.kind === "weather" },
 	{ at: "header.titleIcon", scope: "asset", when: (o) => typeof o.titleIcon === "string" && iconIsImage(o.titleIcon) },
@@ -249,6 +253,7 @@ export const BOARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 export const GLOBAL_REFERENCE_RULES: readonly ReferenceRule[] = [
 	{ at: "favorites[]", scope: "vaultPath" },
 	{ at: "backgroundValue", scope: "asset", when: (o) => o.backgroundKind === "image" },
+	{ at: "backgroundValue", scope: "asset", when: (o) => o.backgroundKind === "video" },
 	{ at: "backgroundValue", scope: "publicUrl", when: (o) => o.backgroundKind === "url" },
 	{ at: "backgroundValue", scope: "place", when: (o) => o.backgroundKind === "weather" },
 	{ at: "titleIcon", scope: "asset", when: (o) => typeof o.titleIcon === "string" && iconIsImage(o.titleIcon) },

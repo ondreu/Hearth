@@ -1620,6 +1620,16 @@ class DashboardSettingsModal extends HearthTabbedModal {
 			setIcon(icon, "wifi-off");
 			note.descEl.prepend(icon);
 		}
+		// The performance tier is vault-wide, so a board that shows a video — its
+		// own or the vault's — has to say here that the tier decides whether it
+		// plays, rather than leave it looking broken.
+		if (shownKind === "video") {
+			const note = new Setting(containerEl).setDesc(t().settings.background.videoNote);
+			note.settingEl.addClass("hearth-setting-note");
+			const icon = createSpan("hearth-setting-note-icon");
+			setIcon(icon, "gauge");
+			note.descEl.prepend(icon);
+		}
 
 		// How the board wears its backdrop is settable whether or not the board
 		// overrides *what* that backdrop is — the two are separate overrides, so
@@ -1698,7 +1708,9 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					? t().dashboards.backgroundValueDesc.color
 					: bg.kind === "image"
 						? t().dashboards.backgroundValueDesc.image
-						: t().dashboards.backgroundValueDesc.url;
+						: bg.kind === "video"
+							? t().dashboards.backgroundValueDesc.video
+							: t().dashboards.backgroundValueDesc.url;
 			new Setting(containerEl)
 				.setName(t().dashboards.modal.backgroundValue)
 				.setDesc(desc)

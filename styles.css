@@ -42,6 +42,21 @@
 	pointer-events: none;
 }
 
+/* A video backdrop (see applyVaultVideo in background.ts). It fills the layer
+ * the way a picture does, cropping to cover — the layer already carries the
+ * opacity and blur, so nothing about them is repeated here. Whether it plays or
+ * holds still is the performance tier's call, not this stylesheet's: a paused
+ * video keeps painting its current frame, which is exactly what a frozen
+ * backdrop should look like. */
+.hearth-bg > .hearth-bg-video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	pointer-events: none;
+}
+
 /* ---- Hearth's own wallpaper -------------------------------------------
  *
  * The "default" background, drawn in wallpaper.ts. The SVG only names its

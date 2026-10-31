@@ -98,7 +98,7 @@ for the board's own buttons and the dialogs and menus opened from it (see
 ### Background tab
 
 A per-board override of the whole background: type (none, Hearth default, harbour town,
-solid colour, vault image, image URL, live weather sky), the value, *Opacity*,
+solid colour, vault image, vault video, image URL, live weather sky), the value, *Opacity*,
 *Blur*, *Background layout* (full or banner), *Banner height*, *Fade the lower
 edge*, *Full width*, and *Animate the sky*. Choosing *Follow the global setting*
 drops the override.

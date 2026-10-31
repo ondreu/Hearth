@@ -819,12 +819,14 @@ export const fr: Translations = {
 			color: "Couleur unie",
 			image: "Image du coffre",
 			url: "URL d'image",
+			video: "Vidéo du coffre",
 			weather: "Ciel météo en direct",
 		},
 		backgroundValueDesc: {
 			color: "Une couleur CSS, ex. #1e1e2e.",
 			image: "Le chemin d'une image du coffre, ex. Pièces jointes/fond.png.",
 			url: "Une URL d'image directe.",
+			video: "Le chemin d'une vidéo du coffre, ex. Pièces jointes/boucle.mp4.",
 		},
 	},
 
@@ -1104,6 +1106,9 @@ export const fr: Translations = {
 			valueColorDesc: "Une couleur CSS, ex. #1e1e2e ou rgb(30,30,46).",
 			valueImageDesc: "Le chemin d'une image du coffre, ex. Pièces jointes/fond.png.",
 			valueUrlDesc: "Une URL d'image directe.",
+			valueVideoDesc: "Le chemin d'une vidéo du coffre, ex. Pièces jointes/boucle.mp4. Elle est lue en boucle, sans son.",
+			videoNote:
+				"Une vidéo en fond est ce que Hearth peut peindre de plus coûteux — elle décode image après image tant que le tableau est ouvert. Elle ne se lit qu'au niveau de performance Complet ; à Équilibré et en dessous, elle reste figée sur sa première image.",
 			externalCallsDisabled:
 				"Non affiché tant que « Désactiver les appels externes » est actif dans Comportement : " +
 				"cet arrière-plan vient du web. Choisissez plutôt une image du coffre, " +
@@ -1138,6 +1143,7 @@ export const fr: Translations = {
 				color: "Couleur unie",
 				image: "Image du coffre",
 				url: "URL d'image",
+				video: "Vidéo du coffre",
 				weather: "Ciel météo en direct",
 			},
 			weatherHeading: "Ciel météo",

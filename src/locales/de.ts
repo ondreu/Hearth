@@ -854,12 +854,14 @@ export const de: Translations = {
 			color: "Volltonfarbe",
 			image: "Vault-Bild",
 			url: "Bild-URL",
+			video: "Vault-Video",
 			weather: "Live-Wetterhimmel",
 		},
 		backgroundValueDesc: {
 			color: "Eine CSS-Farbe, z. B. #1e1e2e.",
 			image: "Ein Vault-Bildpfad, z. B. Attachments/bg.png.",
 			url: "Eine direkte Bild-URL.",
+			video: "Ein Vault-Videopfad, z. B. Attachments/loop.mp4.",
 		},
 	},
 	// ---- Plugin-Einstellungen-Tab -------------------------------------------
@@ -1156,6 +1158,9 @@ export const de: Translations = {
 			valueColorDesc: "Eine CSS-Farbe, z. B. #1e1e2e oder rgb(30,30,46).",
 			valueImageDesc: "Ein Vault-Bildpfad, z. B. Attachments/bg.png.",
 			valueUrlDesc: "Eine direkte Bild-URL.",
+			valueVideoDesc: "Ein Videopfad im Vault, z. B. Attachments/loop.mp4. Es läuft stumm in einer Schleife.",
+			videoNote:
+				"Ein Video als Hintergrund ist das Aufwendigste, was Hearth zeichnen kann — es dekodiert Bilder, solange das Board offen ist. Es läuft nur in der Leistungsstufe Voll; ab Ausgewogen bleibt es auf dem ersten Bild stehen.",
 			externalCallsDisabled:
 				"Wird nicht angezeigt, solange \u201eExterne Aufrufe deaktivieren\u201c unter Verhalten aktiv ist: " +
 				"dieser Hintergrund wird aus dem Web geladen. Wähle stattdessen ein Vault-Bild " +
@@ -1190,6 +1195,7 @@ export const de: Translations = {
 				color: "Volltonfarbe",
 				image: "Vault-Bild",
 				url: "Bild-URL",
+				video: "Vault-Video",
 				weather: "Live-Wetterhimmel",
 			},
 			weatherHeading: "Wetterhimmel",
