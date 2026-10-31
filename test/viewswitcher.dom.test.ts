@@ -5,18 +5,19 @@
  * style draws, and that a choice reaches the card. Obsidian's own pieces (the
  * menu a drop-down opens, the icons) are not under test.
  */
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { installObsidianDom } from "./support/obsidian-dom";
 import type { DashboardCard, ViewSwitcherConfig } from "../src/types";
 import type { HomeView } from "../src/view";
 
 let mountViewSwitcher: typeof import("../src/viewswitcher").mountViewSwitcher;
 let viewIdentity: typeof import("../src/viewswitcher").viewIdentity;
+let revealScrollLeft: typeof import("../src/viewswitcher").revealScrollLeft;
 let setActiveViewIndex: typeof import("../src/cardviews").setActiveViewIndex;
 
 beforeAll(async () => {
 	installObsidianDom();
-	({ mountViewSwitcher, viewIdentity } = await import("../src/viewswitcher"));
+	({ mountViewSwitcher, viewIdentity, revealScrollLeft } = await import("../src/viewswitcher"));
 	({ setActiveViewIndex } = await import("../src/cardviews"));
 });
 
@@ -65,6 +66,82 @@ describe("viewIdentity", () => {
 		expect(viewIdentity(view, c).label).toBe("Notes");
 		expect(viewIdentity(view, c.views![0]).label).toBe("Clock & greeting");
 		expect(viewIdentity(view, c.views![1])).toEqual({ label: "Inbox", icon: "inbox" });
+	});
+});
+
+describe("revealScrollLeft", () => {
+	const row = { left: 0, right: 100 };
+
+	it("leaves a tab that is already inside the row alone", () => {
+		expect(revealScrollLeft(30, row, { left: 10, right: 60 })).toBe(30);
+	});
+
+	it("moves the row on for a tab past its right edge", () => {
+		expect(revealScrollLeft(0, row, { left: 140, right: 200 })).toBe(100);
+	});
+
+	it("moves the row back for a tab before its left edge, and stops at the start", () => {
+		expect(revealScrollLeft(100, row, { left: -30, right: 30 })).toBe(70);
+		expect(revealScrollLeft(20, row, { left: -30, right: 30 })).toBe(0);
+	});
+});
+
+describe("keeping the tab on show in sight", () => {
+	/** Run `fn` with a spy in place of `scrollIntoView`, which jsdom does not
+	 * implement at all — the spy is what makes "the board is never asked to
+	 * move" a claim the old code fails. */
+	function withoutScrollIntoView(fn: () => void): void {
+		const intoView = vi.fn();
+		const proto = HTMLElement.prototype as unknown as { scrollIntoView?: unknown };
+		const had = "scrollIntoView" in proto;
+		Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+			value: intoView,
+			configurable: true,
+			writable: true,
+		});
+		try {
+			fn();
+			expect(intoView).not.toHaveBeenCalled();
+		} finally {
+			if (!had) delete proto.scrollIntoView;
+		}
+	}
+
+	it("never scrolls the board, not on mount and not on a switch (#440)", () => {
+		withoutScrollIntoView(() => {
+			const c = card();
+			const { head } = mount(c);
+			head.querySelectorAll<HTMLElement>(".hearth-view-switch-btn")[2].click();
+		});
+	});
+
+	it("scrolls the row itself when the tabs are wider than it", () => {
+		const boxes = HTMLElement.prototype as unknown as { getBoundingClientRect?: unknown };
+		const real = boxes.getBoundingClientRect;
+		// The row is 0..100 on screen, the tab on show 140..200: the row has to
+		// move by 100 to show it, and nothing else may move at all.
+		Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
+			value(this: HTMLElement) {
+				if (this.classList.contains("hearth-view-switch")) return new DOMRect(0, 0, 100, 20);
+				if (this.classList.contains("hearth-view-switch-btn") && this.classList.contains("is-active")) {
+					return new DOMRect(140, 0, 60, 20);
+				}
+				return new DOMRect(0, 0, 0, 0);
+			},
+			configurable: true,
+			writable: true,
+		});
+		try {
+			const { head } = mount(card());
+			const el = head.querySelector<HTMLElement>(".hearth-view-switch")!;
+			expect(el.scrollLeft).toBe(100);
+		} finally {
+			Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
+				value: real,
+				configurable: true,
+				writable: true,
+			});
+		}
 	});
 });
 
