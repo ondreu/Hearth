@@ -10,13 +10,14 @@
  *
  * Rates are cached in memory for a few hours so a board full of calculator cards
  * makes at most one request per refresh window, and the last good table is kept
- * in this device's localStorage, so a restart or an offline session starts from
- * the rates it already had instead of reporting that none exist. Everything
- * degrades gracefully offline: if every source fails the last good rates are
- * kept, and if none were ever fetched a currency query just reports that rates
- * are unavailable.
+ * in the vault's storage on this device (through `App#saveLocalStorage`, so the
+ * entry belongs to the vault rather than to the browser's global storage), so a
+ * restart or an offline session starts from the rates it already had instead of
+ * reporting that none exist. Everything degrades gracefully offline: if every
+ * source fails the last good rates are kept, and if none were ever fetched a
+ * currency query just reports that rates are unavailable.
  */
-import { requestUrl } from "obsidian";
+import { requestUrl, type App } from "obsidian";
 
 export interface CurrencyRates {
 	/** Base currency code the rates are relative to (lowercase, e.g. "eur"). */
@@ -156,10 +157,24 @@ let cache: CurrencyRates | null = null;
 let inflight: Promise<CurrencyRates | null> | null = null;
 let restored = false;
 
+/** The plugin's `app`, for the vault's own storage. Set once from `onload`;
+ * unset before that and in tests, where the cache simply starts in memory. */
+let app: App | null = null;
+
+/** Point the cache at the vault's storage. `App#loadLocalStorage` /
+ * `saveLocalStorage` keep the entry per vault, which is what Obsidian's plugin
+ * review asks for instead of the browser's global `localStorage`. The table is
+ * device-only either way: it never reaches `data.json` or a synced file. */
+export function initCurrencyCache(vaultApp: App): void {
+	app = vaultApp;
+}
+
 /** The last-fetched rates — possibly stale, possibly restored from the last
  * session — or null if none were ever loaded. */
 export function cachedRates(): CurrencyRates | null {
-	if (!cache && !restored) {
+	// Only a run with storage to read from counts as the restore attempt, so a
+	// card that renders before `onload` finishes still picks the table up.
+	if (!cache && !restored && app) {
 		restored = true;
 		cache = restoreRates();
 	}
@@ -169,9 +184,8 @@ export function cachedRates(): CurrencyRates | null {
 /** Read the table stored by the last successful fetch, if there is one. */
 function restoreRates(): CurrencyRates | null {
 	try {
-		const raw = localStorage.getItem(STORE_KEY);
-		if (!raw) return null;
-		const data = JSON.parse(raw) as { base?: unknown; fetched?: unknown };
+		const data = app?.loadLocalStorage(STORE_KEY) as { base?: unknown; fetched?: unknown } | null;
+		if (!data || typeof data !== "object") return null;
 		const table = parseFrankfurterRates(data);
 		if (!table) return null;
 		return {
@@ -190,7 +204,7 @@ function restoreRates(): CurrencyRates | null {
  * quota or a locked-down browser leaves the in-memory cache working as before. */
 function storeRates(rates: CurrencyRates): void {
 	try {
-		localStorage.setItem(STORE_KEY, JSON.stringify(rates));
+		app?.saveLocalStorage(STORE_KEY, rates);
 	} catch {
 		/* nothing worth telling anyone about */
 	}
