@@ -3583,7 +3583,14 @@ button.hearth-kofi-btn:focus-visible {
  * does the same on its sizer. In a full tab that lets the last line reach the
  * top; in a card it means the note always overflows, however short it is and
  * however tall the card — a scrollbar that just rescales as the card grows.
- * !important because the padding is an inline style the editor rewrites. */
+ * !important because the padding is an inline style the editor rewrites:
+ * CodeMirror's scroll-past-end extension writes `paddingBottom` onto the content
+ * element itself, reading mode writes `min-height` onto its sizer, and no
+ * selector outranks an inline style, so higher specificity cannot replace this
+ * (see the `:not(#hearth-boost)` note at the top of this file, which covers the
+ * rules that only have to beat other stylesheets). Removing the flags brings the
+ * scrollbar back, so the plugin review's "avoid !important" note stays — this is
+ * the one place where it cannot be honoured. */
 .hearth-jot-live .cm-content,
 .hearth-jot-live .markdown-preview-sizer {
 	padding-bottom: 0 !important;
@@ -26037,7 +26044,6 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-taskdesc-col.is-fails .hearth-taskdesc-sample {
 	text-decoration: line-through;
-	text-decoration-color: var(--text-faint);
 	color: var(--text-muted);
 }
 
