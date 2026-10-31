@@ -134,6 +134,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   own bar. Every engine follows it — the built-in search, note-body matches,
   Omnisearch, the Quick switcher and the recents list.
 
+- **A folder can be opened in Obsidian's own file explorer** (#448). Three
+  places, one destination: the Folder card's *Opening a subfolder* dropdown
+  gains *In the file explorer* beside its browser and in-card choices, the
+  Bookmarks card gains one setting — *Opening a folder bookmark*, in the folder
+  browser (the default, unchanged) or in the file explorer — and a launchpad
+  button can be a **Folder**, with the card's own *Opening a folder button*
+  setting choosing between the browser and the sidebar the same way. Both
+  settings are one dropdown in the card's settings, and the launchpad's appears
+  only once the card has a folder button, so nothing new is drawn on any board.
+  Revealing puts the folder in the sidebar, opening the explorer there if it was
+  closed. The reveal is the core file explorer's own `revealInFolder` —
+  undocumented, so when it can't be done (plugin off, or the internal changes
+  shape) the click opens Hearth's folder browser instead of doing nothing.
+
 ### Changed
 
 - **“Search filters” is now “Filter chips”**, the name the per-board override

@@ -1928,6 +1928,7 @@ export const en = {
 			note: "Note",
 			url: "URL",
 			command: "Command",
+			folder: "Folder",
 		},
 		embed: {
 		section: "Section",
@@ -2185,6 +2186,13 @@ export const en = {
 			types: "File types",
 			typesDesc: "Only list files of the selected types. Pick any combination; none selected shows every type.",
 		},
+		bookmarks: {
+			heading: "Folder bookmarks",
+			folderTarget: "Opening a folder bookmark",
+			folderTargetDesc:
+				"In Hearth's folder browser, or in Obsidian's own file explorer in " +
+				"the sidebar.",
+		},
 		folder: {
 			folder: "Folder",
 			folderDesc: "The folder this card lists. Leave it empty for the vault root.",
@@ -2220,10 +2228,12 @@ export const en = {
 			countsDesc: "Show how many things each subfolder holds.",
 			navigate: "Opening a subfolder",
 			navigateDesc:
-				"In a dialog, or in the card itself — which then grows a path row " +
-				"with a way back up, and stays where you left it.",
+				"In a dialog, in the card itself — which then grows a path row " +
+				"with a way back up, and stays where you left it — or in " +
+				"Obsidian's own file explorer in the sidebar.",
 			navigateModal: "In the folder browser",
 			navigateCard: "In the card",
+			navigateExplorer: "In the file explorer",
 			browse: "Open the browser from the card",
 			browseDesc:
 				"Clicking the card's empty space — or its folder button — opens the " +
@@ -2609,6 +2619,11 @@ export const en = {
 			pickCommand: "Pick command…",
 			targetUrl: "Target (URL)",
 			targetNote: "Target (note path)",
+			targetFolder: "Target (folder path)",
+			folderTarget: "Opening a folder button",
+			folderTargetDesc:
+				"In Hearth's folder browser, or in Obsidian's own file explorer in " +
+				"the sidebar.",
 			moveUp: "Move up",
 			moveDown: "Move down",
 			removeLink: "Remove link",

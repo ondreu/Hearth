@@ -1937,6 +1937,7 @@ export const de: Translations = {
 			note: "Notiz",
 			url: "URL",
 			command: "Befehl",
+			folder: "Ordner",
 		},
 		embed: {
 		section: "Abschnitt",
@@ -2197,6 +2198,13 @@ export const de: Translations = {
 			types: "Dateitypen",
 			typesDesc: "Liste nur Dateien der ausgewählten Typen. Wähle eine beliebige Kombination; ohne Auswahl werden alle Typen angezeigt.",
 		},
+		bookmarks: {
+			heading: "Ordner-Lesezeichen",
+			folderTarget: "Ordner-Lesezeichen öffnen",
+			folderTargetDesc:
+				"Im Ordner-Browser von Hearth oder in Obsidians eigenem " +
+				"Datei-Explorer in der Seitenleiste.",
+		},
 		folder: {
 			folder: "Ordner",
 			folderDesc: "Der Ordner, den diese Karte auflistet. Leer lassen für die Vault-Wurzel.",
@@ -2232,10 +2240,12 @@ export const de: Translations = {
 			countsDesc: "Zeigt, wie viele Einträge jeder Unterordner enthält.",
 			navigate: "Unterordner öffnen",
 			navigateDesc:
-				"In einem Dialog oder in der Karte selbst — die dann eine Pfadzeile " +
-				"mit einem Weg zurück erhält und dort bleibt, wo Sie waren.",
+				"In einem Dialog, in der Karte selbst — die dann eine Pfadzeile " +
+				"mit einem Weg zurück erhält und dort bleibt, wo Sie waren — oder " +
+				"in Obsidians eigenem Datei-Explorer in der Seitenleiste.",
 			navigateModal: "Im Ordner-Browser",
 			navigateCard: "In der Karte",
+			navigateExplorer: "Im Datei-Explorer",
 			browse: "Browser von der Karte aus öffnen",
 			browseDesc:
 				"Ein Klick auf die freie Fläche der Karte — oder auf ihre " +
@@ -2624,6 +2634,11 @@ export const de: Translations = {
 			pickCommand: "Befehl wählen…",
 			targetUrl: "Ziel (URL)",
 			targetNote: "Ziel (Notizpfad)",
+			targetFolder: "Ziel (Ordnerpfad)",
+			folderTarget: "Ordner-Schaltfläche öffnen",
+			folderTargetDesc:
+				"Im Ordner-Browser von Hearth oder in Obsidians eigenem " +
+				"Datei-Explorer in der Seitenleiste.",
 			moveUp: "Nach oben",
 			moveDown: "Nach unten",
 			removeLink: "Link entfernen",

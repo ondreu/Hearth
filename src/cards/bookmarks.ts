@@ -1,14 +1,16 @@
-import { Notice, type Component, TFile, TFolder } from "obsidian";
+import { Notice, Setting, type Component, TFile, TFolder } from "obsidian";
 import { setIcon } from "../glyphs";
 import { bookmarkTarget, type BookmarkItem } from "../bookmarks";
 import { emptyState, redrawCard } from "../cardbodies";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
+import { type FolderDestination, folderDestination, revealInExplorer } from "../fileexplorer";
 import { t } from "../i18n";
 import { type BookmarksInstance } from "../obsidian-ext";
 import { openFile, openSearch, targetLeaf } from "../opener";
+import { type DashboardCard } from "../types";
 import { inExpressiveCard, makeClickable } from "../ui";
 import { type HomeView } from "../view";
-import { type CardDefinition } from "./definition";
+import { type CardDefinition, type CardEditorContext } from "./definition";
 import { defaultBrowseState, openFolderBrowser } from "./folder";
 
 
@@ -43,6 +45,7 @@ export function renderBookmarks(
 	view: HomeView,
 	body: HTMLElement,
 	component?: Component,
+	card?: DashboardCard,
 ): void {
 	const plugin = view.app.internalPlugins.getPluginById("bookmarks");
 	const instance = plugin?.instance as BookmarksInstance | undefined;
@@ -70,7 +73,19 @@ export function renderBookmarks(
 		return;
 	}
 
-	renderBookmarkItems(view, body.createDiv("hearth-list"), tree);
+	renderBookmarkItems(view, body.createDiv("hearth-list"), tree, folderBookmarkTarget(card));
+}
+
+
+/** Where a bookmarked folder opens (#448): Hearth's browser, or Obsidian's own
+ * file explorer in the sidebar. */
+export type FolderBookmarkTarget = FolderDestination;
+
+/** The destination this card's folder bookmarks use. */
+export function folderBookmarkTarget(
+	card?: Pick<DashboardCard, "folderTarget">,
+): FolderBookmarkTarget {
+	return folderDestination(card?.folderTarget);
 }
 
 
@@ -80,12 +95,13 @@ function renderBookmarkItems(
 	view: HomeView,
 	container: HTMLElement,
 	items: BookmarkItem[],
+	folders: FolderBookmarkTarget = "browser",
 ): void {
 	for (const item of items) {
 		if (item.type === "group") {
-			renderBookmarkGroup(view, container, item);
+			renderBookmarkGroup(view, container, item, folders);
 		} else {
-			renderBookmarkLeaf(view, container, item);
+			renderBookmarkLeaf(view, container, item, folders);
 		}
 	}
 }
@@ -97,6 +113,7 @@ function renderBookmarkGroup(
 	view: HomeView,
 	container: HTMLElement,
 	group: BookmarkItem,
+	folders: FolderBookmarkTarget = "browser",
 ): void {
 	const label = group.title || t().cards.bookmarks.untitled;
 	const wrap = container.createDiv("hearth-bookmark-group");
@@ -106,7 +123,7 @@ function renderBookmarkGroup(
 	header.createDiv({ cls: "hearth-list-label", text: label });
 
 	const children = wrap.createDiv("hearth-bookmark-group-children");
-	renderBookmarkItems(view, children, group.items ?? []);
+	renderBookmarkItems(view, children, group.items ?? [], folders);
 
 	const toggle = () => wrap.classList.toggle("is-collapsed");
 	header.addEventListener("click", toggle);
@@ -131,6 +148,7 @@ function renderBookmarkLeaf(
 	view: HomeView,
 	container: HTMLElement,
 	item: BookmarkItem,
+	folders: FolderBookmarkTarget = "browser",
 ): void {
 	const label =
 		item.title ||
@@ -164,7 +182,7 @@ function renderBookmarkLeaf(
 		setIcon(iconEl, icon);
 	}
 	row.createDiv({ cls: "hearth-list-label", text: label });
-	const open = () => openBookmark(view, item, inExpressiveCard(row));
+	const open = () => openBookmark(view, item, inExpressiveCard(row), folders);
 	row.addEventListener("click", open);
 	makeClickable(row, open, label);
 }
@@ -199,7 +217,12 @@ function renderFavicon(iconEl: HTMLElement, url: string): void {
  * need a core plugin say so when it is switched off, because silence is exactly
  * what the bug looked like.
  */
-export function openBookmark(view: HomeView, item: BookmarkItem, expressive: boolean): void {
+export function openBookmark(
+	view: HomeView,
+	item: BookmarkItem,
+	expressive: boolean,
+	folders: FolderBookmarkTarget = "browser",
+): void {
 	const target = bookmarkTarget(
 		item,
 		(path) => view.app.vault.getAbstractFileByPath(path) instanceof TFolder,
@@ -220,8 +243,10 @@ export function openBookmark(view: HomeView, item: BookmarkItem, expressive: boo
 		case "folder":
 			// Hearth's own folder browser (#329) rather than core's reveal in the
 			// sidebar: the plugin already has its own answer to "show me this
-			// folder", and it is a better one on a board.
-			openFolder(view, target.path, expressive);
+			// folder", and it is a better one on a board. A card can ask for the
+			// sidebar instead (#448), and lands back in the browser when the core
+			// file explorer is off or its internal has changed shape.
+			openFolderByDestination(view, target.path, expressive, folders);
 			return;
 		case "file":
 			openNote(view, target.path, target.subpath);
@@ -251,11 +276,37 @@ function openNote(view: HomeView, path: string, subpath?: string): void {
 }
 
 
-/** Hand a bookmarked folder to the folder browser. There is no card config to
+/** Hand a folder to Hearth's folder browser. There is no card config to
  * read here — a bookmark is a path and nothing else — so the browser opens on
- * its own defaults: the explorer's order, everything shown, no counts. */
-function openFolder(view: HomeView, path: string, expressive: boolean): void {
+ * its own defaults: the explorer's order, everything shown, no counts.
+ *
+ * Exported because a launchpad's folder tile opens its target the same way
+ * (#448): one destination for "this is a folder", in both cards. */
+export function openBookmarkedFolder(view: HomeView, path: string, expressive: boolean): void {
 	openFolderBrowser(view, { ...defaultBrowseState(path), expressive });
+}
+
+
+/** Open a folder wherever the card's *where a folder opens* setting says
+ * (#448): Hearth's browser, or Obsidian's file explorer in the sidebar.
+ *
+ * A reveal that can't be made — the core plugin off, its internal changed
+ * shape, the folder gone — falls back to the browser rather than leaving a
+ * click that does nothing. Shared by the two cards that can open a folder from
+ * a click, so a folder bookmark and a launchpad folder button never disagree. */
+export function openFolderByDestination(
+	view: HomeView,
+	path: string,
+	expressive: boolean,
+	folders: FolderDestination = "browser",
+): void {
+	if (folders !== "explorer") {
+		openBookmarkedFolder(view, path, expressive);
+		return;
+	}
+	void revealInExplorer(view.app, path).then((revealed) => {
+		if (!revealed) openBookmarkedFolder(view, path, expressive);
+	});
 }
 
 
@@ -309,13 +360,44 @@ function watchBookmarks(
 	}
 }
 
-/** The core Bookmarks plugin's entries, grouped. No settings. */
+/** The card's Content tab: one dropdown, for the one thing a bookmark card can
+ * be told to do differently (#448).
+ *
+ * Terminal mode leaves it out: revealing lands in Obsidian's sidebar, which a
+ * terminal board has no counterpart of, and a setting that changes nothing
+ * there is worse than no setting. */
+function bookmarksEditor(containerEl: HTMLElement, ctx: CardEditorContext): void {
+	if (ctx.terminal) return;
+	const card = ctx.card;
+	const strings = t().editors.bookmarks;
+	new Setting(containerEl).setName(strings.heading).setHeading();
+	new Setting(containerEl)
+		.setName(strings.folderTarget)
+		.setDesc(strings.folderTargetDesc)
+		.addDropdown((d) => {
+			// The two destinations are the folder card's own — same wording, so
+			// the same choice reads the same in both cards.
+			d.addOption("browser", t().editors.folder.navigateModal);
+			d.addOption("explorer", t().editors.folder.navigateExplorer);
+			d.setValue(folderBookmarkTarget(card)).onChange((v) => {
+				card.folderTarget = v === "explorer" ? "explorer" : undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+}
+
+
+/** The core Bookmarks plugin's entries, grouped. Its one setting is where a
+ * folder bookmark opens — a dropdown in the card's settings, not a control on
+ * the card, so the board itself looks exactly as it did (#448). */
 export const bookmarksCard: CardDefinition<"bookmarks"> = {
 	kind: "bookmarks",
 	templates: [
 		{ id: "bookmarks", name: "Bookmarks", icon: "bookmark", build: () => ({ kind: "bookmarks", title: "Bookmarks", w: 4, h: 3 }) },
 	],
-	render: (view, _card, body, component) => renderBookmarks(view, body, component),
+	render: (view, card, body, component) => renderBookmarks(view, body, component, card),
+	renderEditor: bookmarksEditor,
 	// Not `static` any more in spirit — the card follows the bookmark store
 	// itself (see `watchBookmarks`), which no liveness mode can express.
 	expressive: true,

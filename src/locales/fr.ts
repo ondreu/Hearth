@@ -1879,6 +1879,7 @@ export const fr: Translations = {
 			note: "Note",
 			url: "URL",
 			command: "Commande",
+			folder: "Dossier",
 		},
 		embed: {
 		section: "Section",
@@ -2138,6 +2139,13 @@ export const fr: Translations = {
 			types: "Types de fichiers",
 			typesDesc: "Ne lister que les fichiers des types sélectionnés. Toute combinaison est possible ; aucune sélection = tous les types.",
 		},
+		bookmarks: {
+			heading: "Signets de dossier",
+			folderTarget: "Ouverture d'un signet de dossier",
+			folderTargetDesc:
+				"Dans le navigateur de dossiers de Hearth, ou dans " +
+				"l'explorateur de fichiers d'Obsidian dans la barre latérale.",
+		},
 		folder: {
 			folder: "Dossier",
 			folderDesc: "Le dossier listé par cette carte. Laissez vide pour la racine du coffre.",
@@ -2173,10 +2181,12 @@ export const fr: Translations = {
 			countsDesc: "Afficher combien d'éléments contient chaque sous-dossier.",
 			navigate: "Ouverture d'un sous-dossier",
 			navigateDesc:
-				"Dans un dialogue, ou dans la carte elle-même — qui affiche alors une ligne de chemin " +
-				"avec un retour vers le haut, et reste là où vous l'avez laissée.",
+				"Dans un dialogue, dans la carte elle-même — qui affiche alors une ligne de chemin " +
+				"avec un retour vers le haut, et reste là où vous l'avez laissée — ou dans " +
+				"l'explorateur de fichiers d'Obsidian, dans la barre latérale.",
 			navigateModal: "Dans le navigateur de dossiers",
 			navigateCard: "Dans la carte",
+			navigateExplorer: "Dans l'explorateur de fichiers",
 			browse: "Ouvrir le navigateur depuis la carte",
 			browseDesc:
 				"Cliquer sur l'espace vide de la carte — ou sur son bouton dossier — ouvre le " +
@@ -2566,6 +2576,11 @@ export const fr: Translations = {
 			pickCommand: "Choisir une commande…",
 			targetUrl: "Cible (URL)",
 			targetNote: "Cible (chemin de note)",
+			targetFolder: "Cible (chemin de dossier)",
+			folderTarget: "Ouverture d'un bouton dossier",
+			folderTargetDesc:
+				"Dans le navigateur de dossiers de Hearth, ou dans " +
+				"l'explorateur de fichiers d'Obsidian dans la barre latérale.",
 			moveUp: "Monter",
 			moveDown: "Descendre",
 			removeLink: "Retirer le lien",

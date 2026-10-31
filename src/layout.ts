@@ -405,7 +405,8 @@ function halfCells(span: number): number {
 function sanitizeLink(raw: unknown): LinkItem | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
-	const type = r.type === "url" || r.type === "command" ? r.type : "note";
+	const type =
+		r.type === "url" || r.type === "command" || r.type === "folder" ? r.type : "note";
 	const link: LinkItem = {
 		id: str(r.id) ?? `link-${Math.random().toString(36).slice(2)}`,
 		label: str(r.label) ?? "",
@@ -594,6 +595,10 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	if (r.folder && typeof r.folder === "object") {
 		card.folder = sanitizeFolder(r.folder as Record<string, unknown>);
 	}
+	// Where a folder opens (#448): a bookmarks card's folder bookmark and a
+	// launchpad's folder button share the field, so only the sidebar choice has
+	// anything to carry — undefined is the browser.
+	if (r.folderTarget === "explorer") card.folderTarget = "explorer";
 	if (r.savedSearch && typeof r.savedSearch === "object") {
 		card.savedSearch = sanitizeSavedSearch(
 			r.savedSearch as Record<string, unknown>,
@@ -1504,7 +1509,7 @@ function sanitizeFolder(r: Record<string, unknown>): FolderCardConfig {
 	if (r.view === "list" || r.view === "tiles") cfg.view = r.view;
 	if (typeof r.counts === "boolean") cfg.counts = r.counts;
 	if (typeof r.browse === "boolean") cfg.browse = r.browse;
-	if (r.navigate === "card") cfg.navigate = "card";
+	if (r.navigate === "card" || r.navigate === "explorer") cfg.navigate = r.navigate;
 	if (r.browseIn === "tab") cfg.browseIn = "tab";
 	if (r.browserView === "list" || r.browserView === "tiles") cfg.browserView = r.browserView;
 	if (typeof r.preview === "boolean") cfg.preview = r.preview;
