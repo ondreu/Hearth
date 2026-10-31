@@ -1556,8 +1556,9 @@ export const en = {
 				currency: {
 					name: "Exchange rates",
 					desc:
-						"The Calculator card converts currencies using ECB rates from the free, " +
-						"key-less Frankfurter API.",
+						"The Calculator card and the search bar convert currencies using the " +
+						"ECB's own daily reference rates, fetched straight from the European " +
+						"Central Bank; the Frankfurter mirror is asked only if that fails.",
 				},
 				markets: {
 					name: "Market quotes",

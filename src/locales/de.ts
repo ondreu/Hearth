@@ -1565,8 +1565,10 @@ export const de: Translations = {
 				currency: {
 					name: "Wechselkurse",
 					desc:
-						"Die Rechner-Karte rechnet Währungen mit EZB-Kursen über die kostenlose, " +
-						"schlüssellose Frankfurter API um.",
+						"Die Rechner-Karte und die Suchleiste rechnen Währungen mit den " +
+						"täglichen Referenzkursen der EZB um, die direkt bei der Europäischen " +
+						"Zentralbank abgerufen werden; Frankfurter wird nur als Ausweichquelle " +
+						"gefragt.",
 				},
 				markets: {
 					name: "Börsenkurse",

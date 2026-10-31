@@ -12,7 +12,10 @@ import { installObsidianDom } from "./support/obsidian-dom";
 const calls: string[] = [];
 
 function response(body: object, status = 200) {
-	const text = JSON.stringify(body);
+	return textResponse(JSON.stringify(body), status);
+}
+
+function textResponse(text: string, status = 200) {
 	return {
 		status,
 		headers: {},
@@ -96,7 +99,15 @@ const fakeRequestUrl = vi.fn(async ({ url }: { url: string }) => {
 			content_urls: { desktop: { page: "https://en.wikipedia.org/wiki/Prague" } },
 		});
 	}
-	if (u.host === "api.frankfurter.app" && u.pathname === "/latest") {
+	// Rates come from the ECB's own daily file first, with Frankfurter's mirror as
+	// the fallback — the same two hosts, in the same order, the plugin asks.
+	if (u.host === "www.ecb.europa.eu" && u.pathname.endsWith("eurofxref-daily.xml")) {
+		return textResponse(
+			"<?xml version='1.0' encoding='UTF-8'?><Cube><Cube time='2026-10-30'>" +
+				"<Cube currency='CZK' rate='25'/><Cube currency='USD' rate='1.1'/></Cube></Cube>",
+		);
+	}
+	if (u.host === "api.frankfurter.dev" && u.pathname === "/v1/latest") {
 		return response({ base: "EUR", rates: { CZK: 25, USD: 1.1 } });
 	}
 	return response({}, 404);

@@ -566,7 +566,7 @@ export const ko: Translations = {
 				jira: { ...en.settings.integrations.items.jira, name: "Jira", desc: "Jira 카드는 카드에 입력한 인증 정보로 Jira Cloud 또는 Server 인스턴스의 REST API에서 이슈를 가져옵니다." },
 				rss: { ...en.settings.integrations.items.rss, name: "RSS 및 Atom 피드", desc: "RSS 카드는 지정한 RSS 2.0 또는 Atom 피드를 가져와 해석합니다." },
 				ics: { ...en.settings.integrations.items.ics, name: "iCalendar 피드", desc: "미니 달력 카드에서 Google, iCloud, Fastmail, Nextcloud 등의 외부 ICS/webcal 캘린더를 구독할 수 있습니다." },
-				currency: { ...en.settings.integrations.items.currency, name: "환율", desc: "계산기 카드는 키가 필요 없는 무료 Frankfurter API의 ECB 환율로 통화를 변환합니다." },
+				currency: { ...en.settings.integrations.items.currency, name: "환율", desc: "계산기 카드와 검색창은 유럽중앙은행이 매일 발표하는 기준 환율로 통화를 변환하며, 환율은 유럽중앙은행에서 직접 가져오고 Frankfurter는 대체 소스로만 사용합니다." },
 				markets: { ...en.settings.integrations.items.markets, name: "시장 시세", desc: "시장 카드는 키가 필요 없는 무료 소스에서 시세를 읽습니다. 전 세계 대부분의 거래소, 외환, 가상자산은 Yahoo Finance, 상하이·선전·베이징·홍콩 상장 종목은 Tencent, 중국 장외 펀드는 Eastmoney, 코인은 CoinGecko, 통화 쌍은 Frankfurter를 통한 ECB를 사용합니다. 모두 공식 API가 아니므로 한 소스가 실패하면 다른 소스로 대체합니다. 카드에 있는 종목 기호만 전송합니다." },
 				weather: { ...en.settings.integrations.items.weather, name: "일기 예보", desc: "날씨 카드와 실시간 하늘 배경은 Open-Meteo에서 날씨를 가져옵니다. 무료이며 키나 계정이 필요 없습니다. 선택한 좌표만 전송하며, 한 가지 날씨로 고정한 하늘은 위치가 전혀 필요 없습니다." },
 				tension: { ...en.settings.integrations.items.tension, name: "세계 긴장도", desc: "세계 긴장도 카드는 kite.kagi.com에서 Kagi News의 World Tension 지수를 읽습니다. 그날의 세계 뉴스를 언어 모델이 0–100으로 평가한 값입니다. 무료이며 키나 계정이 필요 없고, 사용자나 보관함에 관한 정보는 전송하지 않습니다." },
