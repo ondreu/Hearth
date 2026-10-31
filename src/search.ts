@@ -1,6 +1,7 @@
-import { Command, Component, debounce, Platform, TAbstractFile, TFile, TFolder } from "obsidian";
+import { Command, Component, debounce, Platform, TFile, TFolder } from "obsidian";
 import { setIcon } from "./glyphs";
 import type { HomeView } from "./view";
+import { revealInExplorer } from "./fileexplorer";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
 import {
 	FILE_TYPE_GROUPS,
@@ -783,12 +784,9 @@ export class SearchSection {
 			void openSearchHit(this.view, hit, "search");
 			this.hide();
 		} else if (file instanceof TFolder) {
-			// Reveal the folder in the file explorer.
-			const explorer = this.view.app.internalPlugins.getPluginById("file-explorer");
-			const instance = explorer?.instance as
-				| { revealInFolder?: (f: TAbstractFile) => void }
-				| undefined;
-			instance?.revealInFolder?.(file);
+			// Reveal the folder in the file explorer — the same call the folder
+			// card and a folder bookmark can make (#448).
+			void revealInExplorer(this.view.app, file.path);
 			this.hide();
 		}
 	}

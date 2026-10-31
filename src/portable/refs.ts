@@ -115,9 +115,10 @@ function iconIsImage(value: string): boolean {
 }
 
 const tileTargetIsNote = (o: Record<string, unknown>): boolean =>
-	o.type !== "url" && o.type !== "command";
+	o.type !== "url" && o.type !== "command" && o.type !== "folder";
 const tileTargetIsCommand = (o: Record<string, unknown>): boolean =>
 	o.type === "command";
+const tileTargetIsFolder = (o: Record<string, unknown>): boolean => o.type === "folder";
 const tileTargetIsUrl = (o: Record<string, unknown>): boolean => o.type === "url";
 const iconOwnerIsImage = (o: Record<string, unknown>): boolean =>
 	typeof o.icon === "string" && iconIsImage(o.icon);
@@ -145,6 +146,7 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 
 	// links (launchpad tiles)
 	{ at: "links[].target", scope: "vaultPath", when: tileTargetIsNote },
+	{ at: "links[].target", scope: "vaultPath", folder: true, when: tileTargetIsFolder },
 	{ at: "links[].target", scope: "commandId", when: tileTargetIsCommand },
 	{ at: "links[].target", scope: "linkUrl", when: tileTargetIsUrl },
 	{ at: "links[].icon", scope: "asset", when: iconOwnerIsImage },

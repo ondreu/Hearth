@@ -161,10 +161,18 @@ own instead of the plugin's long one. The target is one of:
 | **Note** | A note path in your vault |
 | **URL** | Any web address |
 | **Command** | Any Obsidian command, chosen from a picker |
+| **Folder** | A folder path in your vault — *Pick a folder* chooses one from a list. The button opens it in Hearth's folder browser, the way a folder bookmark does |
 
 The icon field accepts a Lucide icon id (`home`, `star`, `calendar` — browse
 them at lucide.dev/icons) or the vault path of an image such as
 `Attachments/icon.png`, so you can use your own picture as a button icon.
+
+A **Folder** button goes wherever the card's *Opening a folder button* setting
+says: Hearth's folder browser (the default), or Obsidian's own file explorer in
+the sidebar, which reveals the folder there. That setting appears in the card's
+settings once the card has a folder button on it — one choice for the card, not
+a control on every tile — and a reveal that can't be done falls back to the
+browser.
 
 *Add link* adds an empty button to fill in. *Add command* opens the command
 picker and adds a finished button in one step, named and iconed after the

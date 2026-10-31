@@ -808,13 +808,14 @@ export interface FolderCardConfig {
 	browse?: boolean;
 	/** Where clicking a subfolder goes. Omitted is the browser dialog; "card"
 	 * walks the card itself into the folder, which then grows a path row with
-	 * a way back up.
+	 * a way back up; "explorer" reveals it in Obsidian's own file explorer, in
+	 * the sidebar (#448).
 	 *
 	 * Either way the folder a card has been walked to is *not* stored here: it
 	 * is where the reader currently is, not what the card is, and a board that
 	 * rewrote itself (and synced) on every click into a subfolder would be a
 	 * board nobody could share. See `browsedPath` in `cards/folder.ts`. */
-	navigate?: "card";
+	navigate?: "card" | "explorer";
 	/** Where the folder browser opens. Omitted is a dialog over the board, with
 	 * a button that moves it to a tab; "tab" opens it straight in a tab of its
 	 * own (`folderview.ts`), where a folder has the whole page (#375). */
@@ -1905,7 +1906,9 @@ export interface LinkItem extends TileGeometry {
 	icon: string;
 	/** Vault path, URL, or command id depending on type. */
 	target: string;
-	type: "note" | "url" | "command";
+	/** `"folder"` is a vault folder rather than a note (#448): clicking the
+	 * tile opens it the way a folder bookmark does, in Hearth's browser. */
+	type: "note" | "url" | "command" | "folder";
 }
 
 export interface DashboardCard {
@@ -1970,6 +1973,12 @@ export interface DashboardCard {
 	/** kind === "folder": which folder the card lists, how it is ordered and
 	 * how it is drawn. */
 	folder?: FolderCardConfig;
+	/** Where a folder opens, for the kinds that can open one from a click:
+	 * a bookmarks card's folder bookmark and a launchpad's folder button
+	 * (#448). Undefined — the default — is Hearth's folder browser, which is
+	 * what both did before the choice existed; "explorer" reveals the folder in
+	 * Obsidian's own file explorer, in the sidebar. */
+	folderTarget?: "explorer";
 	/**
 	 * kind === "favorites": this card's own list of note paths, instead of the
 	 * vault-wide one in `settings.favorites`.

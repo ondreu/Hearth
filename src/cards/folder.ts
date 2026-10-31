@@ -36,6 +36,7 @@ import {
 	type FolderBrowseState,
 } from "../folderbrowse";
 import { explorerTitles, type TitleOf } from "../frontmattertitle";
+import { revealInExplorer } from "../fileexplorer";
 import { t } from "../i18n";
 import { notePreviewText, PREVIEW_SIZE, previewSize } from "../notepreview";
 import { openFile, type OpenFrom } from "../opener";
@@ -181,6 +182,9 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	const cfg = card.folder ?? {};
 	const root = folderPath(cfg.path);
 	const inCard = cfg.navigate === "card";
+	/** Subfolder clicks land in the sidebar's file explorer instead of a
+	 * browser (#448). */
+	const inExplorer = cfg.navigate === "explorer";
 	// Only a card that navigates in place shows where it was walked to; one that
 	// browses in the dialog always draws its own folder, and the walked-to path
 	// is only where that dialog reopens.
@@ -219,6 +223,15 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 				if (inCard) refresh();
 			},
 		});
+	/** Reveal a subfolder in the sidebar, falling back to the browser when that
+	 * can't be done (the core file explorer is off, or its internal has changed
+	 * shape). A click that silently does nothing would be worse than the one
+	 * this setting replaced. */
+	const revealOrOpen = (at: string) => {
+		void revealInExplorer(view.app, at).then((revealed) => {
+			if (!revealed) open(at);
+		});
+	};
 
 	if (browse) {
 		// The click target for the browser is the body's empty space, which a
@@ -251,6 +264,7 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	const activate = (entry: FolderEntry, evt?: MouseEvent) => {
 		if (entry.isFolder) {
 			if (inCard) walkTo(entry.path);
+			else if (inExplorer) revealOrOpen(entry.path);
 			else open(entry.path);
 			return;
 		}
@@ -1210,8 +1224,12 @@ export function folderEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 		.addDropdown((d) => {
 			d.addOption("modal", strings.navigateModal);
 			d.addOption("card", strings.navigateCard);
-			d.setValue(cfg.navigate === "card" ? "card" : "modal").onChange((v) => {
-				cfg.navigate = v === "card" ? "card" : undefined;
+			// Revealing happens in Obsidian's sidebar, which terminal mode has no
+			// counterpart of — there the card's own tree is the only destination.
+			if (!ctx.terminal) d.addOption("explorer", strings.navigateExplorer);
+			const current = ctx.terminal && cfg.navigate === "explorer" ? "modal" : (cfg.navigate ?? "modal");
+			d.setValue(current).onChange((v) => {
+				cfg.navigate = v === "card" || v === "explorer" ? v : undefined;
 				ctx.opts.save();
 				ctx.opts.rerender();
 			});

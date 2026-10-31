@@ -8,6 +8,7 @@
  */
 import { openLink } from "../../cards/links";
 import { runTemplaterItem, tileLabel } from "../../cards/templater";
+import { folderDestination } from "../../fileexplorer";
 import { isEmojiIcon } from "../../fileicons";
 import { iconGlyph } from "../../glyphs";
 import { t } from "../../i18n";
@@ -40,7 +41,8 @@ export const linksTui: TuiRenderer = {
 			ctx,
 			links.map((link) => ({
 				label: label(link.icon, link.label || link.target),
-				activate: () => openLink(ctx.view, link),
+				activate: () =>
+					openLink(ctx.view, link, false, folderDestination(ctx.card.folderTarget)),
 			})),
 		);
 	},

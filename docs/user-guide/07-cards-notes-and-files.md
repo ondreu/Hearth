@@ -372,8 +372,9 @@ files — with a browser behind it for the rest.
 **Requires:** nothing.
 
 Clicking a file opens it. Clicking a subfolder opens the **folder browser** —
-or walks the card itself into that folder, if you set it to. Clicking the card's
-empty space or its folder button always opens the browser.
+or walks the card itself into that folder, or reveals it in Obsidian's own file
+explorer, if you set it to. Clicking the card's empty space or its folder button
+always opens the browser.
 
 ### Options
 
@@ -385,7 +386,7 @@ empty space or its folder button always opens the browser.
 | *Display* | A list of rows, or a grid of icon tiles |
 | *Number of items* | How many the card lists before it says how many are left (it says so either way; with the browser off the count is not a way in). The browser is never capped |
 | *Item counts* | Show how many things each subfolder holds |
-| *Opening a subfolder* | In the folder browser (the default), or in the card itself |
+| *Opening a subfolder* | In the folder browser (the default), in the card itself, or in Obsidian's own file explorer in the sidebar |
 | *Open the browser from the card* | Turn off for a card that should only ever open what it lists |
 | *Open the browser* | In a dialog over the board (the default), or straight in a new tab |
 | *Browser layout* | How the browser shows the folder, separately from *Display*: a list of rows, or larger tiles with a preview of each note |
@@ -438,6 +439,19 @@ not synced to your other devices, and not carried in a shared dashboard: it is
 where you are reading, not what the card is. It survives arranging the board,
 switching dashboards and closing the tab, and resets to the card's own folder
 when Obsidian restarts.
+
+### Revealing in the sidebar
+
+Set *Opening a subfolder* to **In the file explorer** and a subfolder click
+lands in Obsidian's own file explorer instead: the folder is revealed and
+expanded in the left sidebar, which is opened there if you had closed it. It is
+the same place the file explorer's own *Reveal in file explorer* command puts a
+file, so the two agree.
+
+That sidebar belongs to Obsidian's core **File explorer** plugin, and revealing
+through it is not a documented API. If the plugin is off — or a future version
+changes that call — the click opens Hearth's folder browser instead, so a
+subfolder never becomes unclickable.
 
 ### The folder browser
 
@@ -563,13 +577,19 @@ where it belongs:
 | Bookmark | Clicking it |
 | --- | --- |
 | A **note** | Opens the note — at the heading or block you bookmarked, if you bookmarked one rather than the whole note |
-| A **folder** | Opens Hearth's folder browser on that folder (the same browser the Folder card uses) |
+| A **folder** | Opens Hearth's folder browser on that folder (the same browser the Folder card uses) — or reveals it in Obsidian's file explorer, if the card is set that way |
 | A **URL** | Opens it in your browser |
 | A **search** | Hands the query to Obsidian's search pane |
 | A **graph** | Opens the graph view with the settings that were saved with the bookmark |
 
 A group is a collapsible header: clicking it folds and unfolds what's inside,
 to any depth.
+
+**Opening a folder bookmark** is the card's one setting: *In the folder
+browser*, the default and what every folder bookmark did before, or *In the file
+explorer*, which reveals the folder in the sidebar — the same choice the Folder
+card offers for its subfolders. A reveal that can't be done falls back to the
+browser.
 
 Saved searches and saved graphs need Obsidian's own **Search** and **Graph
 view** core plugins switched on. If one is off, the card tells you which rather

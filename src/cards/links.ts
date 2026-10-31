@@ -1,14 +1,16 @@
 import { setTooltip, Setting, TFile } from "obsidian";
 import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
+import { type FolderDestination, folderDestination } from "../fileexplorer";
 import { t } from "../i18n";
 import { openFile, openLink as openLinkTarget } from "../opener";
-import { CommandPickerModal } from "../pickers";
+import { CommandPickerModal, FolderPickerModal } from "../pickers";
 import { FIXED_TILE_BASE, tileSizing } from "../tiles";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
-import { makeClickable } from "../ui";
+import { inExpressiveCard, makeClickable } from "../ui";
 import { type HomeView } from "../view";
+import { openFolderByDestination } from "./bookmarks";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 
@@ -27,7 +29,8 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 		applyTileSize(tile, link, spec);
 		applyTileVisual(view, tile, link.icon, linkFallbackIcon(link));
 		tile.createDiv({ cls: "hearth-link-label", text: link.label || link.target });
-		const open = () => openLink(view, link);
+		const open = () =>
+			openLink(view, link, inExpressiveCard(tile), folderDestination(card.folderTarget));
 		// In arrange mode, clicking a tile must NOT trigger its action — the
 		// click is almost always the tail end of a resize/drag gesture.
 		if (!view.arrangeMode) {
@@ -50,19 +53,30 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 
 
 /** The icon a button without one draws: a command reads as a command, as it
- * did on the retired Commands card, whose buttons this card now holds. */
+ * did on the retired Commands card, whose buttons this card now holds; a
+ * folder tile reads as a folder, the way a folder bookmark does. */
 export function linkFallbackIcon(link: LinkItem): string {
-	return link.type === "command" ? "terminal-square" : "link";
+	return link.type === "command" ? "terminal-square" : link.type === "folder" ? "folder" : "link";
 }
 
 
-export function openLink(view: HomeView, link: LinkItem): void {
+export function openLink(
+	view: HomeView,
+	link: LinkItem,
+	expressive = false,
+	folders: FolderDestination = "browser",
+): void {
 	switch (link.type) {
 		case "url":
 			if (link.target) window.open(link.target, "_blank");
 			break;
 		case "command":
 			if (link.target) view.app.commands.executeCommandById(link.target);
+			break;
+		case "folder":
+			// A folder button opens the folder exactly as a folder bookmark does
+			// (#448) — one destination for "this is a folder", in both cards.
+			if (link.target) openFolderByDestination(view, link.target, expressive, folders);
 			break;
 		case "note": {
 			const file = view.app.vault.getAbstractFileByPath(link.target);
@@ -148,6 +162,11 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			);
 			d.setValue(link.type).onChange((v) => {
 				link.type = v as LinkItem["type"];
+				// A folder button without a chosen icon reads as a folder, the way
+				// the fallback icon would draw it anyway.
+				if (link.type === "folder" && (!link.icon || link.icon === "link")) {
+					link.icon = "folder";
+				}
 				ctx.opts.save();
 				// The target control differs by type (a command picker vs. a
 				// free-text path/URL field), so rebuild the editor to swap it.
@@ -188,7 +207,9 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					.setPlaceholder(
 						link.type === "url"
 							? t().editors.links.targetUrl
-							: t().editors.links.targetNote,
+							: link.type === "folder"
+								? t().editors.links.targetFolder
+								: t().editors.links.targetNote,
 					)
 					.setValue(link.target)
 					.onChange((v) => {
@@ -196,6 +217,21 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 						ctx.opts.save();
 					}),
 			);
+			// A folder's path is not something to type from memory, so it gets
+			// the same picker the folder card's own path field has.
+			if (link.type === "folder") {
+				row.addButton((b) =>
+					b.setButtonText(t().editors.folder.pickFolder).onClick(() => {
+						new FolderPickerModal(ctx.app, (picked) => {
+							link.target = picked.isRoot() ? "/" : picked.path;
+							if (!link.label) link.label = picked.name;
+							if (!link.icon || link.icon === "link") link.icon = "folder";
+							ctx.opts.save();
+							ctx.requestRender();
+						}).open();
+					}),
+				);
+			}
 		}
 		row.addExtraButton((b) =>
 			b
@@ -254,6 +290,26 @@ export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				}).open();
 			}),
 		);
+
+	// Where a folder button sends its folder (#448). One setting for the card,
+	// not a control on every tile — and shown only while the card has a folder
+	// button to send anywhere, so a launchpad of notes and commands is exactly
+	// the editor it was. Terminal mode leaves it out: there is no sidebar there.
+	if (!ctx.terminal && links.some((link) => link.type === "folder")) {
+		new Setting(containerEl)
+			.setName(t().editors.links.folderTarget)
+			.setDesc(t().editors.links.folderTargetDesc)
+			.addDropdown((d) => {
+				// The folder card's own two destinations, same wording.
+				d.addOption("browser", t().editors.folder.navigateModal);
+				d.addOption("explorer", t().editors.folder.navigateExplorer);
+				d.setValue(folderDestination(card.folderTarget)).onChange((v) => {
+					card.folderTarget = v === "explorer" ? "explorer" : undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
+			});
+	}
 }
 
 /** A free-form launchpad of link tiles. */
