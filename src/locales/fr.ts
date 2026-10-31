@@ -1506,8 +1506,10 @@ export const fr: Translations = {
 				currency: {
 					name: "Taux de change",
 					desc:
-						"La carte Calculatrice convertit les devises avec les taux de la BCE via l'API gratuite " +
-						"et sans clé Frankfurter.",
+						"La carte Calculatrice et la barre de recherche convertissent les devises " +
+						"avec les taux de référence quotidiens de la BCE, récupérés directement " +
+						"auprès de la Banque centrale européenne ; Frankfurter n'est interrogé " +
+						"qu'en cas d'échec.",
 				},
 				markets: {
 					name: "Cotations boursières",

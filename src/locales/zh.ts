@@ -1415,7 +1415,8 @@ export const zh: Translations = {
 				currency: {
 					name: "汇率",
 					desc:
-						"计算器卡片使用来自免费、无需密钥的 Frankfurter API 的欧洲央行汇率进行货币换算。",
+						"计算器卡片和搜索栏使用欧洲央行每日发布的参考汇率进行换算，汇率直接取自欧洲中央银行；" +
+						"只有在无法访问时才会改用 Frankfurter 镜像。",
 				},
 				markets: {
 					name: "行情报价",

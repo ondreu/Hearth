@@ -123,6 +123,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- Currency conversion no longer hangs on a single host, and no longer forgets
+  its rates between sessions. The rates are the ECB's own daily reference file,
+  asked first, with Frankfurter's mirror only as a fallback, and the last good
+  table is kept on the device — so a restart or an offline session converts with
+  the rates it already had instead of reporting that none are available. Both
+  are asked at their canonical address (the old `api.frankfurter.app` host only
+  redirects now). BGN left the supported units, as the ECB stopped publishing a
+  rate for the lev when Bulgaria adopted the euro (#422).
+
 - Icons a file gets from an Iconic rulebook rule now show in Hearth's cards,
   not only icons set on the file by hand. Iconic keeps the two apart and never
   writes a rule's icon into its per-file map, so the Recent files card — and
