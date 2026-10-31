@@ -166,6 +166,13 @@ Optionally, Hearth can place the cursor in the search field whenever a Home view
 opens, so you can start typing straight away: **Settings → Hearth → Behaviour →
 Startup & tabs → Focus search on open**. This is desktop-only.
 
+That setting only covers a Home view that is *opening*. To get into the field of
+a board that is already up, bind the command *Focus board search* to a hotkey
+under **Settings → Hotkeys**: pressing it while a board is in front only moves
+the cursor, pressing it elsewhere brings Hearth forward first, and with no
+Hearth tab open it opens one. A board with its search field switched off has
+nothing to focus, and the command does nothing there.
+
 ## Where a search result opens
 
 Where a clicked result goes is governed by **Settings → Hearth → Behaviour →

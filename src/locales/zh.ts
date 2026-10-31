@@ -12,6 +12,7 @@ export const zh: Translations = {
 	// ---- Commands (command palette) & ribbon ---------------------------
 	commands: {
 		openHome: "打开主控面板",
+		focusSearch: "聚焦面板搜索框",
 		newNote: "新建笔记（默认位置）",
 		newDrawing: "新建 Excalidraw 绘图",
 		recordVoice: "开始/停止录音",

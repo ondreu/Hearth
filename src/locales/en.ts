@@ -17,6 +17,7 @@ export const en = {
 	// ---- Commands (command palette) & ribbon ---------------------------
 	commands: {
 		openHome: "Open home dashboard",
+		focusSearch: "Focus board search",
 		newNote: "Create new note (default location)",
 		newDrawing: "Create new Excalidraw drawing",
 		recordVoice: "Start/stop voice recording",

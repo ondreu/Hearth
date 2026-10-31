@@ -383,6 +383,7 @@ can be bound to hotkeys under **Settings → Hotkeys**.
 | Command | What it does |
 | --- | --- |
 | *Open home dashboard* | Opens the Home view |
+| *Focus board search* | Puts the cursor in the board's search field, bringing Hearth forward — or opening it — first if needed |
 | *Create new note (default location)* | Makes a note using the *The "New note" button* settings |
 | *Create new Excalidraw drawing* | Runs Excalidraw's own new-drawing command |
 | *Start/stop voice recording* | Uses Obsidian's core Audio recorder |

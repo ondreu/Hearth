@@ -31,6 +31,7 @@ export const de: Translations = {
 	// ---- Befehle (Befehlspalette) und Menüband ---------------------------
 	commands: {
 		openHome: "Home-Dashboard öffnen",
+		focusSearch: "Board-Suche fokussieren",
 		newNote: "Neue Notiz erstellen (Standardspeicherort)",
 		newDrawing: "Neue Excalidraw-Zeichnung erstellen",
 		recordVoice: "Sprachaufnahme starten/stoppen",

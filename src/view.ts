@@ -285,6 +285,32 @@ export class HomeView extends ItemView {
 	}
 
 	/**
+	 * Move keyboard focus into the board's search field, if it has one. This is
+	 * what the *Focus board search* command calls once it has brought the view
+	 * up (#446), so it ignores `focusSearchOnOpen` and the mobile guard on
+	 * purpose: a pressed hotkey is an explicit request for the field, while the
+	 * startup focus is a convenience that must not pop a phone's keyboard on
+	 * every open.
+	 *
+	 * Returns whether there was a field to focus. A board with its search field
+	 * switched off has none, and the command is then a no-op rather than an
+	 * error.
+	 */
+	focusSearch(): boolean {
+		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
+		if (!input) return false;
+		input.focus();
+		return true;
+	}
+
+	/** Whether the cursor is currently in this board's search field. Read by
+	 * {@link render} before the rebuild empties the element it is in. */
+	private searchHadFocus(): boolean {
+		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
+		return !!input && input === this.contentEl.ownerDocument.activeElement;
+	}
+
+	/**
 	 * When enabled, move keyboard focus into the search field as the view opens
 	 * so a freshly-opened Hearth tab is ready to type into (#115). Only runs from
 	 * onOpen — not on every re-render — so a background refresh never steals focus
@@ -293,8 +319,7 @@ export class HomeView extends ItemView {
 	 */
 	private maybeFocusSearch(): void {
 		if (!this.plugin.settings.focusSearchOnOpen || Platform.isMobile) return;
-		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
-		if (input) input.focus();
+		this.focusSearch();
 	}
 
 	/**
@@ -488,6 +513,12 @@ export class HomeView extends ItemView {
 
 	/** Full rebuild of the view. Cheap enough to call on any settings change. */
 	render(): void {
+		// A rebuild replaces the input the cursor is in, and one lands *after*
+		// the reveal that put this board on screen — `active-leaf-change` follows
+		// the reveal, and its refresh on re-focus (#110) rebuilds the board. So a
+		// search field the user was in is put back below instead of the cursor
+		// falling to `body` (#446).
+		const searchHadFocus = this.searchHadFocus();
 		// Re-read on every render (which includes every settings save) so the
 		// choice takes effect without reopening the tab. Obsidian reads this at
 		// the moment it looks for a leaf to open a file in, so the current value
@@ -526,6 +557,7 @@ export class HomeView extends ItemView {
 			renderTerminalView(this, root, child);
 			const tuiScroll = root.querySelector<HTMLElement>(".hearth-scroll");
 			if (tuiScroll) this.trackScroll(tuiScroll, child);
+			if (searchHadFocus) this.focusSearch();
 			return;
 		}
 		clearTerminalView(this, root);
@@ -689,5 +721,6 @@ export class HomeView extends ItemView {
 		// tab's scroll memory, which records where the user scrolls to and puts
 		// the board back where it was before this rebuild (#276).
 		this.trackScroll(scroll, child);
+		if (searchHadFocus) this.focusSearch();
 	}
 }
