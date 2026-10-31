@@ -15,6 +15,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A Music card, playing from the vault or from a Navidrome/Subsonic server.**
+  Two sources behind one card. *Vault folder* takes every audio file in a folder
+  (optionally including subfolders), *Vault files* a hand-picked list, and both
+  play through Hearth's own player — one `<audio>` for the whole plugin, so the
+  music carries on through a redraw of the board instead of stopping every time
+  you change a setting. *Stereo* plays nothing itself: it is a remote control for
+  the Stereo plugin's player, showing the track, the queue and the transport, so
+  a library kept on a server needs no second queue. Transport, seek, volume,
+  shuffle and repeat (off / whole queue / this track), the queue on the card, and
+  a remembered playhead between sessions. Three now-playing styles — a plain
+  glyph, a record that spins while it plays, level bars that move — all drawn in
+  CSS so the board's motion gates freeze them, and on the Expressive design the
+  artwork, play button and queue take the design's accents. Playback always
+  starts paused.
+
 - **Jump to a picture in a slideshow.** Clicking the `180/365` position
   indicator beside the arrows turns it into a number field: type the picture's
   number, press Enter, and the card goes straight there — no clicking through

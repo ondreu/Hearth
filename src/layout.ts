@@ -22,6 +22,9 @@ import {
 	legacyTitleIcon,
 	type LinkItem,
 	type MobileActionButton,
+	type MusicConfig,
+	type MusicLook,
+	type MusicSource,
 	type OperonConfig,
 	type JiraConfig,
 	type JiraControl,
@@ -96,6 +99,7 @@ import {
 	SLIDESHOW_ORDERS,
 	SLIDESHOW_TRANSITIONS,
 } from "./slideshow";
+import { MUSIC_LOOKS, MUSIC_SOURCES } from "./music";
 import { DATACORE_LANGUAGES, type DatacoreLanguage } from "./datacore";
 import { asFolderSort } from "./foldercontents";
 import { previewSize } from "./notepreview";
@@ -607,6 +611,9 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	}
 	if (r.slideshow && typeof r.slideshow === "object") {
 		card.slideshow = sanitizeSlideshow(r.slideshow as Record<string, unknown>);
+	}
+	if (r.music && typeof r.music === "object") {
+		card.music = sanitizeMusic(r.music as Record<string, unknown>);
 	}
 	if (r.jira !== undefined) {
 		card.jira = sanitizeJira(r.jira);
@@ -1587,6 +1594,27 @@ function sanitizeSlide(raw: unknown): SlideshowSlide | null {
 	const caption = str(r.caption);
 	if (caption !== undefined) slide.caption = caption;
 	return slide;
+}
+
+/** Allowlist an imported music card configuration. Same stance as the slideshow
+ * allowlist beside it: unknown keys are dropped, an unknown source or motif falls
+ * back to the card's own default, and a track list that sanitizes down to nothing
+ * is dropped entirely so the card isn't left pointing at an empty list. */
+function sanitizeMusic(r: Record<string, unknown>): MusicConfig {
+	const cfg: MusicConfig = {};
+	if (MUSIC_SOURCES.includes(r.source as MusicSource)) cfg.source = r.source as MusicSource;
+	const folder = str(r.folder);
+	if (folder !== undefined) cfg.folder = folder;
+	if (typeof r.includeSubfolders === "boolean") cfg.includeSubfolders = r.includeSubfolders;
+	if (Array.isArray(r.tracks)) {
+		const tracks = r.tracks.filter(
+			(entry): entry is string => typeof entry === "string" && entry !== "",
+		);
+		if (tracks.length > 0) cfg.tracks = tracks;
+	}
+	if (typeof r.showQueue === "boolean") cfg.showQueue = r.showQueue;
+	if (MUSIC_LOOKS.includes(r.look as MusicLook)) cfg.look = r.look as MusicLook;
+	return cfg;
 }
 
 /** Allowlist and clamp an imported slideshow card configuration. The numeric

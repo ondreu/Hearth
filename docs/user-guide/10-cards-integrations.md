@@ -619,3 +619,19 @@ Some views expect to live in a sidebar and may render or size oddly inside a
 card. If you want a hosted view at full size, consider a **plugin view
 dashboard** instead, which gives the view the whole board; see
 [chapter 5](05-dashboards.md).
+
+## Music (Stereo)
+
+The **Stereo** community plugin streams a Navidrome, Airsonic, Gonic or other
+Subsonic-compatible library into Obsidian. A Music card set to the *Stereo*
+source does not play anything itself — it draws the track Stereo has loaded, the
+queue around it, and controls for play-pause, next, previous, seek, volume and
+repeat. Everything else (browsing the library, queues, stations, lyrics,
+scrobbles) stays in Stereo's own panel.
+
+**Configured in:** Stereo's settings (server address, account). The card has
+nothing to configure beyond picking the source.
+
+If Stereo is missing the card says so and offers the plugin settings; if it is
+installed but has no server yet, the card says that instead — the two are
+different problems. Stereo is desktop-only, so the source is too.

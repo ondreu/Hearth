@@ -1388,6 +1388,12 @@ export const en = {
 			goToTab: "Open",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				stereo: {
+					name: "Stereo",
+					desc:
+						"Lets a Music card control the Stereo plugin's Navidrome/Subsonic " +
+						"player — the track it is playing, the queue and the transport.",
+				},
 				omnisearch: {
 					name: "Omnisearch",
 					desc:
@@ -1786,6 +1792,45 @@ export const en = {
 
 	// ---- Card settings editor ------------------------------------------
 	editors: {
+		music: {
+			source: "Source",
+			sourceDesc: "Where the card takes its music from.",
+			sources: {
+				folder: "Vault folder",
+				list: "Vault files (list)",
+				stereo: "Stereo (Navidrome/Subsonic)",
+			},
+			folder: "Folder",
+			folderDesc: "Every audio file in this folder becomes a track.",
+			folderPlaceholder: "Music/Albums",
+			pickFolder: "Pick a folder",
+			includeSubfolders: "Include subfolders",
+			includeSubfoldersDesc: "Take tracks from folders inside this one too.",
+			found: (count: number) => `${count} track(s) found`,
+			noTracks: "No tracks yet — add one below.",
+			addTrack: "Add a track",
+			pickTrack: "Pick an audio file",
+			missingTrack: "This file is no longer in the vault",
+			remove: "Remove",
+			playbackHeading: "Playback",
+			look: "Now-playing style",
+			lookDesc: "How the card draws whatever is currently playing.",
+			looks: { plain: "Plain", record: "Record", bars: "Level bars" },
+			showQueue: "Show the queue",
+			showQueueDesc: "List the tracks under the transport.",
+			stereoHeading: "Stereo plugin",
+			stereoMissing:
+				"Stereo is not installed. Add it from the community plugin browser, " +
+				"then pick this source again.",
+			stereoUnconfigured:
+				"Stereo is installed but has no server yet — add your Navidrome or " +
+				"Subsonic address in its settings.",
+			stereoReady:
+				"Connected to Stereo. Queue music in Stereo and this card controls " +
+				"what it plays.",
+			openStereo: "Open Stereo",
+			browsePlugins: "Open settings",
+		},
 		title: "Card settings",
 		/** Shown as the tooltip on tile icon fields (launchpad, templater). */
 		iconHelp:
@@ -1828,6 +1873,7 @@ export const en = {
 		thisCard: "this card",
 		done: "Done",
 		kinds: {
+			music: "Music",
 			embed: "Embed (note / image / base)",
 			slideshow: "Slideshow",
 			daily: "Daily note (today)",
@@ -3614,7 +3660,31 @@ export const en = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		music: {
+			play: "Play",
+			pause: "Pause",
+			next: "Next track",
+			previous: "Previous track",
+			shuffle: "Shuffle",
+			repeat: "Repeat",
+			repeatNone: "Repeat: off",
+			repeatAll: "Repeat: whole queue",
+			repeatOne: "Repeat: this track",
+			volume: "Volume",
+			seek: "Playback position",
+			nothingPlaying: "Nothing playing",
+			queueEmpty: "Nothing queued",
+			stereoIdle: "Queue something in Stereo",
+			moreTracks: (shown: number, total: number) => `Showing ${shown} of ${total} tracks`,
+			errorMissing: "That file is no longer in the vault",
+			errorPlayback: "This file cannot be played here",
+		},
 		empty: {
+			musicEmpty: "Add tracks in card settings",
+			musicFolderEmpty: "No audio files in this folder",
+			musicStereoMissing:
+				"Install and enable the Stereo plugin to play from Navidrome or Subsonic",
+			musicStereoUnconfigured: "Add your server address in Stereo's settings",
 			searchNoQuery: "Set a query in card settings",
 			searchNoMatches: "No matches",
 			embedPickFile: "Pick a file to embed in settings",
@@ -4465,6 +4535,8 @@ export const en = {
 
 	// ---- Card templates (Add card menu) --------------------------------
 	templates: {
+		music: "Music",
+		"music-stereo": "Music (Stereo)",
 		note: "Embedded note",
 		image: "Embedded image",
 		slideshow: "Slideshow",
@@ -4513,6 +4585,8 @@ export const en = {
 	 * searched alongside it. Say what the card *shows* — the name already says
 	 * what it is called. */
 	templateDescriptions: {
+		music: "Plays the audio files in a vault folder, with the queue on the card",
+		"music-stereo": "A remote control for the Stereo plugin's Navidrome player",
 		note: "Any note, rendered live on the board",
 		image: "A picture from the vault, edge to edge",
 		slideshow: "Pictures from a list or a folder, rotated on a timer",

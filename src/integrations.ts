@@ -33,6 +33,7 @@ import { PERIODIC_NOTES_PLUGIN_ID } from "./periodic";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
 import { TEMPLATER_PLUGIN_ID } from "./templater";
 import { VAULT_PET_PLUGIN_ID } from "./vaultpet";
+import { STEREO_PLUGIN_ID } from "./stereo";
 
 /**
  * Ids of the settings ribbon tabs.
@@ -106,7 +107,8 @@ export type IntegrationId =
 	| "weather"
 	| "markets"
 	| "tension"
-	| "webSearch";
+	| "webSearch"
+	| "stereo";
 
 export interface IntegrationEntry {
 	id: IntegrationId;
@@ -212,6 +214,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		where: { kind: "card" },
 	},
 
+	{
+		id: "stereo",
+		group: "plugin",
+		pluginId: STEREO_PLUGIN_ID,
+		where: { kind: "card" },
+	},
 	// ---- Obsidian core plugins --------------------------------------------
 	{ id: "bases", group: "core", corePluginId: "bases", where: { kind: "card" } },
 	{ id: "canvas", group: "core", corePluginId: "canvas", where: { kind: "card" } },

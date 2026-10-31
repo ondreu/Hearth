@@ -534,6 +534,12 @@ export const ko: Translations = {
 			goToTab: "열기",
 			items: {
 				...en.settings.integrations.items,
+				stereo: {
+					name: "Stereo",
+					desc:
+						"음악 카드가 Stereo 플러그인의 Navidrome/Subsonic 플레이어를 제어할 수 " +
+						"있게 합니다 — 현재 트랙, 대기열, 재생 컨트롤.",
+				},
 				omnisearch: { ...en.settings.integrations.items.omnisearch, name: "Omnisearch", desc: "Hearth 내장 검색 대신 Omnisearch의 퍼지 전문 검색 인덱스를 사용합니다. 검색 → 검색창에서 엔진을 선택하세요." },
 				tasknotes: { ...en.settings.integrations.items.tasknotes, name: "TaskNotes", desc: "TaskNotes의 작업별 노트에서 상태, 마감일, 우선순위를 frontmatter로 읽습니다." },
 				dataview: { ...en.settings.integrations.items.dataview, name: "Dataview", desc: "Dataview 카드에서 DQL 쿼리와 DataviewJS 블록을 실행하고 인덱스 변경에 따라 갱신합니다." },
@@ -981,6 +987,8 @@ export const ko: Translations = {
 	},
 	templates: {
 		...en.templates,
+		music: "음악",
+		"music-stereo": "음악 (Stereo)",
 		note: "삽입된 노트", image: "삽입된 이미지", slideshow: "슬라이드 쇼", base: "삽입된 Base", excalidraw: "Excalidraw 그림", canvas: "삽입된 Canvas",
 		daily: "데일리 노트 (오늘)", periodic: "주기 노트", journal: "저널 노트", web: "웹 페이지 (iframe)", bookmarks: "북마크", favorites: "즐겨찾기", recent: "최근 파일",
 		folder: "폴더", links: "링크 / 실행 모음", templater: "템플릿으로 새 노트", clock: "시계와 인사말", tasks: "작업", calendar: "미니 달력", schedule: "캘린더",
@@ -990,6 +998,8 @@ export const ko: Translations = {
 	},
 	templateDescriptions: {
 		...en.templateDescriptions,
+		music: "볼트 폴더의 오디오 파일을 재생하고 대기열을 카드에 표시",
+		"music-stereo": "Stereo 플러그인의 Navidrome 플레이어를 제어하는 카드",
 		note: "보드에서 실시간으로 렌더링하는 노트", image: "보관함의 이미지를 카드 전체에 표시", slideshow: "목록이나 폴더의 이미지를 일정 간격으로 전환",
 		base: "Obsidian Bases로 렌더링하는 .base 파일", excalidraw: "이동 및 확대/축소를 지원하는 Excalidraw 그림", canvas: "카드 안에서 이동할 수 있는 Canvas",
 		daily: "처음 클릭할 때 만들고 항상 오늘 노트를 표시", periodic: "Periodic Notes의 주간·월간·연간 노트", journal: "Journals 플러그인의 현재 노트",
@@ -1246,6 +1256,44 @@ export const ko: Translations = {
 	},
 	editors: {
 		...en.editors,
+		music: {
+			source: "소스",
+			sourceDesc: "카드가 음악을 가져올 곳.",
+			sources: {
+				folder: "볼트 폴더",
+				list: "볼트 파일 (목록)",
+				stereo: "Stereo (Navidrome/Subsonic)",
+			},
+			folder: "폴더",
+			folderDesc: "이 폴더의 모든 오디오 파일이 트랙이 됩니다.",
+			folderPlaceholder: "음악/앨범",
+			pickFolder: "폴더 선택",
+			includeSubfolders: "하위 폴더 포함",
+			includeSubfoldersDesc: "이 폴더 안의 폴더에서도 트랙을 가져옵니다.",
+			found: (count: number) => `트랙 ${count}개`,
+			noTracks: "아직 트랙이 없습니다 — 아래에서 추가하세요.",
+			addTrack: "트랙 추가",
+			pickTrack: "오디오 파일 선택",
+			missingTrack: "이 파일은 볼트에 더 이상 없습니다",
+			remove: "제거",
+			playbackHeading: "재생",
+			look: "재생 중 스타일",
+			lookDesc: "현재 재생 중인 항목을 카드에 그리는 방식.",
+			looks: { plain: "기본", record: "레코드", bars: "레벨 바" },
+			showQueue: "대기열 표시",
+			showQueueDesc: "재생 컨트롤 아래에 트랙을 나열합니다.",
+			stereoHeading: "Stereo 플러그인",
+			stereoMissing:
+				"Stereo가 설치되어 있지 않습니다. 커뮤니티 플러그인 브라우저에서 설치한 뒤 " +
+				"이 소스를 다시 선택하세요.",
+			stereoUnconfigured:
+				"Stereo는 설치되어 있지만 서버가 없습니다 — 설정에서 Navidrome/Subsonic " +
+				"주소를 입력하세요.",
+			stereoReady:
+				"Stereo에 연결되었습니다. Stereo에서 음악을 재생하면 이 카드가 제어합니다.",
+			openStereo: "Stereo 열기",
+			browsePlugins: "설정 열기",
+		},
 		title: "카드 설정",
 		iconHelp: "Lucide 아이콘 ID(예: home, star, calendar)를 입력하세요. lucide.dev/icons에서 아이콘을 둘러볼 수 있습니다. 보관함 이미지 경로(예: Attachments/icon.png)도 사용할 수 있습니다.",
 		tabs: { content: "콘텐츠", style: "스타일", layout: "레이아웃" },
@@ -1889,8 +1937,31 @@ export const ko: Translations = {
 	},
 	cards: {
 		...en.cards,
+		music: {
+			play: "재생",
+			pause: "일시정지",
+			next: "다음 트랙",
+			previous: "이전 트랙",
+			shuffle: "셔플",
+			repeat: "반복",
+			repeatNone: "반복: 끔",
+			repeatAll: "반복: 전체 대기열",
+			repeatOne: "반복: 이 트랙",
+			volume: "볼륨",
+			seek: "재생 위치",
+			nothingPlaying: "재생 중인 항목 없음",
+			queueEmpty: "대기열이 비어 있음",
+			stereoIdle: "Stereo에서 음악을 추가하세요",
+			moreTracks: (shown: number, total: number) => `${total}개 중 ${shown}개 표시`,
+			errorMissing: "이 파일은 볼트에 더 이상 없습니다",
+			errorPlayback: "이 파일은 여기서 재생할 수 없습니다",
+		},
 		empty: {
 			...en.cards.empty,
+			musicEmpty: "카드 설정에서 트랙을 추가하세요",
+			musicFolderEmpty: "이 폴더에 오디오 파일이 없습니다",
+			musicStereoMissing: "Navidrome 또는 Subsonic에서 재생하려면 Stereo 플러그인을 설치하고 활성화하세요",
+			musicStereoUnconfigured: "Stereo 설정에서 서버 주소를 입력하세요",
 			searchNoQuery: "카드 설정에서 검색어를 지정하세요.",
 			searchNoMatches: "일치하는 항목이 없습니다.",
 			embedPickFile: "설정에서 삽입할 파일을 선택하세요.",

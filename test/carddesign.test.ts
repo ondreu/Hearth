@@ -32,6 +32,7 @@ describe("which kinds draw an Expressive design", () => {
 				"heatmap",
 				"jira",
 				"links",
+				"music",
 				"operon",
 				"recent",
 				"rss",

@@ -1263,6 +1263,12 @@ export const zh: Translations = {
 			goToTab: "打开",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				stereo: {
+					name: "Stereo",
+					desc:
+						"让音乐卡片控制 Stereo 插件的 Navidrome/Subsonic 播放器——当前曲目、" +
+						"队列和播放控制。",
+				},
 				omnisearch: {
 					name: "Omnisearch",
 					desc:
@@ -1609,6 +1615,41 @@ export const zh: Translations = {
 
 	// ---- Card settings editor ------------------------------------------
 	editors: {
+		music: {
+			source: "来源",
+			sourceDesc: "卡片从哪里取音乐。",
+			sources: {
+				folder: "库文件夹",
+				list: "库文件（列表）",
+				stereo: "Stereo（Navidrome/Subsonic）",
+			},
+			folder: "文件夹",
+			folderDesc: "此文件夹里的每个音频文件都会成为一首曲目。",
+			folderPlaceholder: "音乐/专辑",
+			pickFolder: "选择文件夹",
+			includeSubfolders: "包含子文件夹",
+			includeSubfoldersDesc: "也取用其子文件夹里的曲目。",
+			found: (count: number) => `找到 ${count} 首曲目`,
+			noTracks: "还没有曲目——在下面添加一首。",
+			addTrack: "添加曲目",
+			pickTrack: "选择音频文件",
+			missingTrack: "该文件已不在库中",
+			remove: "移除",
+			playbackHeading: "播放",
+			look: "正在播放的样式",
+			lookDesc: "卡片如何绘制当前播放的内容。",
+			looks: { plain: "简洁", record: "唱片", bars: "电平条" },
+			showQueue: "显示队列",
+			showQueueDesc: "在控制按钮下方列出曲目。",
+			stereoHeading: "Stereo 插件",
+			stereoMissing:
+				"未安装 Stereo。请从社区插件浏览器安装，然后重新选择此来源。",
+			stereoUnconfigured:
+				"Stereo 已安装但还没有服务器——在它的设置里填写 Navidrome/Subsonic 地址。",
+			stereoReady: "已连接到 Stereo。在 Stereo 里播放音乐，这张卡片负责控制。",
+			openStereo: "打开 Stereo",
+			browsePlugins: "打开设置",
+		},
 		title: "卡片设置",
 		/** Shown as the tooltip on tile icon fields (launchpad, templater). */
 		iconHelp:
@@ -1650,6 +1691,7 @@ export const zh: Translations = {
 		thisCard: "此卡片",
 		done: "完成",
 		kinds: {
+			music: "音乐",
 			embed: "嵌入（笔记 / 图片 / base）",
 			slideshow: "幻灯片",
 			daily: "日记（今天）",
@@ -3292,7 +3334,30 @@ export const zh: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		music: {
+			play: "播放",
+			pause: "暂停",
+			next: "下一首",
+			previous: "上一首",
+			shuffle: "随机播放",
+			repeat: "循环",
+			repeatNone: "循环：关闭",
+			repeatAll: "循环：整个队列",
+			repeatOne: "循环：当前曲目",
+			volume: "音量",
+			seek: "播放进度",
+			nothingPlaying: "未在播放",
+			queueEmpty: "队列为空",
+			stereoIdle: "在 Stereo 里添加一些音乐",
+			moreTracks: (shown: number, total: number) => `显示 ${shown} / ${total} 首`,
+			errorMissing: "该文件已不在库中",
+			errorPlayback: "此文件无法在这里播放",
+		},
 		empty: {
+			musicEmpty: "在卡片设置里添加曲目",
+			musicFolderEmpty: "此文件夹里没有音频文件",
+			musicStereoMissing: "安装并启用 Stereo 插件，才能从 Navidrome 或 Subsonic 播放",
+			musicStereoUnconfigured: "在 Stereo 的设置里填写服务器地址",
 			searchNoQuery: "请在卡片设置中设定查询",
 			searchNoMatches: "无匹配项",
 			embedPickFile: "请在设置中选择要嵌入的文件",
@@ -4125,6 +4190,8 @@ export const zh: Translations = {
 
 	// ---- Card templates (Add card menu) --------------------------------
 	templates: {
+		music: "音乐",
+		"music-stereo": "音乐（Stereo）",
 		note: "嵌入笔记",
 		image: "嵌入图片",
 		slideshow: "幻灯片",
@@ -4173,6 +4240,8 @@ export const zh: Translations = {
 	 * searched alongside it. Say what the card *shows* — the name already says
 	 * what it is called. */
 	templateDescriptions: {
+		music: "播放库中某个文件夹里的音频，并把队列显示在卡片上",
+		"music-stereo": "控制 Stereo 插件 Navidrome 播放器的遥控卡片",
 		note: "任意笔记，在面板上实时渲染",
 		image: "仓库中的一张图片，铺满整张卡片",
 		slideshow: "来自列表或文件夹的图片，按计时器轮播",

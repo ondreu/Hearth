@@ -13,6 +13,7 @@ import { slideshowCard } from "./slideshow";
 import { dailyCard } from "./daily";
 import { periodicCard } from "./periodic";
 import { webCard } from "./web";
+import { musicCard } from "./music";
 import { bookmarksCard } from "./bookmarks";
 import { favoritesCard } from "./favorites";
 import { textCard } from "./text";
@@ -64,6 +65,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	daily: dailyCard,
 	periodic: periodicCard,
 	web: webCard,
+	music: musicCard,
 	bookmarks: bookmarksCard,
 	favorites: favoritesCard,
 	text: textCard,
@@ -136,8 +138,8 @@ export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[]
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "text", "calculator", "web"] },
-	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
-	{ category: "fun", templates: ["pet", "vault-pet", "vault-pet-house"] },
+	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "music-stereo", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
+	{ category: "fun", templates: ["music", "pet", "vault-pet", "vault-pet-house"] },
 ];
 
 /** The categories, in picker order. */

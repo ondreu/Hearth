@@ -236,6 +236,61 @@ carries on from the picture you chose, a timer card restarts its clock.
 Note that on the **Minimal** performance tier a slideshow holds one picture
 instead of rotating; see [chapter 12](12-performance.md).
 
+## Music
+
+**What it shows:** a player — transport, seek bar, volume and the queue — for
+audio that is either in your vault or on a Navidrome/Subsonic server.
+
+**Requires:** nothing for vault audio. The server source needs the
+[Stereo](10-cards-integrations.md#music-stereo) community plugin.
+
+### Where the music comes from
+
+| Source | Meaning |
+| --- | --- |
+| **Vault folder** | Every audio file in one folder, in name order, optionally including subfolders |
+| **Vault files (list)** | A hand-picked list of files, in the order you added them |
+| **Stereo (Navidrome/Subsonic)** | Whatever the Stereo plugin has queued on your server |
+
+The two vault sources are played by Hearth itself. **Stereo** plays nothing: the
+card is a remote control for the Stereo plugin, so browsing, queuing and
+scrobbling all stay in Stereo and the card only mirrors what it is playing. Pick
+it when your library lives on a server rather than in the vault.
+
+Vault playback survives a redraw of the board — a settings change, a resize, a
+track dropped into the watched folder — because the audio element belongs to the
+plugin, not to the card. It stops when the plugin unloads, and it resumes where
+you left it the next time Obsidian starts. Two music cards on one board share the
+same player: one set of speakers.
+
+### Controls
+
+Previous / play-pause / next, a seek bar, volume, shuffle, and repeat cycling
+through *off* → *whole queue* → *this track*. A track that ends under *off* stops
+rather than looping back to the top; pressing next on the last track stays where
+it is. Playback starts paused — a board that starts playing the moment you open
+it is not what anyone wants — and on a phone that first press is also what
+unlocks audio.
+
+### Display
+
+| Setting | Meaning |
+| --- | --- |
+| *Now-playing style* | Plain (a glyph), Record (a disc that spins while playing) or Level bars (a meter that moves) |
+| *Show the queue* | List the tracks under the transport |
+
+The two moving motifs only animate while something is playing, and they are CSS
+animations, so the board's motion gates freeze them along with everything else.
+On the **Expressive** design the artwork, the play button and the queue take the
+design's own accents.
+
+### Formats
+
+mp3, m4a, aac, wav, flac, ogg and opus. What actually plays is up to the
+platform: Obsidian on iOS refuses ogg/opus, so a vault shared with a phone is
+happiest as mp3, m4a or flac. A file the platform refuses is reported on the card
+instead of failing silently.
+
 ---
 
 ## Embedded canvas

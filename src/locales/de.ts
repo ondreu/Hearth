@@ -1396,6 +1396,12 @@ export const de: Translations = {
 			goToTab: "Öffnen",
 			/** Ein Eintrag pro ID in `INTEGRATIONS`. */
 			items: {
+				stereo: {
+					name: "Stereo",
+					desc:
+						"Lässt eine Musik-Karte den Navidrome-/Subsonic-Player des " +
+						"Stereo-Plugins steuern — laufender Titel, Warteschlange und Bedienung.",
+				},
 				omnisearch: {
 					name: "Omnisearch",
 					desc:
@@ -1792,6 +1798,45 @@ export const de: Translations = {
 	},
 	// ---- Karteneinstellungen ------------------------------------------
 	editors: {
+		music: {
+			source: "Quelle",
+			sourceDesc: "Woher die Karte ihre Musik nimmt.",
+			sources: {
+				folder: "Vault-Ordner",
+				list: "Vault-Dateien (Liste)",
+				stereo: "Stereo (Navidrome/Subsonic)",
+			},
+			folder: "Ordner",
+			folderDesc: "Jede Audiodatei in diesem Ordner wird ein Titel.",
+			folderPlaceholder: "Musik/Alben",
+			pickFolder: "Ordner wählen",
+			includeSubfolders: "Unterordner einbeziehen",
+			includeSubfoldersDesc: "Auch Titel aus Ordnern darunter nehmen.",
+			found: (count: number) => `${count} Titel gefunden`,
+			noTracks: "Noch keine Titel — unten einen hinzufügen.",
+			addTrack: "Titel hinzufügen",
+			pickTrack: "Audiodatei wählen",
+			missingTrack: "Diese Datei ist nicht mehr im Vault",
+			remove: "Entfernen",
+			playbackHeading: "Wiedergabe",
+			look: "Stil der Anzeige",
+			lookDesc: "Wie die Karte den laufenden Titel zeichnet.",
+			looks: { plain: "Schlicht", record: "Schallplatte", bars: "Pegelbalken" },
+			showQueue: "Warteschlange zeigen",
+			showQueueDesc: "Die Titel unter den Bedienelementen auflisten.",
+			stereoHeading: "Stereo-Plugin",
+			stereoMissing:
+				"Stereo ist nicht installiert. Im Community-Plugin-Browser hinzufügen " +
+				"und diese Quelle erneut wählen.",
+			stereoUnconfigured:
+				"Stereo ist installiert, hat aber noch keinen Server — Navidrome- oder " +
+				"Subsonic-Adresse in seinen Einstellungen eintragen.",
+			stereoReady:
+				"Mit Stereo verbunden. Musik in Stereo einreihen, diese Karte steuert " +
+				"die Wiedergabe.",
+			openStereo: "Stereo öffnen",
+			browsePlugins: "Einstellungen öffnen",
+		},
 		title: "Karteneinstellungen",
 		/** Wird als Tooltip für Kachelsymbol-Felder angezeigt (Zentrale, Befehle). */
 		iconHelp:
@@ -1834,6 +1879,7 @@ export const de: Translations = {
 		thisCard: "diese Karte",
 		done: "Fertig",
 		kinds: {
+			music: "Musik",
 			embed: "Einbetten (Notiz / Bild / base)",
 			slideshow: "Diashow",
 			daily: "Tagesnotiz (heute)",
@@ -3619,7 +3665,31 @@ export const de: Translations = {
 	},
 	// ---- Karteninhalte (dargestellter Inhalt) --------------------------------
 	cards: {
+		music: {
+			play: "Abspielen",
+			pause: "Pause",
+			next: "Nächster Titel",
+			previous: "Vorheriger Titel",
+			shuffle: "Zufällig",
+			repeat: "Wiederholen",
+			repeatNone: "Wiederholen: aus",
+			repeatAll: "Wiederholen: ganze Warteschlange",
+			repeatOne: "Wiederholen: dieser Titel",
+			volume: "Lautstärke",
+			seek: "Wiedergabeposition",
+			nothingPlaying: "Nichts wird abgespielt",
+			queueEmpty: "Warteschlange leer",
+			stereoIdle: "In Stereo etwas einreihen",
+			moreTracks: (shown: number, total: number) => `${shown} von ${total} Titeln`,
+			errorMissing: "Diese Datei ist nicht mehr im Vault",
+			errorPlayback: "Diese Datei lässt sich hier nicht abspielen",
+		},
 		empty: {
+			musicEmpty: "Titel in den Karteneinstellungen hinzufügen",
+			musicFolderEmpty: "Keine Audiodateien in diesem Ordner",
+			musicStereoMissing:
+				"Stereo-Plugin installieren und aktivieren, um von Navidrome oder Subsonic abzuspielen",
+			musicStereoUnconfigured: "Serveradresse in den Stereo-Einstellungen eintragen",
 			searchNoQuery: "Lege eine Abfrage in den Karteneinstellungen fest",
 			searchNoMatches: "Keine Treffer",
 			embedPickFile: "Wähle eine Datei zum Einbetten in den Einstellungen",
@@ -4465,6 +4535,8 @@ export const de: Translations = {
 
 	// ---- Kartenvorlagen (Menü Karte hinzufügen) --------------------------------
 	templates: {
+		music: "Musik",
+		"music-stereo": "Musik (Stereo)",
 		note: "Eingebettete Notiz",
 		image: "Eingebettetes Bild",
 		slideshow: "Diashow",
@@ -4513,6 +4585,8 @@ export const de: Translations = {
 	 * mit durchsucht. Sage, was die Karte *zeigt* - der Name sagt schon,
 	 * wie sie heißt. */
 	templateDescriptions: {
+		music: "Spielt die Audiodateien eines Vault-Ordners ab, mit Warteschlange auf der Karte",
+		"music-stereo": "Fernbedienung für den Navidrome-Player des Stereo-Plugins",
 		note: "Jede Notiz, live auf dem Board dargestellt",
 		image: "Ein Bild aus dem Vault, randlos",
 		slideshow: "Bilder aus einer Liste oder einem Ordner, im Wechsel per Timer",

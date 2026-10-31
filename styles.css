@@ -26017,3 +26017,431 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	text-decoration-color: var(--text-faint);
 	color: var(--text-muted);
 }
+
+/* ---- Music card (src/cards/music.ts) ---------------------------------
+ *
+ * One card, two sources: Hearth's own player for audio files in the vault, and
+ * a remote control over the Stereo plugin's streamed player. Both draw the same
+ * chrome, so everything below is source-agnostic — the only branch is the
+ * artwork, which is a cover picture when the source has one and a motif when it
+ * does not.
+ *
+ * The two motifs that move (a spinning record, a level meter) are CSS
+ * animations on purpose: the board's motion gate freezes animations with
+ * `animation-play-state` (see motion.ts), so they cost nothing off screen and
+ * need no JS gate of their own. They only run while the card is playing, which
+ * is a class the paint pass toggles. */
+
+.hearth-card-body.hearth-music-host {
+	padding: 12px var(--hearth-card-pad-x);
+	display: flex;
+}
+
+.hearth-music {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+	width: 100%;
+	min-height: 0;
+}
+
+/* ---- Now playing ---- */
+
+.hearth-music-now {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	min-width: 0;
+}
+
+.hearth-music-art {
+	position: relative;
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	width: 46px;
+	height: 46px;
+	border-radius: 12px;
+	overflow: hidden;
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+}
+
+.hearth-music-art .svg-icon {
+	width: 22px;
+	height: 22px;
+}
+
+.hearth-music-cover {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.hearth-music-meta {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.hearth-music-title {
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-music-sub {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ---- Seek row ---- */
+
+.hearth-music-progress {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.hearth-music-time {
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+	min-width: 3ch;
+}
+
+.hearth-music-time.is-total {
+	text-align: end;
+}
+
+.hearth-music-seek {
+	flex: 1 1 auto;
+	width: auto;
+	height: 4px;
+	margin: 0;
+	accent-color: var(--interactive-accent);
+}
+
+.hearth-music-seek:disabled {
+	opacity: 0.4;
+}
+
+/* ---- Transport ---- */
+
+.hearth-music-transport {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.hearth-music-btn {
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: none;
+	border-radius: 8px;
+	background: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.hearth-music-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.hearth-music-btn .svg-icon {
+	width: 17px;
+	height: 17px;
+}
+
+.hearth-music-btn.is-play {
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.hearth-music-btn.is-play:hover {
+	background: var(--interactive-accent-hover);
+	color: var(--text-on-accent);
+}
+
+.hearth-music-btn.is-play .svg-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.hearth-music-btn.is-on {
+	color: var(--interactive-accent);
+}
+
+.hearth-music-tools {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	margin-inline-start: auto;
+}
+
+.hearth-music-volume {
+	width: 58px;
+	height: 4px;
+	margin: 0 0 0 4px;
+	accent-color: var(--interactive-accent);
+}
+
+/* ---- Error line (only rendered when there is something to say) ---- */
+
+.hearth-music-status {
+	display: none;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-error);
+}
+
+.hearth-music-status.is-shown {
+	display: block;
+}
+
+/* ---- Queue ---- */
+
+/* Full-bleed inside the body's own padding: the rows' hover highlight reaches
+ * the card edge instead of floating in a gutter, which is what makes a list
+ * read as a list rather than as a box of text. */
+.hearth-music-queue {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	margin: 0 calc(var(--hearth-card-pad-x) * -1);
+	padding: 0 var(--hearth-card-pad-x);
+}
+
+.hearth-music-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 5px 7px;
+	border: none;
+	border-radius: 7px;
+	background: none;
+	box-shadow: none;
+	color: var(--text-normal);
+	text-align: start;
+	cursor: pointer;
+}
+
+.hearth-music-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.hearth-music-row.is-current {
+	background: var(--background-modifier-hover);
+	color: var(--interactive-accent);
+}
+
+.hearth-music-row-text {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.hearth-music-row-label {
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-music-row.is-current .hearth-music-row-label {
+	font-weight: var(--font-semibold);
+}
+
+.hearth-music-row-sub {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-music-row-more {
+	padding: 4px 7px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+/* ---- Motif: record ---- */
+
+.hearth-music-disc {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: radial-gradient(circle, #1b1b1e 0 30%, #0e0e10 31% 100%);
+	box-shadow:
+		inset 0 0 0 1px rgb(255 255 255 / 10%),
+		0 1px 4px rgb(0 0 0 / 35%);
+}
+
+/* A groove ring, so the disc reads as a record rather than as a grey dot. */
+.hearth-music-disc::before {
+	content: "";
+	position: absolute;
+	inset: 16%;
+	border: 1px solid rgb(255 255 255 / 8%);
+	border-radius: 50%;
+}
+
+.hearth-music-disc-label {
+	width: 38%;
+	height: 38%;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+}
+
+.hearth-music-disc-hole {
+	position: absolute;
+	width: 9%;
+	height: 9%;
+	border-radius: 50%;
+	background: var(--background-primary);
+}
+
+.hearth-music-art.is-look-record.is-playing .hearth-music-disc {
+	animation: hearth-music-spin 3.8s linear infinite;
+}
+
+/* ---- Motif: level bars ---- */
+
+.hearth-music-bars {
+	display: flex;
+	align-items: flex-end;
+	gap: 3px;
+	height: 20px;
+}
+
+.hearth-music-meter {
+	width: 4px;
+	height: 100%;
+	border-radius: 2px;
+	background: currentColor;
+	transform: scaleY(0.3);
+	transform-origin: bottom;
+	opacity: 0.85;
+}
+
+.hearth-music-art.is-look-bars.is-playing .hearth-music-meter {
+	animation: hearth-music-pulse 1.1s ease-in-out infinite;
+}
+
+.hearth-music-art.is-look-bars.is-playing .hearth-music-meter:nth-child(2) {
+	animation-duration: 0.85s;
+	animation-delay: -0.3s;
+}
+
+.hearth-music-art.is-look-bars.is-playing .hearth-music-meter:nth-child(3) {
+	animation-duration: 1.35s;
+	animation-delay: -0.6s;
+}
+
+.hearth-music-art.is-look-bars.is-playing .hearth-music-meter:nth-child(4) {
+	animation-duration: 0.95s;
+	animation-delay: -0.15s;
+}
+
+@keyframes hearth-music-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes hearth-music-pulse {
+	0%,
+	100% {
+		transform: scaleY(0.28);
+	}
+	50% {
+		transform: scaleY(1);
+	}
+}
+
+/* A reader who asked the machine to hold still gets the motifs as still
+ * pictures — the same request the sky and the pet honour. */
+@media (prefers-reduced-motion: reduce) {
+	.hearth-music-art.is-playing .hearth-music-disc,
+	.hearth-music-art.is-playing .hearth-music-meter {
+		animation: none;
+	}
+}
+
+/* ---- Expressive ---- */
+
+/* The Expressive frame is already filled with a tonal surface, so the artwork
+ * and the play button take the design's own accents rather than the theme's:
+ * a container chip for the art, and a filled circle for the one control that
+ * matters, which is the Material 3 way of saying "this is the primary action". */
+.hearth-card.is-expressive .hearth-music-art {
+	width: 50px;
+	height: 50px;
+	border-radius: 16px;
+	background: var(--x-surface-high);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-music-title {
+	font-weight: var(--font-bold);
+}
+
+.hearth-card.is-expressive .hearth-music-btn {
+	border-radius: 50%;
+}
+
+.hearth-card.is-expressive .hearth-music-btn.is-play {
+	width: 40px;
+	height: 40px;
+	background: var(--x-primary);
+	color: var(--x-on-primary);
+}
+
+.hearth-card.is-expressive .hearth-music-btn.is-on {
+	color: var(--x-primary);
+}
+
+.hearth-card.is-expressive .hearth-music-row {
+	border-radius: 999px;
+	padding: 6px 10px;
+}
+
+.hearth-card.is-expressive .hearth-music-row.is-current {
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-music-row.is-current .hearth-music-row-label {
+	color: var(--x-on-container);
+}
+
+.hearth-card.is-expressive .hearth-music-seek,
+.hearth-card.is-expressive .hearth-music-volume {
+	accent-color: var(--x-primary);
+}
+
+/* The music card's own <audio> element, parked in the document so mobile
+ * webviews keep playing when the app is backgrounded. It paints nothing. */
+.hearth-music-audio {
+	display: none;
+}
