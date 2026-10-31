@@ -115,7 +115,7 @@ settings page says so.
 
 ## Search
 
-Two sections: Search bar, Search filters.
+Two sections: Search bar, Filter chips.
 
 ### Search bar
 
@@ -141,15 +141,20 @@ card, and Hearth's *Create new note* command.
 | *Location* | Default location | Folder the new note goes in, created if it does not exist. "Default location" means wherever Obsidian puts new notes |
 | *Filename* | empty ("Untitled") | Name without the extension. Supports `{{date}}`, `{{date:FMT}}`, `{{time}}`, `{{time:FMT}}` and `{{prompt}}` |
 
-### Search filters
+### Filter chips
 
-*Filters are auto-detected from the file types in your vault. Hide any you don't
-want.*
+*Chips are auto-detected from the file types in your vault. Hide any you don't
+want, and choose whether hiding also takes that type out of the results.*
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| *Search only the shown types* | Off | Off: a hidden chip is only missing from the row, and search still finds every type. On: results are limited to the types whose chips are shown — every chip counts as picked, so switching one off narrows the search further |
 
 The possible groups are Folders, Notes, Excalidraw, Canvas, Bases, Images,
 Videos, Audio, PDF, Documents, Sheets, Slides, 3D and Other. A chip only appears
 if your vault holds that kind of file. Hiding a chip here hides it for every
-search bar, including Search bar cards.
+search bar, including Search bar cards, and with the switch on it also keeps
+that type out of their results.
 
 ---
 

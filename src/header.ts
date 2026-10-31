@@ -17,6 +17,7 @@ import {
 	effectiveShowNewNoteButton,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	effectiveStrictFilters,
 	effectiveThemeColorTarget,
 	effectiveTitle,
 	effectiveTitleIcon,
@@ -109,7 +110,11 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 	}
 
 	const below = narrow ? searchWrap : searchCol;
-	search.renderResultsAndFilters(below, below, component);
+	// The header's row carries every chip, so it follows the board's (or the
+	// vault's) strict switch (#434) — there is no per-card say here.
+	search.renderResultsAndFilters(below, below, component, {
+		strictFilters: effectiveStrictFilters(s),
+	});
 }
 
 /** The button that sits beside a search bar, in either of its two modes. Shared

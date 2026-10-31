@@ -2321,6 +2321,18 @@ export class HomeSettingTab extends PluginSettingTab {
 		const s = this.plugin.settings;
 		const hidden = new Set(s.hiddenFilters);
 
+		// The switch that decides what hiding a chip *means* (#434). Placed
+		// above the chips because it changes their effect, not just the row.
+		new Setting(containerEl)
+			.setName(t().settings.filters.strict)
+			.setDesc(t().settings.filters.strictDesc)
+			.addToggle((tog) =>
+				tog.setValue(s.strictFilters).onChange(async (v) => {
+					s.strictFilters = v;
+					this.save();
+				}),
+			);
+
 		for (const group of FILE_TYPE_GROUPS) {
 			new Setting(containerEl)
 				.setName(fileTypeLabel(group))

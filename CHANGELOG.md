@@ -119,7 +119,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   keeps following the theme's accent. Two grids tracking different things can now
   look different. Shade and darkening modes are not part of this change.
 
+- **Hiding a filter chip can now hide the type from search too** (#434). A chip
+  hidden under *Settings → Search → Filter chips* used to vanish from the row
+  while search kept returning that kind of file, which read as the setting not
+  working. The new *Search only the shown types* switch (off by default) turns
+  the row into a whitelist: results hold nothing but the types whose chips are
+  shown, every chip counts as picked, and switching one off narrows the search
+  further. It is per board as well, and a Search bar card can turn it on for its
+  own bar. Every engine follows it — the built-in search, note-body matches,
+  Omnisearch, the Quick switcher and the recents list.
+
 ### Changed
+
+- **“Search filters” is now “Filter chips”**, the name the per-board override
+  already used. What it controls is the row of chips, not which files are
+  searched; the new switch above is the one that decides the latter.
 
 - **Task descriptions say what they can hold.** The description field has a
   *What formatting works here?* guide — inline Markdown (bold, italic,

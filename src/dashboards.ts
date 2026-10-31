@@ -1050,13 +1050,42 @@ class DashboardSettingsModal extends HearthTabbedModal {
 					}),
 				);
 		}
+		this.strictFilterOverride(containerEl);
 	}
 
 	/**
-	 * The instant answers this board's search bars give. Unlike the chips, a
-	 * board can only switch answers off on top of the vault's choice — the
-	 * vault decides what may run at all, and an imported board can't widen it.
+	 * Whether this board's search only returns the types its chips show (#434).
+	 *
+	 * An override like the rest: unset follows the vault as it changes later, so
+	 * a board doesn't freeze a value it never asked for. Set it and the board
+	 * states its own answer in both directions — a board that shows every chip
+	 * can be strict while the vault is not, and vice versa.
 	 */
+	private strictFilterOverride(containerEl: HTMLElement): void {
+		const dash = this.dash;
+		const s = this.view.plugin.settings;
+		const strings = t().dashboards.modal;
+		this.overrideBool(
+			containerEl,
+			strings.strictFilters,
+			strings.strictFiltersDesc,
+			dash.strictFilters,
+			s.strictFilters,
+			{
+				on: strings.strictFiltersOptionOn,
+				off: strings.strictFiltersOptionOff,
+				stateOn: strings.strictFiltersStateOn,
+				stateOff: strings.strictFiltersStateOff,
+			},
+			(v) => {
+				dash.strictFilters = v;
+			},
+		);
+	}
+
+	/** The instant answers this board's search bars give. Unlike the chips, a
+	 * board can only switch answers off on top of the vault's choice — the
+	 * vault decides what may run at all, and an imported board can't widen it. */
 	private instantAnswersOverride(containerEl: HTMLElement): void {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;

@@ -1,7 +1,6 @@
 import { App, TFile } from "obsidian";
 import { cleanExcerptText, foldForMatch, highlightRanges, windowExcerpt } from "./excerpt";
-import { groupForFile } from "./filetypes";
-import { QueryFilter, QueryHit } from "./query";
+import { QueryFilter, QueryHit, filePassesFilter } from "./query";
 
 /** The community-plugin id Omnisearch registers itself under. */
 export const OMNISEARCH_PLUGIN_ID = "omnisearch";
@@ -137,7 +136,7 @@ export async function searchWithOmnisearch(
 	for (const result of results) {
 		const file = app.vault.getAbstractFileByPath(result.path);
 		if (!(file instanceof TFile)) continue;
-		if (filter.groupId && groupForFile(file)?.id !== filter.groupId) continue;
+		if (!filePassesFilter(file, filter)) continue;
 		// Single characters match almost everywhere; highlighting them speckles
 		// the row without saying anything about why it matched.
 		const words = result.foundWords.filter((w) => w.length > 1);

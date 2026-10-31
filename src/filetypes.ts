@@ -101,6 +101,15 @@ export function groupById(id: string): FileTypeGroup | undefined {
 	return FILE_TYPE_GROUPS.find((g) => g.id === id);
 }
 
+/** Every group id left out when only `shown` may match — the strict search
+ * filter's exclusion list (#434). Derived from the whole table, not from what
+ * the vault happens to contain: a group the vault gains later must not slip
+ * past a whitelist the reader built before it existed. */
+export function excludedGroupIds(shown: Iterable<string>): string[] {
+	const on = new Set(shown);
+	return FILE_TYPE_GROUPS.filter((g) => !on.has(g.id)).map((g) => g.id);
+}
+
 /** Maps a group id to its key in the `fileTypes` locale table. Ids and keys
  * match one-to-one except for "3d" (a leading digit isn't a valid key). */
 const FILE_TYPE_LABEL_KEYS: Record<string, keyof ReturnType<typeof t>["fileTypes"]> = {

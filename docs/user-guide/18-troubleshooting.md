@@ -341,7 +341,13 @@ Re-enable Omnisearch and select it again.
 
 Chips are auto-detected: one appears only if your vault actually contains that
 kind of file. Also check that it is not hidden under **Settings → Hearth →
-Search → Search filters**, or on that board's *Filter chips* override.
+Search → Filter chips**, or on that board's *Filter chips* override.
+
+### Search finds nothing for a file type I can see
+
+*Search only the shown types* under **Settings → Hearth → Search → Filter chips**
+(or the same switch in a board's settings) limits results to the types whose
+chips are on. Switch the chip back on, or turn the switch off.
 
 ### My file icons from Iconic or Iconize do not show
 

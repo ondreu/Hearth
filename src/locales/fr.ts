@@ -680,6 +680,14 @@ export const fr: Translations = {
 				count === 0
 					? "Suit le coffre, qui n'en masque aucun."
 					: `Suit le coffre, qui en masque ${count}.`,
+			strictFilters: "Seulement ces types",
+			strictFiltersDesc:
+				"Chercher uniquement dans les types de fichiers dont ce tableau affiche les " +
+				"filtres. « Suivre le coffre » garde ce tableau aligné sur Réglages → Recherche.",
+			strictFiltersOptionOn: "Seulement les types affichés",
+			strictFiltersOptionOff: "Tous les types",
+			strictFiltersStateOn: "seulement les types affichés",
+			strictFiltersStateOff: "tous les types",
 			hiddenInstant: "Réponses instantanées",
 			hiddenInstantDesc: "Désactiver les réponses pour les barres de recherche de ce tableau. Les réponses désactivées pour tout le coffre le restent.",
 			hiddenInstantOffVault: "Désactivé pour tout le coffre dans Paramètres → Recherche.",
@@ -1667,9 +1675,17 @@ export const fr: Translations = {
 			recheckAction: "Revérifier maintenant",
 		},
 		filters: {
-			heading: "Filtres de recherche",
+			heading: "Filtres",
 			headingDesc:
-				"Les filtres sont détectés automatiquement d'après les types de fichiers de votre coffre. Masquez ceux dont vous ne voulez pas.",
+				"Les filtres sont détectés automatiquement d'après les types de fichiers de " +
+				"votre coffre. Masquez ceux dont vous ne voulez pas, et choisissez si le " +
+				"masquage retire aussi ce type des résultats.",
+			strict: "Chercher seulement dans les types affichés",
+			strictDesc:
+				"Désactivé : masquer un filtre le retire seulement de la rangée, la recherche " +
+				"trouve toujours tous les types. Activé : les résultats se limitent aux types " +
+				"dont les filtres sont affichés — chaque filtre compte comme sélectionné, en " +
+				"désactiver un restreint encore la recherche.",
 		},
 		dashboard: {
 			heading: "Tableau de bord",
@@ -2477,7 +2493,16 @@ export const fr: Translations = {
 			filterTypesDesc:
 				"Les filtres proposés par cette carte. Un filtre n'apparaît que si le coffre " +
 				"contient réellement ce type de fichier.",
-			filterTypeGlobalOff: "Masqué pour toutes les barres de recherche dans Paramètres → Filtres.",
+			strictFilters: "Seulement ces types",
+			strictFiltersDesc:
+				"Chercher uniquement dans les types de fichiers dont cette barre affiche les " +
+				"filtres — chaque filtre compte comme sélectionné, en désactiver un restreint " +
+				"encore la recherche.",
+			strictFiltersAbove:
+				"Déjà activé pour ce tableau ou pour tout le coffre dans Réglages → Recherche ; " +
+				"impossible à désactiver ici.",
+			filterTypeGlobalOff:
+				"Masqué pour toutes les barres de recherche dans Réglages → Recherche → Filtres.",
 			instantAnswers: "Réponses instantanées",
 			instantAnswersDesc:
 				"Désactiver les réponses pour cette barre de recherche. Les réponses désactivées sur le tableau ou pour tout le coffre le restent ici.",

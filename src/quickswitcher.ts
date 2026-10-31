@@ -1,6 +1,5 @@
 import { App, parseFrontMatterAliases, prepareFuzzySearch, SearchResult, TFile } from "obsidian";
-import { groupForFile } from "./filetypes";
-import { QueryFilter, QueryHit } from "./query";
+import { QueryFilter, QueryHit, filePassesFilter } from "./query";
 
 /**
  * The "Quick switcher" search engine: the search bar answers the way
@@ -155,7 +154,7 @@ export function searchLikeQuickSwitcher(
 	const hits: QueryHit[] = [];
 	for (const file of app.vault.getFiles()) {
 		if (!switcherListsExtension(file.extension, options)) continue;
-		if (filter.groupId && groupForFile(file)?.id !== filter.groupId) continue;
+		if (!filePassesFilter(file, filter)) continue;
 		const result = matchCandidate(
 			{
 				text: switcherText(file.path, file.extension),
