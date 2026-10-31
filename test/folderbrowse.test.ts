@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { browseStateFor, defaultBrowseState, picturesAllowed, readBrowseState } from "../src/folderbrowse";
+import {
+	browseStateFor,
+	defaultBrowseState,
+	FOLDED_MAX,
+	picturesAllowed,
+	readBrowseState,
+	readFoldedSections,
+	toggleFolded,
+} from "../src/folderbrowse";
 import { PREVIEW_SIZE } from "../src/notepreview";
 
 /** The folder browser's state: from a card, and back out of a tab's saved
@@ -60,5 +68,36 @@ describe("the page's design", () => {
 	it("is kept by a tab, and only when it names one", () => {
 		expect(readBrowseState({ design: "expressive" }).design).toBe("expressive");
 		expect(readBrowseState({ design: "neon" }).design).toBeUndefined();
+	});
+});
+
+/** The sections folded while browsing, on this device (#439). */
+describe("folded sections", () => {
+	it("reads back only what could name a section", () => {
+		expect(readFoldedSections(["A/B", "/C/", "", "/", 7, null, "A/B"])).toEqual(["A/B", "C"]);
+	});
+
+	it("starts empty on anything else", () => {
+		expect(readFoldedSections(null)).toEqual([]);
+		expect(readFoldedSections("A")).toEqual([]);
+		expect(readFoldedSections({ A: true })).toEqual([]);
+	});
+
+	it("folds a section and opens it again", () => {
+		const folded = toggleFolded([], "A/B");
+		expect(folded).toEqual(["A/B"]);
+		expect(toggleFolded(folded, "A/B")).toEqual([]);
+	});
+
+	it("never folds the vault root", () => {
+		expect(toggleFolded(["A"], "/")).toEqual(["A"]);
+	});
+
+	it("keeps the newest once the store is full", () => {
+		let folded: string[] = [];
+		for (let i = 0; i < FOLDED_MAX + 5; i++) folded = toggleFolded(folded, `f${i}`);
+		expect(folded).toHaveLength(FOLDED_MAX);
+		expect(folded).toContain(`f${FOLDED_MAX + 4}`);
+		expect(folded).not.toContain("f0");
 	});
 });

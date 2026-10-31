@@ -76,16 +76,16 @@ export class FolderView extends ItemView {
 			// The tab's header is the title; a second one inside the page would
 			// only say it again.
 			setTitle: () => this.updateHeader(),
-			navigate: (path) => {
-				void this.leaf.setViewState({
-					type: VIEW_TYPE_FOLDER,
-					state: { ...this.state, path },
-					active: true,
-				});
-			},
+			navigate: (path) => this.write({ ...this.state, path }, true),
+			// A change of sort, layout or what is shown is the page drawn
+			// differently, not a step through its history — but it is still the
+			// tab's own state, and it is saved the way a step is: through the
+			// leaf. Written only through the debounced `requestSaveLayout`, a
+			// sort picked in the tab came back at the default after a restart
+			// (#439).
 			changed: (state) => {
 				this.state = state;
-				this.app.workspace.requestSaveLayout();
+				this.write(state, false);
 			},
 		};
 		this.browser = new FolderBrowser(host, this.contentEl.createDiv(), this.state);
@@ -115,6 +115,24 @@ export class FolderView extends ItemView {
 		this.browser?.destroy();
 		this.browser = null;
 		this.contentEl.empty();
+	}
+
+	/**
+	 * Hand the tab's state to Obsidian and have it recorded: the folder shown,
+	 * the sort, the layout. `active` brings the tab forward, which a step into
+	 * a folder amounts to; a control changing the same page doesn't need it.
+	 *
+	 * This is the one place the tab's state leaves the view. `requestSaveLayout`
+	 * stays as belt and braces — it is debounced, so on its own it could be
+	 * lost with the window (#439).
+	 */
+	private write(state: FolderBrowseState, active: boolean): void {
+		void this.leaf.setViewState({
+			type: VIEW_TYPE_FOLDER,
+			state: { ...state },
+			...(active ? { active: true } : {}),
+		});
+		this.app.workspace.requestSaveLayout();
 	}
 
 	/** Redraw when something on the page changes on disk. */

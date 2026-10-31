@@ -145,6 +145,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A folder browser tab keeps its own page across a restart** (#439). Opening a
+  folder in a tab and sorting it by date came back after a restart on the same
+  folder, but sorted the explorer's way again: the folder reached the tab's view
+  state, the sort only reached a debounced layout save. Both go the same way
+  now. The sections folded while reading are remembered as well — on the device,
+  so a folder folded in one browser is folded in the next one and after a
+  restart, without writing to `data.json`.
+
 - Currency conversion no longer hangs on a single host, and no longer forgets
   its rates between sessions. The rates are the ECB's own daily reference file,
   asked first, with Frankfurter's mirror only as a fallback, and the last good

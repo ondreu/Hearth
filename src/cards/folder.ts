@@ -26,10 +26,13 @@ import {
 } from "../foldercontents";
 import {
 	browseStateFor,
+	FOLDED_KEY,
 	folderPath,
 	picturesAllowed,
 	readBrowseState,
+	readFoldedSections,
 	ROOT,
+	toggleFolded,
 	type FolderBrowseState,
 } from "../folderbrowse";
 import { explorerTitles, type TitleOf } from "../frontmattertitle";
@@ -451,11 +454,33 @@ export async function openFolderTab(app: App, state: FolderBrowseState): Promise
 /**
  * The subfolder sections the reader has folded, by path — in every browser,
  * the dialog and the tabs alike, so a folder folded in one is folded in the
- * next. For the session only, like where a card has been walked to: folding a
- * section is how you are reading the folder now, not something the board or
- * the vault should carry (and a folded section is one click from open).
+ * next, and after a restart (#439).
+ *
+ * Kept in this device's `localStorage` for the vault (see {@link FOLDED_KEY}):
+ * folding is how a folder is being read, not how the vault is configured. One
+ * set per app, because one Obsidian can hold two vaults and neither should
+ * fold the other's sections; loaded on first use, written on every change.
  */
-const foldedSections = new Set<string>();
+const foldedByApp = new WeakMap<App, Set<string>>();
+
+function foldedSections(app: App): Set<string> {
+	let folded = foldedByApp.get(app);
+	if (!folded) {
+		folded = new Set(readFoldedSections(app.loadLocalStorage(FOLDED_KEY)));
+		foldedByApp.set(app, folded);
+	}
+	return folded;
+}
+
+/** Fold or open one section, and keep the device store in step. The set keeps
+ * its identity so every browser already holding it sees the change too. */
+function flipFolded(app: App, path: string): void {
+	const folded = foldedSections(app);
+	const next = toggleFolded([...folded], path);
+	folded.clear();
+	for (const one of next) folded.add(one);
+	app.saveLocalStorage(FOLDED_KEY, next);
+}
 
 /** What the browser needs from whatever holds it: the dialog or the tab. */
 export interface BrowserHost {
@@ -625,15 +650,16 @@ export class FolderBrowser {
 	/** Whether every section on the page is folded, which is when the bar's
 	 * button opens them all rather than folding them. */
 	private allFolded(): boolean {
-		return this.sections.length > 0 && this.sections.every((path) => foldedSections.has(path));
+		const folded = foldedSections(this.host.app);
+		return this.sections.length > 0 && this.sections.every((path) => folded.has(path));
 	}
 
 	/** Fold every section on the page, or open them all once they all are. */
 	private foldAll(): void {
 		const open = this.allFolded();
+		const folded = foldedSections(this.host.app);
 		for (const path of this.sections) {
-			if (open) foldedSections.delete(path);
-			else foldedSections.add(path);
+			if (folded.has(path) === !open) flipFolded(this.host.app, path);
 		}
 		this.draw();
 	}
@@ -688,7 +714,7 @@ export class FolderBrowser {
 
 		let body: HTMLElement | null = null;
 		const show = () => {
-			const folded = foldedSections.has(folder.path);
+			const folded = foldedSections(this.host.app).has(folder.path);
 			section.toggleClass("is-folded", folded);
 			const strings = t().cards.folder;
 			toggle.empty();
@@ -708,8 +734,7 @@ export class FolderBrowser {
 		const flip = (evt?: Event) => {
 			// The heading's own click steps into the folder; this one mustn't.
 			evt?.stopPropagation();
-			if (foldedSections.has(folder.path)) foldedSections.delete(folder.path);
-			else foldedSections.add(folder.path);
+			flipFolded(this.host.app, folder.path);
 			show();
 			this.syncFoldAll();
 		};
