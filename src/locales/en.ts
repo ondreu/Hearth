@@ -2469,6 +2469,11 @@ export const en = {
 			valuePlaceholder: "value",
 			addRule: "Add rule",
 			removeRule: "Remove rule",
+			gridHeading: "Grid",
+			gridColor: "Color",
+			gridColorDesc:
+				"Tint the squares with a color of your own instead of the theme's accent — useful when the two are too close to tell apart, or when several grids track different things.",
+			gridColorReset: "Follow the theme's accent color",
 		},
 		stats: {
 			advanced: "Advanced",

@@ -8,7 +8,7 @@ import {
 	moment,
 } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";
-import { formatHeatValue, heatmapSource } from "../heatmapmetric";
+import { formatHeatValue, heatmapSource, heatTint } from "../heatmapmetric";
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import {
@@ -58,6 +58,14 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 	const options = dailyNotesOptions(view);
 
 	const wrap = body.createDiv("hearth-heatmap");
+	// A card may tint its own squares (#430); the colour rides on a variable the
+	// tint rules in styles.css read, so the theme's accent stays the default and
+	// the legend squares below follow the same colour.
+	const tint = heatTint(cfg.color);
+	if (tint) {
+		wrap.addClass("has-tint");
+		wrap.style.setProperty("--heat-color", tint);
+	}
 	const startOfWeek = moment.localeData().firstDayOfWeek();
 	const today = moment().startOf("day");
 	const todayKey: string = today.format("YYYY-MM-DD");
@@ -155,16 +163,51 @@ export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 			});
 		});
 		weeksSetting(ctx, containerEl, cfg);
-		return;
+	} else {
+		metricSection(ctx, containerEl, cfg);
+		rulesSection(ctx, containerEl, cfg);
+		// The range is about the grid rather than the metric, so with the advanced
+		// sections above it, it gets a heading of its own instead of floating
+		// between two of them.
+		new Setting(containerEl).setName(strings.rangeHeading).setHeading();
+		weeksSetting(ctx, containerEl, cfg);
 	}
+	// How the grid is painted applies to both modes, so it closes the editor.
+	gridSection(ctx, containerEl, cfg);
+}
 
-	metricSection(ctx, containerEl, cfg);
-	rulesSection(ctx, containerEl, cfg);
-	// The range is about the grid rather than the metric, so with the advanced
-	// sections above it, it gets a heading of its own instead of floating
-	// between two of them.
-	new Setting(containerEl).setName(strings.rangeHeading).setHeading();
-	weeksSetting(ctx, containerEl, cfg);
+
+/** The colour a freshly opened picker starts on — Hearth's own accent, the same
+ * stand-in the card's accent picker uses, so an unset grid never opens on black. */
+const STANDIN_HEAT_TINT = "#7c5cff";
+
+
+/** The grid's own colour: a card may tint its squares instead of taking the
+ * theme's accent, which is what a theme with a low-contrast accent needs (#430).
+ * Unset — the default — keeps following the theme. */
+function gridSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: HeatmapConfig): void {
+	const strings = t().editors.heatmap;
+	new Setting(containerEl).setName(strings.gridHeading).setHeading();
+
+	const row = new Setting(containerEl).setName(strings.gridColor).setDesc(strings.gridColorDesc);
+	row.addColorPicker((picker) =>
+		picker.setValue(heatTint(cfg.color) ?? STANDIN_HEAT_TINT).onChange((v) => {
+			cfg.color = v;
+			ctx.opts.save();
+			ctx.opts.rerender();
+		}),
+	);
+	row.addExtraButton((btn) =>
+		btn
+			.setIcon("rotate-ccw")
+			.setTooltip(strings.gridColorReset)
+			.onClick(() => {
+				cfg.color = undefined;
+				ctx.opts.save();
+				ctx.opts.rerender();
+				ctx.requestRender();
+			}),
+	);
 }
 
 

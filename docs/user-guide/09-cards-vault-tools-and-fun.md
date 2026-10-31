@@ -129,6 +129,16 @@ combined with *Match: All rules (AND)* or *Any rule (OR)*.
 Example: count only notes in `Journal/` that carry a `words` property, summing
 that property, to draw a writing-volume heatmap.
 
+### Grid colour
+
+*Grid → Color* tints the squares with a colour of your own instead of the
+theme's accent, on either design. It applies whatever the metric is — the fade
+from a quiet day to a busy one stays the same, only the hue changes. This is for
+themes whose accent sits too close to an empty square to read the grid at all,
+and for several grids that should look different from each other. The reset
+button returns the grid to the theme's accent, which is also what a card that
+never picked a colour uses.
+
 ---
 
 # Tools

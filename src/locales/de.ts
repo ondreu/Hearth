@@ -2481,6 +2481,11 @@ export const de: Translations = {
 			valuePlaceholder: "Wert",
 			addRule: "Regel hinzufügen",
 			removeRule: "Regel entfernen",
+			gridHeading: "Raster",
+			gridColor: "Farbe",
+			gridColorDesc:
+				"Färbe die Kästchen mit einer eigenen Farbe statt mit der Akzentfarbe des Themes — hilfreich, wenn beide zu ähnlich sind oder mehrere Raster Verschiedenes zählen.",
+			gridColorReset: "Akzentfarbe des Themes verwenden",
 		},
 		stats: {
 			advanced: "Erweitert",

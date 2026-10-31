@@ -12264,6 +12264,17 @@ body.hearth-dv-resizing {
 	cursor: pointer;
 }
 
+/* A card that was given its own grid colour (#430): the same fade, its own hue.
+ * `heatTint()` sets `--heat-color` and `has-tint` on the wrap, so a card with no
+ * colour never reaches this rule and paints exactly as it always has. */
+.hearth-heatmap.has-tint .hearth-heatmap-cell.has-heat {
+	background-color: color-mix(
+		in srgb,
+		var(--heat-color) calc(15% + var(--heat, 0) * 21.25%),
+		transparent
+	);
+}
+
 .hearth-heatmap-legend {
 	display: flex;
 	align-items: center;
@@ -21633,6 +21644,18 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	background-color: color-mix(
 		in srgb,
 		var(--x-primary) calc(25% + var(--heat, 0) * 18.75%),
+		var(--background-primary)
+	);
+}
+
+/* The Expressive line mixes towards the card surface rather than transparency,
+ * so a custom colour has to mix against that same surface — otherwise a tinted
+ * Expressive grid would fade towards nothing and look nothing like the theme
+ * grid it replaced. */
+:is(.hearth-card.is-expressive, .hearth-x-modal, .hearth-search-wrap.is-expressive) .hearth-heatmap.has-tint .hearth-heatmap-cell.has-heat {
+	background-color: color-mix(
+		in srgb,
+		var(--heat-color) calc(25% + var(--heat, 0) * 18.75%),
 		var(--background-primary)
 	);
 }

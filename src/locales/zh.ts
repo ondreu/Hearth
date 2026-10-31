@@ -2233,6 +2233,10 @@ export const zh: Translations = {
 			valuePlaceholder: "值",
 			addRule: "添加规则",
 			removeRule: "删除规则",
+			gridHeading: "网格",
+			gridColor: "颜色",
+			gridColorDesc: "用自选颜色代替主题强调色给方块上色 —— 当两者过于接近难以区分，或几张网格追踪不同内容时很有用。",
+			gridColorReset: "跟随主题强调色",
 		},
 		stats: {
 			advanced: "高级",
