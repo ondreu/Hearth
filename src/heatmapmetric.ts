@@ -278,3 +278,18 @@ export function needsMetadata(cfg: HeatmapConfig): boolean {
 	if ((cfg.value ?? "count") === "sum") return true;
 	return (cfg.rules ?? []).length > 0;
 }
+
+/** The card's own grid colour, normalised to `#rrggbb`, or undefined when the
+ * grid should follow the theme's accent.
+ *
+ * Anything that isn't a hex colour is dropped rather than handed to the
+ * stylesheet: the value ends up in a CSS variable the tint rule paints with, and
+ * a half-typed or hand-edited value should fall back to the theme instead of
+ * blanking the squares. */
+export function heatTint(color: string | undefined): string | undefined {
+	const text = color?.trim().replace(/^#/, "");
+	if (!text) return undefined;
+	const full = text.length === 3 ? text.replace(/./g, (c) => c + c) : text;
+	if (!/^[0-9a-fA-F]{6}$/.test(full)) return undefined;
+	return `#${full.toLowerCase()}`;
+}

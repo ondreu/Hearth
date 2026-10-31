@@ -934,6 +934,10 @@ export interface HeatmapConfig {
 	/** What one unit is called in the tooltip ("5 workouts"). Defaults to the
 	 * source's own wording ("notes edited"). */
 	unit?: string;
+	/** Tint the squares with this colour (`#rgb` / `#rrggbb`) instead of the
+	 * theme's accent, for themes whose accent sits too close to an empty square.
+	 * Unset (the default) follows the theme. */
+	color?: string;
 }
 
 /** The built-in vault statistics a "stats" card can show. */

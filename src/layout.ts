@@ -1526,6 +1526,8 @@ function sanitizeHeatmap(r: Record<string, unknown>): HeatmapConfig {
 	const cfg: HeatmapConfig = {};
 	if (r.metric === "modified" || r.metric === "created") cfg.metric = r.metric;
 	if (typeof r.weeks === "number") cfg.weeks = r.weeks;
+	const color = str(r.color);
+	if (color !== undefined) cfg.color = color;
 	return cfg;
 }
 

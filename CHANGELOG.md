@@ -111,6 +111,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   a reader whose system asks for reduced motion gets, and it stops whenever the
   window it sits in is not the one being used.
 
+- **A heatmap card can pick its own colour** (#430). The grid used to be tinted
+  with Obsidian's global accent, which a low-saturation theme makes almost the
+  same shade as an empty square. *Grid → Color* in the card's settings tints the
+  squares with a colour of your own, on either design, while the fade from one
+  note to many stays as it was; leaving it alone — or pressing the reset button —
+  keeps following the theme's accent. Two grids tracking different things can now
+  look different. Shade and darkening modes are not part of this change.
+
 ### Changed
 
 - **Task descriptions say what they can hold.** The description field has a

@@ -6,6 +6,7 @@ import {
 	frontmatterValue,
 	heatmapByDay,
 	heatmapSource,
+	heatTint,
 	matchesRule,
 	matchesRules,
 	needsMetadata,
@@ -13,6 +14,7 @@ import {
 	noteWeight,
 	type HeatmapNote,
 } from "../src/heatmapmetric";
+import { sanitizeCard } from "../src/layout";
 import type { HeatmapConfig, HeatmapRule } from "../src/types";
 
 /**
@@ -377,5 +379,50 @@ describe("needsMetadata", () => {
 		expect(needsMetadata({ advanced: true, source: "property", dateProperty: "date" })).toBe(true);
 		expect(needsMetadata({ advanced: true, value: "sum", valueProperty: "minutes" })).toBe(true);
 		expect(needsMetadata({ advanced: true, rules: [rule({ key: "status", value: "done" })] })).toBe(true);
+	});
+});
+
+describe("heatTint", () => {
+	it("passes a hex colour through, normalised", () => {
+		expect(heatTint("#FF8800")).toBe("#ff8800");
+		expect(heatTint("  #ff8800 ")).toBe("#ff8800");
+		expect(heatTint("ff8800")).toBe("#ff8800");
+	});
+
+	it("expands the short form, so the stylesheet gets one shape", () => {
+		expect(heatTint("#f80")).toBe("#ff8800");
+	});
+
+	it("drops anything that isn't a hex colour, so the grid falls back to the theme", () => {
+		expect(heatTint(undefined)).toBeUndefined();
+		expect(heatTint("")).toBeUndefined();
+		expect(heatTint("   ")).toBeUndefined();
+		expect(heatTint("#ff88")).toBeUndefined();
+		expect(heatTint("#ff88000")).toBeUndefined();
+		expect(heatTint("rebeccapurple")).toBeUndefined();
+		expect(heatTint("hsl(30, 100%, 50%)")).toBeUndefined();
+		expect(heatTint("red; background: url(x)")).toBeUndefined();
+	});
+});
+
+describe("a saved grid colour", () => {
+	/** The card's own tint is a stored field, so it has to survive the import
+	 * path — a colour that only lives in the live object is silently gone the
+	 * moment the board is exported and shared. */
+	it("survives the import sanitiser", () => {
+		const card = sanitizeCard(
+			{ id: "c1", kind: "heatmap", x: 0, y: 0, w: 6, h: 3, heatmap: { color: "#ff8800" } },
+			0,
+		);
+		expect(card?.heatmap?.color).toBe("#ff8800");
+	});
+
+	it("stays absent when the card never set one", () => {
+		const card = sanitizeCard(
+			{ id: "c1", kind: "heatmap", x: 0, y: 0, w: 6, h: 3, heatmap: { weeks: 12 } },
+			0,
+		);
+		expect(card?.heatmap?.color).toBeUndefined();
+		expect(card?.heatmap?.weeks).toBe(12);
 	});
 });

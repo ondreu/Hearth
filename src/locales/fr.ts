@@ -2422,6 +2422,11 @@ export const fr: Translations = {
 			valuePlaceholder: "valeur",
 			addRule: "Ajouter une règle",
 			removeRule: "Retirer la règle",
+			gridHeading: "Grille",
+			gridColor: "Couleur",
+			gridColorDesc:
+				"Colorer les cases avec votre propre couleur plutôt qu'avec la couleur d'accent du thème — utile quand les deux se ressemblent trop, ou quand plusieurs grilles suivent des choses différentes.",
+			gridColorReset: "Suivre la couleur d'accent du thème",
 		},
 		stats: {
 			advanced: "Avancé",
