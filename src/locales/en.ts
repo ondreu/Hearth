@@ -703,6 +703,14 @@ export const en = {
 				count === 0
 					? "Following the vault, which hides none."
 					: `Following the vault, which hides ${count}.`,
+			strictFilters: "Only these types",
+			strictFiltersDesc:
+				"Search only the file types whose chips this board shows. Following the " +
+				"vault keeps this board in step with Settings → Search.",
+			strictFiltersOptionOn: "Only the chip types",
+			strictFiltersOptionOff: "Every type",
+			strictFiltersStateOn: "only the chip types",
+			strictFiltersStateOff: "every type",
 			hiddenInstant: "Instant answers",
 			hiddenInstantDesc: "Switch answers off for this board's search bars. Answers off vault-wide stay off.",
 			hiddenInstantOffVault: "Switched off vault-wide in Settings → Search.",
@@ -1716,9 +1724,15 @@ export const en = {
 			recheckAction: "Recheck now",
 		},
 		filters: {
-			heading: "Search filters",
+			heading: "Filter chips",
 			headingDesc:
-				"Filters are auto-detected from the file types in your vault. Hide any you don't want.",
+				"Chips are auto-detected from the file types in your vault. Hide any you " +
+				"don't want, and choose whether hiding also takes that type out of the results.",
+			strict: "Search only the shown types",
+			strictDesc:
+				"Off: hiding a chip only takes it off the row, and search still finds every " +
+				"type. On: results are limited to the types whose chips are shown — every chip " +
+				"counts as picked, so switching one off narrows the search further.",
 		},
 		dashboard: {
 			heading: "Dashboard",
@@ -2524,7 +2538,14 @@ export const en = {
 			filterTypesDesc:
 				"Which chips this card offers. A chip only appears when the vault " +
 				"actually holds that kind of file.",
-			filterTypeGlobalOff: "Hidden for every search bar in Settings → Filters.",
+			strictFilters: "Only these types",
+			strictFiltersDesc:
+				"Search only the file types whose chips this bar shows — every chip counts " +
+				"as picked, so switching one off narrows the search further.",
+			strictFiltersAbove:
+				"Already on for this board or vault-wide in Settings → Search, so it can't " +
+				"be switched off here.",
+			filterTypeGlobalOff: "Hidden for every search bar in Settings → Search → Filter chips.",
 			instantAnswers: "Instant answers",
 			instantAnswersDesc:
 				"Switch answers off for this search bar. Answers off on the board or vault-wide stay off here.",

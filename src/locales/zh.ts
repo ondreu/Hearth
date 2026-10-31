@@ -652,6 +652,13 @@ export const zh: Translations = {
 				"选择本仪表板在搜索栏下显示哪些文件类型标签，而不跟随全库设置。",
 			hiddenFiltersFollowing: (count: number) =>
 				count === 0 ? "跟随全库设置（未隐藏任何标签）。" : `跟随全库设置（已隐藏 ${count} 个）。`,
+			strictFilters: "仅这些类型",
+			strictFiltersDesc:
+				"仅搜索此看板显示筛选标签的文件类型。跟随仓库会与“设置 → 搜索”保持一致。",
+			strictFiltersOptionOn: "仅标签中的类型",
+			strictFiltersOptionOff: "所有类型",
+			strictFiltersStateOn: "仅标签中的类型",
+			strictFiltersStateOff: "所有类型",
 			hiddenInstant: "即时答案",
 			hiddenInstantDesc: "为此看板的搜索栏关闭部分答案。在整个库中关闭的答案保持关闭。",
 			hiddenInstantOffVault: "已在 设置 → 搜索 中对整个库关闭。",
@@ -1546,9 +1553,12 @@ export const zh: Translations = {
 			recheckAction: "立即重新检查",
 		},
 		filters: {
-			heading: "搜索筛选",
+			heading: "筛选标签",
 			headingDesc:
-				"筛选项根据仓库中的文件类型自动检测。可隐藏不需要的项。",
+				"筛选项根据仓库中的文件类型自动检测。可隐藏不需要的项，并选择隐藏时是否同时把这些类型从结果中排除。",
+			strict: "仅搜索显示的类型",
+			strictDesc:
+				"关闭：隐藏筛选标签只会把它从栏中移除，搜索仍会查找所有类型。开启：结果仅限显示筛选标签的类型——每个标签都视为已选中，关闭其中一个会进一步收窄搜索。",
 		},
 		dashboard: {
 			heading: "面板",
@@ -2283,7 +2293,11 @@ export const zh: Translations = {
 			filterTypes: "筛选标签",
 			filterTypesDesc:
 				"此卡片提供哪些标签。只有仓库中确实存在该类文件时，对应标签才会出现。",
-			filterTypeGlobalOff: "已在 设置 → 筛选 中对所有搜索栏隐藏。",
+			strictFilters: "仅这些类型",
+			strictFiltersDesc:
+				"仅搜索此搜索栏显示筛选标签的文件类型——每个标签都视为已选中，关闭其中一个会进一步收窄搜索。",
+			strictFiltersAbove: "此看板或整个仓库已在“设置 → 搜索”中开启，此处无法关闭。",
+			filterTypeGlobalOff: "已在 设置 → 搜索 → 筛选标签 中对所有搜索栏隐藏。",
 			instantAnswers: "即时答案",
 			instantAnswersDesc: "为此搜索栏关闭部分答案。在看板或整个库中关闭的答案在这里也保持关闭。",
 			instantAnswerOff: "已在此看板或整个库中关闭。",

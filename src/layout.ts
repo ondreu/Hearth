@@ -307,6 +307,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 
 		// Search filters
 		hiddenFilters: s.hiddenFilters,
+		strictFilters: s.strictFilters,
 
 		// Tasks / TaskNotes field mappings
 		taskNotesStatusField: s.taskNotesStatusField,
@@ -1213,6 +1214,7 @@ function sanitizeSearchBar(r: Record<string, unknown>): SearchBarConfig {
 	if (typeof r.filters === "boolean") cfg.filters = r.filters;
 	const hidden = sanitizeFileTypeGroups(r.hiddenFilters);
 	if (hidden) cfg.hiddenFilters = hidden;
+	if (typeof r.strictFilters === "boolean") cfg.strictFilters = r.strictFilters;
 	const hiddenInstant = sanitizeInstantFeatures(r.hiddenInstantAnswers);
 	if (hiddenInstant?.length) cfg.hiddenInstantAnswers = hiddenInstant;
 	const placeholder = str(r.placeholder);
@@ -1877,6 +1879,7 @@ export function sanitizeDashboard(
 			(id): id is string => typeof id === "string",
 		);
 	}
+	if (typeof r.strictFilters === "boolean") dash.strictFilters = r.strictFilters;
 	const hiddenInstant = sanitizeInstantFeatures(r.hiddenInstantAnswers);
 	if (hiddenInstant?.length) dash.hiddenInstantAnswers = hiddenInstant;
 	if (typeof r.stackOnNarrow === "boolean") dash.stackOnNarrow = r.stackOnNarrow;
@@ -2259,6 +2262,7 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 		s.searchScrollToMatch = data.searchScrollToMatch;
 	if (typeof data.searchInstantAnswers === "boolean")
 		s.searchInstantAnswers = data.searchInstantAnswers;
+	if (typeof data.strictFilters === "boolean") s.strictFilters = data.strictFilters;
 	const hiddenInstant = sanitizeInstantFeatures(data.hiddenInstantAnswers);
 	if (hiddenInstant) s.hiddenInstantAnswers = hiddenInstant;
 	if (

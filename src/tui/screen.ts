@@ -30,6 +30,7 @@ import {
 	effectiveShowNewNoteButton,
 	effectiveShowSearch,
 	effectiveShowTitle,
+	effectiveStrictFilters,
 	effectiveTerminalFontSize,
 	effectiveTerminalScheme,
 	effectiveTitle,
@@ -282,7 +283,9 @@ function renderSearch(view: HomeView, parent: HTMLElement, component: Component)
 	if (effectiveShowNewNoteButton(s)) {
 		row.append(createSearchBarButton(view, bar, effectiveNewNoteButtonMode(s)));
 	}
-	search.renderResultsAndFilters(col, col, component);
+	search.renderResultsAndFilters(col, col, component, {
+		strictFilters: effectiveStrictFilters(s),
+	});
 	return search;
 }
 

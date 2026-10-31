@@ -9,6 +9,7 @@ import {
 	effectiveHiddenFilters,
 	effectiveHiddenInstantAnswers,
 	effectiveSearchPlaceholder,
+	effectiveStrictFilters,
 	type SearchBarConfig,
 } from "../types";
 import { type HomeView } from "../view";
@@ -53,6 +54,9 @@ export function renderSearchBar(
 		filters: cfg.filters === true,
 		hiddenFilters: cfg.hiddenFilters,
 		hiddenInstantAnswers: cfg.hiddenInstantAnswers,
+		// A card can narrow the search further but never widen it: with the
+		// switch on for the board or the vault, this bar stays strict (#434).
+		strictFilters: cfg.strictFilters === true || effectiveStrictFilters(view.plugin.settings),
 	});
 }
 
@@ -91,6 +95,31 @@ function renderFilterTypes(
 	}
 }
 
+
+/** The strict switch, scoped to this card: search only the types this bar's
+ * chips show (#434). Off unless asked for; a board or vault that already turned
+ * it on leaves it on here and the toggle only reports that. */
+function renderStrictFilter(
+	ctx: CardEditorContext,
+	containerEl: HTMLElement,
+	cfg: SearchBarConfig,
+): void {
+	const strings = t().editors.searchBar;
+	const above = effectiveStrictFilters(ctx.opts.settings);
+	new Setting(containerEl)
+		.setName(strings.strictFilters)
+		.setDesc(above ? strings.strictFiltersAbove : strings.strictFiltersDesc)
+		.addToggle((tg) =>
+			tg
+				.setValue(above || cfg.strictFilters === true)
+				.setDisabled(above)
+				.onChange((v) => {
+					cfg.strictFilters = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+		);
+}
 
 /** One toggle per instant answer, scoped to this card. Like the chips, the
  * card can only switch more off: an answer off on the board or vault-wide
@@ -156,6 +185,7 @@ export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement
 			}),
 		);
 	if (cfg.filters === true) renderFilterTypes(ctx, containerEl, cfg);
+	renderStrictFilter(ctx, containerEl, cfg);
 	new Setting(containerEl)
 		.setName(t().editors.searchBar.button)
 		.setDesc(t().editors.searchBar.buttonDesc)

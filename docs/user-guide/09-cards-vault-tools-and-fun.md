@@ -46,6 +46,7 @@ offers, placed wherever you want it.
 | *Placeholder* | Text shown in the empty field. Leave blank to use the vault-wide one |
 | *Filter row* | Show the file-type chips under the field. They need a taller card to sit in |
 | *Filter chips* | Which chips this card offers. A chip only appears when the vault actually holds that kind of file |
+| *Only these types* | Search only the types whose chips this bar shows. Can be turned on here; a board or vault that already turned it on leaves it on and the card says so |
 | *Button* | An action button beside the field: **None**, **New note**, or **Search online** |
 | *Instant answers* | Which instant answers this bar gives. Answers off on the board or vault-wide are shown as off and can't be switched on here |
 | *Seamless* | Drop the card frame — no border, background or title row — so this reads as a standalone search bar on the board rather than as a card |
@@ -53,8 +54,9 @@ offers, placed wherever you want it.
 The field is as thick as the card is tall, so you set the bar's chunkiness by
 dragging the card's edge in arrange mode.
 
-A chip hidden vault-wide under *Settings → Hearth → Search → Search filters* is
-hidden for every search bar, and the card says so.
+A chip hidden vault-wide under *Settings → Hearth → Search → Filter chips* is
+hidden for every search bar, and the card says so — and with *Search only the
+shown types* on, hiding it keeps that type out of the results too.
 
 The *New note* button here obeys the same *The "New note" button* settings as
 the header's; see [chapter 4](04-search.md).

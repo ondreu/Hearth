@@ -715,6 +715,14 @@ export const de: Translations = {
 				count === 0
 					? "Folgt dem Vault, der keine ausblendet."
 					: `Folgt dem Vault, der ${count} ausblendet.`,
+			strictFilters: "Nur diese Typen",
+			strictFiltersDesc:
+				"Nur die Dateitypen durchsuchen, deren Chips dieses Board anzeigt. " +
+				"„Vault folgen“ hält das Board mit Einstellungen → Suche im Gleichschritt.",
+			strictFiltersOptionOn: "Nur die Chip-Typen",
+			strictFiltersOptionOff: "Alle Typen",
+			strictFiltersStateOn: "nur die Chip-Typen",
+			strictFiltersStateOff: "alle Typen",
 			hiddenInstant: "Sofortantworten",
 			hiddenInstantDesc: "Schalte Antworten für die Suchleisten dieses Boards aus. Was im ganzen Tresor aus ist, bleibt aus.",
 			hiddenInstantOffVault: "Unter Einstellungen → Suche für den ganzen Tresor ausgeschaltet.",
@@ -1724,9 +1732,17 @@ export const de: Translations = {
 			recheckAction: "Jetzt erneut prüfen",
 		},
 		filters: {
-			heading: "Suchfilter",
+			heading: "Filter-Chips",
 			headingDesc:
-				"Filter werden aus den Dateitypen in deinem Vault automatisch erkannt. Blende aus, was du nicht willst.",
+				"Chips werden aus den Dateitypen in deinem Vault automatisch erkannt. " +
+				"Blende aus, was du nicht willst, und entscheide, ob Ausblenden den Typ " +
+				"auch aus den Ergebnissen nimmt.",
+			strict: "Nur die angezeigten Typen durchsuchen",
+			strictDesc:
+				"Aus: Ein ausgeblendeter Chip verschwindet nur aus der Leiste, gesucht wird " +
+				"weiter in allen Typen. An: Die Ergebnisse beschränken sich auf die Typen, " +
+				"deren Chips angezeigt werden — jeder Chip gilt als gewählt, ein weiterer " +
+				"Klick grenzt die Suche enger ein.",
 		},
 		dashboard: {
 			heading: "Dashboard",
@@ -2536,7 +2552,15 @@ export const de: Translations = {
 			filterTypesDesc:
 				"Welche Chips diese Karte anbietet. Ein Chip erscheint nur, wenn der Vault " +
 				"tatsächlich diese Dateiart enthält.",
-			filterTypeGlobalOff: "Für jede Suchleiste unter Einstellungen → Filter ausgeblendet.",
+			strictFilters: "Nur diese Typen",
+			strictFiltersDesc:
+				"Nur die Dateitypen durchsuchen, deren Chips diese Leiste anzeigt — jeder " +
+				"Chip gilt als gewählt, ein weiterer Klick grenzt die Suche enger ein.",
+			strictFiltersAbove:
+				"Auf diesem Board oder vaultweit unter Einstellungen → Suche bereits an; " +
+				"hier nicht abschaltbar.",
+			filterTypeGlobalOff:
+				"Für jede Suchleiste unter Einstellungen → Suche → Filter-Chips ausgeblendet.",
 			instantAnswers: "Sofortantworten",
 			instantAnswersDesc:
 				"Schalte Antworten für diese Suchleiste aus. Was auf dem Board oder im ganzen Tresor aus ist, bleibt hier aus.",

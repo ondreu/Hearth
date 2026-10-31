@@ -844,6 +844,10 @@ export interface SearchBarConfig {
 	/** File-type group ids (see FILE_TYPE_GROUPS) this card leaves out of its
 	 * chip row, on top of the ones hidden vault-wide in Settings → Filters. */
 	hiddenFilters?: string[];
+	/** Search only the types this card's chips show — its own say on top of the
+	 * board's and the vault's (#434). A card can only narrow, never widen: with
+	 * the switch on elsewhere it stays on here. */
+	strictFilters?: boolean;
 	/** Instant answers (see INSTANT_FEATURES) this card switches off, on top of
 	 * the ones off on the board or vault-wide. */
 	hiddenInstantAnswers?: string[];
@@ -2492,6 +2496,9 @@ export interface Dashboard extends BannerOverrides {
 	 * (undefined = follow {@link HomeSettings.hiddenFilters}). An empty array is
 	 * a real override meaning "show every chip on this board". */
 	hiddenFilters?: string[];
+	/** Override whether this board's search is limited to the types its chips
+	 * show (undefined = follow {@link HomeSettings.strictFilters}). */
+	strictFilters?: boolean;
 	/** Instant answers switched off on this board, on top of the ones off
 	 * vault-wide ({@link HomeSettings.hiddenInstantAnswers}). */
 	hiddenInstantAnswers?: string[];
@@ -2843,6 +2850,10 @@ export interface HomeSettings {
 	// ---- Search filters ----
 	/** Group ids the user has hidden from the auto-detected filter row. */
 	hiddenFilters: string[];
+	/** Search only the file types whose chip is shown, vault-wide (#434). Off
+	 * by default: hiding a chip then only takes it off the row and every type
+	 * is still searched, which is what the old wording promised. */
+	strictFilters: boolean;
 
 	// ---- Dashboard ----
 	/** All dashboards. Always has at least one entry after migration. */
@@ -3107,6 +3118,9 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	cardBorderWidth: 1,
 
 	hiddenFilters: [],
+	// Off: a chip hidden from the row still gets searched, so a fresh vault
+	// behaves exactly as it did before the switch existed (#434).
+	strictFilters: false,
 
 	// Built by migration from STARTER_CARDS (fresh install) or the legacy
 	// top-level `cards` array (upgrade). Left empty here so migration always runs.
@@ -3389,6 +3403,13 @@ export function effectiveNewNoteButtonLabel(s: HomeSettings): string {
  * wins over a global list: that is how one board shows every chip. */
 export function effectiveHiddenFilters(s: HomeSettings): string[] {
 	return activeDashboard(s).hiddenFilters ?? s.hiddenFilters;
+}
+
+/** Whether the active board's search only returns the types its chip row shows
+ * (#434). Resolved per board the way every other override is: a board that sets
+ * nothing keeps following the vault as it changes later. */
+export function effectiveStrictFilters(s: HomeSettings): boolean {
+	return activeDashboard(s).strictFilters ?? s.strictFilters;
 }
 
 /** The instant answers switched off on the active board: the vault's, plus

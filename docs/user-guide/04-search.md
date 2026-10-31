@@ -124,10 +124,25 @@ Clicking a chip lists the items of that type. Clicking it again clears the
 filter.
 
 You can hide chips you never use. Vault-wide, that is **Settings → Hearth →
-Search → Search filters**. Per dashboard, *Dashboard settings → Header → Filter
+Search → Filter chips**. Per dashboard, *Dashboard settings → Header → Filter
 chips* lets one board show a different set from the vault-wide choice; a board
 that has not been given its own set follows the vault, and the control tells you
 how many the vault currently hides.
+
+### Searching only the shown types
+
+Hiding a chip normally only takes it off the row: search still finds that kind
+of file, just without a chip to narrow to it. *Filter chips* has a switch,
+**Search only the shown types**, that changes what hiding means. Turn it on and
+the row becomes a whitelist — the results hold nothing but the types whose chips
+are shown. Every chip counts as picked from the start, so switching one off
+narrows the search further, and switching it back on widens it again.
+
+The switch is off by default, state it once for the vault or per board, and a
+Search bar card can turn it on for its own bar (never off for a bar the board or
+the vault already limited). It applies to every engine — the built-in search,
+note bodies, Omnisearch and the Quick switcher — and to the recents list, so a
+hidden type cannot come back through any of them.
 
 ## Recent files
 

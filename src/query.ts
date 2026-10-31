@@ -39,6 +39,11 @@ export interface QueryFilter {
 	includeFiles: boolean;
 	/** File-type group id to require, or null for any. */
 	groupId: string | null;
+	/** Group ids that must never match — the strict search filter (#434). A
+	 * list of *exclusions* rather than of allowed ids so a group added to
+	 * {@link FILE_TYPE_GROUPS} later keeps being searched until someone hides
+	 * its chip; the strict mode only has to name what the chip row leaves out. */
+	excludeGroupIds?: string[];
 }
 
 /** Property keys are matched as plain identifiers followed by a colon — a shape
@@ -63,6 +68,25 @@ export function formatPropertyValue(v: unknown): string {
 }
 
 const NO_FILTER: QueryFilter = { includeFolders: true, includeFiles: true, groupId: null };
+
+/** Whether the strict list rules this file out (#434). Tag, property and body
+ * queries only ever hit notes, so they check this alone — a `groupId`
+ * requirement made them return nothing, which is why it isn't part of it. */
+export function excludedByFilter(file: TAbstractFile, filter: QueryFilter): boolean {
+	const excluded = filter.excludeGroupIds;
+	if (!excluded || excluded.length === 0) return false;
+	const id = groupForFile(file)?.id;
+	return id !== undefined && excluded.includes(id);
+}
+
+/** Whether a candidate passes the file-type filter: `groupId` requires that one
+ * group (a chip picked in the normal mode) and the strict list rules types out
+ * (every chip switched off in the strict mode). One predicate for every engine,
+ * so Omnisearch and the quick switcher can't drift from the built-in one. */
+export function filePassesFilter(file: TAbstractFile, filter: QueryFilter): boolean {
+	if (filter.groupId && groupForFile(file)?.id !== filter.groupId) return false;
+	return !excludedByFilter(file, filter);
+}
 
 /**
  * Ranking bands for a name query, applied before any score.
@@ -100,9 +124,9 @@ export function runQuery(
 ): QueryHit[] {
 	const filter = opts.filter ?? NO_FILTER;
 	const q = query.trim();
-	if (q.startsWith("#")) return searchByTag(app, q.slice(1), opts.limit);
+	if (q.startsWith("#")) return searchByTag(app, q.slice(1), opts.limit, filter);
 	const property = PROPERTY_QUERY.exec(q);
-	if (property) return searchByProperty(app, property[1], property[2], opts.limit);
+	if (property) return searchByProperty(app, property[1], property[2], opts.limit, filter);
 	return searchByName(app, q, filter, opts.limit);
 }
 
@@ -180,7 +204,7 @@ function searchByName(app: App, query: string, filter: QueryFilter, limit: numbe
 			continue;
 		}
 		if (!filter.includeFiles) continue;
-		if (filter.groupId && groupForFile(f)?.id !== filter.groupId) continue;
+		if (!filePassesFilter(f, filter)) continue;
 		candidates.push(f);
 	}
 
@@ -276,10 +300,11 @@ export function slotsAboveBody(hits: readonly QueryHit[]): number {
 	return hits.filter((h) => (h.rank ?? 0) > RANK.BODY).length;
 }
 
-function searchByTag(app: App, raw: string, limit: number): QueryHit[] {
+function searchByTag(app: App, raw: string, limit: number, filter: QueryFilter): QueryHit[] {
 	const q = raw.trim().toLowerCase();
 	const hits: QueryHit[] = [];
 	for (const file of app.vault.getMarkdownFiles()) {
+		if (excludedByFilter(file, filter)) continue;
 		const cache = app.metadataCache.getFileCache(file);
 		if (!cache) continue;
 		const tags = getAllTags(cache);
@@ -291,10 +316,17 @@ function searchByTag(app: App, raw: string, limit: number): QueryHit[] {
 	return hits.slice(0, limit);
 }
 
-function searchByProperty(app: App, key: string, rawValue: string, limit: number): QueryHit[] {
+function searchByProperty(
+	app: App,
+	key: string,
+	rawValue: string,
+	limit: number,
+	filter: QueryFilter,
+): QueryHit[] {
 	const value = rawValue.trim().toLowerCase();
 	const hits: QueryHit[] = [];
 	for (const file of app.vault.getMarkdownFiles()) {
+		if (excludedByFilter(file, filter)) continue;
 		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!fm) continue;
 		const actualKey = Object.keys(fm).find((k) => k.toLowerCase() === key.toLowerCase());
@@ -375,7 +407,7 @@ export function clearContentSearchCache(): void {
 export async function searchFileContents(
 	app: App,
 	query: string,
-	opts: { exclude: Set<string>; limit: number; shouldStop?: () => boolean },
+	opts: { exclude: Set<string>; limit: number; shouldStop?: () => boolean; filter?: QueryFilter },
 ): Promise<QueryHit[]> {
 	// Folded, so a query typed without diacritics still finds the accented
 	// spelling — the same way name matching and Omnisearch behave.
@@ -386,6 +418,9 @@ export async function searchFileContents(
 	for (const file of app.vault.getMarkdownFiles()) {
 		if (opts.shouldStop?.()) break;
 		if (opts.exclude.has(file.path)) continue;
+		// Body hits are files too: excluding the type has to skip reading it,
+		// not just drop the row afterwards — the scan is the expensive part.
+		if (opts.filter && excludedByFilter(file, opts.filter)) continue;
 		let text: string;
 		try {
 			text = await app.vault.cachedRead(file);

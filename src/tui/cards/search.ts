@@ -13,6 +13,7 @@ import { createSearchBarButton } from "../../header";
 import { t } from "../../i18n";
 import { mergeRanked, runQuery, searchFileContents, slotsAboveBody, type QueryHit } from "../../query";
 import { SearchSection } from "../../search";
+import { effectiveStrictFilters } from "../../types";
 import type { TuiContext, TuiItem, TuiRenderer } from "../card";
 import { asciify, spread, truncate, wrap, type Line } from "../text";
 import { buttonGrid, fileMenu, fileTag, fileTagStyle, message, openCardFile } from "./common";
@@ -103,6 +104,9 @@ export const searchbarTui: TuiRenderer = {
 							filters: cfg.filters === true,
 							hiddenFilters: cfg.hiddenFilters,
 							hiddenInstantAnswers: cfg.hiddenInstantAnswers,
+							strictFilters:
+								cfg.strictFilters === true ||
+								effectiveStrictFilters(ctx.view.plugin.settings),
 						});
 					},
 				},

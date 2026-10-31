@@ -2,8 +2,17 @@ import { Command, Component, debounce, Platform, TAbstractFile, TFile, TFolder }
 import { setIcon } from "./glyphs";
 import type { HomeView } from "./view";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
-import { FILE_TYPE_GROUPS, FileTypeGroup, fileTypeLabel, groupForFile, OTHER_GROUP_ID } from "./filetypes";
 import {
+	FILE_TYPE_GROUPS,
+	FOLDERS_GROUP_ID,
+	FileTypeGroup,
+	excludedGroupIds,
+	fileTypeLabel,
+	groupForFile,
+	OTHER_GROUP_ID,
+} from "./filetypes";
+import {
+	filePassesFilter,
 	mergeRanked,
 	QueryFilter,
 	QueryHit,
@@ -48,6 +57,13 @@ let resultsIdSeq = 0;
 export class SearchSection {
 	private view: HomeView;
 	private activeFilter: string | null = null;
+	/** Strict mode: the chip row is a whitelist, so this holds the chip ids the
+	 * reader switched *off*, and every chip starts on (#434). */
+	private offFilters = new Set<string>();
+	/** Whether this bar searches only the types its chips show. Set once per
+	 * render from the vault setting, with the board's and the card's own say on
+	 * top (see `effectiveStrictFilters`). */
+	private strictFilters = false;
 
 	private inputEl!: HTMLInputElement;
 	private resultsEl!: HTMLElement;
@@ -161,15 +177,22 @@ export class SearchSection {
 	 * wraps the whole search section and is the click-outside dismissal area.
 	 * `filters: false` leaves the chip row out entirely, and `hiddenFilters`
 	 * drops individual chips from it (the search-bar card offers both; the
-	 * header always shows the full row). */
+	 * header always shows the full row). `strictFilters` turns the row into a
+	 * whitelist: only the types whose chips are on get searched (#434). */
 	renderResultsAndFilters(
 		overlayParent: HTMLElement,
 		boundary: HTMLElement,
 		component: Component,
-		opts: { filters?: boolean; hiddenFilters?: string[]; hiddenInstantAnswers?: string[] } = {},
+		opts: {
+			filters?: boolean;
+			hiddenFilters?: string[];
+			hiddenInstantAnswers?: string[];
+			strictFilters?: boolean;
+		} = {},
 	): void {
 		this.hiddenFilters = opts.hiddenFilters ?? [];
 		this.hiddenInstant = opts.hiddenInstantAnswers ?? [];
+		this.strictFilters = opts.strictFilters === true;
 		this.rootEl = boundary;
 		this.resultsEl = overlayParent.createDiv("hearth-search-results");
 		this.resultsEl.id = this.resultsId;
@@ -282,19 +305,29 @@ export class SearchSection {
 		row.style.setProperty("--n", String(groups.length));
 		for (const group of groups) {
 			const chip = row.createDiv("hearth-filter");
-			chip.toggleClass("is-active", this.activeFilter === group.id);
+			// Strict mode: the row is a whitelist, so every chip starts on and the
+			// reader takes types out of the results by switching them off.
+			// Otherwise one chip at a time is *required*, as it always was.
+			const isOn = () =>
+				this.strictFilters ? !this.offFilters.has(group.id) : this.activeFilter === group.id;
+			chip.toggleClass("is-active", isOn());
 			setIcon(chip.createDiv("hearth-filter-icon"), group.icon);
 			chip.setAttribute("aria-label", fileTypeLabel(group));
 			chip.setAttribute("role", "button");
 			chip.setAttribute("tabindex", "0");
-			chip.setAttribute("aria-pressed", String(this.activeFilter === group.id));
+			chip.setAttribute("aria-pressed", String(isOn()));
 			const toggle = () => {
-				this.activeFilter = this.activeFilter === group.id ? null : group.id;
-				parent.querySelectorAll(".hearth-filter").forEach((c) => {
-					c.removeClass("is-active");
-					c.setAttribute("aria-pressed", "false");
-				});
-				const on = this.activeFilter === group.id;
+				if (this.strictFilters) {
+					if (this.offFilters.has(group.id)) this.offFilters.delete(group.id);
+					else this.offFilters.add(group.id);
+				} else {
+					this.activeFilter = this.activeFilter === group.id ? null : group.id;
+					parent.querySelectorAll(".hearth-filter").forEach((c) => {
+						c.removeClass("is-active");
+						c.setAttribute("aria-pressed", "false");
+					});
+				}
+				const on = isOn();
 				chip.toggleClass("is-active", on);
 				chip.setAttribute("aria-pressed", String(on));
 				this.update();
@@ -314,6 +347,37 @@ export class SearchSection {
 
 	// ---- Searching ------------------------------------------------------
 
+	/** Whether the reader has switched a chip off in strict mode, i.e. narrowed
+	 * the search to fewer types than the row offers. Same consequence as picking
+	 * a chip in the normal mode: they are looking for a file, not for an answer. */
+	private narrowedByChips(): boolean {
+		return this.strictFilters && this.offFilters.size > 0;
+	}
+
+	/** The file-type filter this bar searches with. Strict mode turns the chip
+	 * row into a whitelist: only the types whose chip is on are searched, so a
+	 * chip switched off — and one hidden per card, board or vault — takes its
+	 * type out of the results entirely, not just off the row (#434). */
+	private queryFilter(): QueryFilter {
+		if (!this.strictFilters) {
+			return {
+				includeFolders: !this.activeFilter || this.activeFilter === "folders",
+				includeFiles: this.activeFilter !== "folders",
+				groupId:
+					this.activeFilter && this.activeFilter !== "folders" ? this.activeFilter : null,
+			};
+		}
+		const on = this.detectGroups()
+			.filter((g) => !this.offFilters.has(g.id))
+			.map((g) => g.id);
+		return {
+			includeFolders: on.includes(FOLDERS_GROUP_ID),
+			includeFiles: true,
+			groupId: null,
+			excludeGroupIds: excludedGroupIds(on),
+		};
+	}
+
 	private update(): void {
 		const raw = this.inputEl.value;
 		const query = raw.trim();
@@ -326,7 +390,7 @@ export class SearchSection {
 			return;
 		}
 
-		if (!query && !this.activeFilter) {
+		if (!query && !this.activeFilter && !this.narrowedByChips()) {
 			this.instant.clear();
 			this.renderHistory();
 			return;
@@ -341,7 +405,9 @@ export class SearchSection {
 		// An instant answer only answers the whole vault's query: with a file
 		// type picked, the reader is plainly looking for a file.
 		const intent =
-			this.view.plugin.settings.searchInstantAnswers && !this.activeFilter
+			this.view.plugin.settings.searchInstantAnswers &&
+			!this.activeFilter &&
+			!this.narrowedByChips()
 				? this.instant.setQuery(query, this.instantEnabled)
 				: (this.instant.clear(), null);
 		// A `$` lookup or an `=` sum is a mode of its own, like ">" commands.
@@ -350,11 +416,7 @@ export class SearchSection {
 			return;
 		}
 
-		const filter: QueryFilter = {
-			includeFolders: !this.activeFilter || this.activeFilter === "folders",
-			includeFiles: this.activeFilter !== "folders",
-			groupId: this.activeFilter && this.activeFilter !== "folders" ? this.activeFilter : null,
-		};
+		const filter = this.queryFilter();
 
 		// Omnisearch mode: hand plain queries to the Omnisearch plugin instead of
 		// the built-in engine. It only runs when the plugin is actually available;
@@ -398,6 +460,7 @@ export class SearchSection {
 			const exclude = new Set(hits.map((h) => h.file.path));
 			void searchFileContents(this.view.app, query, {
 				exclude,
+				filter,
 				// Budget against the hits that actually outrank a body match, not
 				// against every hit: fuzzy name matches sort below body hits, so
 				// letting them reserve slots is what left a page of scattered-letter
@@ -435,9 +498,12 @@ export class SearchSection {
 	 * empty dropdown — reuses the exact same result row so it looks like an
 	 * ordinary result, not a distinct "history" feature. */
 	private renderHistory(): void {
+		// Recents are results too, so a type the strict filter leaves out can't
+		// come back through the history list instead.
+		const filter = this.queryFilter();
 		const files = this.getHistory()
 			.map((p) => this.view.app.vault.getAbstractFileByPath(p))
-			.filter((f): f is TFile => f instanceof TFile);
+			.filter((f): f is TFile => f instanceof TFile && filePassesFilter(f, filter));
 		// Until the reader has seen the tips once, an empty bar offers them —
 		// the one moment the question "what can I type here?" comes up.
 		const hint = this.view.plugin.settings.searchInstantAnswers && !searchTipsSeen(this.view.app);
