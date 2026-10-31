@@ -842,12 +842,14 @@ export const en = {
 			color: "Solid color",
 			image: "Vault image",
 			url: "Image URL",
+			video: "Vault video",
 			weather: "Live weather sky",
 		},
 		backgroundValueDesc: {
 			color: "A CSS color, e.g. #1e1e2e.",
 			image: "A vault image path, e.g. Attachments/bg.png.",
 			url: "A direct image URL.",
+			video: "A vault video path, e.g. Attachments/loop.mp4.",
 		},
 	},
 
@@ -1146,6 +1148,9 @@ export const en = {
 			valueColorDesc: "A CSS color, e.g. #1e1e2e or rgb(30,30,46).",
 			valueImageDesc: "A vault image path, e.g. Attachments/bg.png.",
 			valueUrlDesc: "A direct image URL.",
+			valueVideoDesc: "A video path in your vault, e.g. Attachments/loop.mp4. It plays muted on a loop.",
+			videoNote:
+				"A video backdrop is the heaviest thing Hearth can paint — it decodes a frame for as long as the board is open. It plays on the Full performance tier only; from Balanced down it stays frozen on its first frame.",
 			externalCallsDisabled:
 				"Not shown while \u201cDisable external calls\u201d is on in Behaviour: " +
 				"this background is fetched from the web. Pick a vault image instead, " +
@@ -1180,6 +1185,7 @@ export const en = {
 				color: "Solid color",
 				image: "Vault image",
 				url: "Image URL",
+				video: "Vault video",
 				weather: "Live weather sky",
 			},
 			weatherHeading: "Weather sky",

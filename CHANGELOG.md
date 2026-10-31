@@ -78,6 +78,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   mode — beside the five locales it already had. Product names, filter syntax,
   placeholders and icon ids stay in English.
 
+- **A video as the board's backdrop** (#416). *Vault video* joins the background
+  types: point it at an MP4 or WEBM in your vault and the board sits behind a
+  muted, looping clip instead of an animated GIF or WEBP. The decode happens off
+  the main thread, which is the reason those animated images stuttered — but a
+  clip is still the most expensive backdrop Hearth paints, so it is the one kind
+  the performance tier decides for you, and the setting says so where you choose
+  it. On *Full* it plays. From *Balanced* down it holds still on its first frame
+  — a still picture rather than a black hole — and the *Minimal* tier replaces
+  it with its flat colour like every other backdrop. A paused clip is also what
+  a reader whose system asks for reduced motion gets, and it stops whenever the
+  window it sits in is not the one being used.
+
 ### Changed
 
 - **Task descriptions say what they can hold.** The description field has a

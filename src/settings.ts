@@ -1292,6 +1292,19 @@ export class HomeSettingTab extends PluginSettingTab {
 		note.descEl.prepend(icon);
 	}
 
+	/** The note that says a video backdrop is the most expensive thing Hearth
+	 * paints, and that only the top performance tier lets it move. Shown next to
+	 * the dropdown that chose it, the same way a blocked web wallpaper says why
+	 * it is missing. */
+	private videoBackgroundNote(containerEl: HTMLElement, kind: BackgroundKind): void {
+		if (kind !== "video") return;
+		const note = new Setting(containerEl).setDesc(t().settings.background.videoNote);
+		note.settingEl.addClass("hearth-setting-note");
+		const icon = createSpan("hearth-setting-note-icon");
+		setIcon(icon, "gauge");
+		note.descEl.prepend(icon);
+	}
+
 	private backgroundSection(containerEl: HTMLElement): void {
 		const s = this.plugin.settings;
 
@@ -1323,6 +1336,9 @@ export class HomeSettingTab extends PluginSettingTab {
 		// and a background that quietly doesn't appear is worse than one that says
 		// why — so the note sits with the dropdown that chose it.
 		this.remoteBackgroundNote(containerEl, s.backgroundKind);
+		// A video is the one backdrop whose cost depends on the performance tier,
+		// so it says so where it was chosen rather than only where the tier lives.
+		this.videoBackgroundNote(containerEl, s.backgroundKind);
 
 		// The weather sky stores a place rather than a typed-in value, so it gets
 		// the shared place picker instead of the text field below.
@@ -1348,7 +1364,9 @@ export class HomeSettingTab extends PluginSettingTab {
 					? t().settings.background.valueColorDesc
 					: s.backgroundKind === "image"
 						? t().settings.background.valueImageDesc
-						: t().settings.background.valueUrlDesc;
+						: s.backgroundKind === "video"
+							? t().settings.background.valueVideoDesc
+							: t().settings.background.valueUrlDesc;
 			const setting = new Setting(containerEl)
 				.setName(t().settings.background.value)
 				.setDesc(desc);
@@ -1359,7 +1377,8 @@ export class HomeSettingTab extends PluginSettingTab {
 				});
 				this.addTextReset(setting, txt, "backgroundValue");
 			});
-			if (s.backgroundKind === "image") {
+			// Both of these name a file in the vault, so both offer the same list.
+			if (s.backgroundKind === "image" || s.backgroundKind === "video") {
 				setting.controlEl
 					.querySelector("input")
 					?.setAttribute("list", "hearth-file-list");

@@ -2201,7 +2201,8 @@ export interface MobileCardOptions {
 
 /** Background mode for the home view. "default" draws Hearth's own wallpaper
  * and "harbour" its harbour town (both in wallpaper.ts); "weather" paints the
- * live sky for a place (see sky.ts); the other kinds use the user's own value. */
+ * live sky for a place (see sky.ts); "video" plays a clip from the vault behind
+ * the board; the other kinds use the user's own value. */
 export type BackgroundKind =
 	| "none"
 	| "default"
@@ -2209,6 +2210,7 @@ export type BackgroundKind =
 	| "color"
 	| "image"
 	| "url"
+	| "video"
 	| "weather";
 
 /** The flat backdrop the `minimal` tier paints instead of the wallpaper: a muted
@@ -3645,6 +3647,26 @@ export function motionAllowed(s: HomeSettings): boolean {
 }
 
 /**
+ * Whether the backdrop's video may play, or has to stay on its first frame.
+ *
+ * A looping clip is the most expensive backdrop Hearth can paint: a decoder
+ * running for as long as the board is up, behind a full-screen layer that is
+ * dimmed and possibly blurred every frame. It is therefore the one background
+ * kind gated on the *top* rung rather than on the motion ladder — only `full`
+ * plays it, and every tier below freezes it. The `minimal` tier never reaches
+ * this question at all: {@link effectiveBackground} has already replaced the
+ * backdrop with its flat colour by then.
+ *
+ * Deliberately not {@link motionAllowed}: that predicate is for animation the
+ * plugin can stop with CSS (`animation-play-state`) and it deliberately lets
+ * the `balanced` tier keep animating at half density. Neither transfers to a
+ * video, which only a `pause()` call stops and which has no half setting.
+ */
+export function videoBackgroundPlays(s: HomeSettings): boolean {
+	return performanceTier(s) === "full";
+}
+
+/**
  * How much of the painted sky's field to draw, as a fraction.
  *
  * The `balanced` tier's whole content: the sky keeps drifting and falling, there
@@ -3901,7 +3923,7 @@ export function retuneBackground(
 	to: BackgroundKind,
 	current: { opacity: number; blur: number },
 ): { opacity: number; blur: number } {
-	const photo = (k: BackgroundKind): boolean => k === "image" || k === "url";
+	const photo = (k: BackgroundKind): boolean => k === "image" || k === "url" || k === "video";
 	let { opacity, blur } = current;
 	if (to === "weather" && opacity <= 0.5) opacity = 1;
 	if (to === "default" || to === "harbour") {

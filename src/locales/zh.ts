@@ -782,12 +782,14 @@ export const zh: Translations = {
 			color: "纯色",
 			image: "仓库图片",
 			url: "图片 URL",
+			video: "仓库视频",
 			weather: "实时天气天空",
 		},
 		backgroundValueDesc: {
 			color: "一个 CSS 颜色值，例如 #1e1e2e。",
 			image: "仓库内的图片路径，例如 Attachments/bg.png。",
 			url: "图片的直链 URL。",
+			video: "仓库内的视频路径，例如 Attachments/loop.mp4。",
 		},
 	},
 
@@ -1051,6 +1053,9 @@ export const zh: Translations = {
 			valueColorDesc: "一个 CSS 颜色值，例如 #1e1e2e 或 rgb(30,30,46)。",
 			valueImageDesc: "仓库内的图片路径，例如 Attachments/bg.png。",
 			valueUrlDesc: "图片的直链 URL。",
+			valueVideoDesc: "仓库内的视频路径，例如 Attachments/loop.mp4。它会静音循环播放。",
+			videoNote:
+				"视频背景是 Hearth 能绘制的最耗资源的一种——看板打开期间它一直在解码画面。它只在“完整”性能档位下播放；从“均衡”往下会停留在第一帧。",
 			externalCallsDisabled:
 				"“行为”中的“禁用对外调用”已开启，因此不会显示：该背景需要从网络获取。" +
 				"请改用仓库内的图片，或关闭该设置。",
@@ -1080,6 +1085,7 @@ export const zh: Translations = {
 				color: "纯色",
 				image: "仓库图片",
 				url: "图片 URL",
+				video: "仓库视频",
 				weather: "实时天气天空",
 			},
 			weatherHeading: "天气天空",

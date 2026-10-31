@@ -417,6 +417,9 @@ export const ko: Translations = {
 			valueColorDesc: "CSS 색상입니다. 예: #1e1e2e 또는 rgb(30,30,46)",
 			valueImageDesc: "보관함 이미지 경로입니다. 예: Attachments/bg.png",
 			valueUrlDesc: "직접 연결되는 이미지 URL입니다.",
+			valueVideoDesc: "보관함 동영상 경로입니다. 예: Attachments/loop.mp4. 소리 없이 반복 재생됩니다.",
+			videoNote:
+				"동영상 배경은 Hearth가 그릴 수 있는 것 중 가장 무겁습니다. 보드가 열려 있는 동안 계속 프레임을 디코딩합니다. 성능 단계가 전체일 때만 재생되고, 균형 이하에서는 첫 프레임에서 멈춰 있습니다.",
 			externalCallsDisabled: "동작 → 개인정보 및 네트워크에서 외부 요청을 끄면 웹 배경을 가져올 수 없습니다. 보관함 이미지를 선택하거나 설정을 켜세요.",
 			opacity: "불투명도",
 			opacityDesc: "배경이 비치는 정도입니다. 낮을수록 은은하게 표시됩니다.",
@@ -431,7 +434,7 @@ export const ko: Translations = {
 			bannerFadeDesc: "배너가 선명한 경계로 끝나지 않고 페이지에 자연스럽게 이어지게 합니다.",
 			bannerFullWidth: "전체 너비",
 			bannerFullWidthDesc: "아래 콘텐츠의 너비에 맞추지 않고 배너를 화면 끝까지 표시합니다.",
-			labels: { default: "Hearth 기본값", harbour: "항구 마을", none: "없음", color: "단색", image: "보관함 이미지", url: "이미지 URL", weather: "실시간 날씨 배경" },
+			labels: { default: "Hearth 기본값", harbour: "항구 마을", none: "없음", color: "단색", image: "보관함 이미지", url: "이미지 URL", video: "보관함 동영상", weather: "실시간 날씨 배경" },
 			weatherHeading: "날씨 배경",
 			weatherDesc: "날씨 카드의 그림 스타일과 같은 하늘을 창 전체에 배경으로 표시합니다. 실제 날씨를 따르거나 하나의 하늘을 고정할 수 있습니다.",
 			weatherNoPlace: "아래에서 위치를 선택하세요.",
@@ -923,6 +926,7 @@ export const ko: Translations = {
 			color: "단색",
 			image: "보관함 이미지",
 			url: "이미지 URL",
+			video: "보관함 동영상",
 			weather: "실시간 날씨 하늘",
 		},
 		backgroundValueDesc: {
@@ -930,6 +934,7 @@ export const ko: Translations = {
 			color: "CSS 색상입니다. 예: #1e1e2e.",
 			image: "보관함 이미지 경로입니다. 예: Attachments/bg.png.",
 			url: "이미지 직접 URL입니다.",
+			video: "보관함 동영상 경로입니다. 예: Attachments/loop.mp4.",
 		},
 	},
 	fileMenu: {
