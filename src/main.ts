@@ -24,6 +24,7 @@ import { setLanguage, t } from "./i18n";
 import { maybeShowWhatsNew } from "./whatsnew";
 import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
+import { initCurrencyCache } from "./currency";
 import { BoardRefreshTracker } from "./boardrefresh";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
@@ -111,6 +112,9 @@ export default class HearthPlugin extends Plugin {
 
 		await this.loadSettings();
 		initRssState(this);
+		// The exchange-rate table the calculator and the search bar restore at
+		// startup lives in this vault's storage on this device (src/currency.ts).
+		initCurrencyCache(this.app);
 
 		// Hearth's dialogs and menus take the design of wherever they are opened
 		// from, which needs the last press remembered (see src/uidesign.ts).
