@@ -36,11 +36,9 @@ export const MUSIC_SOURCES: MusicSource[] = ["folder", "list", "stereo"];
 /** The repeat modes, in the order the button cycles through them. */
 export const MUSIC_REPEATS: MusicRepeat[] = ["off", "all", "one"];
 
-/** The now-playing motifs, in dropdown order. "plain" is the quiet one — a
- * small glyph and the title — "record" spins a disc, "bars" draws a level meter.
- * Both animated ones only move while something is playing, and both are CSS
- * animations so the board's motion gate (motion.ts) freezes them with it. */
-export const MUSIC_LOOKS: MusicLook[] = ["plain", "record", "bars"];
+/** The layouts offered in the editor, in dropdown order: the classic row, the
+ * half-and-half arrangement, then the two artwork-led ones. */
+export const MUSIC_LOOKS: MusicLook[] = ["plain", "medium", "cover", "panel"];
 
 /** Volume a card starts at (and restores to) unless it was left elsewhere. */
 export const MUSIC_DEFAULT_VOLUME = 0.8;
@@ -75,11 +73,20 @@ export function musicRepeat(value: MusicRepeat | undefined): MusicRepeat {
 	return value === "all" || value === "one" ? value : "off";
 }
 
-/** The motif the now-playing area is drawn in. Defaults to "plain" so a card
- * added before this setting existed looks exactly as it did. */
+/**
+ * The layout a card is drawn in. Defaults to "plain" — the arrangement the card
+ * shipped with, so a card saved before the setting existed looks unchanged.
+ *
+ * "record" and "bars" are the pre-release names of the two artwork-led layouts.
+ * They only ever existed in an unreleased build, but a card saved against it
+ * would otherwise snap back to Classic, so they read as the layouts they became.
+ */
 export function musicLook(cfg: MusicConfig | undefined): MusicLook {
-	const look = cfg?.look;
-	return look === "record" || look === "bars" ? look : "plain";
+	const look = cfg?.look as string | undefined;
+	if (look === "medium" || look === "cover" || look === "panel") return look;
+	if (look === "record") return "cover";
+	if (look === "bars") return "panel";
+	return "plain";
 }
 
 /** A volume between 0 and 1. A missing or nonsense value reads as the default:

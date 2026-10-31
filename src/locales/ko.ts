@@ -1279,7 +1279,7 @@ export const ko: Translations = {
 			playbackHeading: "재생",
 			look: "재생 중 스타일",
 			lookDesc: "현재 재생 중인 항목을 카드에 그리는 방식.",
-			looks: { plain: "기본", record: "레코드", bars: "레벨 바" },
+			looks: { plain: "클래식", medium: "중간", cover: "전체 커버", panel: "큰 커버" },
 			showQueue: "대기열 표시",
 			showQueueDesc: "재생 컨트롤 아래에 트랙을 나열합니다.",
 			stereoHeading: "Stereo 플러그인",

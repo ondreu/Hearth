@@ -1856,11 +1856,22 @@ export type MusicSource =
 /** What the player does at the end of a track. */
 export type MusicRepeat = "off" | "all" | "one";
 
-/** The motif the now-playing area is drawn in. "plain" is a small glyph and the
- * title, "record" a spinning disc, "bars" a level meter that moves with the
- * track. The two moving ones are CSS animations, so the board's motion gate
- * freezes them along with every other animation. */
-export type MusicLook = "plain" | "record" | "bars";
+/** How the music card is laid out — four genuinely different arrangements, not
+ * four skins of one row.
+ *
+ * - "plain" (Classic) — a small artwork chip, title beside it, transport under
+ *   it, queue filling the rest of the card.
+ * - "medium" — a square artwork on the left, details and transport stacked
+ *   beside it: a short, wide card uses its width instead of its height.
+ * - "cover" (Full artwork) — the artwork is the card; details and transport sit
+ *   on a scrim along the bottom edge.
+ * - "panel" (Large artwork) — artwork down the left half at full height,
+ *   details, transport and queue in the right half.
+ *
+ * The vault source has no album art, so the artwork is a record that spins
+ * while playback runs — a CSS animation, so the board's motion gate freezes it
+ * along with every other animation. */
+export type MusicLook = "plain" | "medium" | "cover" | "panel";
 
 /** The music card's configuration. */
 export interface MusicConfig {

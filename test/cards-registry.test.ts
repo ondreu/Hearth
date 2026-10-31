@@ -170,7 +170,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: {
 					kind: "music",
 					title: "Music",
-					music: { source: "stereo", look: "record" },
+					music: { source: "stereo", look: "cover" },
 					w: 4,
 					h: 4,
 				},
@@ -212,7 +212,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			},
 
 			// ---- Fun ----
-			{ id: "music", icon: "music", category: "fun", requires: null, build: { kind: "music", title: "Music", music: { source: "folder", look: "record" }, w: 4, h: 4 } },
+			{ id: "music", icon: "music", category: "fun", requires: null, build: { kind: "music", title: "Music", music: { source: "folder", look: "cover" }, w: 4, h: 4 } },
 			{ id: "pet", icon: "cat", category: "fun", requires: null, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
 			{
 				id: "vault-pet",

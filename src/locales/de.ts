@@ -1821,7 +1821,7 @@ export const de: Translations = {
 			playbackHeading: "Wiedergabe",
 			look: "Stil der Anzeige",
 			lookDesc: "Wie die Karte den laufenden Titel zeichnet.",
-			looks: { plain: "Schlicht", record: "Schallplatte", bars: "Pegelbalken" },
+			looks: { plain: "Klassisch", medium: "Mittel", cover: "Volles Cover", panel: "Großes Cover" },
 			showQueue: "Warteschlange zeigen",
 			showQueueDesc: "Die Titel unter den Bedienelementen auflisten.",
 			stereoHeading: "Stereo-Plugin",

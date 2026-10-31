@@ -1765,7 +1765,7 @@ export const fr: Translations = {
 			playbackHeading: "Lecture",
 			look: "Style de la lecture en cours",
 			lookDesc: "Comment la carte dessine ce qui joue.",
-			looks: { plain: "Simple", record: "Disque", bars: "Barres de niveau" },
+			looks: { plain: "Classique", medium: "Moyen", cover: "Pochette pleine", panel: "Grande pochette" },
 			showQueue: "Afficher la file",
 			showQueueDesc: "Lister les pistes sous les commandes.",
 			stereoHeading: "Plugin Stereo",

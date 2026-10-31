@@ -24,11 +24,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   the Stereo plugin's player, showing the track, the queue and the transport, so
   a library kept on a server needs no second queue. Transport, seek, volume,
   shuffle and repeat (off / whole queue / this track), the queue on the card, and
-  a remembered playhead between sessions. Three now-playing styles — a plain
-  glyph, a record that spins while it plays, level bars that move — all drawn in
-  CSS so the board's motion gates freeze them, and on the Expressive design the
-  artwork, play button and queue take the design's accents. Playback always
-  starts paused.
+  a remembered playhead between sessions. Four layouts rather than one skin:
+  *Classic* is the row of text with the queue under it, *Medium* puts a square
+  artwork beside the details, *Full artwork* makes the artwork the card with the
+  controls on a scrim, and *Large artwork* gives the artwork half the card and
+  the details and queue the other half. The vault has no album art, so the
+  artwork is a record that spins while playback runs — a CSS animation, so the
+  board's motion gates freeze it. Every layout adapts to the card's own size
+  (container queries): the queue, then the seek row, then the volume drop out as
+  the card gets shorter, so a small card is a player rather than a clipped one.
+  On the Expressive design the artwork, play button and queue take the design's
+  accents. Playback always starts paused.
 
 - **Jump to a picture in a slideshow.** Clicking the `180/365` position
   indicator beside the arrows turns it into a number field: type the picture's

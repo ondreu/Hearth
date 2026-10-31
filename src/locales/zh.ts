@@ -1638,7 +1638,7 @@ export const zh: Translations = {
 			playbackHeading: "播放",
 			look: "正在播放的样式",
 			lookDesc: "卡片如何绘制当前播放的内容。",
-			looks: { plain: "简洁", record: "唱片", bars: "电平条" },
+			looks: { plain: "经典", medium: "中等", cover: "全封面", panel: "大封面" },
 			showQueue: "显示队列",
 			showQueueDesc: "在控制按钮下方列出曲目。",
 			stereoHeading: "Stereo 插件",

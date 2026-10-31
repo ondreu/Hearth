@@ -78,10 +78,16 @@ function collectTracks(app: App, cfg: MusicConfig): TFile[] {
 
 // ---- Player chrome -----------------------------------------------------
 
-/** Everything both sources draw, built once per card render and then only
+/**
+ * Everything both sources draw, built once per card render and then only
  * *updated*. The distinction matters: a `timeupdate` fires about four times a
  * second, so a paint that rebuilt the DOM would restart the record's spin and
- * throw away the user's drag on the seek bar several times a second. */
+ * throw away the user's drag on the seek bar several times a second.
+ *
+ * The element set is the same in every layout — only where those elements sit
+ * differs. That is what lets one paint function drive four layouts and both
+ * sources.
+ */
 interface Chrome {
 	art: HTMLElement;
 	title: HTMLElement;
@@ -97,7 +103,7 @@ interface Chrome {
 	volume: HTMLInputElement;
 	status: HTMLElement;
 	list: HTMLElement | null;
-	look: MusicLook;
+	layout: MusicLook;
 }
 
 /** The state a chrome paint is drawn from, whichever source produced it. */
@@ -134,22 +140,23 @@ function iconButton(
 	return button;
 }
 
-function buildChrome(
-	body: HTMLElement,
-	look: MusicLook,
-	showQueue: boolean,
-): Chrome {
-	body.addClass("hearth-music");
+/** Title and subtitle. Every layout places this block differently; none of them
+ * changes what is in it. */
+function metaBlock(parent: HTMLElement): { title: HTMLElement; sub: HTMLElement } {
+	const meta = parent.createDiv("hearth-music-meta");
+	return {
+		title: meta.createDiv("hearth-music-title"),
+		sub: meta.createDiv("hearth-music-sub"),
+	};
+}
+
+function progressBlock(parent: HTMLElement): {
+	elapsed: HTMLElement;
+	seek: HTMLInputElement;
+	total: HTMLElement;
+} {
 	const strings = t().cards.music;
-
-	const now = body.createDiv("hearth-music-now");
-	const art = now.createDiv("hearth-music-art");
-	art.addClass(`is-look-${look}`);
-	const meta = now.createDiv("hearth-music-meta");
-	const title = meta.createDiv("hearth-music-title");
-	const sub = meta.createDiv("hearth-music-sub");
-
-	const progress = body.createDiv("hearth-music-progress");
+	const progress = parent.createDiv("hearth-music-progress");
 	const elapsed = progress.createDiv("hearth-music-time is-elapsed");
 	const seek = progress.createEl("input", {
 		cls: "hearth-music-seek",
@@ -163,8 +170,19 @@ function buildChrome(
 		},
 	});
 	const total = progress.createDiv("hearth-music-time is-total");
+	return { elapsed, seek, total };
+}
 
-	const transport = body.createDiv("hearth-music-transport");
+function transportBlock(parent: HTMLElement): {
+	play: HTMLButtonElement;
+	previous: HTMLButtonElement;
+	next: HTMLButtonElement;
+	shuffle: HTMLButtonElement;
+	repeat: HTMLButtonElement;
+	volume: HTMLInputElement;
+} {
+	const strings = t().cards.music;
+	const transport = parent.createDiv("hearth-music-transport");
 	const previous = iconButton(transport, "skip-back", strings.previous, "is-step");
 	const play = iconButton(transport, "play", strings.play, "is-play");
 	const next = iconButton(transport, "skip-forward", strings.next, "is-step");
@@ -182,50 +200,121 @@ function buildChrome(
 			"aria-label": strings.volume,
 		},
 	});
+	return { play, previous, next, shuffle, repeat, volume };
+}
+
+/**
+ * Build the card's DOM for one layout.
+ *
+ * The four layouts are genuinely different arrangements, not four skins of the
+ * same row:
+ *
+ * - **classic** — a small artwork chip, the title beside it, the transport
+ *   under it, and the queue filling whatever height is left (the layout the
+ *   card shipped with).
+ * - **medium** — a square artwork on the left with the details and transport
+ *   stacked beside it, so a short, wide card uses its width instead of its
+ *   height.
+ * - **cover** — the artwork *is* the card: it fills the whole body and the
+ *   details and transport sit on a scrim along the bottom edge.
+ * - **panel** — the artwork takes the left half at full height, the right half
+ *   carries the details, the transport and the queue.
+ *
+ * Which one suits a given card is a question about the card's size, so the
+ * editor offers the choice and CSS (container queries) tidies each layout up at
+ * small sizes: the queue and then the seek row drop out as height runs out,
+ * rather than the card clipping them halfway.
+ */
+function buildChrome(body: HTMLElement, layout: MusicLook, showQueue: boolean): Chrome {
+	body.addClass("hearth-music");
+	body.addClass(`is-layout-${layout}`);
+
+	// Created once and moved into whichever container the layout wants.
+	const art = body.createDiv("hearth-music-art");
+	let meta: ReturnType<typeof metaBlock>;
+	let progress: ReturnType<typeof progressBlock>;
+	let transport: ReturnType<typeof transportBlock>;
+	let list: HTMLElement | null = null;
+
+	if (layout === "cover") {
+		const stage = body.createDiv("hearth-music-stage");
+		stage.appendChild(art);
+		stage.createDiv("hearth-music-scrim");
+		const overlay = stage.createDiv("hearth-music-overlay");
+		meta = metaBlock(overlay);
+		progress = progressBlock(overlay);
+		transport = transportBlock(overlay);
+	} else if (layout === "medium") {
+		const main = body.createDiv("hearth-music-main");
+		main.appendChild(art);
+		const side = main.createDiv("hearth-music-side");
+		meta = metaBlock(side);
+		progress = progressBlock(side);
+		transport = transportBlock(side);
+		if (showQueue) list = body.createDiv("hearth-music-queue");
+	} else if (layout === "panel") {
+		const split = body.createDiv("hearth-music-split");
+		const stage = split.createDiv("hearth-music-stage");
+		stage.appendChild(art);
+		const side = split.createDiv("hearth-music-side");
+		meta = metaBlock(side);
+		progress = progressBlock(side);
+		transport = transportBlock(side);
+		if (showQueue) list = side.createDiv("hearth-music-queue");
+	} else {
+		const now = body.createDiv("hearth-music-now");
+		now.appendChild(art);
+		meta = metaBlock(now);
+		progress = progressBlock(body);
+		transport = transportBlock(body);
+		if (showQueue) list = body.createDiv("hearth-music-queue");
+	}
 
 	const status = body.createDiv("hearth-music-status");
-	const list = showQueue ? body.createDiv("hearth-music-queue") : null;
-
 	return {
 		art,
-		title,
-		sub,
-		seek,
-		elapsed,
-		total,
-		play,
-		previous,
-		next,
-		shuffle,
-		repeat,
-		volume,
+		title: meta.title,
+		sub: meta.sub,
+		seek: progress.seek,
+		elapsed: progress.elapsed,
+		total: progress.total,
+		play: transport.play,
+		previous: transport.previous,
+		next: transport.next,
+		shuffle: transport.shuffle,
+		repeat: transport.repeat,
+		volume: transport.volume,
 		status,
 		list,
-		look,
+		layout,
 	};
 }
 
-/** Rebuild the artwork only when the track changed. `is-playing` is toggled
- * separately so the motif's CSS animation starts and stops with playback —
- * and, being a CSS animation, is frozen by the board's motion gate as well. */
+/**
+ * Rebuild the artwork only when the track changed. `is-playing` is toggled
+ * separately so the record's CSS animation starts and stops with playback — and,
+ * being a CSS animation, is frozen by the board's motion gate as well.
+ *
+ * The vault source has no album art; the stand-in is a record for the layouts
+ * where the artwork is the point (cover, panel, medium) and a small glyph for
+ * the classic arrangement, which is a row of text with a chip beside it.
+ */
 function paintArt(chrome: Chrome, now: NowPlaying): void {
-	if (chrome.art.dataset.key !== now.artKey) {
-		chrome.art.dataset.key = now.artKey;
+	const key = `${now.artKey}|${now.coverUrl ? "cover" : chrome.layout}`;
+	if (chrome.art.dataset.key !== key) {
+		chrome.art.dataset.key = key;
 		chrome.art.empty();
 		if (now.coverUrl) {
 			const img = chrome.art.createEl("img", { cls: "hearth-music-cover" });
 			img.src = now.coverUrl;
 			img.alt = "";
 			img.draggable = false;
-		} else if (chrome.look === "record") {
+		} else if (chrome.layout === "plain") {
+			setIcon(chrome.art, "music");
+		} else {
 			const disc = chrome.art.createDiv("hearth-music-disc");
 			disc.createDiv("hearth-music-disc-label");
 			disc.createDiv("hearth-music-disc-hole");
-		} else if (chrome.look === "bars") {
-			const bars = chrome.art.createDiv("hearth-music-bars");
-			for (let i = 0; i < 4; i++) bars.createDiv("hearth-music-meter");
-		} else {
-			setIcon(chrome.art, "music");
 		}
 	}
 	chrome.art.toggleClass("is-playing", now.playing);
@@ -361,56 +450,38 @@ function renderVaultSource(
 		player.setVolume(Number(chrome.volume.value) / 100),
 	);
 
-	/** The queue this card shows: the player's own order while it is playing
-	 * this card's tracks, otherwise the card's list (which a click hands to the
-	 * player). */
-	const shownQueue = (state: Readonly<PlayerState>): string[] => {
-		const own = new Set(paths);
-		const mine = state.queue.length > 0 && state.queue.some((path) => own.has(path));
-		return mine ? state.queue : paths;
-	};
+	/** Whether the player is currently working through this card's tracks. */
 	const isPlayersQueue = (state: Readonly<PlayerState>): boolean => {
 		const own = new Set(paths);
 		return state.queue.length > 0 && state.queue.some((path) => own.has(path));
 	};
+	/** The queue this card shows: the player's own order while it is playing
+	 * this card's tracks, otherwise the card's list (which a click hands to the
+	 * player). */
+	const shownQueue = (state: Readonly<PlayerState>): string[] =>
+		isPlayersQueue(state) ? state.queue : paths;
 
 	const paint = (state: Readonly<PlayerState>): void => {
 		const current = state.queue[state.index] ?? "";
-		paintArt(chrome, {
-			title: "",
-			sub: "",
+		const now: NowPlaying = {
+			title: current ? trackLabel(current) : t().cards.music.nothingPlaying,
+			sub:
+				state.queue.length > 0 && state.index >= 0
+					? `${state.index + 1} / ${state.queue.length}`
+					: t().cards.music.queueEmpty,
 			playing: state.playing,
 			position: state.position,
 			duration: state.duration,
-			repeatIcon: "repeat",
-			repeatTitle: "",
+			repeatIcon: state.repeat === "one" ? "repeat-1" : "repeat",
+			repeatTitle: repeatTitle(state.repeat),
 			shuffleOn: state.shuffled,
 			volume: state.volume,
-			error: null,
+			error: state.error ? playbackError(state.error) : null,
 			artKey: current,
 			coverUrl: null,
-		});
-		paintChrome(
-			chrome,
-			{
-				title: current ? trackLabel(current) : t().cards.music.nothingPlaying,
-				sub:
-					state.queue.length > 0 && state.index >= 0
-						? `${state.index + 1} / ${state.queue.length}`
-						: t().cards.music.queueEmpty,
-				playing: state.playing,
-				position: state.position,
-				duration: state.duration,
-				repeatIcon: state.repeat === "one" ? "repeat-1" : "repeat",
-				repeatTitle: repeatTitle(state.repeat),
-				shuffleOn: state.shuffled,
-				volume: state.volume,
-				error: state.error ? playbackError(state.error) : null,
-				artKey: current,
-				coverUrl: null,
-			},
-			() => seeking,
-		);
+		};
+		paintArt(chrome, now);
+		paintChrome(chrome, now, () => seeking);
 		const queue = shownQueue(state);
 		paintQueue(
 			chrome.list,
@@ -501,14 +572,12 @@ function renderStereoSource(
 
 	const paint = (state: Readonly<StereoPlayerState>): void => {
 		const track = state.track;
-		const cover = stereoCoverUrl(view.app, track, 256);
-		const title = track?.title ?? t().cards.music.nothingPlaying;
-		const sub = track
-			? [track.artist, track.album].filter((part): part is string => !!part).join(" · ")
-			: t().cards.music.stereoIdle;
+		const cover = stereoCoverUrl(view.app, track, 512);
 		const now: NowPlaying = {
-			title,
-			sub,
+			title: track?.title ?? t().cards.music.nothingPlaying,
+			sub: track
+				? [track.artist, track.album].filter((part): part is string => !!part).join(" · ")
+				: t().cards.music.stereoIdle,
 			playing: state.playing,
 			position: state.position,
 			duration: state.duration,
@@ -749,7 +818,7 @@ export const musicCard: CardDefinition<"music"> = {
 			build: () => ({
 				kind: "music",
 				title: "Music",
-				music: { source: "folder", look: "record" },
+				music: { source: "folder", look: "cover" },
 				w: 4,
 				h: 4,
 			}),
@@ -761,7 +830,7 @@ export const musicCard: CardDefinition<"music"> = {
 			build: () => ({
 				kind: "music",
 				title: "Music",
-				music: { source: "stereo", look: "record" },
+				music: { source: "stereo", look: "cover" },
 				w: 4,
 				h: 4,
 			}),

@@ -1815,7 +1815,7 @@ export const en = {
 			playbackHeading: "Playback",
 			look: "Now-playing style",
 			lookDesc: "How the card draws whatever is currently playing.",
-			looks: { plain: "Plain", record: "Record", bars: "Level bars" },
+			looks: { plain: "Classic", medium: "Medium", cover: "Full artwork", panel: "Large artwork" },
 			showQueue: "Show the queue",
 			showQueueDesc: "List the tracks under the transport.",
 			stereoHeading: "Stereo plugin",

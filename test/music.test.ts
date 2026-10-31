@@ -73,11 +73,22 @@ describe("music config resolution", () => {
 		expect(musicRepeat("nonsense" as never)).toBe("off");
 	});
 
-	it("reads an unknown motif as plain, so an old card looks unchanged", () => {
-		expect(musicLook({ look: "record" })).toBe("record");
-		expect(musicLook({ look: "bars" })).toBe("bars");
+	it("resolves a layout, defaulting to the classic one", () => {
+		expect(musicLook({ look: "plain" })).toBe("plain");
+		expect(musicLook({ look: "medium" })).toBe("medium");
+		expect(musicLook({ look: "cover" })).toBe("cover");
+		expect(musicLook({ look: "panel" })).toBe("panel");
 		expect(musicLook({})).toBe("plain");
 		expect(musicLook(undefined)).toBe("plain");
+	});
+
+	it("maps the pre-release motif names onto the layouts they became", () => {
+		// "record"/"bars" were now-playing motifs in an unreleased build; a card
+		// saved against it must keep its artwork-led look rather than snap back
+		// to Classic.
+		expect(musicLook({ look: "record" as never })).toBe("cover");
+		expect(musicLook({ look: "bars" as never })).toBe("panel");
+		expect(musicLook({ look: "nonsense" as never })).toBe("plain");
 	});
 
 	it("clamps the volume into 0..1 and falls back to the default", () => {
