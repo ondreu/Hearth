@@ -87,6 +87,40 @@ export function defaultBrowseState(path: string): FolderBrowseState {
 }
 
 /**
+ * Where the sections the reader has folded are kept: this device's
+ * `localStorage` for the vault, beside the gallery's scope and the recent
+ * files' history. Folding a section says how the folder is being read, not how
+ * the vault is configured, so it stays out of `data.json` — and out of the
+ * sync traffic that follows it.
+ */
+export const FOLDED_KEY = "hearth-folder-folded";
+
+/** How many folded sections the store keeps. A browsing habit, not a record:
+ * paths of folders since renamed would otherwise accumulate for ever. */
+export const FOLDED_MAX = 200;
+
+/** Folded section paths read back from the device store: anything at all there,
+ * kept to the paths that could name a section. */
+export function readFoldedSections(raw: unknown): string[] {
+	if (!Array.isArray(raw)) return [];
+	const seen = new Set<string>();
+	for (const value of raw) {
+		if (typeof value !== "string") continue;
+		const path = folderPath(value);
+		if (path !== ROOT) seen.add(path);
+	}
+	return [...seen].slice(-FOLDED_MAX);
+}
+
+/** One section folded or opened, as the list should then be stored. */
+export function toggleFolded(folded: readonly string[], path: string): string[] {
+	const at = folderPath(path);
+	if (at === ROOT) return [...folded];
+	if (folded.includes(at)) return folded.filter((one) => one !== at);
+	return [...folded, at].slice(-FOLDED_MAX);
+}
+
+/**
  * Whether the browser draws pictures on its tiles: in tiles, with pictures on,
  * and only on the Full performance tier.
  *
