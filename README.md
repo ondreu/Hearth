@@ -519,6 +519,8 @@ Per-card settings are edited from the card itself in arrange mode.
 Bindable under **Settings → Hotkeys**:
 
 - **Open home dashboard**
+- **Focus board search** — puts the cursor in the board's search field, opening
+  Hearth first if it isn't up, so typing starts on the keyboard alone
 - **Switch to dashboard 1…9** — changes the active board
 - **Open dashboard 1…9** — changes it *and* brings Hearth up, so jumping to a
   particular board from anywhere in the vault is one shortcut

@@ -38,6 +38,9 @@ Several commands are bindable under **Settings → Hotkeys**:
   front.
 - **Next dashboard** and **Previous dashboard**.
 - **Open home dashboard** — opens Hearth on whichever board is active.
+- **Focus board search** — puts the cursor in the search field. A board that is
+  already in front only takes the cursor; otherwise Hearth is brought forward
+  (and opened, if no board is up) before the field takes it.
 
 ## Dashboard settings
 

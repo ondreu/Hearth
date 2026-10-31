@@ -12,6 +12,7 @@ export const fr: Translations = {
 	// ---- Commands (command palette) & ribbon ---------------------------
 	commands: {
 		openHome: "Ouvrir le tableau de bord d'accueil",
+		focusSearch: "Placer le curseur dans la recherche",
 		newNote: "Créer une note (emplacement par défaut)",
 		newDrawing: "Créer un dessin Excalidraw",
 		recordVoice: "Démarrer/arrêter l'enregistrement vocal",

@@ -7,6 +7,7 @@ export const ko: Translations = {
 	commands: {
 		...en.commands,
 		openHome: "홈 대시보드 열기",
+		focusSearch: "보드 검색창에 포커스",
 		newNote: "새 노트 만들기 (기본 위치)",
 		newDrawing: "새 Excalidraw 그림 만들기",
 		recordVoice: "음성 녹음 시작/중지",

@@ -285,6 +285,25 @@ export class HomeView extends ItemView {
 	}
 
 	/**
+	 * Move keyboard focus into the board's search field, if it has one. This is
+	 * what the *Focus board search* command calls once it has brought the view
+	 * up (#446), so it ignores `focusSearchOnOpen` and the mobile guard on
+	 * purpose: a pressed hotkey is an explicit request for the field, while the
+	 * startup focus is a convenience that must not pop a phone's keyboard on
+	 * every open.
+	 *
+	 * Returns whether there was a field to focus. A board with its search field
+	 * switched off has none, and the command is then a no-op rather than an
+	 * error.
+	 */
+	focusSearch(): boolean {
+		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
+		if (!input) return false;
+		input.focus();
+		return true;
+	}
+
+	/**
 	 * When enabled, move keyboard focus into the search field as the view opens
 	 * so a freshly-opened Hearth tab is ready to type into (#115). Only runs from
 	 * onOpen — not on every re-render — so a background refresh never steals focus
@@ -293,8 +312,7 @@ export class HomeView extends ItemView {
 	 */
 	private maybeFocusSearch(): void {
 		if (!this.plugin.settings.focusSearchOnOpen || Platform.isMobile) return;
-		const input = this.contentEl.querySelector<HTMLInputElement>(".hearth-search-input");
-		if (input) input.focus();
+		this.focusSearch();
 	}
 
 	/**

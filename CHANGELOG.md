@@ -15,6 +15,11 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **A hotkey that puts the cursor in the board's search field.** *Focus board
+  search* is bindable under Settings → Hotkeys: a board that is already in front
+  only takes the cursor, one that is open behind a note is brought forward
+  first, and with no Hearth tab at all it opens one. The existing *Focus search
+  on open* setting keeps covering only a board that is opening.
 - **A Music card, playing from the vault or from a Navidrome/Subsonic server.**
   Two sources behind one card. *Vault folder* takes every audio file in a folder
   (optionally including subfolders), *Vault files* a hand-picked list, and both

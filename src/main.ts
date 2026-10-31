@@ -149,6 +149,15 @@ export default class HearthPlugin extends Plugin {
 			callback: () => this.activateView(),
 		});
 
+		// The keyboard route into the search field (#446): a board that is
+		// already up only takes the cursor, a board that isn't is brought up
+		// first, and with no Hearth tab at all one is opened.
+		this.addCommand({
+			id: "focus-search",
+			name: t().commands.focusSearch,
+			callback: () => this.activateView({ focusSearch: true }),
+		});
+
 		this.addCommand({
 			id: "new-note",
 			name: t().commands.newNote,
@@ -409,18 +418,25 @@ export default class HearthPlugin extends Plugin {
 		});
 	}
 
-	async activateView() {
+	async activateView(opts: { focusSearch?: boolean } = {}) {
 		const { workspace } = this.app;
 
 		const existing = workspace.getLeavesOfType(VIEW_TYPE_HOME);
 		if (existing.length > 0) {
-			const leaf = existing[0];
-			await workspace.revealLeaf(leaf);
+			// A focus-only request means the board the user is already looking at;
+			// moving the cursor into a leaf behind this one would put it out of
+			// sight. With no board in front, the first one is brought forward.
+			const inFront = workspace.getActiveViewOfType(HomeView);
+			const leaf = inFront && existing.includes(inFront.leaf) ? inFront.leaf : existing[0];
+			if (leaf !== inFront?.leaf) await workspace.revealLeaf(leaf);
 			// Revealing is not rendering, and `active-leaf-change` can't be relied
 			// on to follow (#286) — so a board that missed a refresh while it was
 			// off screen is brought up to date here, before it is looked at.
-			if (leaf.view instanceof HomeView && this.boards.reveal(leaf)) {
-				leaf.view.render();
+			if (leaf.view instanceof HomeView) {
+				if (this.boards.reveal(leaf)) leaf.view.render();
+				// After the render, not before: a rebuild replaces the input the
+				// cursor would have been sitting in (#446).
+				if (opts.focusSearch) leaf.view.focusSearch();
 			}
 			return;
 		}
@@ -428,6 +444,8 @@ export default class HearthPlugin extends Plugin {
 		const leaf = workspace.getLeaf(true);
 		await leaf.setViewState({ type: VIEW_TYPE_HOME, active: true });
 		await workspace.revealLeaf(leaf);
+		// `setViewState` has opened the view, so its render has built the field.
+		if (opts.focusSearch && leaf.view instanceof HomeView) leaf.view.focusSearch();
 	}
 
 	/** Create the note the "New note" button is configured to create, and open
