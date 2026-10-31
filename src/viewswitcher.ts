@@ -40,6 +40,26 @@ export function viewIdentity(view: HomeView, card: DashboardCard): ViewIdentity 
 	};
 }
 
+/** What the switcher needs to know about a box on screen: where its left and
+ * right edges are, in viewport pixels. Kept structural so the arithmetic below
+ * can be tested without a layout engine. */
+export interface Span {
+	left: number;
+	right: number;
+}
+
+/**
+ * The scroll offset `row` needs so `tab` is inside it, or `scrollLeft`
+ * unchanged when the tab already is. Horizontal only, by construction: a tab
+ * that sits above or below the row is not this function's business, and that is
+ * the point — the board is never asked to move for a switcher (#440).
+ */
+export function revealScrollLeft(scrollLeft: number, row: Span, tab: Span): number {
+	if (tab.left < row.left) return Math.max(0, scrollLeft - (row.left - tab.left));
+	if (tab.right > row.right) return scrollLeft + (tab.right - row.right);
+	return scrollLeft;
+}
+
 /** What the card hands the switcher. */
 export interface ViewSwitcherHost {
 	view: HomeView;
@@ -117,10 +137,21 @@ export function mountViewSwitcher(host: ViewSwitcherHost): ViewSwitcherHandle | 
 			});
 		});
 		// Keep the tab on show in sight when the row is wider than the card.
-		el.querySelector<HTMLElement>(".hearth-view-switch-btn.is-active")?.scrollIntoView?.({
-			block: "nearest",
-			inline: "nearest",
-		});
+		// The row scrolls sideways and only sideways (`overflow-x: auto` on
+		// `.hearth-view-switch`), so the row itself is moved. Asking the
+		// browser instead (`scrollIntoView`) scrolls every scrollable parent
+		// in both axes, so a card below the fold pulled the board down to
+		// itself — and a board at the top has no restore running to undo that,
+		// so the jump was saved as the user's own position (#440).
+		const shown = el.querySelector<HTMLElement>(".hearth-view-switch-btn.is-active");
+		if (shown) {
+			const left = revealScrollLeft(
+				el.scrollLeft,
+				el.getBoundingClientRect(),
+				shown.getBoundingClientRect(),
+			);
+			if (left !== el.scrollLeft) el.scrollLeft = left;
+		}
 	};
 
 	// Left/right move between tabs, the way a tab list is used from a keyboard.

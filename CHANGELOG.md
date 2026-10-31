@@ -145,6 +145,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **A board with a card holding several views no longer jumps to that card**
+  (#440). Opening the dashboard, or switching one of the card's views, left the
+  board where it was until the switcher was drawn — and then the board scrolled
+  down to bring the row of tabs into view, even when the row was nowhere near
+  the edge. The row scrolls sideways when there are more tabs than fit, so it is
+  the row that is moved now, and the board is never asked to move at all. A board
+  that had already saved the jump as its position keeps it until it is scrolled
+  back to the top once; nothing else is needed.
+
 - **A folder browser tab keeps its own page across a restart** (#439). Opening a
   folder in a tab and sorting it by date came back after a restart on the same
   folder, but sorted the explorer's way again: the folder reached the tab's view
