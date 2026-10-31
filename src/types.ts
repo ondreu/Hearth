@@ -24,6 +24,7 @@ export type CardKind =
 	| "daily"
 	| "periodic"
 	| "web"
+	| "music"
 	| "bookmarks"
 	| "favorites"
 	| "text"
@@ -1842,6 +1843,52 @@ export interface SlideshowConfig {
 	pauseOnHover?: boolean;
 }
 
+/** Where a music card takes its tracks from. */
+export type MusicSource =
+	/** Every audio file in one vault folder (optionally its subfolders). */
+	| "folder"
+	/** A hand-picked list of audio files, in list order. */
+	| "list"
+	/** Whatever the Stereo plugin (Navidrome/Subsonic) has queued — the card is
+	 * a remote control for that plugin's player rather than a player of its own. */
+	| "stereo";
+
+/** What the player does at the end of a track. */
+export type MusicRepeat = "off" | "all" | "one";
+
+/** How the music card is laid out — four genuinely different arrangements, not
+ * four skins of one row.
+ *
+ * - "plain" (Classic) — a small artwork chip, title beside it, transport under
+ *   it, queue filling the rest of the card.
+ * - "medium" — a square artwork on the left, details and transport stacked
+ *   beside it: a short, wide card uses its width instead of its height.
+ * - "cover" (Full artwork) — the artwork is the card; details and transport sit
+ *   on a scrim along the bottom edge.
+ * - "panel" (Large artwork) — artwork down the left half at full height,
+ *   details, transport and queue in the right half.
+ *
+ * The vault source has no album art, so the artwork is a record that spins
+ * while playback runs — a CSS animation, so the board's motion gate freezes it
+ * along with every other animation. */
+export type MusicLook = "plain" | "medium" | "cover" | "panel";
+
+/** The music card's configuration. */
+export interface MusicConfig {
+	/** Where the tracks come from. Default "folder". */
+	source?: MusicSource;
+	/** Vault folder every track is taken from (source "folder"). */
+	folder?: string;
+	/** Also take tracks from subfolders of `folder`. Default false. */
+	includeSubfolders?: boolean;
+	/** The hand-picked tracks, in list order (source "list"). */
+	tracks?: string[];
+	/** Show the queue under the transport. Default true. */
+	showQueue?: boolean;
+	/** Now-playing motif. Default "plain". */
+	look?: MusicLook;
+}
+
 /** A single tile inside a "links" (launchpad) card. */
 export interface LinkItem extends TileGeometry {
 	id: string;
@@ -1883,6 +1930,10 @@ export interface DashboardCard {
 	/** kind === "slideshow": the pictures, where they come from, and how they
 	 * rotate. */
 	slideshow?: SlideshowConfig;
+	/** kind === "music": the tracks, where they come from, and how the card is
+	 * drawn. Playback state (queue position, volume, repeat) is deliberately not
+	 * here — it lives in local storage, see src/music.ts. */
+	music?: MusicConfig;
 	/** kind === "periodic": which period's note the card follows. */
 	periodic?: PeriodicCardConfig;
 	/** kind === "web": the web page URL to embed in an iframe. */

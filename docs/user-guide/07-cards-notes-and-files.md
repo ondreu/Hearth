@@ -236,6 +236,67 @@ carries on from the picture you chose, a timer card restarts its clock.
 Note that on the **Minimal** performance tier a slideshow holds one picture
 instead of rotating; see [chapter 12](12-performance.md).
 
+## Music
+
+**What it shows:** a player — transport, seek bar, volume and the queue — for
+audio that is either in your vault or on a Navidrome/Subsonic server.
+
+**Requires:** nothing for vault audio. The server source needs the
+[Stereo](10-cards-integrations.md#music-stereo) community plugin.
+
+### Where the music comes from
+
+| Source | Meaning |
+| --- | --- |
+| **Vault folder** | Every audio file in one folder, in name order, optionally including subfolders |
+| **Vault files (list)** | A hand-picked list of files, in the order you added them |
+| **Stereo (Navidrome/Subsonic)** | Whatever the Stereo plugin has queued on your server |
+
+The two vault sources are played by Hearth itself. **Stereo** plays nothing: the
+card is a remote control for the Stereo plugin, so browsing, queuing and
+scrobbling all stay in Stereo and the card only mirrors what it is playing. Pick
+it when your library lives on a server rather than in the vault.
+
+Vault playback survives a redraw of the board — a settings change, a resize, a
+track dropped into the watched folder — because the audio element belongs to the
+plugin, not to the card. It stops when the plugin unloads, and it resumes where
+you left it the next time Obsidian starts. Two music cards on one board share the
+same player: one set of speakers.
+
+### Controls
+
+Previous / play-pause / next, a seek bar, volume, shuffle, and repeat cycling
+through *off* → *whole queue* → *this track*. A track that ends under *off* stops
+rather than looping back to the top; pressing next on the last track stays where
+it is. Playback starts paused — a board that starts playing the moment you open
+it is not what anyone wants — and on a phone that first press is also what
+unlocks audio.
+
+### Display
+
+| Setting | Meaning |
+| --- | --- |
+| *Layout* | **Classic** (chip, transport and the queue below), **Medium** (square artwork beside the details — good for a short, wide card), **Full artwork** (the artwork is the card, controls on a scrim) or **Large artwork** (artwork down the left, details and queue on the right) |
+| *Show the queue* | List the tracks under the transport |
+
+The layouts are arrangements, not skins: each puts the same controls somewhere
+else. The vault has no album art, so the artwork is a record that spins only
+while playback runs — a CSS animation, so the board's motion gates freeze it,
+and `prefers-reduced-motion` stops it outright.
+
+Every layout **fits the card it is drawn in**. As the card gets shorter the queue
+goes first, then the seek row, and when it is also narrow the volume — so a small
+card is a smaller player rather than a clipped one, and a tall one spends the
+height on a bigger record. On the **Expressive** design the artwork becomes a
+tonal chip, the play button a filled circle, and the queue rows pills.
+
+### Formats
+
+mp3, m4a, aac, wav, flac, ogg and opus. What actually plays is up to the
+platform: Obsidian on iOS refuses ogg/opus, so a vault shared with a phone is
+happiest as mp3, m4a or flac. A file the platform refuses is reported on the card
+instead of failing silently.
+
 ---
 
 ## Embedded canvas

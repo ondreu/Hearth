@@ -27,6 +27,7 @@ import { clearContentSearchCache } from "./query";
 import { BoardRefreshTracker } from "./boardrefresh";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
+import { disposeVaultPlayer } from "./audioplayer";
 import { installUiDesign } from "./uidesign";
 import { ACTIVE_DASHBOARD_KEY, settingsForDisk, validLocalDashboardId } from "./devicestate";
 import {
@@ -283,6 +284,9 @@ export default class HearthPlugin extends Plugin {
 		// The Operon session holds a reference to that plugin's instance; drop
 		// it so an unloaded Hearth isn't left holding a live handle.
 		this.operon.invalidate();
+		// The music card's player owns a detached <audio> element for the whole
+		// plugin; without this an unloaded Hearth would keep a decoder alive.
+		disposeVaultPlayer();
 	}
 
 	private maybeReplaceNewTab(leaf: WorkspaceLeaf | null) {

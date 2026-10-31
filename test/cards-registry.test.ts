@@ -163,6 +163,19 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: { kind: "tension", title: "World tension", tension: {}, w: 3, h: 3 },
 			},
 			{
+				id: "music-stereo",
+				icon: "radio",
+				category: "integrations",
+				requires: "Stereo",
+				build: {
+					kind: "music",
+					title: "Music",
+					music: { source: "stereo", look: "cover" },
+					w: 4,
+					h: 4,
+				},
+			},
+			{
 				id: "operon-tasks",
 				icon: "list-checks",
 				category: "integrations",
@@ -199,6 +212,7 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 			},
 
 			// ---- Fun ----
+			{ id: "music", icon: "music", category: "fun", requires: null, build: { kind: "music", title: "Music", music: { source: "folder", look: "cover" }, w: 4, h: 4 } },
 			{ id: "pet", icon: "cat", category: "fun", requires: null, build: { kind: "pet", title: "Pet", pet: {}, w: 3, h: 4 } },
 			{
 				id: "vault-pet",
@@ -442,6 +456,7 @@ describe("liveness classification", () => {
 			daily: "watch-file",
 			periodic: "watch-file",
 			web: "poll",
+			music: "vault",
 			bookmarks: "static",
 			favorites: "static",
 			text: "static",

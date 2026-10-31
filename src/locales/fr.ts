@@ -1337,6 +1337,13 @@ export const fr: Translations = {
 			goToSection: "Afficher",
 			goToTab: "Ouvrir",
 			items: {
+				stereo: {
+					name: "Stereo",
+					desc:
+						"Permet à une carte Musique de commander le lecteur " +
+						"Navidrome/Subsonic du plugin Stereo — piste en cours, file " +
+						"d'attente et commandes.",
+				},
 				omnisearch: {
 					name: "Omnisearch",
 					desc:
@@ -1735,6 +1742,45 @@ export const fr: Translations = {
 
 	// ---- Card settings editor ------------------------------------------
 	editors: {
+		music: {
+			source: "Source",
+			sourceDesc: "D'où la carte tire sa musique.",
+			sources: {
+				folder: "Dossier du coffre",
+				list: "Fichiers du coffre (liste)",
+				stereo: "Stereo (Navidrome/Subsonic)",
+			},
+			folder: "Dossier",
+			folderDesc: "Chaque fichier audio de ce dossier devient une piste.",
+			folderPlaceholder: "Musique/Albums",
+			pickFolder: "Choisir un dossier",
+			includeSubfolders: "Inclure les sous-dossiers",
+			includeSubfoldersDesc: "Prendre aussi les pistes des dossiers qu'il contient.",
+			found: (count: number) => `${count} piste(s) trouvée(s)`,
+			noTracks: "Aucune piste pour l'instant — ajoutez-en une ci-dessous.",
+			addTrack: "Ajouter une piste",
+			pickTrack: "Choisir un fichier audio",
+			missingTrack: "Ce fichier n'est plus dans le coffre",
+			remove: "Retirer",
+			playbackHeading: "Lecture",
+			look: "Style de la lecture en cours",
+			lookDesc: "Comment la carte dessine ce qui joue.",
+			looks: { plain: "Classique", medium: "Moyen", cover: "Pochette pleine", panel: "Grande pochette" },
+			showQueue: "Afficher la file",
+			showQueueDesc: "Lister les pistes sous les commandes.",
+			stereoHeading: "Plugin Stereo",
+			stereoMissing:
+				"Stereo n'est pas installé. Ajoutez-le depuis le navigateur de plugins " +
+				"communautaires, puis choisissez à nouveau cette source.",
+			stereoUnconfigured:
+				"Stereo est installé mais n'a pas encore de serveur — renseignez l'adresse " +
+				"Navidrome/Subsonic dans ses réglages.",
+			stereoReady:
+				"Connecté à Stereo. Mettez de la musique en file dans Stereo ; cette carte " +
+				"commande la lecture.",
+			openStereo: "Ouvrir Stereo",
+			browsePlugins: "Ouvrir les réglages",
+		},
 		title: "Paramètres de la carte",
 		iconHelp:
 			"Saisissez un id d'icône Lucide (ex. « home », « star », « calendar ») — parcourez-les sur " +
@@ -1775,6 +1821,7 @@ export const fr: Translations = {
 		thisCard: "cette carte",
 		done: "Terminé",
 		kinds: {
+			music: "Musique",
 			embed: "Intégration (note / image / base)",
 			slideshow: "Diaporama",
 			daily: "Note quotidienne (aujourd'hui)",
@@ -3562,7 +3609,31 @@ export const fr: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		music: {
+			play: "Lire",
+			pause: "Pause",
+			next: "Piste suivante",
+			previous: "Piste précédente",
+			shuffle: "Aléatoire",
+			repeat: "Répéter",
+			repeatNone: "Répéter : non",
+			repeatAll: "Répéter : toute la file",
+			repeatOne: "Répéter : cette piste",
+			volume: "Volume",
+			seek: "Position de lecture",
+			nothingPlaying: "Rien en lecture",
+			queueEmpty: "File vide",
+			stereoIdle: "Mettez quelque chose en file dans Stereo",
+			moreTracks: (shown: number, total: number) => `${shown} pistes sur ${total}`,
+			errorMissing: "Ce fichier n'est plus dans le coffre",
+			errorPlayback: "Ce fichier ne peut pas être lu ici",
+		},
 		empty: {
+			musicEmpty: "Ajoutez des pistes dans les réglages de la carte",
+			musicFolderEmpty: "Aucun fichier audio dans ce dossier",
+			musicStereoMissing:
+				"Installez et activez le plugin Stereo pour lire depuis Navidrome ou Subsonic",
+			musicStereoUnconfigured: "Renseignez l'adresse du serveur dans les réglages de Stereo",
 			searchNoQuery: "Définissez une requête dans les paramètres de la carte",
 			searchNoMatches: "Aucun résultat",
 			embedPickFile: "Choisissez un fichier à intégrer dans les paramètres",
@@ -4399,6 +4470,8 @@ export const fr: Translations = {
 
 	// ---- Card templates (Add card menu) --------------------------------
 	templates: {
+		music: "Musique",
+		"music-stereo": "Musique (Stereo)",
 		note: "Note intégrée",
 		image: "Image intégrée",
 		slideshow: "Diaporama",
@@ -4444,6 +4517,8 @@ export const fr: Translations = {
 	},
 
 	templateDescriptions: {
+		music: "Lit les fichiers audio d'un dossier du coffre, avec la file d'attente sur la carte",
+		"music-stereo": "Télécommande du lecteur Navidrome du plugin Stereo",
 		note: "N'importe quelle note, affichée en direct sur le tableau",
 		image: "Une image du coffre, bord à bord",
 		slideshow: "Des images d'une liste ou d'un dossier, qui défilent avec un minuteur",
