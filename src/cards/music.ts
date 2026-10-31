@@ -226,18 +226,24 @@ function transportBlock(parent: HTMLElement): {
  * rather than the card clipping them halfway.
  */
 function buildChrome(body: HTMLElement, layout: MusicLook, showQueue: boolean): Chrome {
-	body.addClass("hearth-music");
-	body.addClass(`is-layout-${layout}`);
+	// The chrome lives in its own element rather than on the card body. Two
+	// reasons, both learned the hard way: the body already carries a zeroing
+	// `padding` rule that would out-rank the player's own padding on the same
+	// element, and `container-type: size` needs a box whose height is its own
+	// content box — on the body that is the card's height, which makes every
+	// `@container` threshold below measure the wrong thing.
+	const root = body.createDiv("hearth-music");
+	root.addClass(`is-layout-${layout}`);
 
 	// Created once and moved into whichever container the layout wants.
-	const art = body.createDiv("hearth-music-art");
+	const art = root.createDiv("hearth-music-art");
 	let meta: ReturnType<typeof metaBlock>;
 	let progress: ReturnType<typeof progressBlock>;
 	let transport: ReturnType<typeof transportBlock>;
 	let list: HTMLElement | null = null;
 
 	if (layout === "cover") {
-		const stage = body.createDiv("hearth-music-stage");
+		const stage = root.createDiv("hearth-music-stage");
 		stage.appendChild(art);
 		stage.createDiv("hearth-music-scrim");
 		const overlay = stage.createDiv("hearth-music-overlay");
@@ -245,15 +251,15 @@ function buildChrome(body: HTMLElement, layout: MusicLook, showQueue: boolean): 
 		progress = progressBlock(overlay);
 		transport = transportBlock(overlay);
 	} else if (layout === "medium") {
-		const main = body.createDiv("hearth-music-main");
+		const main = root.createDiv("hearth-music-main");
 		main.appendChild(art);
 		const side = main.createDiv("hearth-music-side");
 		meta = metaBlock(side);
 		progress = progressBlock(side);
 		transport = transportBlock(side);
-		if (showQueue) list = body.createDiv("hearth-music-queue");
+		if (showQueue) list = root.createDiv("hearth-music-queue");
 	} else if (layout === "panel") {
-		const split = body.createDiv("hearth-music-split");
+		const split = root.createDiv("hearth-music-split");
 		const stage = split.createDiv("hearth-music-stage");
 		stage.appendChild(art);
 		const side = split.createDiv("hearth-music-side");
@@ -262,15 +268,15 @@ function buildChrome(body: HTMLElement, layout: MusicLook, showQueue: boolean): 
 		transport = transportBlock(side);
 		if (showQueue) list = side.createDiv("hearth-music-queue");
 	} else {
-		const now = body.createDiv("hearth-music-now");
+		const now = root.createDiv("hearth-music-now");
 		now.appendChild(art);
 		meta = metaBlock(now);
-		progress = progressBlock(body);
-		transport = transportBlock(body);
-		if (showQueue) list = body.createDiv("hearth-music-queue");
+		progress = progressBlock(root);
+		transport = transportBlock(root);
+		if (showQueue) list = root.createDiv("hearth-music-queue");
 	}
 
-	const status = body.createDiv("hearth-music-status");
+	const status = root.createDiv("hearth-music-status");
 	return {
 		art,
 		title: meta.title,

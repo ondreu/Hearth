@@ -26021,17 +26021,23 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 /* ---- Music card (src/cards/music.ts) ---------------------------------
  *
  * One card, two sources (vault audio and the Stereo plugin) and four layouts.
- * The layout is a setting, not a skin: Classic is a row of text with the queue
- * hanging off it, Medium turns the artwork into a square beside the details,
- * Full artwork makes the artwork the card with the controls on a scrim, and
- * Large artwork gives the artwork half the card and the details the other half.
+ * The layout is an arrangement, not a skin: Classic is a row of text with the
+ * queue hanging off it, Medium turns the artwork into a square beside the
+ * details, Full artwork makes the artwork the card with the controls on a
+ * scrim, and Large artwork gives the artwork half the card and the details the
+ * other half.
  *
- * Two things are shared by all four: the element set (the card module builds the
- * same pieces and only places them differently) and the adaptivity. The body is
- * a container — `.hearth-music { container-type: size }` — so the rules at the
- * bottom can drop the queue, then the seek row, then the volume as the card gets
- * short, instead of the card clipping its own control off. That is what makes
- * the player fit a card of any height.
+ * Two rules shape everything below.
+ *
+ * `.hearth-music` is its own element inside the card body, never the body
+ * itself — the body carries a zeroing `padding` rule that out-ranks anything a
+ * single class could set, and `container-type: size` must measure a box whose
+ * height is the player's own, not the card's.
+ *
+ * `box-sizing: border-box` is stated here because Hearth does not set it
+ * globally: `height: 100%` plus padding under `content-box` overflows by the
+ * padding, which clips the bottom of the player and squeezes the queue to
+ * nothing.
  *
  * The vault source has no album art. Where the artwork is the point (Medium,
  * Full and Large artwork) the stand-in is a record that spins while playing — a
@@ -26043,15 +26049,21 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	display: flex;
 }
 
+.hearth-music,
+.hearth-music * {
+	box-sizing: border-box;
+}
+
 .hearth-music {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 9px;
+	gap: 10px;
 	width: 100%;
 	height: 100%;
 	min-height: 0;
 	padding: 12px var(--hearth-card-pad-x);
+	/* What the container queries at the bottom measure. */
 	container-type: size;
 }
 
@@ -26082,13 +26094,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	object-fit: cover;
 }
 
-/* The record stand-in. Sized by its container, so the same element reads as a
- * chip in Medium and as the whole card in Full artwork. */
+/* The record stand-in. Sized by its box, so the same element reads as a chip in
+ * Medium and as the picture in Full artwork. */
 .hearth-music-disc {
 	position: relative;
 	display: grid;
 	place-items: center;
-	width: 84%;
+	width: min(84%, 84cqh);
 	aspect-ratio: 1;
 	border-radius: 50%;
 	background: radial-gradient(circle, #1b1b1e 0 30%, #0e0e10 31% 100%);
@@ -26128,7 +26140,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-music-meta {
 	min-width: 0;
-	flex: 1 1 auto;
+	flex: 0 1 auto;
 }
 
 .hearth-music-title {
@@ -26152,6 +26164,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	flex: 0 0 auto;
 }
 
 .hearth-music-time {
@@ -26183,6 +26196,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	flex: 0 0 auto;
 }
 
 .hearth-music-btn {
@@ -26257,8 +26271,8 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 /* ---- Queue ---- */
 
-/* Full-bleed inside the card's own padding, so the hover highlight reaches the
- * edge instead of floating in a gutter. */
+/* Full-bleed inside the player's padding, so the hover highlight reaches the
+ * card edge instead of floating in a gutter. */
 .hearth-music-queue {
 	display: flex;
 	flex-direction: column;
@@ -26268,6 +26282,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	overflow-y: auto;
 	margin: 0 calc(var(--hearth-card-pad-x) * -1);
 	padding: 0 var(--hearth-card-pad-x);
+}
+
+/* No queue is not the same as an empty flexible box: left alone, an empty queue
+ * still eats the space between the transport and the card's bottom edge and
+ * reads as a layout bug. */
+.hearth-music-queue:empty {
+	display: none;
 }
 
 .hearth-music-row {
@@ -26332,46 +26353,59 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	align-items: center;
 	gap: 11px;
 	min-width: 0;
+	flex: 0 0 auto;
 }
 
-/* A tall card gives the chip room to breathe rather than stretching the gap
- * between the transport and the queue. */
-@container (min-height: 200px) {
+/* A taller card spends the height on the artwork rather than on a gap above
+ * the queue — the size steps are what make the player look like it belongs to
+ * the card instead of sitting in the corner of a big empty one. */
+@container (min-height: 210px) {
 	.hearth-music.is-layout-plain .hearth-music-art {
-		width: 58px;
-		height: 58px;
+		width: 60px;
+		height: 60px;
+	}
+}
+
+@container (min-height: 258px) {
+	.hearth-music.is-layout-plain .hearth-music-art {
+		width: 76px;
+		height: 76px;
+		border-radius: 16px;
 	}
 }
 
 /* ==== Layout: Medium ====================================================
- * Square artwork on the left, everything else stacked beside it. */
+ * Square artwork on the left, details and transport beside it. */
 
 .hearth-music.is-layout-medium .hearth-music-main {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: 14px;
+	flex: 0 0 auto;
 	min-width: 0;
 }
 
 .hearth-music.is-layout-medium .hearth-music-art {
-	align-self: stretch;
-	width: auto;
+	align-self: center;
+	/* Container units rather than a max-width: a square clamped only on one axis
+	 * is a rectangle, and a stretched record looks like a bug. */
+	width: min(40cqw, 100cqh);
 	height: auto;
 	aspect-ratio: 1;
-	max-width: 42%;
 	border-radius: 14px;
 }
 
 .hearth-music.is-layout-medium .hearth-music-side {
 	display: flex;
 	flex-direction: column;
-	gap: 7px;
+	justify-content: center;
+	gap: 8px;
 	flex: 1 1 auto;
 	min-width: 0;
 }
 
 /* ==== Layout: Full artwork ==============================================
- * The artwork is the card. Details and transport sit on a scrim at the bottom,
+ * The artwork is the card; details and transport sit on a scrim at the bottom,
  * in white, because the surface under them is a picture rather than a theme
  * colour. */
 
@@ -26400,7 +26434,6 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: rgb(255 255 255 / 75%);
 }
 
-/* Big enough to be the picture, small enough to leave the scrim readable. */
 .hearth-music.is-layout-cover .hearth-music-disc {
 	width: min(52%, 200px);
 }
@@ -26410,7 +26443,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	inset: auto 0 0 0;
 	height: 58%;
 	pointer-events: none;
-	background: linear-gradient(to top, rgb(0 0 0 / 78%), transparent);
+	background: linear-gradient(to top, rgb(0 0 0 / 88%), rgb(0 0 0 / 55%) 45%, transparent);
 }
 
 .hearth-music.is-layout-cover .hearth-music-overlay {
@@ -26429,11 +26462,11 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-music.is-layout-cover .hearth-music-sub,
 .hearth-music.is-layout-cover .hearth-music-time {
-	color: rgb(255 255 255 / 72%);
+	color: rgb(255 255 255 / 78%);
 }
 
 .hearth-music.is-layout-cover .hearth-music-btn {
-	color: rgb(255 255 255 / 82%);
+	color: rgb(255 255 255 / 85%);
 }
 
 .hearth-music.is-layout-cover .hearth-music-btn:hover {
@@ -26446,11 +26479,6 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	accent-color: #fff;
 }
 
-.hearth-music.is-layout-cover .hearth-music-seek::-webkit-slider-runnable-track {
-	background: rgb(255 255 255 / 28%);
-}
-
-/* The queue would cover the picture, which is the whole point of this layout. */
 .hearth-music.is-layout-cover .hearth-music-status {
 	position: absolute;
 	inset: auto 14px 14px 14px;
@@ -26458,10 +26486,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 /* ==== Layout: Large artwork =============================================
- * Artwork down the left half at full height, details and queue on the right. */
+ * Artwork down the left at full height, details and queue on the right. The
+ * artwork keeps its own square corners and a little inset, so it reads as a
+ * picture placed in the card rather than as the card's own edge. */
 
 .hearth-music.is-layout-panel .hearth-music-split {
 	display: flex;
+	align-items: stretch;
 	gap: 14px;
 	flex: 1 1 auto;
 	min-height: 0;
@@ -26469,8 +26500,12 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-music.is-layout-panel .hearth-music-stage {
 	flex: 0 0 auto;
-	width: 40%;
-	max-width: 220px;
+	align-self: center;
+	/* The smaller of "44% of the width" and "the full height", so the picture
+	 * stays a square at both ends of the card's shape. */
+	width: min(44cqw, 100cqh);
+	height: auto;
+	aspect-ratio: 1;
 	display: grid;
 	place-items: center;
 	overflow: hidden;
@@ -26488,24 +26523,26 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-music.is-layout-panel .hearth-music-side {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	justify-content: center;
+	gap: 9px;
 	flex: 1 1 auto;
 	min-width: 0;
 	min-height: 0;
+	overflow: hidden;
 }
 
 /* ---- Adaptivity ------------------------------------------------------
- * One set of rules, whatever the layout: as the card gets shorter, the queue
- * goes first, then the seek row, then the volume. Nothing is ever clipped
- * mid-control. */
+ * One set of rules for every layout: as the card gets shorter the queue goes
+ * first, then the seek row, then (when it is also narrow) the volume. Nothing
+ * is ever clipped mid-control. */
 
-@container (max-height: 168px) {
+@container (max-height: 172px) {
 	.hearth-music-queue {
 		display: none;
 	}
 }
 
-@container (max-height: 124px) {
+@container (max-height: 126px) {
 	.hearth-music-progress {
 		display: none;
 	}
@@ -26515,7 +26552,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	}
 
 	.hearth-music.is-layout-panel .hearth-music-stage {
-		width: 30%;
+		width: min(34cqw, 100cqh);
 	}
 }
 
@@ -26523,23 +26560,20 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	.hearth-music-volume {
 		display: none;
 	}
+}
 
+@container (max-width: 250px) {
 	.hearth-music.is-layout-panel .hearth-music-split {
 		flex-direction: column;
 	}
 
 	.hearth-music.is-layout-panel .hearth-music-stage {
-		width: 100%;
-		max-width: none;
-		max-height: 45%;
+		width: min(100cqw, 46cqh);
+		align-self: center;
 	}
-}
 
-/* A narrow, tall card is the case where Classic's chip wastes the most space,
- * so it grows into the room it has. */
-@container (max-width: 220px) {
-	.hearth-music.is-layout-plain .hearth-music-now {
-		gap: 9px;
+	.hearth-music.is-layout-panel .hearth-music-art {
+		border-radius: 12px;
 	}
 }
 
@@ -26558,10 +26592,10 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 /* ==== Expressive ======================================================
- * The Expressive frame is already a filled tonal surface, so the artwork and
- * the play button take the design's own accents: a container chip for the art
- * and a filled circle for the one control that matters. Full artwork keeps its
- * dark scrim — a picture with a theme-coloured wash over it looks like a bug. */
+ * The Expressive frame is already a filled tonal surface, so the artwork and the
+ * play button take the design's own accents: a container chip for the art and a
+ * filled circle for the one control that matters. Full artwork keeps its dark
+ * scrim — a picture with a theme-coloured wash over it looks like a bug. */
 
 .hearth-card.is-expressive .hearth-music.is-layout-plain .hearth-music-art,
 .hearth-card.is-expressive .hearth-music.is-layout-medium .hearth-music-art {
@@ -26607,7 +26641,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 .hearth-card.is-expressive .hearth-music.is-layout-panel .hearth-music-stage {
-	border-radius: 26px;
+	border-radius: 24px;
 }
 
 .hearth-card.is-expressive .hearth-music-seek,

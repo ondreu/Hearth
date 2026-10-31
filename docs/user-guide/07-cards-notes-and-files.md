@@ -276,13 +276,19 @@ unlocks audio.
 
 | Setting | Meaning |
 | --- | --- |
-| *Now-playing style* | Plain (a glyph), Record (a disc that spins while playing) or Level bars (a meter that moves) |
+| *Layout* | **Classic** (chip, transport and the queue below), **Medium** (square artwork beside the details — good for a short, wide card), **Full artwork** (the artwork is the card, controls on a scrim) or **Large artwork** (artwork down the left, details and queue on the right) |
 | *Show the queue* | List the tracks under the transport |
 
-The two moving motifs only animate while something is playing, and they are CSS
-animations, so the board's motion gates freeze them along with everything else.
-On the **Expressive** design the artwork, the play button and the queue take the
-design's own accents.
+The layouts are arrangements, not skins: each puts the same controls somewhere
+else. The vault has no album art, so the artwork is a record that spins only
+while playback runs — a CSS animation, so the board's motion gates freeze it,
+and `prefers-reduced-motion` stops it outright.
+
+Every layout **fits the card it is drawn in**. As the card gets shorter the queue
+goes first, then the seek row, and when it is also narrow the volume — so a small
+card is a smaller player rather than a clipped one, and a tall one spends the
+height on a bigger record. On the **Expressive** design the artwork becomes a
+tonal chip, the play button a filled circle, and the queue rows pills.
 
 ### Formats
 
