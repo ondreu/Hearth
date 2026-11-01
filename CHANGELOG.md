@@ -110,6 +110,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   so a folder folded in one browser is folded in the next one and after a
   restart, without writing to `data.json`.
 
+- **“Same as the file explorer” now matches the sidebar with the sidebar
+  closed** (#439). Obsidian leaves the file explorer unbuilt while the left
+  sidebar is collapsed, and the call that orders a folder answers only with the
+  tree items it has built — so the page fell back to the explorer's *sort
+  setting*, read off that same unbuilt view, which is to say alphabetical. It
+  reads the setting from the state the leaf still carries now, treats a partial
+  answer as no answer instead of pushing the rest of the folder to the end, and
+  redraws when the sidebar's answer changes — so opening the sidebar corrects a
+  page that was drawn while it was closed.
+
 - Currency conversion no longer hangs on a single host, and no longer forgets
   its rates between sessions. The rates are the ECB's own daily reference file,
   asked first, with Frankfurter's mirror only as a fallback, and the last good
