@@ -119,6 +119,31 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   redirects now). BGN left the supported units, as the ECB stopped publishing a
   rate for the lev when Bulgaria adopted the euro (#422).
 
+- **The Git card works again with obsidian-git 2.41.** That release moved its
+  commit-and-push actions, which every earlier version kept flat on the
+  plugin, onto its own GitActions helper, so Hearth's support probe, which
+  read the old flat names, decided the actions weren't there and disabled the
+  commit, sync, push, pull, fetch, discard-all and branch buttons under
+  *This version of the Git plugin doesn't support that*. The write actions
+  are now looked up per member, on the helper first and on the plugin itself
+  second, so a 2.41+ and a pre-2.41 install answer alike.
+
+- **The commit scope the card editor chooses is respected again on
+  obsidian-git 2.40 and later.** Since 2.40 renamed its commit options to
+  `mode`, Hearth kept sending the `onlyStaged` boolean those builds never
+  read, so *Smart*, *All* and *Staged* were all collapsing to the plugin's
+  default (`all`). The card now names the scope, and dispatch translates it
+  into both dialects: `mode` goes to obsidian-git 2.40+, where *Smart*
+  passes through and the plugin resolves it exactly as its own Commit
+  command does, against a status read at commit time; the old `onlyStaged`
+  rides alongside for builds that predate modes.
+
+- **Staging everything from the card no longer rests on a possibly stale
+  snapshot.** Stage-all and unstage-all now run without a status, matching
+  what obsidian-git's own source-control view does: on desktop both stage
+  and reset the whole tree regardless, and on mobile the working tree is
+  re-read at the moment of the click.
+
 ## [3.6.0]
 
 ### Added

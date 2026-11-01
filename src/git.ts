@@ -20,7 +20,11 @@
  *    own commands and views call the same ones) but they are not a contract,
  *    so every member is declared optional and every call site checks for the
  *    function before using it. A build of obsidian-git that renamed something
- *    disables one button; it never throws inside a dashboard render.
+ *    disables one button; it never throws inside a dashboard render. None of
+ *    that is theoretical: obsidian-git 2.41 relocated its commit-and-push
+ *    actions from the plugin onto its own `gitActions` helper, which is why
+ *    the write side is declared once in `GitWriterLike` and probed per member
+ *    in both places by `gitActionTask`.
  * 2. **Writes go through obsidian-git's own queue.** The plugin serializes
  *    every repo-touching operation on `promiseQueue` so an automatic backup
  *    can't interleave with a manual commit. Hearth pushes its actions onto the
@@ -126,14 +130,58 @@ interface GitManagerLike {
 	getLastCommitTime?(): Promise<Date | undefined>;
 }
 
+/** The `mode` field of obsidian-git's commit calls, which is how the plugin
+ * itself decides what a commit covers. That is obsidian-git's vocabulary,
+ * not the card's: 2.40 introduced it in place of the `onlyStaged` boolean
+ * older builds took, and {@link gitActionTask} translates the card's scope
+ * into it. */
+export type GitCommitMode = "all" | "staged" | "smart";
+
+/**
+ * The repo-writing half of obsidian-git: the entry points a card button runs,
+ * declared once because obsidian-git publishes it twice. Through 2.40 the
+ * methods sat flat on the plugin; 2.41 moved them onto its GitActions helper
+ * (`plugin.gitActions`) with the same names. Every member is optional, per the
+ * file header: a build without one disables that one button rather than
+ * failing on click. The commit options carry both dialects obsidian-git has
+ * published for the commit's coverage: `mode` since 2.40, the old
+ * `onlyStaged` boolean before it. One dispatch serves every install.
+ */
+interface GitWriterLike {
+	commit?(opts: {
+		fromAuto: boolean;
+		requestCustomMessage?: boolean;
+		mode?: GitCommitMode;
+		/** Read only by obsidian-git builds that predate `mode` (≤ 2.39). */
+		onlyStaged?: boolean;
+		commitMessage?: string;
+		amend?: boolean;
+	}): Promise<unknown>;
+	commitAndSync?(opts: {
+		fromAutoBackup: boolean;
+		requestCustomMessage?: boolean;
+		mode?: GitCommitMode;
+		/** Read only by obsidian-git builds that predate `mode` (≤ 2.39). */
+		onlyStaged?: boolean;
+		commitMessage?: string;
+	}): Promise<unknown>;
+	push?(): Promise<unknown>;
+	pullChangesFromRemote?(): Promise<unknown>;
+	fetch?(): Promise<unknown>;
+	discardAll?(path?: string): Promise<unknown>;
+	switchBranch?(): Promise<unknown>;
+}
+
 /**
  * The obsidian-git plugin instance, as far as Hearth is concerned. Reachable
  * at `app.plugins.plugins["obsidian-git"]` once the plugin is enabled.
  *
  * Only `gitReady` and `gitManager` are required to consider the plugin usable
- * — everything else is probed per call.
+ * — everything else is probed per call. `GitWriterLike` carries the
+ * commit-and-push members, in both of the shapes obsidian-git has published
+ * them: flat on the plugin (≤ 2.40) and on `gitActions` (≥ 2.41).
  */
-export interface GitPlugin {
+export interface GitPlugin extends GitWriterLike {
 	/** False until the plugin has found and opened a repository. */
 	gitReady: boolean;
 	/** The last status the plugin computed, if any. */
@@ -143,6 +191,10 @@ export interface GitPlugin {
 	promiseQueue?: {
 		addTask<T>(task: () => Promise<T>, onFinished?: (res: T | undefined) => void): void;
 	};
+	/** obsidian-git's writer helper (≥ 2.41), where the `GitWriterLike` members
+	 * now live. Dispatch probes each member here first and falls back to the
+	 * plugin itself, which is how a pre-2.41 install keeps working. */
+	gitActions?: GitWriterLike;
 	tools?: {
 		/** Open obsidian-git's own diff view for a repo-relative path. `aRef`
 		 * empty means "the working tree against HEAD". */
@@ -156,24 +208,6 @@ export interface GitPlugin {
 	};
 	/** Recompute the status and fire `obsidian-git:status-changed`. */
 	updateCachedStatus?(): Promise<GitStatus>;
-	commit?(opts: {
-		fromAuto: boolean;
-		requestCustomMessage?: boolean;
-		onlyStaged?: boolean;
-		commitMessage?: string;
-		amend?: boolean;
-	}): Promise<boolean>;
-	commitAndSync?(opts: {
-		fromAutoBackup: boolean;
-		requestCustomMessage?: boolean;
-		commitMessage?: string;
-		onlyStaged?: boolean;
-	}): Promise<void>;
-	push?(): Promise<boolean>;
-	pullChangesFromRemote?(): Promise<void>;
-	fetch?(): Promise<void>;
-	discardAll?(path?: string): Promise<unknown>;
-	switchBranch?(): Promise<string | undefined>;
 	displayError?(data: unknown, timeout?: number): void;
 }
 
@@ -275,11 +309,16 @@ export const GIT_DEFAULT_ACTIONS: readonly GitAction[] = [
 
 /** Which files a commit from this card includes.
  *
- * - `smart` — staged files only if anything is staged, otherwise everything.
- *   This is what obsidian-git's own "Commit" command does, and it is the
- *   default here for the same reason: it does what you meant.
- * - `all` — always commit every change, staged or not.
- * - `staged` — only ever commit what is staged. */
+ * - `smart`: obsidian-git decides, exactly as its own "Commit" command does.
+ *   Staged files when the index has some; otherwise what its
+ *   `autoStageOnEmptyIndex` setting says (by default: everything). Its own
+ *   resolution happens inside the queued task against a status it reads
+ *   there; ≤ 2.39, which has no such mode, gets Hearth's own approximation
+ *   ("staged if anything is staged, otherwise everything") resolved against
+ *   the status the card last saw. The default here for the same reason as in
+ *   the plugin: it does what you meant.
+ * - `all`: always commit every change, staged or not.
+ * - `staged`: only ever commit what is staged. */
 export type GitCommitScope = "smart" | "all" | "staged";
 
 /** Every commit scope, in editor order. */
@@ -330,15 +369,83 @@ export interface GitCommitOptions {
 	/** Let obsidian-git prompt for a message, exactly as its "…with specific
 	 * message" commands do. Wins over `commitMessage`. */
 	requestCustomMessage?: boolean;
-	/** Commit only what is staged. Resolved from the card's scope by
-	 * {@link onlyStagedFor}. */
-	onlyStaged?: boolean;
+	/** Which files the commit covers, in the card editor's own vocabulary.
+	 * Dispatch translates it into every dialect obsidian-git has published
+	 * (see {@link gitActionTask}); callers name the scope, never
+	 * obsidian-git's field names. */
+	scope?: GitCommitScope;
+	/** The status the caller last observed. Only a `scope: "smart"` commit on
+	 * obsidian-git ≤ 2.39, which has no `mode` and so nothing of its own to
+	 * resolve it in, consults this; ≥ 2.40 resolves smart inside the queued
+	 * task against a status it reads itself and never looks here. */
+	status?: GitStatus;
+}
+
+/**
+ * The object obsidian-git publishes `member` on. Its repo-writing members
+ * have lived in two places: flat on the plugin through 2.40, on
+ * `plugin.gitActions` since 2.41. Rather than pick one object for all of
+ * them, each is looked up alone, so a build publishing one member in either
+ * shape keeps that member's button on. The lookup answers with the *object*,
+ * never the detached method: obsidian-git's members are regular class
+ * methods, and calling a detached one loses its `this`, the same trap
+ * `queueGitFileAction` sidesteps by probing in place.
+ */
+function writerFor(plugin: GitPlugin, member: keyof GitWriterLike): GitWriterLike {
+	const helper = plugin.gitActions;
+	return helper?.[member] !== undefined ? helper : plugin;
+}
+
+/** The writer members that run with no arguments. */
+type SimpleWriterMember =
+	| "push"
+	| "pullChangesFromRemote"
+	| "fetch"
+	| "discardAll"
+	| "switchBranch";
+
+/**
+ * The thunk for a no-argument writer member, or null when this obsidian-git
+ * build doesn't expose it. The member is called in place on `target`, never
+ * detached, so its `this` survives.
+ */
+function writerTask(
+	plugin: GitPlugin,
+	member: SimpleWriterMember,
+): (() => Promise<void>) | null {
+	const target = writerFor(plugin, member);
+	if (typeof target[member] !== "function") return null;
+	return async () => {
+		await target[member]?.();
+	};
+}
+
+/** The card's commit scope in the dialect obsidian-git's commit calls'
+ * `mode` takes. `smart` passes through whole: obsidian-git resolves it
+ * inside the queued task against a status it reads itself, exactly as its
+ * own "Commit" command does. */
+function modeFor(scope: GitCommitScope | undefined): GitCommitMode {
+	switch (scope) {
+		case "all":
+			return "all";
+		case "staged":
+			return "staged";
+		default:
+			return "smart";
+	}
 }
 
 /**
  * Build the thunk that performs `action`, or null when this obsidian-git build
- * doesn't expose what it needs — which is how the card knows to disable the
+ * doesn't expose what it needs, which is how the card knows to disable the
  * button rather than fail on click.
+ *
+ * A commit's coverage goes out in both dialects obsidian-git has published:
+ * the `mode` field 2.40 introduced (with `scope: "smart"` among its values),
+ * plus the `onlyStaged` boolean pre-2.40 builds read instead, resolved
+ * against `opts.status` by {@link onlyStagedFor}. Each version reads the
+ * field it knows and drops the other, so one call carries the right coverage
+ * to every install.
  *
  * View-opening actions return null here on purpose: they aren't repo work and
  * are handled by {@link openGitView}.
@@ -350,60 +457,54 @@ export function gitActionTask(
 ): (() => Promise<void>) | null {
 	const manager = plugin.gitManager;
 	switch (action) {
-		case "commitAndSync":
-			if (typeof plugin.commitAndSync !== "function") return null;
+		case "commitAndSync": {
+			const target = writerFor(plugin, "commitAndSync");
+			if (typeof target.commitAndSync !== "function") return null;
 			return async () => {
-				await plugin.commitAndSync?.({
+				await target.commitAndSync?.({
 					fromAutoBackup: false,
 					requestCustomMessage: opts.requestCustomMessage,
+					mode: modeFor(opts.scope),
+					// The ≤ 2.39 dialect, see GitWriterLike.
+					onlyStaged: onlyStagedFor(opts.scope, opts.status),
 					commitMessage: opts.commitMessage,
-					onlyStaged: opts.onlyStaged,
 				});
 			};
-		case "commit":
-			if (typeof plugin.commit !== "function") return null;
+		}
+		case "commit": {
+			const target = writerFor(plugin, "commit");
+			if (typeof target.commit !== "function") return null;
 			return async () => {
-				await plugin.commit?.({
+				await target.commit?.({
 					fromAuto: false,
 					requestCustomMessage: opts.requestCustomMessage,
+					mode: modeFor(opts.scope),
+					// The ≤ 2.39 dialect, carried alongside for old installs.
+					onlyStaged: onlyStagedFor(opts.scope, opts.status),
 					commitMessage: opts.commitMessage,
-					onlyStaged: opts.onlyStaged,
 				});
 			};
+		}
 		case "push":
-			if (typeof plugin.push !== "function") return null;
-			return async () => {
-				await plugin.push?.();
-			};
-		case "pull":
-			if (typeof plugin.pullChangesFromRemote !== "function") return null;
-			return async () => {
-				await plugin.pullChangesFromRemote?.();
-			};
 		case "fetch":
-			if (typeof plugin.fetch !== "function") return null;
-			return async () => {
-				await plugin.fetch?.();
-			};
+		case "discardAll":
+		case "switchBranch":
+			return writerTask(plugin, action);
+		case "pull":
+			return writerTask(plugin, "pullChangesFromRemote");
 		case "stageAll":
 			if (typeof manager.stageAll !== "function") return null;
 			return async () => {
-				await manager.stageAll?.({ status: plugin.cachedStatus });
+				// No status, so the backend decides on its own freshness: desktop
+				// stages the whole tree either way, and mobile re-reads, which is
+				// exactly what obsidian-git's own source-control view passes
+				// (nothing), and fresher than the snapshot this card last saw.
+				await manager.stageAll?.({});
 			};
 		case "unstageAll":
 			if (typeof manager.unstageAll !== "function") return null;
 			return async () => {
-				await manager.unstageAll?.({ status: plugin.cachedStatus });
-			};
-		case "discardAll":
-			if (typeof plugin.discardAll !== "function") return null;
-			return async () => {
-				await plugin.discardAll?.();
-			};
-		case "switchBranch":
-			if (typeof plugin.switchBranch !== "function") return null;
-			return async () => {
-				await plugin.switchBranch?.();
+				await manager.unstageAll?.({});
 			};
 		default:
 			return null;
@@ -736,9 +837,11 @@ export function gitChangeCounts(status: GitStatus | undefined): GitChangeCounts 
 	return { staged, unstaged, conflicted, total: rows.length };
 }
 
-/** Resolve a card's commit scope against the status at the moment of the
- * click. `smart` mirrors obsidian-git's own "Commit" command: staged files if
- * anything is staged, everything otherwise. */
+/** Resolve a card's commit scope to the `onlyStaged` boolean obsidian-git's
+ * pre-2.40 commit calls took, the shape {@link gitActionTask} fills for
+ * builds with no `mode` to resolve a scope in. `smart` approximates what
+ * obsidian-git itself resolves on newer builds: staged files if any are
+ * staged, everything otherwise. */
 export function onlyStagedFor(
 	scope: GitCommitScope | undefined,
 	status: GitStatus | undefined,
@@ -746,6 +849,26 @@ export function onlyStagedFor(
 	if (scope === "all") return false;
 	if (scope === "staged") return true;
 	return (status?.staged?.length ?? 0) > 0;
+}
+
+/** The commit options a card's editor state feeds {@link queueGitAction},
+ * built once here rather than in every card. The message rule lives here:
+ * asking for a message hands the wording to obsidian-git's own modal, which
+ * starts empty and discards any preset, so a preset message is dropped while
+ * asking is on. `scope` and `status` go through untouched; turning them into
+ * the dialects obsidian-git reads is {@link gitActionTask}'s business. */
+export function cardCommitOptions(
+	message: string | undefined,
+	ask: boolean | undefined,
+	scope: GitCommitScope | undefined,
+	status: GitStatus | undefined,
+): GitCommitOptions {
+	return {
+		commitMessage: ask ? undefined : (message?.trim() || undefined),
+		requestCustomMessage: ask,
+		scope,
+		status,
+	};
 }
 
 /**
