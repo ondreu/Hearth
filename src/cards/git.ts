@@ -10,6 +10,7 @@ import {
 	GIT_ACTIONS,
 	GIT_COMMIT_SCOPES,
 	GIT_SECTIONS,
+	cardCommitOptions,
 	commitSummary,
 	gitActionAvailable,
 	gitActions,
@@ -19,7 +20,6 @@ import {
 	getGitPlugin,
 	isGitAvailable,
 	isGitPluginEnabled,
-	onlyStagedFor,
 	openGitDiff,
 	openGitView,
 	parseCommitDate,
@@ -194,11 +194,12 @@ function renderGitBody(
 			const queued = queueGitAction(
 				plugin,
 				action,
-				{
-					commitMessage: cfg.commitMessage?.trim() || undefined,
-					requestCustomMessage: cfg.askForMessage,
-					onlyStaged: onlyStagedFor(cfg.commitScope, snapshot.status),
-				},
+				cardCommitOptions(
+					cfg.commitMessage,
+					cfg.askForMessage,
+					cfg.commitScope,
+					snapshot.status,
+				),
 				() => {
 					if (destroyed) return;
 					busy = false;

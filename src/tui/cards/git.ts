@@ -16,6 +16,7 @@ import { Notice, TFile } from "obsidian";
 import { moment } from "../../cardbodies";
 import {
 	commitSummary,
+	cardCommitOptions,
 	getGitPlugin,
 	GIT_ACTION_DEFS,
 	gitActionAvailable,
@@ -24,7 +25,6 @@ import {
 	gitChangeRows,
 	gitSections,
 	isGitPluginEnabled,
-	onlyStagedFor,
 	openGitDiff,
 	openGitView,
 	parseCommitDate,
@@ -113,11 +113,12 @@ function runAction(ctx: TuiContext, plugin: GitPlugin, st: GitState, action: Git
 		const queued = queueGitAction(
 			plugin,
 			action,
-			{
-				commitMessage: cfg.commitMessage?.trim() || undefined,
-				requestCustomMessage: cfg.askForMessage,
-				onlyStaged: onlyStagedFor(cfg.commitScope, st.snapshot.status),
-			},
+			cardCommitOptions(
+				cfg.commitMessage,
+				cfg.askForMessage,
+				cfg.commitScope,
+				st.snapshot.status,
+			),
 			() => {
 				st.busy = false;
 				read(ctx, plugin, st);
