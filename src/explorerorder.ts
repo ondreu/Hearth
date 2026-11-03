@@ -10,11 +10,14 @@
  *
  *  1. **Ask the explorer to sort the folder.** `getSortedFolderItems(folder)`
  *     is the call the sidebar itself makes to put one folder's children in
- *     order, so its answer *is* what the sidebar shows — for any folder,
- *     expanded or collapsed, rendered or not. It is also the method a
- *     reordering plugin patches: Flexplorer (the plugin the card's issue names)
- *     replaces it on the view's prototype and returns its own custom order,
- *     which is how a drag in the sidebar reaches the card.
+ *     order, so its answer *is* what the sidebar shows — as far as the
+ *     explorer has built that much of itself: it hands back the tree items it
+ *     holds and drops the children it has none for. A sidebar that was never
+ *     on screen holds almost none, so its answer covers the folder only
+ *     sometimes (see {@link explorerChildOrder}). It is also the method a
+ *     reordering plugin patches: Flexplorer replaces it on the view's
+ *     prototype and returns its own custom order, which is how a drag in the
+ *     sidebar reaches the card.
  *  2. **The explorer's own tree.** Failing that, each item in the `fileItems`
  *     map carries its children in display order (`vChildren`).
  *  3. **The rendered rows.** Failing that, the folder's `childrenEl` is scanned
@@ -34,8 +37,8 @@
  * file is still in the order and still on the card.
  */
 
-import type { App, TAbstractFile, TFolder } from "obsidian";
-import type { FolderSort } from "./foldercontents";
+import type { App, TAbstractFile, TFolder, WorkspaceLeaf } from "obsidian";
+import { orderNamesEvery, type FolderSort } from "./foldercontents";
 
 /** The view type Obsidian registers its file explorer under. */
 const FILE_EXPLORER_VIEW = "file-explorer";
@@ -59,7 +62,23 @@ interface ExplorerView {
 	getSortedFolderItems?: (folder: TAbstractFile) => { file?: { path?: string } }[];
 }
 
-/** The file explorer's view, or null when the sidebar has never held one. */
+/** The explorer's leaf in the sidebar — or a leaf holding a view Obsidian has
+ * not built yet, see {@link explorerView}. */
+function explorerLeaf(app: App): WorkspaceLeaf | null {
+	try {
+		return app.workspace.getLeavesOfType(FILE_EXPLORER_VIEW)[0] ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * The file explorer's view, or null when the sidebar has never held one.
+ *
+ * A collapsed sidebar holds a *deferred* view: Obsidian keeps the leaf and its
+ * saved state but builds the explorer only once it is on screen, so what this
+ * returns there is a placeholder with none of the fields below on it (#439).
+ */
 function explorerView(app: App): ExplorerView | null {
 	try {
 		const leaf = app.workspace.getLeavesOfType(FILE_EXPLORER_VIEW)[0];
@@ -87,14 +106,31 @@ export function explorerChildOrder(app: App, folder: TFolder): string[] | null {
 	const view = explorerView(app);
 	if (!view) return null;
 	try {
-		const asked = fromSortedFolderItems(view, folder);
-		if (asked) return asked;
-		const item = explorerItem(view, folder.path);
-		if (!item) return null;
-		return fromVirtualChildren(item) ?? fromRenderedRows(item);
+		const order = askedOrder(view, folder);
+		// The explorer answers with the tree items it has built, so a sidebar
+		// that was never on screen — or a folder never opened in it — answers
+		// with nothing, or with the part of the list it has (#439). Taking
+		// that as the order would leave the rest at the end, in whatever order
+		// they arrived in, which is the sidebar's order in neither half.
+		if (!order) return null;
+		return orderNamesEvery(
+			folder.children.map((child) => child.path),
+			order,
+		)
+			? order
+			: null;
 	} catch {
 		return null;
 	}
+}
+
+/** The first of the three reads that answered, or null when none did. */
+function askedOrder(view: ExplorerView, folder: TFolder): string[] | null {
+	const asked = fromSortedFolderItems(view, folder);
+	if (asked) return asked;
+	const item = explorerItem(view, folder.path);
+	if (!item) return null;
+	return fromVirtualChildren(item) ?? fromRenderedRows(item);
 }
 
 /** Step 1: the explorer's own answer for this folder. */
@@ -137,6 +173,27 @@ function fromRenderedRows(item: ExplorerItem): string[] | null {
 }
 
 /**
+ * The sort the explorer is *set* to — from the view when Obsidian has built it,
+ * else from the state the leaf still carries.
+ *
+ * A collapsed sidebar keeps the view deferred (see {@link explorerView}), so
+ * asking the view alone answered "nothing" and the caller then assumed the
+ * explorer's default — alphabetical — whatever the sidebar was actually set to
+ * (#439). The view state is where the explorer saves its own setting, and a
+ * deferred leaf still holds it.
+ */
+function explorerSortOrder(app: App): string | undefined {
+	const live = explorerView(app)?.sortOrder;
+	if (typeof live === "string") return live;
+	try {
+		const state = explorerLeaf(app)?.getViewState().state as { sortOrder?: unknown } | undefined;
+		return typeof state?.sortOrder === "string" ? state.sortOrder : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
  * The last resort: the explorer's sort setting, as one of the card's own sorts.
  *
  * Obsidian's ids are its own ("byModifiedTime" means newest first); an id this
@@ -145,7 +202,7 @@ function fromRenderedRows(item: ExplorerItem): string[] | null {
  * card still shows a sensible list.
  */
 export function explorerSortAsFolderSort(app: App): FolderSort {
-	const raw = explorerView(app)?.sortOrder;
+	const raw = explorerSortOrder(app);
 	switch (raw) {
 		case "alphabeticalReverse":
 			return "nameDesc";

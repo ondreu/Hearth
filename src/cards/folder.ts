@@ -21,6 +21,7 @@ import {
 	pathWithin,
 	sortFolderEntries,
 	type FolderEntry,
+	type FolderGroup,
 	type FolderShow,
 	type FolderSort,
 } from "../foldercontents";
@@ -496,6 +497,21 @@ function flipFolded(app: App, path: string): void {
 	app.saveLocalStorage(FOLDED_KEY, next);
 }
 
+/**
+ * What a page shows, as one string: every path in the order drawn, each
+ * section's children included — what a browser compares against to tell
+ * whether the sidebar's answer for the same page changed (#439).
+ */
+function pageSignature(groups: readonly FolderGroup[]): string {
+	return groups
+		.map((group) =>
+			group.kind === "files"
+				? group.entries.map((entry) => entry.path).join("\u0000")
+				: `${group.folder.path}:${group.children.map((child) => child.path).join("\u0000")}`,
+		)
+		.join("\u0001");
+}
+
 /** What the browser needs from whatever holds it: the dialog or the tab. */
 export interface BrowserHost {
 	app: App;
@@ -540,6 +556,9 @@ export class FolderBrowser {
 	 * folds or opens them all. */
 	private sections: string[] = [];
 	private foldAllButton: HTMLElement | null = null;
+	/** The paths the page shows, in order — what {@link refreshOrder} compares
+	 * against to tell whether the sidebar's answer changed. */
+	private drawnPaths = "";
 
 	constructor(
 		private readonly host: BrowserHost,
@@ -566,6 +585,39 @@ export class FolderBrowser {
 		this.previews = null;
 	}
 
+	/**
+	 * Redraw when the sidebar's answer for this page changed — the explorer
+	 * being built (a collapsed sidebar opened), its sort changed, or a plugin
+	 * that reorders it finding a new order (#439).
+	 *
+	 * The page reads the sidebar when it draws and never again, so one drawn
+	 * while the sidebar was collapsed kept the order that stood in for the
+	 * explorer's own. Nothing else redraws on a layout change, which is why
+	 * the sort looked like it only worked once the sidebar was open.
+	 *
+	 * Only the *explorer* order is asked for here: another sort is Hearth's own
+	 * and cannot change behind the page's back. And the page is only rebuilt
+	 * when the answer differs, so a tab switch costs a comparison, not a draw.
+	 */
+	refreshOrder(): void {
+		if (this.state.sort !== "explorer") return;
+		const app = this.host.app;
+		const { path, sort, show } = this.state;
+		const folder = folderAt(app, path);
+		if (!folder) return;
+		const titles = explorerTitles(app, this.host.settings);
+		const entries = folderEntries(app, folder, sort, show, titles);
+		const next = pageSignature(
+			groupFolderEntries(entries, (entry) => childEntries(app, entry, sort, show, titles)),
+		);
+		if (next === this.drawnPaths) return;
+		// A rebuild empties the page, which drops where the reader was; this is
+		// the same page drawn again, so the position is put back.
+		const keep = this.el.scrollTop;
+		this.draw();
+		this.el.scrollTop = keep;
+	}
+
 	/** Repaint from scratch on every navigation and sort change: at a folder's
 	 * size this costs nothing, and it keeps one drawing path for the first open,
 	 * a step into a subfolder and a step back out. */
@@ -583,6 +635,7 @@ export class FolderBrowser {
 		const groups = groupFolderEntries(entries, (entry) =>
 			childEntries(app, entry, sort, show, titles),
 		);
+		this.drawnPaths = pageSignature(groups);
 		this.sections = groups.flatMap((group) => (group.kind === "folder" ? [group.folder.path] : []));
 		this.drawTrail();
 		if (!folder) {
@@ -982,6 +1035,11 @@ class FolderBrowserModal extends HearthModal {
 		this.watch = new Component();
 		this.watch.load();
 		for (const ref of watchBrowsedFolder(this.app, () => this.browser)) this.watch.registerEvent(ref);
+		// A sidebar opened while the dialog is up changes what "same as the file
+		// explorer" can see, exactly as it does for a tab (#439).
+		this.watch.registerEvent(
+			this.app.workspace.on("layout-change", () => this.browser?.refreshOrder()),
+		);
 	}
 
 	onClose(): void {

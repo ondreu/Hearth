@@ -135,6 +135,23 @@ export function orderByPaths(entries: FolderEntry[], paths: readonly string[]): 
 	});
 }
 
+/**
+ * Whether an order names every path it had to — the check that separates the
+ * sidebar's real answer from a partial one.
+ *
+ * The explorer builds a tree item per child and answers with the items it has
+ * (`getSortedFolderItems` in Obsidian's own file explorer drops any child it
+ * has no item for), so a sidebar that was never on screen, or a folder never
+ * opened in it, answers with nothing or with a prefix. A partial answer is not
+ * a short order: {@link orderByPaths} would keep the named few and push the
+ * rest after them, which is neither the sidebar's order nor a sensible one.
+ */
+export function orderNamesEvery(paths: readonly string[], order: readonly string[]): boolean {
+	if (paths.length === 0) return order.length > 0;
+	const named = new Set(order);
+	return paths.every((path) => named.has(path));
+}
+
 /** Keep only what the card is set to show. */
 export function filterFolderEntries(entries: FolderEntry[], show: FolderShow): FolderEntry[] {
 	if (show === "folders") return entries.filter((e) => e.isFolder);
