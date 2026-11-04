@@ -2003,11 +2003,12 @@ export const en = {
 				"Show a button that opens the embedded file in its own tab. Off by default.",
 		},
 		slideshow: {
-			source: "Pictures from",
+			source: "Slides from",
 			sourceDesc:
-				"A list you pick picture by picture, or every image in a folder.",
+				"A list you pick picture by picture, every image in a folder, or every note in a folder.",
 			sourceList: "A list of pictures",
-			sourceFolder: "A folder",
+			sourceFolder: "A folder of pictures",
+			sourceNotes: "The notes in a folder",
 			picturesHeading: "Pictures",
 			picturesEmpty: "No pictures yet — add one below.",
 			picturePlaceholder: "Image path",
@@ -2026,6 +2027,11 @@ export const en = {
 			includeSubfoldersDesc: "Also show images inside this folder's subfolders.",
 			folderCount: (count: number) =>
 				count === 1 ? "1 image found here right now." : `${count} images found here right now.`,
+			notesFolder: "Notes folder",
+			notesFolderDesc:
+				"Every note in this folder is shown, one page at a time. Leave empty for the vault root.",
+			notesCount: (count: number) =>
+				count === 1 ? "1 note found here right now." : `${count} notes found here right now.`,
 			playbackHeading: "Playback",
 			order: "Order",
 			orderDesc: "The order the pictures are shown in.",
@@ -3734,6 +3740,7 @@ export const en = {
 			embedSectionMissing: (section: string) => `Section not found: ${section}`,
 			slideshowEmpty: "Add pictures in card settings",
 			slideshowFolderEmpty: "No images in this folder",
+			slideshowNotesEmpty: "No notes in this folder",
 			embedEnableBases: "Enable the core Bases plugin to embed .base files",
 			embedEnableCanvas: "Enable the core Canvas plugin to embed canvases",
 			embedInstallExcalidraw: "Install the Excalidraw plugin to embed drawings",
@@ -3901,6 +3908,7 @@ export const en = {
 			pause: "Pause the slideshow",
 			play: "Resume the slideshow",
 			openImage: "Open this picture",
+			openNote: "Open this note",
 			jump: "Jump to a picture",
 		},
 		text: {
