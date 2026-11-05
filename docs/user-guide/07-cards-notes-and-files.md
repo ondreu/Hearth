@@ -192,6 +192,10 @@ in a folder, rotated on a timer, once a day, or only by hand.
 *Slides from* is **A list of pictures**, **A folder of pictures**, or **The notes
 in a folder**.
 
+The card is in the *Add card* picker twice — as **Slideshow** and as **Notes
+slideshow**, which opens on the notes source — so the notes side is visible
+before you open the settings dialog. Either entry can be switched to any source.
+
 With a list, you add pictures one at a time, each with an optional caption, and
 you can reorder and remove them. There is also an *Add a folder's pictures*
 action that bulk-adds a folder's contents into the list.

@@ -1069,12 +1069,33 @@ function folderSection(
 /** Pictures from the vault, rotated on a timer. */
 export const slideshowCard: CardDefinition<"slideshow"> = {
 	kind: "slideshow",
+	// Two picker entries for one kind: a slideshow of pictures is not the card a
+	// reader looking for "notes on the board, one at a time" thinks to open, and
+	// the source dropdown is two clicks past the picker. The second template is
+	// the same kind with `source` preset — not a second `CardKind`, which would
+	// mean a second renderer, editor, liveness rule and TUI counterpart for no
+	// gain. Keep both here so the menu order in `TEMPLATE_MENU_GROUPS` has a
+	// neighbour to name.
 	templates: [
 		{
 			id: "slideshow",
 			name: "Slideshow",
 			icon: "images",
 			build: () => ({ kind: "slideshow", title: "Slideshow", slideshow: { slides: [] }, w: 4, h: 3 }),
+		},
+		{
+			id: "slideshow-notes",
+			name: "Notes slideshow",
+			icon: "file-text",
+			// A notes card is read, not glanced at: one size up from the picture
+			// slideshow, so the first note lands as a page rather than a teaser.
+			build: () => ({
+				kind: "slideshow",
+				title: "Slideshow",
+				slideshow: { slides: [], source: "notes" },
+				w: 5,
+				h: 4,
+			}),
 		},
 	],
 	render: (view, card, body, component) => renderSlideshow(view, card, body, component),
