@@ -115,7 +115,9 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   every name match, ties keep the order the vault returns instead of being
   re-sorted, and files excluded from link suggestions are down-ranked. The
   attachment types the switcher itself lists are complete again (`.oga`,
-  `.opus`, `.tiff`). For the same query the order and the scores now line up
+  `.opus`, `.tiff`), and a file type brought by a plugin (`.excalidraw`,
+  `.typ`, …) is listed when Obsidian can display it, as the switcher does.
+  For the same query the order and the scores now line up
   with Obsidian's own switcher.
 
 - **A board with a card holding several views no longer jumps to that card**

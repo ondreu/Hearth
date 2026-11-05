@@ -64,6 +64,24 @@ describe("switcherListsExtension", () => {
 		expect(switcherListsExtension("zip", defaults)).toBe(false);
 		expect(switcherListsExtension("zip", { ...defaults, showAllFileTypes: true })).toBe(true);
 	});
+	it("lists a plugin's file type when Obsidian can display it", () => {
+		const registry = (ext: string): boolean => ext === "excalidraw";
+		expect(switcherListsExtension("excalidraw", defaults, registry)).toBe(true);
+		expect(switcherListsExtension("zip", defaults, registry)).toBe(false);
+	});
+	it("doesn't ask the registry for types its own options already decided", () => {
+		let asked = 0;
+		const registry = (): boolean => {
+			asked += 1;
+			return true;
+		};
+		for (const ext of ["md", "canvas", "base", "png", "mp3", "pdf"]) {
+			switcherListsExtension(ext, defaults, registry);
+		}
+		expect(asked).toBe(0);
+		expect(switcherListsExtension("excalidraw", { ...defaults, showAttachments: false }, registry)).toBe(false);
+		expect(asked).toBe(0);
+	});
 });
 
 describe("tailRanges", () => {

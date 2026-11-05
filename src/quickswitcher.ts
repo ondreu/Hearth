@@ -23,7 +23,9 @@ import { QueryFilter, QueryHit, filePassesFilter } from "./query";
  *   which is the other half of #447;
  * - which file types are listed follows the switcher's own "Show attachments"
  *   and "Show all file types" options, read from the core plugin when it's
- *   reachable.
+ *   reachable; a type that isn't one of the core ones is listed when Obsidian's
+ *   own registry can display it, so a plugin's `.excalidraw` behaves like any
+ *   other attachment.
  *
  * The switcher's own modal isn't an API a plugin can embed, so this re-creates
  * its matching with the public `prepareFuzzySearch`, the matcher it uses.
@@ -37,6 +39,9 @@ const IMAGE_EXTENSIONS = new Set(["bmp", "png", "jpg", "jpeg", "gif", "svg", "we
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "m4a", "3gp", "flac", "ogg", "oga", "opus"]);
 /** Video, likewise. */
 const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "ogv", "mov", "mkv"]);
+
+/** Whether Obsidian itself can display a file with this extension. */
+export type ExtensionRegistry = (extension: string) => boolean;
 
 /** The two Quick switcher options that decide which files it lists. */
 export interface SwitcherFileOptions {
@@ -76,18 +81,23 @@ export function switcherFileOptions(app: App): SwitcherFileOptions {
 	};
 }
 
-/** Whether the switcher would list a file with this extension. Exported for tests. */
-export function switcherListsExtension(extension: string, options: SwitcherFileOptions): boolean {
+/** Whether the switcher would list a file with this extension. The known core
+ * types decide on their own; anything else is a type a plugin brought along,
+ * and the switcher asks Obsidian's registry whether it can display it at all —
+ * `canDisplay` is that check, and without it unknown types stay hidden.
+ * Exported for tests. */
+export function switcherListsExtension(
+	extension: string,
+	options: SwitcherFileOptions,
+	canDisplay: ExtensionRegistry = () => false,
+): boolean {
 	const ext = extension.toLowerCase();
 	if (NOTE_EXTENSIONS.has(ext)) return true;
+	if (IMAGE_EXTENSIONS.has(ext)) return options.showAttachments;
 	if (options.showAllFileTypes) return true;
 	if (!options.showAttachments) return false;
-	return (
-		IMAGE_EXTENSIONS.has(ext) ||
-		AUDIO_EXTENSIONS.has(ext) ||
-		VIDEO_EXTENSIONS.has(ext) ||
-		ext === "pdf"
-	);
+	if (AUDIO_EXTENSIONS.has(ext) || VIDEO_EXTENSIONS.has(ext) || ext === "pdf") return true;
+	return canDisplay(ext);
 }
 
 /** The string the switcher matches a file against: its path, without `.md`
@@ -190,6 +200,25 @@ export function sortSwitcherHits(hits: QueryHit[]): QueryHit[] {
 	return hits.sort((a, b) => b.score - a.score);
 }
 
+/** Whether Obsidian can display a file type — the check the switcher makes for
+ * anything that isn't a note, image, audio file, video or PDF, so files brought
+ * by a plugin (`.excalidraw`, `.typ`, …) are listed the same way. Private API:
+ * without it, unknown types stay hidden exactly as before. */
+function extensionRegistry(app: App): ExtensionRegistry {
+	const registry = (app as unknown as {
+		viewRegistry?: { isExtensionRegistered?: (extension: string) => boolean };
+	}).viewRegistry;
+	const isRegistered = registry?.isExtensionRegistered;
+	if (!registry || typeof isRegistered !== "function") return () => false;
+	return (extension) => {
+		try {
+			return isRegistered.call(registry, extension) === true;
+		} catch {
+			return false;
+		}
+	};
+}
+
 /** Aliases already parsed, keyed by the frontmatter object they came from: the
  * metadata cache hands out a fresh object on every re-parse, so an entry
  * expires with the file that produced it. Matching runs per keystroke and
@@ -210,10 +239,11 @@ export function searchLikeQuickSwitcher(
 	const { filter } = opts;
 	if (!filter.includeFiles) return [];
 	const options = switcherFileOptions(app);
+	const canDisplay = extensionRegistry(app);
 	const fuzzy = prepareFuzzySearch(query);
 	const hits: QueryHit[] = [];
 	for (const file of app.vault.getFiles()) {
-		if (!switcherListsExtension(file.extension, options)) continue;
+		if (!switcherListsExtension(file.extension, options, canDisplay)) continue;
 		if (!filePassesFilter(file, filter)) continue;
 		const result = matchCandidate(
 			{
