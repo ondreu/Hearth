@@ -460,12 +460,15 @@ export default class HearthPlugin extends Plugin {
 	 *
 	 * `from` is the view the button was pressed in, so the note can replace that
 	 * Hearth tab when the user asked for "same tab" (#106); the command palette
-	 * has no view and falls back to the active leaf. */
-	async createNewNote(from?: HomeView) {
+	 * has no view and falls back to the active leaf. `query` is what the search
+	 * field held when the button beside it was pressed — a title typed there
+	 * names the note; the command has no field and passes nothing. */
+	async createNewNote(from?: HomeView, query = "") {
 		await createConfiguredNote(
 			this.app,
 			this.settings,
 			from ?? { app: this.app, settings: this.settings },
+			query,
 		);
 	}
 
