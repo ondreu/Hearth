@@ -15,6 +15,17 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The New-note button takes its name from the search field.** Typing a title in
+  the search bar and pressing the button beside it now creates a note called
+  exactly that, instead of one called "Untitled" and a name to type again —
+  the quickest capture of something that isn't in the vault yet. Characters a
+  file name can't hold are dropped, an empty field keeps using the *Filename*
+  setting, and a search that is a filter rather than a title (`#tag`,
+  `key:value`) is left alone rather than turned into a file name. The same goes
+  for a Search bar card's button. A typed title replaces the filename pattern
+  rather than being appended to it, so no `{{date}}` prefix and no `{{prompt}}`
+  dialog appear over text you have already typed.
+
 - **A hotkey that puts the cursor in the board's search field.** *Focus board
   search* is bindable under Settings → Hotkeys: a board that is already in front
   only takes the cursor, one that is open behind a note is brought forward

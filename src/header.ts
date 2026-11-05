@@ -120,13 +120,14 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
 /** The button that sits beside a search bar, in either of its two modes. Shared
  * with the search-bar card, which offers the same choice per card — so the two
  * places can't drift into two subtly different buttons. `bar` is the search bar
- * the button belongs to; "searchOnline" reads its current query. */
+ * the button belongs to: "searchOnline" reads its current query to search for,
+ * "newNote" reads it to name the note it creates. */
 export function createSearchBarButton(
 	view: HomeView,
 	bar: HTMLElement,
 	mode: "newNote" | "searchOnline",
 ): HTMLElement {
-	return mode === "searchOnline" ? createSearchOnlineButton(view, bar) : createNewNoteButton(view);
+	return mode === "searchOnline" ? createSearchOnlineButton(view, bar) : createNewNoteButton(view, bar);
 }
 
 /** Read the current query out of the search bar's input element. */
@@ -138,8 +139,13 @@ function getSearchQuery(bar: HTMLElement): string {
  * made from a Templater template, and where it lands — is configured in
  * Settings → Appearance and resolved by `src/newnote.ts` (#227); the button's
  * text is configurable there too, so a board can say "Capture" or "New meeting
- * note" instead. */
-function createNewNoteButton(view: HomeView): HTMLElement {
+ * note" instead.
+ *
+ * `bar` is the search field it sits beside: whatever is typed there becomes the
+ * note's name, so "capture this thing I was searching for" is one click and
+ * nothing has to be typed twice. An empty field, or one holding a `#tag` /
+ * `key:value` filter, leaves the configured filename in charge. */
+function createNewNoteButton(view: HomeView, bar: HTMLElement): HTMLElement {
 	const label = newNoteButtonLabel(view.plugin.settings);
 	const btn = createEl("button", {
 		cls: "hearth-newnote",
@@ -154,7 +160,7 @@ function createNewNoteButton(view: HomeView): HTMLElement {
 	setIcon(btn.createSpan("hearth-newnote-icon"), "plus");
 	btn.createSpan({ cls: "hearth-newnote-label", text: label });
 	btn.addEventListener("click", () => {
-		void view.plugin.createNewNote(view);
+		void view.plugin.createNewNote(view, getSearchQuery(bar));
 	});
 	return btn;
 }

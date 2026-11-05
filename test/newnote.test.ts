@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blankNoteName, newNoteButtonLabel, newNoteUsesTemplate, UNTITLED_NOTE } from "../src/newnote";
+import {
+	blankNoteName,
+	newNoteButtonLabel,
+	newNoteUsesTemplate,
+	noteTitleFromQuery,
+	UNTITLED_NOTE,
+} from "../src/newnote";
 import { DEFAULT_SETTINGS, type HomeSettings } from "../src/types";
 
 /** A vault with one board, so the label resolver has an active dashboard to ask
@@ -61,6 +67,56 @@ describe("newNoteUsesTemplate", () => {
 
 	it("is on once a template is picked", () => {
 		expect(newNoteUsesTemplate({ newNoteTemplate: "Templates/Meeting.md" })).toBe(true);
+	});
+});
+
+/**
+ * The search-field-as-name shortcut: the button beside the search bar makes a
+ * note called whatever is typed there. What's covered is the decision — is this
+ * text a name at all, and is the name legal — the click itself is API.
+ */
+describe("noteTitleFromQuery", () => {
+	it("takes a typed title as the note's name", () => {
+		expect(noteTitleFromQuery("Meeting notes")).toBe("Meeting notes");
+	});
+
+	it("trims the field's padding", () => {
+		expect(noteTitleFromQuery("  Inbox  ")).toBe("Inbox");
+	});
+
+	it("is nothing for an empty field, so the filename setting stays in charge", () => {
+		expect(noteTitleFromQuery("")).toBe("");
+		expect(noteTitleFromQuery("   ")).toBe("");
+	});
+
+	it("is nothing for a tag search — that's a filter, not a title", () => {
+		expect(noteTitleFromQuery("#project")).toBe("");
+		expect(noteTitleFromQuery("#project/sub")).toBe("");
+	});
+
+	it("is nothing for a property search", () => {
+		expect(noteTitleFromQuery("type:meeting")).toBe("");
+		expect(noteTitleFromQuery("author: Jan")).toBe("");
+	});
+
+		it("still takes a title whose colon is not a filter — the key must be one word", () => {
+		expect(noteTitleFromQuery("Meeting notes: Q3")).toBe("Meeting notes Q3");
+	});
+
+	it("drops characters a filename can't hold", () => {
+		expect(noteTitleFromQuery('a/b\\c*d?e"f<g>h|i')).toBe("a b c d e f g h i");
+	});
+
+	it("drops the quotes around a quoted phrase", () => {
+		expect(noteTitleFromQuery('"exact phrase"')).toBe("exact phrase");
+	});
+
+	it("collapses runs of whitespace the stripping leaves behind", () => {
+		expect(noteTitleFromQuery("a   /   b")).toBe("a b");
+	});
+
+	it("is nothing when the query is all illegal characters", () => {
+		expect(noteTitleFromQuery('"??"')).toBe("");
 	});
 });
 

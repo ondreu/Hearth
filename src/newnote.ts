@@ -19,10 +19,16 @@
  *
  * The folder and filename apply to a blank note as well, so the button is
  * configurable for the (larger) group of users who never installed Templater.
+ *
+ * The one thing that overrides the filename pattern is the search field itself:
+ * text typed there is already a name the user means, so pressing the button
+ * beside it makes a note called that instead of asking for a name again.
  */
 import { Notice, TFolder, type App, type TFile } from "obsidian";
+import { sanitizeFilename } from "./clip";
 import { t } from "./i18n";
 import { openFile, type OpenFrom } from "./opener";
+import { queryMode } from "./query";
 import {
 	createNoteFromTemplate,
 	expandTemplaterFilename,
@@ -62,6 +68,27 @@ export function newNoteUsesTemplate(s: Pick<HomeSettings, "newNoteTemplate">): b
  */
 export function blankNoteName(pattern: string, now: Date, promptValue = ""): string {
 	return expandTemplaterFilename(pattern, now, promptValue) || UNTITLED_NOTE;
+}
+
+/**
+ * The note name a search-bar query becomes, or "" when the query isn't a name.
+ *
+ * Typing a title in the search field and pressing the button beside it is the
+ * fastest way to capture something that isn't in the vault yet — but the field
+ * is a search bar, so its contents aren't always a title: `#tag` and
+ * `key:value` are filters, and naming a note after one is a surprise rather
+ * than a shortcut. Those fall back to the configured filename (as does an empty
+ * field), so the button keeps its documented behaviour and only gets smarter
+ * when the text really is a name.
+ *
+ * Characters a filename can't carry are dropped here rather than left to the
+ * creator, so `"Meeting: Q3"` becomes `Meeting Q3` instead of failing the click.
+ */
+export function noteTitleFromQuery(query: string): string {
+	const trimmed = (query || "").trim();
+	if (!trimmed) return "";
+	if (queryMode(trimmed) !== "name") return "";
+	return sanitizeFilename(trimmed);
 }
 
 /** Resolve (creating it if need be) the folder a new note should land in. A
@@ -107,18 +134,28 @@ async function promptValueFor(app: App, pattern: string, label: string): Promise
  * `from` is the view the button was pressed in, so the note can replace that
  * Hearth tab when the user asked for "same tab" (#106); the command palette has
  * no view and passes a bare host instead.
+ *
+ * `query` is the search field the button sat beside. When it holds a title, that
+ * title *is* the note's name — it takes the place of the filename pattern rather
+ * than being appended to it, so nothing asks for a name twice and no
+ * `{{prompt}}` dialog appears on top of text the user has already typed.
  */
 export async function createConfiguredNote(
 	app: App,
 	settings: HomeSettings,
 	from: OpenFrom,
+	query = "",
 ): Promise<void> {
-	const pattern = settings.newNoteFilename;
+	const typed = noteTitleFromQuery(query);
+	// A typed title replaces the pattern outright — passing it alongside
+	// `{{date}}` would make "Meeting" a note called "2026-11-05 Meeting", which
+	// is not what typing a name means.
+	const pattern = typed ? "" : settings.newNoteFilename;
 	const label = newNoteButtonLabel(settings);
 
 	if (newNoteUsesTemplate(settings)) {
 		if (isTemplaterAvailable(app)) {
-			await createFromTemplate(app, settings, from, pattern, label);
+			await createFromTemplate(app, settings, from, pattern, label, typed);
 			return;
 		}
 		// Configured for a template but Templater isn't there right now. Say so
@@ -127,7 +164,7 @@ export async function createConfiguredNote(
 		new Notice(t().notices.newNoteTemplaterMissing);
 	}
 
-	await createBlankNote(app, settings, from, pattern, label);
+	await createBlankNote(app, settings, from, pattern, label, typed);
 }
 
 /** The Templater path: hand the job to the plugin, then open what it made. */
@@ -137,6 +174,7 @@ async function createFromTemplate(
 	from: OpenFrom,
 	pattern: string,
 	label: string,
+	typed = "",
 ): Promise<void> {
 	const template = resolveTemplateFile(app, settings.newNoteTemplate);
 	if (!template) {
@@ -151,7 +189,7 @@ async function createFromTemplate(
 		template,
 		folder: normalizeFolderPath(settings.newNoteFolder),
 		// Empty stays empty here: Templater names the note itself.
-		filename: expandTemplaterFilename(pattern, new Date(), promptValue),
+		filename: typed || expandTemplaterFilename(pattern, new Date(), promptValue),
 	});
 	if (!file) {
 		// Templater shows its own notice for a parse failure or a dismissed
@@ -169,6 +207,7 @@ async function createBlankNote(
 	from: OpenFrom,
 	pattern: string,
 	label: string,
+	typed = "",
 ): Promise<void> {
 	try {
 		const promptValue = await promptValueFor(app, pattern, label);
@@ -176,7 +215,7 @@ async function createBlankNote(
 		const folder = await createDestinationFolder(app, settings.newNoteFolder);
 		const file = await app.fileManager.createNewMarkdownFile(
 			folder,
-			blankNoteName(pattern, new Date(), promptValue),
+			typed || blankNoteName(pattern, new Date(), promptValue),
 		);
 		await openNewNote(app, from, file, false);
 	} catch (err) {
