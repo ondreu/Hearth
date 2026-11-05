@@ -1752,9 +1752,10 @@ export interface SlideshowSlide {
 	caption?: string;
 }
 
-/** Where a "slideshow" card takes its pictures from: the hand-picked `slides`
- * list, or every image inside a folder. */
-export type SlideshowSource = "list" | "folder";
+/** Where a "slideshow" card takes its slides from: the hand-picked `slides`
+ * list, every image inside a folder, or every Markdown note inside a folder —
+ * a notes card draws each note as a page instead of a picture. */
+export type SlideshowSource = "list" | "folder" | "notes";
 
 /**
  * The order a slideshow shows its pictures in.
@@ -1816,13 +1817,13 @@ export interface PeriodicCardConfig {
 }
 
 export interface SlideshowConfig {
-	/** Where the pictures come from. Default "list". */
+	/** Where the slides come from. Default "list". */
 	source?: SlideshowSource;
 	/** The hand-picked pictures, in list order (source "list"). */
 	slides?: SlideshowSlide[];
-	/** Vault folder every image is taken from (source "folder"). */
+	/** Vault folder the slides are taken from (sources "folder" and "notes"). */
 	folder?: string;
-	/** Also take images from subfolders of `folder`. Default false. */
+	/** Also take files from subfolders of `folder`. Default false. */
 	includeSubfolders?: boolean;
 	/** Display order. Default "manual" (a folder source: "name"). */
 	order?: SlideshowOrder;

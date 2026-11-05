@@ -1954,11 +1954,12 @@ export const fr: Translations = {
 				"Afficher un bouton qui ouvre le fichier intégré dans son propre onglet. Désactivé par défaut.",
 		},
 		slideshow: {
-			source: "Images depuis",
+			source: "Diapositives depuis",
 			sourceDesc:
-				"Une liste choisie image par image, ou toutes les images d'un dossier.",
+				"Une liste choisie image par image, toutes les images d'un dossier, ou toutes les notes d'un dossier.",
 			sourceList: "Une liste d'images",
-			sourceFolder: "Un dossier",
+			sourceFolder: "Un dossier d'images",
+			sourceNotes: "Les notes d'un dossier",
 			picturesHeading: "Images",
 			picturesEmpty: "Pas encore d'image — ajoutez-en une ci-dessous.",
 			picturePlaceholder: "Chemin de l'image",
@@ -1977,6 +1978,11 @@ export const fr: Translations = {
 			includeSubfoldersDesc: "Afficher aussi les images des sous-dossiers.",
 			folderCount: (count: number) =>
 				count <= 1 ? `${count} image trouvée ici pour l'instant.` : `${count} images trouvées ici pour l'instant.`,
+			notesFolder: "Dossier de notes",
+			notesFolderDesc:
+				"Chaque note de ce dossier est affichée, une page à la fois. Laissez vide pour la racine du coffre.",
+			notesCount: (count: number) =>
+				count <= 1 ? `${count} note trouvée ici pour l'instant.` : `${count} notes trouvées ici pour l'instant.`,
 			playbackHeading: "Lecture",
 			order: "Ordre",
 			orderDesc: "L'ordre d'affichage des images.",
@@ -3688,6 +3694,7 @@ export const fr: Translations = {
 			embedSectionMissing: (section: string) => `Section introuvable : ${section}`,
 			slideshowEmpty: "Ajoutez des images dans les paramètres de la carte",
 			slideshowFolderEmpty: "Aucune image dans ce dossier",
+			slideshowNotesEmpty: "Aucune note dans ce dossier",
 			embedEnableBases: "Activez le module principal Bases pour intégrer des fichiers .base",
 			embedEnableCanvas: "Activez le module principal Canvas pour intégrer des canvas",
 			embedInstallExcalidraw: "Installez le plugin Excalidraw pour intégrer des dessins",
@@ -3849,6 +3856,7 @@ export const fr: Translations = {
 			pause: "Mettre le diaporama en pause",
 			play: "Reprendre le diaporama",
 			openImage: "Ouvrir cette image",
+			openNote: "Ouvrir cette note",
 			jump: "Aller à une image",
 		},
 		text: {
@@ -4523,6 +4531,7 @@ export const fr: Translations = {
 		note: "Note intégrée",
 		image: "Image intégrée",
 		slideshow: "Diaporama",
+		"slideshow-notes": "Diaporama de notes",
 		base: "Base intégrée",
 		excalidraw: "Dessin Excalidraw",
 		canvas: "Canvas intégré",
@@ -4569,7 +4578,8 @@ export const fr: Translations = {
 		"music-stereo": "Télécommande du lecteur Navidrome du plugin Stereo",
 		note: "N'importe quelle note, affichée en direct sur le tableau",
 		image: "Une image du coffre, bord à bord",
-		slideshow: "Des images d'une liste ou d'un dossier, qui défilent avec un minuteur",
+		slideshow: "Des images d'une liste ou d'un dossier, ou les notes d'un dossier, qui défilent avec un minuteur",
+		"slideshow-notes": "Les notes d'un dossier, une page à la fois",
 		base: "Un fichier .base, affiché par Bases d'Obsidian",
 		excalidraw: "Un dessin Excalidraw avec zoom et déplacement natifs",
 		canvas: "Un canvas que l'on peut parcourir sur place",

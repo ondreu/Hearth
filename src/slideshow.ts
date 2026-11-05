@@ -75,20 +75,22 @@ export interface SlideshowPicture {
 	caption?: string;
 }
 
-/** Where a card takes its pictures from, defaulting to the hand-picked list. */
+/** Where a card takes its slides from, defaulting to the hand-picked list. */
 export function slideshowSource(cfg: SlideshowConfig): SlideshowSource {
-	return cfg.source === "folder" ? "folder" : "list";
+	if (cfg.source === "folder") return "folder";
+	if (cfg.source === "notes") return "notes";
+	return "list";
 }
 
 /**
- * The order a card actually shows its pictures in. "manual" means "the order the
- * list is in", which a folder has none of — a folder source resolves it to
- * by-name instead, so such a card never falls back to the vault's own arbitrary
- * child order.
+ * The order a card actually shows its slides in. "manual" means "the order the
+ * list is in", which a folder has none of — a folder or notes source resolves it
+ * to by-name instead, so such a card never falls back to the vault's own
+ * arbitrary child order.
  */
 export function slideshowOrder(cfg: SlideshowConfig): SlideshowOrder {
 	const order = cfg.order ?? "manual";
-	if (order === "manual" && slideshowSource(cfg) === "folder") return "name";
+	if (order === "manual" && slideshowSource(cfg) !== "list") return "name";
 	return order;
 }
 
@@ -259,7 +261,7 @@ export function slideshowReactsTo(card: DashboardCard, ev: VaultEvent): boolean 
 	if (ev.kind === "modify" || ev.kind === "meta") return false;
 	const cfg = card.slideshow ?? {};
 	const paths = ev.oldPath ? [ev.file.path, ev.oldPath] : [ev.file.path];
-	if (slideshowSource(cfg) === "folder") {
+	if (slideshowSource(cfg) !== "list") {
 		return paths.some(
 			(path) =>
 				inSlideshowFolder(cfg.folder, path, cfg.includeSubfolders === true) ||

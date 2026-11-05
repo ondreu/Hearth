@@ -1632,6 +1632,7 @@ function sanitizeMusic(r: Record<string, unknown>): MusicConfig {
 function sanitizeSlideshow(r: Record<string, unknown>): SlideshowConfig {
 	const cfg: SlideshowConfig = {};
 	if (r.source === "folder") cfg.source = "folder";
+	if (r.source === "notes") cfg.source = "notes";
 	if (Array.isArray(r.slides)) {
 		cfg.slides = r.slides
 			.map(sanitizeSlide)

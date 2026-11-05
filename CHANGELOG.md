@@ -85,6 +85,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   undocumented, so when it can't be done (plugin off, or the internal changes
   shape) the click opens Hearth's folder browser instead of doing nothing.
 
+- **A slideshow can rotate through notes.** The Slideshow card's *Slides from*
+  setting gains a third source beside a list and a folder of pictures: **The
+  notes in a folder**. Every Markdown note in the chosen folder — subfolders
+  optional, exactly as for pictures — is drawn as a page with the same renderer
+  the embed and daily cards use, so links, callouts, embeds and checkboxes work
+  as they do in the note. A long note scrolls inside the card, and *Fit* and
+  *Slow zoom* are left out of the settings because a note has no picture to fill
+  or zoom. Ordering, the timer, once-a-day and by-hand advances, the caption and
+  the open button all work the same on a notes card. The card is also offered
+  twice in the *Add card* picker — as **Slideshow** and as **Notes slideshow**,
+  which starts on this source — and the picture entry's one-line description now
+  names notes too, so the source is visible before the settings dialog.
+
 ### Changed
 
 - **“Search filters” is now “Filter chips”**, the name the per-board override

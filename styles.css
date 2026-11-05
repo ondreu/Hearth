@@ -11992,6 +11992,17 @@ body.hearth-dv-resizing {
 	object-fit: contain;
 }
 
+/* A note slide: the note's own rendering filling the card, scrolling on its own
+ * when the note is longer than the card. `box-sizing` because Hearth has no
+ * global border-box and the padding would otherwise push the content out. */
+.hearth-slide-note {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	overflow: auto;
+	padding: 1rem 1.25rem;
+}
+
 /* Crossfade */
 .hearth-slideshow.is-trans-fade > .hearth-slide.is-in-next,
 .hearth-slideshow.is-trans-fade > .hearth-slide.is-in-prev {

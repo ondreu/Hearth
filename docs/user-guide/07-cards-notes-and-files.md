@@ -182,22 +182,34 @@ framing options.
 
 ## Slideshow
 
-**What it shows:** pictures from a list you curate or from a folder, rotated on
-a timer, once a day, or only by hand.
+**What it shows:** pictures from a list you curate or from a folder, or the notes
+in a folder, rotated on a timer, once a day, or only by hand.
 
 **Requires:** nothing.
 
-### Choosing the pictures
+### Choosing the slides
 
-*Pictures from* is either **A list of pictures** or **A folder**.
+*Slides from* is **A list of pictures**, **A folder of pictures**, or **The notes
+in a folder**.
+
+The card is in the *Add card* picker twice — as **Slideshow** and as **Notes
+slideshow**, which opens on the notes source — so the notes side is visible
+before you open the settings dialog. Either entry can be switched to any source.
 
 With a list, you add pictures one at a time, each with an optional caption, and
 you can reorder and remove them. There is also an *Add a folder's pictures*
 action that bulk-adds a folder's contents into the list.
 
-With a folder, every image in that folder is shown, optionally including
-subfolders. Leaving the folder empty means the vault root. The dialog tells you
-how many images it finds there right now.
+With a folder of pictures, every image in that folder is shown, optionally
+including subfolders. Leaving the folder empty means the vault root. The dialog
+tells you how many images it finds there right now.
+
+With the notes in a folder, every Markdown note in that folder is shown as a
+page — rendered as it reads in the note, links, callouts, embeds and checkboxes
+included — one note at a time. The folder and the subfolder toggle work as they
+do for pictures, and the dialog counts the notes it finds. *Fit* and *Slow zoom*
+are not offered on a notes card, because a note has no picture to fill or zoom;
+a note longer than the card scrolls inside it.
 
 ### Playback
 

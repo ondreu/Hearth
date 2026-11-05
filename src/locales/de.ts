@@ -2012,11 +2012,12 @@ export const de: Translations = {
 				"Eine Schaltfläche anzeigen, die die eingebettete Datei in einem eigenen Tab öffnet. Standardmäßig aus.",
 		},
 		slideshow: {
-			source: "Bilder aus",
+			source: "Folien aus",
 			sourceDesc:
-				"Eine Liste, die du Bild für Bild wählst, oder alle Bilder in einem Ordner.",
+				"Eine Liste, die du Bild für Bild wählst, alle Bilder in einem Ordner oder alle Notizen in einem Ordner.",
 			sourceList: "Eine Bilderliste",
-			sourceFolder: "Ein Ordner",
+			sourceFolder: "Ein Ordner mit Bildern",
+			sourceNotes: "Die Notizen in einem Ordner",
 			picturesHeading: "Bilder",
 			picturesEmpty: "Noch keine Bilder - füge unten eines hinzu.",
 			picturePlaceholder: "Bildpfad",
@@ -2037,6 +2038,13 @@ export const de: Translations = {
 				count === 1
 					? "Hier wurde gerade 1 Bild gefunden."
 					: `Hier wurden gerade ${count} Bilder gefunden.`,
+			notesFolder: "Notizen-Ordner",
+			notesFolderDesc:
+				"Jede Notiz in diesem Ordner wird gezeigt, Seite für Seite. Leer lassen für die Vault-Wurzel.",
+			notesCount: (count: number) =>
+				count === 1
+					? "Hier wurde gerade 1 Notiz gefunden."
+					: `Hier wurden gerade ${count} Notizen gefunden.`,
 			playbackHeading: "Wiedergabe",
 			order: "Reihenfolge",
 			orderDesc: "Die Reihenfolge, in der die Bilder gezeigt werden.",
@@ -3743,6 +3751,7 @@ export const de: Translations = {
 			embedSectionMissing: (section: string) => `Abschnitt nicht gefunden: ${section}`,
 			slideshowEmpty: "Füge Bilder in den Karteneinstellungen hinzu",
 			slideshowFolderEmpty: "Keine Bilder in diesem Ordner",
+			slideshowNotesEmpty: "Keine Notizen in diesem Ordner",
 			embedEnableBases: "Aktiviere das Kern-Plugin Bases, um .base-Dateien einzubetten",
 			embedEnableCanvas: "Aktiviere das Kern-Plugin Canvas, um Canvases einzubetten",
 			embedInstallExcalidraw: "Installiere das Excalidraw-Plugin, um Zeichnungen einzubetten",
@@ -3910,6 +3919,7 @@ export const de: Translations = {
 			pause: "Diashow pausieren",
 			play: "Diashow fortsetzen",
 			openImage: "Dieses Bild öffnen",
+			openNote: "Diese Notiz öffnen",
 			jump: "Zu einem Bild springen",
 		},
 		text: {
@@ -4587,6 +4597,7 @@ export const de: Translations = {
 		note: "Eingebettete Notiz",
 		image: "Eingebettetes Bild",
 		slideshow: "Diashow",
+		"slideshow-notes": "Notizen-Diashow",
 		base: "Eingebettete Base",
 		excalidraw: "Excalidraw-Zeichnung",
 		canvas: "Eingebettetes Canvas",
@@ -4636,7 +4647,8 @@ export const de: Translations = {
 		"music-stereo": "Fernbedienung für den Navidrome-Player des Stereo-Plugins",
 		note: "Jede Notiz, live auf dem Board dargestellt",
 		image: "Ein Bild aus dem Vault, randlos",
-		slideshow: "Bilder aus einer Liste oder einem Ordner, im Wechsel per Timer",
+		slideshow: "Bilder aus einer Liste oder einem Ordner oder die Notizen eines Ordners, im Wechsel per Timer",
+		"slideshow-notes": "Die Notizen eines Ordners, Seite für Seite",
 		base: "Eine .base-Datei, dargestellt durch Obsidians Bases",
 		excalidraw: "Eine Excalidraw-Zeichnung mit nativem Verschieben und Zoomen",
 		canvas: "Ein Canvas, in dem du direkt schwenken kannst",
