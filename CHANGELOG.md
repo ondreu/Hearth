@@ -106,6 +106,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The Quick switcher engine ranks a note by its name, the way the switcher
+  it copies does** (#447). Searching "black sphinx" listed an empty note called
+  "A" from a folder of that name above the note actually called "Black Sphinx":
+  the query was matched against the whole path, so a folder name scored exactly
+  like a file name, and equal scores were settled alphabetically. The name is
+  matched on its own now, a match that only found the folder is ranked below
+  every name match, ties keep the order the vault returns instead of being
+  re-sorted, and files excluded from link suggestions are down-ranked. The
+  attachment types the switcher itself lists are complete again (`.oga`,
+  `.opus`, `.tiff`). For the same query the order and the scores now line up
+  with Obsidian's own switcher.
+
 - **A board with a card holding several views no longer jumps to that card**
   (#440). Opening the dashboard, or switching one of the card's views, left the
   board where it was until the switcher was drawn — and then the board scrolled

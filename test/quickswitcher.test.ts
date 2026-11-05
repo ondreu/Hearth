@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { SearchResult } from "obsidian";
+import type { SearchResult, TAbstractFile } from "obsidian";
+import type { QueryHit } from "../src/query";
 import {
 	matchCandidate,
+	sortSwitcherHits,
 	switcherListsExtension,
+	switcherName,
 	switcherText,
 	tailRanges,
 } from "../src/quickswitcher";
@@ -31,6 +34,16 @@ describe("switcherText", () => {
 	});
 });
 
+describe("switcherName", () => {
+	it("takes the last path segment — the part the switcher matches first", () => {
+		expect(switcherName("Black Sphinx/Black Sphinx")).toBe("Black Sphinx");
+		expect(switcherName("Archive/2026/Plan.canvas")).toBe("Plan.canvas");
+	});
+	it("keeps a root file whole", () => {
+		expect(switcherName("Hearth")).toBe("Hearth");
+	});
+});
+
 describe("switcherListsExtension", () => {
 	const defaults = { showAttachments: true, showAllFileTypes: false };
 	it("always lists notes, canvases and bases", () => {
@@ -40,6 +53,12 @@ describe("switcherListsExtension", () => {
 	it("lists attachments only when the switcher does", () => {
 		expect(switcherListsExtension("PNG", defaults)).toBe(true);
 		expect(switcherListsExtension("png", { ...defaults, showAttachments: false })).toBe(false);
+	});
+	it("covers the attachment types the switcher itself names", () => {
+		// Obsidian's own lists, not ours to invent — oga/opus/tiff are easy to miss.
+		for (const ext of ["oga", "opus", "tiff", "pdf", "mkv"]) {
+			expect(switcherListsExtension(ext, defaults)).toBe(true);
+		}
 	});
 	it("lists unknown types only with Show all file types", () => {
 		expect(switcherListsExtension("zip", defaults)).toBe(false);
@@ -60,15 +79,20 @@ describe("tailRanges", () => {
 describe("matchCandidate", () => {
 	const candidate = { text: "People/Jan Novák", displayName: "Jan Novák", aliases: ["Honza"] };
 
-	it("matches the path and highlights within the name", () => {
+	it("matches the name and highlights within it", () => {
 		expect(matchCandidate(candidate, substring("novák"))).toEqual({
-			score: -11,
+			score: -4,
 			matches: [[4, 9]],
 		});
 	});
 
-	it("matches a folder in the path without highlighting the name", () => {
-		expect(matchCandidate(candidate, substring("people"))?.matches).toEqual([]);
+	it("matches a folder in the path only when the name misses, docked by one point", () => {
+		expect(matchCandidate(candidate, substring("people"))).toEqual({ score: -1, matches: [] });
+	});
+
+	it("matches an attachment by its name with the extension, highlighting only the title", () => {
+		const plan = { text: "Boards/Plan.canvas", displayName: "Plan", aliases: [] };
+		expect(matchCandidate(plan, substring("plan.canvas"))).toEqual({ score: -0, matches: [[0, 4]] });
 	});
 
 	it("lets an alias win when it scores better", () => {
@@ -86,5 +110,46 @@ describe("matchCandidate", () => {
 
 	it("returns null when nothing matches", () => {
 		expect(matchCandidate(candidate, substring("xyz"))).toBeNull();
+	});
+});
+
+/**
+ * The report in #447: a folder "Black Sphinx" holding an empty note "A" and a
+ * note called "Black Sphinx". The empty note used to tie with the named one —
+ * both matched at offset 0 of the full path — and the alphabetical tiebreak
+ * put "A" first.
+ */
+describe("name before path (#447)", () => {
+	const empty = { text: "Black Sphinx/A", displayName: "A", aliases: [] };
+	const named = { text: "Black Sphinx/Black Sphinx", displayName: "Black Sphinx", aliases: [] };
+
+	it("ranks the note whose own name matched above the one that only hit the folder", () => {
+		const onName = matchCandidate(named, substring("bla"));
+		const onPath = matchCandidate(empty, substring("bla"));
+		expect(onName).toEqual({ score: -0, matches: [[0, 3]] });
+		expect(onPath).toEqual({ score: -1, matches: [] });
+		expect(onName?.score ?? -Infinity).toBeGreaterThan(onPath?.score ?? -Infinity);
+	});
+
+	it("holds for a partial query in the middle of the name too", () => {
+		expect(matchCandidate(named, substring("sphinx"))?.score).toBe(-6);
+		expect(matchCandidate(empty, substring("sphinx"))?.score).toBe(-7);
+	});
+});
+
+describe("sortSwitcherHits", () => {
+	const hit = (score: number, name: string): QueryHit => ({
+		file: { name, path: name } as TAbstractFile,
+		score,
+	});
+
+	it("orders by score alone, best first", () => {
+		const sorted = sortSwitcherHits([hit(-3, "c"), hit(-1, "a"), hit(-2, "b")]);
+		expect(sorted.map((h) => h.file.name)).toEqual(["a", "b", "c"]);
+	});
+
+	it("keeps the vault's order on a tie, like the core switcher", () => {
+		const sorted = sortSwitcherHits([hit(-1, "Zebra"), hit(-1, "Apple")]);
+		expect(sorted.map((h) => h.file.name)).toEqual(["Zebra", "Apple"]);
 	});
 });
