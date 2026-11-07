@@ -1271,7 +1271,11 @@ export const zh: Translations = {
 			goToTab: "打开",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
-				stereo: {
+
+				taskchute: {
+					name: "TaskChute Plus",
+					desc: "TaskChute 卡片读取插件自带的任务与记录——今日列表（可开始/停止）、一周概览和活动热力图。任务、例行与日志始终归 TaskChute 所有。",
+				},				stereo: {
 					name: "Stereo",
 					desc:
 						"让音乐卡片控制 Stereo 插件的 Navidrome/Subsonic 播放器——当前曲目、" +
@@ -1735,6 +1739,7 @@ export const zh: Translations = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "插件视图（测试版）",
+			taskchute: "TaskChute",
 			pet: "宠物",
 			vaultpet: "Vault Pet",
 		},
@@ -3325,6 +3330,15 @@ export const zh: Translations = {
 			openButton: "“打开宠物小屋”按钮",
 			openButtonDesc: "卡片角落的一个按钮，像它的功能区图标一样在侧边栏打开 Vault Pet 的小屋。",
 		},
+		taskchute: {
+			missing: "未安装 TaskChute Plus",
+			missingDesc: "此卡片读取 TaskChute 自带的任务与记录。安装并启用插件后卡片即会填充——下面的选择会被保留。",
+			view: "显示",
+			viewDesc: "TaskChute 的三种视图，缩小绘制：今日任务（可开始/停止）、一周概览，或活动热力图。",
+			viewTasks: "今日任务",
+			viewOverview: "概览",
+			viewHeatmap: "热力图",
+		},
 		design: {
 			name: "设计",
 			desc: "经典，或 Material 3 Expressive：强调色的色调容器、胶囊与柔和形状。",
@@ -3368,6 +3382,39 @@ export const zh: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		taskchute: {
+			open: "打开 TaskChute",
+			start: "开始此任务",
+			stop: "停止并完成",
+			done: "已完成",
+			today: "今天",
+			noTime: "未安排时间",
+			previousDay: "前一天",
+			nextDay: "后一天",
+			changeTime: "更改时间…",
+			dropHere: "将任务拖到这里",
+			progress: (done: number, total: number) => `${done}/${total} 已完成`,
+			minutesToday: "今日分钟",
+			weekDone: "完成 · 7 天",
+			weekMinutes: "总计 · 7 天",
+			heatmapHeading: "活动",
+			addTask: "添加任务",
+			more: "任务操作",
+			moveUp: "上移",
+			moveDown: "下移",
+			moveToDate: "移至日期…",
+			duplicate: "复制",
+			delete: "删除",
+			deleteTitle: "删除此任务？",
+			deleteMessage: (name: string) => `“${name}”将从 TaskChute 中移除。`,
+			moveDateTitle: "将任务移至某个日期",
+			moveDateLabel: "日期",
+			moveDateSave: "移动",
+			legendLess: "较少",
+			legendMore: "较多",
+			noTasks: "今天没有安排",
+			loading: "正在加载 TaskChute…",
+		},
 		music: {
 			play: "播放",
 			pause: "暂停",
@@ -3445,6 +3492,9 @@ export const zh: Translations = {
 			leafViewMissing: "此视图不可用 — 请启用提供它的插件",
 			vaultPetInstall: "安装 Vault Pet 插件即可在此养一只宠物",
 			vaultPetNoHouse: "Vault Pet 的小屋不可用 — 请启用或更新该插件",
+			taskChuteInstall: "安装 TaskChute Plus 即可在此查看它的一天",
+			taskChuteUnsupported: "TaskChute 的视图未提供此卡片所需的内容——请更新 TaskChute Plus",
+			taskChuteNoData: "还没有 TaskChute 记录——先在 TaskChute 中执行一项任务",
 			operonEnable: "请启用 Operon 插件以显示其任务",
 			operonDisabled: "Operon 集成已关闭 — 请在 设置 → Hearth → 集成 中开启",
 			operonUnsupported:
@@ -4271,6 +4321,9 @@ export const zh: Translations = {
 		pet: "宠物",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Vault Pet 小屋",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute 概览",
+		"taskchute-heatmap": "TaskChute 热力图",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -4322,6 +4375,9 @@ export const zh: Translations = {
 		pet: "住在您面板上的小伙伴",
 		"vault-pet": "Vault Pet 插件的宠物，随着您的写作成长",
 		"vault-pet-house": "Vault Pet 的小屋 —— 任务、图鉴、徽章与统计",
+		taskchute: "今天的 TaskChute 任务——开始、停止，看清下一步",
+		"taskchute-overview": "一周的 TaskChute 工作：完成数、分钟数，按天查看",
+		"taskchute-heatmap": "以每日分钟数热力图呈现 TaskChute 活动",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

@@ -217,6 +217,27 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				requires: "Hostable side-panel views",
 				build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 },
 			},
+			{
+				id: "taskchute",
+				icon: "timer",
+				category: "integrations",
+				requires: "TaskChute Plus",
+				build: { kind: "taskchute", title: "TaskChute", taskchute: {}, w: 5, h: 7 },
+			},
+			{
+				id: "taskchute-overview",
+				icon: "bar-chart-3",
+				category: "integrations",
+				requires: "TaskChute Plus",
+				build: { kind: "taskchute", title: "TaskChute overview", taskchute: { view: "overview" }, w: 4, h: 4 },
+			},
+			{
+				id: "taskchute-heatmap",
+				icon: "flame",
+				category: "integrations",
+				requires: "TaskChute Plus",
+				build: { kind: "taskchute", title: "TaskChute heatmap", taskchute: { view: "heatmap" }, w: 6, h: 3 },
+			},
 
 			// ---- Fun ----
 			{ id: "music", icon: "music", category: "fun", requires: null, build: { kind: "music", title: "Music", music: { source: "folder", look: "cover" }, w: 4, h: 4 } },
@@ -490,6 +511,7 @@ describe("liveness classification", () => {
 			git: "static",
 			operon: "vault",
 			leaf: "static",
+			taskchute: "vault",
 			pet: "vault",
 			vaultpet: "static",
 		});

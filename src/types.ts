@@ -51,6 +51,7 @@ export type CardKind =
 	| "git"
 	| "operon"
 	| "leaf"
+	| "taskchute"
 	| "pet"
 	| "vaultpet";
 
@@ -1645,6 +1646,16 @@ export interface VaultPetConfig {
 	hideOpenButton?: boolean;
 }
 
+/** Per-card settings for the TaskChute card.
+ *
+ * Thin on purpose: TaskChute owns the tasks, the routines, the timer and the
+ * log, and its own settings decide where they live. The card only picks which
+ * of the plugin's three surfaces it draws. */
+export interface TaskChuteConfig {
+	/** Which view the card shows. Default "tasks". */
+	view?: "tasks" | "overview" | "heatmap";
+}
+
 /** A single button in the mobile action bar (shown under the search bar and
  * filters in Mobile mode). Like a launchpad tile, a button can run an Obsidian
  * command, open a vault note/file, or open a URL — chosen by `type`. Hearth's
@@ -2063,6 +2074,8 @@ export interface DashboardCard {
 	operon?: OperonConfig;
 	/** kind === "leaf": the registered view type to host. */
 	leafView?: LeafViewConfig;
+	/** kind === "taskchute": which TaskChute Plus surface the card draws. */
+	taskchute?: TaskChuteConfig;
 	/** kind === "pet": species, colors, name and what feeds its mood. */
 	pet?: PetConfig;
 	/** kind === "vaultpet": which of the Vault Pet plugin's surfaces the card
