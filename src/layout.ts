@@ -57,6 +57,7 @@ import {
 	type TaskSortRule,
 	type TasksConfig,
 	type TaskNotesSourceConfig,
+	type TaskChuteConfig,
 	type TemplaterConfig,
 	type TemplaterItem,
 	type TileGeometry,
@@ -638,6 +639,9 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	}
 	if (r.leafView && typeof r.leafView === "object") {
 		card.leafView = sanitizeLeafView(r.leafView as Record<string, unknown>);
+	}
+	if (r.taskchute && typeof r.taskchute === "object") {
+		card.taskchute = sanitizeTaskChute(r.taskchute as Record<string, unknown>);
 	}
 	const viewLabel = str(r.viewLabel);
 	if (viewLabel !== undefined) card.viewLabel = viewLabel;
@@ -1788,6 +1792,16 @@ function sanitizeLeafView(r: Record<string, unknown>): LeafViewConfig {
 	const file = str(r.file);
 	if (file !== undefined) cfg.file = file;
 	if (typeof r.hideHeader === "boolean") cfg.hideHeader = r.hideHeader;
+	return cfg;
+}
+
+/** TaskChute card config: the three view ids are a closed set, and anything
+ * else falls back to the task list at render time. */
+function sanitizeTaskChute(r: Record<string, unknown>): TaskChuteConfig {
+	const cfg: TaskChuteConfig = {};
+	if (r.view === "tasks" || r.view === "overview" || r.view === "heatmap") {
+		cfg.view = r.view;
+	}
 	return cfg;
 }
 

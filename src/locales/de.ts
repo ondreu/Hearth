@@ -1405,7 +1405,11 @@ export const de: Translations = {
 			goToTab: "Öffnen",
 			/** Ein Eintrag pro ID in `INTEGRATIONS`. */
 			items: {
-				stereo: {
+
+				taskchute: {
+					name: "TaskChute Plus",
+					desc: "Die TaskChute-Karten lesen die Aufgaben und Aufzeichnungen des Plugins — heutige Liste mit Start und Stopp, Wochenübersicht und Aktivitäts-Heatmap. Aufgaben, Routinen und Protokoll bleiben bei TaskChute.",
+				},				stereo: {
 					name: "Stereo",
 					desc:
 						"Lässt eine Musik-Karte den Navidrome-/Subsonic-Player des " +
@@ -1930,6 +1934,7 @@ export const de: Translations = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "Plugin-Ansicht (Beta)",
+			taskchute: "TaskChute",
 			pet: "Haustier",
 			vaultpet: "Vault Pet",
 		},
@@ -3675,6 +3680,15 @@ export const de: Translations = {
 				"Eine Schaltfläche in der Ecke der Karte, die das Haus von Vault Pet in " +
 				"der Seitenleiste öffnet - wie sein Symbol in der Seitenleiste.",
 		},
+		taskchute: {
+			missing: "TaskChute Plus ist nicht installiert",
+			missingDesc: "Diese Karte liest TaskChutes eigene Aufgaben und Aufzeichnungen. Installiere und aktiviere das Plugin, dann füllt sie sich — die Auswahl unten bleibt erhalten.",
+			view: "Anzeigen",
+			viewDesc: "Drei Ansichten von TaskChute, klein gezeichnet: heutige Aufgaben mit Start und Stopp, eine Wochenübersicht oder die Aktivitäts-Heatmap.",
+			viewTasks: "Heutige Aufgaben",
+			viewOverview: "Übersicht",
+			viewHeatmap: "Heatmap",
+		},
 		design: {
 			name: "Design",
 			desc: "Klassisch oder Material 3 Expressive: tonale Flächen in deiner Akzentfarbe, Pillen und weiche Formen.",
@@ -3720,6 +3734,39 @@ export const de: Translations = {
 	},
 	// ---- Karteninhalte (dargestellter Inhalt) --------------------------------
 	cards: {
+		taskchute: {
+			open: "TaskChute öffnen",
+			start: "Diese Aufgabe starten",
+			stop: "Stoppen und abschließen",
+			done: "Erledigt",
+			today: "Heute",
+			noTime: "Ohne Zeit",
+			previousDay: "Vorheriger Tag",
+			nextDay: "Nächster Tag",
+			changeTime: "Uhrzeit ändern…",
+			dropHere: "Aufgabe hierher ziehen",
+			progress: (done: number, total: number) => `${done}/${total} erledigt`,
+			minutesToday: "Min. heute",
+			weekDone: "erledigt · 7 Tage",
+			weekMinutes: "gesamt · 7 Tage",
+			heatmapHeading: "Aktivität",
+			addTask: "Aufgabe hinzufügen",
+			more: "Aufgabenaktionen",
+			moveUp: "Nach oben",
+			moveDown: "Nach unten",
+			moveToDate: "Auf Datum verschieben…",
+			duplicate: "Duplizieren",
+			delete: "Löschen",
+			deleteTitle: "Diese Aufgabe löschen?",
+			deleteMessage: (name: string) => `„${name}“ wird aus TaskChute entfernt.`,
+			moveDateTitle: "Aufgabe auf ein Datum verschieben",
+			moveDateLabel: "Datum",
+			moveDateSave: "Verschieben",
+			legendLess: "Weniger",
+			legendMore: "Mehr",
+			noTasks: "Für heute nichts geplant",
+			loading: "TaskChute wird geladen…",
+		},
 		music: {
 			play: "Abspielen",
 			pause: "Pause",
@@ -3804,6 +3851,9 @@ export const de: Translations = {
 				"Installiere das Plugin Vault Pet, um hier ein Haustier zu halten",
 			vaultPetNoHouse:
 				"Das Haus von Vault Pet ist nicht verfügbar - aktiviere oder aktualisiere das Plugin",
+			taskChuteInstall: "Installiere TaskChute Plus, um seinen Tag hier zu zeigen",
+			taskChuteUnsupported: "TaskChutes Ansicht gibt nicht preis, was diese Karte braucht — aktualisiere TaskChute Plus",
+			taskChuteNoData: "Noch keine TaskChute-Aufzeichnungen — führe eine Aufgabe aus und komm zurück",
 			operonEnable: "Aktiviere das Operon-Plugin, um seine Aufgaben anzuzeigen",
 			operonDisabled:
 				"Die Operon-Integration ist aus - schalte sie unter Einstellungen → Hearth → Integrations ein",
@@ -4637,6 +4687,9 @@ export const de: Translations = {
 		pet: "Haustier",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Vault-Pet-Haus",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute-Übersicht",
+		"taskchute-heatmap": "TaskChute-Heatmap",
 	},
 
 	/** Eine Zeile pro Vorlage, gezeigt unter ihrem Namen in der Kartenauswahl und
@@ -4688,6 +4741,9 @@ export const de: Translations = {
 		pet: "Ein kleiner Begleiter, der auf deinem Board lebt",
 		"vault-pet": "Das Haustier des Vault-Pet-Plugins, das mit dem Schreiben wächst",
 		"vault-pet-house": "Das Haus von Vault Pet - Quests, Dex, Abzeichen und Statistik",
+		taskchute: "Die heutigen TaskChute-Aufgaben — starten, stoppen, sehen was als Nächstes kommt",
+		"taskchute-overview": "Eine Woche TaskChute: erledigt, Minuten, Tag für Tag",
+		"taskchute-heatmap": "TaskChute-Aktivität als Heatmap der Minuten pro Tag",
 	},
 
 	// ---- Kartenauswahl -----------------------------------------------

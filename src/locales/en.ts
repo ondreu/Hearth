@@ -1397,6 +1397,13 @@ export const en = {
 			goToTab: "Open",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				taskchute: {
+					name: "TaskChute Plus",
+					desc:
+						"The TaskChute cards read the plugin's own tasks and records — " +
+						"today's list with start and stop, a week's overview and its " +
+						"activity heatmap. Tasks, routines and the log stay TaskChute's.",
+				},
 				stereo: {
 					name: "Stereo",
 					desc:
@@ -1921,6 +1928,7 @@ export const en = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "Plugin view (beta)",
+			taskchute: "TaskChute",
 			pet: "Pet",
 			vaultpet: "Vault Pet",
 		},
@@ -3663,6 +3671,20 @@ export const en = {
 				"A button in the card's corner that opens Vault Pet's house in the " +
 				"sidebar, the same as its ribbon icon.",
 		},
+		taskchute: {
+			missing: "TaskChute Plus isn't installed",
+			missingDesc:
+				"This card reads TaskChute's own tasks and records. Install and enable " +
+				"the plugin and the card fills itself in — the choice below is kept " +
+				"either way.",
+			view: "Show",
+			viewDesc:
+				"Three of TaskChute's own surfaces, drawn small: today's tasks with " +
+				"start and stop, a week's overview, or the activity heatmap.",
+			viewTasks: "Today's tasks",
+			viewOverview: "Overview",
+			viewHeatmap: "Heatmap",
+		},
 		design: {
 			name: "Design",
 			desc: "Classic, or Material 3 Expressive: tonal containers in your accent colour, pills and soft shapes.",
@@ -3792,6 +3814,11 @@ export const en = {
 			vaultPetInstall: "Install the Vault Pet plugin to keep a pet here",
 			vaultPetNoHouse:
 				"Vault Pet's house isn't available — enable the plugin, or update it",
+			taskChuteInstall: "Install TaskChute Plus to show its day here",
+			taskChuteUnsupported:
+				"TaskChute's view didn't expose what this card needs — update TaskChute Plus",
+			taskChuteNoData:
+				"No TaskChute records yet — run a task in TaskChute and come back",
 			operonEnable: "Enable the Operon plugin to show its tasks",
 			operonDisabled:
 				"The Operon integration is off — turn it on in Settings → Hearth → Integrations",
@@ -3895,6 +3922,39 @@ export const en = {
 		},
 		vaultPet: {
 			openHouse: "Open the pet house",
+		},
+		taskchute: {
+			open: "Open TaskChute",
+			start: "Start this task",
+			stop: "Stop and complete this task",
+			done: "Done",
+			today: "Today",
+			noTime: "No time",
+			previousDay: "Previous day",
+			nextDay: "Next day",
+			changeTime: "Change time…",
+			dropHere: "Drop a task here",
+			progress: (done: number, total: number) => `${done}/${total} done`,
+			minutesToday: "min today",
+			weekDone: "done · 7 days",
+			weekMinutes: "total · 7 days",
+			heatmapHeading: "Activity",
+			addTask: "Add a task",
+			more: "Task actions",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			moveToDate: "Move to date…",
+			duplicate: "Duplicate",
+			delete: "Delete",
+			deleteTitle: "Delete this task?",
+			deleteMessage: (name: string) => `“${name}” will be removed from TaskChute.`,
+			moveDateTitle: "Move the task to a date",
+			moveDateLabel: "Date",
+			moveDateSave: "Move",
+			legendLess: "Less",
+			legendMore: "More",
+			noTasks: "Nothing scheduled for today",
+			loading: "Loading TaskChute…",
 		},
 		embed: {
 			openFile: "Open this file",
@@ -4631,6 +4691,9 @@ export const en = {
 		pet: "Pet",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Vault Pet house",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute overview",
+		"taskchute-heatmap": "TaskChute heatmap",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -4682,6 +4745,9 @@ export const en = {
 		pet: "A small companion that lives on your board",
 		"vault-pet": "The Vault Pet plugin's pet, growing as you write",
 		"vault-pet-house": "Vault Pet's house — quests, dex, badges and stats",
+		taskchute: "Today's TaskChute tasks — start, stop and see what's next",
+		"taskchute-overview": "A week of TaskChute work: finished, minutes, day by day",
+		"taskchute-heatmap": "TaskChute activity as a heatmap of minutes per day",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

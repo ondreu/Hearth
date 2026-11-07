@@ -1346,7 +1346,11 @@ export const fr: Translations = {
 			goToSection: "Afficher",
 			goToTab: "Ouvrir",
 			items: {
-				stereo: {
+
+				taskchute: {
+					name: "TaskChute Plus",
+					desc: "Les cartes TaskChute lisent les tâches et relevés du plugin — liste du jour avec démarrage et arrêt, aperçu hebdomadaire et carte de chaleur d'activité. Les tâches, routines et le journal restent ceux de TaskChute.",
+				},				stereo: {
 					name: "Stereo",
 					desc:
 						"Permet à une carte Musique de commander le lecteur " +
@@ -1872,6 +1876,7 @@ export const fr: Translations = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "Vue de plugin (bêta)",
+			taskchute: "TaskChute",
 			pet: "Compagnon",
 			vaultpet: "Vault Pet",
 		},
@@ -3617,6 +3622,15 @@ export const fr: Translations = {
 				"Un bouton dans le coin de la carte qui ouvre la maison de Vault Pet dans la " +
 				"barre latérale, comme son icône du ruban.",
 		},
+		taskchute: {
+			missing: "TaskChute Plus n'est pas installé",
+			missingDesc: "Cette carte lit les tâches et les relevés de TaskChute. Installez et activez le plugin : la carte se remplit — le choix ci-dessous est conservé.",
+			view: "Afficher",
+			viewDesc: "Trois vues de TaskChute, en petit : les tâches du jour avec démarrage et arrêt, un aperçu de la semaine ou la carte de chaleur d'activité.",
+			viewTasks: "Tâches du jour",
+			viewOverview: "Aperçu",
+			viewHeatmap: "Carte de chaleur",
+		},
 		design: {
 			name: "Design",
 			desc: "Classique, ou Material 3 Expressive : conteneurs tonals dans votre couleur d'accent, pastilles et formes douces.",
@@ -3663,6 +3677,39 @@ export const fr: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		taskchute: {
+			open: "Ouvrir TaskChute",
+			start: "Démarrer cette tâche",
+			stop: "Arrêter et terminer",
+			done: "Terminée",
+			today: "Aujourd'hui",
+			noTime: "Sans heure",
+			previousDay: "Jour précédent",
+			nextDay: "Jour suivant",
+			changeTime: "Changer l'heure…",
+			dropHere: "Déposez une tâche ici",
+			progress: (done: number, total: number) => `${done}/${total} terminées`,
+			minutesToday: "min aujourd'hui",
+			weekDone: "terminées · 7 jours",
+			weekMinutes: "total · 7 jours",
+			heatmapHeading: "Activité",
+			addTask: "Ajouter une tâche",
+			more: "Actions de la tâche",
+			moveUp: "Monter",
+			moveDown: "Descendre",
+			moveToDate: "Déplacer à une date…",
+			duplicate: "Dupliquer",
+			delete: "Supprimer",
+			deleteTitle: "Supprimer cette tâche ?",
+			deleteMessage: (name: string) => `« ${name} » sera supprimée de TaskChute.`,
+			moveDateTitle: "Déplacer la tâche à une date",
+			moveDateLabel: "Date",
+			moveDateSave: "Déplacer",
+			legendLess: "Moins",
+			legendMore: "Plus",
+			noTasks: "Rien de prévu aujourd'hui",
+			loading: "Chargement de TaskChute…",
+		},
 		music: {
 			play: "Lire",
 			pause: "Pause",
@@ -3746,6 +3793,9 @@ export const fr: Translations = {
 			vaultPetInstall: "Installez le plugin Vault Pet pour avoir un compagnon ici",
 			vaultPetNoHouse:
 				"La maison de Vault Pet n'est pas disponible — activez le plugin, ou mettez-le à jour",
+			taskChuteInstall: "Installez TaskChute Plus pour afficher sa journée ici",
+			taskChuteUnsupported: "La vue de TaskChute n'expose pas ce dont cette carte a besoin — mettez à jour TaskChute Plus",
+			taskChuteNoData: "Aucun enregistrement TaskChute pour l'instant — lancez une tâche puis revenez",
 			operonEnable: "Activez le plugin Operon pour afficher ses tâches",
 			operonDisabled:
 				"L'intégration Operon est désactivée — activez-la dans Paramètres → Hearth → Intégrations",
@@ -4571,6 +4621,9 @@ export const fr: Translations = {
 		pet: "Compagnon",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Maison Vault Pet",
+		taskchute: "TaskChute",
+		"taskchute-overview": "Aperçu TaskChute",
+		"taskchute-heatmap": "Carte de chaleur TaskChute",
 	},
 
 	templateDescriptions: {
@@ -4619,6 +4672,9 @@ export const fr: Translations = {
 		pet: "Un petit compagnon qui vit sur votre tableau",
 		"vault-pet": "Le compagnon du plugin Vault Pet, qui grandit quand vous écrivez",
 		"vault-pet-house": "La maison de Vault Pet — quêtes, index, badges et statistiques",
+		taskchute: "Les tâches TaskChute du jour — démarrer, arrêter, voir la suite",
+		"taskchute-overview": "Une semaine de TaskChute : terminées, minutes, jour par jour",
+		"taskchute-heatmap": "L'activité TaskChute en carte de chaleur des minutes par jour",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

@@ -15,6 +15,19 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **TaskChute Plus, on the board.** Three cards read
+  [TaskChute Plus](https://github.com/hiroyaiizuka/taskchute-for-obsidian)'s own
+  data instead of hosting its view: *TaskChute* lists the day's tasks in the
+  plugin's own time sections (every window drawn, empty ones included), starts
+  and stops them, adds, reorders and drags them between windows to reschedule,
+  moves, duplicates and deletes them, ticks the running clock without a repaint,
+  and moves to another day from its header — all through the plugin, so its
+  timer, log, heatmap and reminders stay in step —
+  *TaskChute overview* sums up today and the last seven days, and
+  *TaskChute heatmap* draws the plugin's activity as a calendar grid of minutes.
+  The list keeps one TaskChute view mounted off-screen as its data source; the
+  other two read the plugin's monthly snapshot and mount nothing.
+
 - **The New-note button takes its name from the search field.** Typing a title in
   the search bar and pressing the button beside it now creates a note called
   exactly that, instead of one called "Untitled" and a name to type again —

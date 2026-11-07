@@ -34,6 +34,7 @@ import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
 import { TEMPLATER_PLUGIN_ID } from "./templater";
 import { VAULT_PET_PLUGIN_ID } from "./vaultpet";
 import { STEREO_PLUGIN_ID } from "./stereo";
+import { TASKCHUTE_PLUGIN_ID } from "./taskchute";
 
 /**
  * Ids of the settings ribbon tabs.
@@ -91,6 +92,7 @@ export type IntegrationId =
 	| "frontMatterTitle"
 	| "excalidraw"
 	| "vaultPet"
+	| "taskchute"
 	| "bases"
 	| "canvas"
 	| "dailyNotes"
@@ -218,6 +220,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		id: "stereo",
 		group: "plugin",
 		pluginId: STEREO_PLUGIN_ID,
+		where: { kind: "card" },
+	},
+	{
+		id: "taskchute",
+		group: "plugin",
+		pluginId: TASKCHUTE_PLUGIN_ID,
 		where: { kind: "card" },
 	},
 	// ---- Obsidian core plugins --------------------------------------------
