@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [3.7.0]
+## [3.8.0]
 
 ### Added
 
@@ -28,6 +28,7 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   The list keeps one TaskChute view mounted off-screen as its data source; the
   other two read the plugin's monthly snapshot and mount nothing.
 
+
 - **The New-note button takes its name from the search field.** Typing a title in
   the search bar and pressing the button beside it now creates a note called
   exactly that, instead of one called "Untitled" and a name to type again —
@@ -38,6 +39,86 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for a Search bar card's button. A typed title replaces the filename pattern
   rather than being appended to it, so no `{{date}}` prefix and no `{{prompt}}`
   dialog appear over text you have already typed.
+
+
+- **A slideshow can rotate through notes.** The Slideshow card's *Slides from*
+  setting gains a third source beside a list and a folder of pictures: **The
+  notes in a folder**. Every Markdown note in the chosen folder — subfolders
+  optional, exactly as for pictures — is drawn as a page with the same renderer
+  the embed and daily cards use, so links, callouts, embeds and checkboxes work
+  as they do in the note. A long note scrolls inside the card, and *Fit* and
+  *Slow zoom* are left out of the settings because a note has no picture to fill
+  or zoom. Ordering, the timer, once-a-day and by-hand advances, the caption and
+  the open button all work the same on a notes card. The card is also offered
+  twice in the *Add card* picker — as **Slideshow** and as **Notes slideshow**,
+  which starts on this source — and the picture entry's one-line description now
+  names notes too, so the source is visible before the settings dialog.
+
+
+### Changed
+
+- **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
+  each board's Layout tab, and the setup wizard) used to offer *Compact
+  spacing* as an on/off switch; it is now *Spacing* — *Roomy*, *Compact*, or
+  the new *Flush*, which drops the side and bottom gutters so the board and its
+  cards run to the edge of the pane. A flush board also ignores the *Content
+  width* ceiling, which would otherwise leave a centred column with side
+  margins of its own. The top of the page, the gap under
+  the header and the card insets keep the compact rhythm. An existing vault
+  keeps exactly the spacing it had, because the old setting is folded into the
+  new one when settings load. The space *between* cards is part of their saved
+  layout rather than a style, so Flush leaves it untouched.
+
+
+### Fixed
+
+- **The Quick switcher engine ranks a note by its name, the way the switcher
+  it copies does** (#447). Searching "black sphinx" listed an empty note called
+  "A" from a folder of that name above the note actually called "Black Sphinx":
+  the query was matched against the whole path, so a folder name scored exactly
+  like a file name, and equal scores were settled alphabetically. The name is
+  matched on its own now, a match that only found the folder is ranked below
+  every name match, ties keep the order the vault returns instead of being
+  re-sorted, and files excluded from link suggestions are down-ranked. The
+  attachment types the switcher itself lists are complete again (`.oga`,
+  `.opus`, `.tiff`), and a file type brought by a plugin (`.excalidraw`,
+  `.typ`, …) is listed when Obsidian can display it, as the switcher does.
+  For the same query the order and the scores now line up
+  with Obsidian's own switcher.
+
+
+- **The Git card works again with obsidian-git 2.41.** That release moved its
+  commit-and-push actions, which every earlier version kept flat on the
+  plugin, onto its own GitActions helper, so Hearth's support probe, which
+  read the old flat names, decided the actions weren't there and disabled the
+  commit, sync, push, pull, fetch, discard-all and branch buttons under
+  *This version of the Git plugin doesn't support that*. The write actions
+  are now looked up per member, on the helper first and on the plugin itself
+  second, so a 2.41+ and a pre-2.41 install answer alike.
+
+
+- **The commit scope the card editor chooses is respected again on
+  obsidian-git 2.40 and later.** Since 2.40 renamed its commit options to
+  `mode`, Hearth kept sending the `onlyStaged` boolean those builds never
+  read, so *Smart*, *All* and *Staged* were all collapsing to the plugin's
+  default (`all`). The card now names the scope, and dispatch translates it
+  into both dialects: `mode` goes to obsidian-git 2.40+, where *Smart*
+  passes through and the plugin resolves it exactly as its own Commit
+  command does, against a status read at commit time; the old `onlyStaged`
+  rides alongside for builds that predate modes.
+
+
+- **Staging everything from the card no longer rests on a possibly stale
+  snapshot.** Stage-all and unstage-all now run without a status, matching
+  what obsidian-git's own source-control view does: on desktop both stage
+  and reset the whole tree regardless, and on mobile the working tree is
+  re-read at the moment of the click.
+
+
+
+## [3.7.0]
+
+### Added
 
 - **A hotkey that puts the cursor in the board's search field.** *Focus board
   search* is bindable under Settings → Hotkeys: a board that is already in front
@@ -109,52 +190,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   undocumented, so when it can't be done (plugin off, or the internal changes
   shape) the click opens Hearth's folder browser instead of doing nothing.
 
-- **A slideshow can rotate through notes.** The Slideshow card's *Slides from*
-  setting gains a third source beside a list and a folder of pictures: **The
-  notes in a folder**. Every Markdown note in the chosen folder — subfolders
-  optional, exactly as for pictures — is drawn as a page with the same renderer
-  the embed and daily cards use, so links, callouts, embeds and checkboxes work
-  as they do in the note. A long note scrolls inside the card, and *Fit* and
-  *Slow zoom* are left out of the settings because a note has no picture to fill
-  or zoom. Ordering, the timer, once-a-day and by-hand advances, the caption and
-  the open button all work the same on a notes card. The card is also offered
-  twice in the *Add card* picker — as **Slideshow** and as **Notes slideshow**,
-  which starts on this source — and the picture entry's one-line description now
-  names notes too, so the source is visible before the settings dialog.
-
 ### Changed
-
-- **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
-  each board's Layout tab, and the setup wizard) used to offer *Compact
-  spacing* as an on/off switch; it is now *Spacing* — *Roomy*, *Compact*, or
-  the new *Flush*, which drops the side and bottom gutters so the board and its
-  cards run to the edge of the pane. A flush board also ignores the *Content
-  width* ceiling, which would otherwise leave a centred column with side
-  margins of its own. The top of the page, the gap under
-  the header and the card insets keep the compact rhythm. An existing vault
-  keeps exactly the spacing it had, because the old setting is folded into the
-  new one when settings load. The space *between* cards is part of their saved
-  layout rather than a style, so Flush leaves it untouched.
 
 - **“Search filters” is now “Filter chips”**, the name the per-board override
   already used. What it controls is the row of chips, not which files are
   searched; the new switch above is the one that decides the latter.
 
 ### Fixed
-
-- **The Quick switcher engine ranks a note by its name, the way the switcher
-  it copies does** (#447). Searching "black sphinx" listed an empty note called
-  "A" from a folder of that name above the note actually called "Black Sphinx":
-  the query was matched against the whole path, so a folder name scored exactly
-  like a file name, and equal scores were settled alphabetically. The name is
-  matched on its own now, a match that only found the folder is ranked below
-  every name match, ties keep the order the vault returns instead of being
-  re-sorted, and files excluded from link suggestions are down-ranked. The
-  attachment types the switcher itself lists are complete again (`.oga`,
-  `.opus`, `.tiff`), and a file type brought by a plugin (`.excalidraw`,
-  `.typ`, …) is listed when Obsidian can display it, as the switcher does.
-  For the same query the order and the scores now line up
-  with Obsidian's own switcher.
 
 - **A board with a card holding several views no longer jumps to that card**
   (#440). Opening the dashboard, or switching one of the card's views, left the
@@ -181,31 +223,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   are asked at their canonical address (the old `api.frankfurter.app` host only
   redirects now). BGN left the supported units, as the ECB stopped publishing a
   rate for the lev when Bulgaria adopted the euro (#422).
-
-- **The Git card works again with obsidian-git 2.41.** That release moved its
-  commit-and-push actions, which every earlier version kept flat on the
-  plugin, onto its own GitActions helper, so Hearth's support probe, which
-  read the old flat names, decided the actions weren't there and disabled the
-  commit, sync, push, pull, fetch, discard-all and branch buttons under
-  *This version of the Git plugin doesn't support that*. The write actions
-  are now looked up per member, on the helper first and on the plugin itself
-  second, so a 2.41+ and a pre-2.41 install answer alike.
-
-- **The commit scope the card editor chooses is respected again on
-  obsidian-git 2.40 and later.** Since 2.40 renamed its commit options to
-  `mode`, Hearth kept sending the `onlyStaged` boolean those builds never
-  read, so *Smart*, *All* and *Staged* were all collapsing to the plugin's
-  default (`all`). The card now names the scope, and dispatch translates it
-  into both dialects: `mode` goes to obsidian-git 2.40+, where *Smart*
-  passes through and the plugin resolves it exactly as its own Commit
-  command does, against a status read at commit time; the old `onlyStaged`
-  rides alongside for builds that predate modes.
-
-- **Staging everything from the card no longer rests on a possibly stale
-  snapshot.** Stage-all and unstage-all now run without a status, matching
-  what obsidian-git's own source-control view does: on desktop both stage
-  and reset the whole tree regardless, and on mobile the working tree is
-  re-read at the moment of the click.
 
 ## [3.6.0]
 
