@@ -146,7 +146,7 @@ background), *Solid* (opaque panels, easiest to read over a busy photograph) and
 *Minimal* (no card surface at all, content floating on the background).
 
 You also choose whether the background sits behind everything or is worn as a
-*banner* strip across the top of the board, and whether spacing is compact.
+*banner* strip across the top of the board, and whether the spacing is roomy, compact or flush.
 
 **Step 3 — Your board.** A scale drawing of the board about to be built: the
 chosen background, the header, and every card in its place and in the chosen

@@ -301,8 +301,10 @@ export const fr: Translations = {
 				"cartes sur la surface du thème en dessous.",
 			layoutFull: "Derrière tout",
 			layoutBanner: "Une bannière en haut",
-			compact: "Espacement compact",
-			compactDesc: "Resserrer les espaces pour en afficher plus à l'écran.",
+			spacing: "Espacement",
+			spacingDesc:
+				"L'espace que le tableau laisse autour de ses cartes et le long des " +
+				"bords de la page.",
 		},
 		surfaces: {
 			glass: {
@@ -783,13 +785,9 @@ export const fr: Translations = {
 				title: "Le titre",
 				both: "Les deux",
 			},
-			compact: "Espacement compact",
-			compactDesc: "Remplacer l'espacement global pour ce tableau.",
-			compactDefault: (state: string) => `Paramètre global (${state})`,
-			compactOptionOn: "Compact",
-			compactOptionOff: "Aéré",
-			compactStateOn: "compact",
-			compactStateOff: "aéré",
+			spacing: "Espacement",
+			spacingDesc: "Remplacer l'espacement global pour ce tableau.",
+			spacingDefault: (state: string) => `Paramètre global (${state})`,
 			cardOpacity: "Opacité des cartes",
 			cardBlur: "Flou des cartes",
 			cardRadius: "Arrondi des coins des cartes",
@@ -1699,9 +1697,15 @@ export const fr: Translations = {
 			fitToPage: "Ajuster à la page",
 			fitToPageDesc:
 				"Faire tenir le tableau sur un seul écran au lieu d'autoriser le défilement.",
-			compact: "Espacement compact",
-			compactDesc:
-				"Réduire les marges internes des cartes et la marge du haut pour agrandir la zone utile.",
+			spacing: "Espacement",
+			spacingDesc:
+				"L'espace que le tableau laisse autour des cartes et le long des bords " +
+				"de la page.",
+			spacingOptions: {
+				roomy: "Aéré",
+				compact: "Compact",
+				flush: "Sans marge",
+			},
 			arrangeButtonVisibility: "Visibilité du bouton Organiser",
 			arrangeButtonVisibilityDesc:
 				"Le bouton organiser/modifier est-il toujours visible ou révélé au survol de sa zone.",

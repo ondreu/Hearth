@@ -10832,6 +10832,51 @@ body.is-tablet button.hearth-gallery-icon-btn {
 	padding: 8px var(--hearth-card-pad-x);
 }
 
+/* ---- Flush spacing -------------------------------------------------- */
+
+/* The third step of the spacing setting. Flush is *compact minus the side and
+ * bottom gutters*: the board runs to the pane's left and right edges and its
+ * cards reach the bottom edge instead of stopping short, while the top of the
+ * page, the rhythm under the header and the padding inside cards keep the
+ * compact values — view.ts puts `.hearth-compact` on the root for flush too,
+ * so this block only has to say what is different.
+ *
+ * The width ceiling is the other half of "no side margin" and it lives in
+ * view.ts: the inner's `max-width` is not applied on a flush board, because a
+ * centred 1600px column leaves exactly the gutter this tier removes.
+ *
+ * Nothing else is zeroed. "Flush" on a board means no wasted margin where the
+ * pane ends, not a card with its title against the border: the first build of
+ * this tier dropped every inset and read as a clipped card, not as a choice.
+ *
+ * The space *between* cards is untouched as well: on the free-form board it is
+ * not a gap but part of each card's stored geometry (`GRID_GAP` in
+ * src/grid.ts), so zeroing it here would either do nothing (the cards are
+ * absolutely positioned) or, done properly, rewrite every saved position. See
+ * `BoardDensity` in types.ts.
+ *
+ * Written at the specificity of the compact rule rather than above it, so the
+ * narrow-board rule (which keeps the phone's safe-area bottom) still wins. */
+.hearth-flush.hearth-view,
+.hearth-flush .hearth-scroll,
+.hearth-flush .hearth-inner,
+.hearth-flush .hearth-dashboard,
+.hearth-flush .hearth-grid {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.hearth-flush .hearth-scroll {
+	--hearth-scroll-pad-x: 0px;
+	/* The page's own top gutter goes too: on a board whose first row is the
+	 * dashboard switcher it reads as a gap above the controls, not as breathing
+	 * room. The space *inside* the column — the header's gap and the gap between
+	 * the header and the cards — stays at the compact values. */
+	--hearth-scroll-pad-top: 0px;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
 /* ---- Calendar: week numbers & heatmap ------------------------------- */
 .hearth-calendar-wk {
 	display: flex;
@@ -15843,6 +15888,15 @@ body.hearth-dv-resizing {
 
 .hearth-setup-board-page.is-compact .hearth-setup-board-grid {
 	gap: 3px;
+}
+
+/* The third spacing answer, in the same scale model: it wears `is-compact` too,
+ * so only the page's side and bottom padding come off here — the same thing
+ * the real flush tier does. */
+.hearth-setup-board-page.is-flush {
+	padding-left: 0;
+	padding-right: 0;
+	padding-bottom: 0;
 }
 
 .hearth-setup-board-card {

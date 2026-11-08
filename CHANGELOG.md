@@ -124,6 +124,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Changed
 
+- **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
+  each board's Layout tab, and the setup wizard) used to offer *Compact
+  spacing* as an on/off switch; it is now *Spacing* — *Roomy*, *Compact*, or
+  the new *Flush*, which drops the side and bottom gutters so the board and its
+  cards run to the edge of the pane. A flush board also ignores the *Content
+  width* ceiling, which would otherwise leave a centred column with side
+  margins of its own. The top of the page, the gap under
+  the header and the card insets keep the compact rhythm. An existing vault
+  keeps exactly the spacing it had, because the old setting is folded into the
+  new one when settings load. The space *between* cards is part of their saved
+  layout rather than a style, so Flush leaves it untouched.
+
 - **“Search filters” is now “Filter chips”**, the name the per-board override
   already used. What it controls is the row of chips, not which files are
   searched; the new switch above is the one that decides the latter.

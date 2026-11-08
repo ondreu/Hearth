@@ -319,8 +319,10 @@ export const en = {
 				"cards on the theme's own surface below it.",
 			layoutFull: "Behind everything",
 			layoutBanner: "A banner at the top",
-			compact: "Compact spacing",
-			compactDesc: "Tighten the gaps so more fits on screen.",
+			spacing: "Spacing",
+			spacingDesc:
+				"How much padding the board leaves around its cards and along the " +
+				"page edges.",
 		},
 		surfaces: {
 			glass: {
@@ -806,13 +808,9 @@ export const en = {
 				title: "The title",
 				both: "Both",
 			},
-			compact: "Compact spacing",
-			compactDesc: "Override the global spacing for this board.",
-			compactDefault: (state: string) => `Use global default (${state})`,
-			compactOptionOn: "Compact",
-			compactOptionOff: "Roomy",
-			compactStateOn: "compact",
-			compactStateOff: "roomy",
+			spacing: "Spacing",
+			spacingDesc: "Override the global spacing for this board.",
+			spacingDefault: (state: string) => `Use global default (${state})`,
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
 			cardRadius: "Card corner radius",
@@ -1749,9 +1747,15 @@ export const en = {
 			fitToPage: "Fit to page",
 			fitToPageDesc:
 				"Keep the dashboard to one screen instead of allowing scroll.",
-			compact: "Compact spacing",
-			compactDesc:
-				"Tighten card padding and top margin to enlarge the usable area.",
+			spacing: "Spacing",
+			spacingDesc:
+				"How much padding the board leaves around cards and along the page " +
+				"edges.",
+			spacingOptions: {
+				roomy: "Roomy",
+				compact: "Compact",
+				flush: "Flush",
+			},
 			arrangeButtonVisibility: "Arrange button visibility",
 			arrangeButtonVisibilityDesc:
 				"Choose whether the arrange/edit button is always visible or revealed when hovering its area.",

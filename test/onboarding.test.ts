@@ -691,7 +691,7 @@ describe("applySetup", () => {
 				titleIcon: "🔥",
 				themeColorTarget: "both",
 				showSearch: false,
-				compact: true,
+				density: "compact",
 			}),
 			emptyDetection(),
 		);
@@ -704,7 +704,7 @@ describe("applySetup", () => {
 			themeColorTarget: "both",
 		});
 		expect(dash.showSearch).toBe(false);
-		expect(dash.compact).toBe(true);
+		expect(dash.density).toBe("compact");
 
 		// None of it leaked into the vault-wide header.
 		expect(settings.title).toBe(DEFAULT_SETTINGS.title);
@@ -712,7 +712,7 @@ describe("applySetup", () => {
 		expect(settings.titleIcon).toBe(DEFAULT_SETTINGS.titleIcon);
 		expect(settings.themeColorTarget).toBe("none");
 		expect(settings.showSearch).toBe(true);
-		expect(settings.compact).toBe(false);
+		expect(settings.density).toBe("roomy");
 	});
 
 	it("leaves the title alone when the field was left blank", () => {
@@ -779,7 +779,7 @@ describe("applySetup", () => {
 				themeColorTarget: "both",
 				showSearch: false,
 				surface: "minimal",
-				compact: true,
+				density: "flush",
 				background: "color",
 				backgroundColor: "#102030",
 				backgroundLayout: "banner",

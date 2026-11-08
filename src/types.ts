@@ -2449,6 +2449,25 @@ export interface DashboardHeaderConfig {
 	spacingBelow?: number;
 }
 
+/**
+ * How much padding a board leaves around its cards and along the page edges.
+ *
+ * - `roomy` — the design baseline: a wide gutter, a gap between the title
+ *   block and the board, and comfortable padding inside every card.
+ * - `compact` — the same layout with every gap and inset tightened, so more
+ *   fits on screen.
+ * - `flush` — the board runs edge to edge: the side gutters and the padding
+ *   below the last row are gone, so the cards use the whole width and height
+ *   of the pane. Everything else — the top of the page, the gap under the
+ *   header, the padding inside a card — keeps the compact rhythm. The space
+ *   *between* cards is part of their stored geometry (see `GRID_GAP`), not a
+ *   style, so it is the same in every tier.
+ */
+export type BoardDensity = "roomy" | "compact" | "flush";
+
+/** Every density, roomiest first — the order the settings dropdown offers. */
+export const BOARD_DENSITIES: readonly BoardDensity[] = ["roomy", "compact", "flush"];
+
 export interface Dashboard extends BannerOverrides {
 	id: string;
 	name: string;
@@ -2486,8 +2505,8 @@ export interface Dashboard extends BannerOverrides {
 	/** Override "full width" for this board (undefined = global). When true the
 	 * board's content fills the pane and {@link maxWidth} is ignored. */
 	fullWidth?: boolean;
-	/** Override compact spacing for this board (undefined = global). */
-	compact?: boolean;
+	/** Override the spacing for this board (undefined = global). */
+	density?: BoardDensity;
 	/** Override the card surface opacity for this board (undefined = global). */
 	cardOpacity?: number;
 	/** Override the card surface backdrop blur (px) for this board (undefined =
@@ -2835,8 +2854,9 @@ export interface HomeSettings {
 	pauseWhenUnfocused: boolean;
 
 	// ---- Appearance (layout density) ----
-	/** Tighten card and top-of-page spacing to enlarge the usable area. */
-	compact: boolean;
+	/** How much padding the board leaves around its cards and along the page
+	 * edges. See {@link BoardDensity}. */
+	density: BoardDensity;
 	/** Visibility for the arrange/edit mode entry button. */
 	arrangeButtonVisibility: ChromeVisibility;
 	/** Visibility for the top-left dashboard switcher buttons. */
@@ -3120,7 +3140,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	// not), and anyone running the board on a second screen can turn it off.
 	pauseWhenUnfocused: true,
 
-	compact: false,
+	density: "roomy",
 	arrangeButtonVisibility: "always",
 	dashboardSwitcherVisibility: "always",
 	cardOpacity: 0.5,
@@ -3632,10 +3652,9 @@ export function effectiveHeaderSpacingBelow(s: HomeSettings): number | undefined
 	return clampHeaderSpacingBelow(activeDashboard(s).header?.spacingBelow);
 }
 
-/** Whether the active board draws with compact spacing (per-dashboard override
- * or global). */
-export function effectiveCompact(s: HomeSettings): boolean {
-	return activeDashboard(s).compact ?? s.compact;
+/** How the active board spaces itself (per-dashboard override or global). */
+export function effectiveDensity(s: HomeSettings): BoardDensity {
+	return activeDashboard(s).density ?? s.density;
 }
 
 /** Which parts of the active board's brand mark follow the theme's icon colour
@@ -4134,7 +4153,8 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  *
  * Returns `true` when it performed a destructive/one-way migration whose result
  * must be flushed back to storage (the `commandId` → `target` fold, the
- * `lowPower` → performance tier fold, the `logo`/`logoIcon` → `titleIcon`
+ * `lowPower` → performance tier fold, the boolean `compact` → `density` fold,
+ * the `logo`/`logoIcon` → `titleIcon`
  * fold, the Commands card → launchpad fold and the embed `secondView` → views
  * fold), so the caller knows to
  * persist. The purely additive back-fills above
@@ -4182,6 +4202,46 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 		migratedLowPower = true;
 	}
 	if (typeof s.pauseWhenUnfocused !== "boolean") s.pauseWhenUnfocused = true;
+	// ---- Spacing (replaced the boolean `compact` flag) ----
+	//
+	// One-way: `compact: true|false` becomes `density: "compact"|"roomy"` and
+	// the old key is dropped, so it cannot linger and then contradict the
+	// dropdown once someone picks Flush. Keyed off `raw` for the global value,
+	// because the merge above has already stamped the default over it. A vault
+	// that stored neither field keeps the default ("roomy"), which is exactly
+	// what the old `false` drew.
+	let migratedDensity = false;
+	if (BOARD_DENSITIES.includes(raw.density as BoardDensity)) {
+		s.density = raw.density as BoardDensity;
+	} else if (typeof raw.compact === "boolean") {
+		s.density = raw.compact ? "compact" : "roomy";
+		migratedDensity = true;
+	} else if (!BOARD_DENSITIES.includes(s.density)) {
+		// A hand-edited or half-synced file. The default is the safe answer.
+		s.density = DEFAULT_SETTINGS.density;
+	}
+	if ("compact" in (s as object)) {
+		delete (s as Partial<HomeSettings> & { compact?: unknown }).compact;
+		migratedDensity = true;
+	}
+	// The per-board override folds the same way. Boards are not run through
+	// `sanitizeDashboard` on load (only imports are), so without this an old
+	// board that said `compact: true` would silently fall back to the global
+	// setting — a visual regression nobody asked for.
+	for (const dash of s.dashboards) {
+		const legacy = dash as Dashboard & { compact?: unknown };
+		if (!BOARD_DENSITIES.includes(dash.density as BoardDensity)) {
+			delete dash.density;
+			if (legacy.compact !== undefined) migratedDensity = true;
+			if (typeof legacy.compact === "boolean") {
+				dash.density = legacy.compact ? "compact" : "roomy";
+			}
+		}
+		if ("compact" in legacy) {
+			delete legacy.compact;
+			migratedDensity = true;
+		}
+	}
 	if (typeof s.lowPowerBackgroundColor !== "string" || !s.lowPowerBackgroundColor.trim()) {
 		s.lowPowerBackgroundColor = LOW_POWER_BACKGROUND;
 	}
@@ -4322,7 +4382,14 @@ export function migrateSettings(s: HomeSettings, raw: Record<string, unknown>): 
 	}
 	// Drop the obsolete single-board field so it can't shadow the dashboards.
 	delete (s as unknown as { cards?: unknown }).cards;
-	return migratedCommandId || migratedLowPower || migratedTitleIcon || migratedCommands || migratedViews;
+	return (
+		migratedCommandId ||
+		migratedLowPower ||
+		migratedDensity ||
+		migratedTitleIcon ||
+		migratedCommands ||
+		migratedViews
+	);
 }
 
 /** The pre-2.2 title mark: an emoji/text `logo` beside a Lucide `logoIcon` that

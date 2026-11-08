@@ -17,7 +17,7 @@
  *
  * ⚠️ **The wizard writes one global setting, once.** Every other answer it
  * collects lands on the dashboard it builds — as a per-dashboard override (the
- * header, the card surface, the background, compact spacing) or in a card's
+ * header, the card surface, the background, the spacing) or in a card's
  * own config (the TaskNotes field mapping) — so running setup, or re-running
  * it later, cannot change how any *other* board looks or how Hearth behaves
  * vault-wide. The only fields of {@link HomeSettings} touched here are the
@@ -42,6 +42,7 @@ import { ensureLayout } from "../grid";
 import {
 	type BackgroundConfig,
 	type BackgroundLayout,
+	type BoardDensity,
 	type CardDesign,
 	type DashboardCard,
 	type Dashboard,
@@ -179,7 +180,9 @@ export interface SetupAnswers {
 	 * underneath is what the boards return to when it is switched off. */
 	terminal: boolean;
 	surface: SetupSurface;
-	compact: boolean;
+	/** How much padding the built board leaves; written as the board's own
+	 * override, so changing the vault setting later still reaches it. */
+	density: BoardDensity;
 	background: SetupBackground;
 	/** CSS colour used when `background` is "color". */
 	backgroundColor: string;
@@ -237,7 +240,7 @@ export function defaultAnswers(
 		design: settings.cardDesign ?? "classic",
 		terminal: settings.terminalMode === true,
 		surface: "glass",
-		compact: false,
+		density: "roomy",
 		background: "default",
 		backgroundColor: "#1e1b2e",
 		skyValue: "",
@@ -837,7 +840,7 @@ function applyLook(dashboard: Dashboard, answers: SetupAnswers): void {
 		dashboard.cardRadius = surface.cardRadius;
 		dashboard.cardBorderWidth = surface.cardBorderWidth;
 	}
-	dashboard.compact = answers.compact;
+	dashboard.density = answers.density;
 
 	dashboard.background = plannedBackground(answers);
 	dashboard.backgroundLayout = answers.backgroundLayout;

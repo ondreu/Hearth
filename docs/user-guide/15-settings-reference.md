@@ -167,7 +167,7 @@ Three sections plus an informational row.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | *Fit to page* | On | Keep the dashboard to one screen instead of allowing it to scroll |
-| *Compact spacing* | Off | Tighten card padding and top margin to enlarge the usable area |
+| *Spacing* | Roomy | How much padding the board leaves: *Roomy*, *Compact* (tighter gaps and insets) or *Flush* (no side or bottom gutter — the board and its cards run to the edge of the pane, so the *Content width* ceiling below does not apply to it) |
 
 The board itself is free-form, so there is no column count to set here. Hearth
 keeps an internal column count (12) and seed row height (92 px) that it uses only
