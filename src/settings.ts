@@ -11,7 +11,7 @@ import { addIconPicker } from "./lucide";
 import { CommandPickerModal, FilePickerModal, FolderPickerModal } from "./pickers";
 import { addTitleIconPicker } from "./titleicon";
 import { configuredPlaces, renderSkySource } from "./placepicker";
-import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, effectiveTerminalFontSize, effectiveTerminalScheme, TERMINAL_FONT_SIZE_DEFAULT, TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, TERMINAL_SCHEMES, type TerminalScheme, terminalModeActive, graphicalBoardsInUse, timersAllowed } from "./types";
+import { activeDashboard, BANNER_HEIGHT_MAX, BANNER_HEIGHT_MIN, type BackgroundKind, backgroundIsRemote, type BackgroundLayout, type BoardDensity, CARD_BORDER_WIDTH_MAX, clampBannerHeight, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN, CONTENT_WIDTH_STEP, DEFAULT_SETTINGS, NARROW_WIDTH_MAX, NARROW_WIDTH_MIN, NARROW_WIDTH_STEP, defaultMobileActionButtons, frostAllowed, frostSuppressedByVibrancy, type HomeSettings, LOW_POWER_BACKGROUND, lowPowerActive, type MobileActionButton, motionAllowed, OPEN_IN_MODES, OPEN_SOURCES, type OpenIn, type OpenInRule, type OpenOutsideRule, PERFORMANCE_TIERS, type PerformanceTier, performanceTier, retuneBackground, skyDensity, effectiveTerminalFontSize, effectiveTerminalScheme, TERMINAL_FONT_SIZE_DEFAULT, TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, TERMINAL_SCHEMES, type TerminalScheme, terminalModeActive, graphicalBoardsInUse, timersAllowed } from "./types";
 import {
 	exportLayout,
 	exportSettings,
@@ -2365,14 +2365,20 @@ export class HomeSettingTab extends PluginSettingTab {
 		// Terminal mode's spacing is the character grid's.
 		if (!graphicalBoardsInUse(s)) return;
 
+		const density = t().settings.dashboard.spacingOptions;
 		new Setting(containerEl)
-			.setName(t().settings.dashboard.compact)
-			.setDesc(t().settings.dashboard.compactDesc)
-			.addToggle((t) =>
-				t.setValue(s.compact).onChange(async (v) => {
-					s.compact = v;
-					this.save();
-				}),
+			.setName(t().settings.dashboard.spacing)
+			.setDesc(t().settings.dashboard.spacingDesc)
+			.addDropdown((d) =>
+				d
+					.addOption("roomy", density.roomy)
+					.addOption("compact", density.compact)
+					.addOption("flush", density.flush)
+					.setValue(s.density)
+					.onChange(async (v) => {
+						s.density = v as BoardDensity;
+						this.save();
+					}),
 			);
 	}
 

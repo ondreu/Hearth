@@ -640,13 +640,22 @@ export class SetupWizardModal extends HearthModal {
 				});
 		}
 
+		const spacing = t().settings.dashboard.spacingOptions;
 		new Setting(body)
-			.setName(strings.compact)
-			.setDesc(strings.compactDesc)
-			.addToggle((tg) =>
-				tg.setValue(a.compact).onChange((v) => {
-					a.compact = v;
-				}),
+			.setName(strings.spacing)
+			.setDesc(strings.spacingDesc)
+			.addDropdown((d) =>
+				d
+					.addOption("roomy", spacing.roomy)
+					.addOption("compact", spacing.compact)
+					.addOption("flush", spacing.flush)
+					.setValue(a.density)
+					.onChange((v) => {
+						a.density = v as SetupAnswers["density"];
+						// The preview is the scale model of the built board, so the
+						// spacing it shows has to change with the answer.
+						this.renderWizard();
+					}),
 			);
 	}
 
@@ -819,7 +828,10 @@ export class SetupWizardModal extends HearthModal {
 		this.paintScene(scene, a.terminal ? { ...a, background: "none" } : a);
 
 		const page = scene.createDiv("hearth-setup-board-page");
-		page.toggleClass("is-compact", a.compact);
+		// Flush keeps the compact model and only drops the page's side and bottom
+		// padding, exactly like the real board (see styles.css).
+		page.toggleClass("is-compact", a.density !== "roomy");
+		page.toggleClass("is-flush", a.density === "flush");
 
 		let titleEl: HTMLElement | null = null;
 		if (a.showTitle || a.showSearch) {

@@ -225,7 +225,7 @@ Beyond opacity, blur and border, each card can take an **accent** colour and a
 
 | Setting | Where | Meaning |
 | --- | --- | --- |
-| *Compact spacing* | Settings → Hearth → Dashboard; per board on the Layout tab | Tighten card padding and the top margin to enlarge the usable area |
+| *Spacing* | Settings → Hearth → Dashboard; per board on the Layout tab | How much padding the board leaves around its cards and along the page edges: *Roomy*, *Compact* (tighter gaps, so more fits on screen) or *Flush* (no side or bottom gutter, so the cards reach the edge of the pane — and the width ceiling below is ignored, like *Full width*). The space between cards is part of their saved layout and does not change |
 | *Content width* | Settings → Hearth → Appearance → Home; per board on the Layout tab | The widest the home content may grow, in pixels. Default 1600. It is a ceiling, not a width — the content still shrinks to fit a narrower pane |
 | *Full width* | Same places | Let the content fill the pane instead of stopping at the width above. Cards keep their proportions as the pane widens, but text does not grow with them, so a very wide board reads sparser |
 | *Fit to page* | Settings → Hearth → Dashboard; per board on the Layout tab | Keep the dashboard to one screen instead of allowing it to scroll. On by default |

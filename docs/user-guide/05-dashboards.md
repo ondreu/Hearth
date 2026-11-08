@@ -83,7 +83,7 @@ global default currently is.
 
 - *Content width* and *Full width* — override the vault-wide width ceiling.
 - *Fit to page* — override whether this board scrolls.
-- *Compact spacing* — override the vault-wide spacing.
+- *Spacing* — override the vault-wide spacing: *Roomy*, *Compact* or *Flush*.
 - *Stack when narrow* — whether this board reflows into one full-width column
   when the pane is too narrow for the free-form layout, or keeps the scaled
   layout.

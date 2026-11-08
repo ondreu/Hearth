@@ -38,7 +38,7 @@ import {
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
-	effectiveCompact,
+	effectiveDensity,
 	effectiveFitToPage,
 	effectiveFullWidth,
 	effectiveHeaderAlign,
@@ -125,7 +125,7 @@ export function flattenBoardLook(s: HomeSettings, dash: Dashboard): Dashboard {
 	out.fitToPage = effectiveFitToPage(snap);
 	out.maxWidth = effectiveMaxWidth(snap);
 	out.fullWidth = effectiveFullWidth(snap);
-	out.compact = effectiveCompact(snap);
+	out.density = effectiveDensity(snap);
 
 	// Card surfaces
 	out.cardOpacity = effectiveCardOpacity(snap);

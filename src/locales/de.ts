@@ -332,8 +332,10 @@ export const de: Translations = {
 				"Karten auf der eigenen Oberfläche des Themes darunter.",
 			layoutFull: "Hinter allem",
 			layoutBanner: "Ein Banner oben",
-			compact: "Kompakte Abstände",
-			compactDesc: "Verkleinert die Abstände, damit mehr auf den Bildschirm passt.",
+			spacing: "Abstände",
+			spacingDesc:
+				"Wie viel Abstand das Board um seine Karten und an den Seitenrändern " +
+				"lässt.",
 		},
 		surfaces: {
 			glass: {
@@ -818,13 +820,9 @@ export const de: Translations = {
 				title: "Der Titel",
 				both: "Beide",
 			},
-			compact: "Kompakte Abstände",
-			compactDesc: "Überschreibt die globalen Abstände für dieses Board.",
-			compactDefault: (state: string) => `Globalen Standard verwenden (${state})`,
-			compactOptionOn: "Kompakt",
-			compactOptionOff: "Geräumig",
-			compactStateOn: "kompakt",
-			compactStateOff: "geräumig",
+			spacing: "Abstände",
+			spacingDesc: "Überschreibt die globalen Abstände für dieses Board.",
+			spacingDefault: (state: string) => `Globalen Standard verwenden (${state})`,
 			cardOpacity: "Karten-Deckkraft",
 			cardBlur: "Karten-Unschärfe",
 			cardRadius: "Karten-Eckenradius",
@@ -1756,9 +1754,14 @@ export const de: Translations = {
 			fitToPage: "An Seite anpassen",
 			fitToPageDesc:
 				"Halte das Dashboard auf einem Bildschirm, statt Scrollen zu erlauben.",
-			compact: "Kompakte Abstände",
-			compactDesc:
-				"Verkleinere Kartenabstand und oberen Rand, um die nutzbare Fläche zu vergrößern.",
+			spacing: "Abstände",
+			spacingDesc:
+				"Wie viel Abstand das Board um Karten und an den Seitenrändern lässt.",
+			spacingOptions: {
+				roomy: "Geräumig",
+				compact: "Kompakt",
+				flush: "Bündig",
+			},
 			arrangeButtonVisibility: "Sichtbarkeit der Anordnen-Schaltfläche",
 			arrangeButtonVisibilityDesc:
 				"Wähle, ob die Anordnen-/Bearbeiten-Schaltfläche immer sichtbar ist oder beim Darüberfahren mit der Maus erscheint.",

@@ -2,6 +2,8 @@ import { sanitizeTaskMatrix } from "./taskmatrix";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
+	BOARD_DENSITIES,
+	type BoardDensity,
 	type CalculatorConfig,
 	type CalendarConfig,
 	type CardKind,
@@ -297,7 +299,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		openFromOutside: s.openFromOutside,
 
 		// Appearance
-		compact: s.compact,
+		density: s.density,
 		arrangeButtonVisibility: s.arrangeButtonVisibility,
 		dashboardSwitcherVisibility: s.dashboardSwitcherVisibility,
 		cardOpacity: s.cardOpacity,
@@ -1882,7 +1884,13 @@ export function sanitizeDashboard(
 	}
 	if (typeof r.fitToPage === "boolean") dash.fitToPage = r.fitToPage;
 	if (typeof r.showSearch === "boolean") dash.showSearch = r.showSearch;
-	if (typeof r.compact === "boolean") dash.compact = r.compact;
+	if (BOARD_DENSITIES.includes(r.density as BoardDensity)) {
+		dash.density = r.density as BoardDensity;
+	} else if (typeof r.compact === "boolean") {
+		// Pre-3.7 boards (and packages published then) stored the spacing as a
+		// single boolean; fold it so an imported board keeps its look.
+		dash.density = r.compact ? "compact" : "roomy";
+	}
 	// The chrome/search overrides. Each is read only when it type-checks, so a
 	// board that carries none keeps following the importing vault — the same
 	// contract the sliders above have. See the resolver block in types.ts.
@@ -2395,7 +2403,12 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	applyOpenIn(s, data);
 
 	// Appearance
-	if (typeof data.compact === "boolean") s.compact = data.compact;
+	if (BOARD_DENSITIES.includes(data.density as BoardDensity)) {
+		s.density = data.density as BoardDensity;
+	} else if (typeof data.compact === "boolean") {
+		// A pre-3.7 settings export carried the spacing as one boolean.
+		s.density = data.compact ? "compact" : "roomy";
+	}
 	if (data.arrangeButtonVisibility === "always" || data.arrangeButtonVisibility === "hover") {
 		s.arrangeButtonVisibility = data.arrangeButtonVisibility;
 	}
