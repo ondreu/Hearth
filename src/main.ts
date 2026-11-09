@@ -26,6 +26,7 @@ import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
 import { initCurrencyCache } from "./currency";
 import { BoardRefreshTracker } from "./boardrefresh";
+import { refreshOnceMetadataReady } from "./metaready";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
 import { disposeVaultPlayer } from "./audioplayer";
@@ -269,8 +270,18 @@ export default class HearthPlugin extends Plugin {
 			// the cache is warm would list notes under their file names where a
 			// card asked for a property (#399) — those cards don't redraw by
 			// themselves, so the names would stay wrong until something else did.
+			//
+			// One resolution only, though: Obsidian fires `resolved` again after
+			// every file modification, so a listener that stayed subscribed
+			// rebuilt the boards under the cursor on the autosave that follows a
+			// pause in typing — caret and scroll position gone (#475). Later
+			// metadata changes reach a board through `liveRefreshDebounced`,
+			// which is debounced and held while the user is typing.
 			this.registerEvent(
-				this.app.metadataCache.on("resolved", () => this.refreshViews()),
+				this.app.metadataCache.on(
+					"resolved",
+					refreshOnceMetadataReady(() => this.refreshViews()),
+				),
 			);
 			// Front Matter Title can still be starting up when the first boards
 			// draw; once it is running, their folder cards can show its titles.
