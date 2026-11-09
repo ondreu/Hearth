@@ -72,6 +72,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **Editing a card no longer rebuilds the board under the cursor** (#475). A
+  couple of seconds into typing into a card's embedded editor — a note or a
+  base — the whole board re-rendered, the editor came back at the top with the
+  caret gone, and the scroll position was lost. The boards subscribe to
+  `MetadataCache`'s `resolved` event to catch up on frontmatter that arrives
+  after they were first drawn (#399), but Obsidian also fires that event after
+  *every* file modification, so the autosave that follows a pause in typing
+  counted as "the cache just warmed up" and re-rendered everything. The
+  catch-up now runs once, for the cold cache a startup board was drawn
+  against; later metadata changes arrive through *Live refresh on vault
+  changes*, which is debounced and held while you are typing.
+
 - **The Quick switcher engine ranks a note by its name, the way the switcher
   it copies does** (#447). Searching "black sphinx" listed an empty note called
   "A" from a folder of that name above the note actually called "Black Sphinx":
