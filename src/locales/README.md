@@ -13,6 +13,7 @@ truth; every other locale is type-checked against it.
 | `fr` | French — Français | [`fr.ts`](fr.ts) |
 | `ko` | Korean — 한국어 | [`ko.ts`](ko.ts) |
 | `zh` | Simplified Chinese — 简体中文 | [`zh.ts`](zh.ts) |
+| `zh-tw` | Traditional Chinese — 繁體中文 | [`zh-tw.ts`](zh-tw.ts) |
 
 ## How it works
 
