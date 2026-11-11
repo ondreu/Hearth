@@ -134,7 +134,7 @@ export const zhTW: Translations = {
 				currency: {
 					title: "貨幣",
 					desc: "依今日匯率換算，並顯示貨幣對走勢圖。",
-					examples: ["20美元換成新台幣", "100 歐元兌換成日圓", "usd/twd"],
+					examples: ["20美元換成歐元", "100 歐元兌換成日幣", "usd/jpy"],
 				},
 				market: {
 					title: "股票、基金和加密貨幣",
