@@ -285,8 +285,8 @@ export const zhTW: Translations = {
 				"鋪滿整個儀表板，或作為頂端的橫幅，下方的卡片使用主題本身的表面。",
 			layoutFull: "鋪滿整個儀表板",
 			layoutBanner: "頂端橫幅",
-			compact: "緊湊間距",
-			compactDesc: "收緊間隙，讓畫面容納更多內容。",
+			spacing: "間距",
+			spacingDesc: "看板在卡片周圍與頁面邊緣留出的內距。",
 		},
 		surfaces: {
 			glass: {
@@ -748,13 +748,9 @@ export const zhTW: Translations = {
 				title: "標題",
 				both: "兩者",
 			},
-			compact: "緊湊間距",
-			compactDesc: "為此儀表板覆寫全域間距。",
-			compactDefault: (state: string) => `使用全域預設（${state}）`,
-			compactOptionOn: "緊湊",
-			compactOptionOff: "寬鬆",
-			compactStateOn: "緊湊",
-			compactStateOff: "寬鬆",
+			spacing: "間距",
+			spacingDesc: "為此儀表板覆寫全域間距。",
+			spacingDefault: (state: string) => `使用全域預設（${state}）`,
 			cardOpacity: "卡片不透明度",
 			cardBlur: "卡片模糊",
 			cardRadius: "卡片圓角半徑",
@@ -1271,6 +1267,12 @@ export const zhTW: Translations = {
 			goToTab: "開啟",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				taskchute: {
+					name: "TaskChute Plus",
+					desc:
+						"TaskChute 卡片讀取此外掛自帶的任務與記錄——今日清單（可開始／停止）、" +
+						"一週概覽與活動熱力圖。任務、例行與日誌始終歸 TaskChute 所有。",
+				},
 				stereo: {
 					name: "Stereo",
 					desc:
@@ -1567,8 +1569,13 @@ export const zhTW: Translations = {
 				"卡片網格的尺寸與透明度。卡片本身在儀表板上新增和設定。",
 			fitToPage: "符合頁面",
 			fitToPageDesc: "把儀表板限制在一個畫面內，而不是允許捲動。",
-			compact: "緊湊間距",
-			compactDesc: "收緊卡片內距和上邊距，以擴大可用區域。",
+			spacing: "間距",
+			spacingDesc: "看板在卡片周圍與頁面邊緣留出的內距。",
+			spacingOptions: {
+				roomy: "寬鬆",
+				compact: "緊湊",
+				flush: "無內距",
+			},
 			arrangeButtonVisibility: "排列按鈕可見性",
 			arrangeButtonVisibilityDesc:
 				"選擇排列／編輯按鈕是始終可見，還是在游標停留其區域時顯示。",
@@ -1627,6 +1634,19 @@ export const zhTW: Translations = {
 
 	// ---- Card settings editor ------------------------------------------
 	editors: {
+		taskchute: {
+			missing: "尚未安裝 TaskChute Plus",
+			missingDesc:
+				"此卡片讀取 TaskChute 自帶的任務與記錄。安裝並啟用外掛後，卡片就會自動填入" +
+				"——下方的選擇會保留。",
+			view: "顯示",
+			viewDesc:
+				"TaskChute 的三種介面，縮小繪製：今日任務（可開始／停止）、一週概覽，" +
+				"或活動熱力圖。",
+			viewTasks: "今日任務",
+			viewOverview: "概覽",
+			viewHeatmap: "熱力圖",
+		},
 		music: {
 			source: "來源",
 			sourceDesc: "卡片從哪裡取得音樂。",
@@ -1703,6 +1723,7 @@ export const zhTW: Translations = {
 		thisCard: "此卡片",
 		done: "完成",
 		kinds: {
+			taskchute: "TaskChute",
 			music: "音樂",
 			embed: "嵌入（筆記／圖片／base）",
 			slideshow: "投影片",
@@ -1808,6 +1829,12 @@ export const zhTW: Translations = {
 			openButtonDesc: "顯示一個按鈕，在獨立分頁中開啟嵌入的檔案。預設關閉。",
 		},
 		slideshow: {
+			sourceNotes: "資料夾中的筆記",
+			notesFolder: "筆記資料夾",
+			notesFolderDesc:
+				"此資料夾中的每篇筆記都會逐頁顯示。留空則使用儲存庫根目錄。",
+			notesCount: (count: number) =>
+				count === 1 ? "此處目前找到 1 篇筆記。" : `此處目前找到 ${count} 篇筆記。`,
 			source: "圖片來源",
 			sourceDesc: "由您逐張挑選的清單，或某個資料夾中的所有圖片。",
 			sourceList: "圖片清單",
@@ -3364,6 +3391,39 @@ export const zhTW: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		taskchute: {
+			open: "開啟 TaskChute",
+			start: "開始此任務",
+			stop: "停止並完成此任務",
+			done: "已完成",
+			today: "今天",
+			noTime: "未安排時間",
+			previousDay: "前一天",
+			nextDay: "後一天",
+			changeTime: "更改時間…",
+			dropHere: "將任務拖曳到這裡",
+			progress: (done: number, total: number) => `${done}/${total} 已完成`,
+			minutesToday: "今日分鐘",
+			weekDone: "完成 · 7 天",
+			weekMinutes: "總計 · 7 天",
+			heatmapHeading: "活動",
+			addTask: "新增任務",
+			more: "任務操作",
+			moveUp: "上移",
+			moveDown: "下移",
+			moveToDate: "移至日期…",
+			duplicate: "建立副本",
+			delete: "刪除",
+			deleteTitle: "刪除此任務？",
+			deleteMessage: (name: string) => `「${name}」將從 TaskChute 中移除。`,
+			moveDateTitle: "將任務移至某個日期",
+			moveDateLabel: "日期",
+			moveDateSave: "移動",
+			legendLess: "較少",
+			legendMore: "較多",
+			noTasks: "今天沒有安排",
+			loading: "正在載入 TaskChute…",
+		},
 		music: {
 			play: "播放",
 			pause: "暫停",
@@ -3384,6 +3444,11 @@ export const zhTW: Translations = {
 			errorPlayback: "此檔案無法在這裡播放",
 		},
 		empty: {
+			slideshowNotesEmpty: "此資料夾中沒有筆記",
+			taskChuteInstall: "安裝 TaskChute Plus 即可在此查看它的一天",
+			taskChuteNoData: "還沒有 TaskChute 記錄——先在 TaskChute 中執行一項任務",
+			taskChuteUnsupported:
+				"TaskChute 的檢視未提供此卡片所需的內容——請更新 TaskChute Plus",
 			musicEmpty: "在卡片設定裡新增曲目",
 			musicFolderEmpty: "此資料夾裡沒有音訊檔案",
 			musicStereoMissing: "安裝並啟用 Stereo 外掛，才能從 Navidrome 或 Subsonic 播放",
@@ -3555,6 +3620,7 @@ export const zhTW: Translations = {
 			pause: "暫停投影片",
 			play: "繼續播放投影片",
 			openImage: "開啟此圖片",
+			openNote: "開啟此筆記",
 			jump: "跳轉到圖片",
 		},
 		text: {
@@ -4220,6 +4286,10 @@ export const zhTW: Translations = {
 
 	// ---- Card templates (Add card menu) --------------------------------
 	templates: {
+		"slideshow-notes": "筆記投影片",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute 概覽",
+		"taskchute-heatmap": "TaskChute 熱力圖",
 		music: "音樂",
 		"music-stereo": "音樂（Stereo）",
 		note: "嵌入筆記",
@@ -4270,6 +4340,10 @@ export const zhTW: Translations = {
 	 * searched alongside it. Say what the card *shows* — the name already says
 	 * what it is called. */
 	templateDescriptions: {
+		"slideshow-notes": "資料夾中的筆記，一頁一頁輪播",
+		taskchute: "今天的 TaskChute 任務——開始、停止，看清下一步",
+		"taskchute-overview": "一週的 TaskChute 工作：完成數、分鐘數，按天查看",
+		"taskchute-heatmap": "以每日分鐘數熱力圖呈現 TaskChute 活動",
 		music: "播放 Obsidian 儲存庫中某個資料夾裡的音訊，並把佇列顯示在卡片上",
 		"music-stereo": "控制 Stereo 外掛 Navidrome 播放器的遙控卡片",
 		note: "任意筆記，在儀表板上即時轉譯",
