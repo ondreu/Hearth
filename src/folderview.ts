@@ -92,6 +92,7 @@ export class FolderView extends ItemView {
 		this.dress();
 		this.browser.draw();
 		this.watchVault();
+		this.watchLayout();
 	}
 
 	/** Redraw after a settings change — the design, terminal mode, the
@@ -138,6 +139,21 @@ export class FolderView extends ItemView {
 	/** Redraw when something on the page changes on disk. */
 	private watchVault(): void {
 		for (const ref of watchBrowsedFolder(this.app, () => this.browser)) this.registerEvent(ref);
+	}
+
+	/**
+	 * Have the page follow the sidebar when the sidebar's own answer changes.
+	 *
+	 * "Same as the file explorer" is read out of the sidebar at draw time, and
+	 * a collapsed sidebar holds a view Obsidian has not built yet — so the
+	 * order a tab draws with while the sidebar is closed is a stand-in, and it
+	 * stayed until the sort was picked again (#439). A layout change is when
+	 * that view appears (the sidebar opened), and when a plugin that reorders
+	 * the sidebar has a new answer. {@link FolderBrowser.refreshOrder} redraws
+	 * only if the answer differs, and only for that sort.
+	 */
+	private watchLayout(): void {
+		this.registerEvent(this.app.workspace.on("layout-change", () => this.browser?.refreshOrder()));
 	}
 
 	/** Have the tab's header say the folder now shown. `updateHeader` is not

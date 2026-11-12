@@ -8,6 +8,7 @@ import {
 	groupFolderEntries,
 	naturalCompare,
 	orderByPaths,
+	orderNamesEvery,
 	parentPath,
 	pathWithin,
 	sortFolderEntries,
@@ -111,6 +112,33 @@ describe("orderByPaths", () => {
 
 	it("ignores paths that name nothing here", () => {
 		expect(names(orderByPaths(entries, ["gone.md", "b.md"]))).toEqual(["b", "a", "C"]);
+	});
+});
+
+describe("orderNamesEvery", () => {
+	const children = ["a.md", "b.md", "C"];
+
+	it("accepts an order that covers every child, in any arrangement", () => {
+		expect(orderNamesEvery(children, ["C", "b.md", "a.md"])).toBe(true);
+	});
+
+	it("accepts paths it was not asked about", () => {
+		// The explorer lists the whole folder; the card may be set to folders
+		// only, which changes what is drawn, not what the order has to cover.
+		expect(orderNamesEvery(children, [...children, "D", "z.md"])).toBe(true);
+	});
+
+	it("rejects a partial answer rather than treating it as a short order", () => {
+		// The explorer answers with the tree items it has built and drops the
+		// children it has none for, so a prefix is a failed read, not a
+		// shorter folder (#439).
+		expect(orderNamesEvery(children, ["b.md", "C"])).toBe(false);
+		expect(orderNamesEvery(children, [])).toBe(false);
+	});
+
+	it("treats an empty folder as covered only by a non-empty answer", () => {
+		expect(orderNamesEvery([], [])).toBe(false);
+		expect(orderNamesEvery([], ["a.md"])).toBe(true);
 	});
 });
 
