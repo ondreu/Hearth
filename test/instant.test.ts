@@ -63,6 +63,22 @@ describe("detectInstant — calculations", () => {
 		expect(detectInstant("face hex")).toBeNull();
 	});
 
+	it("leaves Traditional Chinese note titles alone", () => {
+		// Titles that end in a trigger word, or start with one, but name no place,
+		// instrument or date: they are notes, not questions.
+		expect(detectInstant("讀書時間")).toBeNull();
+		expect(detectInstant("東京旅行")).toBeNull();
+		expect(detectInstant("週記")).toBeNull();
+		expect(detectInstant("每週回顧")).toBeNull();
+		expect(detectInstant("會議紀錄")).toBeNull();
+		expect(detectInstant("價格表")).toBeNull();
+		expect(detectInstant("基金")).toBeNull();
+		expect(detectInstant("天氣")).toBeNull();
+		expect(detectInstant("維基")).toBeNull();
+		expect(detectInstant("台北")).toBeNull();
+		expect(detectInstant("2026年規劃")).toBeNull();
+	});
+
 	it("= forces the calculator, errors included", () => {
 		expect(detectInstant("=2026-10")).toEqual({ kind: "calc", input: "2026-10", forced: true });
 		expect(detectInstant("= foo")).toEqual({ kind: "calc", input: "foo", forced: true });
@@ -109,6 +125,19 @@ describe("detectInstant — currencies", () => {
 		expect(detectInstant("10 km nach mi")?.kind).toBe("calc");
 	});
 
+	it("reads Traditional Chinese currency names and connectors", () => {
+		expect(detectInstant("20美元換成人民幣")).toMatchObject({ kind: "currency", from: "usd", to: "cny" });
+		expect(detectInstant("100 歐元兌換成日圓")).toMatchObject({ kind: "currency", from: "eur", to: "jpy" });
+		expect(detectInstant("100歐元兌換成日幣")).toMatchObject({ kind: "currency", from: "eur", to: "jpy" });
+		expect(detectInstant("50英鎊換算成港幣")).toMatchObject({ kind: "currency", from: "gbp", to: "hkd" });
+		// Taiwan's own wording for "how much is …".
+		expect(detectInstant("20美元等於多少日幣")).toMatchObject({ kind: "currency", from: "usd", to: "jpy" });
+		expect(detectInstant("1000日圓是多少美元")).toMatchObject({ kind: "currency", from: "jpy", to: "usd" });
+		expect(detectInstant("美元換成歐元")).toEqual({ kind: "currency", input: "1 usd to eur", from: "usd", to: "eur" });
+		// The NT dollar has no ECB reference rate, so it is not a currency here.
+		expect(detectInstant("20美元換成新台幣")).toBeNull();
+	});
+
 	it("reads French currency names and \"en\"", () => {
 		expect(detectInstant("20 euros en dollars")).toMatchObject({ kind: "currency", from: "eur", to: "usd" });
 		expect(detectInstant("100 CZK en EUR")).toMatchObject({ kind: "currency", from: "czk", to: "eur" });
@@ -149,6 +178,15 @@ describe("detectInstant — market lookups", () => {
 		expect(detectInstant("LVMH en bourse")).toEqual(m("LVMH"));
 		expect(detectInstant("cours de l'action Airbus")).toEqual(m("Airbus"));
 		expect(detectInstant("Airbus cours de bourse")).toEqual(m("Airbus"));
+	});
+
+	it("reads Traditional Chinese market words", () => {
+		const m = (query: string) => ({ kind: "market", query, keyword: true });
+		expect(detectInstant("台積電股價")).toEqual(m("台積電"));
+		expect(detectInstant("0050 行情")).toEqual(m("0050"));
+		expect(detectInstant("元大台灣50基金")).toEqual(m("元大台灣50"));
+		expect(detectInstant("蘋果走勢")).toEqual(m("蘋果"));
+		expect(detectInstant("鴻海股票")).toEqual(m("鴻海"));
 	});
 
 	it("leaves French note titles with \"action\" or \"cours\" alone", () => {
@@ -201,6 +239,21 @@ describe("detectInstant — dates", () => {
 		expect(detectInstant("今天+45天")).toEqual({ kind: "date", date: "2026-08-29" });
 	});
 
+	it("understands Traditional Chinese date phrases", () => {
+		expect(detectInstant("距離2026-12-24還有幾天")).toEqual({ kind: "date", date: "2026-12-24", count: "until" });
+		expect(detectInstant("離2026-12-24還有幾天")).toEqual({ kind: "date", date: "2026-12-24", count: "until" });
+		expect(detectInstant("2026-01-01以來多少天")).toMatchObject({ date: "2026-01-01", count: "since" });
+		expect(detectInstant("自2026-01-01以來已經過了幾天")).toEqual({ kind: "date", date: "2026-01-01", count: "since" });
+		expect(detectInstant("從2026-01-01至今過了幾天")).toMatchObject({ count: "since" });
+		expect(detectInstant("3天後")).toEqual({ kind: "date", date: "2026-07-18" });
+		expect(detectInstant("3週後")).toEqual({ kind: "date", date: "2026-08-05" });
+		expect(detectInstant("2禮拜後")).toEqual({ kind: "date", date: "2026-07-29" });
+		expect(detectInstant("2個月後")).toEqual({ kind: "date", date: "2026-09-15" });
+		expect(detectInstant("1年後")).toEqual({ kind: "date", date: "2027-07-15" });
+		expect(detectInstant("今天+45天")).toEqual({ kind: "date", date: "2026-08-29" });
+		expect(detectInstant("今天+2週")).toEqual({ kind: "date", date: "2026-07-29" });
+	});
+
 	it("understands French date phrases", () => {
 		expect(detectInstant("jours jusqu'au 2026-12-24")).toEqual({ kind: "date", date: "2026-12-24", count: "until" });
 		expect(detectInstant("combien de jours jusqu’à 2026-12-24 ?")).toMatchObject({ date: "2026-12-24", count: "until" });
@@ -247,6 +300,17 @@ describe("detectInstant — time zones", () => {
 		expect(detectInstant("东京时间", ZONES)).toMatchObject({ zone: "Asia/Tokyo" });
 		expect(detectInstant("纽约现在几点", ZONES)).toMatchObject({ zone: "America/New_York" });
 		expect(detectInstant("time in sao paulo", ZONES)).toMatchObject({ zone: "America/Sao_Paulo" });
+	});
+
+	it("answers the time somewhere, in Traditional Chinese", () => {
+		expect(detectInstant("東京時間", ZONES)).toMatchObject({ zone: "Asia/Tokyo" });
+		expect(detectInstant("紐約現在幾點", ZONES)).toMatchObject({ zone: "America/New_York" });
+		expect(detectInstant("台北時間", ZONES)).toMatchObject({ zone: "Asia/Taipei" });
+		expect(detectInstant("高雄現在幾點", ZONES)).toMatchObject({ zone: "Asia/Taipei" });
+		// Taiwan writes 雪梨 and 杜拜 where the mainland writes 悉尼 and 迪拜.
+		expect(detectInstant("雪梨時間", ZONES)).toMatchObject({ zone: "Australia/Sydney" });
+		expect(detectInstant("杜拜時間", ZONES)).toMatchObject({ zone: "Asia/Dubai" });
+		expect(detectInstant("讀書時間", ZONES)).toBeNull();
 	});
 
 	it("answers the time somewhere, in French", () => {
@@ -312,6 +376,16 @@ describe("detectInstant — weather and Wikipedia", () => {
 		expect(detectInstant("wikipédia Victor Hugo")).toEqual({ kind: "wiki", query: "Victor Hugo", lang: null });
 		expect(detectInstant("wiki")).toBeNull();
 	});
+
+	it("asks for the weather and a Wikipedia summary in Traditional Chinese", () => {
+		const w = (place: string) => ({ kind: "weather", place });
+		expect(detectInstant("台北天氣")).toEqual(w("台北"));
+		expect(detectInstant("天氣 高雄")).toEqual(w("高雄"));
+		expect(detectInstant("高雄氣象")).toEqual(w("高雄"));
+		expect(detectInstant("天氣預報 台中")).toEqual(w("台中"));
+		expect(detectInstant("維基 布拉格")).toEqual({ kind: "wiki", query: "布拉格", lang: "zh" });
+		expect(detectInstant("維基百科 台北")).toEqual({ kind: "wiki", query: "台北", lang: "zh" });
+	});
 });
 
 describe("detectInstant — chance", () => {
@@ -340,6 +414,18 @@ describe("detectInstant — chance", () => {
 		expect(detectInstant("des")).toBeNull();
 		expect(detectInstant("random 5-5")).toBeNull();
 		expect(detectInstant("roll 0d6")).toBeNull();
+	});
+
+	it("coins, dice and random numbers, in Traditional Chinese", () => {
+		expect(detectInstant("擲硬幣")).toEqual({ kind: "coin" });
+		expect(detectInstant("丟硬幣")).toEqual({ kind: "coin" });
+		expect(detectInstant("擲銅板")).toEqual({ kind: "coin" });
+		expect(detectInstant("擲骰子")).toEqual({ kind: "dice", count: 1, sides: 6 });
+		expect(detectInstant("丟骰子")).toEqual({ kind: "dice", count: 1, sides: 6 });
+		expect(detectInstant("擲 2d6")).toEqual({ kind: "dice", count: 2, sides: 6 });
+		expect(detectInstant("隨機數 1到10")).toEqual({ kind: "random", min: 1, max: 10 });
+		expect(detectInstant("亂數")).toEqual({ kind: "random", min: 1, max: 100 });
+		expect(detectInstant("亂數 1到6")).toEqual({ kind: "random", min: 1, max: 6 });
 	});
 
 	it("rollBetween covers both ends of the range", () => {
