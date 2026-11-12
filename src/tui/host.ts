@@ -19,8 +19,8 @@ import { Component } from "obsidian";
 import type { DashboardCard } from "../types";
 import type { HomeView } from "../view";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "./card";
-import { drawLine, LINE_CLASS } from "./draw";
-import { fit, styleLine, styleRange, type Line } from "./text";
+import { ACTION_CLASS, drawLine, LINE_CLASS } from "./draw";
+import { fit, styles, styleLine, styleRange, type Line } from "./text";
 
 /** The class of the element that holds a body's rows. */
 const LINES_CLASS = "hearth-tui-lines";
@@ -51,6 +51,11 @@ export class TuiCardHost {
 	private linesEl: HTMLElement;
 	private mountsEl: HTMLElement;
 	private lineEls: HTMLElement[] = [];
+	/** The sticky block, and how many rows it held when last reconciled. */
+	private stickyEl: HTMLElement | null = null;
+	private stickyCount = -1;
+	/** What each drawn row shows, so an unchanged row can keep its element. */
+	private rowKeys = new WeakMap<HTMLElement, string>();
 	/** Whether the renderer's opening scroll position has been applied. */
 	private scrolledOnce = false;
 
@@ -95,9 +100,32 @@ export class TuiCardHost {
 			zoomed: this.opts.zoomed,
 			selected: this.selected,
 			state: this.tui.state(this.card.id),
-			redraw: () => this.redraw(),
+			redraw: () => this.requestRedraw(),
 			select: (i) => this.select(i),
 		};
+	}
+
+	/**
+	 * Whether the body is somewhere a reader could see it: still in the
+	 * document, not in a leaf Obsidian has taken out of layout, and in a window
+	 * that is not hidden. Conservative, like `leafIsVisible` in main.ts — a
+	 * body the check cannot resolve counts as visible, so a redraw is only
+	 * ever skipped for a card that is definitely not being looked at.
+	 */
+	isOnScreen(): boolean {
+		if (!this.el.isConnected) return false;
+		if (this.el.ownerDocument.hidden) return false;
+		const shown = this.el.isShown?.();
+		return shown ?? this.el.offsetParent !== null;
+	}
+
+	/** A redraw a card asked for itself — from its own timer. It is skipped
+	 * while nobody can see the body: the card keeps its state and its timers,
+	 * and stops paying for paint. That is the difference between an animation
+	 * and a page that grows until Obsidian runs out of memory (#479). */
+	private requestRedraw(): void {
+		if (!this.isOnScreen()) return;
+		this.redraw();
 	}
 
 	/** Ask the renderer for a fresh output and paint it. `component` is this
@@ -130,17 +158,65 @@ export class TuiCardHost {
 		const item = focused ? this.items()[this.selected] : undefined;
 		const from = item ? item.line : -1;
 		const to = item ? item.line + (item.span ?? 1) : -1;
-		this.linesEl.empty();
 		const sticky = Math.min(out.sticky ?? 0, out.lines.length);
-		const stickyEl = sticky > 0 ? this.linesEl.createDiv(STICKY_CLASS) : null;
-		this.lineEls = out.lines.map((line, i) => {
+
+		// Rows of the sticky block live in their own element; a change in their
+		// number moves rows between two parents, which is not worth reconciling.
+		if (sticky !== this.stickyCount) {
+			this.linesEl.empty();
+			this.stickyEl = sticky > 0 ? this.linesEl.createDiv(STICKY_CLASS) : null;
+			this.stickyCount = sticky;
+			this.lineEls = [];
+		}
+
+		const drawn = out.lines.map((line, i) => {
 			let l: Line = fit(line, cols);
 			if (i >= from && i < to) {
 				l = item?.range ? styleRange(l, item.range[0], item.range[1], "reverse") : styleLine(l, "reverse");
 			}
-			return drawLine(stickyEl && i < sticky ? stickyEl : this.linesEl, l);
+			return l;
 		});
+		const stickyRows = this.reconcile(this.stickyEl, this.lineEls.slice(0, sticky), drawn.slice(0, sticky));
+		const bodyRows = this.reconcile(this.linesEl, this.lineEls.slice(sticky), drawn.slice(sticky));
+		this.lineEls = [...stickyRows, ...bodyRows];
 		if (item) this.reveal(item);
+	}
+
+	/**
+	 * Put `lines` into `parent`, keeping the rows whose drawn content did not
+	 * change.
+	 *
+	 * Rebuilding the body on every draw is what a card with an animation pays
+	 * for its picture: the pet drew ~150 elements and ~270 listeners a second
+	 * and a half, in a card that only changed a few cells of it (#479). A row
+	 * is reused when it shows the same thing; a row carrying a handler never
+	 * is, because that handler (and what it closed over) belongs to the draw
+	 * that made it.
+	 */
+	private reconcile(parent: HTMLElement | null, old: readonly HTMLElement[], lines: readonly Line[]): HTMLElement[] {
+		if (!parent) {
+			for (const el of old) el.remove();
+			return [];
+		}
+		const rows: HTMLElement[] = [];
+		let next: HTMLElement | null = null;
+		for (let i = lines.length - 1; i >= 0; i--) {
+			const line = lines[i];
+			const key = rowKey(line);
+			const prev = old[i];
+			const reuse =
+				key !== null && prev !== undefined && prev.parentElement === parent && this.rowKeys.get(prev) === key;
+			const el = reuse ? prev : drawLine(parent, line);
+			if (!reuse && prev !== undefined && prev.parentElement === parent) prev.remove();
+			if (key !== null) this.rowKeys.set(el, key);
+			// Placed from the end backwards, so the row after this one is
+			// already where it belongs and can be the anchor.
+			if (el.nextElementSibling !== next) parent.insertBefore(el, next);
+			rows[i] = el;
+			next = el;
+		}
+		for (let i = lines.length; i < old.length; i++) old[i].remove();
+		return rows;
 	}
 
 	private placeMounts(out: TuiOutput, component: Component, cols: number): void {
@@ -279,9 +355,14 @@ export class TuiCardHost {
 	 * a control of its own, act on it. */
 	click(evt: MouseEvent): void {
 		const hit = this.itemAt(this.lineAt(evt));
-		if (!hit) return;
+		const onControl = evt.target instanceof HTMLElement && evt.target.closest(`.${ACTION_CLASS}`);
+		if (!hit) {
+			// A picture that is one target rather than a list row (the pet):
+			// the card gets the click, and needs no listener per character.
+			if (!onControl) this.output.onBodyClick?.(evt);
+			return;
+		}
 		this.tui.setSelection(this.card.id, hit.index);
-		const onControl = evt.target instanceof HTMLElement && evt.target.closest(".hearth-tui-act");
 		if (!onControl && hit.item.activate) hit.item.activate(evt);
 		else this.paint();
 	}
@@ -296,4 +377,22 @@ export class TuiCardHost {
 		hit.item.menu(evt);
 		return true;
 	}
+}
+
+/**
+ * What a drawn row shows, as a string: every run's text, look, colours and
+ * label. Two rows with the same key draw the same pixels, so the second can
+ * keep the element the first built.
+ *
+ * `null` for a row carrying a handler — a control's callback belongs to the
+ * draw that made it, and reusing the element would leave a stale closure on
+ * screen.
+ */
+function rowKey(line: Line): string | null {
+	let key = "";
+	for (const s of line) {
+		if (s.onClick || s.onMenu) return null;
+		key += `${styles(s).join(" ")}\u0000${s.color ?? ""}\u0000${s.bg ?? ""}\u0000${s.label ?? ""}\u0000${s.text}\u0001`;
+	}
+	return key;
 }
