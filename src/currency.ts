@@ -65,8 +65,8 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 
 /** Currency names as they're typed in the languages Hearth speaks (English,
  * German, French, Chinese), mapped to their ISO code: `20 euros to dollars`,
- * `100 美元换成人民币`. Only names that belong to one currency are listed —
- * "pound" is a unit of mass to the calculator, and "Krone" (French "couronne")
+ * `100 美元换成人民币`, `100 美元換成人民幣`. Only names that belong to one currency 
+ * are listed — "pound" is a unit of mass to the calculator, and "Krone" (French "couronne")
  * is four currencies. */
 export const CURRENCY_NAMES: Record<string, string> = {
 	euro: "eur",
@@ -111,6 +111,27 @@ export const CURRENCY_NAMES: Record<string, string> = {
 	泰铢: "thb",
 	捷克克朗: "czk",
 	波兰兹罗提: "pln",
+	// Traditional spellings, and the short names Taiwan uses (日圓 / 日幣,
+	// 澳幣, 加幣, 紐幣, 新幣, 韓幣). TWD is absent on purpose: the ECB
+	// publishes no rate for it, so it can't be converted from this source.
+	歐元: "eur",
+	人民幣: "cny",
+	日圓: "jpy",
+	日幣: "jpy",
+	英鎊: "gbp",
+	港幣: "hkd",
+	加幣: "cad",
+	澳幣: "aud",
+	紐西蘭元: "nzd",
+	紐西蘭幣: "nzd",
+	紐幣: "nzd",
+	新幣: "sgd",
+	韓元: "krw",
+	韓幣: "krw",
+	韓圜: "krw",
+	盧比: "inr",
+	泰銖: "thb",
+	波蘭茲羅提: "pln",
 };
 
 /** A positive, finite rate, or null — filters out junk from either source. */
