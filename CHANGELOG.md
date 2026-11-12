@@ -96,6 +96,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   against; later metadata changes arrive through *Live refresh on vault
   changes*, which is debounced and held while you are typing.
 
+- **The toggles in Hearth's settings and dialogs are visible again in the TUI
+  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
+  positioned, fully transparent `::before` as its click area; the TUI style draws
+  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
+  and colour, so the label inherited `position: absolute; opacity: 0`, left the
+  layout, and — with `height: auto` on the container — the toggle collapsed to
+  0 px. The rule now puts the pseudo-element back in flow, which restores the
+  toggle at its text height.
+
 - **The Quick switcher engine ranks a note by its name, the way the switcher
   it copies does** (#447). Searching "black sphinx" listed an empty note called
   "A" from a folder of that name above the note actually called "Black Sphinx":
