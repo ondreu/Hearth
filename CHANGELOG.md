@@ -72,6 +72,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The Pet card in Terminal design no longer grows Obsidian's memory until it
+  crashes** (#479). Its frames were the one animation in Hearth running on a
+  JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
+  — a span with a click and a key listener for every sprite cell — and, through
+  the board's frame layer, every frame on the board. It did that in a background
+  tab as well, where nothing can be seen: roughly 3,000 nodes and 900 listeners
+  every five seconds, climbing until the renderer died. A repaint now keeps the
+  rows whose text did not change, the frame layer is rebuilt only when something
+  drawn on it changes, and a card's own redraw is skipped while its leaf is
+  hidden. The sprite also merges neighbouring cells of one colour into a single
+  run, and the whole body is the click target, so patting it works as before.
+
 - **Editing a card no longer rebuilds the board under the cursor** (#475). A
   couple of seconds into typing into a card's embedded editor — a note or a
   base — the whole board re-rendered, the editor came back at the top with the
@@ -83,6 +95,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   catch-up now runs once, for the cold cache a startup board was drawn
   against; later metadata changes arrive through *Live refresh on vault
   changes*, which is debounced and held while you are typing.
+
+- **The toggles in Hearth's settings and dialogs are visible again in the TUI
+  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
+  positioned, fully transparent `::before` as its click area; the TUI style draws
+  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
+  and colour, so the label inherited `position: absolute; opacity: 0`, left the
+  layout, and — with `height: auto` on the container — the toggle collapsed to
+  0 px. The rule now puts the pseudo-element back in flow, which restores the
+  toggle at its text height.
 
 - **The Quick switcher engine ranks a note by its name, the way the switcher
   it copies does** (#447). Searching "black sphinx" listed an empty note called

@@ -69,6 +69,10 @@ export interface TuiOutput {
 	/** A double-click anywhere on the body — a note card's way into its
 	 * editor. */
 	onDoubleClick?: () => void;
+	/** A click that landed on no item and no control of its own — how a card
+	 * whose whole picture is one target (the pet) stays clickable without
+	 * putting a listener on every character of it. */
+	onBodyClick?: (evt: MouseEvent) => void;
 	/** Scroll the body so this line is at the top, the first time the card
 	 * is drawn (a time grid opening on the morning rather than at midnight). */
 	scrollTo?: number;
@@ -103,7 +107,8 @@ export interface TuiContext {
 	 * month, a folder card's open folders) for as long as the tab is open. */
 	state: Record<string, unknown>;
 	/** Draw the card again — after async data arrived, or after the renderer
-	 * changed its own state. */
+	 * changed its own state. Skipped while the card is not on screen: the
+	 * renderer keeps its state and its timers, and paints once it is back. */
 	redraw: () => void;
 	/** Move the selection. */
 	select: (index: number) => void;
@@ -125,4 +130,20 @@ export interface TuiRenderer {
 	 * task's details. Offered in the card menu and on `o`. Without it, the
 	 * card's zoomed text view is the larger view. */
 	detail?: (ctx: TuiContext) => void;
+}
+
+/**
+ * Whether a fresh draw changes anything the board draws *around* a body: the
+ * frame's hint, its key help, and the number of body lines (the scroll readout
+ * counts them).
+ *
+ * A card that only repainted its own text — a sprite frame, a ticking clock —
+ * leaves every frame on the board exactly as it was, and rebuilding them is the
+ * expensive half of a redraw: the whole frame grid is composited again and every
+ * card's scroll position is read back from layout. The pet card in a background
+ * tab spent its time there (#479).
+ */
+export function frameFieldsChanged(prev: TuiOutput | undefined, next: TuiOutput): boolean {
+	if (!prev) return true;
+	return prev.hint !== next.hint || prev.foot !== next.foot || prev.lines.length !== next.lines.length;
 }
