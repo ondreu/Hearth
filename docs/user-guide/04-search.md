@@ -215,6 +215,20 @@ They are under **Settings → Hearth → Search → Search bar**, in a group hea
 If the button is set to use a Templater template but Templater is not enabled,
 Hearth makes a blank note and tells you why.
 
+### Naming the note from the search field
+
+Whatever is typed in the search field when you press **New note** becomes the
+note's name, so capturing something you were searching for — that isn't in the
+vault yet — is one click instead of a click plus a name typed again. Characters a
+file name can't hold are dropped (`"Kickoff: Q3"` becomes `Kickoff Q3`).
+
+The *Filename* setting above only applies when the field is empty. A search that
+isn't a title — a tag (`#project`) or a property (`type:meeting`) — leaves the
+configured filename in charge, because you were filtering, not naming something.
+A typed name also replaces the filename pattern outright rather than being
+appended to it, so `{{date}}` doesn't turn up in front of it and no `{{prompt}}`
+dialog opens over text you have already typed.
+
 ### Searching the web
 
 When the button is set to *Search online*, pressing it opens your chosen engine

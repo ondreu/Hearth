@@ -37,7 +37,7 @@ import {
 	activeIsSingleCardBoard,
 	bannerActive,
 	effectiveCardDesign,
-	effectiveCompact,
+	effectiveDensity,
 	effectiveFitToPage,
 	effectiveFullWidth,
 	effectiveMaxWidth,
@@ -64,6 +64,7 @@ export const VIEW_TYPE_HOME = "hearth-home-view";
  * from a previous render. */
 const TERMINAL_EXCLUDED_CLASSES = [
 	"hearth-compact",
+	"hearth-flush",
 	"hearth-x-ui",
 	"hearth-no-motion",
 	"hearth-no-frost",
@@ -562,7 +563,12 @@ export class HomeView extends ItemView {
 		}
 		clearTerminalView(this, root);
 		this.tuiSay = null;
-		root.toggleClass("hearth-compact", effectiveCompact(this.plugin.settings));
+		// Flush is compact minus the side and bottom gutters (see "Flush spacing"
+		// in styles.css), so it wears the compact class too and the flush block
+		// only overrides what it means to be flush.
+		const density = effectiveDensity(this.plugin.settings);
+		root.toggleClass("hearth-compact", density !== "roomy");
+		root.toggleClass("hearth-flush", density === "flush");
 		// The board's furniture — the toolbar, the dashboard switcher, the card
 		// buttons — in the board's design, and every dialog opened from the board
 		// in it too (src/uidesign.ts). The cards state their own, one level down.
@@ -676,7 +682,11 @@ export class HomeView extends ItemView {
 		// apply itself — which is why there is no width clause here at all.
 		// The phone preview is exempt, and stays so: its ceiling is the device
 		// shell's width, not the board's.
-		if (!this.phonePreview && !effectiveFullWidth(this.plugin.settings)) {
+		// Flush is the "use the whole pane" tier, so the ceiling must not apply
+		// there: a centred 1600px column *is* the side margin flush exists to
+		// remove (this is what `fullWidth` does, without the extra setting).
+		const flush = effectiveDensity(this.plugin.settings) === "flush";
+		if (!this.phonePreview && !flush && !effectiveFullWidth(this.plugin.settings)) {
 			inner.style.maxWidth = `${effectiveMaxWidth(this.plugin.settings)}px`;
 		}
 

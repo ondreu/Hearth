@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_SETTINGS,
 	effectiveArrangeButtonVisibility,
-	effectiveCompact,
+	effectiveDensity,
 	effectiveHiddenFilters,
 	effectiveNarrowWidth,
 	effectiveNewNoteButtonLabel,
@@ -18,7 +18,7 @@ import {
 
 /**
  * The two overrides the setup wizard needed in order to stop writing global
- * settings: compact spacing and the title's accent target.
+ * settings: the spacing and the title's accent target.
  *
  * Both follow the same contract every other per-dashboard override has — a
  * board that sets nothing keeps following the global setting *as it changes
@@ -35,27 +35,37 @@ function settings(): HomeSettings {
 	return s;
 }
 
-describe("effectiveCompact", () => {
+describe("effectiveDensity", () => {
 	it("follows the global setting when the board sets no override", () => {
 		const s = settings();
-		expect(effectiveCompact(s)).toBe(false);
-		s.compact = true;
-		expect(effectiveCompact(s)).toBe(true);
+		expect(effectiveDensity(s)).toBe("roomy");
+		s.density = "compact";
+		expect(effectiveDensity(s)).toBe("compact");
 	});
 
 	it("lets one board tighten up while the vault stays roomy", () => {
 		const s = settings();
-		s.dashboards[0].compact = true;
-		expect(effectiveCompact(s)).toBe(true);
+		s.dashboards[0].density = "compact";
+		expect(effectiveDensity(s)).toBe("compact");
 		s.activeDashboardId = "d2";
-		expect(effectiveCompact(s)).toBe(false);
+		expect(effectiveDensity(s)).toBe("roomy");
 	});
 
 	it("lets one board stay roomy while the vault is compact", () => {
 		const s = settings();
-		s.compact = true;
-		s.dashboards[0].compact = false;
-		expect(effectiveCompact(s)).toBe(false);
+		s.density = "compact";
+		s.dashboards[0].density = "roomy";
+		expect(effectiveDensity(s)).toBe("roomy");
+	});
+
+	it("carries the third step, flush, through the same override", () => {
+		const s = settings();
+		s.density = "flush";
+		expect(effectiveDensity(s)).toBe("flush");
+		s.dashboards[0].density = "compact";
+		expect(effectiveDensity(s)).toBe("compact");
+		s.activeDashboardId = "d2";
+		expect(effectiveDensity(s)).toBe("flush");
 	});
 });
 

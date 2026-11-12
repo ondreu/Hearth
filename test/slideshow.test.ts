@@ -66,16 +66,20 @@ describe("slideshow config resolution", () => {
 		expect(slideshowSource({})).toBe("list");
 		expect(slideshowSource({ source: "list" })).toBe("list");
 		expect(slideshowSource({ source: "folder" })).toBe("folder");
+		expect(slideshowSource({ source: "notes" })).toBe("notes");
 	});
 
 	// "manual" means "the order the list is in", which a folder has none of — it
-	// would otherwise fall through to the vault's arbitrary child order.
+	// would otherwise fall through to the vault's arbitrary child order. A notes
+	// folder is a folder: it has no hand-picked order either.
 	it("resolves the list-only 'manual' order to by-name for a folder", () => {
 		expect(slideshowOrder({})).toBe("manual");
 		expect(slideshowOrder({ order: "manual" })).toBe("manual");
 		expect(slideshowOrder({ source: "folder" })).toBe("name");
 		expect(slideshowOrder({ source: "folder", order: "manual" })).toBe("name");
 		expect(slideshowOrder({ source: "folder", order: "random" })).toBe("random");
+		expect(slideshowOrder({ source: "notes" })).toBe("name");
+		expect(slideshowOrder({ source: "notes", order: "random" })).toBe("random");
 	});
 
 	it("resolves the hold time, with 0 meaning 'do not rotate'", () => {
@@ -220,6 +224,16 @@ describe("slideshowReactsTo", () => {
 
 		const deep = card({ source: "folder", folder: "Photos", includeSubfolders: true });
 		expect(slideshowReactsTo(deep, event("create", "Photos/Trips/a.png"))).toBe(true);
+	});
+
+	// A notes card is a folder card as far as existence goes: a note added to the
+	// folder changes the set, one added elsewhere does not.
+	it("watches the scope of a notes card", () => {
+		const notes = card({ source: "notes", folder: "Daily" });
+		expect(slideshowReactsTo(notes, event("create", "Daily/260101.md"))).toBe(true);
+		expect(slideshowReactsTo(notes, event("delete", "Daily/260101.md"))).toBe(true);
+		expect(slideshowReactsTo(notes, event("create", "Notes/a.md"))).toBe(false);
+		expect(slideshowReactsTo(notes, event("modify", "Daily/260101.md"))).toBe(false);
 	});
 
 	// A folder rename arrives as one event for the folder, not one per file, so

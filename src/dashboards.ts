@@ -10,6 +10,7 @@ import {
 	type BackgroundLayout,
 	BANNER_HEIGHT_MAX,
 	BANNER_HEIGHT_MIN,
+	type BoardDensity,
 	CARD_BORDER_WIDTH_MAX,
 	CARD_RADIUS_MAX,
 	clampBannerHeight,
@@ -1451,23 +1452,21 @@ class DashboardSettingsModal extends HearthTabbedModal {
 		const dash = this.dash;
 		const s = this.view.plugin.settings;
 
+		const spacing = t().settings.dashboard.spacingOptions;
 		new Setting(containerEl)
-			.setName(t().dashboards.modal.compact)
-			.setDesc(t().dashboards.modal.compactDesc)
+			.setName(t().dashboards.modal.spacing)
+			.setDesc(t().dashboards.modal.spacingDesc)
 			.addDropdown((d) => {
 				d.addOption(
 					"default",
-					t().dashboards.modal.compactDefault(
-						s.compact
-							? t().dashboards.modal.compactStateOn
-							: t().dashboards.modal.compactStateOff,
-					),
+					t().dashboards.modal.spacingDefault(spacing[s.density]),
 				);
-				d.addOption("on", t().dashboards.modal.compactOptionOn);
-				d.addOption("off", t().dashboards.modal.compactOptionOff);
-				d.setValue(dash.compact === undefined ? "default" : dash.compact ? "on" : "off");
+				d.addOption("roomy", spacing.roomy);
+				d.addOption("compact", spacing.compact);
+				d.addOption("flush", spacing.flush);
+				d.setValue(dash.density ?? "default");
 				d.onChange((v) => {
-					dash.compact = v === "default" ? undefined : v === "on";
+					dash.density = v === "default" ? undefined : (v as BoardDensity);
 					this.commit();
 				});
 			});

@@ -3,6 +3,7 @@ import { en } from "./en";
 import { ko } from "./ko";
 import { fr } from "./fr";
 import { zh } from "./zh";
+import { zhTW } from "./zh-tw";
 
 /**
  * The shape every locale must implement. English is the source of truth: a new
@@ -25,4 +26,5 @@ export const LOCALES: Record<string, Translations> = {
 	de,
 	fr,
 	zh,
+	"zh-tw": zhTW,
 };

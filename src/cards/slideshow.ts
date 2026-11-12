@@ -1,8 +1,8 @@
-import { type App, Component, Setting, TFile, TFolder } from "obsidian";
+import { type App, Component, Setting, type TAbstractFile, TFile, TFolder } from "obsidian";
 import { setIcon } from "../glyphs";
-import { cardOverlayButton, emptyState } from "../cardbodies";
+import { cardOverlayButton, emptyState, renderMarkdownFile } from "../cardbodies";
 import { moveItem } from "../editors";
-import { isImageFile } from "../filetypes";
+import { isImageFile, isNoteFile } from "../filetypes";
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import { FilePickerModal, FolderPickerModal } from "../pickers";
@@ -45,6 +45,7 @@ import {
 	type SlideshowFit,
 	type SlideshowOrder,
 	type SlideshowSlide,
+	type SlideshowSource,
 	type SlideshowTransition,
 } from "../types";
 import { type HomeView } from "../view";
@@ -57,7 +58,9 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * with a list of pictures instead of one. Pictures come either from a
  * hand-picked list (each entry can carry its own caption) or from a folder,
  * optionally including subfolders; both can be ordered by name, creation or
- * modification date, or shuffled.
+ * modification date, or shuffled. A third source turns the card into a reader
+ * that rotates through notes: every Markdown file in a folder, each drawn as a
+ * page with the same renderer the embed and daily cards use.
  *
  * What moves the card on is one of three things (`slideshowAdvance`): a timer,
  * the calendar — one picture per day, or per few days, worked out from today's
@@ -106,8 +109,13 @@ function listPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
 	return pictures;
 }
 
-/** Every image in the card's folder (and, when asked, its subfolders). */
-function folderPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
+/** Every file in the card's folder that `accept` takes (and, when asked, its
+ * subfolders) — the one walk behind both the image and the note sources. */
+function folderPictures(
+	app: App,
+	cfg: SlideshowConfig,
+	accept: (file: TAbstractFile) => file is TFile,
+): SlideshowPicture[] {
 	const scope = normalizeFolderPath(cfg.folder);
 	const root = scope === "" ? app.vault.getRoot() : app.vault.getAbstractFileByPath(scope);
 	if (!(root instanceof TFolder)) return [];
@@ -116,7 +124,7 @@ function folderPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
 		for (const child of folder.children) {
 			if (child instanceof TFolder) {
 				if (cfg.includeSubfolders === true) walk(child);
-			} else if (isImageFile(child)) {
+			} else if (accept(child)) {
 				pictures.push(pictureFor(child));
 			}
 		}
@@ -126,7 +134,7 @@ function folderPictures(app: App, cfg: SlideshowConfig): SlideshowPicture[] {
 }
 
 /**
- * Every picture the card shows, in display order. `seed` fixes the "random"
+ * Every slide the card shows, in display order. `seed` fixes the "random"
  * order to one deal — a daily card passes its id so the shuffle it walks
  * through is the same one tomorrow (see `seededShuffle`).
  */
@@ -135,8 +143,13 @@ export function collectSlideshowPictures(
 	cfg: SlideshowConfig,
 	seed?: string,
 ): SlideshowPicture[] {
+	const source = slideshowSource(cfg);
 	const pictures =
-		slideshowSource(cfg) === "folder" ? folderPictures(app, cfg) : listPictures(app, cfg);
+		source === "folder"
+			? folderPictures(app, cfg, isImageFile)
+			: source === "notes"
+				? folderPictures(app, cfg, isNoteFile)
+				: listPictures(app, cfg);
 	return orderPictures(pictures, slideshowOrder(cfg), seed);
 }
 
@@ -208,6 +221,7 @@ export function renderSlideshow(
 	component: Component,
 ): void {
 	const cfg = card.slideshow ?? {};
+	const source = slideshowSource(cfg);
 	const mode = slideshowAdvance(cfg);
 	const dayCount = slideshowDayCount(cfg);
 	// A daily card has to deal its "random" order the same way every time, or the
@@ -217,10 +231,12 @@ export function renderSlideshow(
 	if (pictures.length === 0) {
 		emptyState(
 			body,
-			"images",
-			slideshowSource(cfg) === "folder"
+			source === "notes" ? "file-text" : "images",
+			source === "folder"
 				? t().cards.empty.slideshowFolderEmpty
-				: t().cards.empty.slideshowEmpty,
+				: source === "notes"
+					? t().cards.empty.slideshowNotesEmpty
+					: t().cards.empty.slideshowEmpty,
 		);
 		return;
 	}
@@ -239,8 +255,12 @@ export function renderSlideshow(
 	body.addClass("hearth-slideshow-host");
 	const stage = body.createDiv("hearth-slideshow");
 	stage.addClass(`is-trans-${cfg.transition ?? "fade"}`);
-	stage.addClass(cfg.fit === "contain" ? "is-fit-contain" : "is-fit-cover");
-	if (cfg.kenBurns) stage.addClass("is-kenburns");
+	// A note has no picture to fill or zoom, so a notes card carries neither
+	// class — `fit` and `kenBurns` only ever reach an `<img>`.
+	if (source !== "notes") {
+		stage.addClass(cfg.fit === "contain" ? "is-fit-contain" : "is-fit-cover");
+		if (cfg.kenBurns) stage.addClass("is-kenburns");
+	}
 	stage.style.setProperty("--hearth-slide-ms", `${slideshowTransitionMs(cfg)}ms`);
 	// The slow zoom runs for exactly as long as the picture is held, so it never
 	// finishes early and sits still, nor gets cut off halfway.
@@ -252,14 +272,22 @@ export function renderSlideshow(
 	// Two layers for any number of pictures: the one on screen and the one coming
 	// in. Swapping which is "active" is the whole transition.
 	const layers = [0, 1].map(() => stage.createDiv("hearth-slide"));
-	const images = layers.map((layer) => {
-		const img = layer.createEl("img", { cls: "hearth-slide-img" });
-		// A picture is decoration here, not something to drag out of the card —
-		// the native image drag would otherwise fight the card's own in arrange mode.
-		img.draggable = false;
-		img.decoding = "async";
-		return img;
-	});
+	// A notes card draws a rendered page into each layer instead of an `<img>`;
+	// the pair of layers drives the transition either way.
+	const images: HTMLImageElement[] | null =
+		source === "notes"
+			? null
+			: layers.map((layer) => {
+					const img = layer.createEl("img", { cls: "hearth-slide-img" });
+					// A picture is decoration here, not something to drag out of the card —
+					// the native image drag would otherwise fight the card's own in arrange mode.
+					img.draggable = false;
+					img.decoding = "async";
+					return img;
+				});
+	/** The component each layer's current note was rendered under, so a swap can
+	 * unload it (embeds, listeners, timers) instead of piling one up per slide. */
+	const noteRenders: (Component | null)[] = [null, null];
 
 	// Which picture to open on. A daily card asks the calendar — how many day
 	// slots have passed since the position it remembers — so a redraw, a board
@@ -295,7 +323,31 @@ export function renderSlideshow(
 		return file && isImageFile(file) ? view.app.vault.getResourcePath(file) : null;
 	};
 
+	/** Draw one note into a layer, with the same renderer the embed and daily
+	 * cards use — so links, callouts, embeds and checkboxes behave as they do in
+	 * the note itself. The layer is emptied first: the render is asynchronous,
+	 * and a slow one must not paint over a slide that has since taken its place. */
+	const paintNote = (layer: number, picture: SlideshowPicture) => {
+		const el = layers[layer];
+		el.empty();
+		const previous = noteRenders[layer];
+		if (previous) component.removeChild(previous);
+		noteRenders[layer] = null;
+		const file = view.app.vault.getAbstractFileByPath(picture.path);
+		if (!(file instanceof TFile)) return;
+		const host = el.createDiv({ cls: "hearth-slide-note markdown-rendered" });
+		const child = component.addChild(new Component());
+		noteRenders[layer] = child;
+		void renderMarkdownFile(view, file, host, child).catch(() => {
+			host.setText(pictureLabel(picture));
+		});
+	};
+
 	const paint = (layer: number, picture: SlideshowPicture) => {
+		if (images === null) {
+			paintNote(layer, picture);
+			return;
+		}
 		const img = images[layer];
 		img.src = resourcePath(picture.path) ?? "";
 		img.alt = pictureLabel(picture);
@@ -525,10 +577,15 @@ export function renderSlideshow(
 	// An optional overlay button that opens the picture on screen in its own tab,
 	// the same affordance (and default-off) as the embed card's (#144).
 	if (card.showOpenButton === true) {
-		cardOverlayButton(body, "square-arrow-out-up-right", t().cards.slideshow.openImage, (evt) => {
-			const file = view.app.vault.getAbstractFileByPath(pictures[index].path);
-			if (file instanceof TFile) void openFile(view, file, "card", evt);
-		});
+		cardOverlayButton(
+			body,
+			"square-arrow-out-up-right",
+			source === "notes" ? t().cards.slideshow.openNote : t().cards.slideshow.openImage,
+			(evt) => {
+				const file = view.app.vault.getAbstractFileByPath(pictures[index].path);
+				if (file instanceof TFile) void openFile(view, file, "card", evt);
+			},
+		);
 	}
 
 	function mountControls(): void {
@@ -598,15 +655,18 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		.addDropdown((d) => {
 			d.addOption("list", strings.sourceList);
 			d.addOption("folder", strings.sourceFolder);
+			d.addOption("notes", strings.sourceNotes);
 			d.setValue(slideshowSource(cfg)).onChange((v) => {
-				cfg.source = v === "folder" ? "folder" : undefined;
+				cfg.source = v === "list" ? undefined : (v as SlideshowSource);
 				ctx.opts.save();
-				// The two sources are configured with completely different controls.
+				// The three sources are configured with completely different controls.
 				ctx.requestRender();
 			});
 		});
 
-	if (slideshowSource(cfg) === "folder") folderSection(ctx, containerEl, cfg);
+	const source = slideshowSource(cfg);
+	if (source === "folder") folderSection(ctx, containerEl, cfg, "images");
+	else if (source === "notes") folderSection(ctx, containerEl, cfg, "notes");
 	else listSection(ctx, containerEl, cfg);
 
 	new Setting(containerEl).setName(strings.playbackHeading).setHeading();
@@ -615,11 +675,10 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		.setName(strings.order)
 		.setDesc(strings.orderDesc)
 		.addDropdown((d) => {
-			// "Manual" is the list's own order, which a folder doesn't have one of.
+			// "Manual" is the list's own order, which a folder or a notes source
+			// doesn't have one of.
 			const orders =
-				slideshowSource(cfg) === "folder"
-					? SLIDESHOW_ORDERS.filter((o) => o !== "manual")
-					: SLIDESHOW_ORDERS;
+				source === "list" ? SLIDESHOW_ORDERS : SLIDESHOW_ORDERS.filter((o) => o !== "manual");
 			for (const o of orders) d.addOption(o, strings.orders[o]);
 			d.setValue(slideshowOrder(cfg)).onChange((v) => {
 				cfg.order = v as SlideshowOrder;
@@ -749,30 +808,34 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		);
 	}
 
-	new Setting(containerEl)
-		.setName(strings.kenBurns)
-		.setDesc(strings.kenBurnsDesc)
-		.addToggle((tg) =>
-			tg.setValue(cfg.kenBurns === true).onChange((v) => {
-				cfg.kenBurns = v || undefined;
-				ctx.opts.save();
-				ctx.opts.rerender();
-			}),
-		);
-
 	new Setting(containerEl).setName(strings.displayHeading).setHeading();
 
-	new Setting(containerEl)
-		.setName(strings.fit)
-		.setDesc(strings.fitDesc)
-		.addDropdown((d) => {
-			for (const fit of SLIDESHOW_FITS) d.addOption(fit, strings.fits[fit]);
-			d.setValue(cfg.fit ?? "cover").onChange((v) => {
-				cfg.fit = v as SlideshowFit;
-				ctx.opts.save();
-				ctx.opts.rerender();
+	// A note has no picture to fill or zoom, so the two picture-only options are
+	// left out of a notes card instead of being shown doing nothing.
+	if (source !== "notes") {
+		new Setting(containerEl)
+			.setName(strings.kenBurns)
+			.setDesc(strings.kenBurnsDesc)
+			.addToggle((tg) =>
+				tg.setValue(cfg.kenBurns === true).onChange((v) => {
+					cfg.kenBurns = v || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(strings.fit)
+			.setDesc(strings.fitDesc)
+			.addDropdown((d) => {
+				for (const fit of SLIDESHOW_FITS) d.addOption(fit, strings.fits[fit]);
+				d.setValue(cfg.fit ?? "cover").onChange((v) => {
+					cfg.fit = v as SlideshowFit;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				});
 			});
-		});
+	}
 
 	toggle(ctx, containerEl, strings.controls, strings.controlsDesc, cfg.controls !== false, (v) => {
 		cfg.controls = v ? undefined : false;
@@ -947,14 +1010,19 @@ function newSlide(path: string): SlideshowSlide {
 }
 
 
-/** The folder source: which folder, and whether subfolders count. */
+/** The folder sources: which folder, and whether subfolders count. The image and
+ * notes sources differ only in the wording of these controls. */
 function folderSection(
 	ctx: CardEditorContext,
 	containerEl: HTMLElement,
 	cfg: SlideshowConfig,
+	kind: "images" | "notes",
 ): void {
 	const strings = t().editors.slideshow;
-	const setting = new Setting(containerEl).setName(strings.folder).setDesc(strings.folderDesc);
+	const notes = kind === "notes";
+	const setting = new Setting(containerEl)
+		.setName(notes ? strings.notesFolder : strings.folder)
+		.setDesc(notes ? strings.notesFolderDesc : strings.folderDesc);
 	setting.addText((txt) =>
 		txt
 			.setPlaceholder(strings.folderPlaceholder)
@@ -991,22 +1059,43 @@ function folderSection(
 		},
 	);
 
-	// How many pictures the folder currently yields — the one number that tells
-	// you whether the folder (and the subfolder toggle) is the one you meant.
+	// How many slides the folder currently yields — the one number that tells you
+	// whether the folder (and the subfolder toggle) is the one you meant.
 	const found = collectSlideshowPictures(ctx.app, cfg).length;
-	new Setting(containerEl).setDesc(strings.folderCount(found));
+	new Setting(containerEl).setDesc(notes ? strings.notesCount(found) : strings.folderCount(found));
 }
 
 
 /** Pictures from the vault, rotated on a timer. */
 export const slideshowCard: CardDefinition<"slideshow"> = {
 	kind: "slideshow",
+	// Two picker entries for one kind: a slideshow of pictures is not the card a
+	// reader looking for "notes on the board, one at a time" thinks to open, and
+	// the source dropdown is two clicks past the picker. The second template is
+	// the same kind with `source` preset — not a second `CardKind`, which would
+	// mean a second renderer, editor, liveness rule and TUI counterpart for no
+	// gain. Keep both here so the menu order in `TEMPLATE_MENU_GROUPS` has a
+	// neighbour to name.
 	templates: [
 		{
 			id: "slideshow",
 			name: "Slideshow",
 			icon: "images",
 			build: () => ({ kind: "slideshow", title: "Slideshow", slideshow: { slides: [] }, w: 4, h: 3 }),
+		},
+		{
+			id: "slideshow-notes",
+			name: "Notes slideshow",
+			icon: "file-text",
+			// A notes card is read, not glanced at: one size up from the picture
+			// slideshow, so the first note lands as a page rather than a teaser.
+			build: () => ({
+				kind: "slideshow",
+				title: "Slideshow",
+				slideshow: { slides: [], source: "notes" },
+				w: 5,
+				h: 4,
+			}),
 		},
 	],
 	render: (view, card, body, component) => renderSlideshow(view, card, body, component),

@@ -301,8 +301,10 @@ export const fr: Translations = {
 				"cartes sur la surface du thème en dessous.",
 			layoutFull: "Derrière tout",
 			layoutBanner: "Une bannière en haut",
-			compact: "Espacement compact",
-			compactDesc: "Resserrer les espaces pour en afficher plus à l'écran.",
+			spacing: "Espacement",
+			spacingDesc:
+				"L'espace que le tableau laisse autour de ses cartes et le long des " +
+				"bords de la page.",
 		},
 		surfaces: {
 			glass: {
@@ -783,13 +785,9 @@ export const fr: Translations = {
 				title: "Le titre",
 				both: "Les deux",
 			},
-			compact: "Espacement compact",
-			compactDesc: "Remplacer l'espacement global pour ce tableau.",
-			compactDefault: (state: string) => `Paramètre global (${state})`,
-			compactOptionOn: "Compact",
-			compactOptionOff: "Aéré",
-			compactStateOn: "compact",
-			compactStateOff: "aéré",
+			spacing: "Espacement",
+			spacingDesc: "Remplacer l'espacement global pour ce tableau.",
+			spacingDefault: (state: string) => `Paramètre global (${state})`,
 			cardOpacity: "Opacité des cartes",
 			cardBlur: "Flou des cartes",
 			cardRadius: "Arrondi des coins des cartes",
@@ -1346,7 +1344,11 @@ export const fr: Translations = {
 			goToSection: "Afficher",
 			goToTab: "Ouvrir",
 			items: {
-				stereo: {
+
+				taskchute: {
+					name: "TaskChute Plus",
+					desc: "Les cartes TaskChute lisent les tâches et relevés du plugin — liste du jour avec démarrage et arrêt, aperçu hebdomadaire et carte de chaleur d'activité. Les tâches, routines et le journal restent ceux de TaskChute.",
+				},				stereo: {
 					name: "Stereo",
 					desc:
 						"Permet à une carte Musique de commander le lecteur " +
@@ -1695,9 +1697,15 @@ export const fr: Translations = {
 			fitToPage: "Ajuster à la page",
 			fitToPageDesc:
 				"Faire tenir le tableau sur un seul écran au lieu d'autoriser le défilement.",
-			compact: "Espacement compact",
-			compactDesc:
-				"Réduire les marges internes des cartes et la marge du haut pour agrandir la zone utile.",
+			spacing: "Espacement",
+			spacingDesc:
+				"L'espace que le tableau laisse autour des cartes et le long des bords " +
+				"de la page.",
+			spacingOptions: {
+				roomy: "Aéré",
+				compact: "Compact",
+				flush: "Sans marge",
+			},
 			arrangeButtonVisibility: "Visibilité du bouton Organiser",
 			arrangeButtonVisibilityDesc:
 				"Le bouton organiser/modifier est-il toujours visible ou révélé au survol de sa zone.",
@@ -1872,6 +1880,7 @@ export const fr: Translations = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "Vue de plugin (bêta)",
+			taskchute: "TaskChute",
 			pet: "Compagnon",
 			vaultpet: "Vault Pet",
 		},
@@ -1954,11 +1963,12 @@ export const fr: Translations = {
 				"Afficher un bouton qui ouvre le fichier intégré dans son propre onglet. Désactivé par défaut.",
 		},
 		slideshow: {
-			source: "Images depuis",
+			source: "Diapositives depuis",
 			sourceDesc:
-				"Une liste choisie image par image, ou toutes les images d'un dossier.",
+				"Une liste choisie image par image, toutes les images d'un dossier, ou toutes les notes d'un dossier.",
 			sourceList: "Une liste d'images",
-			sourceFolder: "Un dossier",
+			sourceFolder: "Un dossier d'images",
+			sourceNotes: "Les notes d'un dossier",
 			picturesHeading: "Images",
 			picturesEmpty: "Pas encore d'image — ajoutez-en une ci-dessous.",
 			picturePlaceholder: "Chemin de l'image",
@@ -1977,6 +1987,11 @@ export const fr: Translations = {
 			includeSubfoldersDesc: "Afficher aussi les images des sous-dossiers.",
 			folderCount: (count: number) =>
 				count <= 1 ? `${count} image trouvée ici pour l'instant.` : `${count} images trouvées ici pour l'instant.`,
+			notesFolder: "Dossier de notes",
+			notesFolderDesc:
+				"Chaque note de ce dossier est affichée, une page à la fois. Laissez vide pour la racine du coffre.",
+			notesCount: (count: number) =>
+				count <= 1 ? `${count} note trouvée ici pour l'instant.` : `${count} notes trouvées ici pour l'instant.`,
 			playbackHeading: "Lecture",
 			order: "Ordre",
 			orderDesc: "L'ordre d'affichage des images.",
@@ -3611,6 +3626,15 @@ export const fr: Translations = {
 				"Un bouton dans le coin de la carte qui ouvre la maison de Vault Pet dans la " +
 				"barre latérale, comme son icône du ruban.",
 		},
+		taskchute: {
+			missing: "TaskChute Plus n'est pas installé",
+			missingDesc: "Cette carte lit les tâches et les relevés de TaskChute. Installez et activez le plugin : la carte se remplit — le choix ci-dessous est conservé.",
+			view: "Afficher",
+			viewDesc: "Trois vues de TaskChute, en petit : les tâches du jour avec démarrage et arrêt, un aperçu de la semaine ou la carte de chaleur d'activité.",
+			viewTasks: "Tâches du jour",
+			viewOverview: "Aperçu",
+			viewHeatmap: "Carte de chaleur",
+		},
 		design: {
 			name: "Design",
 			desc: "Classique, ou Material 3 Expressive : conteneurs tonals dans votre couleur d'accent, pastilles et formes douces.",
@@ -3657,6 +3681,39 @@ export const fr: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		taskchute: {
+			open: "Ouvrir TaskChute",
+			start: "Démarrer cette tâche",
+			stop: "Arrêter et terminer",
+			done: "Terminée",
+			today: "Aujourd'hui",
+			noTime: "Sans heure",
+			previousDay: "Jour précédent",
+			nextDay: "Jour suivant",
+			changeTime: "Changer l'heure…",
+			dropHere: "Déposez une tâche ici",
+			progress: (done: number, total: number) => `${done}/${total} terminées`,
+			minutesToday: "min aujourd'hui",
+			weekDone: "terminées · 7 jours",
+			weekMinutes: "total · 7 jours",
+			heatmapHeading: "Activité",
+			addTask: "Ajouter une tâche",
+			more: "Actions de la tâche",
+			moveUp: "Monter",
+			moveDown: "Descendre",
+			moveToDate: "Déplacer à une date…",
+			duplicate: "Dupliquer",
+			delete: "Supprimer",
+			deleteTitle: "Supprimer cette tâche ?",
+			deleteMessage: (name: string) => `« ${name} » sera supprimée de TaskChute.`,
+			moveDateTitle: "Déplacer la tâche à une date",
+			moveDateLabel: "Date",
+			moveDateSave: "Déplacer",
+			legendLess: "Moins",
+			legendMore: "Plus",
+			noTasks: "Rien de prévu aujourd'hui",
+			loading: "Chargement de TaskChute…",
+		},
 		music: {
 			play: "Lire",
 			pause: "Pause",
@@ -3688,6 +3745,7 @@ export const fr: Translations = {
 			embedSectionMissing: (section: string) => `Section introuvable : ${section}`,
 			slideshowEmpty: "Ajoutez des images dans les paramètres de la carte",
 			slideshowFolderEmpty: "Aucune image dans ce dossier",
+			slideshowNotesEmpty: "Aucune note dans ce dossier",
 			embedEnableBases: "Activez le module principal Bases pour intégrer des fichiers .base",
 			embedEnableCanvas: "Activez le module principal Canvas pour intégrer des canvas",
 			embedInstallExcalidraw: "Installez le plugin Excalidraw pour intégrer des dessins",
@@ -3739,6 +3797,9 @@ export const fr: Translations = {
 			vaultPetInstall: "Installez le plugin Vault Pet pour avoir un compagnon ici",
 			vaultPetNoHouse:
 				"La maison de Vault Pet n'est pas disponible — activez le plugin, ou mettez-le à jour",
+			taskChuteInstall: "Installez TaskChute Plus pour afficher sa journée ici",
+			taskChuteUnsupported: "La vue de TaskChute n'expose pas ce dont cette carte a besoin — mettez à jour TaskChute Plus",
+			taskChuteNoData: "Aucun enregistrement TaskChute pour l'instant — lancez une tâche puis revenez",
 			operonEnable: "Activez le plugin Operon pour afficher ses tâches",
 			operonDisabled:
 				"L'intégration Operon est désactivée — activez-la dans Paramètres → Hearth → Intégrations",
@@ -3849,6 +3910,7 @@ export const fr: Translations = {
 			pause: "Mettre le diaporama en pause",
 			play: "Reprendre le diaporama",
 			openImage: "Ouvrir cette image",
+			openNote: "Ouvrir cette note",
 			jump: "Aller à une image",
 		},
 		text: {
@@ -4523,6 +4585,7 @@ export const fr: Translations = {
 		note: "Note intégrée",
 		image: "Image intégrée",
 		slideshow: "Diaporama",
+		"slideshow-notes": "Diaporama de notes",
 		base: "Base intégrée",
 		excalidraw: "Dessin Excalidraw",
 		canvas: "Canvas intégré",
@@ -4562,6 +4625,9 @@ export const fr: Translations = {
 		pet: "Compagnon",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Maison Vault Pet",
+		taskchute: "TaskChute",
+		"taskchute-overview": "Aperçu TaskChute",
+		"taskchute-heatmap": "Carte de chaleur TaskChute",
 	},
 
 	templateDescriptions: {
@@ -4569,7 +4635,8 @@ export const fr: Translations = {
 		"music-stereo": "Télécommande du lecteur Navidrome du plugin Stereo",
 		note: "N'importe quelle note, affichée en direct sur le tableau",
 		image: "Une image du coffre, bord à bord",
-		slideshow: "Des images d'une liste ou d'un dossier, qui défilent avec un minuteur",
+		slideshow: "Des images d'une liste ou d'un dossier, ou les notes d'un dossier, qui défilent avec un minuteur",
+		"slideshow-notes": "Les notes d'un dossier, une page à la fois",
 		base: "Un fichier .base, affiché par Bases d'Obsidian",
 		excalidraw: "Un dessin Excalidraw avec zoom et déplacement natifs",
 		canvas: "Un canvas que l'on peut parcourir sur place",
@@ -4609,6 +4676,9 @@ export const fr: Translations = {
 		pet: "Un petit compagnon qui vit sur votre tableau",
 		"vault-pet": "Le compagnon du plugin Vault Pet, qui grandit quand vous écrivez",
 		"vault-pet-house": "La maison de Vault Pet — quêtes, index, badges et statistiques",
+		taskchute: "Les tâches TaskChute du jour — démarrer, arrêter, voir la suite",
+		"taskchute-overview": "Une semaine de TaskChute : terminées, minutes, jour par jour",
+		"taskchute-heatmap": "L'activité TaskChute en carte de chaleur des minutes par jour",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

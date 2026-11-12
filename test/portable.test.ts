@@ -11,7 +11,7 @@ import {
 	effectiveCardOpacity,
 	effectiveCardRadius,
 	effectiveColumns,
-	effectiveCompact,
+	effectiveDensity,
 	effectiveFitToPage,
 	effectiveFullWidth,
 	effectiveHeaderAlign,
@@ -91,7 +91,7 @@ function opinionatedVault(): HomeSettings {
 	s.fitToPage = false;
 	s.maxWidth = 2200;
 	s.fullWidth = false;
-	s.compact = true;
+	s.density = "compact";
 	s.cardOpacity = 0.8;
 	s.cardBlur = 12;
 	s.cardRadius = 4;
@@ -133,7 +133,7 @@ function contraryVault(): HomeSettings {
 	s.fitToPage = true;
 	s.maxWidth = 800;
 	s.fullWidth = true;
-	s.compact = false;
+	s.density = "roomy";
 	s.cardOpacity = 0.1;
 	s.cardBlur = 0;
 	s.cardRadius = 14;
@@ -173,7 +173,7 @@ function look(s: HomeSettings): Record<string, unknown> {
 		fitToPage: effectiveFitToPage(s),
 		maxWidth: effectiveMaxWidth(s),
 		fullWidth: effectiveFullWidth(s),
-		compact: effectiveCompact(s),
+		density: effectiveDensity(s),
 		cardOpacity: effectiveCardOpacity(s),
 		cardBlur: effectiveCardBlur(s),
 		cardRadius: effectiveCardRadius(s),
@@ -1021,7 +1021,7 @@ describe("reading every export Hearth has ever written", () => {
 		const s = vault();
 		applyPackage(s, outcome.pkg!, { mode: "replaceAll" });
 		expect(s.title).toBe("Restored");
-		expect(s.compact).toBe(true);
+		expect(s.density).toBe("compact");
 	});
 
 	it("takes boards from a whole-vault file without touching the settings", () => {

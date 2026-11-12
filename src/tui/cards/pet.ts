@@ -139,7 +139,11 @@ export const petTui: TuiRenderer = {
 		lines.push(centerLine(above, w));
 		const art = halfBlocks(frame, (ch) => pixelColor(ch, palette));
 		const onClick = () => pet(ctx);
-		for (const row of art) lines.push(centerLine(row.map((s) => ({ ...s, onClick, label: t().cards.pet.petHint })), w));
+		// The sprite is a picture, not a control: its cells carry colours only,
+		// so neighbouring pixels of one colour merge into one run, and the whole
+		// body is the click target (`onBodyClick` below). A listener on every
+		// cell cost the card ~270 listeners per frame (#479).
+		for (const row of art) lines.push(centerLine(row, w));
 		// The selectable row is the name under the pet, not the pet itself — a
 		// picture in reverse video is a different picture.
 		const itemLine = lines.length;
@@ -164,6 +168,6 @@ export const petTui: TuiRenderer = {
 			);
 			ctx.component.registerInterval(window.setInterval(() => ctx.redraw(), PET_TICK_MS));
 		}
-		return { lines, items: [{ line: itemLine, activate: onClick, toggle: onClick }], foot: t().tui.cards.petFoot };
+		return { lines, items: [{ line: itemLine, activate: onClick, toggle: onClick }], onBodyClick: onClick, foot: t().tui.cards.petFoot };
 	},
 };

@@ -40,6 +40,7 @@ import { tensionCard } from "./tension";
 import { gitCard } from "./git";
 import { operonCard } from "./operon";
 import { leafCard } from "./leaf";
+import { taskChuteCard } from "./taskchute";
 import { petCard } from "./pet";
 import { vaultPetCard } from "./vaultpet";
 
@@ -92,6 +93,7 @@ export const CARD_DEFINITIONS: { [K in CardKind]: CardDefinition<K> } = {
 	git: gitCard,
 	operon: operonCard,
 	leaf: leafCard,
+	taskchute: taskChuteCard,
 	pet: petCard,
 	vaultpet: vaultPetCard,
 };
@@ -133,12 +135,12 @@ export function cardDefinition(card: DashboardCard): CardDefinition {
 export const TEMPLATE_MENU_GROUPS: { category: CardCategory; templates: string[] }[] = [
 	{
 		category: "notes",
-		templates: ["note", "daily", "periodic", "journal", "image", "slideshow", "canvas", "excalidraw", "base", "recent", "folder", "favorites", "bookmarks"],
+		templates: ["note", "daily", "periodic", "journal", "image", "slideshow", "slideshow-notes", "canvas", "excalidraw", "base", "recent", "folder", "favorites", "bookmarks"],
 	},
 	{ category: "planning", templates: ["tasks", "schedule", "calendar", "clock"] },
 	{ category: "vault", templates: ["search", "searchbar", "stats", "heatmap"] },
 	{ category: "tools", templates: ["links", "text", "calculator", "web"] },
-	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "music-stereo", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf"] },
+	{ category: "integrations", templates: ["templater", "dataview", "datacore", "git", "jira", "rss", "weather", "market", "tension", "music-stereo", "operon-tasks", "operon-board", "operon-agenda", "operon-timer", "leaf", "taskchute", "taskchute-overview", "taskchute-heatmap"] },
 	{ category: "fun", templates: ["music", "pet", "vault-pet", "vault-pet-house"] },
 ];
 

@@ -319,8 +319,10 @@ export const en = {
 				"cards on the theme's own surface below it.",
 			layoutFull: "Behind everything",
 			layoutBanner: "A banner at the top",
-			compact: "Compact spacing",
-			compactDesc: "Tighten the gaps so more fits on screen.",
+			spacing: "Spacing",
+			spacingDesc:
+				"How much padding the board leaves around its cards and along the " +
+				"page edges.",
 		},
 		surfaces: {
 			glass: {
@@ -806,13 +808,9 @@ export const en = {
 				title: "The title",
 				both: "Both",
 			},
-			compact: "Compact spacing",
-			compactDesc: "Override the global spacing for this board.",
-			compactDefault: (state: string) => `Use global default (${state})`,
-			compactOptionOn: "Compact",
-			compactOptionOff: "Roomy",
-			compactStateOn: "compact",
-			compactStateOff: "roomy",
+			spacing: "Spacing",
+			spacingDesc: "Override the global spacing for this board.",
+			spacingDefault: (state: string) => `Use global default (${state})`,
 			cardOpacity: "Card opacity",
 			cardBlur: "Card blur",
 			cardRadius: "Card corner radius",
@@ -1397,6 +1395,13 @@ export const en = {
 			goToTab: "Open",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				taskchute: {
+					name: "TaskChute Plus",
+					desc:
+						"The TaskChute cards read the plugin's own tasks and records — " +
+						"today's list with start and stop, a week's overview and its " +
+						"activity heatmap. Tasks, routines and the log stay TaskChute's.",
+				},
 				stereo: {
 					name: "Stereo",
 					desc:
@@ -1742,9 +1747,15 @@ export const en = {
 			fitToPage: "Fit to page",
 			fitToPageDesc:
 				"Keep the dashboard to one screen instead of allowing scroll.",
-			compact: "Compact spacing",
-			compactDesc:
-				"Tighten card padding and top margin to enlarge the usable area.",
+			spacing: "Spacing",
+			spacingDesc:
+				"How much padding the board leaves around cards and along the page " +
+				"edges.",
+			spacingOptions: {
+				roomy: "Roomy",
+				compact: "Compact",
+				flush: "Flush",
+			},
 			arrangeButtonVisibility: "Arrange button visibility",
 			arrangeButtonVisibilityDesc:
 				"Choose whether the arrange/edit button is always visible or revealed when hovering its area.",
@@ -1921,6 +1932,7 @@ export const en = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "Plugin view (beta)",
+			taskchute: "TaskChute",
 			pet: "Pet",
 			vaultpet: "Vault Pet",
 		},
@@ -2003,11 +2015,12 @@ export const en = {
 				"Show a button that opens the embedded file in its own tab. Off by default.",
 		},
 		slideshow: {
-			source: "Pictures from",
+			source: "Slides from",
 			sourceDesc:
-				"A list you pick picture by picture, or every image in a folder.",
+				"A list you pick picture by picture, every image in a folder, or every note in a folder.",
 			sourceList: "A list of pictures",
-			sourceFolder: "A folder",
+			sourceFolder: "A folder of pictures",
+			sourceNotes: "The notes in a folder",
 			picturesHeading: "Pictures",
 			picturesEmpty: "No pictures yet — add one below.",
 			picturePlaceholder: "Image path",
@@ -2026,6 +2039,11 @@ export const en = {
 			includeSubfoldersDesc: "Also show images inside this folder's subfolders.",
 			folderCount: (count: number) =>
 				count === 1 ? "1 image found here right now." : `${count} images found here right now.`,
+			notesFolder: "Notes folder",
+			notesFolderDesc:
+				"Every note in this folder is shown, one page at a time. Leave empty for the vault root.",
+			notesCount: (count: number) =>
+				count === 1 ? "1 note found here right now." : `${count} notes found here right now.`,
 			playbackHeading: "Playback",
 			order: "Order",
 			orderDesc: "The order the pictures are shown in.",
@@ -3657,6 +3675,20 @@ export const en = {
 				"A button in the card's corner that opens Vault Pet's house in the " +
 				"sidebar, the same as its ribbon icon.",
 		},
+		taskchute: {
+			missing: "TaskChute Plus isn't installed",
+			missingDesc:
+				"This card reads TaskChute's own tasks and records. Install and enable " +
+				"the plugin and the card fills itself in — the choice below is kept " +
+				"either way.",
+			view: "Show",
+			viewDesc:
+				"Three of TaskChute's own surfaces, drawn small: today's tasks with " +
+				"start and stop, a week's overview, or the activity heatmap.",
+			viewTasks: "Today's tasks",
+			viewOverview: "Overview",
+			viewHeatmap: "Heatmap",
+		},
 		design: {
 			name: "Design",
 			desc: "Classic, or Material 3 Expressive: tonal containers in your accent colour, pills and soft shapes.",
@@ -3734,6 +3766,7 @@ export const en = {
 			embedSectionMissing: (section: string) => `Section not found: ${section}`,
 			slideshowEmpty: "Add pictures in card settings",
 			slideshowFolderEmpty: "No images in this folder",
+			slideshowNotesEmpty: "No notes in this folder",
 			embedEnableBases: "Enable the core Bases plugin to embed .base files",
 			embedEnableCanvas: "Enable the core Canvas plugin to embed canvases",
 			embedInstallExcalidraw: "Install the Excalidraw plugin to embed drawings",
@@ -3785,6 +3818,11 @@ export const en = {
 			vaultPetInstall: "Install the Vault Pet plugin to keep a pet here",
 			vaultPetNoHouse:
 				"Vault Pet's house isn't available — enable the plugin, or update it",
+			taskChuteInstall: "Install TaskChute Plus to show its day here",
+			taskChuteUnsupported:
+				"TaskChute's view didn't expose what this card needs — update TaskChute Plus",
+			taskChuteNoData:
+				"No TaskChute records yet — run a task in TaskChute and come back",
 			operonEnable: "Enable the Operon plugin to show its tasks",
 			operonDisabled:
 				"The Operon integration is off — turn it on in Settings → Hearth → Integrations",
@@ -3889,6 +3927,39 @@ export const en = {
 		vaultPet: {
 			openHouse: "Open the pet house",
 		},
+		taskchute: {
+			open: "Open TaskChute",
+			start: "Start this task",
+			stop: "Stop and complete this task",
+			done: "Done",
+			today: "Today",
+			noTime: "No time",
+			previousDay: "Previous day",
+			nextDay: "Next day",
+			changeTime: "Change time…",
+			dropHere: "Drop a task here",
+			progress: (done: number, total: number) => `${done}/${total} done`,
+			minutesToday: "min today",
+			weekDone: "done · 7 days",
+			weekMinutes: "total · 7 days",
+			heatmapHeading: "Activity",
+			addTask: "Add a task",
+			more: "Task actions",
+			moveUp: "Move up",
+			moveDown: "Move down",
+			moveToDate: "Move to date…",
+			duplicate: "Duplicate",
+			delete: "Delete",
+			deleteTitle: "Delete this task?",
+			deleteMessage: (name: string) => `“${name}” will be removed from TaskChute.`,
+			moveDateTitle: "Move the task to a date",
+			moveDateLabel: "Date",
+			moveDateSave: "Move",
+			legendLess: "Less",
+			legendMore: "More",
+			noTasks: "Nothing scheduled for today",
+			loading: "Loading TaskChute…",
+		},
 		embed: {
 			openFile: "Open this file",
 			editHint: "Double-click to edit",
@@ -3901,6 +3972,7 @@ export const en = {
 			pause: "Pause the slideshow",
 			play: "Resume the slideshow",
 			openImage: "Open this picture",
+			openNote: "Open this note",
 			jump: "Jump to a picture",
 		},
 		text: {
@@ -4583,6 +4655,7 @@ export const en = {
 		note: "Embedded note",
 		image: "Embedded image",
 		slideshow: "Slideshow",
+		"slideshow-notes": "Notes slideshow",
 		base: "Embedded base",
 		excalidraw: "Excalidraw drawing",
 		canvas: "Embedded canvas",
@@ -4622,6 +4695,9 @@ export const en = {
 		pet: "Pet",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Vault Pet house",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute overview",
+		"taskchute-heatmap": "TaskChute heatmap",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -4632,7 +4708,8 @@ export const en = {
 		"music-stereo": "A remote control for the Stereo plugin's Navidrome player",
 		note: "Any note, rendered live on the board",
 		image: "A picture from the vault, edge to edge",
-		slideshow: "Pictures from a list or a folder, rotated on a timer",
+		slideshow: "Pictures from a list or a folder, or the notes in a folder, rotated on a timer",
+		"slideshow-notes": "The notes in a folder, one page at a time",
 		base: "A .base file, rendered by Obsidian's Bases",
 		excalidraw: "An Excalidraw drawing with native pan and zoom",
 		canvas: "A canvas you can pan around in place",
@@ -4672,6 +4749,9 @@ export const en = {
 		pet: "A small companion that lives on your board",
 		"vault-pet": "The Vault Pet plugin's pet, growing as you write",
 		"vault-pet-house": "Vault Pet's house — quests, dex, badges and stats",
+		taskchute: "Today's TaskChute tasks — start, stop and see what's next",
+		"taskchute-overview": "A week of TaskChute work: finished, minutes, day by day",
+		"taskchute-heatmap": "TaskChute activity as a heatmap of minutes per day",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

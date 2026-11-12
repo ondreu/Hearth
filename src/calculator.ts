@@ -593,12 +593,12 @@ function normalizeCurrencySymbols(input: string): string {
 }
 
 /** "Into" as German, French and Chinese say it: `10 km nach mi`, `20 euros
- * en dollars`, `20美元换成欧元` all become the "… to …" the conversion parser
- * reads. Chinese needs no spaces around the word, so it is matched anywhere;
- * German and French only as a whole word. */
+ * en dollars`, `20美元换成欧元` (or Traditional `20美元換成歐元`) all become the 
+ * "… to …" the conversion parser reads. Chinese needs no spaces around the 
+ * word, so it is matched anywhere; German and French only as a whole word. */
 function normalizeConnectors(input: string): string {
 	return input
-		.replace(/\s*(?:兑换成|换算成|转换成|兑换为|换成|兑成|转成|兑换|等于多少|是多少)\s*/g, " to ")
+		.replace(/\s*(?:[兑兌][换換]成|[换換]算成|[转轉][换換]成|[兑兌][换換][为為]|[换換]成|[兑兌]成|[转轉]成|[兑兌][换換]|等[于於]多少|是多少)\s*/g, " to ")
 		.replace(/\s+(?:nach|en)\s+/gi, " to ")
 		.trim();
 }

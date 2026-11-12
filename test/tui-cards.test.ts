@@ -3,6 +3,7 @@ import { CARD_DEFINITIONS } from "../src/cards";
 import { bigLines, bigWidth, BIG_ROWS, hasBigGlyphs } from "../src/tui/bigtext";
 import { literalText } from "../src/tui/cards/dataview";
 import { TUI_RENDERERS } from "../src/tui/cards";
+import { frameFieldsChanged, type TuiOutput } from "../src/tui/card";
 import { halfBlocks } from "../src/tui/cards/pet";
 import { historyLine, scaleLine } from "../src/tui/cards/tension";
 import { ART_W, conditionArt } from "../src/tui/cards/weather";
@@ -97,5 +98,23 @@ describe("world tension as text", () => {
 	it("draws the history on the whole scale, the last days only", () => {
 		expect(historyLine([0, 100], 10)).toBe("▁█");
 		expect(historyLine([10, 20, 30, 40], 2)).toHaveLength(2);
+	});
+});
+
+describe("what a frame has to redraw for", () => {
+	const out: TuiOutput = { lines: [[{ text: "12:00" }], [{ text: "tick" }]], hint: "clock", foot: "one key" };
+
+	it("ignores a body that only repainted its own text", () => {
+		expect(frameFieldsChanged(out, { ...out, lines: [[{ text: "12:01" }], [{ text: "tock" }]] })).toBe(false);
+	});
+
+	it("notices the hint, the key help and the body's height", () => {
+		expect(frameFieldsChanged(out, { ...out, hint: "other" })).toBe(true);
+		expect(frameFieldsChanged(out, { ...out, foot: "another key" })).toBe(true);
+		expect(frameFieldsChanged(out, { ...out, lines: [[{ text: "12:00" }]] })).toBe(true);
+	});
+
+	it("always redraws the first time a body reports", () => {
+		expect(frameFieldsChanged(undefined, out)).toBe(true);
 	});
 });

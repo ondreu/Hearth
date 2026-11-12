@@ -26,9 +26,11 @@ import { maybeRunSetup, openSetupWizard } from "./onboarding";
 import { clearContentSearchCache } from "./query";
 import { initCurrencyCache } from "./currency";
 import { BoardRefreshTracker } from "./boardrefresh";
+import { refreshOnceMetadataReady } from "./metaready";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
 import { disposeVaultPlayer } from "./audioplayer";
+import { disposeTaskChuteSession } from "./taskchute";
 import { installUiDesign } from "./uidesign";
 import { ACTIVE_DASHBOARD_KEY, settingsForDisk, validLocalDashboardId } from "./devicestate";
 import {
@@ -268,8 +270,18 @@ export default class HearthPlugin extends Plugin {
 			// the cache is warm would list notes under their file names where a
 			// card asked for a property (#399) — those cards don't redraw by
 			// themselves, so the names would stay wrong until something else did.
+			//
+			// One resolution only, though: Obsidian fires `resolved` again after
+			// every file modification, so a listener that stayed subscribed
+			// rebuilt the boards under the cursor on the autosave that follows a
+			// pause in typing — caret and scroll position gone (#475). Later
+			// metadata changes reach a board through `liveRefreshDebounced`,
+			// which is debounced and held while the user is typing.
 			this.registerEvent(
-				this.app.metadataCache.on("resolved", () => this.refreshViews()),
+				this.app.metadataCache.on(
+					"resolved",
+					refreshOnceMetadataReady(() => this.refreshViews()),
+				),
 			);
 			// Front Matter Title can still be starting up when the first boards
 			// draw; once it is running, their folder cards can show its titles.
@@ -300,6 +312,9 @@ export default class HearthPlugin extends Plugin {
 		// The music card's player owns a detached <audio> element for the whole
 		// plugin; without this an unloaded Hearth would keep a decoder alive.
 		disposeVaultPlayer();
+		// A TaskChute card keeps a hidden TaskChute view alive as its data
+		// source; leaving it behind would leave another plugin's timers running.
+		disposeTaskChuteSession();
 	}
 
 	private maybeReplaceNewTab(leaf: WorkspaceLeaf | null) {
@@ -460,12 +475,15 @@ export default class HearthPlugin extends Plugin {
 	 *
 	 * `from` is the view the button was pressed in, so the note can replace that
 	 * Hearth tab when the user asked for "same tab" (#106); the command palette
-	 * has no view and falls back to the active leaf. */
-	async createNewNote(from?: HomeView) {
+	 * has no view and falls back to the active leaf. `query` is what the search
+	 * field held when the button beside it was pressed — a title typed there
+	 * names the note; the command has no field and passes nothing. */
+	async createNewNote(from?: HomeView, query = "") {
 		await createConfiguredNote(
 			this.app,
 			this.settings,
 			from ?? { app: this.app, settings: this.settings },
+			query,
 		);
 	}
 

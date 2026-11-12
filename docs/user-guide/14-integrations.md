@@ -1,6 +1,6 @@
 # 14. Integrations: every plugin and service Hearth works with
 
-Hearth integrates with twenty-five other things: community plugins, Obsidian's
+Hearth integrates with twenty-six other things: community plugins, Obsidian's
 own core plugins, and external services. Almost all of them are picked up
 automatically — nothing to connect, no keys to paste. The exceptions are named
 explicitly below.
@@ -134,6 +134,20 @@ its statuses, priorities and recurrence stay its to define.
 
 This is the one integration that needs a step from you. It has its own section
 below.
+
+### TaskChute Plus
+
+**What Hearth does with it:** three cards read
+[TaskChute Plus](https://github.com/hiroyaiizuka/taskchute-for-obsidian)'s own
+data — today's task list with start and stop, a week's overview, and its
+activity heatmap. Tasks, routines, the running timer and the log stay
+TaskChute's; the cards are windows, and every action goes through the plugin.
+
+**Configured in:** the card itself, on your dashboard.
+
+TaskChute Plus publishes no API, so the task list drives the members its view
+exposes and the other two read its monthly record file. Nothing is written by
+Hearth directly.
 
 ### Iconic and Iconize
 

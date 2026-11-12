@@ -585,6 +585,46 @@ shown underneath.
 
 ---
 
+## The three TaskChute cards
+
+**What they show:** [TaskChute Plus](https://github.com/hiroyaiizuka/taskchute-for-obsidian)'s
+own data, drawn small instead of hosted:
+
+- **TaskChute** — today's tasks, grouped into TaskChute's own time sections (and
+  *No time*), with each task's scheduled or actual time on the right. A row's button starts an idle
+  task and stops a running one; both go through TaskChute itself, so its timer,
+  log, heatmap and reminders stay in step. The header counts what's finished,
+  the running task is pulled to the top, **+** adds a task through TaskChute's
+  own dialog, and a row's **⋯** menu reorders it, changes its time, moves it to
+  another date, duplicates it or deletes it. **Drag a row into another time
+  window** to reschedule it there — every window of the day is drawn, empty
+  ones included, so there is always somewhere to drop. **‹ ›** beside the date
+  move the card — and every TaskChute card on the board — to another day; the
+  date itself goes back to today.
+- **TaskChute overview** — today's finished/planned and minutes, then the last
+  seven days as bars.
+- **TaskChute heatmap** — the plugin's activity, one cell per day, shaded by how
+  many minutes were worked.
+
+**Requires:** the TaskChute Plus community plugin, enabled.
+
+| Setting | Meaning |
+| --- | --- |
+| *Show* | Which of the three views the card draws. The three "Add card" entries are presets for the same card; switching here re-points it |
+
+The **Open TaskChute** button in the card's corner opens the plugin's own tab,
+where comments, projects, routines, recipes and the full editor live — the card
+covers the day: add, start, stop, organise.
+
+The task list keeps one TaskChute view mounted off-screen as its data source.
+That is how starting and stopping a task stays the plugin's job rather than
+Hearth writing TaskChute's files itself; the overview and heatmap only read the
+plugin's monthly snapshot and mount nothing. TaskChute Plus has no public API,
+so the list depends on the members its view exposes — a release that renames
+them leaves the card saying so instead of showing a stale list.
+
+---
+
 ## Plugin view (beta)
 
 **What it shows:** another plugin's registered side-panel view, hosted inside a

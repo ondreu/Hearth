@@ -285,8 +285,8 @@ export const zh: Translations = {
 				"铺满整个面板，或作为顶部的横幅条，下方的卡片使用主题自身的表面。",
 			layoutFull: "铺满整个面板",
 			layoutBanner: "顶部横幅",
-			compact: "紧凑间距",
-			compactDesc: "收紧间隙，让屏幕容纳更多内容。",
+			spacing: "间距",
+			spacingDesc: "看板在卡片周围和页面边缘留出的内边距。",
 		},
 		surfaces: {
 			glass: {
@@ -748,13 +748,9 @@ export const zh: Translations = {
 				title: "标题",
 				both: "两者",
 			},
-			compact: "紧凑间距",
-			compactDesc: "为此面板覆盖全局间距。",
-			compactDefault: (state: string) => `使用全局默认（${state}）`,
-			compactOptionOn: "紧凑",
-			compactOptionOff: "宽松",
-			compactStateOn: "紧凑",
-			compactStateOff: "宽松",
+			spacing: "间距",
+			spacingDesc: "为此面板覆盖全局间距。",
+			spacingDefault: (state: string) => `使用全局默认（${state}）`,
 			cardOpacity: "卡片不透明度",
 			cardBlur: "卡片模糊",
 			cardRadius: "卡片圆角半径",
@@ -1271,7 +1267,11 @@ export const zh: Translations = {
 			goToTab: "打开",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
-				stereo: {
+
+				taskchute: {
+					name: "TaskChute Plus",
+					desc: "TaskChute 卡片读取插件自带的任务与记录——今日列表（可开始/停止）、一周概览和活动热力图。任务、例行与日志始终归 TaskChute 所有。",
+				},				stereo: {
 					name: "Stereo",
 					desc:
 						"让音乐卡片控制 Stereo 插件的 Navidrome/Subsonic 播放器——当前曲目、" +
@@ -1567,8 +1567,13 @@ export const zh: Translations = {
 				"卡片网格的尺寸与透明度。卡片本身在面板上添加和配置。",
 			fitToPage: "适应页面",
 			fitToPageDesc: "把面板限制在一屏内，而不是允许滚动。",
-			compact: "紧凑间距",
-			compactDesc: "收紧卡片内边距和上边距，以扩大可用区域。",
+			spacing: "间距",
+			spacingDesc: "看板在卡片周围和页面边缘留出的内边距。",
+			spacingOptions: {
+				roomy: "宽松",
+				compact: "紧凑",
+				flush: "无内边距",
+			},
 			arrangeButtonVisibility: "排列按钮可见性",
 			arrangeButtonVisibilityDesc:
 				"选择排列/编辑按钮是始终可见，还是在鼠标悬停其区域时显示。",
@@ -1735,6 +1740,7 @@ export const zh: Translations = {
 			git: "Git",
 			operon: "Operon",
 			leaf: "插件视图（测试版）",
+			taskchute: "TaskChute",
 			pet: "宠物",
 			vaultpet: "Vault Pet",
 		},
@@ -1808,10 +1814,11 @@ export const zh: Translations = {
 			openButtonDesc: "显示一个按钮，在独立标签页中打开嵌入的文件。默认关闭。",
 		},
 		slideshow: {
-			source: "图片来源",
-			sourceDesc: "由您逐张挑选的列表，或某个文件夹中的所有图片。",
+			source: "幻灯片来源",
+			sourceDesc: "由您逐张挑选的列表、某个文件夹中的所有图片，或某个文件夹中的所有笔记。",
 			sourceList: "图片列表",
-			sourceFolder: "一个文件夹",
+			sourceFolder: "图片文件夹",
+			sourceNotes: "文件夹中的笔记",
 			picturesHeading: "图片",
 			picturesEmpty: "还没有图片 — 请在下方添加。",
 			picturePlaceholder: "图片路径",
@@ -1829,6 +1836,9 @@ export const zh: Translations = {
 			includeSubfolders: "包含子文件夹",
 			includeSubfoldersDesc: "同时显示此文件夹子文件夹中的图片。",
 			folderCount: (count: number) => `此处当前找到 ${count} 张图片。`,
+			notesFolder: "笔记文件夹",
+			notesFolderDesc: "此文件夹中的每篇笔记都会逐页显示。留空则使用仓库根目录。",
+			notesCount: (count: number) => `此处当前找到 ${count} 篇笔记。`,
 			playbackHeading: "播放",
 			order: "顺序",
 			orderDesc: "图片的显示顺序。",
@@ -3321,6 +3331,15 @@ export const zh: Translations = {
 			openButton: "“打开宠物小屋”按钮",
 			openButtonDesc: "卡片角落的一个按钮，像它的功能区图标一样在侧边栏打开 Vault Pet 的小屋。",
 		},
+		taskchute: {
+			missing: "未安装 TaskChute Plus",
+			missingDesc: "此卡片读取 TaskChute 自带的任务与记录。安装并启用插件后卡片即会填充——下面的选择会被保留。",
+			view: "显示",
+			viewDesc: "TaskChute 的三种视图，缩小绘制：今日任务（可开始/停止）、一周概览，或活动热力图。",
+			viewTasks: "今日任务",
+			viewOverview: "概览",
+			viewHeatmap: "热力图",
+		},
 		design: {
 			name: "设计",
 			desc: "经典，或 Material 3 Expressive：强调色的色调容器、胶囊与柔和形状。",
@@ -3364,6 +3383,39 @@ export const zh: Translations = {
 
 	// ---- Card bodies (rendered content) --------------------------------
 	cards: {
+		taskchute: {
+			open: "打开 TaskChute",
+			start: "开始此任务",
+			stop: "停止并完成",
+			done: "已完成",
+			today: "今天",
+			noTime: "未安排时间",
+			previousDay: "前一天",
+			nextDay: "后一天",
+			changeTime: "更改时间…",
+			dropHere: "将任务拖到这里",
+			progress: (done: number, total: number) => `${done}/${total} 已完成`,
+			minutesToday: "今日分钟",
+			weekDone: "完成 · 7 天",
+			weekMinutes: "总计 · 7 天",
+			heatmapHeading: "活动",
+			addTask: "添加任务",
+			more: "任务操作",
+			moveUp: "上移",
+			moveDown: "下移",
+			moveToDate: "移至日期…",
+			duplicate: "复制",
+			delete: "删除",
+			deleteTitle: "删除此任务？",
+			deleteMessage: (name: string) => `“${name}”将从 TaskChute 中移除。`,
+			moveDateTitle: "将任务移至某个日期",
+			moveDateLabel: "日期",
+			moveDateSave: "移动",
+			legendLess: "较少",
+			legendMore: "较多",
+			noTasks: "今天没有安排",
+			loading: "正在加载 TaskChute…",
+		},
 		music: {
 			play: "播放",
 			pause: "暂停",
@@ -3394,6 +3446,7 @@ export const zh: Translations = {
 			embedSectionMissing: (section: string) => `找不到片段:${section}`,
 			slideshowEmpty: "请在卡片设置中添加图片",
 			slideshowFolderEmpty: "此文件夹中没有图片",
+			slideshowNotesEmpty: "此文件夹中没有笔记",
 			embedEnableBases: "请启用核心插件 Bases 以嵌入 .base 文件",
 			embedEnableCanvas: "请启用核心插件“白板”以嵌入白板",
 			embedInstallExcalidraw: "请安装 Excalidraw 插件以嵌入绘图",
@@ -3440,6 +3493,9 @@ export const zh: Translations = {
 			leafViewMissing: "此视图不可用 — 请启用提供它的插件",
 			vaultPetInstall: "安装 Vault Pet 插件即可在此养一只宠物",
 			vaultPetNoHouse: "Vault Pet 的小屋不可用 — 请启用或更新该插件",
+			taskChuteInstall: "安装 TaskChute Plus 即可在此查看它的一天",
+			taskChuteUnsupported: "TaskChute 的视图未提供此卡片所需的内容——请更新 TaskChute Plus",
+			taskChuteNoData: "还没有 TaskChute 记录——先在 TaskChute 中执行一项任务",
 			operonEnable: "请启用 Operon 插件以显示其任务",
 			operonDisabled: "Operon 集成已关闭 — 请在 设置 → Hearth → 集成 中开启",
 			operonUnsupported:
@@ -3555,6 +3611,7 @@ export const zh: Translations = {
 			pause: "暂停幻灯片",
 			play: "继续播放幻灯片",
 			openImage: "打开此图片",
+			openNote: "打开此笔记",
 			jump: "跳转到图片",
 		},
 		text: {
@@ -4225,6 +4282,7 @@ export const zh: Translations = {
 		note: "嵌入笔记",
 		image: "嵌入图片",
 		slideshow: "幻灯片",
+		"slideshow-notes": "笔记幻灯片",
 		base: "嵌入 base",
 		excalidraw: "Excalidraw 绘图",
 		canvas: "嵌入白板",
@@ -4264,6 +4322,9 @@ export const zh: Translations = {
 		pet: "宠物",
 		"vault-pet": "Vault Pet",
 		"vault-pet-house": "Vault Pet 小屋",
+		taskchute: "TaskChute",
+		"taskchute-overview": "TaskChute 概览",
+		"taskchute-heatmap": "TaskChute 热力图",
 	},
 
 	/** One line per template, shown under its name in the add-card picker and
@@ -4274,7 +4335,8 @@ export const zh: Translations = {
 		"music-stereo": "控制 Stereo 插件 Navidrome 播放器的遥控卡片",
 		note: "任意笔记，在面板上实时渲染",
 		image: "仓库中的一张图片，铺满整张卡片",
-		slideshow: "来自列表或文件夹的图片，按计时器轮播",
+		slideshow: "来自列表或文件夹的图片，或文件夹中的笔记，按计时器轮播",
+		"slideshow-notes": "文件夹中的笔记，一页一页轮播",
 		base: "一个 .base 文件，由 Obsidian 的 Bases 渲染",
 		excalidraw: "一幅 Excalidraw 绘图，支持原生平移与缩放",
 		canvas: "一块可以就地平移的白板",
@@ -4314,6 +4376,9 @@ export const zh: Translations = {
 		pet: "住在您面板上的小伙伴",
 		"vault-pet": "Vault Pet 插件的宠物，随着您的写作成长",
 		"vault-pet-house": "Vault Pet 的小屋 —— 任务、图鉴、徽章与统计",
+		taskchute: "今天的 TaskChute 任务——开始、停止，看清下一步",
+		"taskchute-overview": "一周的 TaskChute 工作：完成数、分钟数，按天查看",
+		"taskchute-heatmap": "以每日分钟数热力图呈现 TaskChute 活动",
 	},
 
 	// ---- Add-card picker -----------------------------------------------

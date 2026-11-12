@@ -15,6 +15,7 @@ export interface FileTypeGroup {
 }
 
 export const FOLDERS_GROUP_ID = "folders";
+export const MARKDOWN_GROUP_ID = "markdown";
 export const EXCALIDRAW_GROUP_ID = "excalidraw";
 export const IMAGES_GROUP_ID = "images";
 export const OTHER_GROUP_ID = "other";
@@ -24,7 +25,7 @@ export const EXCALIDRAW_PLUGIN_ID = "obsidian-excalidraw-plugin";
 
 export const FILE_TYPE_GROUPS: FileTypeGroup[] = [
 	{ id: FOLDERS_GROUP_ID, label: "Folders", icon: "folder", extensions: [] },
-	{ id: "markdown", label: "Notes", icon: "file-text", extensions: ["md", "markdown"] },
+	{ id: MARKDOWN_GROUP_ID, label: "Notes", icon: "file-text", extensions: ["md", "markdown"] },
 	// Excalidraw drawings are detected specially (see isExcalidraw); the
 	// "excalidraw" extension is listed so plain .excalidraw files map here too.
 	{ id: EXCALIDRAW_GROUP_ID, label: "Excalidraw", icon: "pen-tool", extensions: ["excalidraw"] },
@@ -59,6 +60,18 @@ const OTHER_GROUP = FILE_TYPE_GROUPS.find((g) => g.id === OTHER_GROUP_ID)!;
 export const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set(
 	FILE_TYPE_GROUPS.find((g) => g.id === IMAGES_GROUP_ID)!.extensions,
 );
+
+/** The note formats Hearth renders as Markdown — the "markdown" group's own
+ * extensions, so the search filter and the slideshow's notes source agree on
+ * what counts as a note. */
+export const NOTE_EXTENSIONS: ReadonlySet<string> = new Set(
+	FILE_TYPE_GROUPS.find((g) => g.id === MARKDOWN_GROUP_ID)!.extensions,
+);
+
+/** Whether this file is a Markdown note (see NOTE_EXTENSIONS). */
+export function isNoteFile(file: TAbstractFile): file is TFile {
+	return file instanceof TFile && NOTE_EXTENSIONS.has(file.extension.toLowerCase());
+}
 
 /** Whether this file is a picture Hearth can show (see IMAGE_EXTENSIONS). */
 export function isImageFile(file: TAbstractFile): file is TFile {

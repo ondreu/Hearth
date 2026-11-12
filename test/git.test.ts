@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	GIT_DEFAULT_ACTIONS,
 	GIT_DEFAULT_SECTIONS,
+	cardCommitOptions,
 	commitSummary,
 	gitActionAvailable,
 	gitActionTask,
@@ -189,6 +190,27 @@ describe("onlyStagedFor", () => {
 	});
 });
 
+describe("cardCommitOptions", () => {
+	const snapshot = status([file("a.md", " ", "M")]);
+
+	it("keeps the preset message and asking for one exclusive", () => {
+		// obsidian-git's own modal starts empty and discards any preset, so a
+		// preset message means nothing while asking is on; sending both would
+		// only invite the two to disagree.
+		expect(
+			cardCommitOptions("vault backup", true, "staged", snapshot).commitMessage,
+		).toBeUndefined();
+	});
+
+	it("trims the preset message and passes the rest through untouched", () => {
+		const opts = cardCommitOptions("  vault backup  ", undefined, "all", snapshot);
+		expect(opts.commitMessage).toBe("vault backup");
+		expect(opts.requestCustomMessage).toBeUndefined();
+		expect(opts.scope).toBe("all");
+		expect(opts.status).toBe(snapshot);
+	});
+});
+
 describe("commit formatting", () => {
 	it("takes the first non-empty line as a commit's subject", () => {
 		expect(commitSummary("\n\n  vault backup  \n\nlong body here")).toBe("vault backup");
@@ -275,19 +297,156 @@ describe("gitActionTask / gitActionAvailable", () => {
 		expect(gitActionAvailable(fakePlugin(), "history")).toBe(true);
 	});
 
-	it("passes the card's commit options straight through to the plugin", async () => {
+	it("translates the card's fixed scopes into both dialects obsidian-git has used", async () => {
+		// ≥ 2.40 decides coverage through `mode`; ≤ 2.39 through the old
+		// `onlyStaged` boolean. Dispatch fills both, so "staged" finally means
+		// staged whatever the install. Before this change, every scope was
+		// silently collapsing to the plugin's default on 2.40 builds.
 		const commit = vi.fn().mockResolvedValue(true);
 		const plugin = fakePlugin({ commit });
 		await gitActionTask(plugin, "commit", {
+			scope: "staged",
 			commitMessage: "vault backup",
-			onlyStaged: true,
 		})?.();
-		expect(commit).toHaveBeenCalledWith({
+		expect(commit.mock.calls[0]?.[0]).toEqual({
 			fromAuto: false,
 			requestCustomMessage: undefined,
-			commitMessage: "vault backup",
+			mode: "staged",
 			onlyStaged: true,
+			commitMessage: "vault backup",
 		});
+		await gitActionTask(plugin, "commit", { scope: "all" })?.();
+		expect(commit.mock.calls[1]?.[0]).toEqual({
+			fromAuto: false,
+			requestCustomMessage: undefined,
+			mode: "all",
+			onlyStaged: false,
+			commitMessage: undefined,
+		});
+	});
+
+	it("hands scope 'smart' over as obsidian-git's own mode, unresolved", async () => {
+		// Its own "Commit" command passes mode: "smart" and resolves it inside
+		// the queued task against a status it reads itself, fresher than the
+		// snapshot the card holds. The dispatched call does not pre-decide,
+		// though it still fills ≤ 2.39's fallback boolean from that snapshot.
+		const commit = vi.fn().mockResolvedValue(true);
+		const plugin = fakePlugin({ commit });
+		await gitActionTask(plugin, "commit", {
+			scope: "smart",
+			status: status([file("a.md", "A", " ")]),
+		})?.();
+		expect(commit.mock.calls[0]?.[0]).toEqual({
+			fromAuto: false,
+			requestCustomMessage: undefined,
+			mode: "smart",
+			onlyStaged: true,
+			commitMessage: undefined,
+		});
+	});
+
+	it("resolves scope 'smart' for ≤ 2.39, which reads only the old boolean", async () => {
+		// Those builds never knew `mode`; their staged half lives and dies with
+		// what the card's resolution says against the last observed status.
+		const commit = vi.fn().mockResolvedValue(true);
+		const plugin = fakePlugin({ commit });
+		await gitActionTask(plugin, "commit", {
+			scope: "smart",
+			status: status([file("a.md", " ", "M")]), // changed, nothing staged
+		})?.();
+		expect(commit.mock.calls[0]?.[0]).toMatchObject({
+			mode: "smart",
+			onlyStaged: false,
+		});
+		await gitActionTask(plugin, "commit", {
+			scope: "smart",
+			status: status([file("a.md", "A", "M")]), // something staged
+		})?.();
+		expect(commit.mock.calls[1]?.[0]).toMatchObject({ onlyStaged: true });
+	});
+
+	it("reads the commit-and-push members off plugin.gitActions (obsidian-git ≥ 2.41)", async () => {
+		// 2.41 relocated the write actions onto a GitActions helper. Dispatch
+		// probes there first, so a current obsidian-git keeps every button on.
+		const actions = {
+			commit: vi.fn().mockResolvedValue({ status: "success" }),
+			commitAndSync: vi.fn().mockResolvedValue({ status: "success" }),
+			push: vi.fn().mockResolvedValue({ status: "success" }),
+			pullChangesFromRemote: vi.fn().mockResolvedValue({ status: "success" }),
+			fetch: vi.fn().mockResolvedValue({ status: "fetched" }),
+			discardAll: vi.fn().mockResolvedValue({ status: "discarded" }),
+			switchBranch: vi.fn().mockResolvedValue({ status: "switched" }),
+		};
+		const plugin = fakePlugin({ gitActions: actions });
+		for (const action of [
+			"commitAndSync",
+			"commit",
+			"push",
+			"pull",
+			"fetch",
+			"discardAll",
+			"switchBranch",
+		] as const) {
+			expect(gitActionAvailable(plugin, action)).toBe(true);
+		}
+		await gitActionTask(plugin, "commitAndSync", { scope: "staged" })?.();
+		expect(actions.commitAndSync).toHaveBeenCalledWith(
+			expect.objectContaining({ fromAutoBackup: false, mode: "staged" }),
+		);
+		await gitActionTask(plugin, "push")?.();
+		expect(actions.push).toHaveBeenCalledTimes(1);
+	});
+
+	it("goes to the plugin itself when its build predates the gitActions helper", () => {
+		// The other branch of dispatch. Through obsidian-git 2.40 the write
+		// methods sat flat on the plugin, and nothing has un-published them.
+		const plugin = fakePlugin({
+			commit: vi.fn(),
+			commitAndSync: vi.fn(),
+			push: vi.fn(),
+			pullChangesFromRemote: vi.fn(),
+			fetch: vi.fn(),
+			discardAll: vi.fn(),
+			switchBranch: vi.fn(),
+		});
+		for (const action of [
+			"commitAndSync",
+			"commit",
+			"push",
+			"pull",
+			"fetch",
+			"discardAll",
+			"switchBranch",
+		] as const) {
+			expect(gitActionAvailable(plugin, action)).toBe(true);
+		}
+	});
+
+	it("sends a write through the helper even when a build publishes it flat as well", async () => {
+		// Both shapes carrying the one member: dispatch reads gitActions first,
+		// and the flat member is a fallback, never a second call path.
+		const flat = vi.fn().mockResolvedValue(true);
+		const helper = {
+			commitAndSync: vi.fn().mockResolvedValue({ status: "success" }),
+		};
+		const plugin = fakePlugin({ commitAndSync: flat, gitActions: helper });
+		await gitActionTask(plugin, "commitAndSync", {})?.();
+		expect(helper.commitAndSync).toHaveBeenCalledTimes(1);
+		expect(flat).not.toHaveBeenCalled();
+	});
+
+	it("answers per member when a build splits the two publication shapes", () => {
+		// One member on the helper, another flat: each button follows the home
+		// its own member has, since neither probe nor call detaches a method
+		// from the object it lives on.
+		const plugin = fakePlugin({
+			gitActions: { commit: vi.fn().mockResolvedValue({ status: "success" }) },
+			push: vi.fn().mockResolvedValue(true),
+		});
+		expect(gitActionAvailable(plugin, "commit")).toBe(true);
+		expect(gitActionAvailable(plugin, "push")).toBe(true);
+		// Published in neither place: the button goes off.
+		expect(gitActionAvailable(plugin, "pull")).toBe(false);
 	});
 
 	it("marks a card commit as manual, never as an automatic backup", () => {
@@ -300,12 +459,15 @@ describe("gitActionTask / gitActionAvailable", () => {
 		);
 	});
 
-	it("hands the cached status to a stage-all so the backend needn't re-read it", async () => {
+	it("stages without a status, letting the backend read what it needs", async () => {
+		// Desktop stages the whole tree regardless, and mobile re-reads fresh.
+		// That is also what obsidian-git's own source-control view does, since
+		// it passes nothing; the snapshot this card last saw would only
+		// stale-stage.
 		const stageAll = vi.fn().mockResolvedValue(undefined);
-		const cached = status([file("a.md", " ", "M")]);
-		const plugin = fakePlugin({ gitManager: { stageAll }, cachedStatus: cached });
+		const plugin = fakePlugin({ gitManager: { stageAll } });
 		await gitActionTask(plugin, "stageAll")?.();
-		expect(stageAll).toHaveBeenCalledWith({ status: cached });
+		expect(stageAll).toHaveBeenCalledWith({});
 	});
 });
 

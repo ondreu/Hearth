@@ -29,6 +29,7 @@ export const GRAPHICAL_KINDS: readonly CardKind[] = [
 	"web",
 	"music",
 	"leaf",
+	"taskchute",
 	"datacore",
 	"vaultpet",
 ];
