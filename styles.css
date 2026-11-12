@@ -25305,6 +25305,14 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	content: "[ ]";
 	color: var(--tui-dim);
 	font-family: var(--tui-font);
+	/* Obsidian 1.15 gives every toggle an absolutely positioned, fully
+	 * transparent ::before as its click area. This style draws the checkbox in
+	 * that very pseudo-element, so it has to put it back in flow: left absolute
+	 * and transparent, the [ ] / [x] is invisible and — with `height: auto` on
+	 * the container — the whole toggle collapses to 0px (#480). */
+	position: static;
+	inset: auto;
+	opacity: 1;
 }
 
 :is(.hearth-t-modal, .hearth-t-settings) .checkbox-container.is-enabled::before {

@@ -194,6 +194,28 @@ const ZONE_ALIASES: Record<string, string> = {
 	旧金山: "America/Los_Angeles",
 	多伦多: "America/Toronto",
 	温哥华: "America/Vancouver",
+	// Traditional Chinese names
+	臺北: "Asia/Taipei",
+	新北: "Asia/Taipei",
+	桃園: "Asia/Taipei",
+	高雄: "Asia/Taipei",
+	台灣: "Asia/Taipei",
+	臺灣: "Asia/Taipei",
+	廣州: "Asia/Shanghai",
+	東京: "Asia/Tokyo",
+	首爾: "Asia/Seoul",
+	雪梨: "Australia/Sydney",
+	杜拜: "Asia/Dubai",
+	倫敦: "Europe/London",
+	維也納: "Europe/Vienna",
+	羅馬: "Europe/Rome",
+	馬德里: "Europe/Madrid",
+	紐約: "America/New_York",
+	華盛頓: "America/New_York",
+	洛杉磯: "America/Los_Angeles",
+	舊金山: "America/Los_Angeles",
+	多倫多: "America/Toronto",
+	溫哥華: "America/Vancouver",
 };
 
 /** Lower case, accents off, separators as spaces: "São_Paulo" → "sao paulo". */
@@ -303,7 +325,7 @@ const TIME_RULES: readonly RegExp[] = [
 	/^(?:l['’]\s?)?heure(?: locale)?\s+(?:à|a|au|aux|en)\s+(.+?)\s*\??$/i,
 	/^quelle heure (?:est-il|il est)\s+(?:à|a|au|aux|en)\s+(.+?)\s*\??$/i,
 	/^(.+?)\s+heure(?: locale)?$/i,
-	/^(.+?)\s*(?:现在几点|几点了|时间)[?？]?$/,
+	/^(.+?)\s*(?:现在几点|現在幾點|几点了|幾點了|[时時][间間])[?？]?$/,
 ];
 
 function detectTime(q: string, zones: readonly string[]): InstantIntent | null {
@@ -325,16 +347,16 @@ function englishDate(text: string): string {
 		.normalize("NFD")
 		.replace(/\p{M}/gu, "")
 		.toLowerCase()
-		.replace(/(\d+)\s*天后/g, "in $1 days")
-		.replace(/(\d+)\s*(?:周|星期)后/g, "in $1 weeks")
-		.replace(/(\d+)\s*个月后/g, "in $1 months")
-		.replace(/(\d+)\s*年后/g, "in $1 years")
+		.replace(/(\d+)\s*天[后後]/g, "in $1 days")
+		.replace(/(\d+)\s*(?:[周週]|星期|禮拜)[后後]/g, "in $1 weeks")
+		.replace(/(\d+)\s*[个個]月[后後]/g, "in $1 months")
+		.replace(/(\d+)\s*年[后後]/g, "in $1 years")
 		.replace(/今天/g, "today")
 		.replace(/明天/g, "tomorrow")
 		.replace(/昨天/g, "yesterday")
 		.replace(/(\d)\s*天/g, "$1 days")
-		.replace(/(\d)\s*(?:周|星期)/g, "$1 weeks")
-		.replace(/(\d)\s*个月/g, "$1 months")
+		.replace(/(\d)\s*(?:[周週]|星期|禮拜)/g, "$1 weeks")
+		.replace(/(\d)\s*[个個]月/g, "$1 months")
 		.replace(/(\d)\s*年/g, "$1 years")
 		.replace(/(^|\s)heute(?=\s|$|[+-])/g, "$1today")
 		.replace(/(^|\s)morgen(?=\s|$)/g, "$1tomorrow")
@@ -382,13 +404,13 @@ const COUNT_UNTIL: readonly RegExp[] = [
 	/^(?:days?|how many days)\s+(?:until|till|to|before)\s+(.+)$/i,
 	/^tage\s+bis\s+(.+)$/i,
 	/^(?:combien de )?jours\s+(?:jusqu['’]\s?(?:à|a|au)|avant(?:\s+le)?)\s+(.+?)\s*\??$/i,
-	/^(?:距离?|到)\s*(.+?)\s*还有(?:几|多少)天[?？]?$/,
+	/^(?:距[离離]?|[离離]|到)\s*(.+?)\s*[还還]有(?:[几幾]|多少)天[?？]?$/,
 ];
 const COUNT_SINCE: readonly RegExp[] = [
 	/^(?:days?|how many days)\s+(?:since|from|after)\s+(.+)$/i,
 	/^tage\s+seit\s+(.+)$/i,
 	/^(?:combien de )?jours\s+depuis(?:\s+le)?\s+(.+?)\s*\??$/i,
-	/^(?:自|从)?\s*(.+?)\s*(?:以来|至今)(?:已经)?(?:过了)?(?:几|多少)天[?？]?$/,
+	/^(?:自|[从從])?\s*(.+?)\s*(?:以[来來]|至今)(?:已[经經])?(?:[过過]了)?(?:[几幾]|多少)天[?？]?$/,
 ];
 const SHIFT_RE =
 	/^(today|now|tomorrow|yesterday|\d{4}-\d{2}-\d{2})\s*([+-])\s*(\d+)\s*(d|days?|w|wks?|weeks?|m|mos?|months?|y|yrs?|years?)$/;
@@ -444,7 +466,7 @@ const MARKET_RULES: readonly RegExp[] = [
 	/^(?:aktie|aktienkurs|kurs)\s+(.+)$/i,
 	/^(.+?)\s+(?:en bourse|cours de bourse|cours de l['’]action)$/i,
 	/^(?:cours de l['’]action|cours de bourse)\s+(.+)$/i,
-	/^(.+?)\s*(?:股价|股票|行情|基金|价格|走势)$/,
+	/^(.+?)\s*(?:股[价價]|股票|行情|基金|[价價]格|走[势勢])$/,
 ];
 
 const WEATHER_RULES: readonly RegExp[] = [
@@ -454,8 +476,8 @@ const WEATHER_RULES: readonly RegExp[] = [
 	/^(.+?)\s+(?:wetter)$/i,
 	/^(?:m(?:é|e)t(?:é|e)o|pr(?:é|e)visions? m(?:é|e)t(?:é|e)o)(?:\s+(?:à|a|au|aux|en|de|du|pour|sur))?\s+(.+)$/i,
 	/^(.+?)\s+m(?:é|e)t(?:é|e)o$/i,
-	/^(?:天气预报|天气)\s*(.+)$/,
-	/^(.+?)\s*(?:天气预报|天气)$/,
+	/^(?:天[气氣][预預][报報]|天[气氣]|[气氣]象)\s*(.+)$/,
+	/^(.+?)\s*(?:天[气氣][预預][报報]|天[气氣]|[气氣]象)$/,
 ];
 
 /** `wiki Prague`, `Prague wiki`, `wiki:de Prag`, `维基 布拉格`. The optional
@@ -463,8 +485,8 @@ const WEATHER_RULES: readonly RegExp[] = [
 const WIKI_RULES: readonly { re: RegExp; query: number; lang: number }[] = [
 	{ re: /^(?:wiki|wikip(?:e|é)dia)(?::([a-z]{2,3}))?\s+(.+)$/i, query: 2, lang: 1 },
 	{ re: /^(.+?)\s+(?:wiki|wikip(?:e|é)dia)(?::([a-z]{2,3}))?$/i, query: 1, lang: 2 },
-	{ re: /^(?:维基百科|维基)\s*(.+)$/, query: 1, lang: 0 },
-	{ re: /^(.+?)\s*(?:维基百科|维基)$/, query: 1, lang: 0 },
+	{ re: /^(?:[维維]基百科|[维維]基)\s*(.+)$/, query: 1, lang: 0 },
+	{ re: /^(.+?)\s*(?:[维維]基百科|[维維]基)$/, query: 1, lang: 0 },
 ];
 
 function detectWiki(q: string): InstantIntent | null {
@@ -482,12 +504,12 @@ function detectWiki(q: string): InstantIntent | null {
 // ---- Chance ----------------------------------------------------------------
 
 const COIN_RE =
-	/^(?:coin|coin ?flip|flip a coin|toss a coin|heads or tails|m(?:ü|u)nze|m(?:ü|u)nzwurf|m(?:ü|u)nze werfen|kopf oder zahl|pile ou face|(?:tirer|jouer) (?:à|a) pile ou face|lancer une pi(?:è|e)ce|抛硬币|掷硬币|扔硬币|硬币)$/i;
+	/^(?:coin|coin ?flip|flip a coin|toss a coin|heads or tails|m(?:ü|u)nze|m(?:ü|u)nzwurf|m(?:ü|u)nze werfen|kopf oder zahl|pile ou face|(?:tirer|jouer) (?:à|a) pile ou face|lancer une pi(?:è|e)ce|[抛拋掷擲扔丟]硬[币幣]|硬[币幣]|[掷擲丟拋]銅板)$/i;
 const DIE_RE =
-	/^(?:roll|dice|roll a die|roll dice|w(?:ü|u)rfel|w(?:ü|u)rfeln|lancer (?:un|le) d(?:é|e)|lancer (?:les|des) d(?:é|e)s|掷骰子|骰子)$/i;
-const DICE_RE = /^(?:roll\s+|w(?:ü|u)rfel\s+|lancer\s+|掷\s*)?(\d{0,3})\s*[dw](\d{1,4})$/i;
+	/^(?:roll|dice|roll a die|roll dice|w(?:ü|u)rfel|w(?:ü|u)rfeln|lancer (?:un|le) d(?:é|e)|lancer (?:les|des) d(?:é|e)s|[掷擲丟]骰子|骰子)$/i;
+const DICE_RE = /^(?:roll\s+|w(?:ü|u)rfel\s+|lancer\s+|[掷擲丟]\s*)?(\d{0,3})\s*[dw](\d{1,4})$/i;
 const RANDOM_RE =
-	/^(?:random|random number|rand|zufall|zufallszahl|nombre al(?:é|e)atoire|al(?:é|e)atoire|随机数|随机)(?:\s*(?:between\s+|zwischen\s+|entre\s+)?(-?\d+)(?:\s*(?:-|to|and|bis|und|et|à|到|至|~)\s*(-?\d+))?)?$/i;
+	/^(?:random|random number|rand|zufall|zufallszahl|nombre al(?:é|e)atoire|al(?:é|e)atoire|[随隨][机機][数數]|亂數|[随隨][机機])(?:\s*(?:between\s+|zwischen\s+|entre\s+)?(-?\d+)(?:\s*(?:-|to|and|bis|und|et|à|到|至|~)\s*(-?\d+))?)?$/i;
 
 /** Largest range or dice count worth answering; beyond it it's a typo. */
 const CHANCE_MAX = 1e9;
