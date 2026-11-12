@@ -38,7 +38,7 @@ import {
 	renderCards,
 	setCardPinned,
 } from "../types";
-import type { TuiOutput } from "./card";
+import { frameFieldsChanged, type TuiOutput } from "./card";
 import { drawLine } from "./draw";
 import { composeFrames, mergeAdjacentEdges, type BoxStyle, type FrameRect, type FrameSpec } from "./frames";
 import { TuiCardHost } from "./host";
@@ -285,8 +285,13 @@ export class TuiBoard {
 			},
 			focused: () => this.isFocused(card),
 			onOutput: (out) => {
+				const prev = this.outputs.get(card.id);
 				this.outputs.set(card.id, out);
-				this.queueFrames();
+				// A body that only repainted its own text — a sprite frame, a
+				// ticking clock — leaves every frame on the board as it was;
+				// rebuilding the whole frame layer for it is the expensive half
+				// of a redraw, and it ran in a background tab (#479).
+				if (frameFieldsChanged(prev, out)) this.queueFrames();
 			},
 			onScroll: () => this.queueFrames(),
 		});
