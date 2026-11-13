@@ -317,8 +317,11 @@ export interface TasksConfig {
 	 * Settings → Hearth (TaskNotes has no stable public API to query, so this
 	 * reads its files the same way TaskNotes itself does: frontmatter).
 	 * "kanban" reads a single Kanban-plugin board note, where each `##` heading
-	 * is a column and the checkbox items beneath it are that column's cards. */
-	source?: "checkbox" | "tasknotes" | "kanban";
+	 * is a column and the checkbox items beneath it are that column's cards.
+	 * "obsidian-tasks" renders the obsidian-tasks community plugin's own
+	 * `tasks` query block — the plugin's own notion of a task, in the vault's
+	 * configured task format — with its own toggle/edit/create experience. */
+	source?: "checkbox" | "tasknotes" | "kanban" | "obsidian-tasks";
 	/** Kanban source: path to the board note. When empty, Hearth auto-detects
 	 * the first note in scope whose frontmatter carries `kanban-plugin`. */
 	kanbanFile?: string;
@@ -403,14 +406,15 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
-	/** Give this card its own field list instead of following the global one
-	 * from Settings → Hearth → Integrations. Off by default: a card follows the
-	 * global list. Only consulted while the global `taskFieldsEnabled` master
-	 * switch is on. */
+	/** Give this card its own field list. For TaskNotes cards, opting in
+	 * replaces the global list from Settings → Hearth → Integrations (and is
+	 * only consulted while that global `taskFieldsEnabled` master switch is
+	 * on). For every other source the card's fields are always its own,
+	 * independent of the vault-wide setting. Off by default. */
 	taskFieldsEnabled?: boolean;
-	/** This card's own fields, replacing the global list. Only used when
-	 * `taskFieldsEnabled` is on for the card. An empty list is meaningful — it
-	 * shows tasks with no metadata at all. */
+	/** This card's own fields. Only used when `taskFieldsEnabled` is on for
+	 * the card. An empty list is meaningful — it shows tasks with no metadata
+	 * at all. */
 	taskFields?: TaskFieldDef[];
 	/** Include already-completed tasks. Default false (hide done). */
 	showCompleted?: boolean;
@@ -435,6 +439,17 @@ export interface TasksConfig {
 	/** Kanban: column keys that mark a card done when it lands in them (dragged
 	 * or added). Toggled per column from the board header. */
 	kanbanDoneColumns?: string[];
+	/** Obsidian-tasks source: extra Tasks query instructions, one per line
+	 * (e.g. `path includes Projects`), appended after the scope, completion
+	 * and limit lines Hearth generates. The plugin's own filter language. */
+	tasksQuery?: string;
+	/** Obsidian-tasks source: the note new tasks are appended to, as a vault
+	 * path ("Notes/Tasks" with or without ".md"). When empty (the default),
+	 * new tasks go to today's daily note instead. */
+	tasksPluginNote?: string;
+	/** Obsidian-tasks source: pin new tasks to today's daily note even when
+	 * `tasksPluginNote` names a note. Stored only when true. */
+	tasksPluginDailyNote?: boolean;
 }
 
 /** A quadrant of the tasks card's Eisenhower matrix: urgent & important (do),

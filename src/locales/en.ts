@@ -67,6 +67,12 @@ export const en = {
 			`Hearth: couldn't create a note for ${day}.`,
 		couldNotCreateEventNote: "Hearth: couldn't create a note for that event.",
 		taskNotesCreateFailed: "Hearth: couldn't run TaskNotes: Create new task.",
+		tasksPluginCreateFailed: "Hearth: couldn't run the Tasks plugin's create-task dialog.",
+		tasksPluginNoTarget: "Hearth: pick where new tasks go in this card's settings.",
+		tasksPluginNoDailyNotes:
+			"Hearth: enable the core Daily notes plugin, or pick a note for new tasks in this card's settings.",
+		tasksPluginNoteMissing: (path: string) =>
+			`Hearth: no note at "${path}" for new tasks — pick another in this card's settings.`,
 		taskChangedOnDisk: "Hearth: that task changed on disk — refreshed.",
 		couldNotOpenTaskNote: "Hearth: couldn't open that task's note.",
 		couldNotUpdateTaskStatus: "Hearth: couldn't update the task status.",
@@ -1395,6 +1401,13 @@ export const en = {
 			goToTab: "Open",
 			/** One entry per id in `INTEGRATIONS`. */
 			items: {
+				tasksPlugin: {
+					name: "Tasks",
+					desc:
+						"A Tasks card can render the Tasks plugin's own task list — its " +
+						"task detection, toggles and edit dialogs — and create tasks " +
+						"through it into the daily note or a note of your choice.",
+				},
 				taskchute: {
 					name: "TaskChute Plus",
 					desc:
@@ -2706,10 +2719,28 @@ export const en = {
 				"Markdown checkboxes work anywhere. TaskNotes reads that plugin's " +
 				"task notes via frontmatter (field names configurable in Settings → " +
 				"Hearth, since TaskNotes has no API for other plugins to query it). " +
-				"Kanban reads a single Kanban-plugin board note, one column per heading.",
+				"Kanban reads a single Kanban-plugin board note, one column per heading. " +
+				"The Tasks plugin renders its own task list, with its own toggle, edit " +
+				"and create experience.",
 			sourceCheckbox: "Markdown checkboxes",
 			sourceTaskNotes: "TaskNotes plugin",
 			sourceKanban: "Kanban plugin",
+			sourceObsidianTasks: "Tasks plugin",
+			tasksQuery: "Tasks query",
+			tasksQueryDesc:
+				"Extra Tasks instructions, added after the scope, completion and " +
+				"task-count lines above — in the Tasks plugin's own query language " +
+				"(e.g. “sort by due”). Leave empty for the card's defaults.",
+			tasksQueryPlaceholder: "e.g. sort by due",
+			tasksDestination: "New tasks go to",
+			tasksDestinationDesc:
+				"Where the Tasks plugin's create dialog puts a new task: today's " +
+				"daily note (created when missing), or one specific note.",
+			tasksDestinationDaily: "Today's daily note",
+			tasksDestinationNote: "A specific note",
+			tasksDestinationNoteDesc: "The note new tasks are appended to.",
+			tasksDestinationNotePlaceholder: "e.g. Notes/Tasks.md",
+			pickNote: "Pick a note",
 			kanbanBoard: "Board note",
 			kanbanBoardDesc:
 				"The Kanban-plugin board to read. Leave empty to auto-detect the first " +
@@ -2839,7 +2870,12 @@ export const en = {
 			fieldsFollowGlobal:
 				"Following the fields from Settings → Hearth → Integrations. Turn on " +
 				"to give this card its own.",
+			fieldsOwnDesc:
+				"This source doesn't follow the vault-wide TaskNotes list. Turn on " +
+				"to give this card its own fields, starting from what the card has " +
+				"always shown.",
 			fieldsCustomize: "Customize…",
+			fieldBroken: "This field couldn't be shown",
 			fieldsTitle: "Task fields",
 			fieldsHint:
 				"Everything a task shows, in order. A field is yours to define: name " +
@@ -3796,6 +3832,12 @@ export const en = {
 			templaterEmpty: "Add a template in card settings",
 			tasksEnable:
 				"Enable the TaskNotes plugin, or switch source to checkboxes",
+			tasksPluginEnable:
+				"Enable the Tasks plugin to read its tasks here — or switch this card's source to Markdown checkboxes",
+			tasksPluginSwitch: "Switch to checkboxes",
+			tasksPluginTextOnly:
+				"The Tasks plugin draws this card in Obsidian — text views can't show its results",
+			tasksPluginQueryFailed: "The Tasks plugin couldn't draw its results here",
 			tasksEmpty: "No open tasks",
 			tasksNoMatch: "No tasks match the filter",
 			matrixNeedsPriorities:

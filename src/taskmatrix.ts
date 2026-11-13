@@ -33,7 +33,7 @@ export interface MatrixPriorityOption {
 }
 
 /** A source's priorities, as the matrix compares them. */
-export type MatrixSource = "checkbox" | "kanban" | "tasknotes";
+export type MatrixSource = "checkbox" | "kanban" | "tasknotes" | "obsidian-tasks";
 
 /** The five Tasks-plugin priority keys, highest first. */
 const LINE_PRIORITIES = Object.keys(PRIORITY_EMOJI);

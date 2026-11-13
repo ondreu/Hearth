@@ -64,6 +64,22 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   queue of every track, in name order.
 
 
+- **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
+  beside Markdown checkboxes, TaskNotes and Kanban: the
+  [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
+  plugin. With it selected the card renders the plugin's own `tasks` query
+  block — the tasks the plugin itself considers tasks, in the vault's configured
+  task format, with the plugin's state, priority, dates, repeat rule, tags and
+  status — and ticking, editing and creating work the way they do in the
+  plugin: its toggle handling and edit dialog in its own rows, and its own
+  create dialog for the `+` button, whose line is appended verbatim to the
+  destination note (today's daily note, created when missing, or one specific
+  note). Layouts, sorting, filtering, quick view and custom fields are not
+  offered for this source, since the plugin draws its own results; if the
+  plugin isn't installed or is disabled, the card says so and offers a switch
+  back to Markdown checkboxes.
+
+
 ### Changed
 
 - **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
@@ -80,6 +96,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 
 ### Fixed
+
+- **Task fields no longer leak between sources.** The *Fields* customisation
+  followed the vault-wide TaskNotes field list on every card, whatever its
+  source. Now only TaskNotes cards do that: every other source configures its
+  own fields on the card, independently of the TaskNotes setting, starting from
+  what the card has always shown — and the TaskNotes status is no longer
+  offered on cards whose tasks carry no such thing.
+
+- **The "Customize fields" editor opens again.** In current Obsidian it opened
+  effectively empty, and *Add field* appeared to do nothing: one bad stored
+  field threw during the draw, emptying the list and swallowing the buttons
+  with it. Stored lists are sanitised on open, a field that still fails to
+  render keeps its place as a removable card, the add control and footer always
+  draw, and the list keeps a minimum height instead of collapsing to nothing.
 
 - **A Music card whose folder changed no longer plays the old folder's tracks**
   (#486). The card and the player share one queue, and the card handed its

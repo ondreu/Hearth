@@ -57,6 +57,11 @@ export const zhTW: Translations = {
 		couldNotCreateNoteForDay: (day: string) => `Hearth：無法為 ${day} 建立筆記。`,
 		couldNotCreateEventNote: "Hearth：無法為該活動建立筆記。",
 		taskNotesCreateFailed: "Hearth：無法執行 TaskNotes：新增任務。",
+		tasksPluginCreateFailed: "Hearth：無法開啟 Tasks 外掛的新增任務對話框。",
+		tasksPluginNoTarget: "Hearth：請在此卡片設定中選擇新任務的去向。",
+		tasksPluginNoDailyNotes: "Hearth：請啟用核心「日記」外掛，或在此卡片設定中為新任務選擇一篇筆記。",
+		tasksPluginNoteMissing: (path: string) =>
+			`Hearth：在「${path}」找不到用於新任務的筆記 — 請在此卡片設定中另選一篇。`,
 		taskChangedOnDisk: "Hearth：該任務在磁碟上已變更——已重新整理。",
 		couldNotOpenTaskNote: "Hearth：無法開啟該任務的筆記。",
 		couldNotUpdateTaskStatus: "Hearth：無法更新任務狀態。",
@@ -1273,6 +1278,12 @@ export const zhTW: Translations = {
 						"TaskChute 卡片讀取此外掛自帶的任務與記錄——今日清單（可開始／停止）、" +
 						"一週概覽與活動熱力圖。任務、例行與日誌始終歸 TaskChute 所有。",
 				},
+				tasksPlugin: {
+					name: "Tasks",
+					desc:
+						"任務卡片可以直接算繪 Tasks 外掛自身的任務清單——它的任務辨識、" +
+						"勾選與編輯對話框——並經由它在日記或自選筆記中建立任務。",
+				},
 				stereo: {
 					name: "Stereo",
 					desc:
@@ -2440,10 +2451,26 @@ export const zhTW: Translations = {
 			sourceDesc:
 				"Markdown 核取方塊在任何地方都可用。TaskNotes 透過 frontmatter 讀取該外掛的" +
 				"任務筆記（欄位名稱可在 設定 → Hearth 中設定，因為 TaskNotes 沒有供其他外掛" +
-				"查詢的 API）。Kanban 讀取單個 Kanban 外掛的看板筆記，每個標題作為一欄。",
+				"查詢的 API）。Kanban 讀取單個 Kanban 外掛的看板筆記，每個標題作為一欄。" +
+				"Tasks 外掛算繪自身的任務清單，使用它自己的勾選、編輯和建立體驗。",
 			sourceCheckbox: "Markdown 核取方塊",
 			sourceTaskNotes: "TaskNotes 外掛",
 			sourceKanban: "Kanban 外掛",
+			sourceObsidianTasks: "Tasks 外掛",
+			tasksQuery: "Tasks 查詢",
+			tasksQueryDesc:
+				"附加的 Tasks 指令，會加在上面的範圍、完成狀態和任務數量行之後——" +
+				"使用 Tasks 外掛自身的查詢語言（例如「sort by due」）。留空則使用卡片預設。",
+			tasksQueryPlaceholder: "例如 sort by due",
+			tasksDestination: "新任務去向",
+			tasksDestinationDesc:
+				"Tasks 外掛建立對話框放置新任務的位置：今日日記（不存在則建立），" +
+				"或某一篇指定筆記。",
+			tasksDestinationDaily: "今日日記",
+			tasksDestinationNote: "指定筆記",
+			tasksDestinationNoteDesc: "新任務將被附加到的筆記。",
+			tasksDestinationNotePlaceholder: "例如 Notes/Tasks.md",
+			pickNote: "選擇筆記",
 			kanbanBoard: "看板筆記",
 			kanbanBoardDesc:
 				"要讀取的 Kanban 外掛看板。留空則自動偵測範圍內第一篇帶有「kanban-plugin」" +
@@ -2554,7 +2581,11 @@ export const zhTW: Translations = {
 			fields: "欄位",
 			fieldsFollowGlobal:
 				"目前跟隨 設定 → Hearth → 整合 中的欄位。開啟後可為此卡片個別設定。",
+			fieldsOwnDesc:
+				"此來源不跟隨全庫 TaskNotes 清單。開啟後可為此卡片設定自有欄位，" +
+				"從卡片一向顯示的內容開始。",
 			fieldsCustomize: "自訂…",
+			fieldBroken: "此欄位無法顯示",
 			fieldsTitle: "任務欄位",
 			fieldsHint:
 				"任務顯示的一切，依順序排列。欄位由您定義：命名它、選擇呈現方式，" +
@@ -3487,6 +3518,10 @@ export const zhTW: Translations = {
 			templaterEnable: "請啟用 Templater 外掛以從範本建立筆記",
 			templaterEmpty: "請在卡片設定中新增一個範本",
 			tasksEnable: "請啟用 TaskNotes 外掛，或把來源切換為核取方塊",
+			tasksPluginEnable: "請啟用 Tasks 外掛以在此處讀取其任務——或將此卡片的來源切換為 Markdown 核取方塊",
+			tasksPluginSwitch: "切換為核取方塊",
+			tasksPluginTextOnly: "Tasks 外掛在 Obsidian 中繪製此卡片——文字檢視無法顯示其結果",
+			tasksPluginQueryFailed: "Tasks 外掛無法在此處繪製其結果",
 			tasksEmpty: "沒有未完成的任務",
 			tasksNoMatch: "沒有任務符合篩選條件",
 			matrixNeedsPriorities: "矩陣依優先順序排列任務——請在此卡片設定中開啟「日期與優先順序」以便讀取。",

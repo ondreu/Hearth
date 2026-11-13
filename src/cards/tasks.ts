@@ -1,6 +1,8 @@
 import {
 	ButtonComponent,
+	Component,
 	ExtraButtonComponent,
+	MarkdownRenderer,
 	MarkdownView,
 	Notice,
 	Setting,
@@ -11,7 +13,7 @@ import {
 } from "obsidian";
 import { glyphModeActive, setIcon } from "../glyphs";
 import { hearthMenu, HearthModal } from "../uidesign";
-import { emptyState, moment } from "../cardbodies";
+import { emptyState, moment, wireMarkdownLinks } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
 import { t } from "../i18n";
@@ -36,6 +38,8 @@ import {
 	allowsPriorityStyle,
 	ambientOwner,
 	builtinSource,
+	builtinSourcesFor,
+	defaultTaskFields,
 	isPriorityStyle,
 	DATE_RELATIONS,
 	dateDisplay,
@@ -53,12 +57,13 @@ import {
 	newTaskField,
 	presetColor,
 	resolveTaskFields,
+	sanitizeTaskFields,
 	sourceBuiltin,
 	sourceProperty,
-	TASK_BUILTIN_SOURCES,
 	type TaskValueDisplay,
 	TASK_COLOR_PRESETS,
 	type TaskBuiltinSource,
+	type TaskFieldSource,
 	taskFieldValues,
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
@@ -128,6 +133,11 @@ import {
 	type TaskSortRule,
 } from "../types";
 import { openInTaskNotes, readTaskNotesSetup, TASKNOTES_PLUGIN_ID } from "../tasknotes";
+import {
+	createTasksPluginTask,
+	tasksPluginEnabled,
+	tasksPluginQueryFence,
+} from "../tasksplugin";
 import { confirmAction, dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -240,12 +250,75 @@ export function tasksExpressive(cfg: TasksConfig): boolean {
 	return expressiveConfigs.get(cfg) === true;
 }
 
-export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderTasks(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component?: Component,
+): void {
 	const cfg = card.tasks ?? {};
 	expressiveConfigs.set(cfg, effectiveCardDesign(view.plugin.settings, card.design) === "expressive");
 	const container = body.createDiv("hearth-tasks-wrap");
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks") {
+		void renderTasksPluginCard(view, cfg, container, component);
+		return;
+	}
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
 	refresh();
+}
+
+
+/**
+ * A card reading from the obsidian-tasks plugin: the plugin's own `tasks`
+ * query block, drawn by the plugin itself, plus the plugin's own create
+ * modal for the "+" control. Hearth parses nothing here — state, priority,
+ * dates, repeat rule, tags and status are the plugin's, and ticking/editing
+ * happen in its own rendered rows.
+ */
+async function renderTasksPluginCard(
+	view: HomeView,
+	cfg: TasksConfig,
+	container: HTMLElement,
+	component?: Component,
+): Promise<void> {
+	if (!tasksPluginEnabled(view.app)) {
+		emptyState(container, "list-todo", t().cards.empty.tasksPluginEnable);
+		const switcher = container.createDiv("hearth-tasks-plugin-missing-actions");
+		const btn = switcher.createEl("button", {
+			cls: "hearth-tasks-plugin-missing-switch",
+			text: t().cards.empty.tasksPluginSwitch,
+		});
+		btn.addEventListener("click", () => {
+			cfg.source = "checkbox";
+			void view.plugin.saveData(view.plugin.settings);
+			container.empty();
+			const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
+			refresh();
+		});
+		return;
+	}
+	const actions = resolveTaskActionsHost(view, container);
+	const add = actions.createEl("button", {
+		cls: "hearth-task-add",
+		attr: { "aria-label": t().cards.tasks.createNewTask, title: t().cards.tasks.createNewTask },
+	});
+	setIcon(add, "plus");
+	add.addEventListener("click", (e) => {
+		e.stopPropagation();
+		// The vault write the create performs redraws the card through the
+		// card's vault liveness, so there is nothing to refresh by hand here.
+		void createTasksPluginTask(view, cfg);
+	});
+	// The plugin's own rendered rows, drawn into a host of their own.
+	const host = container.createDiv("hearth-tasks-plugin");
+	try {
+		const renderComponent = component ?? new Component();
+		await MarkdownRenderer.render(view.app, tasksPluginQueryFence(cfg), host, "", renderComponent);
+		wireMarkdownLinks(view, host, "");
+	} catch {
+		host.empty();
+		emptyState(host, "alert-triangle", t().cards.empty.tasksPluginQueryFailed);
+	}
 }
 
 
@@ -976,7 +1049,7 @@ function renderTaskFields(
 	refresh: () => void,
 	omitPriority = false,
 ): void {
-	const fields = activeTaskFields(cfg, view.plugin.settings);
+	const fields = activeTaskFields(cfg, view.plugin.settings, cfg.source ?? "checkbox");
 	if (fields === null) renderLegacyTaskFields(view, cfg, hit, hosts, today, layout, omitPriority);
 	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh, omitPriority);
 }
@@ -2065,6 +2138,17 @@ export type TaskLoad =
 export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskLoad> {
 	const source = cfg.source ?? "checkbox";
 
+	// The obsidian-tasks source never produces Hearth task objects: the
+	// graphical card renders the plugin's own query block instead. Text views
+	// (terminal mode, exports) can't draw that block, so they get the honest
+	// message rather than a re-interpreted list.
+	if (source === "obsidian-tasks") {
+		if (!tasksPluginEnabled(view.app)) {
+			return { kind: "message", icon: "list-todo", text: t().cards.empty.tasksPluginEnable };
+		}
+		return { kind: "message", icon: "list-todo", text: t().cards.empty.tasksPluginTextOnly };
+	}
+
 	let hits: TaskHit[];
 	let boardColumns: string[] | undefined;
 	if (source === "tasknotes") {
@@ -2853,11 +2937,13 @@ export function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
 }
 
 /** Whether a card's tasks carry a priority the matrix can read and write. A
- * Kanban board or a checkbox card read as plain text has no priority marks. */
+ * Kanban board or a checkbox card read as plain text has no priority marks,
+ * and the Tasks plugin draws its own results. */
 export function matrixReadsPriorities(cfg: TasksConfig): boolean {
 	const source = matrixSource(cfg);
 	if (source === "kanban") return cfg.kanbanExtended ?? false;
 	if (source === "checkbox") return cfg.checkboxExtended ?? true;
+	if (source === "obsidian-tasks") return false;
 	return true;
 }
 
@@ -5576,6 +5662,9 @@ async function discoverTaskFields(
 		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!frontmatter) continue;
 		for (const key of Object.keys(frontmatter)) properties.add(key);
+		// The TaskNotes status only means something on a TaskNotes card (or
+		// the vault-wide list): a checkbox or Kanban card's "status" is its
+		// own line mark or board column, never this frontmatter field.
 		if (source === "tasknotes" || source === null) {
 			record(builtinSource("status"), frontmatter[statusField]);
 			record(builtinSource("priority"), frontmatter[priorityField]);
@@ -5655,17 +5744,27 @@ export class TaskFieldsModal extends HearthModal {
 		private readonly onApply: (fields: TaskFieldDef[]) => void,
 	) {
 		super(app);
-		// Clone so Cancel truly discards edits, and so an Apply that keeps the
-		// modal open can't mutate what it already saved.
-		this.fields = cloneTaskFields(resolveTaskFields(initial));
+		// Sanitize first — a hand-edited file can hold anything — then drop
+		// what this card couldn't show. Cloned so Cancel truly discards edits,
+		// and so an Apply that keeps the modal open can't mutate what it
+		// already saved.
+		this.fields = cloneTaskFields(resolveTaskFields(sanitizeTaskFields(initial), this.fieldSource()));
+	}
+
+	/** The source whose tasks this list reads, or null for the vault-wide
+	 * list (which may hold anything). An unset card source is the default. */
+	private fieldSource(): TaskFieldSource | null {
+		return this.cfg ? (this.cfg.source ?? "checkbox") : null;
 	}
 
 	onOpen(): void {
 		const { contentEl, modalEl } = this;
 		// The width goes on the modal frame rather than its content: a field, its
 		// keys and their value tables are three levels deep, which Obsidian's
-		// default modal width cannot hold without crowding every row.
-		modalEl.addClass("hearth-taskfields-modal");
+		// default modal width cannot hold without crowding every row. Fall back
+		// to the content when the frame isn't exposed, rather than throwing and
+		// opening with nothing drawn.
+		(modalEl ?? contentEl).addClass("hearth-taskfields-modal");
 		contentEl.addClass("hearth-taskfields");
 		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
 		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
@@ -5678,7 +5777,15 @@ export class TaskFieldsModal extends HearthModal {
 	}
 
 	private async rescan(): Promise<void> {
-		this.discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		let discovery: TaskFieldDiscovery;
+		try {
+			discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		} catch {
+			// The scan is a convenience (suggested values); a failed one leaves
+			// the editor as it is rather than blanking it.
+			return;
+		}
+		this.discovery = discovery;
 		this.renderBody();
 	}
 
@@ -5751,12 +5858,48 @@ export class TaskFieldsModal extends HearthModal {
 		body.empty();
 		const labels = t().editors.tasks;
 
-		this.fields.forEach((field, index) => this.renderField(body, field, index));
+		// One bad field must never blank the rest: a field that fails to
+		// render keeps its place as a removable card, and the foot below (and
+		// the footer) still draws.
+		this.fields.forEach((field, index) => {
+			try {
+				this.renderField(body, field, index);
+			} catch {
+				this.renderBrokenField(body, field, index);
+			}
+		});
 
 		if (!this.fields.length) {
 			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
 		}
 
+		this.renderAddField(body);
+	}
+
+	/** A field that couldn't be rendered, standing in for it: whatever name
+	 * survived, and a remove button — so the entry can be dropped without
+	 * losing the fields around it. */
+	private renderBrokenField(body: HTMLElement, field: TaskFieldDef, index: number): void {
+		const labels = t().editors.tasks;
+		const panel = body.createDiv("hearth-taskfields-field is-broken");
+		const head = panel.createDiv("hearth-taskfields-head");
+		const name =
+			field && typeof field.name === "string" && field.name.trim()
+				? field.name.trim()
+				: labels.fieldUnnamed;
+		head.createDiv({ cls: "hearth-taskfields-headtext", text: `${name} · ${labels.fieldBroken}` });
+		const actions = head.createDiv("hearth-taskfields-actions");
+		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
+			this.fields.splice(index, 1);
+			this.renderBody();
+		});
+	}
+
+	/** The "Add field" control: always drawn, whatever the fields above did.
+	 * The new field opens at once — naming it and giving it a key is the point
+	 * of adding it. */
+	private renderAddField(body: HTMLElement): void {
+		const labels = t().editors.tasks;
 		const foot = body.createDiv("hearth-taskfields-foot is-add");
 		new ButtonComponent(foot)
 			.setIcon("plus")
@@ -6219,7 +6362,9 @@ export class TaskFieldsModal extends HearthModal {
 			.setTooltip(labels.fieldPickBuiltin)
 			.onClick((e) => {
 				const menu = hearthMenu();
-				for (const id of TASK_BUILTIN_SOURCES) {
+				// Only what this card can show: the TaskNotes status has no
+				// meaning on a checkbox card, a board column none off a board.
+				for (const id of builtinSourcesFor(this.fieldSource())) {
 					if (used.has(builtinSource(id))) continue;
 					menu.addItem((item) =>
 						item.setTitle(labels.sourceNames[id]).onClick(() => add(builtinSource(id))),
@@ -6324,20 +6469,86 @@ function taskFieldsSummary(fields: TaskFieldDef[]): string {
 
 export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.tasks ??= {});
+	const te = t().editors.tasks;
+	const source = cfg.source ?? "checkbox";
+	const isTasksPlugin = source === "obsidian-tasks";
 
 	new Setting(containerEl)
-		.setName(t().editors.tasks.source)
-		.setDesc(t().editors.tasks.sourceDesc)
+		.setName(te.source)
+		.setDesc(te.sourceDesc)
 		.addDropdown((d) => {
-			d.addOption("checkbox", t().editors.tasks.sourceCheckbox);
-			d.addOption("tasknotes", t().editors.tasks.sourceTaskNotes);
-			d.addOption("kanban", t().editors.tasks.sourceKanban);
+			d.addOption("checkbox", te.sourceCheckbox);
+			d.addOption("tasknotes", te.sourceTaskNotes);
+			d.addOption("kanban", te.sourceKanban);
+			d.addOption("obsidian-tasks", te.sourceObsidianTasks);
 			d.setValue(cfg.source ?? "checkbox").onChange((v) => {
 				cfg.source = v as TasksConfig["source"];
 				ctx.opts.save();
 				ctx.requestRender();
 			});
 		});
+
+	// Tasks-plugin source: the plugin draws its own results, so the card only
+	// configures what the plugin can't know — extra query instructions, and
+	// where the plugin's own create modal puts new tasks.
+	if (isTasksPlugin) {
+		const query = new Setting(containerEl).setName(te.tasksQuery).setDesc(te.tasksQueryDesc);
+		query.addTextArea((ta) => {
+			ta.setValue(cfg.tasksQuery ?? "")
+				.setPlaceholder(te.tasksQueryPlaceholder)
+				.onChange((v) => {
+					cfg.tasksQuery = v.trim() ? v.replace(/\s+$/, "") : undefined;
+					ctx.opts.save();
+				});
+			ta.inputEl.rows = 4;
+			ta.inputEl.addClass("hearth-tasks-query-input");
+		});
+
+		const daily = cfg.tasksPluginDailyNote === true || !(cfg.tasksPluginNote?.trim());
+		new Setting(containerEl)
+			.setName(te.tasksDestination)
+			.setDesc(te.tasksDestinationDesc)
+			.addDropdown((d) => {
+				d.addOption("daily", te.tasksDestinationDaily);
+				d.addOption("note", te.tasksDestinationNote);
+				d.setValue(daily ? "daily" : "note").onChange((v) => {
+					cfg.tasksPluginDailyNote = v === "daily" ? true : undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				});
+			});
+
+		if (!daily) {
+			const noteSetting = new Setting(containerEl)
+				.setName(te.tasksDestinationNote)
+				.setDesc(te.tasksDestinationNoteDesc);
+			noteSetting.addText((txt) =>
+				txt
+					.setPlaceholder(te.tasksDestinationNotePlaceholder)
+					.setValue(cfg.tasksPluginNote ?? "")
+					.onChange((v) => {
+						cfg.tasksPluginNote = v.trim() || undefined;
+						ctx.opts.save();
+					}),
+			);
+			noteSetting.addExtraButton((b) =>
+				b
+					.setIcon("file-symlink")
+					.setTooltip(te.pickNote)
+					.onClick(() => {
+						new FilePickerModal(
+							ctx.app,
+							(file) => {
+								cfg.tasksPluginNote = file.path;
+								ctx.opts.save();
+								ctx.requestRender();
+							},
+							te.pickNote,
+						).open();
+					}),
+			);
+		}
+	}
 
 	// Kanban source: pick the board note and choose plain vs. Tasks-plugin
 	// (extended) card parsing.
@@ -6495,8 +6706,8 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	// Notes made from tasks — the quick view's "Create note" and the right-click
 	// "Convert to note": where they go, what they start from, and whether the
 	// task's metadata moves into their frontmatter. A TaskNotes task is a note
-	// already.
-	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+	// already, and the Tasks plugin manages its own notes.
+	if (source === "checkbox" || source === "kanban") {
 		new Setting(containerEl).setName(t().editors.tasks.noteFromTask).setDesc(t().editors.tasks.noteFromTaskDesc).setHeading();
 		const folderSetting = new Setting(containerEl)
 			.setName(t().editors.tasks.convertFolder)
@@ -6567,8 +6778,9 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	}
 
 	// Quick-view on click applies to line-based tasks (checkboxes and Kanban
-	// cards); TaskNotes tasks always open in their own editor.
-	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+	// cards). TaskNotes tasks always open in their own editor, and Tasks-plugin
+	// tasks in the plugin's own rows.
+	if (source === "checkbox" || source === "kanban") {
 		new Setting(containerEl)
 			.setName(t().editors.tasks.quickView)
 			.setDesc(t().editors.tasks.quickViewDesc)
@@ -6580,84 +6792,132 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			);
 	}
 
-	new Setting(containerEl)
-		.setName(t().editors.tasks.layout)
-		.setDesc(t().editors.tasks.layoutDesc)
-		.addDropdown((d) => {
-			d.addOption("list", t().editors.tasks.layoutList);
-			d.addOption("kanban", t().editors.tasks.layoutKanban);
-			d.addOption("matrix", t().editors.tasks.layoutMatrix);
-			d.setValue(cfg.layout ?? "list").onChange((v) => {
-				cfg.layout = v === "kanban" || v === "matrix" ? v : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-			});
-		});
-
-	if (cfg.layout === "matrix") matrixEditor(ctx, containerEl, cfg);
-
-	if (
-		cfg.layout === "kanban" &&
-		(cfg.kanbanHidden?.length ||
-			cfg.kanbanOrder?.length ||
-			cfg.kanbanDoneColumns?.length)
-	) {
-		const parts: string[] = [];
-		if (cfg.kanbanHidden?.length)
-			parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
-		if (cfg.kanbanDoneColumns?.length)
-			parts.push(
-				t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
-			);
-		const reset = new Setting(containerEl)
-			.setName(t().editors.tasks.kanbanColumns)
-			.setDesc(
-				parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
-			);
-		if (cfg.kanbanHidden?.length) {
-			reset.addButton((b) =>
-				b.setButtonText(t().editors.tasks.showAll).onClick(() => {
-					cfg.kanbanHidden = undefined;
+	// List, Kanban board or matrix — grouping and dragging Hearth itself
+	// performs. The Tasks plugin draws its own results, so a card reading from
+	// it offers no layout whose point is an interaction Hearth can't do there.
+	if (!isTasksPlugin) {
+		new Setting(containerEl)
+			.setName(t().editors.tasks.layout)
+			.setDesc(t().editors.tasks.layoutDesc)
+			.addDropdown((d) => {
+				d.addOption("list", t().editors.tasks.layoutList);
+				d.addOption("kanban", t().editors.tasks.layoutKanban);
+				d.addOption("matrix", t().editors.tasks.layoutMatrix);
+				d.setValue(cfg.layout ?? "list").onChange((v) => {
+					cfg.layout = v === "kanban" || v === "matrix" ? v : undefined;
 					ctx.opts.save();
 					ctx.requestRender();
-				}),
+				});
+			});
+
+		if (cfg.layout === "matrix") matrixEditor(ctx, containerEl, cfg);
+
+		if (
+			cfg.layout === "kanban" &&
+			(cfg.kanbanHidden?.length ||
+				cfg.kanbanOrder?.length ||
+				cfg.kanbanDoneColumns?.length)
+		) {
+			const parts: string[] = [];
+			if (cfg.kanbanHidden?.length)
+				parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
+			if (cfg.kanbanDoneColumns?.length)
+				parts.push(
+					t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
+				);
+			const reset = new Setting(containerEl)
+				.setName(t().editors.tasks.kanbanColumns)
+				.setDesc(
+					parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
+				);
+			if (cfg.kanbanHidden?.length) {
+				reset.addButton((b) =>
+					b.setButtonText(t().editors.tasks.showAll).onClick(() => {
+						cfg.kanbanHidden = undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
+				);
+			}
+			reset.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t().editors.tasks.resetColumns)
+					.onClick(() => {
+						cfg.kanbanHidden = undefined;
+						cfg.kanbanOrder = undefined;
+						cfg.kanbanDoneColumns = undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
 			);
 		}
-		reset.addExtraButton((b) =>
-			b
-				.setIcon("rotate-ccw")
-				.setTooltip(t().editors.tasks.resetColumns)
-				.onClick(() => {
-					cfg.kanbanHidden = undefined;
-					cfg.kanbanOrder = undefined;
-					cfg.kanbanDoneColumns = undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-		);
 	}
 
-	// Which metadata each task shows, in what order and how. Only offered once
-	// the feature is switched on globally (Settings → Hearth → Integrations),
-	// so a card nobody has customized shows no controls for it at all. This is
-	// the card's *display*, unrelated to the field-name mapping in those same
-	// settings — that says where to read a value from, not whether to show it.
-	if (ctx.opts.settings.taskFieldsEnabled) {
+	// Which metadata each task shows, in what order and how. TaskNotes cards
+	// follow the vault-wide list (Settings → Hearth → Integrations) unless the
+	// card opts out with its own; every other source configures its own fields
+	// on the card, independently of that setting. The Tasks plugin draws its
+	// own results, so a card reading from it offers no fields at all. The
+	// field-name mapping in those same settings is a different thing — it says
+	// where to read a value from, not whether to show it.
+	if (source === "tasknotes") {
+		if (ctx.opts.settings.taskFieldsEnabled) {
+			const own = cfg.taskFieldsEnabled ?? false;
+			const fields = new Setting(containerEl)
+				.setName(t().editors.tasks.fields)
+				.setDesc(
+					own
+						? taskFieldsSummary(resolveTaskFields(cfg.taskFields, "tasknotes"))
+						: t().editors.tasks.fieldsFollowGlobal,
+				)
+				.addToggle((tg) =>
+					tg.setValue(own).onChange((v) => {
+						cfg.taskFieldsEnabled = v || undefined;
+						// Start from whatever the card shows right now, so switching to
+						// its own list is a starting point rather than a reset.
+						if (v && !cfg.taskFields?.length) {
+							cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields, "tasknotes"));
+						}
+						ctx.opts.save();
+						ctx.requestRender();
+						ctx.opts.rerender();
+					}),
+				);
+			if (own) {
+				fields.addButton((b) =>
+					b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+						new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, cfg.taskFields, (next) => {
+							cfg.taskFields = next.length ? next : undefined;
+							ctx.opts.save();
+							ctx.requestRender();
+							// Redraw the board behind the modal so an Apply that keeps it
+							// open shows its effect straight away.
+							ctx.opts.rerender();
+						}).open();
+					}),
+				);
+				addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
+					cfg.taskFields = [];
+				});
+			}
+		}
+	} else if (!isTasksPlugin) {
 		const own = cfg.taskFieldsEnabled ?? false;
 		const fields = new Setting(containerEl)
 			.setName(t().editors.tasks.fields)
 			.setDesc(
 				own
-					? taskFieldsSummary(resolveTaskFields(cfg.taskFields))
-					: t().editors.tasks.fieldsFollowGlobal,
+					? taskFieldsSummary(resolveTaskFields(cfg.taskFields, source))
+					: t().editors.tasks.fieldsOwnDesc,
 			)
 			.addToggle((tg) =>
 				tg.setValue(own).onChange((v) => {
 					cfg.taskFieldsEnabled = v || undefined;
-					// Start from whatever the card shows right now, so switching to
-					// its own list is a starting point rather than a reset.
+					// Start from what the card has always shown, so switching on
+					// is a starting point rather than a reset.
 					if (v && !cfg.taskFields?.length) {
-						cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields));
+						cfg.taskFields = defaultTaskFields(source);
 					}
 					ctx.opts.save();
 					ctx.requestRender();
@@ -6912,7 +7172,7 @@ export const tasksCard: CardDefinition<"tasks"> = {
 	templates: [
 		{ id: "tasks", name: "Tasks", icon: "list-todo", build: () => ({ kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 }) },
 	],
-	render: (view, card, body) => renderTasks(view, card, body),
+	render: (view, card, body, component) => renderTasks(view, card, body, component),
 	renderEditor: (container, ctx) => tasksEditor(ctx, container),
 	cloneConfig: (source, copy) => {
 		if (source.tasks)

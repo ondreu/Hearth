@@ -1,6 +1,10 @@
 import { priorityDisplayLabel, priorityKey, PRIORITY_EMOJI } from "./priority";
 import type { TaskFieldDef, TaskFieldKey, TaskFieldStyle, TaskValueMap } from "./types";
 
+/** The card sources fields can be configured for. The global list belongs to
+ * no card and may hold anything. */
+export type TaskFieldSource = "checkbox" | "tasknotes" | "kanban" | "obsidian-tasks";
+
 /**
  * User-defined task fields: what a "tasks" card shows on each task once field
  * customization is switched on. Pure config/string logic — no Obsidian, no DOM
@@ -151,17 +155,24 @@ export function newTaskField(name: string): TaskFieldDef {
 
 /**
  * The stored field list, with anything unrenderable removed: keys naming a
- * source Hearth can't read, and (after that) fields left with no keys at all.
+ * source Hearth can't read, keys no card of `source` could show (when a
+ * source is given), and — after that — fields left with no keys at all.
  *
  * An empty result is a legitimate configuration — "show no metadata" — and is
  * never substituted with defaults. That is the whole point of the feature: once
  * it is on, a task shows what was asked for and nothing else.
  */
-export function resolveTaskFields(stored: TaskFieldDef[] | undefined): TaskFieldDef[] {
+export function resolveTaskFields(
+	stored: TaskFieldDef[] | undefined,
+	source: TaskFieldSource | null = null,
+): TaskFieldDef[] {
 	if (!stored?.length) return [];
 	const out: TaskFieldDef[] = [];
 	for (const field of stored) {
-		const keys = (field.keys ?? []).filter((k) => isKnownSource(k.source ?? ""));
+		if (!field || typeof field !== "object") continue;
+		const keys = (Array.isArray(field.keys) ? field.keys : []).filter(
+			(k) => k && typeof k.source === "string" && isKnownSource(k.source) && isSourceAllowed(source, k.source),
+		);
 		if (!keys.length) continue;
 		out.push({ ...field, keys });
 	}
@@ -170,19 +181,121 @@ export function resolveTaskFields(stored: TaskFieldDef[] | undefined): TaskField
 
 
 /**
+ * Coerce an unknown stored value into the field list the editor can work
+ * with: non-object entries are dropped, missing key lists become empty, and
+ * each key keeps only the shape the editor reads. Never throws, so one bad
+ * entry in a hand-edited file can't take the rest of the editor with it.
+ */
+export function sanitizeTaskFields(stored: unknown): TaskFieldDef[] {
+	if (!Array.isArray(stored)) return [];
+	const out: TaskFieldDef[] = [];
+	for (const raw of stored) {
+		if (!raw || typeof raw !== "object") continue;
+		const rec = raw as Record<string, unknown>;
+		const keys: TaskFieldKey[] = [];
+		if (Array.isArray(rec.keys)) {
+			for (const rawKey of rec.keys) {
+				if (!rawKey || typeof rawKey !== "object") continue;
+				const keyRec = rawKey as Record<string, unknown>;
+				if (typeof keyRec.source !== "string" || !keyRec.source) continue;
+				const key: TaskFieldKey = { source: keyRec.source };
+				if (Array.isArray(keyRec.values)) {
+					const values: TaskValueMap[] = [];
+					for (const rawValue of keyRec.values) {
+						if (!rawValue || typeof rawValue !== "object") continue;
+						const valueRec = rawValue as Record<string, unknown>;
+						if (typeof valueRec.match !== "string") continue;
+						const value: TaskValueMap = { match: valueRec.match };
+						if (typeof valueRec.label === "string") value.label = valueRec.label;
+						if (typeof valueRec.color === "string") value.color = valueRec.color;
+						values.push(value);
+					}
+					if (values.length) key.values = values;
+				}
+				if (keyRec.isDate === true) key.isDate = true;
+				keys.push(key);
+			}
+		}
+		const field: TaskFieldDef = {
+			id: typeof rec.id === "string" && rec.id ? rec.id : newTaskFieldId(),
+			name: typeof rec.name === "string" ? rec.name : "",
+			keys,
+		};
+		if (typeof rec.showName === "boolean" && rec.showName) field.showName = true;
+		if (rec.display === "pill" || rec.display === "dot" || rec.display === "dotlabel" || rec.display === "text" || rec.display === "hue" || rec.display === "glow") {
+			field.display = rec.display;
+		}
+		if (typeof rec.opacity === "number" && Number.isFinite(rec.opacity)) {
+			field.opacity = Math.max(1, Math.min(100, Math.round(rec.opacity)));
+		}
+		out.push(field);
+	}
+	return out;
+}
+
+
+/**
+ * The fields a non-TaskNotes card starts from when it gets its own list: the
+ * metadata the fixed card has always shown — priority, the dates in
+ * chronological order, and the description — plus the board column on a Kanban
+ * board. A comfortable default, not the vault's TaskNotes list.
+ */
+export function defaultTaskFields(source: TaskFieldSource): TaskFieldDef[] {
+	const fields: TaskFieldDef[] = [];
+	if (source === "kanban") {
+		fields.push({
+			id: newTaskFieldId(),
+			name: "Column",
+			keys: [{ source: builtinSource("column") }],
+		});
+	}
+	fields.push({
+		id: newTaskFieldId(),
+		name: "Priority",
+		display: "dotlabel",
+		keys: [{ source: builtinSource("priority") }],
+	});
+	fields.push({
+		id: newTaskFieldId(),
+		name: "Dates",
+		keys: [
+			{ source: builtinSource("start") },
+			{ source: builtinSource("scheduled") },
+			{ source: builtinSource("due") },
+			{ source: builtinSource("doneDate") },
+		],
+	});
+	fields.push({
+		id: newTaskFieldId(),
+		name: "Description",
+		keys: [{ source: builtinSource("description") }],
+	});
+	return fields;
+}
+
+
+/**
  * The fields a card renders, or null when it should fall back to the fixed
  * metadata it has always shown.
  *
- * Three layers: the global master switch (off = null, whatever is stored), the
- * global field list, and a card that opted out of it with its own.
+ * Only TaskNotes cards follow the vault-wide list: the global master switch
+ * (off = null, whatever is stored) and the global field list are that
+ * source's configuration. Every other source configures its own fields on
+ * the card, independently of the vault-wide setting — the card's own toggle
+ * and list, or null while it has none.
  */
 export function activeTaskFields(
 	card: { taskFieldsEnabled?: boolean; taskFields?: TaskFieldDef[] },
 	global: { taskFieldsEnabled: boolean; taskFields: TaskFieldDef[] },
+	source: TaskFieldSource = "tasknotes",
 ): TaskFieldDef[] | null {
-	if (!global.taskFieldsEnabled) return null;
-	if (card.taskFieldsEnabled) return resolveTaskFields(card.taskFields);
-	return resolveTaskFields(global.taskFields);
+	if (source === "tasknotes") {
+		if (!global.taskFieldsEnabled) return null;
+		if (card.taskFieldsEnabled) return resolveTaskFields(card.taskFields, source);
+		return resolveTaskFields(global.taskFields, source);
+	}
+	if (!card.taskFieldsEnabled) return null;
+	return resolveTaskFields(card.taskFields, source);
 }
 
 
@@ -209,6 +322,37 @@ export function isPriorityStyle(style: TaskFieldStyle): boolean {
 /** Whether a key reads a priority, and so may be drawn in that form. */
 export function isPrioritySource(source: string): boolean {
 	return sourceBuiltin(source) === "priority";
+}
+
+
+/**
+ * The built-in values a card source can actually show. A source only offers
+ * what its tasks carry: the TaskNotes status means nothing to a checkbox
+ * card, and a board column means nothing anywhere but a Kanban board. Keys
+ * outside the card's set are dropped at resolve time and never offered by the
+ * editor, so a field that could only mean something for TaskNotes never
+ * appears on the other sources.
+ */
+export function builtinSourcesFor(source: TaskFieldSource | null): TaskBuiltinSource[] {
+	if (source === "kanban") {
+		return ["column", "priority", "start", "scheduled", "due", "doneDate", "description"];
+	}
+	if (source === "tasknotes") {
+		return ["status", "priority", "start", "scheduled", "due", "doneDate", "description"];
+	}
+	if (source === null) return [...TASK_BUILTIN_SOURCES];
+	return ["priority", "start", "scheduled", "due", "doneDate", "description"];
+}
+
+
+/** Whether a key's source can show anything on a card of `source`. A
+ * frontmatter property always can (it reads the note, whatever the source);
+ * a built-in value only when the source carries it. */
+export function isSourceAllowed(source: TaskFieldSource | null, keySource: string): boolean {
+	if (sourceProperty(keySource)) return true;
+	const builtin = sourceBuiltin(keySource);
+	if (!builtin) return false;
+	return builtinSourcesFor(source).includes(builtin);
 }
 
 

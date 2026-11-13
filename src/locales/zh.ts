@@ -57,6 +57,11 @@ export const zh: Translations = {
 		couldNotCreateNoteForDay: (day: string) => `Hearth：无法为 ${day} 创建笔记。`,
 		couldNotCreateEventNote: "Hearth：无法为该事件创建笔记。",
 		taskNotesCreateFailed: "Hearth：无法运行 TaskNotes：新建任务。",
+		tasksPluginCreateFailed: "Hearth：无法打开 Tasks 插件的创建任务对话框。",
+		tasksPluginNoTarget: "Hearth：请在此卡片设置中选择新任务的去向。",
+		tasksPluginNoDailyNotes: "Hearth：请启用核心“日记”插件，或在此卡片设置中为新任务选择一篇笔记。",
+		tasksPluginNoteMissing: (path: string) =>
+			`Hearth：在“${path}”没有找到用于新任务的笔记 — 请在此卡片设置中另选一篇。`,
 		taskChangedOnDisk: "Hearth：该任务在磁盘上已更改 — 已刷新。",
 		couldNotOpenTaskNote: "Hearth：无法打开该任务的笔记。",
 		couldNotUpdateTaskStatus: "Hearth：无法更新任务状态。",
@@ -1271,6 +1276,11 @@ export const zh: Translations = {
 				taskchute: {
 					name: "TaskChute Plus",
 					desc: "TaskChute 卡片读取插件自带的任务与记录——今日列表（可开始/停止）、一周概览和活动热力图。任务、例行与日志始终归 TaskChute 所有。",
+				},				tasksPlugin: {
+					name: "Tasks",
+					desc:
+						"任务卡片可以直接渲染 Tasks 插件自身的任务列表——它的任务识别、" +
+						"勾选与编辑对话框——并经由它在日记或自选笔记中创建任务。",
 				},				stereo: {
 					name: "Stereo",
 					desc:
@@ -2423,10 +2433,26 @@ export const zh: Translations = {
 			sourceDesc:
 				"Markdown 复选框在任何地方都可用。TaskNotes 通过 frontmatter 读取该插件的" +
 				"任务笔记（字段名可在 设置 → Hearth 中配置，因为 TaskNotes 没有供其他插件" +
-				"查询的 API）。Kanban 读取单个 Kanban 插件的看板笔记，每个标题作为一列。",
+				"查询的 API）。Kanban 读取单个 Kanban 插件的看板笔记，每个标题作为一列。" +
+				"Tasks 插件渲染自身的任务列表，使用它自己的勾选、编辑和创建体验。",
 			sourceCheckbox: "Markdown 复选框",
 			sourceTaskNotes: "TaskNotes 插件",
 			sourceKanban: "Kanban 插件",
+			sourceObsidianTasks: "Tasks 插件",
+			tasksQuery: "Tasks 查询",
+			tasksQueryDesc:
+				"附加的 Tasks 指令，会加在上面的范围、完成状态和任务数量行之后——" +
+				"使用 Tasks 插件自身的查询语言（例如“sort by due”）。留空则使用卡片默认设置。",
+			tasksQueryPlaceholder: "例如 sort by due",
+			tasksDestination: "新任务去向",
+			tasksDestinationDesc:
+				"Tasks 插件创建对话框放置新任务的位置：今日日记（不存在则创建），" +
+				"或某一篇指定笔记。",
+			tasksDestinationDaily: "今日日记",
+			tasksDestinationNote: "指定笔记",
+			tasksDestinationNoteDesc: "新任务将被追加到的笔记。",
+			tasksDestinationNotePlaceholder: "例如 Notes/Tasks.md",
+			pickNote: "选择笔记",
 			kanbanBoard: "看板笔记",
 			kanbanBoardDesc:
 				"要读取的 Kanban 插件看板。留空则自动检测范围内第一篇带有 “kanban-plugin” " +
@@ -2537,7 +2563,11 @@ export const zh: Translations = {
 			fields: "字段",
 			fieldsFollowGlobal:
 				"当前跟随 设置 → Hearth → 集成 中的字段。开启后可为此卡片单独设定。",
+			fieldsOwnDesc:
+				"此来源不跟随全库 TaskNotes 列表。开启后可为此卡片配置自有字段，" +
+				"从卡片一向显示的内容开始。",
 			fieldsCustomize: "自定义…",
+			fieldBroken: "此字段无法显示",
 			fieldsTitle: "任务字段",
 			fieldsHint:
 				"任务显示的一切，按顺序排列。字段由您定义：命名它、选择呈现方式，" +
@@ -3475,6 +3505,10 @@ export const zh: Translations = {
 			templaterEnable: "请启用 Templater 插件以从模板创建笔记",
 			templaterEmpty: "请在卡片设置中添加一个模板",
 			tasksEnable: "请启用 TaskNotes 插件，或把来源切换为复选框",
+			tasksPluginEnable: "请启用 Tasks 插件以在此处读取其任务——或将此卡片的来源切换为 Markdown 复选框",
+			tasksPluginSwitch: "切换为复选框",
+			tasksPluginTextOnly: "Tasks 插件在 Obsidian 中绘制此卡片——文本视图无法显示其结果",
+			tasksPluginQueryFailed: "Tasks 插件无法在此处绘制其结果",
 			tasksEmpty: "没有未完成的任务",
 			tasksNoMatch: "没有任务符合筛选条件",
 			matrixNeedsPriorities: "矩阵按优先级排列任务——请在此卡片设置中开启“日期与优先级”以便读取。",

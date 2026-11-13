@@ -165,6 +165,7 @@ export const CARD_REFERENCE_RULES: readonly ReferenceRule[] = [
 	// tasks
 	{ at: "tasks.kanbanFile", scope: "vaultPath" },
 	{ at: "tasks.convertNoteTemplate", scope: "vaultPath" },
+	{ at: "tasks.tasksPluginNote", scope: "vaultPath" },
 	{ at: "tasks.folders[]", scope: "vaultPath", folder: true },
 
 	// calendar / schedule — ICS feeds and the note an event becomes

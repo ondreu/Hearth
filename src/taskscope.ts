@@ -48,6 +48,7 @@ export function tasksEventRelevant(
 	const c = cfg ?? {};
 	if ((c.folderScope ?? "all") === "all") return true;
 	if ((c.source ?? "checkbox") === "kanban") return true;
+	if ((c.source ?? "checkbox") === "obsidian-tasks") return true;
 	if (!(file instanceof TFile)) return true;
 	return inTaskScope(file.path, c) || (oldPath != null && inTaskScope(oldPath, c));
 }

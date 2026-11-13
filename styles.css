@@ -11158,11 +11158,35 @@ body.is-tablet button.hearth-gallery-icon-btn {
 }
 
 /* Custom checkbox-statuses editor: a small monospaced list. */
-.hearth-tasks-statuses-input {
+.hearth-tasks-statuses-input,
+.hearth-tasks-query-input {
 	width: 100%;
 	font-family: var(--font-monospace);
 	font-size: 0.82rem;
 	line-height: 1.5;
+}
+
+/* ---- Tasks-plugin source --------------------------------------------- */
+
+/* The Tasks plugin draws its own rows; the host only keeps them inside the
+   card and resting on its baseline. */
+.hearth-tasks-plugin {
+	min-width: 0;
+}
+
+.hearth-tasks-plugin .plugin-tasks-query-result {
+	margin: 0;
+}
+
+/* The missing-plugin prompt's switch: a plain centred button under it. */
+.hearth-tasks-plugin-missing-actions {
+	display: flex;
+	justify-content: center;
+	margin-top: 10px;
+}
+
+.hearth-tasks-plugin-missing-switch {
+	cursor: pointer;
 }
 
 /* A setting whose control is a wide, multi-line input: stack the control under
@@ -12710,9 +12734,12 @@ body.hearth-dv-resizing {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	/* The scroller: it takes whatever height the frame has left, never more. */
+	/* The scroller: it takes whatever height the frame has left, never more —
+	   and never collapses to nothing. When the host doesn't size the modal by
+	   flex, a zero floor would open the editor effectively empty; the 200px
+	   floor keeps its content visible instead. */
 	flex: 1 1 auto;
-	min-height: 0;
+	min-height: 200px;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	/* Room for focus rings on the outermost controls, which a scroll container
@@ -12738,6 +12765,17 @@ body.hearth-dv-resizing {
 	border-radius: 10px;
 	background: var(--background-secondary);
 	overflow: hidden;
+}
+
+/* A field that failed to render keeps its place as a dashed card with a
+   remove button, so one bad entry never blanks the rest of the editor. */
+.hearth-taskfields-field.is-broken {
+	border-style: dashed;
+}
+
+.hearth-taskfields-field.is-broken .hearth-taskfields-headtext {
+	color: var(--text-muted);
+	font-style: italic;
 }
 
 .hearth-taskfields-key {

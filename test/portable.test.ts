@@ -1603,13 +1603,13 @@ describe("carrying the wallpaper", () => {
 });
 
 describe("task cards keep the metadata they were showing", () => {
-	it("folds the vault-wide field list onto each card", () => {
+	it("folds the vault-wide field list onto each TaskNotes card", () => {
 		const mine = opinionatedVault();
 		mine.taskFieldsEnabled = true;
 		mine.taskFields = [
 			{ id: "f1", name: "Due", keys: [{ source: "fm:due" }] },
 		];
-		mine.dashboards[0].cards = [card({ id: "c1", kind: "tasks", tasks: {} })];
+		mine.dashboards[0].cards = [card({ id: "c1", kind: "tasks", tasks: { source: "tasknotes" } })];
 
 		const pkg = captureDashboard(mine, mine.dashboards[0]);
 		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
@@ -1620,13 +1620,31 @@ describe("task cards keep the metadata they were showing", () => {
 		expect(pkg.requires?.settings).toEqual(["taskFieldsEnabled"]);
 	});
 
-	it("warns when the importing vault has that master switch off", () => {
+	it("leaves a checkbox card's own fields out of the TaskNotes fold", () => {
 		const mine = opinionatedVault();
 		mine.taskFieldsEnabled = true;
 		mine.taskFields = [
 			{ id: "f1", name: "Due", keys: [{ source: "fm:due" }] },
 		];
 		mine.dashboards[0].cards = [card({ id: "c1", kind: "tasks", tasks: {} })];
+
+		const pkg = captureDashboard(mine, mine.dashboards[0]);
+		const board = (pkg.payload as { dashboard: Dashboard }).dashboard;
+
+		// Other sources configure their own fields, independently of the
+		// vault-wide TaskNotes list — there is nothing to fold onto them.
+		expect(board.cards[0].tasks?.taskFieldsEnabled).toBeUndefined();
+		expect(board.cards[0].tasks?.taskFields).toBeUndefined();
+		expect(pkg.requires?.settings ?? []).not.toContain("taskFieldsEnabled");
+	});
+
+	it("warns when the importing vault has that master switch off", () => {
+		const mine = opinionatedVault();
+		mine.taskFieldsEnabled = true;
+		mine.taskFields = [
+			{ id: "f1", name: "Due", keys: [{ source: "fm:due" }] },
+		];
+		mine.dashboards[0].cards = [card({ id: "c1", kind: "tasks", tasks: { source: "tasknotes" } })];
 
 		const theirs = contraryVault();
 		theirs.taskFieldsEnabled = false;

@@ -160,7 +160,7 @@ function taskChips(view: HomeView, cfg: TasksConfig, hit: TaskHit, today: string
 		if (chips.length) chips.push({ text: " " });
 		chips.push({ text: asciify(text), style, color: color ?? undefined, label });
 	};
-	const fields = activeTaskFields(cfg, view.plugin.settings);
+	const fields = activeTaskFields(cfg, view.plugin.settings, cfg.source ?? "checkbox");
 	if (fields === null) {
 		if (hit.status) add(hit.status, "magenta");
 		if (hit.boardColumn && cfg.layout !== "kanban") add(hit.boardColumn, "cyan");
