@@ -5,6 +5,7 @@ import {
 	MUSIC_DEFAULT_VOLUME,
 	MUSIC_QUEUE_LIMIT,
 	MUSIC_RESTART_AFTER_SEC,
+	albumEntries,
 	albumOf,
 	albumOrder,
 	albumSections,
@@ -277,6 +278,26 @@ describe("subfolders as albums", () => {
 			{ album: "A", start: 0, count: 2 },
 			{ album: "B", start: 2, count: 1 },
 			{ album: "", start: 3, count: 1 },
+		]);
+	});
+
+	it("turns an album-ordered list into one entry per album", () => {
+		expect(
+			albumEntries(
+				[
+					"Music/B/02.mp3",
+					"Music/A/02.mp3",
+					"Music/09 Loose.mp3",
+					"Music/A/01.mp3",
+					"Music/B/01.mp3",
+				],
+				"Music",
+			),
+		).toEqual([
+			{ album: "A", paths: ["Music/A/01.mp3", "Music/A/02.mp3"] },
+			{ album: "B", paths: ["Music/B/01.mp3", "Music/B/02.mp3"] },
+			// Loose files are the last entry, under a name the card localises.
+			{ album: "", paths: ["Music/09 Loose.mp3"] },
 		]);
 	});
 

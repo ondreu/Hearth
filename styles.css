@@ -26441,37 +26441,33 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	text-overflow: ellipsis;
 }
 
-/* An album heading in the queue (subfolders played as albums): a label you can
- * click to start that album, not a track row — so it sits above its tracks,
- * separated by a hairline, and reads as a section rather than as one more song. */
-.hearth-music-row.is-album {
-	margin-top: 6px;
-	padding-top: 6px;
-	padding-bottom: 2px;
+/* A row that opens something — an album in the albums view, or the way back to
+ * the album list. It reads as a list row rather than a track: a leading glyph
+ * and, for an album, a chevron at the end. */
+.hearth-music-row.is-nav {
+	gap: 9px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+.hearth-music-row.is-nav .hearth-music-row-icon {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.hearth-music-row.is-nav:hover .hearth-music-row-icon {
 	color: var(--text-normal);
-}
-
-.hearth-music-row.is-album:not(:first-child) {
-	border-top: 1px solid var(--background-modifier-border);
-	border-radius: 0;
-}
-
-.hearth-music-row.is-album:hover {
-	background: none;
-	color: var(--interactive-accent);
-}
-
-.hearth-music-row.is-album .hearth-music-row-label {
-	font-size: calc(var(--font-ui-smaller) * 0.92);
-	font-weight: var(--font-semibold);
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
 }
 
 .hearth-music-row-icon {
 	display: flex;
 	align-items: center;
 	color: var(--text-faint);
+}
+
+.hearth-music-row-icon.is-trailing {
+	margin-left: auto;
+	opacity: 0.7;
 }
 
 .hearth-music-row-icon svg {
@@ -26780,10 +26776,9 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	color: var(--x-on-container);
 }
 
-/* A section label, not a pill you press: expressive keeps the hairline and
- * colours it with the theme's accent instead of taking the row's pill shape. */
-.hearth-card.is-expressive .hearth-music-row.is-album {
-	border-radius: 0;
+/* A row that opens something keeps the pill on expressive, but its glyph takes
+ * the accent so an album reads as something to go into. */
+.hearth-card.is-expressive .hearth-music-row.is-nav .hearth-music-row-icon {
 	color: var(--x-primary);
 }
 

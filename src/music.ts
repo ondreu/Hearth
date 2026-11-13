@@ -102,9 +102,9 @@ export function musicShowsQueue(cfg: MusicConfig | undefined): boolean {
 	return cfg?.showQueue !== false;
 }
 
-/** Whether subfolders are played as albums — one section per folder. Only
- * meaningful with `includeSubfolders` on, which is what puts the subfolders in
- * the queue at all. */
+/** Whether the card lists subfolders as albums instead of one queue of every
+ * track. Only meaningful with `includeSubfolders` on, which is what puts the
+ * subfolders in reach at all. */
 export function musicAlbums(cfg: MusicConfig | undefined): boolean {
 	return cfg?.albums === true && cfg.includeSubfolders === true;
 }
@@ -135,10 +135,9 @@ export interface AlbumSection {
 	count: number;
 }
 
-/** Group a queue into album sections in the order the tracks are in. Two
- * neighbouring tracks with the same album share one section, so a shuffled
- * queue yields one section per track — callers draw headings from this only
- * while the queue is in album order. */
+/** Group tracks into album sections in the order they are in. Two neighbouring
+ * tracks with the same album share one section — what turns an album-ordered
+ * list into album rows (see {@link albumEntries}). */
 export function albumSections(paths: readonly string[], folder: string | undefined): AlbumSection[] {
 	const sections: AlbumSection[] = [];
 	for (const [index, path] of paths.entries()) {
@@ -180,6 +179,26 @@ export function albumOrder(paths: readonly string[], folder: string | undefined)
 	const ordered: string[] = [];
 	for (const name of names) ordered.push(...(groups.get(name) ?? []).slice().sort(byPath));
 	return ordered;
+}
+
+/** One album in the card's browser: the subfolder, and the tracks in it. */
+export interface AlbumEntry {
+	/** Album name, or `""` for tracks loose in the card's folder. */
+	album: string;
+	/** The album's tracks, in play order (path order, so CDs stay in order). */
+	paths: string[];
+}
+
+/** Group a folder's tracks into the albums its subfolders make, in name order,
+ * with the tracks loose in the folder last. This is the list the albums view
+ * opens: no album holds another album's tracks, and each album's own tracks are
+ * already in the order they should play. */
+export function albumEntries(paths: readonly string[], folder: string | undefined): AlbumEntry[] {
+	const ordered = albumOrder(paths, folder);
+	return albumSections(ordered, folder).map((section) => ({
+		album: section.album,
+		paths: ordered.slice(section.start, section.start + section.count),
+	}));
 }
 
 /** Whether two track lists hold the same tracks, in any order — a shuffled

@@ -55,14 +55,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   names notes too, so the source is visible before the settings dialog.
 
 
-- **A folder of albums plays as albums.** The Music card's folder source gains
-  **Subfolders are albums**, offered once *Include subfolders* is on. Each
-  subfolder's tracks then stay together, in folder order, with the album's name
-  above its tracks in the queue — instead of the whole library being sorted by
-  file name, which put track `01` of every album next to each other. Clicking an
-  album's name starts that album from its first track, the line under the title
-  names the album that is playing, and files loose in the chosen folder come
-  after the albums.
+- **A folder of albums can be browsed as albums.** The Music card's folder source
+  gains **Show albums**, offered once *Include subfolders* is on: the list under
+  the transport becomes those subfolders as collapsed album rows, each with its
+  track count, and opening one shows its tracks with a row back to the list —
+  picking a track plays that album as the queue. Files loose in the picked folder
+  are listed last, as *Loose tracks*. With the switch off the card stays one
+  queue of every track, in name order.
 
 
 ### Changed
