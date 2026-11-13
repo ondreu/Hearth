@@ -55,6 +55,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   names notes too, so the source is visible before the settings dialog.
 
 
+- **A folder of albums can be browsed as albums.** The Music card's folder source
+  gains **Show albums**, offered once *Include subfolders* is on: the list under
+  the transport becomes those subfolders as collapsed album rows, each with its
+  track count, and opening one shows its tracks with a row back to the list —
+  picking a track plays that album as the queue. Files loose in the picked folder
+  are listed last, as *Loose tracks*. With the switch off the card stays one
+  queue of every track, in name order.
+
+
 ### Changed
 
 - **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
@@ -71,6 +80,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 
 ### Fixed
+
+- **A Music card whose folder changed no longer plays the old folder's tracks**
+  (#486). The card and the player share one queue, and the card handed its
+  tracks over only when that queue was empty: after pointing the card at another
+  folder the list showed the new tracks while next/previous still walked the old
+  queue, and a single path present in both was enough for the card to treat the
+  stale queue as its own. The player now remembers which card gave it the queue
+  and rebuilds it when that card's tracks change — keeping the track that is
+  playing, and stopping instead of playing a file that is gone.
 
 - **The Pet card in Terminal design no longer grows Obsidian's memory until it
   crashes** (#479). Its frames were the one animation in Hearth running on a

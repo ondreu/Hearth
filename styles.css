@@ -26441,6 +26441,40 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	text-overflow: ellipsis;
 }
 
+/* A row that opens something — an album in the albums view, or the way back to
+ * the album list. It reads as a list row rather than a track: a leading glyph
+ * and, for an album, a chevron at the end. */
+.hearth-music-row.is-nav {
+	gap: 9px;
+	padding-top: 7px;
+	padding-bottom: 7px;
+}
+
+.hearth-music-row.is-nav .hearth-music-row-icon {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.hearth-music-row.is-nav:hover .hearth-music-row-icon {
+	color: var(--text-normal);
+}
+
+.hearth-music-row-icon {
+	display: flex;
+	align-items: center;
+	color: var(--text-faint);
+}
+
+.hearth-music-row-icon.is-trailing {
+	margin-left: auto;
+	opacity: 0.7;
+}
+
+.hearth-music-row-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
 .hearth-music-row-more {
 	padding: 4px 7px;
 	font-size: var(--font-ui-smaller);
@@ -26740,6 +26774,12 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-card.is-expressive .hearth-music-row.is-current .hearth-music-row-label {
 	color: var(--x-on-container);
+}
+
+/* A row that opens something keeps the pill on expressive, but its glyph takes
+ * the accent so an album reads as something to go into. */
+.hearth-card.is-expressive .hearth-music-row.is-nav .hearth-music-row-icon {
+	color: var(--x-primary);
 }
 
 .hearth-card.is-expressive .hearth-music.is-layout-panel .hearth-music-stage {

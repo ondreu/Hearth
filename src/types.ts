@@ -1902,6 +1902,10 @@ export interface MusicConfig {
 	folder?: string;
 	/** Also take tracks from subfolders of `folder`. Default false. */
 	includeSubfolders?: boolean;
+	/** Play each subfolder as an album: its tracks stay together, in folder
+	 * order, and the queue draws an album heading. Only meaningful with
+	 * `includeSubfolders` on. Default false. */
+	albums?: boolean;
 	/** The hand-picked tracks, in list order (source "list"). */
 	tracks?: string[];
 	/** Show the queue under the transport. Default true. */

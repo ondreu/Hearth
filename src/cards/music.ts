@@ -7,12 +7,16 @@ import {
 	MUSIC_LOOKS,
 	MUSIC_QUEUE_LIMIT,
 	MUSIC_SOURCES,
+	albumEntries,
+	albumOf,
 	formatTrackTime,
 	isAudioPath,
+	musicAlbums,
 	musicLook,
 	musicReactsTo,
 	musicShowsQueue,
 	musicSource,
+	sameTrackSet,
 	trackLabel,
 } from "../music";
 import { FilePickerModal, FolderPickerModal } from "../pickers";
@@ -40,7 +44,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 /** Every audio file in a folder (and, when asked, its subfolders), in name
  * order. Name order rather than the vault's child order because a folder of
  * albums should read as `01 …`, `02 …`, not as whatever order the file system
- * happens to hand back. */
+ * happens to hand back. The albums view re-groups this list itself. */
 function folderTracks(app: App, folder: string | undefined, includeSubfolders: boolean): TFile[] {
 	const scope = normalizeFolderPath(folder);
 	const root = scope === "" ? app.vault.getRoot() : app.vault.getAbstractFileByPath(scope);
@@ -358,53 +362,80 @@ function paintChrome(chrome: Chrome, now: NowPlaying, seeking: () => boolean): v
 	chrome.status.toggleClass("is-shown", now.error !== null);
 }
 
-/** One row of the queue. */
-interface QueueEntry {
-	/** Stable identity — the vault path, or the song id. */
+/** One row of the card's list: a track, an album, or the way back out of one. */
+interface ListRow {
+	/** Stable identity — the vault path, the song id, or `album:<name>`. */
 	key: string;
 	label: string;
 	sub?: string;
+	/** Leading glyph (an album, the way back). */
+	icon?: string;
+	/** Glyph at the end of the row, for a row that opens something. */
+	trailing?: string;
 	/** The row that is playing now. */
-	current: boolean;
+	current?: boolean;
+	/** A track: a click plays it. Album and back rows are navigation. */
+	playable?: boolean;
+	/** What a click hands to `onPick` — a track index, or an album index. */
+	at: number;
 }
 
-/** Paint the queue. Rows are rebuilt only when the set of tracks changes (or
+/** Paint the list. Rows are rebuilt only when the set of entries changes (or
  * grows past the cap), so a redraw of the highlight costs nothing and a click
  * handler never outlives the row it was attached to. */
-function paintQueue(
+function paintList(
 	list: HTMLElement | null,
-	entries: QueueEntry[],
-	onPick: (index: number) => void,
+	rows: ListRow[],
+	onPick: (at: number) => void,
 ): void {
 	if (!list) return;
-	const shown = entries.slice(0, MUSIC_QUEUE_LIMIT);
-	const signature = `${entries.length}:${shown.map((entry) => entry.key).join("|")}`;
+	const shown = rows.slice(0, MUSIC_QUEUE_LIMIT);
+	const shownTracks = shown.filter((row) => row.playable === true).length;
+	const signature = `${rows.length}:${shown.map((row) => row.key).join("|")}`;
 	if (list.dataset.signature !== signature) {
 		list.dataset.signature = signature;
 		list.empty();
-		shown.forEach((entry, index) => {
-			const row = list.createEl("button", {
-				cls: "hearth-music-row",
+		shown.forEach((row) => {
+			const nav = row.icon !== undefined;
+			const el = list.createEl("button", {
+				cls: `hearth-music-row${nav ? " is-nav" : ""}${row.current === true ? " is-current" : ""}`,
 				attr: { type: "button" },
 			});
-			const text = row.createDiv("hearth-music-row-text");
-			text.createDiv({ cls: "hearth-music-row-label", text: entry.label });
-			if (entry.sub) text.createDiv({ cls: "hearth-music-row-sub", text: entry.sub });
-			row.addEventListener("click", () => onPick(index));
+			if (row.icon) {
+				// An element of its own: setIcon writes into the element it is
+				// given, so pointing it at the row would wipe the label.
+				setIcon(el.createSpan("hearth-music-row-icon"), row.icon);
+			}
+			const text = el.createDiv("hearth-music-row-text");
+			text.createDiv({ cls: "hearth-music-row-label", text: row.label });
+			if (row.sub) text.createDiv({ cls: "hearth-music-row-sub", text: row.sub });
+			if (row.trailing) {
+				setIcon(el.createSpan("hearth-music-row-icon is-trailing"), row.trailing);
+				el.setAttribute("title", t().cards.music.openAlbum);
+				el.setAttribute("aria-label", `${row.label} — ${t().cards.music.openAlbum}`);
+			}
+			el.addEventListener("click", () => onPick(row.at));
 		});
-		if (entries.length > shown.length) {
+		if (rows.length > shown.length) {
+			const tracks = rows.filter((row) => row.playable === true).length;
 			list.createDiv({
 				cls: "hearth-music-row-more",
-				text: t().cards.music.moreTracks(shown.length, entries.length),
+				text: t().cards.music.moreTracks(shownTracks, tracks),
 			});
 		}
 	}
-	const rows = list.querySelectorAll<HTMLElement>(".hearth-music-row");
-	rows.forEach((row, index) => row.toggleClass("is-current", shown[index]?.current === true));
+	const items = list.querySelectorAll<HTMLElement>(".hearth-music-row");
+	items.forEach((el, index) => el.toggleClass("is-current", shown[index]?.current === true));
 }
 
 
 // ---- Vault source ------------------------------------------------------
+
+/** Which album each card is looking into, by card id. Browsing is not a
+ * setting: it has to survive a redraw of the board (a file dropped into the
+ * folder rebuilds the card) but not a restart, which is what a module-level map
+ * gives. Keyed by card id, so two cards browse independently. */
+const openedAlbums = new Map<string, string>();
 
 function renderVaultSource(
 	view: HomeView,
@@ -426,13 +457,22 @@ function renderVaultSource(
 	}
 
 	const paths = files.map((file) => file.path);
+	// The albums view is a browser, not a queue: each subfolder is one row you
+	// open, and the player only changes when a track is picked.
+	const albums = musicAlbums(cfg) ? albumEntries(paths, cfg.folder) : [];
 	const player = vaultPlayer();
 	player.attach(view.app);
-	// Only seeds the queue when nothing is loaded — two music cards share one
-	// player, which is what a single pair of speakers means.
-	player.adopt(view.app, paths);
+	// Hands the queue over when nothing is loaded and keeps it in step with this
+	// card's tracks afterwards — a folder change or a dropped-in file must not
+	// leave the player walking the previous folder's queue (#486). Two cards
+	// share one player, and the queue's owner is what keeps them from fighting.
+	// The albums view leaves the player alone: opening an album to look at it
+	// must not cut off what is playing.
+	if (albums.length === 0) player.adopt(view.app, paths, card.id);
 
-	const chrome = buildChrome(body, musicLook(cfg), musicShowsQueue(cfg));
+	// The albums view needs its list even when the queue is turned off — it is
+	// the only way to reach the tracks.
+	const chrome = buildChrome(body, musicLook(cfg), musicShowsQueue(cfg) || albums.length > 0);
 	let seeking = false;
 
 	chrome.seek.addEventListener("input", () => {
@@ -456,11 +496,11 @@ function renderVaultSource(
 		player.setVolume(Number(chrome.volume.value) / 100),
 	);
 
-	/** Whether the player is currently working through this card's tracks. */
-	const isPlayersQueue = (state: Readonly<PlayerState>): boolean => {
-		const own = new Set(paths);
-		return state.queue.length > 0 && state.queue.some((path) => own.has(path));
-	};
+	/** Whether the player is currently working through this card's tracks — not
+	 * merely whether one of them is in someone else's queue. Counting an
+	 * overlap made a card whose folder had changed show the old folder's queue,
+	 * because a single surviving path looked like "mine" (#486). */
+	const isPlayersQueue = (state: Readonly<PlayerState>): boolean => state.owner === card.id;
 	/** The queue this card shows: the player's own order while it is playing
 	 * this card's tracks, otherwise the card's list (which a click hands to the
 	 * player). */
@@ -469,11 +509,14 @@ function renderVaultSource(
 
 	const paint = (state: Readonly<PlayerState>): void => {
 		const current = state.queue[state.index] ?? "";
+		const album = musicAlbums(cfg) && current ? albumOf(current, cfg.folder) : "";
 		const now: NowPlaying = {
 			title: current ? trackLabel(current) : t().cards.music.nothingPlaying,
 			sub:
 				state.queue.length > 0 && state.index >= 0
-					? `${state.index + 1} / ${state.queue.length}`
+					? [album, `${state.index + 1} / ${state.queue.length}`]
+							.filter((part) => part !== "")
+							.join(" · ")
 					: t().cards.music.queueEmpty,
 			playing: state.playing,
 			position: state.position,
@@ -489,16 +532,69 @@ function renderVaultSource(
 		paintArt(chrome, now);
 		paintChrome(chrome, now, () => seeking);
 		const queue = shownQueue(state);
-		paintQueue(
+		const playing = isPlayersQueue(state);
+
+		if (albums.length > 0) {
+			const inside = albums.find((entry) => entry.album === openedAlbums.get(card.id)) ?? null;
+			if (!inside) {
+				// The closed album list — the view the card opens in. A row is an
+				// album to go into, not a heading over an expanded track list.
+				paintList(
+					chrome.list,
+					albums.map((entry, index) => ({
+						key: `album:${entry.album}`,
+						label: entry.album === "" ? t().cards.music.looseTracks : entry.album,
+						sub: t().cards.music.trackCount(entry.paths.length),
+						icon: "disc",
+						trailing: "chevron-right",
+						at: index,
+					})),
+					(at) => {
+						const entry = albums[at];
+						if (!entry) return;
+						openedAlbums.set(card.id, entry.album);
+						paint(player.getState());
+					},
+				);
+				return;
+			}
+			// Inside one album: its tracks, with the way back above them. The
+			// playing order is the player's own once it is this album's queue, so
+			// a row's index is the index `playAt` needs even when shuffled.
+			const own = playing && sameTrackSet(state.queue, inside.paths);
+			const tracks = own ? state.queue : inside.paths;
+			const rows: ListRow[] = [
+				{ key: "back", label: t().cards.music.allAlbums, icon: "chevron-left", at: -1 },
+				...tracks.map((path, index) => ({
+					key: path,
+					label: trackLabel(path),
+					at: index,
+					playable: true,
+					current: own && index === state.index,
+				})),
+			];
+			paintList(chrome.list, rows, (at) => {
+				if (at < 0) {
+					openedAlbums.delete(card.id);
+					paint(player.getState());
+				} else if (own) void player.playAt(at);
+				else void player.playFrom(view.app, tracks, at, card.id);
+			});
+			return;
+		}
+
+		paintList(
 			chrome.list,
 			queue.map((path, index) => ({
 				key: path,
 				label: trackLabel(path),
-				current: isPlayersQueue(state) && index === state.index,
+				at: index,
+				playable: true,
+				current: playing && index === state.index,
 			})),
-			(index) => {
-				if (isPlayersQueue(state)) void player.playAt(index);
-				else void player.playFrom(view.app, queue, index);
+			(at) => {
+				if (playing) void player.playAt(at);
+				else void player.playFrom(view.app, queue, at, card.id);
 			},
 		);
 	};
@@ -601,12 +697,14 @@ function renderStereoSource(
 		};
 		paintArt(chrome, now);
 		paintChrome(chrome, now, () => seeking);
-		paintQueue(
+		paintList(
 			chrome.list,
 			state.queue.map((song, index) => ({
 				key: song.id,
 				label: song.title,
 				sub: song.artist,
+				at: index,
+				playable: true,
 				current: index === state.index,
 			})),
 			(index) => void player.playAt(index),
@@ -723,10 +821,27 @@ function folderSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Mu
 		.addToggle((tg) =>
 			tg.setValue(cfg.includeSubfolders === true).onChange((value) => {
 				cfg.includeSubfolders = value || undefined;
+				// Albums are a way of reading the subfolders, so the switch for
+				// them exists only while subfolders are part of the queue.
+				if (!value) delete cfg.albums;
 				ctx.opts.save();
+				ctx.requestRender();
 				ctx.opts.rerender();
 			}),
 		);
+
+	if (cfg.includeSubfolders === true) {
+		new Setting(containerEl)
+			.setName(strings.albums)
+			.setDesc(strings.albumsDesc)
+			.addToggle((tg) =>
+				tg.setValue(musicAlbums(cfg)).onChange((value) => {
+					cfg.albums = value || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
 
 	// How many tracks the folder yields — the number that tells you whether the
 	// folder (and the subfolder toggle) is the one you meant.

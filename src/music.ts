@@ -102,6 +102,127 @@ export function musicShowsQueue(cfg: MusicConfig | undefined): boolean {
 	return cfg?.showQueue !== false;
 }
 
+/** Whether the card lists subfolders as albums instead of one queue of every
+ * track. Only meaningful with `includeSubfolders` on, which is what puts the
+ * subfolders in reach at all. */
+export function musicAlbums(cfg: MusicConfig | undefined): boolean {
+	return cfg?.albums === true && cfg.includeSubfolders === true;
+}
+
+/** A path relative to the card's folder, or the path itself when it lies
+ * outside it. */
+function relativeToFolder(path: string, folder: string | undefined): string {
+	const scope = normalizeFolderPath(folder);
+	if (scope === "") return path;
+	return path.startsWith(`${scope}/`) ? path.slice(scope.length + 1) : path;
+}
+
+/** The album a track belongs to: its first folder under the card's own folder.
+ * A track sitting directly in the card's folder has no album (`""`). */
+export function albumOf(path: string, folder: string | undefined): string {
+	const relative = relativeToFolder(path, folder);
+	const slash = relative.indexOf("/");
+	return slash > 0 ? relative.slice(0, slash) : "";
+}
+
+/** One run of neighbouring tracks that share an album, in queue order. */
+export interface AlbumSection {
+	/** Album name, or `""` for tracks loose in the card's folder. */
+	album: string;
+	/** Index of the section's first track in the queue. */
+	start: number;
+	/** How many tracks the section holds. */
+	count: number;
+}
+
+/** Group tracks into album sections in the order they are in. Two neighbouring
+ * tracks with the same album share one section — what turns an album-ordered
+ * list into album rows (see {@link albumEntries}). */
+export function albumSections(paths: readonly string[], folder: string | undefined): AlbumSection[] {
+	const sections: AlbumSection[] = [];
+	for (const [index, path] of paths.entries()) {
+		const album = albumOf(path, folder);
+		const last = sections[sections.length - 1];
+		if (last && last.album === album) last.count += 1;
+		else sections.push({ album, start: index, count: 1 });
+	}
+	return sections;
+}
+
+/** Compare two paths the way a track list should read: `02` before `10`, and
+ * `CD1/…` before `CD2/…`. */
+function byPath(a: string, b: string): number {
+	return a.localeCompare(b, undefined, { numeric: true });
+}
+
+/**
+ * Order tracks album by album: albums by name, the tracks inside one album by
+ * path (so a `CD1`/`CD2` album keeps its disc order), and files loose in the
+ * card's folder last. This is what keeps a folder of albums from interleaving —
+ * a plain name sort puts track `01` of every album next to each other.
+ */
+export function albumOrder(paths: readonly string[], folder: string | undefined): string[] {
+	const groups = new Map<string, string[]>();
+	for (const path of paths) {
+		const album = albumOf(path, folder);
+		const group = groups.get(album);
+		if (group) group.push(path);
+		else groups.set(album, [path]);
+	}
+	const names = [...groups.keys()].sort((a, b) => {
+		if (a === b) return 0;
+		// Loose tracks are not an album, so they come after the named ones.
+		if (a === "") return 1;
+		if (b === "") return -1;
+		return a.localeCompare(b, undefined, { numeric: true });
+	});
+	const ordered: string[] = [];
+	for (const name of names) ordered.push(...(groups.get(name) ?? []).slice().sort(byPath));
+	return ordered;
+}
+
+/** One album in the card's browser: the subfolder, and the tracks in it. */
+export interface AlbumEntry {
+	/** Album name, or `""` for tracks loose in the card's folder. */
+	album: string;
+	/** The album's tracks, in play order (path order, so CDs stay in order). */
+	paths: string[];
+}
+
+/** Group a folder's tracks into the albums its subfolders make, in name order,
+ * with the tracks loose in the folder last. This is the list the albums view
+ * opens: no album holds another album's tracks, and each album's own tracks are
+ * already in the order they should play. */
+export function albumEntries(paths: readonly string[], folder: string | undefined): AlbumEntry[] {
+	const ordered = albumOrder(paths, folder);
+	return albumSections(ordered, folder).map((section) => ({
+		album: section.album,
+		paths: ordered.slice(section.start, section.start + section.count),
+	}));
+}
+
+/** Whether two track lists hold the same tracks, in any order — a shuffled
+ * queue is the card's own tracks, just not in the card's order. */
+export function sameTrackSet(a: readonly string[], b: readonly string[]): boolean {
+	if (a.length !== b.length) return false;
+	const set = new Set(a);
+	return set.size === a.length && b.every((path) => set.has(path));
+}
+
+/**
+ * Where the playhead lands after a card's tracks changed: on the same track
+ * when it survived, otherwise on the first one — and in that case the caller
+ * must not carry the old playhead over, because it belongs to a file that is no
+ * longer queued.
+ */
+export function carryOverIndex(
+	paths: readonly string[],
+	current: string | undefined,
+): { index: number; keepsPlaying: boolean } {
+	const at = current === undefined ? -1 : paths.indexOf(current);
+	return at >= 0 ? { index: at, keepsPlaying: true } : { index: 0, keepsPlaying: false };
+}
+
 /** A track's display name: the file name without its extension. Deliberately
  * not ID3 metadata — reading tags would mean a decoder (or a dependency) for a
  * card that gets the artist out of the file name well enough, and a tag reader

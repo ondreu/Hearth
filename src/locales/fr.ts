@@ -1783,6 +1783,10 @@ export const fr: Translations = {
 			pickFolder: "Choisir un dossier",
 			includeSubfolders: "Inclure les sous-dossiers",
 			includeSubfoldersDesc: "Prendre aussi les pistes des dossiers qu'il contient.",
+			albums: "Afficher les albums",
+			albumsDesc:
+				"Lister les sous-dossiers comme des albums à ouvrir, au lieu d'une file " +
+				"de toutes les pistes. Un album ouvert montre ses pistes ; en choisir une le lance.",
 			found: (count: number) => `${count} piste(s) trouvée(s)`,
 			noTracks: "Aucune piste pour l'instant — ajoutez-en une ci-dessous.",
 			addTrack: "Ajouter une piste",
@@ -3728,6 +3732,10 @@ export const fr: Translations = {
 			seek: "Position de lecture",
 			nothingPlaying: "Rien en lecture",
 			queueEmpty: "File vide",
+			openAlbum: "Ouvrir l'album",
+			allAlbums: "Tous les albums",
+			looseTracks: "Pistes isolées",
+			trackCount: (count: number) => `${count} piste${count === 1 ? "" : "s"}`,
 			stereoIdle: "Mettez quelque chose en file dans Stereo",
 			moreTracks: (shown: number, total: number) => `${shown} pistes sur ${total}`,
 			errorMissing: "Ce fichier n'est plus dans le coffre",

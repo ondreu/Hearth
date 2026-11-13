@@ -5,8 +5,14 @@ import {
 	MUSIC_DEFAULT_VOLUME,
 	MUSIC_QUEUE_LIMIT,
 	MUSIC_RESTART_AFTER_SEC,
+	albumEntries,
+	albumOf,
+	albumOrder,
+	albumSections,
+	carryOverIndex,
 	formatTrackTime,
 	isAudioPath,
+	musicAlbums,
 	musicLook,
 	musicReactsTo,
 	musicRepeat,
@@ -15,6 +21,7 @@ import {
 	musicVolume,
 	nextTrackIndex,
 	previousTrackIndex,
+	sameTrackSet,
 	sanitizeMusicState,
 	shuffledQueue,
 	trackLabel,
@@ -216,6 +223,113 @@ describe("shuffle", () => {
 		const shuffled = shuffledQueue(queue);
 		expect(shuffled).toHaveLength(queue.length);
 		expect(new Set(shuffled).size).toBe(queue.length);
+	});
+});
+
+describe("subfolders as albums", () => {
+	it("is off unless subfolders are part of the queue at all", () => {
+		expect(musicAlbums({ albums: true })).toBe(false);
+		expect(musicAlbums({ includeSubfolders: true })).toBe(false);
+		expect(musicAlbums({ albums: true, includeSubfolders: true })).toBe(true);
+		expect(musicAlbums({ albums: false, includeSubfolders: true })).toBe(false);
+		expect(musicAlbums(undefined)).toBe(false);
+	});
+
+	it("takes an album from the first folder under the card's own", () => {
+		expect(albumOf("Music/Album A/01 Intro.mp3", "Music")).toBe("Album A");
+		expect(albumOf("Music/Album A/CD1/01 Intro.mp3", "Music")).toBe("Album A");
+		expect(albumOf("Music/09 Loose.mp3", "Music")).toBe("");
+		// The vault root is "" — the top-level folder is the album then.
+		expect(albumOf("Music/Album A/01.mp3", undefined)).toBe("Music");
+		expect(albumOf("Music/Album A/01.mp3", "/")).toBe("Music");
+	});
+
+	it("orders album by album instead of interleaving tracks by name", () => {
+		const paths = [
+			"Music/B/01.mp3",
+			"Music/A/02.mp3",
+			"Music/B/02.mp3",
+			"Music/A/01.mp3",
+			"Music/09 Loose.mp3",
+		];
+		expect(albumOrder(paths, "Music")).toEqual([
+			"Music/A/01.mp3",
+			"Music/A/02.mp3",
+			"Music/B/01.mp3",
+			"Music/B/02.mp3",
+			// A file loose in the folder is not an album, so it goes last.
+			"Music/09 Loose.mp3",
+		]);
+	});
+
+	it("keeps a multi-disc album in disc order", () => {
+		expect(
+			albumOrder(["Music/X/CD2/01.mp3", "Music/X/CD1/10.mp3", "Music/X/CD1/2.mp3"], "Music"),
+		).toEqual(["Music/X/CD1/2.mp3", "Music/X/CD1/10.mp3", "Music/X/CD2/01.mp3"]);
+	});
+
+	it("groups neighbouring tracks of one album into a section", () => {
+		expect(
+			albumSections(
+				["Music/A/01.mp3", "Music/A/02.mp3", "Music/B/01.mp3", "Music/loose.mp3"],
+				"Music",
+			),
+		).toEqual([
+			{ album: "A", start: 0, count: 2 },
+			{ album: "B", start: 2, count: 1 },
+			{ album: "", start: 3, count: 1 },
+		]);
+	});
+
+	it("turns an album-ordered list into one entry per album", () => {
+		expect(
+			albumEntries(
+				[
+					"Music/B/02.mp3",
+					"Music/A/02.mp3",
+					"Music/09 Loose.mp3",
+					"Music/A/01.mp3",
+					"Music/B/01.mp3",
+				],
+				"Music",
+			),
+		).toEqual([
+			{ album: "A", paths: ["Music/A/01.mp3", "Music/A/02.mp3"] },
+			{ album: "B", paths: ["Music/B/01.mp3", "Music/B/02.mp3"] },
+			// Loose files are the last entry, under a name the card localises.
+			{ album: "", paths: ["Music/09 Loose.mp3"] },
+		]);
+	});
+
+	it("does not merge an album's tracks across another album", () => {
+		expect(
+			albumSections(["Music/A/01.mp3", "Music/B/01.mp3", "Music/A/02.mp3"], "Music"),
+		).toEqual([
+			{ album: "A", start: 0, count: 1 },
+			{ album: "B", start: 1, count: 1 },
+			{ album: "A", start: 2, count: 1 },
+		]);
+	});
+});
+
+describe("keeping the player's queue in step with a card", () => {
+	it("treats a shuffled queue as the same tracks", () => {
+		expect(sameTrackSet(["a.mp3", "b.mp3"], ["b.mp3", "a.mp3"])).toBe(true);
+		expect(sameTrackSet(["a.mp3"], ["a.mp3", "b.mp3"])).toBe(false);
+		expect(sameTrackSet(["a.mp3", "a.mp3"], ["a.mp3", "b.mp3"])).toBe(false);
+		expect(sameTrackSet([], [])).toBe(true);
+	});
+
+	it("carries the playhead onto the same track when it survived", () => {
+		expect(carryOverIndex(["a.mp3", "b.mp3", "c.mp3"], "c.mp3")).toEqual({
+			index: 2,
+			keepsPlaying: true,
+		});
+	});
+
+	it("starts at the top when the track that was playing is gone", () => {
+		expect(carryOverIndex(["b.mp3"], "a.mp3")).toEqual({ index: 0, keepsPlaying: false });
+		expect(carryOverIndex(["b.mp3"], undefined)).toEqual({ index: 0, keepsPlaying: false });
 	});
 });
 

@@ -1646,6 +1646,10 @@ export const zh: Translations = {
 			pickFolder: "选择文件夹",
 			includeSubfolders: "包含子文件夹",
 			includeSubfoldersDesc: "也取用其子文件夹里的曲目。",
+			albums: "显示专辑",
+			albumsDesc:
+				"把子文件夹列成可以打开的专辑，而不是把所有曲目排成一条队列。" +
+				"打开专辑即可看到它的曲目；选一首就开始播放这张专辑。",
 			found: (count: number) => `找到 ${count} 首曲目`,
 			noTracks: "还没有曲目——在下面添加一首。",
 			addTrack: "添加曲目",
@@ -3430,6 +3434,10 @@ export const zh: Translations = {
 			seek: "播放进度",
 			nothingPlaying: "未在播放",
 			queueEmpty: "队列为空",
+			openAlbum: "打开专辑",
+			allAlbums: "所有专辑",
+			looseTracks: "散落的曲目",
+			trackCount: (count: number) => `${count} 首曲目`,
 			stereoIdle: "在 Stereo 里添加一些音乐",
 			moreTracks: (shown: number, total: number) => `显示 ${shown} / ${total} 首`,
 			errorMissing: "该文件已不在库中",

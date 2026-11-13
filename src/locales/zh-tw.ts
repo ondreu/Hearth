@@ -1661,6 +1661,10 @@ export const zhTW: Translations = {
 			pickFolder: "選擇資料夾",
 			includeSubfolders: "包含子資料夾",
 			includeSubfoldersDesc: "也取用其子資料夾裡的曲目。",
+			albums: "顯示專輯",
+			albumsDesc:
+				"把子資料夾列成可以開啟的專輯，而不是把所有曲目排成一條佇列。" +
+				"開啟專輯即可看到它的曲目；選一首就開始播放這張專輯。",
 			found: (count: number) => `找到 ${count} 首曲目`,
 			noTracks: "還沒有曲目——在下面新增一首。",
 			addTrack: "新增曲目",
@@ -3438,6 +3442,10 @@ export const zhTW: Translations = {
 			seek: "播放進度",
 			nothingPlaying: "未在播放",
 			queueEmpty: "佇列為空",
+			openAlbum: "開啟專輯",
+			allAlbums: "所有專輯",
+			looseTracks: "散落的曲目",
+			trackCount: (count: number) => `${count} 首曲目`,
 			stereoIdle: "在 Stereo 裡新增一些音樂",
 			moreTracks: (shown: number, total: number) => `顯示 ${shown} / ${total} 首`,
 			errorMissing: "該檔案已不在 Obsidian 儲存庫中",
