@@ -26441,6 +26441,44 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	text-overflow: ellipsis;
 }
 
+/* An album heading in the queue (subfolders played as albums): a label you can
+ * click to start that album, not a track row — so it sits above its tracks,
+ * separated by a hairline, and reads as a section rather than as one more song. */
+.hearth-music-row.is-album {
+	margin-top: 6px;
+	padding-top: 6px;
+	padding-bottom: 2px;
+	color: var(--text-normal);
+}
+
+.hearth-music-row.is-album:not(:first-child) {
+	border-top: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+}
+
+.hearth-music-row.is-album:hover {
+	background: none;
+	color: var(--interactive-accent);
+}
+
+.hearth-music-row.is-album .hearth-music-row-label {
+	font-size: calc(var(--font-ui-smaller) * 0.92);
+	font-weight: var(--font-semibold);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.hearth-music-row-icon {
+	display: flex;
+	align-items: center;
+	color: var(--text-faint);
+}
+
+.hearth-music-row-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
 .hearth-music-row-more {
 	padding: 4px 7px;
 	font-size: var(--font-ui-smaller);
@@ -26740,6 +26778,13 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 
 .hearth-card.is-expressive .hearth-music-row.is-current .hearth-music-row-label {
 	color: var(--x-on-container);
+}
+
+/* A section label, not a pill you press: expressive keeps the hairline and
+ * colours it with the theme's accent instead of taking the row's pill shape. */
+.hearth-card.is-expressive .hearth-music-row.is-album {
+	border-radius: 0;
+	color: var(--x-primary);
 }
 
 .hearth-card.is-expressive .hearth-music.is-layout-panel .hearth-music-stage {

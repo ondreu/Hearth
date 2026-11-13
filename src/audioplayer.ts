@@ -1,9 +1,11 @@
 import { type App, TFile } from "obsidian";
 import {
 	MUSIC_DEFAULT_VOLUME,
+	carryOverIndex,
 	musicVolume,
 	nextTrackIndex,
 	previousTrackIndex,
+	sameTrackSet,
 	sanitizeMusicState,
 	shuffledQueue,
 	type MusicPlaybackState,
@@ -47,6 +49,10 @@ export interface PlayerState extends MusicPlaybackState {
 	error: string | null;
 	/** Whether the queue is currently shuffled, so the button can say so. */
 	shuffled: boolean;
+	/** Id of the card whose tracks this queue was seeded from, or null while a
+	 * restored session has not been claimed yet. A second card must not take
+	 * over a queue it did not hand over. */
+	owner: string | null;
 }
 
 type Listener = (state: Readonly<PlayerState>) => void;
@@ -65,6 +71,7 @@ class VaultAudioPlayer {
 		playing: false,
 		error: null,
 		shuffled: false,
+		owner: null,
 	};
 	/** The queue in its unshuffled order, so turning shuffle off can restore it. */
 	private straight: string[] = [];
@@ -101,18 +108,55 @@ class VaultAudioPlayer {
 	}
 
 	/**
-	 * Seed the queue from a card's own list, but only when the player has nothing
-	 * loaded. Two cards on one board share one player on purpose — a dashboard
-	 * with two playlists is still one pair of speakers — so a card that renders
-	 * while something is already queued must not take it over.
+	 * Hand a card's tracks to the player. Called on every render, so the three
+	 * cases differ on purpose:
+	 *
+	 * - Nothing queued: seed and take ownership.
+	 * - The queue is the card's own but the tracks changed under it (a file
+	 *   added, a folder repointed): rebuild the queue around the track that is
+	 *   playing, without restarting it. Before this, a card that had changed its
+	 *   folder kept showing — and next/previous kept walking — the old folder's
+	 *   tracks (#486).
+	 * - The queue belongs to another card, or a restored session this card does
+	 *   not match: leave it alone. Two music cards on one board share one player
+	 *   on purpose — a dashboard with two playlists is still one pair of
+	 *   speakers — so a card that renders while something is already queued must
+	 *   not take it over.
 	 */
-	adopt(app: App, paths: string[]): void {
+	adopt(app: App, paths: string[], owner: string): void {
 		this.attach(app);
-		if (this.state.queue.length > 0) return;
 		if (paths.length === 0) return;
+		if (this.state.queue.length === 0) {
+			this.straight = paths.slice();
+			this.update({ queue: paths.slice(), index: 0, position: 0, duration: 0, owner });
+			this.load(0);
+			return;
+		}
+		if (this.state.owner === null) {
+			// A queue restored from the last session has no owner yet; claim it
+			// only when this card shows exactly those tracks, or the card that
+			// does will claim it on its own render.
+			if (sameTrackSet(this.state.queue, paths)) this.update({ owner });
+			return;
+		}
+		if (this.state.owner !== owner || sameTrackSet(this.state.queue, paths)) return;
+		const current = this.state.queue[this.state.index];
+		const { index, keepsPlaying } = carryOverIndex(paths, current);
 		this.straight = paths.slice();
-		this.update({ queue: paths.slice(), index: 0, position: 0, duration: 0 });
-		this.load(0);
+		this.update({
+			queue: paths.slice(),
+			index,
+			position: keepsPlaying ? this.state.position : 0,
+			duration: keepsPlaying ? this.state.duration : 0,
+			shuffled: false,
+			error: null,
+		});
+		if (keepsPlaying) return;
+		// The track that was playing is gone from the card. Stop rather than
+		// leave a stale file audible, and load the new first track paused.
+		this.audio?.pause();
+		this.update({ playing: false });
+		this.load(index);
 	}
 
 	async playAt(index: number): Promise<void> {
@@ -125,7 +169,7 @@ class VaultAudioPlayer {
 	 * folder or list no longer matches what the player has queued (a track was
 	 * dropped in, a file was renamed) and the click must still do the obvious
 	 * thing. Shuffle is dropped: the new queue is the card's own order. */
-	async playFrom(app: App, paths: string[], index: number): Promise<void> {
+	async playFrom(app: App, paths: string[], index: number, owner: string): Promise<void> {
 		if (paths.length === 0 || index < 0 || index >= paths.length) return;
 		this.attach(app);
 		this.straight = paths.slice();
@@ -136,6 +180,7 @@ class VaultAudioPlayer {
 			duration: 0,
 			shuffled: false,
 			error: null,
+			owner,
 		});
 		this.load(index, true);
 	}
@@ -278,6 +323,7 @@ class VaultAudioPlayer {
 			playing: false,
 			error: null,
 			shuffled: false,
+			owner: null,
 		};
 		this.straight = [];
 	}

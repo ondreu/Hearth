@@ -1838,6 +1838,11 @@ export const de: Translations = {
 			pickFolder: "Ordner wählen",
 			includeSubfolders: "Unterordner einbeziehen",
 			includeSubfoldersDesc: "Auch Titel aus Ordnern darunter nehmen.",
+			albums: "Unterordner sind Alben",
+			albumsDesc:
+				"Die Titel jedes Unterordners bleiben zusammen und werden in der " +
+				"Warteschlange als Album beschriftet. Ein Klick auf ein Album startet es.",
+			playAlbum: "Dieses Album abspielen",
 			found: (count: number) => `${count} Titel gefunden`,
 			noTracks: "Noch keine Titel — unten einen hinzufügen.",
 			addTrack: "Titel hinzufügen",
@@ -3784,6 +3789,7 @@ export const de: Translations = {
 			seek: "Wiedergabeposition",
 			nothingPlaying: "Nichts wird abgespielt",
 			queueEmpty: "Warteschlange leer",
+			playAlbum: "Dieses Album abspielen",
 			stereoIdle: "In Stereo etwas einreihen",
 			moreTracks: (shown: number, total: number) => `${shown} von ${total} Titeln`,
 			errorMissing: "Diese Datei ist nicht mehr im Vault",

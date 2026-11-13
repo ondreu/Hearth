@@ -1621,6 +1621,7 @@ function sanitizeMusic(r: Record<string, unknown>): MusicConfig {
 	const folder = str(r.folder);
 	if (folder !== undefined) cfg.folder = folder;
 	if (typeof r.includeSubfolders === "boolean") cfg.includeSubfolders = r.includeSubfolders;
+	if (typeof r.albums === "boolean") cfg.albums = r.albums;
 	if (Array.isArray(r.tracks)) {
 		const tracks = r.tracks.filter(
 			(entry): entry is string => typeof entry === "string" && entry !== "",

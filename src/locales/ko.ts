@@ -1280,6 +1280,11 @@ export const ko: Translations = {
 			pickFolder: "폴더 선택",
 			includeSubfolders: "하위 폴더 포함",
 			includeSubfoldersDesc: "이 폴더 안의 폴더에서도 트랙을 가져옵니다.",
+			albums: "하위 폴더를 앨범으로",
+			albumsDesc:
+				"각 하위 폴더의 트랙을 한데 묶어 대기열에 앨범으로 표시합니다. " +
+				"앨범을 클릭하면 첫 트랙부터 재생됩니다.",
+			playAlbum: "이 앨범 재생",
 			found: (count: number) => `트랙 ${count}개`,
 			noTracks: "아직 트랙이 없습니다 — 아래에서 추가하세요.",
 			addTrack: "트랙 추가",
@@ -1966,6 +1971,7 @@ export const ko: Translations = {
 			seek: "재생 위치",
 			nothingPlaying: "재생 중인 항목 없음",
 			queueEmpty: "대기열이 비어 있음",
+			playAlbum: "이 앨범 재생",
 			stereoIdle: "Stereo에서 음악을 추가하세요",
 			moreTracks: (shown: number, total: number) => `${total}개 중 ${shown}개 표시`,
 			errorMissing: "이 파일은 볼트에 더 이상 없습니다",

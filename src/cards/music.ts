@@ -7,8 +7,12 @@ import {
 	MUSIC_LOOKS,
 	MUSIC_QUEUE_LIMIT,
 	MUSIC_SOURCES,
+	albumOf,
+	albumOrder,
+	albumSections,
 	formatTrackTime,
 	isAudioPath,
+	musicAlbums,
 	musicLook,
 	musicReactsTo,
 	musicShowsQueue,
@@ -37,27 +41,41 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // ---- Track collection ---------------------------------------------------
 
-/** Every audio file in a folder (and, when asked, its subfolders), in name
- * order. Name order rather than the vault's child order because a folder of
- * albums should read as `01 …`, `02 …`, not as whatever order the file system
+/** Every audio file in a folder (and, when asked, its subfolders). With
+ * `albums`, the tracks are ordered album by album instead of by file name —
+ * otherwise a folder of albums interleaves them (`01` of every album together).
+ * Name order rather than the vault's child order because a folder of albums
+ * should read as `01 …`, `02 …`, not as whatever order the file system
  * happens to hand back. */
-function folderTracks(app: App, folder: string | undefined, includeSubfolders: boolean): TFile[] {
+function folderTracks(
+	app: App,
+	folder: string | undefined,
+	includeSubfolders: boolean,
+	albums: boolean,
+): TFile[] {
 	const scope = normalizeFolderPath(folder);
 	const root = scope === "" ? app.vault.getRoot() : app.vault.getAbstractFileByPath(scope);
 	if (!(root instanceof TFolder)) return [];
 
-	const tracks: TFile[] = [];
+	const files = new Map<string, TFile>();
 	const walk = (dir: TFolder) => {
 		for (const child of dir.children) {
 			if (child instanceof TFolder) {
 				if (includeSubfolders) walk(child);
 				continue;
 			}
-			if (child instanceof TFile && isAudioPath(child.path)) tracks.push(child);
+			if (child instanceof TFile && isAudioPath(child.path)) files.set(child.path, child);
 		}
 	};
 	walk(root);
-	return tracks.sort((a, b) => a.basename.localeCompare(b.basename, undefined, { numeric: true }));
+	if (!albums) {
+		return [...files.values()].sort((a, b) =>
+			a.basename.localeCompare(b.basename, undefined, { numeric: true }),
+		);
+	}
+	return albumOrder([...files.keys()], folder)
+		.map((path) => files.get(path))
+		.filter((file): file is TFile => file !== undefined);
 }
 
 /** The tracks a card plays right now: its folder, or the files still present
@@ -72,7 +90,7 @@ function collectTracks(app: App, cfg: MusicConfig): TFile[] {
 		}
 		return tracks;
 	}
-	return folderTracks(app, cfg.folder, cfg.includeSubfolders === true);
+	return folderTracks(app, cfg.folder, cfg.includeSubfolders === true, musicAlbums(cfg));
 }
 
 
@@ -360,12 +378,16 @@ function paintChrome(chrome: Chrome, now: NowPlaying, seeking: () => boolean): v
 
 /** One row of the queue. */
 interface QueueEntry {
-	/** Stable identity — the vault path, or the song id. */
+	/** Stable identity — the vault path, the song id, or `album:<name>`. */
 	key: string;
 	label: string;
 	sub?: string;
 	/** The row that is playing now. */
 	current: boolean;
+	/** An album heading rather than a track. A click plays from `at`. */
+	heading?: boolean;
+	/** Queue index this row plays (a heading plays its album's first track). */
+	at: number;
 }
 
 /** Paint the queue. Rows are rebuilt only when the set of tracks changes (or
@@ -378,24 +400,33 @@ function paintQueue(
 ): void {
 	if (!list) return;
 	const shown = entries.slice(0, MUSIC_QUEUE_LIMIT);
+	const shownTracks = shown.filter((entry) => entry.heading !== true).length;
 	const signature = `${entries.length}:${shown.map((entry) => entry.key).join("|")}`;
 	if (list.dataset.signature !== signature) {
 		list.dataset.signature = signature;
 		list.empty();
-		shown.forEach((entry, index) => {
+		shown.forEach((entry) => {
 			const row = list.createEl("button", {
-				cls: "hearth-music-row",
+				cls: entry.heading ? "hearth-music-row is-album" : "hearth-music-row",
 				attr: { type: "button" },
 			});
+			if (entry.heading) {
+				// An icon element of its own: setIcon writes into the element it
+				// is given, so pointing it at the row would wipe the label.
+				setIcon(row.createSpan("hearth-music-row-icon"), "disc");
+				row.setAttribute("aria-label", `${t().cards.music.playAlbum}: ${entry.label}`);
+				row.setAttribute("title", t().cards.music.playAlbum);
+			}
 			const text = row.createDiv("hearth-music-row-text");
 			text.createDiv({ cls: "hearth-music-row-label", text: entry.label });
 			if (entry.sub) text.createDiv({ cls: "hearth-music-row-sub", text: entry.sub });
-			row.addEventListener("click", () => onPick(index));
+			row.addEventListener("click", () => onPick(entry.at));
 		});
 		if (entries.length > shown.length) {
+			const tracks = entries.filter((entry) => entry.heading !== true).length;
 			list.createDiv({
 				cls: "hearth-music-row-more",
-				text: t().cards.music.moreTracks(shown.length, entries.length),
+				text: t().cards.music.moreTracks(shownTracks, tracks),
 			});
 		}
 	}
@@ -428,9 +459,11 @@ function renderVaultSource(
 	const paths = files.map((file) => file.path);
 	const player = vaultPlayer();
 	player.attach(view.app);
-	// Only seeds the queue when nothing is loaded — two music cards share one
-	// player, which is what a single pair of speakers means.
-	player.adopt(view.app, paths);
+	// Hands the queue over when nothing is loaded and keeps it in step with this
+	// card's tracks afterwards — a folder change or a dropped-in file must not
+	// leave the player walking the previous folder's queue (#486). Two cards
+	// share one player, and the queue's owner is what keeps them from fighting.
+	player.adopt(view.app, paths, card.id);
 
 	const chrome = buildChrome(body, musicLook(cfg), musicShowsQueue(cfg));
 	let seeking = false;
@@ -456,11 +489,11 @@ function renderVaultSource(
 		player.setVolume(Number(chrome.volume.value) / 100),
 	);
 
-	/** Whether the player is currently working through this card's tracks. */
-	const isPlayersQueue = (state: Readonly<PlayerState>): boolean => {
-		const own = new Set(paths);
-		return state.queue.length > 0 && state.queue.some((path) => own.has(path));
-	};
+	/** Whether the player is currently working through this card's tracks — not
+	 * merely whether one of them is in someone else's queue. Counting an
+	 * overlap made a card whose folder had changed show the old folder's queue,
+	 * because a single surviving path looked like "mine" (#486). */
+	const isPlayersQueue = (state: Readonly<PlayerState>): boolean => state.owner === card.id;
 	/** The queue this card shows: the player's own order while it is playing
 	 * this card's tracks, otherwise the card's list (which a click hands to the
 	 * player). */
@@ -469,11 +502,14 @@ function renderVaultSource(
 
 	const paint = (state: Readonly<PlayerState>): void => {
 		const current = state.queue[state.index] ?? "";
+		const album = musicAlbums(cfg) && current ? albumOf(current, cfg.folder) : "";
 		const now: NowPlaying = {
 			title: current ? trackLabel(current) : t().cards.music.nothingPlaying,
 			sub:
 				state.queue.length > 0 && state.index >= 0
-					? `${state.index + 1} / ${state.queue.length}`
+					? [album, `${state.index + 1} / ${state.queue.length}`]
+							.filter((part) => part !== "")
+							.join(" · ")
 					: t().cards.music.queueEmpty,
 			playing: state.playing,
 			position: state.position,
@@ -489,18 +525,47 @@ function renderVaultSource(
 		paintArt(chrome, now);
 		paintChrome(chrome, now, () => seeking);
 		const queue = shownQueue(state);
-		paintQueue(
-			chrome.list,
-			queue.map((path, index) => ({
-				key: path,
-				label: trackLabel(path),
-				current: isPlayersQueue(state) && index === state.index,
-			})),
-			(index) => {
-				if (isPlayersQueue(state)) void player.playAt(index);
-				else void player.playFrom(view.app, queue, index);
-			},
-		);
+		const playing = isPlayersQueue(state);
+		const entries: QueueEntry[] = [];
+		const byAlbum = musicAlbums(cfg) && !state.shuffled;
+		if (byAlbum) {
+			// A heading per album, drawn from the queue's own order, so the list
+			// reads as albums instead of one undifferentiated run of files.
+			for (const section of albumSections(queue, cfg.folder)) {
+				if (section.album !== "") {
+					entries.push({
+						key: `album:${section.album}:${section.start}`,
+						label: section.album,
+						heading: true,
+						at: section.start,
+						current: false,
+					});
+				}
+				for (let offset = 0; offset < section.count; offset++) {
+					const index = section.start + offset;
+					const path = queue[index] ?? "";
+					entries.push({
+						key: path,
+						label: trackLabel(path),
+						at: index,
+						current: playing && index === state.index,
+					});
+				}
+			}
+		} else {
+			queue.forEach((path, index) => {
+				entries.push({
+					key: path,
+					label: trackLabel(path),
+					at: index,
+					current: playing && index === state.index,
+				});
+			});
+		}
+		paintQueue(chrome.list, entries, (index) => {
+			if (playing) void player.playAt(index);
+			else void player.playFrom(view.app, queue, index, card.id);
+		});
 	};
 
 	// A redraw (settings change, track dropped into the folder) keeps playing:
@@ -608,6 +673,7 @@ function renderStereoSource(
 				label: song.title,
 				sub: song.artist,
 				current: index === state.index,
+				at: index,
 			})),
 			(index) => void player.playAt(index),
 		);
@@ -723,10 +789,27 @@ function folderSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Mu
 		.addToggle((tg) =>
 			tg.setValue(cfg.includeSubfolders === true).onChange((value) => {
 				cfg.includeSubfolders = value || undefined;
+				// Albums are a way of reading the subfolders, so the switch for
+				// them exists only while subfolders are part of the queue.
+				if (!value) delete cfg.albums;
 				ctx.opts.save();
+				ctx.requestRender();
 				ctx.opts.rerender();
 			}),
 		);
+
+	if (cfg.includeSubfolders === true) {
+		new Setting(containerEl)
+			.setName(strings.albums)
+			.setDesc(strings.albumsDesc)
+			.addToggle((tg) =>
+				tg.setValue(musicAlbums(cfg)).onChange((value) => {
+					cfg.albums = value || undefined;
+					ctx.opts.save();
+					ctx.opts.rerender();
+				}),
+			);
+	}
 
 	// How many tracks the folder yields — the number that tells you whether the
 	// folder (and the subfolder toggle) is the one you meant.

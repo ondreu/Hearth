@@ -1833,6 +1833,11 @@ export const en = {
 			pickFolder: "Pick a folder",
 			includeSubfolders: "Include subfolders",
 			includeSubfoldersDesc: "Take tracks from folders inside this one too.",
+			albums: "Subfolders are albums",
+			albumsDesc:
+				"Keep each subfolder's tracks together and label them in the queue. " +
+				"Clicking an album starts it from its first track.",
+			playAlbum: "Play this album",
 			found: (count: number) => `${count} track(s) found`,
 			noTracks: "No tracks yet — add one below.",
 			addTrack: "Add a track",
@@ -3749,6 +3754,7 @@ export const en = {
 			seek: "Playback position",
 			nothingPlaying: "Nothing playing",
 			queueEmpty: "Nothing queued",
+			playAlbum: "Play this album",
 			stereoIdle: "Queue something in Stereo",
 			moreTracks: (shown: number, total: number) => `Showing ${shown} of ${total} tracks`,
 			errorMissing: "That file is no longer in the vault",

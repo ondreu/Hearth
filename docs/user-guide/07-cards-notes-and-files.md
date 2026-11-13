@@ -264,6 +264,15 @@ audio that is either in your vault or on a Navidrome/Subsonic server.
 | **Vault files (list)** | A hand-picked list of files, in the order you added them |
 | **Stereo (Navidrome/Subsonic)** | Whatever the Stereo plugin has queued on your server |
 
+A folder of albums is two separate choices. **Include subfolders** adds the
+tracks from the folders inside the one you picked; **Subfolders are albums**
+(offered once subfolders are in) keeps each subfolder's tracks together instead
+of sorting the whole library by file name, which would put track `01` of every
+album next to each other. The queue then lists the albums in name order, each
+album's name above its tracks, and clicking that name starts the album from its
+first track. The line under the title names the album that is playing, and the
+folder's own loose files come after the albums.
+
 The two vault sources are played by Hearth itself. **Stereo** plays nothing: the
 card is a remote control for the Stereo plugin, so browsing, queuing and
 scrobbling all stay in Stereo and the card only mirrors what it is playing. Pick
