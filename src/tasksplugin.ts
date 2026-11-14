@@ -6,30 +6,33 @@ import {
 	dailyNotesOptions,
 	type DailyNotesOptions,
 } from "./cardbodies";
+import { parseNaturalDate } from "./dates";
 import { t } from "./i18n";
+import { inlineTags, stripInlineTags } from "./taskfilter";
+import { readPriorityEmoji } from "./priority";
+import { readEmojiField, stripTaskMetadata } from "./checkboxtasks";
 import type { TasksConfig } from "./types";
 import type { HomeView } from "./view";
 
 /**
  * The obsidian-tasks community plugin as a tasks-card source.
  *
- * Unlike the checkbox, TaskNotes and Kanban sources — which Hearth parses
- * itself — this source defers to the Tasks plugin wherever it can:
+ * Hearth draws this source itself — the card's normal rows/board/matrix with
+ * its own chips, dots and colours — but everything it draws is what the Tasks
+ * plugin says is a task:
  *
- *   - what counts as a task (and in which format: the Emoji or Dataview task
- *     format the vault is configured for) is the plugin's own notion, because
- *     the card renders the plugin's own `tasks` query block rather than
- *     re-reading notes;
- *   - ticking and editing happen in the plugin's own rendered rows (its toggle
- *     handling and its edit modal), so Hearth never re-interprets a state,
- *     priority, date, repeat rule, tag or status;
- *   - creating a task opens the plugin's own create modal
- *     (`apiV1.createTaskLineModal`), and the returned line — written by the
- *     plugin, in the vault's configured format — is appended verbatim to the
- *     destination note, never converted.
+ *   - what counts as a task is any checkbox line whose status symbol the
+ *     plugin knows (its built-ins plus the user's custom statuses, read live
+ *     from its status registry);
+ *   - whether it is done is the plugin's own notion (its DONE/CANCELLED types,
+ *     not Hearth's checkbox config);
+ *   - the vault's task format is honoured on write: ticking goes through the
+ *     plugin's own toggle command (which rolls recurrence and stamps done
+ *     dates the way the plugin does), editing and creating go through its own
+ *     modals, so the note is never converted to another format.
  *
- * The query building and the API probing are pure, so they are unit-tested;
- * everything touching the vault is async and defensive.
+ * The query building of the previous version is gone: the card filters, sorts,
+ * caps and fields Hearth's own way, over the tasks collected here.
  */
 
 
@@ -92,68 +95,224 @@ export function tasksPluginApi(app: App): TasksPluginApiV1 | null {
 }
 
 
-// ---- The query ---------------------------------------------------------------
+// ---- Custom statuses ---------------------------------------------------------
+
+/** One Tasks-plugin status: the symbol inside `- [ ]`, its display name, and
+ * whether the plugin counts it as finished. */
+export interface TasksPluginStatus {
+	symbol: string;
+	label: string;
+	done: boolean;
+}
+
+
+/** Fallback statuses when the registry can't be read: the plugin's own
+ * defaults (Todo, In Progress, Done, Cancelled). */
+const FALLBACK_STATUSES: TasksPluginStatus[] = [
+	{ symbol: " ", label: "Todo", done: false },
+	{ symbol: "/", label: "In Progress", done: false },
+	{ symbol: "x", label: "Done", done: true },
+	{ symbol: "X", label: "Done", done: true },
+	{ symbol: "-", label: "Cancelled", done: true },
+];
+
+
+/** Try to read the plugin's status registry in any of its known shapes. The
+ * registry has moved between Tasks versions (a `StatusRegistry` instance with
+ * a `getStatus`/`bySymbol` lookup, a plain array on the plugin, or status
+ * settings), so every shape is probed defensively and anything unrecognised
+ * is ignored rather than throwing. */
+function readRegistryStatuses(plugin: Record<string, unknown>): TasksPluginStatus[] | null {
+	const out: TasksPluginStatus[] = [];
+	const push = (symbol: unknown, name: unknown, done: unknown): void => {
+		if (typeof symbol !== "string" || symbol.length !== 1) return;
+		const label = typeof name === "string" && name.trim() ? name.trim() : symbol;
+		out.push({ symbol, label, done: done === true });
+	};
+	try {
+		const rawReg = plugin["statusRegistry"];
+		const reg =
+			rawReg && typeof rawReg === "object" ? (rawReg as Record<string, unknown>) : undefined;
+		if (reg) {
+			// Newer versions: registry with registeredStatuses[] of
+			// StatusConfiguration { symbol, name, type }.
+			const list: unknown = reg["registeredStatuses"];
+			if (Array.isArray(list) && list.length) {
+				for (const entry of list) {
+					if (!entry || typeof entry !== "object") continue;
+					const rec = entry as Record<string, unknown>;
+					const symbol = rec["symbol"];
+					const name = rec["name"] ?? rec["label"];
+					const type = typeof rec["type"] === "string" ? rec["type"].toUpperCase() : "";
+					push(symbol, name, type === "DONE" || type === "CANCELLED");
+				}
+				if (out.length) return out;
+			}
+			// Older versions: bySymbol map symbol -> Status.
+			const rawBySymbol = reg["bySymbol"];
+			const bySymbol = rawBySymbol && typeof rawBySymbol === "object" ? rawBySymbol : null;
+			if (bySymbol) {
+				for (const [symbol, entry] of Object.entries(bySymbol as Record<string, unknown>)) {
+					if (!entry || typeof entry !== "object") continue;
+					const rec = entry as Record<string, unknown>;
+					const name = rec["name"] ?? rec["label"];
+					const type = typeof rec["type"] === "string" ? rec["type"].toUpperCase() : "";
+					push(symbol, name, type === "DONE" || type === "CANCELLED");
+				}
+				if (out.length) return out;
+			}
+		}
+		// Status settings array on the plugin settings.
+		const settings = plugin["settings"] as Record<string, unknown> | undefined;
+		const candidates = settings ? [settings["statuses"], settings["statusSettings"]] : [];
+		for (const candidate of candidates) {
+			if (!Array.isArray(candidate) || !candidate.length) continue;
+			const before = out.length;
+			for (const entry of candidate) {
+				if (!entry || typeof entry !== "object") continue;
+				const rec = entry as Record<string, unknown>;
+				const symbol = rec["symbol"];
+				const name = rec["name"] ?? rec["label"];
+				const type = typeof rec["type"] === "string" ? rec["type"].toUpperCase() : "";
+				push(symbol, name, type === "DONE" || type === "CANCELLED");
+			}
+			if (out.length > before) return out;
+		}
+	} catch {
+		return null;
+	}
+	return null;
+}
+
 
 /**
- * Build the `tasks` query block this card renders: the plugin's own filter
- * language, so scope, completion and the cap are the plugin's to apply.
- *
- * Only Hearth controls with a direct Tasks equivalent are translated (folder
- * scope → `path includes`, hidden completed → `not done`, max tasks →
- * `limit`); everything finer-grained is the user's own `tasksQuery` text,
- * appended verbatim. Hearth's own filter/sort dialogs have no equivalent
- * here and are not offered for this source, so they are deliberately not
- * translated.
+ * The statuses the Tasks plugin knows, in its own order: its registry when it
+ * can be read, otherwise the plugin's defaults. Always non-empty, so a card
+ * never ends up with nowhere to put a task.
  */
-export function buildTasksPluginQuery(cfg: TasksConfig): string {
-	const lines: string[] = [];
-
-	const folders = (cfg.folders ?? []).map((f) => f.trim().replace(/\/+$/, "")).filter(Boolean);
-	if ((cfg.folderScope ?? "all") === "whitelist") {
-		if (!folders.length) {
-			// An empty whitelist matches nothing in Hearth — and must match
-			// nothing here too, rather than falling through to the whole vault.
-			lines.push("path regex matches /^$/");
-		} else if (folders.length === 1) {
-			lines.push(`path includes ${folders[0]}`);
-		} else {
-			// Several `path includes` lines would AND (matching nothing); one
-			// function filter ORs them, mirroring `inTaskScope`.
-			lines.push(`filter by function ${whitelistPredicate(folders)}`);
+export function tasksPluginStatuses(app: App): TasksPluginStatus[] {
+	try {
+		const plugin: unknown = tasksPlugin(app);
+		if (plugin && typeof plugin === "object") {
+			const read = readRegistryStatuses(plugin as Record<string, unknown>);
+			if (read?.length) return read;
 		}
-	} else if ((cfg.folderScope ?? "all") === "blacklist") {
-		// Exclusions AND: a task counts when none of them match.
-		for (const folder of folders) lines.push(`path does not include ${folder}`);
+	} catch {
+		// Fall through to the defaults.
 	}
-
-	if (cfg.showCompleted !== true) lines.push("not done");
-
-	const count = cfg.count && cfg.count > 0 ? Math.floor(cfg.count) : 10;
-	lines.push(`limit ${count}`);
-
-	const extra = (cfg.tasksQuery ?? "")
-		.split("\n")
-		.map((l) => l.trim())
-		.filter(Boolean);
-	lines.push(...extra);
-
-	return lines.join("\n");
+	return [...FALLBACK_STATUSES];
 }
 
 
-/** A `filter by function` predicate matching Hearth's folder-scope rule for a
- * whitelist: the note is the folder, or lives under it. Quoted safely, since
- * a folder name may hold quotes or backslashes. */
-function whitelistPredicate(folders: string[]): string {
-	const list = folders.map((f) => JSON.stringify(f)).join(",");
-	return `(task) => { const scope = ${list}; const p = task.file.path; return scope.some((f) => p === f || p.startsWith(f + "/")); }`;
+// ---- Reading a task line -----------------------------------------------------
+
+/** A Dataview-style inline field `[key:: value]` (the vault's alternative task
+ * format) — e.g. `[due:: 2024-01-15]` or `[priority:: high]`. */
+const DATAVIEW_FIELD_RE = /\[([A-Za-z][\w-]*)\s*::\s*([^\]]+?)\]/g;
+
+
+/** Read a Dataview inline field from a task line, case-insensitively. Returns
+ * the trimmed value, or null when absent. */
+function readDataviewField(text: string, key: string): string | null {
+	DATAVIEW_FIELD_RE.lastIndex = 0;
+	let m: RegExpExecArray | null;
+	while ((m = DATAVIEW_FIELD_RE.exec(text)) !== null) {
+		if (m[1].trim().toLowerCase() === key) {
+			const value = m[2].trim();
+			if (value) return value;
+		}
+	}
+	return null;
 }
 
 
-/** The fenced block the card hands to `MarkdownRenderer.render`, so the Tasks
- * plugin draws its own results. */
-export function tasksPluginQueryFence(cfg: TasksConfig): string {
-	return `\`\`\`tasks\n${buildTasksPluginQuery(cfg)}\n\`\`\``;
+/** Strip Dataview inline fields (`[key:: value]`) from a task's display text,
+ * collapsing leftover whitespace. Idempotent. */
+function stripDataviewFields(text: string): string {
+	return text
+		.replace(DATAVIEW_FIELD_RE, "")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+
+/** Resolve a raw date expression — an ISO date or natural language ("today",
+ * "next friday") — to YYYY-MM-DD, or null when it isn't a real date. */
+function resolveDate(expr: string): string | null {
+	return parseNaturalDate(expr);
+}
+
+
+/** One task line as the Tasks plugin means it, in both of the vault's task
+ * formats: the Emoji format (`📅 2024-01-15 ⏫ 🔁 every week`) and the Dataview
+ * format (`[due:: 2024-01-15] [priority:: high]`). Emoji markers win when both
+ * are present on one line; Dataview fields fill whatever the emoji leave out.
+ * Tags are the line's inline hashtags either way. */
+export interface ParsedTasksPluginLine {
+	/** Display title: metadata and tags stripped. */
+	text: string;
+	/** Raw priority value (an emoji like "⏫" or a word like "high"), or "" when none. */
+	priority: string;
+	due: string | null;
+	dueRaw: string | null;
+	scheduled: string | null;
+	start: string | null;
+	doneDate: string | null;
+	recurrence: string | null;
+	tags: string[];
+}
+
+
+/** Parse one task line's metadata in the vault's task format. Pure, so it is
+ * unit-tested without Obsidian. */
+export function parseTasksPluginLine(raw: string): ParsedTasksPluginLine {
+	// Emoji markers are read off the line with Dataview fields removed, so a
+	// trailing `[due:: …]` never leaks into an emoji value (readEmojiField only
+	// stops at the next emoji marker, not at a bracket).
+	const emojiSource = raw.replace(DATAVIEW_FIELD_RE, " ");
+	DATAVIEW_FIELD_RE.lastIndex = 0;
+	// An emoji value runs to the next marker — but a trailing hashtag is a tag,
+	// not metadata ("🔁 every week #home" repeats weekly; "#home" is a tag).
+	const cleanMeta = (value: string | null): string | null => {
+		if (!value) return null;
+		const cut = value.split("#")[0].trim();
+		return cut || null;
+	};
+	const dueExpr = cleanMeta(readEmojiField(emojiSource, "📅")) ?? readDataviewField(raw, "due");
+	const scheduledExpr = cleanMeta(readEmojiField(emojiSource, "⏳")) ?? readDataviewField(raw, "scheduled");
+	const startExpr = cleanMeta(readEmojiField(emojiSource, "🛫")) ?? readDataviewField(raw, "start");
+	const doneExpr = cleanMeta(readEmojiField(emojiSource, "✅")) ?? readDataviewField(raw, "done");
+	const recurrenceExpr =
+		cleanMeta(readEmojiField(emojiSource, "🔁")) ??
+		readDataviewField(raw, "recurrence") ??
+		readDataviewField(raw, "repeat") ??
+		readDataviewField(raw, "repeating");
+	const priorityEmoji = readPriorityEmoji(raw) ?? "";
+	const priorityWord = readDataviewField(raw, "priority") ?? "";
+	// An emoji priority is the plugin's own level; a Dataview word ("high") is
+	// kept verbatim so Hearth's priority colours and sorts still apply.
+	const priority = priorityEmoji || priorityWord.trim();
+	let due: string | null = null;
+	let dueRaw: string | null = null;
+	if (dueExpr) {
+		dueRaw = dueExpr.trim();
+		due = resolveDate(dueExpr.trim());
+	}
+	const scheduled = scheduledExpr ? (resolveDate(scheduledExpr.trim()) ?? null) : null;
+	const start = startExpr ? (resolveDate(startExpr.trim()) ?? null) : null;
+	const doneDate = doneExpr ? (resolveDate(doneExpr.trim()) ?? null) : null;
+	const text = stripInlineTags(stripDataviewFields(stripTaskMetadata(raw))).replace(/\s+/g, " ").trim();
+	return {
+		text,
+		priority,
+		due,
+		dueRaw,
+		scheduled,
+		start,
+		doneDate,
+		recurrence: recurrenceExpr?.trim() || null,
+		tags: inlineTags(raw),
+	};
 }
 
 
@@ -236,6 +395,155 @@ export async function createTasksPluginTask(view: HomeView, cfg: TasksConfig): P
 		return true;
 	} catch {
 		new Notice(notices.tasksPluginCreateFailed);
+		return false;
+	}
+}
+
+
+// ---- Toggling / editing / deleting through the plugin ------------------------
+
+/** Whether an on-disk line is still the task that was read: only the leading
+ * checkbox marker may have changed underneath us (a toggle from elsewhere);
+ * the rest of the line — modulo the plugin's own metadata and tags, which
+ * Hearth rewrites through the card — must match. */
+function samePluginLine(lineText: string, hitText: string): boolean {
+	const norm = (v: string): string => stripInlineTags(stripDataviewFields(stripTaskMetadata(v)));
+	return norm(lineText) === norm(hitText);
+}
+
+
+/** The vault write behind a toggle/edit: replace `line` in `file` with
+ * `nextLines` (one line, or two when completing a recurring task splits it). */
+async function replacePluginLines(file: TFile, view: HomeView, line: number, nextLines: string[]): Promise<boolean> {
+	try {
+		const content = await view.app.vault.read(file);
+		const lines = content.split("\n");
+		if (line < 0 || line >= lines.length) return false;
+		lines.splice(line, 1, ...nextLines);
+		await view.app.vault.modify(file, lines.join("\n"));
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+
+/**
+ * Tick or untick a task exactly the way the Tasks plugin's own toggle command
+ * does — recurrence rolls, done dates stamp — so the note keeps the vault's
+ * task format. Returns false when the write couldn't be made.
+ */
+export async function toggleTasksPluginTask(
+	view: HomeView,
+	file: TFile,
+	line: number,
+	rawText: string,
+): Promise<boolean> {
+	const api = tasksPluginApi(view.app);
+	if (!api) {
+		new Notice(t().notices.tasksPluginCreateFailed);
+		return false;
+	}
+	let current: string;
+	try {
+		current = (await view.app.vault.read(file)).split("\n")[line] ?? "";
+	} catch {
+		return false;
+	}
+	const match = /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(current);
+	if (!match || !samePluginLine(match[2], rawText)) return false;
+	let next: string;
+	try {
+		next = api.executeToggleTaskDoneCommand(current, file.path);
+	} catch {
+		new Notice(t().notices.tasksPluginCreateFailed);
+		return false;
+	}
+	if (!next?.trim()) return false;
+	return replacePluginLines(
+		file,
+		view,
+		line,
+		next.split("\n").map((l) => l.replace(/\s+$/, "")),
+	);
+}
+
+
+/**
+ * Edit a task in the Tasks plugin's own edit modal (prefilled with the line as
+ * it stands), writing the plugin's returned line back verbatim. Returns false
+ * when cancelled or when the write couldn't be made.
+ */
+export async function editTasksPluginTask(
+	view: HomeView,
+	file: TFile,
+	line: number,
+	rawText: string,
+): Promise<boolean> {
+	const api = tasksPluginApi(view.app);
+	if (!api) {
+		new Notice(t().notices.tasksPluginCreateFailed);
+		return false;
+	}
+	let current: string;
+	try {
+		current = (await view.app.vault.read(file)).split("\n")[line] ?? "";
+	} catch {
+		return false;
+	}
+	const match = /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(current);
+	if (!match || !samePluginLine(match[2], rawText)) {
+		new Notice(t().notices.taskChangedOnDisk);
+		return false;
+	}
+	let next: string;
+	try {
+		next = await api.editTaskLineModal(current);
+	} catch {
+		new Notice(t().notices.tasksPluginCreateFailed);
+		return false;
+	}
+	if (!next?.trim()) return false; // cancelled in the modal
+	return replacePluginLines(file, view, line, [next.trimEnd()]);
+}
+
+
+/** Delete a task's line (plus any nested continuation lines, so no orphaned
+ * description is left behind). Format-agnostic: only lines are removed. */
+export async function deleteTasksPluginTask(
+	view: HomeView,
+	file: TFile,
+	line: number,
+	rawText: string,
+): Promise<boolean> {
+	let content: string;
+	try {
+		content = await view.app.vault.read(file);
+	} catch {
+		return false;
+	}
+	const lines = content.split("\n");
+	const cur = lines[line];
+	const match = cur != null ? /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(cur) : null;
+	if (!match || !samePluginLine(match[2], rawText)) return false;
+	const indent = (/^(\s*)/.exec(cur)?.[1] ?? "").length;
+	let end = line + 1;
+	while (end < lines.length) {
+		const l = lines[end];
+		if (l.trim() === "") break;
+		if ((/^(\s*)/.exec(l)?.[1] ?? "").length <= indent) break;
+		// A nested task is a task of its own — stop there rather than
+		// swallowing it.
+		if (/^\s*[-*+]\s\[(.)\]/.test(l)) break;
+		end++;
+	}
+	let removeEnd = end;
+	if (lines[removeEnd]?.trim() === "") removeEnd++;
+	lines.splice(line, removeEnd - line);
+	try {
+		await view.app.vault.modify(file, lines.join("\n"));
+		return true;
+	} catch {
 		return false;
 	}
 }

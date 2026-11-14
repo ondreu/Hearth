@@ -1279,8 +1279,8 @@ export const zh: Translations = {
 				},				tasksPlugin: {
 					name: "Tasks",
 					desc:
-						"任务卡片可以直接渲染 Tasks 插件自身的任务列表——它的任务识别、" +
-						"勾选与编辑对话框——并经由它在日记或自选笔记中创建任务。",
+						"任务卡片可以读取 Tasks 插件自身的任务——它的状态（含自定义状态）与任务格式——" +
+						"由 Hearth 绘制并支持筛选、排序与字段，经由插件勾选、编辑，在日记或自选笔记中创建任务。",
 				},				stereo: {
 					name: "Stereo",
 					desc:
@@ -2434,7 +2434,8 @@ export const zh: Translations = {
 				"Markdown 复选框在任何地方都可用。TaskNotes 通过 frontmatter 读取该插件的" +
 				"任务笔记（字段名可在 设置 → Hearth 中配置，因为 TaskNotes 没有供其他插件" +
 				"查询的 API）。Kanban 读取单个 Kanban 插件的看板笔记，每个标题作为一列。" +
-				"Tasks 插件渲染自身的任务列表，使用它自己的勾选、编辑和创建体验。",
+				"Tasks 插件读取该插件自身的任务——它的状态与任务格式——由 Hearth 绘制，" +
+				"并使用该插件的勾选、编辑和创建体验。",
 			sourceCheckbox: "Markdown 复选框",
 			sourceTaskNotes: "TaskNotes 插件",
 			sourceKanban: "Kanban 插件",
@@ -2497,6 +2498,10 @@ export const zh: Translations = {
 				"列表，或按状态分组的看板。在看板上可以在列之间拖动卡片、拖动列标题重排、" +
 				"用某列的眼睛图标隐藏它，用勾选图标让它自动完成卡片。" +
 				"右键卡片可将其转换为独立笔记。在艾森豪威尔矩阵中，在象限之间拖动任务即可更改其优先级。",
+			layoutDescReadonly:
+				"列表、按 Tasks 插件状态分组的看板，或按优先级的艾森豪威尔矩阵。" +
+				"看板与矩阵仅对插件任务做分组、保持只读——在状态或象限之间拖动会绕过插件改写行——" +
+				"而列表经由插件本身勾选、编辑和创建。",
 			layoutList: "列表",
 			layoutKanban: "看板",
 			layoutMatrix: "艾森豪威尔矩阵",
@@ -4078,6 +4083,7 @@ export const zh: Translations = {
 			noteBody: "笔记正文",
 			convertToNote: "转换为笔记",
 			editMetadata: "编辑日期与优先级",
+			editInTasksPlugin: "在 Tasks 插件中编辑",
 			deleteCard: "删除卡片",
 			openNote: "打开笔记",
 			deleteTask: "删除任务",

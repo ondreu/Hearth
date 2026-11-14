@@ -1404,9 +1404,11 @@ export const en = {
 				tasksPlugin: {
 					name: "Tasks",
 					desc:
-						"A Tasks card can render the Tasks plugin's own task list — its " +
-						"task detection, toggles and edit dialogs — and create tasks " +
-						"through it into the daily note or a note of your choice.",
+						"A Tasks card can read the Tasks plugin's own tasks — its " +
+						"statuses (including custom ones) and task format — drawn by " +
+						"Hearth with its filter, sort and fields, and tick, edit and " +
+						"create through the plugin into the daily note or a note of " +
+						"your choice.",
 				},
 				taskchute: {
 					name: "TaskChute Plus",
@@ -2720,8 +2722,9 @@ export const en = {
 				"task notes via frontmatter (field names configurable in Settings → " +
 				"Hearth, since TaskNotes has no API for other plugins to query it). " +
 				"Kanban reads a single Kanban-plugin board note, one column per heading. " +
-				"The Tasks plugin renders its own task list, with its own toggle, edit " +
-				"and create experience.",
+				"The Tasks plugin reads that plugin's own tasks — its statuses and " +
+				"task format — drawn by Hearth, with the plugin's toggle, edit and " +
+				"create experience.",
 			sourceCheckbox: "Markdown checkboxes",
 			sourceTaskNotes: "TaskNotes plugin",
 			sourceKanban: "Kanban plugin",
@@ -2794,6 +2797,12 @@ export const en = {
 				"between columns, drag column headers to reorder, use a column's eye " +
 				"icon to hide it, and its check icon to make it auto-complete cards. " +
 				"Right-click a card to convert it into its own note. In the Eisenhower matrix, drag tasks between quadrants to change their priority.",
+			layoutDescReadonly:
+				"List, or a Kanban board grouped by the Tasks plugin's statuses, or " +
+				"an Eisenhower matrix by priority. The board and matrix group the " +
+				"plugin's tasks but stay read-only — dragging between statuses or " +
+				"quadrants would rewrite the line outside the plugin — while the " +
+				"list ticks, edits and creates through the plugin itself.",
 			layoutList: "List",
 			layoutKanban: "Kanban board",
 			layoutMatrix: "Eisenhower matrix",
@@ -4455,6 +4464,7 @@ export const en = {
 			noteBody: "Note body",
 			convertToNote: "Convert to note",
 			editMetadata: "Edit dates & priority",
+			editInTasksPlugin: "Edit in Tasks plugin",
 			deleteCard: "Delete card",
 			openNote: "Open note",
 			deleteTask: "Delete task",

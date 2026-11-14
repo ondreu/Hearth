@@ -1422,10 +1422,11 @@ export const de: Translations = {
 				tasksPlugin: {
 					name: "Tasks",
 					desc:
-						"Eine Aufgaben-Karte kann die Aufgabenliste des Tasks-Plugins selbst " +
-						"darstellen — seine Aufgabenerkennung, Umschalter und " +
-						"Bearbeitungsdialoge — und über sie Aufgaben in der Tagesnotiz " +
-						"oder einer Notiz deiner Wahl erstellen.",
+						"Eine Aufgaben-Karte kann die Aufgaben des Tasks-Plugins selbst " +
+						"lesen — seine Status (inklusive eigener) und sein Aufgabenformat — " +
+						"von Hearth gezeichnet mit Filter, Sortierung und Feldern, und über " +
+						"das Plugin abhaken, bearbeiten und in der Tagesnotiz oder einer " +
+						"Notiz deiner Wahl erstellen.",
 				},
 				omnisearch: {
 					name: "Omnisearch",
@@ -2733,7 +2734,8 @@ export const de: Translations = {
 				"Aufgaben-Notizen dieses Plugins über Frontmatter (Feldnamen konfigurierbar unter " +
 				"Einstellungen → Hearth, da TaskNotes keine API für Abfragen durch andere Plugins bietet). " +
 				"Kanban liest eine einzelne Board-Notiz des Kanban-Plugins, eine Spalte pro Überschrift. " +
-				"Das Tasks-Plugin stellt seine eigene Aufgabenliste dar, mit eigenem Umschalten, Bearbeiten und Erstellen.",
+				"Das Tasks-Plugin liest die Aufgaben dieses Plugins — seine Status und " +
+				"sein Aufgabenformat — von Hearth gezeichnet, mit Umschalten, Bearbeiten und Erstellen des Plugins.",
 			sourceCheckbox: "Markdown-Checkboxen",
 			sourceTaskNotes: "TaskNotes-Plugin",
 			sourceKanban: "Kanban-Plugin",
@@ -2806,6 +2808,12 @@ export const de: Translations = {
 				"zwischen Spalten ziehen, Spaltenköpfe zum Sortieren ziehen, mit dem " +
 				"Augen-Symbol einer Spalte sie ausblenden und mit dem Häkchen-Symbol Aufgaben automatisch " +
 				"abschließen lassen. Eine Karte rechtsklicken, um sie in eine eigene Notiz umzuwandeln. In der Eisenhower-Matrix Aufgaben zwischen Quadranten ziehen, um ihre Priorität zu ändern.",
+			layoutDescReadonly:
+				"Liste, ein nach den Status des Tasks-Plugins gruppiertes Kanban-Board oder " +
+				"eine Eisenhower-Matrix nach Priorität. Board und Matrix gruppieren die " +
+				"Aufgaben des Plugins, bleiben aber schreibgeschützt — Ziehen zwischen Status " +
+				"oder Quadranten würde die Zeile am Plugin vorbei umschreiben — während die " +
+				"Liste über das Plugin selbst abhakt, bearbeitet und erstellt.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban-Board",
 			layoutMatrix: "Eisenhower-Matrix",
@@ -4450,6 +4458,7 @@ export const de: Translations = {
 			noteBody: "Notizinhalt",
 			convertToNote: "In Notiz umwandeln",
 			editMetadata: "Termine und Priorität bearbeiten",
+			editInTasksPlugin: "Im Tasks-Plugin bearbeiten",
 			deleteCard: "Karte löschen",
 			openNote: "Notiz öffnen",
 			deleteTask: "Aufgabe löschen",

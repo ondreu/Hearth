@@ -3,8 +3,9 @@
  *
  * Everything a task can do on the graphical card it can do here, through the
  * same functions (src/cards/tasks.ts): the same sources (checkboxes, TaskNotes,
- * a Kanban board), filter and sort, the same completion rules for recurring
- * tasks, the same quick view on Enter and the same menu on a right-click.
+ * a Kanban board, the Tasks plugin), filter and sort, the same completion rules
+ * for recurring tasks, the same quick view on Enter and the same menu on a
+ * right-click.
  *
  * The list is a table — box, priority, due, task, and the card's fields at the
  * right — with the sorted column's header lit, the way htop marks its sort

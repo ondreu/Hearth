@@ -1,24 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { TFile, type App } from "obsidian";
 import {
-	buildTasksPluginQuery,
 	createTasksPluginTask,
+	deleteTasksPluginTask,
+	editTasksPluginTask,
 	ensureTasksPluginTarget,
+	parseTasksPluginLine,
 	tasksCreateInDailyNote,
 	TASKS_PLUGIN_ID,
 	tasksPluginApi,
 	tasksPluginEnabled,
-	tasksPluginQueryFence,
+	tasksPluginStatuses,
+	toggleTasksPluginTask,
 } from "../src/tasksplugin";
 import type { HomeView } from "../src/view";
 import type { TasksConfig } from "../src/types";
 
 /**
- * The obsidian-tasks source. Hearth never parses Tasks itself: the card shows
- * the plugin's own `tasks` query block, and creation goes through the
- * plugin's own modal. What's covered here is Hearth's side of that deal —
- * the query lines it generates, the duck-typed API probe, and where a new
- * task lands.
+ * The obsidian-tasks source. Hearth draws the plugin's tasks itself — its
+ * statuses (built-ins plus custom ones) and the vault's task format — while
+ * ticking, editing and creating go through the plugin so the note is never
+ * converted. What's covered here is Hearth's side of that deal: parsing both
+ * task formats, the status registry probe, the duck-typed API probe, the
+ * toggle/edit/delete writes, and where a new task lands.
  */
 
 const appWith = (plugins: Record<string, unknown>, enabled: string[]): App =>
@@ -70,67 +74,68 @@ describe("tasksPluginApi", () => {
 	});
 });
 
-describe("buildTasksPluginQuery", () => {
-	it("hides completed tasks and caps the list by default", () => {
-		expect(buildTasksPluginQuery({})).toBe("not done\nlimit 10");
+describe("tasksPluginStatuses", () => {
+	it("falls back to the plugin's defaults without a registry", () => {
+		const statuses = tasksPluginStatuses(appWith({ [TASKS_PLUGIN_ID]: {} }, [TASKS_PLUGIN_ID]));
+		expect(statuses.map((s) => s.symbol)).toContain(" ");
+		expect(statuses.map((s) => s.symbol)).toContain("x");
+		expect(statuses.find((s) => s.symbol === "x")?.done).toBe(true);
+		expect(statuses.find((s) => s.symbol === " ")?.done).toBe(false);
 	});
 
-	it("shows completed tasks and honours the card's cap", () => {
-		expect(buildTasksPluginQuery({ showCompleted: true, count: 25 })).toBe("limit 25");
-	});
-
-	it("scopes a single folder with the plugin's own path filter", () => {
-		expect(buildTasksPluginQuery({ folders: ["Projects"], folderScope: "whitelist" })).toBe(
-			"path includes Projects\nnot done\nlimit 10",
+	it("reads custom statuses from the registry", () => {
+		const app = appWith(
+			{
+				[TASKS_PLUGIN_ID]: {
+					statusRegistry: {
+						registeredStatuses: [
+							{ symbol: " ", name: "Todo", type: "TODO" },
+							{ symbol: "?", name: "Needs review", type: "IN_PROGRESS" },
+							{ symbol: "x", name: "Done", type: "DONE" },
+							{ symbol: "D", name: "Deferred", type: "CANCELLED" },
+						],
+					},
+				},
+			},
+			[TASKS_PLUGIN_ID],
 		);
+		const statuses = tasksPluginStatuses(app);
+		expect(statuses).toHaveLength(4);
+		expect(statuses.find((s) => s.symbol === "?")).toMatchObject({ label: "Needs review", done: false });
+		expect(statuses.find((s) => s.symbol === "D")?.done).toBe(true);
 	});
 
-	it("excludes blacklisted folders", () => {
-		expect(
-			buildTasksPluginQuery({ folders: ["Archive", "Templates"], folderScope: "blacklist" }),
-		).toBe("path does not include Archive\npath does not include Templates\nnot done\nlimit 10");
-	});
-
-	it("ORs several whitelisted folders instead of ANDing them", () => {
-		const query = buildTasksPluginQuery({ folders: ["A", "B"], folderScope: "whitelist" });
-		expect(query).toContain("filter by function");
-		expect(query).toContain('"A"');
-		expect(query).toContain('"B"');
-	});
-
-	it("matches nothing for an empty whitelist, like Hearth does", () => {
-		const query = buildTasksPluginQuery({ folders: [], folderScope: "whitelist" });
-		expect(query).toContain("path regex matches /^$/");
-	});
-
-	it("trims folders and drops trailing slashes", () => {
-		expect(buildTasksPluginQuery({ folders: ["  Projects/ "], folderScope: "whitelist" })).toBe(
-			"path includes Projects\nnot done\nlimit 10",
-		);
-	});
-
-	it("quotes folder names safely in the function filter", () => {
-		const query = buildTasksPluginQuery({
-			folders: [`We"ird`, `back\\slash`],
-			folderScope: "whitelist",
-		});
-		expect(query).toContain('\\"');
-		expect(query).toContain("\\\\");
-	});
-
-	it("appends the user's own instructions verbatim, after Hearth's lines", () => {
-		const query = buildTasksPluginQuery({ tasksQuery: "sort by due\nhide backlinks" });
-		expect(query).toBe("not done\nlimit 10\nsort by due\nhide backlinks");
-	});
-
-	it("ignores blank extra lines", () => {
-		expect(buildTasksPluginQuery({ tasksQuery: "\n  \n" })).toBe("not done\nlimit 10");
+	it("is non-empty even with no plugin at all", () => {
+		expect(tasksPluginStatuses(appWith({}, []))).not.toHaveLength(0);
 	});
 });
 
-describe("tasksPluginQueryFence", () => {
-	it("wraps the query in a tasks block", () => {
-		expect(tasksPluginQueryFence({})).toBe("```tasks\nnot done\nlimit 10\n```");
+describe("parseTasksPluginLine", () => {
+	it("parses the emoji format", () => {
+		const parsed = parseTasksPluginLine("buy milk ⏫ 📅 2026-11-20 🔁 every week #home");
+		expect(parsed.text).toBe("buy milk");
+		expect(parsed.priority).toBe("⏫");
+		expect(parsed.due).toBe("2026-11-20");
+		expect(parsed.recurrence).toBe("every week");
+		expect(parsed.tags).toEqual(["home"]);
+	});
+
+	it("parses the dataview format", () => {
+		const parsed = parseTasksPluginLine("buy milk [priority:: high] [due:: 2026-11-20] #home");
+		expect(parsed.text).toBe("buy milk");
+		expect(parsed.priority).toBe("high");
+		expect(parsed.due).toBe("2026-11-20");
+		expect(parsed.tags).toEqual(["home"]);
+	});
+
+	it("prefers emoji markers when both formats are present", () => {
+		const parsed = parseTasksPluginLine("task 📅 2026-11-20 [due:: 2026-12-01]");
+		expect(parsed.due).toBe("2026-11-20");
+	});
+
+	it("resolves natural-language dates", () => {
+		const parsed = parseTasksPluginLine("task 📅 today");
+		expect(parsed.due).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 	});
 });
 
@@ -158,6 +163,7 @@ function stubVault(files: Record<string, string> = {}) {
 	const made = (path: string) => {
 		const file = new TFile();
 		(file as { path: string }).path = path;
+		(file as { stat: unknown }).stat = { ctime: 0 };
 		return file;
 	};
 	const existing = new Map<string, TFile>();
@@ -188,10 +194,13 @@ function stubView(opts: {
 	api?: unknown;
 	dailyNotes?: { format?: string; folder?: string; template?: string } | null;
 	files?: Record<string, string>;
+	statusRegistry?: unknown;
 }) {
 	const { store, vault } = stubVault(opts.files);
 	const plugins: Record<string, unknown> = {};
-	if (opts.enabled !== false) plugins[TASKS_PLUGIN_ID] = { apiV1: opts.api };
+	if (opts.enabled !== false) {
+		plugins[TASKS_PLUGIN_ID] = { apiV1: opts.api, statusRegistry: opts.statusRegistry };
+	}
 	return {
 		store,
 		vault,
@@ -290,5 +299,100 @@ describe("createTasksPluginTask", () => {
 	it("fails honestly without the plugin's API", async () => {
 		const { view } = stubView({ enabled: false, files: { "Notes/Tasks.md": "# tasks\n" } });
 		expect(await createTasksPluginTask(view, { tasksPluginNote: "Notes/Tasks.md" })).toBe(false);
+	});
+});
+
+describe("toggleTasksPluginTask", () => {
+	const fileFor = (store: Map<string, string>, path: string): TFile => {
+		const file = new TFile();
+		(file as { path: string }).path = path;
+		(file as { stat: unknown }).stat = { ctime: 0 };
+		void store;
+		return file;
+	};
+
+	it("toggles through the plugin's own command", async () => {
+		const { view, store } = stubView({
+			api: {
+				createTaskLineModal: async () => "",
+				editTaskLineModal: async (l: string) => l,
+				executeToggleTaskDoneCommand: (line: string) => line.replace("[ ]", "[x]"),
+			},
+			files: { "Notes/Tasks.md": "- [ ] buy milk\n" },
+		});
+		const file = fileFor(store, "Notes/Tasks.md");
+		expect(await toggleTasksPluginTask(view, file, 0, "buy milk")).toBe(true);
+		expect(store.get("Notes/Tasks.md")).toBe("- [x] buy milk\n");
+	});
+
+	it("bails when the line changed underneath", async () => {
+		const { view, store } = stubView({
+			api: {
+				createTaskLineModal: async () => "",
+				editTaskLineModal: async (l: string) => l,
+				executeToggleTaskDoneCommand: (l: string) => l,
+			},
+			files: { "Notes/Tasks.md": "- [ ] something else\n" },
+		});
+		const file = fileFor(store, "Notes/Tasks.md");
+		expect(await toggleTasksPluginTask(view, file, 0, "buy milk")).toBe(false);
+	});
+});
+
+describe("editTasksPluginTask", () => {
+	const fileFor = (store: Map<string, string>, path: string): TFile => {
+		const file = new TFile();
+		(file as { path: string }).path = path;
+		(file as { stat: unknown }).stat = { ctime: 0 };
+		void store;
+		return file;
+	};
+
+	it("writes the plugin's edited line back verbatim", async () => {
+		const { view, store } = stubView({
+			api: {
+				createTaskLineModal: async () => "",
+				editTaskLineModal: async () => "- [ ] edited 📅 2026-11-20",
+				executeToggleTaskDoneCommand: (l: string) => l,
+			},
+			files: { "Notes/Tasks.md": "- [ ] original\n" },
+		});
+		const file = fileFor(store, "Notes/Tasks.md");
+		expect(await editTasksPluginTask(view, file, 0, "original")).toBe(true);
+		expect(store.get("Notes/Tasks.md")).toBe("- [ ] edited 📅 2026-11-20\n");
+	});
+
+	it("does nothing when the modal is cancelled", async () => {
+		const { view, store } = stubView({
+			api: {
+				createTaskLineModal: async () => "",
+				editTaskLineModal: async () => "",
+				executeToggleTaskDoneCommand: (l: string) => l,
+			},
+			files: { "Notes/Tasks.md": "- [ ] original\n" },
+		});
+		const file = fileFor(store, "Notes/Tasks.md");
+		expect(await editTasksPluginTask(view, file, 0, "original")).toBe(false);
+		expect(store.get("Notes/Tasks.md")).toBe("- [ ] original\n");
+	});
+});
+
+describe("deleteTasksPluginTask", () => {
+	const fileFor = (store: Map<string, string>, path: string): TFile => {
+		const file = new TFile();
+		(file as { path: string }).path = path;
+		(file as { stat: unknown }).stat = { ctime: 0 };
+		void store;
+		return file;
+	};
+
+	it("removes the line", async () => {
+		const { view, store } = stubView({
+			api: {},
+			files: { "Notes/Tasks.md": "- [ ] gone\n- [ ] stays\n" },
+		});
+		const file = fileFor(store, "Notes/Tasks.md");
+		expect(await deleteTasksPluginTask(view, file, 0, "gone")).toBe(true);
+		expect(store.get("Notes/Tasks.md")).toBe("- [ ] stays\n");
 	});
 });

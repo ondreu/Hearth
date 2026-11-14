@@ -238,7 +238,9 @@ export function sanitizeTaskFields(stored: unknown): TaskFieldDef[] {
  * The fields a non-TaskNotes card starts from when it gets its own list: the
  * metadata the fixed card has always shown — priority, the dates in
  * chronological order, and the description — plus the board column on a Kanban
- * board. A comfortable default, not the vault's TaskNotes list.
+ * board and the plugin status on a Tasks-plugin card (whose custom states the
+ * checkbox alone can't express). A comfortable default, not the vault's
+ * TaskNotes list.
  */
 export function defaultTaskFields(source: TaskFieldSource): TaskFieldDef[] {
 	const fields: TaskFieldDef[] = [];
@@ -247,6 +249,13 @@ export function defaultTaskFields(source: TaskFieldSource): TaskFieldDef[] {
 			id: newTaskFieldId(),
 			name: "Column",
 			keys: [{ source: builtinSource("column") }],
+		});
+	}
+	if (source === "obsidian-tasks") {
+		fields.push({
+			id: newTaskFieldId(),
+			name: "Status",
+			keys: [{ source: builtinSource("status") }],
 		});
 	}
 	fields.push({
@@ -338,6 +347,9 @@ export function builtinSourcesFor(source: TaskFieldSource | null): TaskBuiltinSo
 		return ["column", "priority", "start", "scheduled", "due", "doneDate", "description"];
 	}
 	if (source === "tasknotes") {
+		return ["status", "priority", "start", "scheduled", "due", "doneDate", "description"];
+	}
+	if (source === "obsidian-tasks") {
 		return ["status", "priority", "start", "scheduled", "due", "doneDate", "description"];
 	}
 	if (source === null) return [...TASK_BUILTIN_SOURCES];

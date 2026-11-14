@@ -14,7 +14,7 @@ from each card's own gear button while arranging; see
 ## The Tasks card
 
 **What it shows:** your tasks, as a list, a drag-and-drop Kanban board or an
-Eisenhower matrix — or the Tasks plugin's own task list.
+Eisenhower matrix — drawn by Hearth, whatever the source.
 
 **Requires:** nothing for Markdown checkboxes. The TaskNotes, Kanban or Tasks
 community plugins for those sources.
@@ -28,7 +28,7 @@ community plugins for those sources.
 | **Markdown checkboxes** | Ordinary `- [ ]` checkboxes anywhere in your vault. Works with no plugin at all |
 | **TaskNotes plugin** | One-note-per-task vaults managed by the TaskNotes community plugin, read from frontmatter |
 | **Kanban plugin** | A single board note from the Kanban community plugin, one column per heading |
-| **Tasks plugin** | The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community plugin's own task list, drawn by Tasks itself |
+| **Tasks plugin** | The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community plugin's tasks — its statuses (including custom ones) and task format — drawn by Hearth like every other source |
 
 #### The Markdown checkboxes source
 
@@ -92,28 +92,31 @@ plugin. Hearth is not a second, disagreeing owner of the board.
 
 #### The Tasks plugin source
 
-The card renders the Tasks plugin's own `tasks` query block — what Tasks
-itself considers a task, in whichever task format your vault uses, with its
-own state, priority, dates, repeat rule, tags and status. Ticking and editing
-a task happen in Tasks' own rows (its toggle handling and its edit dialog),
-so the note is never converted to another format.
+The card draws what the Tasks plugin says are tasks — any checkbox line whose
+status symbol the plugin knows (its built-ins plus your custom statuses, read
+live from the plugin), with the vault's task format (Emoji or Dataview inline
+fields) parsed off each line — as Hearth's own rows, board and matrix, with
+Hearth's chips, dots and colours. The card's filter, sort, *Show completed*
+and *Max tasks shown* all apply over those tasks, and the custom-field system
+works too: priority, dates, status, repeat and tags all flow through Hearth's
+normal task rendering, so a field can be a chip, a dot, text, or colour the
+whole task.
 
-The card only configures what the plugin can't know:
+Ticking, editing and creating stay the plugin's, so the note is never
+converted to another format: the list/board checkbox toggles through the
+plugin's own toggle command (recurrence rolls and done dates stamp the way the
+plugin does), clicking a task (or its right-click menu) opens the plugin's own
+edit dialog and writes its returned line back verbatim, and the `+` button
+opens the plugin's own create dialog, whose line is appended verbatim to the
+destination note (*New tasks go to* — today's daily note, created when missing,
+or one specific note).
 
-- *Tasks query* — extra Tasks instructions, added after the scope,
-  completion and task-count lines the card generates (which follow *Folders*,
-  *Show completed* and *Max tasks shown*). Written in the Tasks plugin's own
-  query language. Leave it empty for the card's defaults.
-- *New tasks go to* — where the `+` button's create dialog (the Tasks
-  plugin's own) puts a new task: today's daily note, created when missing, or
-  one specific note. The returned line is appended verbatim, in the vault's
-  configured task format.
-
-List, board and matrix controls that Hearth itself would need to honour —
-layouts, sorting, filtering, quick view and custom fields — are not offered
-for this source: the plugin draws its own results. If the Tasks plugin is
-not installed or disabled, the card says so and offers a switch back to
-Markdown checkboxes.
+The board and matrix group the plugin's tasks but stay read-only: dragging
+between statuses, or dropping a task into a quadrant to change its priority,
+would rewrite the line outside the plugin, so columns group without accepting
+drops and quadrant moves are not offered — the controls that would be dead are
+not drawn. If the Tasks plugin is not installed or disabled, the card says so
+and offers a switch back to Markdown checkboxes.
 
 ### Description formatting
 
@@ -309,8 +312,8 @@ the fields you add. For TaskNotes cards the fields are defined vault-wide at
 task**, and a single card can define its own instead from that card's settings.
 Cards on the other sources always define their own fields on the card —
 starting from what the card has always shown — and never follow the
-vault-wide TaskNotes list. The Tasks plugin source draws the plugin's own
-results and offers no custom fields at all.
+vault-wide TaskNotes list. On a Tasks-plugin card that default starts with the
+plugin's status, which the checkbox alone could never say.
 
 A field has:
 

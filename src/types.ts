@@ -318,9 +318,11 @@ export interface TasksConfig {
 	 * reads its files the same way TaskNotes itself does: frontmatter).
 	 * "kanban" reads a single Kanban-plugin board note, where each `##` heading
 	 * is a column and the checkbox items beneath it are that column's cards.
-	 * "obsidian-tasks" renders the obsidian-tasks community plugin's own
-	 * `tasks` query block — the plugin's own notion of a task, in the vault's
-	 * configured task format — with its own toggle/edit/create experience. */
+	 * "obsidian-tasks" reads the same checkbox lines through the obsidian-tasks
+	 * community plugin's own notion of a task — its status registry (built-ins
+	 * plus custom statuses) and the vault's task format — drawn by Hearth like
+	 * every other source. Ticking, editing and creating go through the plugin,
+	 * so the note is never converted. */
 	source?: "checkbox" | "tasknotes" | "kanban" | "obsidian-tasks";
 	/** Kanban source: path to the board note. When empty, Hearth auto-detects
 	 * the first note in scope whose frontmatter carries `kanban-plugin`. */
@@ -343,7 +345,8 @@ export interface TasksConfig {
 	 * with actions to open the full note or delete the task — instead of jumping
 	 * straight into the file. On by default; storing `false` restores the old
 	 * open-the-note-on-click behaviour. TaskNotes tasks always open in their own
-	 * editor and ignore this. */
+	 * editor and ignore this. Tasks-plugin tasks open the plugin's own edit
+	 * dialog and ignore this. */
 	taskQuickView?: boolean;
 	/** Convert-to-note (Kanban cards): vault path of a template note whose body
 	 * seeds the created note. Supports {{title}}, {{date}}, {{time}} and their
@@ -439,9 +442,9 @@ export interface TasksConfig {
 	/** Kanban: column keys that mark a card done when it lands in them (dragged
 	 * or added). Toggled per column from the board header. */
 	kanbanDoneColumns?: string[];
-	/** Obsidian-tasks source: extra Tasks query instructions, one per line
-	 * (e.g. `path includes Projects`), appended after the scope, completion
-	 * and limit lines Hearth generates. The plugin's own filter language. */
+	/** Obsidian-tasks source: legacy extra Tasks query instructions, kept so old
+	 * cards still load. No longer read: the card filters, sorts and caps
+	 * Hearth's own way, over the tasks the plugin says exist. */
 	tasksQuery?: string;
 	/** Obsidian-tasks source: the note new tasks are appended to, as a vault
 	 * path ("Notes/Tasks" with or without ".md"). When empty (the default),

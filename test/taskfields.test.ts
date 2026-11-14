@@ -195,8 +195,9 @@ describe("sources per card", () => {
 		expect(builtinSourcesFor("tasknotes")).not.toContain("column");
 	});
 
-	it("offers the TaskNotes status only to TaskNotes cards", () => {
+	it("offers the TaskNotes status to TaskNotes cards — and the plugin status to Tasks-plugin cards", () => {
 		expect(builtinSourcesFor("tasknotes")).toContain("status");
+		expect(builtinSourcesFor("obsidian-tasks")).toContain("status");
 		expect(builtinSourcesFor("checkbox")).not.toContain("status");
 		expect(builtinSourcesFor("kanban")).not.toContain("status");
 	});
@@ -240,6 +241,8 @@ describe("sources per card", () => {
 		]);
 		const kanban = defaultTaskFields("kanban");
 		expect(kanban[0].keys.map((k) => k.source)).toEqual([builtinSource("column")]);
+		const plugin = defaultTaskFields("obsidian-tasks");
+		expect(plugin[0].keys.map((k) => k.source)).toEqual([builtinSource("status")]);
 	});
 });
 

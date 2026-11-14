@@ -64,18 +64,21 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   queue of every track, in name order.
 
 
-- **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
+- **The Tasks card reads the Tasks plugin — drawn by Hearth.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
   [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
-  plugin. With it selected the card renders the plugin's own `tasks` query
-  block — the tasks the plugin itself considers tasks, in the vault's configured
-  task format, with the plugin's state, priority, dates, repeat rule, tags and
-  status — and ticking, editing and creating work the way they do in the
-  plugin: its toggle handling and edit dialog in its own rows, and its own
-  create dialog for the `+` button, whose line is appended verbatim to the
-  destination note (today's daily note, created when missing, or one specific
-  note). Layouts, sorting, filtering, quick view and custom fields are not
-  offered for this source, since the plugin draws its own results; if the
+  plugin. With it selected the card draws what the plugin says are tasks — any
+  checkbox line whose status symbol the plugin knows (built-ins plus custom
+  statuses, read live), with the vault's task format (Emoji or Dataview inline
+  fields) parsed off each line — as Hearth's own rows, board and matrix, with
+  Hearth's chips, dots and colours. Filtering, sorting, *Show completed* and
+  the task cap all apply over those tasks, and priority, dates, status, repeat
+  and tags flow through the normal task rendering including custom fields.
+  Ticking, editing and creating go through the plugin (its toggle command, its
+  edit dialog, its create dialog into today's daily note — created when
+  missing — or one specific note), so the note is never converted; the board
+  and matrix group the plugin's tasks read-only, since dragging between
+  statuses or quadrants would rewrite the line outside the plugin. If the
   plugin isn't installed or is disabled, the card says so and offers a switch
   back to Markdown checkboxes.
 

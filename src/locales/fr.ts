@@ -1357,9 +1357,10 @@ export const fr: Translations = {
 				},				tasksPlugin: {
 					name: "Tasks",
 					desc:
-						"Une carte Tâches peut afficher la liste du plugin Tasks lui-même — " +
-						"sa détection des tâches, ses cases et ses dialogues d'édition — " +
-						"et y créer des tâches dans la note du jour ou la note de votre choix.",
+						"Une carte Tâches peut lire les tâches du plugin Tasks lui-même — " +
+						"ses statuts (y compris personnalisés) et son format — dessinées " +
+						"par Hearth avec filtre, tri et champs, et cocher, modifier et " +
+						"créer via le plugin dans la note du jour ou la note de votre choix.",
 				},				stereo: {
 					name: "Stereo",
 					desc:
@@ -2673,7 +2674,8 @@ export const fr: Translations = {
 				"de ce plugin via le frontmatter (noms de champs configurables dans Paramètres → " +
 				"Hearth, car TaskNotes n'a pas d'API interrogeable par d'autres plugins). " +
 				"Kanban lit une seule note du plugin Kanban, une colonne par titre. " +
-				"Le plugin Tasks affiche sa propre liste de tâches, avec ses propres actions cocher, modifier et créer.",
+				"Le plugin Tasks lit les tâches de ce plugin — ses statuts et son format — " +
+				"dessinées par Hearth, avec cocher, modifier et créer du plugin.",
 			sourceCheckbox: "Cases à cocher Markdown",
 			sourceTaskNotes: "Plugin TaskNotes",
 			sourceKanban: "Plugin Kanban",
@@ -2746,6 +2748,12 @@ export const fr: Translations = {
 				"entre colonnes, glissez les en-têtes de colonne pour les réordonner, utilisez l'œil " +
 				"d'une colonne pour la masquer, et sa coche pour qu'elle termine automatiquement les cartes. " +
 				"Clic droit sur une carte pour la convertir en note à part. Dans la matrice d'Eisenhower, glissez les tâches entre les quadrants pour changer leur priorité.",
+			layoutDescReadonly:
+				"Liste, Kanban groupé par les statuts du plugin Tasks, ou matrice " +
+				"d'Eisenhower par priorité. Le Kanban et la matrice regroupent les " +
+				"tâches du plugin mais restent en lecture seule — glisser entre statuts " +
+				"ou quadrants réécrirait la ligne hors du plugin — tandis que la liste " +
+				"coche, modifie et crée via le plugin lui-même.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban",
 			layoutMatrix: "Matrice d'Eisenhower",
@@ -4381,6 +4389,7 @@ export const fr: Translations = {
 			noteBody: "Corps de la note",
 			convertToNote: "Convertir en note",
 			editMetadata: "Modifier dates et priorité",
+			editInTasksPlugin: "Modifier dans le plugin Tasks",
 			deleteCard: "Supprimer la carte",
 			openNote: "Ouvrir la note",
 			deleteTask: "Supprimer la tâche",

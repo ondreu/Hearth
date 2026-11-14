@@ -1281,8 +1281,8 @@ export const zhTW: Translations = {
 				tasksPlugin: {
 					name: "Tasks",
 					desc:
-						"任務卡片可以直接算繪 Tasks 外掛自身的任務清單——它的任務辨識、" +
-						"勾選與編輯對話框——並經由它在日記或自選筆記中建立任務。",
+						"任務卡片可以讀取 Tasks 外掛自身的任務——它的狀態（含自訂狀態）與任務格式——" +
+						"由 Hearth 繪製並支援篩選、排序與欄位，經由外掛勾選、編輯，在日記或自選筆記中建立任務。",
 				},
 				stereo: {
 					name: "Stereo",
@@ -2452,7 +2452,8 @@ export const zhTW: Translations = {
 				"Markdown 核取方塊在任何地方都可用。TaskNotes 透過 frontmatter 讀取該外掛的" +
 				"任務筆記（欄位名稱可在 設定 → Hearth 中設定，因為 TaskNotes 沒有供其他外掛" +
 				"查詢的 API）。Kanban 讀取單個 Kanban 外掛的看板筆記，每個標題作為一欄。" +
-				"Tasks 外掛算繪自身的任務清單，使用它自己的勾選、編輯和建立體驗。",
+				"Tasks 外掛讀取該外掛自身的任務——它的狀態與任務格式——由 Hearth 繪製，" +
+				"並使用該外掛的勾選、編輯和建立體驗。",
 			sourceCheckbox: "Markdown 核取方塊",
 			sourceTaskNotes: "TaskNotes 外掛",
 			sourceKanban: "Kanban 外掛",
@@ -2515,6 +2516,10 @@ export const zhTW: Translations = {
 				"清單，或依狀態分組的看板。在看板上可以在欄之間拖曳卡片、拖曳欄標題重新排列、" +
 				"用某欄的眼睛圖示隱藏它，用勾選圖示讓它自動完成卡片。" +
 				"右鍵點擊卡片可將其轉換為獨立筆記。在艾森豪矩陣中，在象限之間拖曳任務即可變更其優先順序。",
+			layoutDescReadonly:
+				"清單、依 Tasks 外掛狀態分組的看板，或依優先順序的艾森豪矩陣。" +
+				"看板與矩陣僅對外掛任務做分組、保持唯讀——在狀態或象限之間拖曳會繞過外掛改寫行——" +
+				"而清單經由外掛本身勾選、編輯和建立。",
 			layoutList: "清單",
 			layoutKanban: "看板",
 			layoutMatrix: "艾森豪矩陣",
@@ -4088,6 +4093,7 @@ export const zhTW: Translations = {
 			noteBody: "筆記內文",
 			convertToNote: "轉換為筆記",
 			editMetadata: "編輯日期與優先順序",
+			editInTasksPlugin: "在 Tasks 外掛中編輯",
 			deleteCard: "刪除卡片",
 			openNote: "開啟筆記",
 			deleteTask: "刪除任務",
