@@ -11,6 +11,104 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [3.9.0]
+
+### Added
+
+- **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
+  beside Markdown checkboxes, TaskNotes and Kanban: the
+  [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
+  plugin. The card draws those tasks itself — its own rows, chips, colours and
+  custom fields — while the plugin stays the source of truth: what counts as a
+  task (its status registry and its global filter), the vault's task format, and
+  every write (ticking, the edit dialog, a new task) go through its API, so a
+  line is never converted to another format. A new task goes to a chosen note or
+  to today's daily note, created when missing. The card's filters, sorting and
+  custom fields work for this source like for any other, at the plugin's five
+  priority levels, and a field can be set to *Hidden* to keep it configured
+  without drawing it. Kanban is not offered for this source and the matrix is
+  read-only: the plugin cannot write a status by dragging.
+
+- **A folder of albums can be browsed as albums.** The Music card's folder source
+  gains **Show albums**, offered once *Include subfolders* is on: the list under
+  the transport becomes those subfolders as collapsed album rows, each with its
+  track count, and opening one shows its tracks with a row back to the list —
+  picking a track plays that album as the queue. Files loose in the picked folder
+  are listed last, as *Loose tracks*. With the switch off the card stays one
+  queue of every track, in name order.
+
+
+- **Hearth speaks Traditional Chinese too.** A full `zh-tw` locale joins English,
+  German, French, Korean and Simplified Chinese: Obsidian's own Traditional
+  Chinese (`zh-TW`) display language now loads it, `zh` stays Simplified and
+  `zh-CN` still falls back to it. The wording is Taiwan's — a vault is 儲存庫 —
+  and the search bar understands Traditional spellings and Taiwan place names
+  next to the Simplified ones, for times, weather, Wikipedia, markets, dice and
+  currency. Simplified Chinese, German, French and English are unchanged.
+
+### Fixed
+
+- **Task fields no longer leak between sources.** The *Fields* customisation
+  followed the vault-wide TaskNotes field list on every card, whatever its
+  source. Now only TaskNotes cards do that: every other source configures its
+  own fields on the card, independently of the TaskNotes setting, starting from
+  a sensible default — and keys that only mean something for TaskNotes are not
+  offered elsewhere.
+
+- **The "Customize fields" editor opens again.** In current Obsidian it opened
+  effectively empty and *Add field* appeared to do nothing: the modal's own
+  `isOpen` method was shadowed by `Modal.isOpen`, so every field failed to draw.
+  The editor now opens with its content, survives a single bad field without
+  losing the rest or its buttons, and says why a field could not be shown.
+
+- **Priority filtering matches the plugin's five levels.** The filter offered
+  three coarse buckets, so *High* quietly included *Highest* and the top and
+  bottom levels could not be picked at all. The chips now follow the levels the
+  card actually holds, and matching is exact.
+
+- **A Music card whose folder changed no longer plays the old folder's tracks**
+  (#486). The card and the player share one queue, and the card handed its
+  tracks over only when that queue was empty: after pointing the card at another
+  folder the list showed the new tracks while next/previous still walked the old
+  queue, and a single path present in both was enough for the card to treat the
+  stale queue as its own. The player now remembers which card gave it the queue
+  and rebuilds it when that card's tracks change — keeping the track that is
+  playing, and stopping instead of playing a file that is gone.
+
+
+- **The Pet card in Terminal design no longer grows Obsidian's memory until it
+  crashes** (#479). Its frames were the one animation in Hearth running on a
+  JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
+  — a span with a click and a key listener for every sprite cell — and, through
+  the board's frame layer, every frame on the board. It did that in a background
+  tab as well, where nothing can be seen: roughly 3,000 nodes and 900 listeners
+  every five seconds, climbing until the renderer died. A repaint now keeps the
+  rows whose text did not change, the frame layer is rebuilt only when something
+  drawn on it changes, and a card's own redraw is skipped while its leaf is
+  hidden. The sprite also merges neighbouring cells of one colour into a single
+  run, and the whole body is the click target, so patting it works as before.
+
+
+- **The toggles in Hearth's settings and dialogs are visible again in the TUI
+  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
+  positioned, fully transparent `::before` as its click area; the TUI style draws
+  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
+  and colour, so the label inherited `position: absolute; opacity: 0`, left the
+  layout, and — with `height: auto` on the container — the toggle collapsed to
+  0 px. The rule now puts the pseudo-element back in flow, which restores the
+  toggle at its text height.
+
+
+- **“Same as the file explorer” now matches the sidebar with the sidebar
+  closed** (#439). Obsidian leaves the file explorer unbuilt while the left
+  sidebar is collapsed, and the call that orders a folder answers only with the
+  tree items it has built — so the page fell back to the explorer's *sort
+  setting*, read off that same unbuilt view, which is to say alphabetical. It
+  reads the setting from the state the leaf still carries now, treats a partial
+  answer as no answer instead of pushing the rest of the folder to the end, and
+  redraws when the sidebar's answer changes — so opening the sidebar corrects a
+  page that was drawn while it was closed.
+
 ## [3.8.0]
 
 ### Added
@@ -55,34 +153,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   names notes too, so the source is visible before the settings dialog.
 
 
-- **A folder of albums can be browsed as albums.** The Music card's folder source
-  gains **Show albums**, offered once *Include subfolders* is on: the list under
-  the transport becomes those subfolders as collapsed album rows, each with its
-  track count, and opening one shows its tracks with a row back to the list —
-  picking a track plays that album as the queue. Files loose in the picked folder
-  are listed last, as *Loose tracks*. With the switch off the card stays one
-  queue of every track, in name order.
-
-
-- **The Tasks card reads the Tasks plugin — drawn by Hearth.** *Source* gains a fourth option
-  beside Markdown checkboxes, TaskNotes and Kanban: the
-  [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
-  plugin. With it selected the card draws what the plugin says are tasks — any
-  checkbox line whose status symbol the plugin knows (built-ins plus custom
-  statuses, read live), with the vault's task format (Emoji or Dataview inline
-  fields) parsed off each line — as Hearth's own rows, board and matrix, with
-  Hearth's chips, dots and colours. Filtering, sorting, *Show completed* and
-  the task cap all apply over those tasks, and priority, dates, status, repeat
-  and tags flow through the normal task rendering including custom fields.
-  Ticking, editing and creating go through the plugin (its toggle command, its
-  edit dialog, its create dialog into today's daily note — created when
-  missing — or one specific note), so the note is never converted; the board
-  and matrix group the plugin's tasks read-only, since dragging between
-  statuses or quadrants would rewrite the line outside the plugin. If the
-  plugin isn't installed or is disabled, the card says so and offers a switch
-  back to Markdown checkboxes.
-
-
 ### Changed
 
 - **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
@@ -100,41 +170,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- **Task fields no longer leak between sources.** The *Fields* customisation
-  followed the vault-wide TaskNotes field list on every card, whatever its
-  source. Now only TaskNotes cards do that: every other source configures its
-  own fields on the card, independently of the TaskNotes setting, starting from
-  what the card has always shown — and the TaskNotes status is no longer
-  offered on cards whose tasks carry no such thing.
-
-- **The "Customize fields" editor opens again.** In current Obsidian it opened
-  effectively empty, and *Add field* appeared to do nothing: one bad stored
-  field threw during the draw, emptying the list and swallowing the buttons
-  with it. Stored lists are sanitised on open, a field that still fails to
-  render keeps its place as a removable card, the add control and footer always
-  draw, and the list keeps a minimum height instead of collapsing to nothing.
-
-- **A Music card whose folder changed no longer plays the old folder's tracks**
-  (#486). The card and the player share one queue, and the card handed its
-  tracks over only when that queue was empty: after pointing the card at another
-  folder the list showed the new tracks while next/previous still walked the old
-  queue, and a single path present in both was enough for the card to treat the
-  stale queue as its own. The player now remembers which card gave it the queue
-  and rebuilds it when that card's tracks change — keeping the track that is
-  playing, and stopping instead of playing a file that is gone.
-
-- **The Pet card in Terminal design no longer grows Obsidian's memory until it
-  crashes** (#479). Its frames were the one animation in Hearth running on a
-  JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
-  — a span with a click and a key listener for every sprite cell — and, through
-  the board's frame layer, every frame on the board. It did that in a background
-  tab as well, where nothing can be seen: roughly 3,000 nodes and 900 listeners
-  every five seconds, climbing until the renderer died. A repaint now keeps the
-  rows whose text did not change, the frame layer is rebuilt only when something
-  drawn on it changes, and a card's own redraw is skipped while its leaf is
-  hidden. The sprite also merges neighbouring cells of one colour into a single
-  run, and the whole body is the click target, so patting it works as before.
-
 - **Editing a card no longer rebuilds the board under the cursor** (#475). A
   couple of seconds into typing into a card's embedded editor — a note or a
   base — the whole board re-rendered, the editor came back at the top with the
@@ -146,15 +181,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   catch-up now runs once, for the cold cache a startup board was drawn
   against; later metadata changes arrive through *Live refresh on vault
   changes*, which is debounced and held while you are typing.
-
-- **The toggles in Hearth's settings and dialogs are visible again in the TUI
-  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
-  positioned, fully transparent `::before` as its click area; the TUI style draws
-  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
-  and colour, so the label inherited `position: absolute; opacity: 0`, left the
-  layout, and — with `height: auto` on the container — the toggle collapsed to
-  0 px. The rule now puts the pseudo-element back in flow, which restores the
-  toggle at its text height.
 
 - **The Quick switcher engine ranks a note by its name, the way the switcher
   it copies does** (#447). Searching "black sphinx" listed an empty note called
@@ -197,8 +223,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   what obsidian-git's own source-control view does: on desktop both stage
   and reset the whole tree regardless, and on mobile the working tree is
   re-read at the moment of the click.
-
-
 
 ## [3.7.0]
 
@@ -298,16 +322,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   now. The sections folded while reading are remembered as well — on the device,
   so a folder folded in one browser is folded in the next one and after a
   restart, without writing to `data.json`.
-
-- **“Same as the file explorer” now matches the sidebar with the sidebar
-  closed** (#439). Obsidian leaves the file explorer unbuilt while the left
-  sidebar is collapsed, and the call that orders a folder answers only with the
-  tree items it has built — so the page fell back to the explorer's *sort
-  setting*, read off that same unbuilt view, which is to say alphabetical. It
-  reads the setting from the state the leaf still carries now, treats a partial
-  answer as no answer instead of pushing the rest of the folder to the end, and
-  redraws when the sidebar's answer changes — so opening the sidebar corrects a
-  page that was drawn while it was closed.
 
 - Currency conversion no longer hangs on a single host, and no longer forgets
   its rates between sessions. The rates are the ECB's own daily reference file,
