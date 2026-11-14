@@ -4238,9 +4238,11 @@ export const zhTW: Translations = {
 			filterDueHasDate: "有日期",
 			filterPriority: "優先順序",
 			filterPriorityLevels: {
+				highest: "最高",
 				high: "高",
 				medium: "中",
 				low: "低",
+				lowest: "最低",
 				none: "無",
 			},
 			filterStatus: "狀態",

@@ -4612,9 +4612,11 @@ export const en = {
 			filterDueHasDate: "Has a date",
 			filterPriority: "Priority",
 			filterPriorityLevels: {
+				highest: "Highest",
 				high: "High",
 				medium: "Medium",
 				low: "Low",
+				lowest: "Lowest",
 				none: "None",
 			},
 			filterStatus: "Status",

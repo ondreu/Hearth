@@ -195,7 +195,13 @@ export interface TaskMeta {
 
 /** Per-card configuration for a "tasks" card. */
 /** A coarse priority bucket used by task filters ("none" = no priority set). */
-export type TaskPriorityLevel = "high" | "medium" | "low" | "none";
+export type TaskPriorityLevel =
+	| "highest"
+	| "high"
+	| "medium"
+	| "low"
+	| "lowest"
+	| "none";
 
 /** A due-date constraint used by task filters. Compared against each task's
  * effective date (due, or the next scheduled occurrence for recurring tasks). */

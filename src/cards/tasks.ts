@@ -102,6 +102,7 @@ import {
 	filterHashtagLabel,
 	filterTagLabel,
 	formatTagInput,
+	hitPriorityLevel,
 	hitStatusValue,
 	inlineTags,
 	parseTagInput,
@@ -331,6 +332,9 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
 export interface TaskFilterChoices {
 	source: string;
 	statuses: string[];
+	/** Priority levels the card's tasks actually carry, in their own order.
+	 * Empty means none was seen, and the editor offers every level. */
+	priorities: TaskPriorityLevel[];
 	contexts: string[];
 	projects: string[];
 	tags: string[];
@@ -1719,6 +1723,7 @@ class TaskSortModal extends HearthModal {
  * chips follow it instead of the order the tasks happen to be sorted in. */
 export function collectTaskFilterChoices(hits: TaskHit[], source: string, statusOrder?: string[]): TaskFilterChoices {
 	const statuses: string[] = [];
+	const presentPriorities = new Set<TaskPriorityLevel>();
 	const contexts: string[] = [];
 	const projects: string[] = [];
 	const tags: string[] = [];
@@ -1727,6 +1732,7 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 	const seenProject = new Set<string>();
 	const seenTag = new Set<string>();
 	for (const hit of hits) {
+		presentPriorities.add(hitPriorityLevel(hit));
 		const status = hitStatusValue(hit);
 		if (status && !seenStatus.has(status.toLowerCase())) {
 			seenStatus.add(status.toLowerCase());
@@ -1762,7 +1768,10 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 		};
 		statuses.sort((a, b) => rank(a) - rank(b));
 	}
-	return { source, statuses, contexts, projects, tags };
+	// Only the levels that occur, in the canonical highest→none order: a chip
+	// that would match nothing is noise, and the row then follows the data.
+	const priorities = TASK_PRIORITY_LEVELS.filter((l) => presentPriorities.has(l));
+	return { source, statuses, priorities, contexts, projects, tags };
 }
 
 
@@ -1802,7 +1811,7 @@ export function openTaskFilter(view: HomeView, cfg: TasksConfig, filterChoices: 
 
 
 /** The order priority chips appear in the filter modal. */
-const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "none"];
+const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["highest", "high", "medium", "low", "lowest", "none"];
 
 
 /** Paint a filter chip as on or off, and say so for screen readers — the
@@ -1890,11 +1899,11 @@ class TaskFilterModal extends HearthModal {
 		preset(
 			labels.highPriority,
 			() => {
-				const levels = this.working.priorities ?? [];
-				return levels.length === 1 && levels[0] === "high";
+				const levels = [...(this.working.priorities ?? [])].sort();
+				return levels.length === 2 && levels[0] === "high" && levels[1] === "highest";
 			},
 			(on) => {
-				this.working.priorities = on ? ["high"] : undefined;
+				this.working.priorities = on ? ["highest", "high"] : undefined;
 			},
 		);
 		duePreset(labels.noDate, "noDate");
@@ -1930,7 +1939,10 @@ class TaskFilterModal extends HearthModal {
 		// Priority buckets (multi-select chips).
 		const prioRow = new Setting(body).setName(labels.filterPriority).setClass("hearth-taskfilter-row");
 		const prioHost = prioRow.controlEl.createDiv("hearth-taskfilter-chips");
-		for (const level of TASK_PRIORITY_LEVELS) {
+		const levels = this.filterChoices.priorities.length
+			? this.filterChoices.priorities
+			: TASK_PRIORITY_LEVELS;
+		for (const level of levels) {
 			this.toggleChip(prioHost, labels.filterPriorityLevels[level], () => (this.working.priorities ?? []).includes(level), () => {
 				const set = new Set(this.working.priorities ?? []);
 				if (set.has(level)) set.delete(level);

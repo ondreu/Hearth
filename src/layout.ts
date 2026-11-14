@@ -726,7 +726,7 @@ const TASK_SORT_FIELDS = [
 	"alpha",
 	"status",
 ] as const;
-const TASK_PRIORITY_LEVELS = ["high", "medium", "low", "none"] as const;
+const TASK_PRIORITY_LEVELS = ["highest", "high", "medium", "low", "lowest", "none"] as const;
 const TASK_DUE_FILTERS = [
 	"overdue",
 	"today",

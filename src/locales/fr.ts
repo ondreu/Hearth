@@ -4538,9 +4538,11 @@ export const fr: Translations = {
 			filterDueHasDate: "A une date",
 			filterPriority: "Priorité",
 			filterPriorityLevels: {
+				highest: "La plus haute",
 				high: "Haute",
 				medium: "Moyenne",
 				low: "Basse",
+				lowest: "La plus basse",
 				none: "Aucune",
 			},
 			filterStatus: "Statut",

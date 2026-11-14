@@ -316,7 +316,10 @@ export function parseTasksPluginLine(raw: string): ParsedTasksPluginLine {
 	const dueExpr = cleanMeta(readEmojiField(emojiSource, "📅")) ?? readDataviewField(raw, "due");
 	const scheduledExpr = cleanMeta(readEmojiField(emojiSource, "⏳")) ?? readDataviewField(raw, "scheduled");
 	const startExpr = cleanMeta(readEmojiField(emojiSource, "🛫")) ?? readDataviewField(raw, "start");
-	const doneExpr = cleanMeta(readEmojiField(emojiSource, "✅")) ?? readDataviewField(raw, "done");
+	const doneExpr =
+		cleanMeta(readEmojiField(emojiSource, "✅")) ??
+		readDataviewField(raw, "completion") ??
+		readDataviewField(raw, "done");
 	const recurrenceExpr =
 		cleanMeta(readEmojiField(emojiSource, "🔁")) ??
 		readDataviewField(raw, "recurrence") ??
