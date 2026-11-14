@@ -6042,7 +6042,9 @@ export class TaskFieldsModal extends HearthModal {
 		this.renderBody();
 	}
 
-	private isOpen(key: string): boolean {
+	/** Obsidian's Modal carries its own `isOpen` (a boolean since 1.15), so a
+	 * method of that name is silently replaced by it; this has its own name. */
+	private isExpanded(key: string): boolean {
 		return this.expanded.has(key);
 	}
 
@@ -6065,7 +6067,7 @@ export class TaskFieldsModal extends HearthModal {
 		expandable: boolean,
 	): HTMLElement {
 		const labels = t().editors.tasks;
-		const open = this.isOpen(openKey);
+		const open = this.isExpanded(openKey);
 		const head = panel.createDiv("hearth-taskfields-head");
 		const chevron = head.createDiv("hearth-taskfields-chevron");
 		if (expandable) setIcon(chevron, open ? "chevron-down" : "chevron-right");
@@ -6117,8 +6119,9 @@ export class TaskFieldsModal extends HearthModal {
 		this.fields.forEach((field, index) => {
 			try {
 				this.renderField(body, field, index);
-			} catch {
-				this.renderBrokenField(body, field, index);
+			} catch (error) {
+				console.error("Hearth: a task field failed to render", error);
+				this.renderBrokenField(body, field, index, error);
 			}
 		});
 
@@ -6132,7 +6135,12 @@ export class TaskFieldsModal extends HearthModal {
 	/** A field that couldn't be rendered, standing in for it: whatever name
 	 * survived, and a remove button — so the entry can be dropped without
 	 * losing the fields around it. */
-	private renderBrokenField(body: HTMLElement, field: TaskFieldDef, index: number): void {
+	private renderBrokenField(
+		body: HTMLElement,
+		field: TaskFieldDef,
+		index: number,
+		error?: unknown,
+	): void {
 		const labels = t().editors.tasks;
 		const panel = body.createDiv("hearth-taskfields-field is-broken");
 		const head = panel.createDiv("hearth-taskfields-head");
@@ -6141,6 +6149,11 @@ export class TaskFieldsModal extends HearthModal {
 				? field.name.trim()
 				: labels.fieldUnnamed;
 		head.createDiv({ cls: "hearth-taskfields-headtext", text: `${name} · ${labels.fieldBroken}` });
+		// The reason is shown rather than swallowed: a broken field the user
+		// cannot explain is a bug report with nothing in it.
+		const reason =
+			error instanceof Error ? error.message : typeof error === "string" ? error : "";
+		if (reason) head.createDiv({ cls: "hearth-taskfields-summary", text: reason });
 		const actions = head.createDiv("hearth-taskfields-actions");
 		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
 			this.fields.splice(index, 1);
@@ -6172,7 +6185,7 @@ export class TaskFieldsModal extends HearthModal {
 	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
 		const labels = t().editors.tasks;
 		const openKey = `field:${field.id}`;
-		const open = this.isOpen(openKey);
+		const open = this.isExpanded(openKey);
 
 		// A card per field, so where one ends and the next begins is obvious
 		// without counting indentation.
@@ -6312,7 +6325,7 @@ export class TaskFieldsModal extends HearthModal {
 		// configure. Everything else expands.
 		const mappable = !isDescriptionSource(key.source);
 		const mapped = (key.values ?? []).length;
-		const open = mappable && this.isOpen(openKey);
+		const open = mappable && this.isExpanded(openKey);
 
 		const panel = section.createDiv("hearth-taskfields-key");
 		panel.toggleClass("is-open", open);
