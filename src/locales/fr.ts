@@ -57,6 +57,12 @@ export const fr: Translations = {
 			`Hearth : impossible de créer une note pour le ${day}.`,
 		couldNotCreateEventNote: "Hearth : impossible de créer une note pour cet événement.",
 		taskNotesCreateFailed: "Hearth : impossible d'exécuter TaskNotes : Créer une tâche.",
+		tasksPluginCreateFailed: "Hearth : impossible d'ouvrir la boîte de création du plugin Tasks.",
+		tasksPluginNoTarget: "Hearth : choisissez où vont les nouvelles tâches dans les réglages de cette carte.",
+		tasksPluginNoDailyNotes:
+			"Hearth : activez le plugin principal Notes quotidiennes, ou choisissez une note pour les nouvelles tâches dans les réglages de cette carte.",
+		tasksPluginNoteMissing: (path: string) =>
+			`Hearth : aucune note à « ${path} » pour les nouvelles tâches — choisissez-en une autre dans les réglages de cette carte.`,
 		taskChangedOnDisk: "Hearth : cette tâche a changé sur le disque — actualisée.",
 		couldNotOpenTaskNote: "Hearth : impossible d'ouvrir la note de cette tâche.",
 		couldNotUpdateTaskStatus: "Hearth : impossible de mettre à jour le statut de la tâche.",
@@ -1348,6 +1354,13 @@ export const fr: Translations = {
 				taskchute: {
 					name: "TaskChute Plus",
 					desc: "Les cartes TaskChute lisent les tâches et relevés du plugin — liste du jour avec démarrage et arrêt, aperçu hebdomadaire et carte de chaleur d'activité. Les tâches, routines et le journal restent ceux de TaskChute.",
+				},				tasksPlugin: {
+					name: "Tasks",
+					desc:
+						"Une carte Tâches peut lire les tâches du plugin Tasks lui-même — " +
+						"ses statuts (y compris personnalisés) et son format — dessinées " +
+						"par Hearth avec filtre, tri et champs, et cocher, modifier et " +
+						"créer via le plugin dans la note du jour ou la note de votre choix.",
 				},				stereo: {
 					name: "Stereo",
 					desc:
@@ -2660,10 +2673,28 @@ export const fr: Translations = {
 				"Les cases à cocher Markdown fonctionnent partout. TaskNotes lit les notes de tâches " +
 				"de ce plugin via le frontmatter (noms de champs configurables dans Paramètres → " +
 				"Hearth, car TaskNotes n'a pas d'API interrogeable par d'autres plugins). " +
-				"Kanban lit une seule note du plugin Kanban, une colonne par titre.",
+				"Kanban lit une seule note du plugin Kanban, une colonne par titre. " +
+				"Le plugin Tasks lit les tâches de ce plugin — ses statuts et son format — " +
+				"dessinées par Hearth, avec cocher, modifier et créer du plugin.",
 			sourceCheckbox: "Cases à cocher Markdown",
 			sourceTaskNotes: "Plugin TaskNotes",
 			sourceKanban: "Plugin Kanban",
+			sourceObsidianTasks: "Plugin Tasks",
+			tasksQuery: "Requête Tasks",
+			tasksQueryDesc:
+				"Instructions Tasks supplémentaires, ajoutées après les lignes de portée, " +
+				"d'achèvement et de nombre ci-dessus — dans le langage de requête du plugin " +
+				"Tasks (p. ex. « sort by due »). Laissez vide pour les réglages de la carte.",
+			tasksQueryPlaceholder: "p. ex. sort by due",
+			tasksDestination: "Les nouvelles tâches vont dans",
+			tasksDestinationDesc:
+				"Où la boîte de création du plugin Tasks met une nouvelle tâche : la note " +
+				"du jour (créée si besoin), ou une note précise.",
+			tasksDestinationDaily: "La note du jour",
+			tasksDestinationNote: "Une note précise",
+			tasksDestinationNoteDesc: "La note à laquelle les nouvelles tâches sont ajoutées.",
+			tasksDestinationNotePlaceholder: "p. ex. Notes/Tâches.md",
+			pickNote: "Choisir une note",
 			kanbanBoard: "Note du Kanban",
 			kanbanBoardDesc:
 				"Le tableau du plugin Kanban à lire. Laissez vide pour détecter automatiquement la première " +
@@ -2717,6 +2748,12 @@ export const fr: Translations = {
 				"entre colonnes, glissez les en-têtes de colonne pour les réordonner, utilisez l'œil " +
 				"d'une colonne pour la masquer, et sa coche pour qu'elle termine automatiquement les cartes. " +
 				"Clic droit sur une carte pour la convertir en note à part. Dans la matrice d'Eisenhower, glissez les tâches entre les quadrants pour changer leur priorité.",
+			layoutDescReadonly:
+				"Liste, Kanban groupé par les statuts du plugin Tasks, ou matrice " +
+				"d'Eisenhower par priorité. Le Kanban et la matrice regroupent les " +
+				"tâches du plugin mais restent en lecture seule — glisser entre statuts " +
+				"ou quadrants réécrirait la ligne hors du plugin — tandis que la liste " +
+				"coche, modifie et crée via le plugin lui-même.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban",
 			layoutMatrix: "Matrice d'Eisenhower",
@@ -2793,7 +2830,12 @@ export const fr: Translations = {
 			fieldsFollowGlobal:
 				"Suit les champs de Paramètres → Hearth → Intégrations. Activez " +
 				"pour donner à cette carte ses propres champs.",
+			fieldsOwnDesc:
+				"Cette source ne suit pas la liste TaskNotes du coffre. Activez pour " +
+				"donner à cette carte ses propres champs, en partant de ce qu'elle a " +
+				"toujours montré.",
 			fieldsCustomize: "Personnaliser…",
+			fieldBroken: "Ce champ n'a pas pu être affiché",
 			fieldsTitle: "Champs de tâche",
 			fieldsHint:
 				"Tout ce qu'une tâche affiche, dans l'ordre. Chaque champ est à vous : nommez-" +
@@ -2837,6 +2879,7 @@ export const fr: Translations = {
 				text: "Texte simple",
 				hue: "Teinter toute la tâche",
 				glow: "Halo autour de la tâche",
+				hidden: "Masqué",
 			},
 			fieldOpacity: "Intensité",
 			fieldOpacityDesc:
@@ -3775,6 +3818,12 @@ export const fr: Translations = {
 			templaterEmpty: "Ajoutez un modèle dans les paramètres de la carte",
 			tasksEnable:
 				"Activez le plugin TaskNotes, ou passez la source sur les cases à cocher",
+			tasksPluginEnable:
+				"Activez le plugin Tasks pour lire ses tâches ici — ou faites passer la source de cette carte aux cases Markdown",
+			tasksPluginSwitch: "Passer aux cases",
+			tasksPluginTextOnly:
+				"Le plugin Tasks dessine cette carte dans Obsidian — les vues texte ne peuvent pas montrer ses résultats",
+			tasksPluginQueryFailed: "Le plugin Tasks n'a pas pu dessiner ses résultats ici",
 			tasksEmpty: "Aucune tâche ouverte",
 			tasksNoMatch: "Aucune tâche ne correspond au filtre",
 			matrixNeedsPriorities:
@@ -4341,6 +4390,7 @@ export const fr: Translations = {
 			noteBody: "Corps de la note",
 			convertToNote: "Convertir en note",
 			editMetadata: "Modifier dates et priorité",
+			editInTasksPlugin: "Modifier dans le plugin Tasks",
 			deleteCard: "Supprimer la carte",
 			openNote: "Ouvrir la note",
 			deleteTask: "Supprimer la tâche",
@@ -4488,9 +4538,11 @@ export const fr: Translations = {
 			filterDueHasDate: "A une date",
 			filterPriority: "Priorité",
 			filterPriorityLevels: {
+				highest: "La plus haute",
 				high: "Haute",
 				medium: "Moyenne",
 				low: "Basse",
+				lowest: "La plus basse",
 				none: "Aucune",
 			},
 			filterStatus: "Statut",

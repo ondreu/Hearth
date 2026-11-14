@@ -81,6 +81,12 @@ export const de: Translations = {
 			`Hearth: Notiz für ${day} konnte nicht erstellt werden.`,
 		couldNotCreateEventNote: "Hearth: Notiz für dieses Ereignis konnte nicht erstellt werden.",
 		taskNotesCreateFailed: "Hearth: TaskNotes: „Neue Aufgabe erstellen“ konnte nicht ausgeführt werden.",
+		tasksPluginCreateFailed: "Hearth: Der Erstellen-Dialog des Tasks-Plugins konnte nicht geöffnet werden.",
+		tasksPluginNoTarget: "Hearth: Lege in den Karteneinstellungen fest, wohin neue Aufgaben kommen.",
+		tasksPluginNoDailyNotes:
+			"Hearth: Aktiviere das Kern-Plugin „Tägliche Notizen“ oder wähle in den Karteneinstellungen eine Notiz für neue Aufgaben.",
+		tasksPluginNoteMissing: (path: string) =>
+			`Hearth: Keine Notiz unter „${path}“ für neue Aufgaben — wähle in den Karteneinstellungen eine andere.`,
 		taskChangedOnDisk: "Hearth: Diese Aufgabe hat sich auf dem Datenträger geändert - aktualisiert.",
 		couldNotOpenTaskNote: "Hearth: Notiz dieser Aufgabe konnte nicht geöffnet werden.",
 		couldNotUpdateTaskStatus: "Hearth: Aufgabenstatus konnte nicht aktualisiert werden.",
@@ -1413,6 +1419,15 @@ export const de: Translations = {
 						"Lässt eine Musik-Karte den Navidrome-/Subsonic-Player des " +
 						"Stereo-Plugins steuern — laufender Titel, Warteschlange und Bedienung.",
 				},
+				tasksPlugin: {
+					name: "Tasks",
+					desc:
+						"Eine Aufgaben-Karte kann die Aufgaben des Tasks-Plugins selbst " +
+						"lesen — seine Status (inklusive eigener) und sein Aufgabenformat — " +
+						"von Hearth gezeichnet mit Filter, Sortierung und Feldern, und über " +
+						"das Plugin abhaken, bearbeiten und in der Tagesnotiz oder einer " +
+						"Notiz deiner Wahl erstellen.",
+				},
 				omnisearch: {
 					name: "Omnisearch",
 					desc:
@@ -2718,10 +2733,28 @@ export const de: Translations = {
 				"Markdown-Checkboxen funktionieren überall. TaskNotes liest die " +
 				"Aufgaben-Notizen dieses Plugins über Frontmatter (Feldnamen konfigurierbar unter " +
 				"Einstellungen → Hearth, da TaskNotes keine API für Abfragen durch andere Plugins bietet). " +
-				"Kanban liest eine einzelne Board-Notiz des Kanban-Plugins, eine Spalte pro Überschrift.",
+				"Kanban liest eine einzelne Board-Notiz des Kanban-Plugins, eine Spalte pro Überschrift. " +
+				"Das Tasks-Plugin liest die Aufgaben dieses Plugins — seine Status und " +
+				"sein Aufgabenformat — von Hearth gezeichnet, mit Umschalten, Bearbeiten und Erstellen des Plugins.",
 			sourceCheckbox: "Markdown-Checkboxen",
 			sourceTaskNotes: "TaskNotes-Plugin",
 			sourceKanban: "Kanban-Plugin",
+			sourceObsidianTasks: "Tasks-Plugin",
+			tasksQuery: "Tasks-Abfrage",
+			tasksQueryDesc:
+				"Zusätzliche Tasks-Anweisungen, angehängt nach den obigen Zeilen für " +
+				"Bereich, Erledigung und Aufgabenanzahl — in der Abfragesprache des " +
+				"Tasks-Plugins (z. B. „sort by due“). Leer lassen für die Vorgaben der Karte.",
+			tasksQueryPlaceholder: "z. B. sort by due",
+			tasksDestination: "Neue Aufgaben kommen nach",
+			tasksDestinationDesc:
+				"Wohin der Erstellen-Dialog des Tasks-Plugins eine neue Aufgabe legt: " +
+				"in die heutige Tagesnotiz (wird bei Bedarf erstellt) oder in eine bestimmte Notiz.",
+			tasksDestinationDaily: "Heutige Tagesnotiz",
+			tasksDestinationNote: "Eine bestimmte Notiz",
+			tasksDestinationNoteDesc: "Die Notiz, an die neue Aufgaben angehängt werden.",
+			tasksDestinationNotePlaceholder: "z. B. Notizen/Aufgaben.md",
+			pickNote: "Notiz wählen",
 			kanbanBoard: "Board-Notiz",
 			kanbanBoardDesc:
 				"Das zu lesende Board des Kanban-Plugins. Leer lassen, um die erste " +
@@ -2775,6 +2808,12 @@ export const de: Translations = {
 				"zwischen Spalten ziehen, Spaltenköpfe zum Sortieren ziehen, mit dem " +
 				"Augen-Symbol einer Spalte sie ausblenden und mit dem Häkchen-Symbol Aufgaben automatisch " +
 				"abschließen lassen. Eine Karte rechtsklicken, um sie in eine eigene Notiz umzuwandeln. In der Eisenhower-Matrix Aufgaben zwischen Quadranten ziehen, um ihre Priorität zu ändern.",
+			layoutDescReadonly:
+				"Liste, ein nach den Status des Tasks-Plugins gruppiertes Kanban-Board oder " +
+				"eine Eisenhower-Matrix nach Priorität. Board und Matrix gruppieren die " +
+				"Aufgaben des Plugins, bleiben aber schreibgeschützt — Ziehen zwischen Status " +
+				"oder Quadranten würde die Zeile am Plugin vorbei umschreiben — während die " +
+				"Liste über das Plugin selbst abhakt, bearbeitet und erstellt.",
 			layoutList: "Liste",
 			layoutKanban: "Kanban-Board",
 			layoutMatrix: "Eisenhower-Matrix",
@@ -2851,7 +2890,12 @@ export const de: Translations = {
 			fieldsFollowGlobal:
 				"Folgt den Feldern aus Einstellungen → Hearth → Integrationen. Einschalten, " +
 				"um dieser Karte eigene zu geben.",
+			fieldsOwnDesc:
+				"Diese Quelle folgt nicht der vaultweiten TaskNotes-Liste. Einschalten, " +
+				"um dieser Karte eigene Felder zu geben — ausgehend von dem, was die Karte " +
+				"schon immer gezeigt hat.",
 			fieldsCustomize: "Anpassen…",
+			fieldBroken: "Dieses Feld konnte nicht angezeigt werden",
 			fieldsTitle: "Aufgabenfelder",
 			fieldsHint:
 				"Alles, was eine Aufgabe zeigt, der Reihe nach. Ein Feld definierst du selbst: " +
@@ -2895,6 +2939,7 @@ export const de: Translations = {
 				text: "Reiner Text",
 				hue: "Ganze Aufgabe einfärben",
 				glow: "Leuchten um die Aufgabe",
+				hidden: "Ausgeblendet",
 			},
 			fieldOpacity: "Stärke",
 			fieldOpacityDesc:
@@ -3831,6 +3876,12 @@ export const de: Translations = {
 			templaterEmpty: "Füge eine Vorlage in den Karteneinstellungen hinzu",
 			tasksEnable:
 				"Aktiviere das TaskNotes-Plugin oder wechsle die Quelle zu Checkboxen",
+			tasksPluginEnable:
+				"Aktiviere das Tasks-Plugin, um seine Aufgaben hier zu lesen — oder stelle die Quelle dieser Karte auf Markdown-Checkboxen um",
+			tasksPluginSwitch: "Zu Checkboxen wechseln",
+			tasksPluginTextOnly:
+				"Das Tasks-Plugin zeichnet diese Karte in Obsidian — Textansichten können seine Ergebnisse nicht zeigen",
+			tasksPluginQueryFailed: "Das Tasks-Plugin konnte seine Ergebnisse hier nicht darstellen",
 			tasksEmpty: "Keine offenen Aufgaben",
 			tasksNoMatch: "Keine Aufgaben passen zum Filter",
 			matrixNeedsPriorities:
@@ -4408,6 +4459,7 @@ export const de: Translations = {
 			noteBody: "Notizinhalt",
 			convertToNote: "In Notiz umwandeln",
 			editMetadata: "Termine und Priorität bearbeiten",
+			editInTasksPlugin: "Im Tasks-Plugin bearbeiten",
 			deleteCard: "Karte löschen",
 			openNote: "Notiz öffnen",
 			deleteTask: "Aufgabe löschen",
@@ -4555,9 +4607,11 @@ export const de: Translations = {
 			filterDueHasDate: "Hat ein Datum",
 			filterPriority: "Priorität",
 			filterPriorityLevels: {
+				highest: "Höchste",
 				high: "Hoch",
 				medium: "Mittel",
 				low: "Niedrig",
+				lowest: "Niedrigste",
 				none: "Keine",
 			},
 			filterStatus: "Status",

@@ -15,6 +15,20 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
+  beside Markdown checkboxes, TaskNotes and Kanban: the
+  [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
+  plugin. The card draws those tasks itself — its own rows, chips, colours and
+  custom fields — while the plugin stays the source of truth: what counts as a
+  task (its status registry and its global filter), the vault's task format, and
+  every write (ticking, the edit dialog, a new task) go through its API, so a
+  line is never converted to another format. A new task goes to a chosen note or
+  to today's daily note, created when missing. The card's filters, sorting and
+  custom fields work for this source like for any other, at the plugin's five
+  priority levels, and a field can be set to *Hidden* to keep it configured
+  without drawing it. Kanban is not offered for this source and the matrix is
+  read-only: the plugin cannot write a status by dragging.
+
 - **A folder of albums can be browsed as albums.** The Music card's folder source
   gains **Show albums**, offered once *Include subfolders* is on: the list under
   the transport becomes those subfolders as collapsed album rows, each with its
@@ -33,6 +47,24 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   currency. Simplified Chinese, German, French and English are unchanged.
 
 ### Fixed
+
+- **Task fields no longer leak between sources.** The *Fields* customisation
+  followed the vault-wide TaskNotes field list on every card, whatever its
+  source. Now only TaskNotes cards do that: every other source configures its
+  own fields on the card, independently of the TaskNotes setting, starting from
+  a sensible default — and keys that only mean something for TaskNotes are not
+  offered elsewhere.
+
+- **The "Customize fields" editor opens again.** In current Obsidian it opened
+  effectively empty and *Add field* appeared to do nothing: the modal's own
+  `isOpen` method was shadowed by `Modal.isOpen`, so every field failed to draw.
+  The editor now opens with its content, survives a single bad field without
+  losing the rest or its buttons, and says why a field could not be shown.
+
+- **Priority filtering matches the plugin's five levels.** The filter offered
+  three coarse buckets, so *High* quietly included *Highest* and the top and
+  bottom levels could not be picked at all. The chips now follow the levels the
+  card actually holds, and matching is exact.
 
 - **A Music card whose folder changed no longer plays the old folder's tracks**
   (#486). The card and the player share one queue, and the card handed its

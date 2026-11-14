@@ -8,6 +8,7 @@ import {
 	withTypedTags,
 	filterTagLabel,
 	inlineTags,
+	hitPriorityLevel,
 	isTaskFilterActive,
 	normalizeFilterTag,
 	taskMatchesFilter,
@@ -202,5 +203,30 @@ describe("taskMatchesFilter", () => {
 			expect(taskMatchesFilter(hit({ scheduled: "2026-09-01" }), { due: "noDate" }, today)).toBe(false);
 			expect(taskMatchesFilter(hit(), { due: "noDate" }, today)).toBe(true);
 		});
+	});
+});
+
+
+describe("priority filter levels", () => {
+	it("reads the plugin's five levels, not three buckets", () => {
+		expect(hitPriorityLevel(hit({ priority: "🔺" }))).toBe("highest");
+		expect(hitPriorityLevel(hit({ priority: "⏫" }))).toBe("high");
+		expect(hitPriorityLevel(hit({ priority: "🔼" }))).toBe("medium");
+		expect(hitPriorityLevel(hit({ priority: "🔽" }))).toBe("low");
+		expect(hitPriorityLevel(hit({ priority: "⏬" }))).toBe("lowest");
+		expect(hitPriorityLevel(hit({ priority: "high" }))).toBe("high");
+		expect(hitPriorityLevel(hit({ priority: "urgent" }))).toBe("high");
+		expect(hitPriorityLevel(hit({}))).toBe("none");
+	});
+
+	it("filters exactly: High does not quietly include Highest", () => {
+		const onlyHigh: TaskFilterConfig = { priorities: ["high"] };
+		expect(taskMatchesFilter(hit({ priority: "⏫" }), onlyHigh, "2026-01-01")).toBe(true);
+		expect(taskMatchesFilter(hit({ priority: "🔺" }), onlyHigh, "2026-01-01")).toBe(false);
+
+		const topTwo: TaskFilterConfig = { priorities: ["highest", "high"] };
+		expect(taskMatchesFilter(hit({ priority: "🔺" }), topTwo, "2026-01-01")).toBe(true);
+		expect(taskMatchesFilter(hit({ priority: "⏫" }), topTwo, "2026-01-01")).toBe(true);
+		expect(taskMatchesFilter(hit({ priority: "🔼" }), topTwo, "2026-01-01")).toBe(false);
 	});
 });

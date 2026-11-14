@@ -31,6 +31,7 @@ import { OPERON_PLUGIN_ID } from "./operon";
 import { JOURNALS_PLUGIN_ID } from "./journals";
 import { PERIODIC_NOTES_PLUGIN_ID } from "./periodic";
 import { TASKNOTES_PLUGIN_ID } from "./tasknotes";
+import { TASKS_PLUGIN_ID } from "./tasksplugin";
 import { TEMPLATER_PLUGIN_ID } from "./templater";
 import { VAULT_PET_PLUGIN_ID } from "./vaultpet";
 import { STEREO_PLUGIN_ID } from "./stereo";
@@ -80,6 +81,7 @@ export type IntegrationWhere =
 export type IntegrationId =
 	| "omnisearch"
 	| "tasknotes"
+	| "tasksPlugin"
 	| "dataview"
 	| "datacore"
 	| "templater"
@@ -142,6 +144,12 @@ export const INTEGRATIONS: readonly IntegrationEntry[] = [
 		group: "plugin",
 		pluginId: TASKNOTES_PLUGIN_ID,
 		where: { kind: "section", section: "tasks" },
+	},
+	{
+		id: "tasksPlugin",
+		group: "plugin",
+		pluginId: TASKS_PLUGIN_ID,
+		where: { kind: "card" },
 	},
 	{
 		id: "dataview",

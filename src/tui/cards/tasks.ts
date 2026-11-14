@@ -3,8 +3,9 @@
  *
  * Everything a task can do on the graphical card it can do here, through the
  * same functions (src/cards/tasks.ts): the same sources (checkboxes, TaskNotes,
- * a Kanban board), filter and sort, the same completion rules for recurring
- * tasks, the same quick view on Enter and the same menu on a right-click.
+ * a Kanban board, the Tasks plugin), filter and sort, the same completion rules
+ * for recurring tasks, the same quick view on Enter and the same menu on a
+ * right-click.
  *
  * The list is a table — box, priority, due, task, and the card's fields at the
  * right — with the sorted column's header lit, the way htop marks its sort
@@ -160,7 +161,7 @@ function taskChips(view: HomeView, cfg: TasksConfig, hit: TaskHit, today: string
 		if (chips.length) chips.push({ text: " " });
 		chips.push({ text: asciify(text), style, color: color ?? undefined, label });
 	};
-	const fields = activeTaskFields(cfg, view.plugin.settings);
+	const fields = activeTaskFields(cfg, view.plugin.settings, cfg.source ?? "checkbox");
 	if (fields === null) {
 		if (hit.status) add(hit.status, "magenta");
 		if (hit.boardColumn && cfg.layout !== "kanban") add(hit.boardColumn, "cyan");
@@ -180,6 +181,7 @@ function taskChips(view: HomeView, cfg: TasksConfig, hit: TaskHit, today: string
 	let ambient: string | undefined;
 	for (const field of fields) {
 		const display = fieldStyle(field);
+		if (display === "hidden") continue;
 		const isAmbient = isAmbientStyle(display);
 		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : "";
 		for (const key of field.keys) {

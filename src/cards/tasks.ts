@@ -1,5 +1,6 @@
 import {
 	ButtonComponent,
+	Component,
 	ExtraButtonComponent,
 	MarkdownView,
 	Notice,
@@ -36,6 +37,8 @@ import {
 	allowsPriorityStyle,
 	ambientOwner,
 	builtinSource,
+	builtinSourcesFor,
+	defaultTaskFields,
 	isPriorityStyle,
 	DATE_RELATIONS,
 	dateDisplay,
@@ -53,12 +56,13 @@ import {
 	newTaskField,
 	presetColor,
 	resolveTaskFields,
+	sanitizeTaskFields,
 	sourceBuiltin,
 	sourceProperty,
-	TASK_BUILTIN_SOURCES,
 	type TaskValueDisplay,
 	TASK_COLOR_PRESETS,
 	type TaskBuiltinSource,
+	type TaskFieldSource,
 	taskFieldValues,
 } from "../taskfields";
 import { inTaskScope, tasksEventRelevant } from "../taskscope";
@@ -98,6 +102,7 @@ import {
 	filterHashtagLabel,
 	filterTagLabel,
 	formatTagInput,
+	hitPriorityLevel,
 	hitStatusValue,
 	inlineTags,
 	parseTagInput,
@@ -128,6 +133,16 @@ import {
 	type TaskSortRule,
 } from "../types";
 import { openInTaskNotes, readTaskNotesSetup, TASKNOTES_PLUGIN_ID } from "../tasknotes";
+import {
+	createTasksPluginTask,
+	deleteTasksPluginTask,
+	editTasksPluginTask,
+	parseTasksPluginLine,
+	tasksPluginEnabled,
+	tasksPluginStatuses,
+	tasksPluginTaskIndex,
+	toggleTasksPluginTask,
+} from "../tasksplugin";
 import { confirmAction, dressModal, makeClickable } from "../ui";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -240,12 +255,42 @@ export function tasksExpressive(cfg: TasksConfig): boolean {
 	return expressiveConfigs.get(cfg) === true;
 }
 
-export function renderTasks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderTasks(
+	view: HomeView,
+	card: DashboardCard,
+	body: HTMLElement,
+	component?: Component,
+): void {
 	const cfg = card.tasks ?? {};
 	expressiveConfigs.set(cfg, effectiveCardDesign(view.plugin.settings, card.design) === "expressive");
 	const container = body.createDiv("hearth-tasks-wrap");
+	void component;
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
 	refresh();
+}
+
+
+/**
+ * The missing-plugin empty state for a card reading from obsidian-tasks: what
+ * is wrong and the way back to Markdown checkboxes.
+ */
+function renderTasksPluginMissing(
+	view: HomeView,
+	cfg: TasksConfig,
+	container: HTMLElement,
+	refresh: () => void,
+): void {
+	emptyState(container, "list-todo", t().cards.empty.tasksPluginEnable);
+	const switcher = container.createDiv("hearth-tasks-plugin-missing-actions");
+	const btn = switcher.createEl("button", {
+		cls: "hearth-tasks-plugin-missing-switch",
+		text: t().cards.empty.tasksPluginSwitch,
+	});
+	btn.addEventListener("click", () => {
+		cfg.source = "checkbox";
+		void view.plugin.saveData(view.plugin.settings);
+		refresh();
+	});
 }
 
 
@@ -287,6 +332,9 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
 export interface TaskFilterChoices {
 	source: string;
 	statuses: string[];
+	/** Priority levels the card's tasks actually carry, in their own order.
+	 * Empty means none was seen, and the editor offers every level. */
+	priorities: TaskPriorityLevel[];
 	contexts: string[];
 	projects: string[];
 	tags: string[];
@@ -309,6 +357,9 @@ function renderTasksListHeader(
 	if (filterChoices.source === "tasknotes") {
 		// TaskNotes add is a single command button, so it sits with the controls.
 		taskNotesAddButton(view, actions);
+	} else if (filterChoices.source === "obsidian-tasks") {
+		// The Tasks plugin's own create dialog, into the card's destination note.
+		tasksPluginAddButton(view, cfg, actions);
 	} else if (filterChoices.source === "kanban" && boardColumns && boardColumns.length) {
 		// Kanban add expands into a form, so give it a full-width row below the
 		// header; new cards go into the board's first column.
@@ -635,7 +686,10 @@ function taskKeyEditable(hit: TaskHit, source: string): boolean {
 
 
 /** Write a new value for a key onto a task, or clear it when `value` is null.
- * Returns false when the write couldn't be made. */
+ * Returns false when the write couldn't be made. Tasks-plugin tasks are never
+ * written this way — their lines keep the vault's task format and go through
+ * the plugin's own toggle/edit modals — so this refuses for that source and
+ * the board/matrix render read-only there. */
 async function writeTaskFieldValue(
 	view: HomeView,
 	cfg: TasksConfig,
@@ -643,6 +697,7 @@ async function writeTaskFieldValue(
 	source: string,
 	value: string | null,
 ): Promise<boolean> {
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks") return false;
 	const builtin = sourceBuiltin(source);
 
 	// A line-based task keeps its priority in the line's emoji marker, so it goes
@@ -976,7 +1031,7 @@ function renderTaskFields(
 	refresh: () => void,
 	omitPriority = false,
 ): void {
-	const fields = activeTaskFields(cfg, view.plugin.settings);
+	const fields = activeTaskFields(cfg, view.plugin.settings, cfg.source ?? "checkbox");
 	if (fields === null) renderLegacyTaskFields(view, cfg, hit, hosts, today, layout, omitPriority);
 	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh, omitPriority);
 }
@@ -1009,7 +1064,10 @@ function renderLegacyTaskFields(
 	if (layout === "list") {
 		// TaskNotes tasks: the status is free-form (open / in-progress / waiting /
 		// …) and the checkbox can't express it, so show it right after the title.
-		if (hit.status) renderStatusChip(hosts.inline, hit.status, "pill", null);
+		// Tasks-plugin tasks: custom statuses likewise need their own chip — the
+		// checkbox only says done or not.
+		if (hit.status && (source === "tasknotes" || source === "obsidian-tasks"))
+			renderStatusChip(hosts.inline, hit.status, "pill", null);
 		// Kanban cards show the board column they belong to as a small badge.
 		if (hit.boardColumn) {
 			hosts.inline.createDiv({
@@ -1039,8 +1097,8 @@ function renderLegacyTaskFields(
 	// Tags scraped out of the title come back as chips, so nothing the line said
 	// is lost. Only where they were scraped: a plain-mode task keeps its tags in
 	// its text, and a TaskNotes task never had them there, so neither gets a
-	// second copy here.
-	if (taskMetaEnabled(cfg, hit)) renderTaskTagChips(hosts.meta, hit);
+	// second copy here. Tasks-plugin lines always have their metadata managed.
+	if (source === "obsidian-tasks" || taskMetaEnabled(cfg, hit)) renderTaskTagChips(hosts.meta, hit);
 
 	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
 }
@@ -1109,9 +1167,14 @@ function renderCustomTaskFields(
 ): void {
 	for (const field of fields) {
 		const display = fieldStyle(field);
+		// Hidden keeps the field and its keys configured without drawing them.
+		if (display === "hidden") continue;
 		// An ambient field paints the whole task instead of adding to it, so it
 		// needs the colour and nothing else.
 		const ambient = isAmbientStyle(display);
+		// Tasks-plugin tasks keep the vault's task format: Hearth never writes
+		// their lines, so no chip opens a value picker — display only.
+		const readOnly = (cfg.source ?? "checkbox") === "obsidian-tasks";
 		const paint = (color: string | null) => {
 			if (color) applyAmbientColor(hosts.root, display, color, fieldOpacity(field));
 		};
@@ -1148,7 +1211,7 @@ function renderCustomTaskFields(
 						continue;
 					}
 					const el = renderTaskDateChip(host, hit, id, today, style, shown, false);
-					if (el && date && taskKeyEditable(hit, key.source)) {
+					if (el && date && !readOnly && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
 					}
 					continue;
@@ -1168,7 +1231,7 @@ function renderCustomTaskFields(
 						prefix,
 						hit.done,
 					);
-					if (taskKeyEditable(hit, key.source)) {
+					if (!readOnly && taskKeyEditable(hit, key.source)) {
 						makeChipEditable(el, view, cfg, hit, key, date, refresh);
 					}
 				}
@@ -1178,7 +1241,7 @@ function renderCustomTaskFields(
 			const builtin = sourceBuiltin(key.source);
 			// The matrix says a task's priority by where it puts the task.
 			if (builtin === "priority" && omitPriority) continue;
-			const editable = taskKeyEditable(hit, key.source);
+			const editable = !readOnly && taskKeyEditable(hit, key.source);
 			for (const raw of keyValues(view, hit, key.source)) {
 				// Resolved from the raw value: displayValue() tries its aliases itself,
 				// so a mapping written against what the vault holds ("urgent") is found
@@ -1235,8 +1298,12 @@ function renderTaskDescription(
 /** Whether a line-based task's inline Tasks-plugin metadata (dates, priority,
  * repeat marks) is managed — parsed for display/sorting and written on edits.
  * Kanban cards (identified by `boardColumn`) follow `kanbanExtended` (off by
- * default); plain checkboxes follow `checkboxExtended` (on by default). */
+ * default); plain checkboxes follow `checkboxExtended` (on by default).
+ * Tasks-plugin tasks always parse their metadata for display (the plugin's own
+ * format), but Hearth never writes it back — toggles and edits go through the
+ * plugin — so this stays true for them for display/tag purposes. */
 export function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks") return true;
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
 }
 
@@ -1656,6 +1723,7 @@ class TaskSortModal extends HearthModal {
  * chips follow it instead of the order the tasks happen to be sorted in. */
 export function collectTaskFilterChoices(hits: TaskHit[], source: string, statusOrder?: string[]): TaskFilterChoices {
 	const statuses: string[] = [];
+	const presentPriorities = new Set<TaskPriorityLevel>();
 	const contexts: string[] = [];
 	const projects: string[] = [];
 	const tags: string[] = [];
@@ -1664,6 +1732,7 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 	const seenProject = new Set<string>();
 	const seenTag = new Set<string>();
 	for (const hit of hits) {
+		presentPriorities.add(hitPriorityLevel(hit));
 		const status = hitStatusValue(hit);
 		if (status && !seenStatus.has(status.toLowerCase())) {
 			seenStatus.add(status.toLowerCase());
@@ -1699,7 +1768,10 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 		};
 		statuses.sort((a, b) => rank(a) - rank(b));
 	}
-	return { source, statuses, contexts, projects, tags };
+	// Only the levels that occur, in the canonical highest→none order: a chip
+	// that would match nothing is noise, and the row then follows the data.
+	const priorities = TASK_PRIORITY_LEVELS.filter((l) => presentPriorities.has(l));
+	return { source, statuses, priorities, contexts, projects, tags };
 }
 
 
@@ -1739,7 +1811,7 @@ export function openTaskFilter(view: HomeView, cfg: TasksConfig, filterChoices: 
 
 
 /** The order priority chips appear in the filter modal. */
-const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["high", "medium", "low", "none"];
+const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["highest", "high", "medium", "low", "lowest", "none"];
 
 
 /** Paint a filter chip as on or off, and say so for screen readers — the
@@ -1827,11 +1899,11 @@ class TaskFilterModal extends HearthModal {
 		preset(
 			labels.highPriority,
 			() => {
-				const levels = this.working.priorities ?? [];
-				return levels.length === 1 && levels[0] === "high";
+				const levels = [...(this.working.priorities ?? [])].sort();
+				return levels.length === 2 && levels[0] === "high" && levels[1] === "highest";
 			},
 			(on) => {
-				this.working.priorities = on ? ["high"] : undefined;
+				this.working.priorities = on ? ["highest", "high"] : undefined;
 			},
 		);
 		duePreset(labels.noDate, "noDate");
@@ -1867,7 +1939,10 @@ class TaskFilterModal extends HearthModal {
 		// Priority buckets (multi-select chips).
 		const prioRow = new Setting(body).setName(labels.filterPriority).setClass("hearth-taskfilter-row");
 		const prioHost = prioRow.controlEl.createDiv("hearth-taskfilter-chips");
-		for (const level of TASK_PRIORITY_LEVELS) {
+		const levels = this.filterChoices.priorities.length
+			? this.filterChoices.priorities
+			: TASK_PRIORITY_LEVELS;
+		for (const level of levels) {
 			this.toggleChip(prioHost, labels.filterPriorityLevels[level], () => (this.working.priorities ?? []).includes(level), () => {
 				const set = new Set(this.working.priorities ?? []);
 				if (set.has(level)) set.delete(level);
@@ -2065,6 +2140,10 @@ export type TaskLoad =
 export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskLoad> {
 	const source = cfg.source ?? "checkbox";
 
+	if (source === "obsidian-tasks" && !tasksPluginEnabled(view.app)) {
+		return { kind: "message", icon: "list-todo", text: t().cards.empty.tasksPluginEnable };
+	}
+
 	let hits: TaskHit[];
 	let boardColumns: string[] | undefined;
 	if (source === "tasknotes") {
@@ -2077,6 +2156,8 @@ export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskL
 		if (!board.file) return { kind: "message", icon: "list-todo", text: t().cards.empty.kanbanNoBoard };
 		hits = board.hits;
 		boardColumns = board.columns.map((c) => c.heading);
+	} else if (source === "obsidian-tasks") {
+		hits = await collectTasksPluginTasks(view, cfg);
 	} else {
 		hits = await collectCheckboxTasks(view, cfg);
 	}
@@ -2090,7 +2171,11 @@ export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskL
 	const filterChoices = collectTaskFilterChoices(
 		hits,
 		source,
-		source === "checkbox" ? checkboxStatuses(cfg).map((s) => s.label) : undefined,
+		source === "checkbox"
+			? checkboxStatuses(cfg).map((s) => s.label)
+			: source === "obsidian-tasks"
+				? tasksPluginStatuses(view.app).map((s) => s.label)
+				: undefined,
 	);
 
 	// The card's "open" status for TaskNotes tasks: the first non-done status
@@ -2143,9 +2228,11 @@ export function taskChecked(cfg: TasksConfig, hit: TaskHit, today: string): bool
 
 /**
  * Tick or untick a task the way its list checkbox does, whatever its source:
- * a recurring task completes (or reopens) today's occurrence, a line task
- * toggles its checkbox (keeping the ✅ date in step where metadata is managed),
- * and a TaskNotes task moves between its done status and `openStatus`.
+ * a Tasks-plugin task goes through the plugin's own toggle command (so
+ * recurrence and done dates follow the vault's task format), a recurring task
+ * completes (or reopens) today's occurrence, a line task toggles its checkbox
+ * (keeping the ✅ date in step where metadata is managed), and a TaskNotes
+ * task moves between its done status and `openStatus`.
  */
 export function toggleTask(
 	view: HomeView,
@@ -2159,6 +2246,10 @@ export function toggleTask(
 		if (!ok) new Notice(t().notices.taskChangedOnDisk);
 		refresh();
 	};
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks" && hit.line >= 0) {
+		void toggleTasksPluginTask(view, hit.file, hit.line, hit.text).then(onDisk);
+		return;
+	}
 	if (hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) {
 		const done = (hit.completeInstances ?? []).includes(today);
 		void (done ? uncompleteRecurringInstance(view, hit, hit.linkedFile) : completeRecurringInstance(view, hit, hit.linkedFile)).then(refresh);
@@ -2185,6 +2276,9 @@ async function loadAndRenderTasks(
 	const load = await loadTasks(view, cfg);
 	if (load.kind === "message") {
 		emptyState(container, load.icon, load.text);
+		if ((cfg.source ?? "checkbox") === "obsidian-tasks") {
+			renderTasksPluginMissing(view, cfg, container, refresh);
+		}
 		return;
 	}
 	const { source, hits, boardColumns, filterChoices, today, openStatus } = load;
@@ -2196,6 +2290,7 @@ async function loadAndRenderTasks(
 		const actions = resolveTaskActionsHost(view, container);
 		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
 		if (source === "tasknotes") taskNotesAddButton(view, actions);
+		if (source === "obsidian-tasks") tasksPluginAddButton(view, cfg, actions);
 		renderTaskKanban(view, cfg, boardTasks(cfg, hits, today), container, refresh, boardColumns);
 		return;
 	}
@@ -2226,6 +2321,21 @@ async function loadAndRenderTasks(
 }
 
 
+/** The "+" control for a Tasks-plugin card: the plugin's own create dialog,
+ * writing into the card's destination note. */
+function tasksPluginAddButton(view: HomeView, cfg: TasksConfig, parent: HTMLElement): void {
+	const btn = parent.createEl("button", {
+		cls: "hearth-task-add",
+		attr: { "aria-label": t().cards.tasks.createNewTask, title: t().cards.tasks.createNewTask },
+	});
+	setIcon(btn, "plus");
+	btn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		void createTasksPluginTask(view, cfg);
+	});
+}
+
+
 function renderTaskRow(
 	view: HomeView,
 	cfg: TasksConfig,
@@ -2238,7 +2348,23 @@ function renderTaskRow(
 	const row = listEl.createDiv("hearth-list-item hearth-task");
 	row.toggleClass("is-done", hit.done);
 
-	if (hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) {
+	const isTasksPlugin = (cfg.source ?? "checkbox") === "obsidian-tasks";
+	if (isTasksPlugin && hit.line >= 0) {
+		// The plugin owns the toggle semantics (custom statuses, recurrence,
+		// done dates in the vault's task format): the checkbox goes through it.
+		const check = row.createEl("input", {
+			cls: "hearth-task-check",
+			attr: { type: "checkbox" },
+		});
+		check.checked = hit.done;
+		check.addEventListener("click", (e) => e.stopPropagation());
+		check.addEventListener("change", () => {
+			void toggleTasksPluginTask(view, hit.file, hit.line, hit.text).then((ok) => {
+				if (!ok) new Notice(t().notices.taskChangedOnDisk);
+				refresh();
+			});
+		});
+	} else if (hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) {
 		// Recurring card linked to a note: complete per-occurrence in the note's
 		// frontmatter (complete_instances + next scheduled), TaskNotes-style.
 		renderRecurringCheckbox(view, hit, today, row, refresh, hit.linkedFile);
@@ -2298,7 +2424,12 @@ function renderTaskRow(
 	makeClickable(row, open, hit.text || hit.file.basename);
 	// Line-based tasks (Kanban cards and plain checkboxes) get the right-click
 	// menu; checkboxes get the edit-details item, Kanban also convert/delete.
-	if (hit.line >= 0) attachKanbanCardMenu(view, cfg, hit, row, refresh);
+	// Tasks-plugin tasks get the plugin's own edit dialog instead of Hearth's
+	// metadata editor, so the note keeps the vault's task format.
+	if (hit.line >= 0) {
+		if (isTasksPlugin) attachTasksPluginCardMenu(view, cfg, hit, row, refresh);
+		else attachKanbanCardMenu(view, cfg, hit, row, refresh);
+	}
 }
 
 
@@ -2376,11 +2507,15 @@ export function taskBoard(
 			const col = columnFor.get(key) ?? ensure(t().cards.tasks.noStatus.toLowerCase(), t().cards.tasks.noStatus);
 			col.hits.push(hit);
 		}
-	} else if (source === "checkbox") {
-		// One column per configured checkbox status (To do / In progress / Done by
-		// default), keyed by the status symbol. Cards whose symbol isn't in the
-		// set fall into a column of their own so nothing is hidden.
-		const statuses = checkboxStatuses(cfg);
+	} else if (source === "checkbox" || source === "obsidian-tasks") {
+		// One column per status: the card's configured set for plain checkboxes,
+		// the plugin's own registry (built-ins plus custom statuses) for the
+		// Tasks-plugin source. Cards whose symbol isn't in the set fall into a
+		// column of their own so nothing is hidden.
+		const statuses =
+			source === "obsidian-tasks"
+				? tasksPluginStatuses(view.app)
+				: checkboxStatuses(cfg).map((s) => ({ symbol: s.symbol, label: s.label, done: !!s.done }));
 		for (const s of statuses) {
 			const col = ensure(s.symbol.toLowerCase(), s.label);
 			col.statusSymbol = s.symbol;
@@ -2469,6 +2604,12 @@ export function taskBoard(
 
 	// Move a dragged task into a target column and persist the change.
 	const moveTo = (hit: TaskHit, col: Column) => {
+		if (source === "obsidian-tasks") {
+			// Read-only board: dragging between statuses would need to rewrite
+			// the line through the plugin (whose toggle only flips done state),
+			// so the board offers no move — columns group, they don't accept.
+			return;
+		}
 		if (source === "kanban") {
 			// Relocate the card's checkbox line under the target heading in the
 			// board note. A card's done state normally stays as-is (column and
@@ -2552,7 +2693,12 @@ function renderTaskKanban(
 	const model = taskBoard(view, cfg, hits, refresh, boardColumns);
 	const { source, visible, doneColumns, moveTo, reorder, hideColumn, toggleDoneColumn } = model;
 	const today: string = moment().format("YYYY-MM-DD");
+	// The Tasks-plugin board groups by the plugin's statuses but accepts no
+	// drops: moving a task would need the plugin's own write path (its toggle
+	// only flips done state), so columns group — they don't take cards.
+	const readOnlyBoard = source === "obsidian-tasks";
 	const board = container.createDiv("hearth-kanban");
+	if (readOnlyBoard) board.addClass("is-readonly");
 
 	for (const col of visible) {
 		const colSort = model.columnSort(col);
@@ -2603,90 +2749,114 @@ function renderTaskKanban(
 		});
 
 		// Drag the header to reorder columns (distinct from dragging task cards).
-		head.setAttribute("draggable", "true");
-		head.addEventListener("dragstart", (e) => {
-			e.dataTransfer?.setData("application/hearth-col", col.key);
-			colEl.addClass("is-dragging");
-		});
-		head.addEventListener("dragend", () => colEl.removeClass("is-dragging"));
-		head.addEventListener("dragover", (e) => {
-			if (e.dataTransfer?.types.includes("application/hearth-col")) {
-				e.preventDefault();
-				colEl.addClass("is-col-drop-target");
-			}
-		});
-		head.addEventListener("dragleave", () => colEl.removeClass("is-col-drop-target"));
-		head.addEventListener("drop", (e) => {
-			const fromKey = e.dataTransfer?.getData("application/hearth-col");
-			colEl.removeClass("is-col-drop-target");
-			if (fromKey) {
-				e.preventDefault();
-				e.stopPropagation();
-				reorder(fromKey, col.key);
-			}
-		});
+		// Read-only boards (Tasks plugin) keep their order fixed: no dead drag.
+		if (!readOnlyBoard) {
+			head.setAttribute("draggable", "true");
+			head.addEventListener("dragstart", (e) => {
+				e.dataTransfer?.setData("application/hearth-col", col.key);
+				colEl.addClass("is-dragging");
+			});
+			head.addEventListener("dragend", () => colEl.removeClass("is-dragging"));
+			head.addEventListener("dragover", (e) => {
+				if (e.dataTransfer?.types.includes("application/hearth-col")) {
+					e.preventDefault();
+					colEl.addClass("is-col-drop-target");
+				}
+			});
+			head.addEventListener("dragleave", () => colEl.removeClass("is-col-drop-target"));
+			head.addEventListener("drop", (e) => {
+				const fromKey = e.dataTransfer?.getData("application/hearth-col");
+				colEl.removeClass("is-col-drop-target");
+				if (fromKey) {
+					e.preventDefault();
+					e.stopPropagation();
+					reorder(fromKey, col.key);
+				}
+			});
+		}
 
 		const colBody = colEl.createDiv("hearth-kanban-col-body");
-		colBody.addEventListener("dragover", (e) => {
-			// Only task-card drags target the column body (not header reorders).
-			if (e.dataTransfer?.types.includes("application/hearth-col")) return;
-			e.preventDefault();
-			colBody.addClass("is-drop-target");
-		});
-		colBody.addEventListener("dragleave", () => colBody.removeClass("is-drop-target"));
-		colBody.addEventListener("drop", (e) => {
-			colBody.removeClass("is-drop-target");
-			const raw = e.dataTransfer?.getData("text/plain") ?? "";
-			if (!raw) return; // header reorder, handled on the header
-			e.preventDefault();
-			const idx = parseInt(raw, 10);
-			const hit = Number.isNaN(idx) ? null : hits[idx];
-			if (hit) moveTo(hit, col);
-		});
+		if (!readOnlyBoard) {
+			colBody.addEventListener("dragover", (e) => {
+				// Only task-card drags target the column body (not header reorders).
+				if (e.dataTransfer?.types.includes("application/hearth-col")) return;
+				e.preventDefault();
+				colBody.addClass("is-drop-target");
+			});
+			colBody.addEventListener("dragleave", () => colBody.removeClass("is-drop-target"));
+			colBody.addEventListener("drop", (e) => {
+				colBody.removeClass("is-drop-target");
+				const raw = e.dataTransfer?.getData("text/plain") ?? "";
+				if (!raw) return; // header reorder, handled on the header
+				e.preventDefault();
+				const idx = parseInt(raw, 10);
+				const hit = Number.isNaN(idx) ? null : hits[idx];
+				if (hit) moveTo(hit, col);
+			});
+		}
 
 		for (const hit of col.hits) {
 			const idx = hits.indexOf(hit);
 			const cardEl = colBody.createDiv("hearth-kanban-card");
 			cardEl.toggleClass("is-done", hit.done);
-			cardEl.setAttribute("draggable", "true");
-			cardEl.addEventListener("dragstart", (e) => {
-				e.dataTransfer?.setData("text/plain", String(idx));
-				cardEl.addClass("is-dragging");
-			});
-			cardEl.addEventListener("dragend", () => cardEl.removeClass("is-dragging"));
-			// Highlight the task card a dragged task would land on (the card
-			// being hovered), with the same dashed outline as column drop.
-			cardEl.addEventListener("dragover", (e) => {
-				if (e.dataTransfer?.types.includes("application/hearth-col")) return;
-				e.preventDefault();
-				e.stopPropagation();
-				cardEl.addClass("is-drop-target");
-			});
-			cardEl.addEventListener("dragleave", () => cardEl.removeClass("is-drop-target"));
-			cardEl.addEventListener("drop", (e) => {
-				cardEl.removeClass("is-drop-target");
-				if (e.dataTransfer?.types.includes("application/hearth-col")) return;
-				const raw = e.dataTransfer?.getData("text/plain") ?? "";
-				if (!raw) return;
-				e.preventDefault();
-				e.stopPropagation();
-				const fromIdx = parseInt(raw, 10);
-				if (Number.isNaN(fromIdx)) return;
-				const from = hits[fromIdx];
-				if (!from) return;
-				if (from === hit) return;
-				if (from.status === hit.status) {
-					// Same column: reorder within it. No fine-grained order is
-					// stored (tasks sort by due), so just move to the same col.
-				}
-				moveTo(from, col);
-			});
+			if (!readOnlyBoard) {
+				cardEl.setAttribute("draggable", "true");
+				cardEl.addEventListener("dragstart", (e) => {
+					e.dataTransfer?.setData("text/plain", String(idx));
+					cardEl.addClass("is-dragging");
+				});
+				cardEl.addEventListener("dragend", () => cardEl.removeClass("is-dragging"));
+				// Highlight the task card a dragged task would land on (the card
+				// being hovered), with the same dashed outline as column drop.
+				cardEl.addEventListener("dragover", (e) => {
+					if (e.dataTransfer?.types.includes("application/hearth-col")) return;
+					e.preventDefault();
+					e.stopPropagation();
+					cardEl.addClass("is-drop-target");
+				});
+				cardEl.addEventListener("dragleave", () => cardEl.removeClass("is-drop-target"));
+				cardEl.addEventListener("drop", (e) => {
+					cardEl.removeClass("is-drop-target");
+					if (e.dataTransfer?.types.includes("application/hearth-col")) return;
+					const raw = e.dataTransfer?.getData("text/plain") ?? "";
+					if (!raw) return;
+					e.preventDefault();
+					e.stopPropagation();
+					const fromIdx = parseInt(raw, 10);
+					if (Number.isNaN(fromIdx)) return;
+					const from = hits[fromIdx];
+					if (!from) return;
+					if (from === hit) return;
+					if (from.status === hit.status) {
+						// Same column: reorder within it. No fine-grained order is
+						// stored (tasks sort by due), so just move to the same col.
+					}
+					moveTo(from, col);
+				});
+			}
 		// Recurring TaskNotes tasks get a per-occurrence completion checkbox
 		// inline with the task text (in a row), in addition to drag: checking
 		// it completes today's instance and advances scheduled without
 		// retiring the task.
 		const textRow = cardEl.createDiv("hearth-kanban-card-row");
-		if (source === "tasknotes" && hit.recurrence) {
+		if (source === "obsidian-tasks" && hit.line >= 0) {
+			// The plugin owns the toggle: the board checkbox goes through it.
+			const check = textRow.createEl("input", {
+				cls: "hearth-task-check",
+				attr: { type: "checkbox" },
+			});
+			check.checked = hit.done;
+			const stop = (e: Event) => e.stopPropagation();
+			check.addEventListener("click", stop);
+			check.addEventListener("mousedown", stop);
+			check.addEventListener("pointerdown", stop);
+			check.addEventListener("change", () => {
+				void toggleTasksPluginTask(view, hit.file, hit.line, hit.text).then((ok) => {
+					if (!ok) new Notice(t().notices.taskChangedOnDisk);
+					refresh();
+				});
+			});
+		} else if (source === "tasknotes" && hit.recurrence) {
 			renderRecurringCheckbox(view, hit, today, textRow, refresh);
 		} else if (source === "kanban" && hit.linkedFile && hit.recurrence && taskMetaEnabled(cfg, hit)) {
 			// Recurring card linked to a note: complete per-occurrence in the note's
@@ -2750,7 +2920,9 @@ function renderTaskKanban(
 			// edited inline: double-click swaps the text for an input. Single click
 			// still opens the card, so the open is deferred just long enough for a
 			// following double-click to cancel it and start editing instead.
-			const canEditTitle = hit.line >= 0 && !hit.linkedFile;
+			// Tasks-plugin cards keep the vault's task format: no inline title
+			// edit, a click opens the plugin's own edit dialog instead.
+			const canEditTitle = hit.line >= 0 && !hit.linkedFile && !readOnlyBoard;
 			if (canEditTitle) {
 				let clickTimer: number | null = null;
 				cardEl.addEventListener("click", () => {
@@ -2775,7 +2947,11 @@ function renderTaskKanban(
 			makeClickable(cardEl, open, hit.text || hit.file.basename);
 			// Line-based cards (Kanban cards and plain checkboxes) get the
 			// right-click menu: edit title/metadata, plus convert/delete for Kanban.
-			if (hit.line >= 0) attachKanbanCardMenu(view, cfg, hit, cardEl, refresh);
+			// Tasks-plugin cards get the plugin's own edit dialog instead.
+			if (hit.line >= 0) {
+				if (readOnlyBoard) attachTasksPluginCardMenu(view, cfg, hit, cardEl, refresh);
+				else attachKanbanCardMenu(view, cfg, hit, cardEl, refresh);
+			}
 		}
 
 		// Kanban source: a per-column "add card" affordance that appends a new
@@ -2853,11 +3029,15 @@ export function resolvedMatrix(app: App, cfg: TasksConfig): ResolvedTaskMatrix {
 }
 
 /** Whether a card's tasks carry a priority the matrix can read and write. A
- * Kanban board or a checkbox card read as plain text has no priority marks. */
+ * Kanban board or a checkbox card read as plain text has no priority marks.
+ * Tasks-plugin tasks always parse theirs, but the matrix stays read-only for
+ * them (rewriting a priority would need Hearth's own line rewrite, which would
+ * convert the vault's task format) — reading is what matters here. */
 export function matrixReadsPriorities(cfg: TasksConfig): boolean {
 	const source = matrixSource(cfg);
 	if (source === "kanban") return cfg.kanbanExtended ?? false;
 	if (source === "checkbox") return cfg.checkboxExtended ?? true;
+	if (source === "obsidian-tasks") return true;
 	return true;
 }
 
@@ -2875,6 +3055,9 @@ export function moveTaskToQuadrant(
 	target: TaskMatrixQuadrant | null,
 	refresh: () => void,
 ): void {
+	// Read-only for Tasks-plugin tasks: grouping, not moving. Hearth never
+	// rewrites their lines (that would convert the vault's task format).
+	if (matrixSource(cfg) === "obsidian-tasks") return;
 	const source = matrixSource(cfg);
 	if (!matrixMoveNeeded(hit.priority, matrix, target, source)) return;
 	const value = target ? matrixWriteValue(matrix, target) : null;
@@ -2887,7 +3070,8 @@ export function moveTaskToQuadrant(
 
 /** The matrix's right-click menu for a task: move it to another quadrant (the
  * way to do it without dragging, which touch screens can't), followed by the
- * line task's own items. */
+ * line task's own items. Tasks-plugin tasks stay where the plugin puts them:
+ * no move is offered, only the task's own items. */
 export function matrixTaskMenu(
 	view: HomeView,
 	cfg: TasksConfig,
@@ -2898,26 +3082,31 @@ export function matrixTaskMenu(
 	const menu = hearthMenu();
 	const source = matrixSource(cfg);
 	const tm = t().cards.tasks.matrix;
-	for (const id of TASK_MATRIX_QUADRANTS) {
-		if (matrixWriteValue(matrix, id) === undefined) continue;
-		const here = !matrixMoveNeeded(hit.priority, matrix, id, source);
-		menu.addItem((item) =>
-			item
-				.setTitle(tm.moveTo(matrix[id].label))
-				.setIcon(here ? "check" : "move")
-				.setDisabled(here)
-				.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, id, refresh)),
-		);
+	if (source !== "obsidian-tasks") {
+		for (const id of TASK_MATRIX_QUADRANTS) {
+			if (matrixWriteValue(matrix, id) === undefined) continue;
+			const here = !matrixMoveNeeded(hit.priority, matrix, id, source);
+			menu.addItem((item) =>
+				item
+					.setTitle(tm.moveTo(matrix[id].label))
+					.setIcon(here ? "check" : "move")
+					.setDisabled(here)
+					.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, id, refresh)),
+			);
+		}
+		if (matrix.showUnsorted && matrixMoveNeeded(hit.priority, matrix, null, source)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(tm.moveTo(matrixNames(cfg).unsorted))
+					.setIcon("inbox")
+					.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, null, refresh)),
+			);
+		}
 	}
-	if (matrix.showUnsorted && matrixMoveNeeded(hit.priority, matrix, null, source)) {
-		menu.addItem((item) =>
-			item
-				.setTitle(tm.moveTo(matrixNames(cfg).unsorted))
-				.setIcon("inbox")
-				.onClick(() => moveTaskToQuadrant(view, cfg, matrix, hit, null, refresh)),
-		);
+	if (hit.line >= 0) {
+		if (source === "obsidian-tasks") tasksPluginMenu(view, hit, refresh, menu);
+		else taskMenu(view, cfg, hit, refresh, menu);
 	}
-	if (hit.line >= 0) taskMenu(view, cfg, hit, refresh, menu);
 	return menu;
 }
 
@@ -2983,6 +3172,7 @@ function renderTaskMatrix(
 	}
 	const matrix = resolvedMatrix(view.app, cfg);
 	const source = matrixSource(cfg);
+	const readOnlyMatrix = source === "obsidian-tasks";
 	const { quadrants, unsorted } = groupByQuadrant(hits, (h) => h.priority, matrix, source);
 	const tm = t().cards.tasks.matrix;
 	const names = matrixNames(cfg);
@@ -2992,7 +3182,8 @@ function renderTaskMatrix(
 		frame[id] = {
 			label: matrix[id].label,
 			items: quadrants[id],
-			droppable: matrixWriteValue(matrix, id) !== undefined,
+			// Read-only for Tasks-plugin tasks: grouping, not dropping.
+			droppable: !readOnlyMatrix && matrixWriteValue(matrix, id) !== undefined,
 		};
 	}
 	renderTaskMatrixFrame<TaskHit>(container, {
@@ -3011,7 +3202,7 @@ function renderTaskMatrix(
 		],
 		labels: {
 			unsorted: names.unsorted,
-			unsortedHint: tm.unsortedHint,
+			unsortedHint: readOnlyMatrix ? tm.empty : tm.unsortedHint,
 			empty: tm.empty,
 			rename: tm.renameHint,
 		},
@@ -3023,6 +3214,15 @@ function renderTaskMatrix(
 			refresh();
 		},
 	});
+	// Read-only for Tasks-plugin tasks: nothing drags. Quadrants already render
+	// locked (not droppable); cards must not start a drag either, or the locked
+	// quadrants would be dead drop targets.
+	if (readOnlyMatrix) {
+		for (const el of Array.from(container.querySelectorAll<HTMLElement>(".hearth-matrix-item"))) {
+			el.setAttribute("draggable", "false");
+		}
+		container.querySelector(".hearth-matrix")?.addClass("is-readonly");
+	}
 }
 
 
@@ -3709,6 +3909,69 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 				priority: readPriorityEmoji(raw),
 				description,
 				tags: inlineTags(raw),
+			});
+		});
+	}
+	return hits;
+}
+
+
+/**
+ * Scan the vault for the tasks the obsidian-tasks plugin claims: any checkbox
+ * line whose status symbol the plugin knows (its built-ins plus the user's
+ * custom statuses, read live from its registry), with the vault's task format
+ * parsed off each line (Emoji and Dataview inline fields). Done-ness and the
+ * status label are the plugin's own, so custom workflows sort and filter the
+ * way the plugin means them.
+ */
+async function collectTasksPluginTasks(view: HomeView, cfg: TasksConfig): Promise<TaskHit[]> {
+	const statuses = tasksPluginStatuses(view.app);
+	const known = new Map(statuses.map((s) => [s.symbol.toLowerCase(), s]));
+	// The plugin's global filter is the only thing that says which of these
+	// checkboxes it counts as a task; its cache is that answer. Null means the
+	// cache isn't readable, and the status symbols above are the best guess.
+	const index = tasksPluginTaskIndex(view.app);
+	const files = view.app.vault.getMarkdownFiles().filter((f) => inTaskScope(f.path, cfg));
+	const hits: TaskHit[] = [];
+	for (const file of files) {
+		const cache = view.app.metadataCache.getFileCache(file);
+		if (cache && !cache.listItems?.some((li) => li.task !== undefined)) continue;
+		const content = await view.app.vault.cachedRead(file);
+		const lines = content.split("\n");
+		const fenced = fencedLineMask(lines);
+		lines.forEach((line, i) => {
+			if (fenced[i]) return;
+			const match = /^\s*[-*+]\s\[(.)\]\s*(.*)$/.exec(line);
+			if (!match) return;
+			const symbol = match[1];
+			const st = known.get(symbol.toLowerCase());
+			// Only the plugin's own symbols count — a stray `- [1]` reference is
+			// not a task to it either.
+			if (!st) return;
+			if (index && !index.has(`${file.path}:${i}`)) return;
+			const raw = match[2].trim();
+			if (!raw) return;
+			const parsed = parseTasksPluginLine(raw);
+			const { descLines } = checkboxBlockRange(lines, i);
+			const description = descLines.length ? descLines.join("\n") : undefined;
+			hits.push({
+				file,
+				line: i,
+				text: parsed.text,
+				done: !!st.done,
+				checkboxStatus: symbol,
+				checkboxLabel: st.label,
+				status: st.label,
+				due: parsed.due,
+				dueRaw: parsed.dueRaw,
+				scheduled: parsed.scheduled,
+				start: parsed.start,
+				doneDate: parsed.doneDate,
+				created: file.stat.ctime,
+				recurrence: parsed.recurrence ?? undefined,
+				priority: parsed.priority || undefined,
+				description,
+				tags: parsed.tags,
 			});
 		});
 	}
@@ -4554,6 +4817,74 @@ async function markCardsDone(view: HomeView, hits: TaskHit[], doneDate?: string)
 }
 
 
+/** Attach a right-click menu to a Tasks-plugin task: edit in the plugin's own
+ * dialog (so the note keeps the vault's task format), open the note, delete.
+ * Hearth's own metadata editor and convert-to-note are deliberately not
+ * offered here — both would rewrite the line in Hearth's shape. */
+function attachTasksPluginCardMenu(
+	view: HomeView,
+	cfg: TasksConfig,
+	hit: TaskHit,
+	el: HTMLElement,
+	refresh: () => void,
+): void {
+	el.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		tasksPluginMenu(view, hit, refresh)?.showAtMouseEvent(e);
+	});
+}
+
+
+/** A Tasks-plugin task's menu: the plugin's own edit dialog, opening the
+ * note, and deleting the line. Shared by the graphical card's right-click and
+ * terminal mode's. */
+export function tasksPluginMenu(view: HomeView, hit: TaskHit, refresh: () => void, into?: Menu): Menu | null {
+	if (hit.line < 0) return into ?? null;
+	const menu = into ?? hearthMenu();
+	if (into) into.addSeparator();
+	menu.addItem((item) =>
+		item
+			.setTitle(t().cards.tasks.editInTasksPlugin)
+			.setIcon("pencil")
+			.onClick(() => {
+				void editTasksPluginTask(view, hit.file, hit.line, hit.text).then((ok) => {
+					if (!ok) new Notice(t().notices.taskChangedOnDisk);
+					refresh();
+				});
+			}),
+	);
+	menu.addItem((item) =>
+		item
+			.setTitle(t().cards.tasks.openNote)
+			.setIcon("file-text")
+			.onClick(() => void openTaskFile(view, hit).then(refresh)),
+	);
+	menu.addSeparator();
+	menu.addItem((item) =>
+		item
+			.setTitle(t().cards.tasks.deleteTask)
+			.setIcon("trash-2")
+			.setWarning(true)
+			.onClick(() => {
+				confirmAction(view.app, {
+					title: t().cards.tasks.deleteTask,
+					message: t().cards.tasks.deleteTaskConfirm,
+					confirmText: t().cards.tasks.deleteTask,
+					expressive: false,
+					onConfirm: () => {
+						void deleteTasksPluginTask(view, hit.file, hit.line, hit.text).then((ok) => {
+							if (!ok) new Notice(t().notices.taskChangedOnDisk);
+							refresh();
+						});
+					},
+				});
+			}),
+	);
+	return menu;
+}
+
+
 /** Attach a right-click menu to a task row/card. Every metadata-capable task
  * (Kanban cards, and plain checkboxes — which always read their marks) offers
  * "Edit dates & priority"; Kanban cards additionally offer convert-to-note and
@@ -4585,7 +4916,8 @@ function attachKanbanCardMenu(
 /** A line task's menu: edit its metadata where the marks are managed, and for
  * a Kanban card convert or delete it. Null when there is nothing to offer (a
  * plain checkbox with metadata off). Shared by the graphical card's right-click
- * and terminal mode's. */
+ * and terminal mode's. Tasks-plugin tasks go through the plugin's own dialog
+ * instead, so the note keeps the vault's task format. */
 export function taskMenu(
 	view: HomeView,
 	cfg: TasksConfig,
@@ -4593,6 +4925,9 @@ export function taskMenu(
 	refresh: () => void,
 	into?: Menu,
 ): Menu | null {
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks") {
+		return tasksPluginMenu(view, hit, refresh, into);
+	}
 	const isKanban = !!hit.boardColumn;
 	const canEditMeta = taskMetaEnabled(cfg, hit);
 	if (!canEditMeta && !isKanban) return into ?? null;
@@ -5470,6 +5805,14 @@ function renderLineRecurringCheckbox(
 
 
 export async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
+	// Tasks-plugin tasks edit in the plugin's own modal, so the note keeps the
+	// vault's task format. Clicking opens that dialog rather than Hearth's
+	// quick view (which would rewrite the line in Hearth's own shape).
+	if ((cfg.source ?? "checkbox") === "obsidian-tasks" && hit.line >= 0) {
+		const ok = await editTasksPluginTask(view, hit.file, hit.line, hit.text);
+		if (ok) refresh();
+		return;
+	}
 	// Line-based tasks (checkboxes / Kanban cards) open a compact quick-view by
 	// default — metadata + description with open-note / delete actions — instead
 	// of jumping straight into the file. TaskNotes tasks (whole-file, no line)
@@ -5576,6 +5919,10 @@ async function discoverTaskFields(
 		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!frontmatter) continue;
 		for (const key of Object.keys(frontmatter)) properties.add(key);
+		// The TaskNotes status only means something on a TaskNotes card (or
+		// the vault-wide list): a checkbox or Kanban card's "status" is its
+		// own line mark or board column, never this frontmatter field. The
+		// Tasks-plugin status is the plugin's own registry, recorded below.
 		if (source === "tasknotes" || source === null) {
 			record(builtinSource("status"), frontmatter[statusField]);
 			record(builtinSource("priority"), frontmatter[priorityField]);
@@ -5589,6 +5936,15 @@ async function discoverTaskFields(
 	// which are known without scanning anything. Recorded as the normalized keys
 	// ("high", not "⏫"), matching what a mapping is compared against.
 	if (source !== "tasknotes") record(builtinSource("priority"), Object.keys(PRIORITY_EMOJI));
+
+	// The Tasks-plugin status is the plugin's own registry (built-ins plus the
+	// user's custom statuses), known without scanning anything.
+	if (source === "obsidian-tasks" || source === null) {
+		record(
+			builtinSource("status"),
+			tasksPluginStatuses(app).map((s) => s.label),
+		);
+	}
 
 	// Board columns are headings in the board note, not frontmatter.
 	if (source === "kanban" && cfg) {
@@ -5655,17 +6011,27 @@ export class TaskFieldsModal extends HearthModal {
 		private readonly onApply: (fields: TaskFieldDef[]) => void,
 	) {
 		super(app);
-		// Clone so Cancel truly discards edits, and so an Apply that keeps the
-		// modal open can't mutate what it already saved.
-		this.fields = cloneTaskFields(resolveTaskFields(initial));
+		// Sanitize first — a hand-edited file can hold anything — then drop
+		// what this card couldn't show. Cloned so Cancel truly discards edits,
+		// and so an Apply that keeps the modal open can't mutate what it
+		// already saved.
+		this.fields = cloneTaskFields(resolveTaskFields(sanitizeTaskFields(initial), this.fieldSource()));
+	}
+
+	/** The source whose tasks this list reads, or null for the vault-wide
+	 * list (which may hold anything). An unset card source is the default. */
+	private fieldSource(): TaskFieldSource | null {
+		return this.cfg ? (this.cfg.source ?? "checkbox") : null;
 	}
 
 	onOpen(): void {
 		const { contentEl, modalEl } = this;
 		// The width goes on the modal frame rather than its content: a field, its
 		// keys and their value tables are three levels deep, which Obsidian's
-		// default modal width cannot hold without crowding every row.
-		modalEl.addClass("hearth-taskfields-modal");
+		// default modal width cannot hold without crowding every row. Fall back
+		// to the content when the frame isn't exposed, rather than throwing and
+		// opening with nothing drawn.
+		(modalEl ?? contentEl).addClass("hearth-taskfields-modal");
 		contentEl.addClass("hearth-taskfields");
 		contentEl.createEl("h3", { text: t().editors.tasks.fieldsTitle });
 		contentEl.createDiv({ cls: "hearth-taskfields-hint", text: t().editors.tasks.fieldsHint });
@@ -5678,11 +6044,21 @@ export class TaskFieldsModal extends HearthModal {
 	}
 
 	private async rescan(): Promise<void> {
-		this.discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		let discovery: TaskFieldDiscovery;
+		try {
+			discovery = await discoverTaskFields(this.app, this.cfg, this.settings, this.fields);
+		} catch {
+			// The scan is a convenience (suggested values); a failed one leaves
+			// the editor as it is rather than blanking it.
+			return;
+		}
+		this.discovery = discovery;
 		this.renderBody();
 	}
 
-	private isOpen(key: string): boolean {
+	/** Obsidian's Modal carries its own `isOpen` (a boolean since 1.15), so a
+	 * method of that name is silently replaced by it; this has its own name. */
+	private isExpanded(key: string): boolean {
 		return this.expanded.has(key);
 	}
 
@@ -5705,7 +6081,7 @@ export class TaskFieldsModal extends HearthModal {
 		expandable: boolean,
 	): HTMLElement {
 		const labels = t().editors.tasks;
-		const open = this.isOpen(openKey);
+		const open = this.isExpanded(openKey);
 		const head = panel.createDiv("hearth-taskfields-head");
 		const chevron = head.createDiv("hearth-taskfields-chevron");
 		if (expandable) setIcon(chevron, open ? "chevron-down" : "chevron-right");
@@ -5751,12 +6127,59 @@ export class TaskFieldsModal extends HearthModal {
 		body.empty();
 		const labels = t().editors.tasks;
 
-		this.fields.forEach((field, index) => this.renderField(body, field, index));
+		// One bad field must never blank the rest: a field that fails to
+		// render keeps its place as a removable card, and the foot below (and
+		// the footer) still draws.
+		this.fields.forEach((field, index) => {
+			try {
+				this.renderField(body, field, index);
+			} catch (error) {
+				console.error("Hearth: a task field failed to render", error);
+				this.renderBrokenField(body, field, index, error);
+			}
+		});
 
 		if (!this.fields.length) {
 			body.createDiv({ cls: "hearth-taskfields-empty", text: labels.fieldsEmpty });
 		}
 
+		this.renderAddField(body);
+	}
+
+	/** A field that couldn't be rendered, standing in for it: whatever name
+	 * survived, and a remove button — so the entry can be dropped without
+	 * losing the fields around it. */
+	private renderBrokenField(
+		body: HTMLElement,
+		field: TaskFieldDef,
+		index: number,
+		error?: unknown,
+	): void {
+		const labels = t().editors.tasks;
+		const panel = body.createDiv("hearth-taskfields-field is-broken");
+		const head = panel.createDiv("hearth-taskfields-head");
+		const name =
+			field && typeof field.name === "string" && field.name.trim()
+				? field.name.trim()
+				: labels.fieldUnnamed;
+		head.createDiv({ cls: "hearth-taskfields-headtext", text: `${name} · ${labels.fieldBroken}` });
+		// The reason is shown rather than swallowed: a broken field the user
+		// cannot explain is a bug report with nothing in it.
+		const reason =
+			error instanceof Error ? error.message : typeof error === "string" ? error : "";
+		if (reason) head.createDiv({ cls: "hearth-taskfields-summary", text: reason });
+		const actions = head.createDiv("hearth-taskfields-actions");
+		this.iconButton(actions, "trash-2", labels.fieldRemove, false, () => {
+			this.fields.splice(index, 1);
+			this.renderBody();
+		});
+	}
+
+	/** The "Add field" control: always drawn, whatever the fields above did.
+	 * The new field opens at once — naming it and giving it a key is the point
+	 * of adding it. */
+	private renderAddField(body: HTMLElement): void {
+		const labels = t().editors.tasks;
 		const foot = body.createDiv("hearth-taskfields-foot is-add");
 		new ButtonComponent(foot)
 			.setIcon("plus")
@@ -5776,7 +6199,7 @@ export class TaskFieldsModal extends HearthModal {
 	private renderField(body: HTMLElement, field: TaskFieldDef, index: number): void {
 		const labels = t().editors.tasks;
 		const openKey = `field:${field.id}`;
-		const open = this.isOpen(openKey);
+		const open = this.isExpanded(openKey);
 
 		// A card per field, so where one ends and the next begins is obvious
 		// without counting indentation.
@@ -5833,7 +6256,7 @@ export class TaskFieldsModal extends HearthModal {
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
-				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow"] as const) {
+				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow", "hidden"] as const) {
 					// The dot-and-label form is the priority's own, so it is offered
 					// only to a field that reads one (or is already set to it).
 					if (isPriorityStyle(style) && !allowsPriorityStyle(field)) continue;
@@ -5916,7 +6339,7 @@ export class TaskFieldsModal extends HearthModal {
 		// configure. Everything else expands.
 		const mappable = !isDescriptionSource(key.source);
 		const mapped = (key.values ?? []).length;
-		const open = mappable && this.isOpen(openKey);
+		const open = mappable && this.isExpanded(openKey);
 
 		const panel = section.createDiv("hearth-taskfields-key");
 		panel.toggleClass("is-open", open);
@@ -6219,7 +6642,9 @@ export class TaskFieldsModal extends HearthModal {
 			.setTooltip(labels.fieldPickBuiltin)
 			.onClick((e) => {
 				const menu = hearthMenu();
-				for (const id of TASK_BUILTIN_SOURCES) {
+				// Only what this card can show: the TaskNotes status has no
+				// meaning on a checkbox card, a board column none off a board.
+				for (const id of builtinSourcesFor(this.fieldSource())) {
 					if (used.has(builtinSource(id))) continue;
 					menu.addItem((item) =>
 						item.setTitle(labels.sourceNames[id]).onClick(() => add(builtinSource(id))),
@@ -6324,20 +6749,74 @@ function taskFieldsSummary(fields: TaskFieldDef[]): string {
 
 export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.tasks ??= {});
+	const te = t().editors.tasks;
+	const source = cfg.source ?? "checkbox";
+	const isTasksPlugin = source === "obsidian-tasks";
 
 	new Setting(containerEl)
-		.setName(t().editors.tasks.source)
-		.setDesc(t().editors.tasks.sourceDesc)
+		.setName(te.source)
+		.setDesc(te.sourceDesc)
 		.addDropdown((d) => {
-			d.addOption("checkbox", t().editors.tasks.sourceCheckbox);
-			d.addOption("tasknotes", t().editors.tasks.sourceTaskNotes);
-			d.addOption("kanban", t().editors.tasks.sourceKanban);
+			d.addOption("checkbox", te.sourceCheckbox);
+			d.addOption("tasknotes", te.sourceTaskNotes);
+			d.addOption("kanban", te.sourceKanban);
+			d.addOption("obsidian-tasks", te.sourceObsidianTasks);
 			d.setValue(cfg.source ?? "checkbox").onChange((v) => {
 				cfg.source = v as TasksConfig["source"];
 				ctx.opts.save();
 				ctx.requestRender();
 			});
 		});
+
+	// Tasks-plugin source: where the plugin's own create dialog puts new tasks.
+	// Filtering, sorting and fields are Hearth's own, over the tasks the
+	// plugin says exist — so the rest of the editor below applies as usual.
+	if (isTasksPlugin) {
+		const daily = cfg.tasksPluginDailyNote === true || !(cfg.tasksPluginNote?.trim());
+		new Setting(containerEl)
+			.setName(te.tasksDestination)
+			.setDesc(te.tasksDestinationDesc)
+			.addDropdown((d) => {
+				d.addOption("daily", te.tasksDestinationDaily);
+				d.addOption("note", te.tasksDestinationNote);
+				d.setValue(daily ? "daily" : "note").onChange((v) => {
+					cfg.tasksPluginDailyNote = v === "daily" ? true : undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+				});
+			});
+
+		if (!daily) {
+			const noteSetting = new Setting(containerEl)
+				.setName(te.tasksDestinationNote)
+				.setDesc(te.tasksDestinationNoteDesc);
+			noteSetting.addText((txt) =>
+				txt
+					.setPlaceholder(te.tasksDestinationNotePlaceholder)
+					.setValue(cfg.tasksPluginNote ?? "")
+					.onChange((v) => {
+						cfg.tasksPluginNote = v.trim() || undefined;
+						ctx.opts.save();
+					}),
+			);
+			noteSetting.addExtraButton((b) =>
+				b
+					.setIcon("file-symlink")
+					.setTooltip(te.pickNote)
+					.onClick(() => {
+						new FilePickerModal(
+							ctx.app,
+							(file) => {
+								cfg.tasksPluginNote = file.path;
+								ctx.opts.save();
+								ctx.requestRender();
+							},
+							te.pickNote,
+						).open();
+					}),
+			);
+		}
+	}
 
 	// Kanban source: pick the board note and choose plain vs. Tasks-plugin
 	// (extended) card parsing.
@@ -6495,8 +6974,8 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	// Notes made from tasks — the quick view's "Create note" and the right-click
 	// "Convert to note": where they go, what they start from, and whether the
 	// task's metadata moves into their frontmatter. A TaskNotes task is a note
-	// already.
-	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+	// already, and the Tasks plugin manages its own notes.
+	if (source === "checkbox" || source === "kanban") {
 		new Setting(containerEl).setName(t().editors.tasks.noteFromTask).setDesc(t().editors.tasks.noteFromTaskDesc).setHeading();
 		const folderSetting = new Setting(containerEl)
 			.setName(t().editors.tasks.convertFolder)
@@ -6567,8 +7046,9 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	}
 
 	// Quick-view on click applies to line-based tasks (checkboxes and Kanban
-	// cards); TaskNotes tasks always open in their own editor.
-	if ((cfg.source ?? "checkbox") !== "tasknotes") {
+	// cards). TaskNotes tasks always open in their own editor, and Tasks-plugin
+	// tasks in the plugin's own rows.
+	if (source === "checkbox" || source === "kanban") {
 		new Setting(containerEl)
 			.setName(t().editors.tasks.quickView)
 			.setDesc(t().editors.tasks.quickViewDesc)
@@ -6580,84 +7060,135 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 			);
 	}
 
-	new Setting(containerEl)
-		.setName(t().editors.tasks.layout)
-		.setDesc(t().editors.tasks.layoutDesc)
-		.addDropdown((d) => {
-			d.addOption("list", t().editors.tasks.layoutList);
-			d.addOption("kanban", t().editors.tasks.layoutKanban);
-			d.addOption("matrix", t().editors.tasks.layoutMatrix);
-			d.setValue(cfg.layout ?? "list").onChange((v) => {
-				cfg.layout = v === "kanban" || v === "matrix" ? v : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-			});
-		});
-
-	if (cfg.layout === "matrix") matrixEditor(ctx, containerEl, cfg);
-
-	if (
-		cfg.layout === "kanban" &&
-		(cfg.kanbanHidden?.length ||
-			cfg.kanbanOrder?.length ||
-			cfg.kanbanDoneColumns?.length)
-	) {
-		const parts: string[] = [];
-		if (cfg.kanbanHidden?.length)
-			parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
-		if (cfg.kanbanDoneColumns?.length)
-			parts.push(
-				t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
-			);
-		const reset = new Setting(containerEl)
-			.setName(t().editors.tasks.kanbanColumns)
+	// List, Kanban board or matrix — Hearth's own grouping. The Tasks-plugin
+	// board and matrix group by the plugin's statuses and priorities but stay
+	// read-only (no dragging between statuses, no priority rewrites that would
+	// convert the vault's task format), so the layout picker stays for this
+	// source too.
+	{
+		new Setting(containerEl)
+			.setName(t().editors.tasks.layout)
 			.setDesc(
-				parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
-			);
-		if (cfg.kanbanHidden?.length) {
-			reset.addButton((b) =>
-				b.setButtonText(t().editors.tasks.showAll).onClick(() => {
-					cfg.kanbanHidden = undefined;
+				isTasksPlugin ? t().editors.tasks.layoutDescReadonly : t().editors.tasks.layoutDesc,
+			)
+			.addDropdown((d) => {
+				d.addOption("list", t().editors.tasks.layoutList);
+				d.addOption("kanban", t().editors.tasks.layoutKanban);
+				d.addOption("matrix", t().editors.tasks.layoutMatrix);
+				d.setValue(cfg.layout ?? "list").onChange((v) => {
+					cfg.layout = v === "kanban" || v === "matrix" ? v : undefined;
 					ctx.opts.save();
 					ctx.requestRender();
-				}),
+				});
+			});
+
+		if (cfg.layout === "matrix") matrixEditor(ctx, containerEl, cfg);
+
+		if (
+			cfg.layout === "kanban" &&
+			(cfg.kanbanHidden?.length ||
+				cfg.kanbanOrder?.length ||
+				cfg.kanbanDoneColumns?.length)
+		) {
+			const parts: string[] = [];
+			if (cfg.kanbanHidden?.length)
+				parts.push(t().editors.tasks.kanbanHidden(cfg.kanbanHidden.join(", ")));
+			if (cfg.kanbanDoneColumns?.length)
+				parts.push(
+					t().editors.tasks.kanbanDoneColumns(cfg.kanbanDoneColumns.join(", ")),
+				);
+			const reset = new Setting(containerEl)
+				.setName(t().editors.tasks.kanbanColumns)
+				.setDesc(
+					parts.length ? parts.join(" ") : t().editors.tasks.kanbanCustomOrder,
+				);
+			if (cfg.kanbanHidden?.length) {
+				reset.addButton((b) =>
+					b.setButtonText(t().editors.tasks.showAll).onClick(() => {
+						cfg.kanbanHidden = undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
+				);
+			}
+			reset.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t().editors.tasks.resetColumns)
+					.onClick(() => {
+						cfg.kanbanHidden = undefined;
+						cfg.kanbanOrder = undefined;
+						cfg.kanbanDoneColumns = undefined;
+						ctx.opts.save();
+						ctx.requestRender();
+					}),
 			);
 		}
-		reset.addExtraButton((b) =>
-			b
-				.setIcon("rotate-ccw")
-				.setTooltip(t().editors.tasks.resetColumns)
-				.onClick(() => {
-					cfg.kanbanHidden = undefined;
-					cfg.kanbanOrder = undefined;
-					cfg.kanbanDoneColumns = undefined;
-					ctx.opts.save();
-					ctx.requestRender();
-				}),
-		);
 	}
 
-	// Which metadata each task shows, in what order and how. Only offered once
-	// the feature is switched on globally (Settings → Hearth → Integrations),
-	// so a card nobody has customized shows no controls for it at all. This is
-	// the card's *display*, unrelated to the field-name mapping in those same
-	// settings — that says where to read a value from, not whether to show it.
-	if (ctx.opts.settings.taskFieldsEnabled) {
+	// Which metadata each task shows, in what order and how. TaskNotes cards
+	// follow the vault-wide list (Settings → Hearth → Integrations) unless the
+	// card opts out with its own; every other source configures its own fields
+	// on the card, independently of that setting. The field-name mapping in
+	// those same settings is a different thing — it says where to read a value
+	// from, not whether to show it.
+	if (source === "tasknotes") {
+		if (ctx.opts.settings.taskFieldsEnabled) {
+			const own = cfg.taskFieldsEnabled ?? false;
+			const fields = new Setting(containerEl)
+				.setName(t().editors.tasks.fields)
+				.setDesc(
+					own
+						? taskFieldsSummary(resolveTaskFields(cfg.taskFields, "tasknotes"))
+						: t().editors.tasks.fieldsFollowGlobal,
+				)
+				.addToggle((tg) =>
+					tg.setValue(own).onChange((v) => {
+						cfg.taskFieldsEnabled = v || undefined;
+						// Start from whatever the card shows right now, so switching to
+						// its own list is a starting point rather than a reset.
+						if (v && !cfg.taskFields?.length) {
+							cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields, "tasknotes"));
+						}
+						ctx.opts.save();
+						ctx.requestRender();
+						ctx.opts.rerender();
+					}),
+				);
+			if (own) {
+				fields.addButton((b) =>
+					b.setButtonText(t().editors.tasks.fieldsCustomize).onClick(() => {
+						new TaskFieldsModal(ctx.app, cfg, ctx.opts.settings, cfg.taskFields, (next) => {
+							cfg.taskFields = next.length ? next : undefined;
+							ctx.opts.save();
+							ctx.requestRender();
+							// Redraw the board behind the modal so an Apply that keeps it
+							// open shows its effect straight away.
+							ctx.opts.rerender();
+						}).open();
+					}),
+				);
+				addResetButton(ctx, fields, t().editors.tasks.fieldsReset, () => {
+					cfg.taskFields = [];
+				});
+			}
+		}
+	} else {
 		const own = cfg.taskFieldsEnabled ?? false;
 		const fields = new Setting(containerEl)
 			.setName(t().editors.tasks.fields)
 			.setDesc(
 				own
-					? taskFieldsSummary(resolveTaskFields(cfg.taskFields))
-					: t().editors.tasks.fieldsFollowGlobal,
+					? taskFieldsSummary(resolveTaskFields(cfg.taskFields, source))
+					: t().editors.tasks.fieldsOwnDesc,
 			)
 			.addToggle((tg) =>
 				tg.setValue(own).onChange((v) => {
 					cfg.taskFieldsEnabled = v || undefined;
-					// Start from whatever the card shows right now, so switching to
-					// its own list is a starting point rather than a reset.
+					// Start from what the card has always shown, so switching on
+					// is a starting point rather than a reset.
 					if (v && !cfg.taskFields?.length) {
-						cfg.taskFields = cloneTaskFields(resolveTaskFields(ctx.opts.settings.taskFields));
+						cfg.taskFields = defaultTaskFields(source);
 					}
 					ctx.opts.save();
 					ctx.requestRender();
@@ -6912,7 +7443,7 @@ export const tasksCard: CardDefinition<"tasks"> = {
 	templates: [
 		{ id: "tasks", name: "Tasks", icon: "list-todo", build: () => ({ kind: "tasks", title: "Tasks", tasks: {}, w: 4, h: 4 }) },
 	],
-	render: (view, card, body) => renderTasks(view, card, body),
+	render: (view, card, body, component) => renderTasks(view, card, body, component),
 	renderEditor: (container, ctx) => tasksEditor(ctx, container),
 	cloneConfig: (source, copy) => {
 		if (source.tasks)

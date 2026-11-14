@@ -14,10 +14,10 @@ from each card's own gear button while arranging; see
 ## The Tasks card
 
 **What it shows:** your tasks, as a list, a drag-and-drop Kanban board or an
-Eisenhower matrix.
+Eisenhower matrix — drawn by Hearth, whatever the source.
 
-**Requires:** nothing for Markdown checkboxes. The TaskNotes or Kanban community
-plugins for those sources.
+**Requires:** nothing for Markdown checkboxes. The TaskNotes, Kanban or Tasks
+community plugins for those sources.
 
 ### Choosing a source
 
@@ -28,6 +28,7 @@ plugins for those sources.
 | **Markdown checkboxes** | Ordinary `- [ ]` checkboxes anywhere in your vault. Works with no plugin at all |
 | **TaskNotes plugin** | One-note-per-task vaults managed by the TaskNotes community plugin, read from frontmatter |
 | **Kanban plugin** | A single board note from the Kanban community plugin, one column per heading |
+| **Tasks plugin** | The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community plugin's tasks — its statuses (including custom ones) and task format — drawn by Hearth like every other source |
 
 #### The Markdown checkboxes source
 
@@ -88,6 +89,34 @@ Reads a single Kanban-plugin board note, one column per heading.
 **Kanban write-back:** when you drag a card between columns, Hearth writes the
 change in Kanban's own format, so the note stays fully editable in the Kanban
 plugin. Hearth is not a second, disagreeing owner of the board.
+
+#### The Tasks plugin source
+
+The card draws what the Tasks plugin says are tasks — any checkbox line whose
+status symbol the plugin knows (its built-ins plus your custom statuses, read
+live from the plugin), with the vault's task format (Emoji or Dataview inline
+fields) parsed off each line — as Hearth's own rows, board and matrix, with
+Hearth's chips, dots and colours. The card's filter, sort, *Show completed*
+and *Max tasks shown* all apply over those tasks, and the custom-field system
+works too: priority, dates, status, repeat and tags all flow through Hearth's
+normal task rendering, so a field can be a chip, a dot, text, or colour the
+whole task.
+
+Ticking, editing and creating stay the plugin's, so the note is never
+converted to another format: the list/board checkbox toggles through the
+plugin's own toggle command (recurrence rolls and done dates stamp the way the
+plugin does), clicking a task (or its right-click menu) opens the plugin's own
+edit dialog and writes its returned line back verbatim, and the `+` button
+opens the plugin's own create dialog, whose line is appended verbatim to the
+destination note (*New tasks go to* — today's daily note, created when missing,
+or one specific note).
+
+The board and matrix group the plugin's tasks but stay read-only: dragging
+between statuses, or dropping a task into a quadrant to change its priority,
+would rewrite the line outside the plugin, so columns group without accepting
+drops and quadrant moves are not offered — the controls that would be dead are
+not drawn. If the Tasks plugin is not installed or disabled, the card says so
+and offers a switch back to Markdown checkboxes.
 
 ### Description formatting
 
@@ -278,9 +307,13 @@ fixed look.
 
 *Customize task fields* replaces the fixed metadata a task shows with fields you
 define yourself. Turning it on starts from a blank slate: tasks then show only
-the fields you add. The fields are defined vault-wide at **Settings → Hearth →
-Integrations → Tasks / TaskNotes → Fields shown on a task**, and a single card
-can define its own instead from that card's settings.
+the fields you add. For TaskNotes cards the fields are defined vault-wide at
+**Settings → Hearth → Integrations → Tasks / TaskNotes → Fields shown on a
+task**, and a single card can define its own instead from that card's settings.
+Cards on the other sources always define their own fields on the card —
+starting from what the card has always shown — and never follow the
+vault-wide TaskNotes list. On a Tasks-plugin card that default starts with the
+plugin's status, which the checkbox alone could never say.
 
 A field has:
 
@@ -309,9 +342,10 @@ has a colour mapped affects the task at all.
 
 **Keys.** A field can read several keys at once, so one field can gather several
 pieces of metadata under one name. The pickers offer two groups: *Values Hearth
-parses itself* — status (TaskNotes), board column (Kanban), priority, start
-date, scheduled date, due date, done date and description — and *Properties
-found in your notes*, which is anything in your frontmatter.
+parses itself* — status (TaskNotes cards only), board column (Kanban cards
+only), priority, start date, scheduled date, due date, done date and
+description — and *Properties found in your notes*, which is anything in your
+frontmatter.
 
 **Value mappings.** For a key with discrete values you can map each value to a
 nicer label and a colour, chosen from the theme's eight named colours (red,

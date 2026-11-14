@@ -4,6 +4,9 @@ import {
 	allowsPriorityStyle,
 	ambientOwner,
 	builtinSource,
+	builtinSourcesFor,
+	defaultTaskFields,
+	isSourceAllowed,
 	keyStyle,
 	displayValue,
 	fieldOpacity,
@@ -19,6 +22,7 @@ import {
 	isKnownSource,
 	newTaskField,
 	resolveTaskFields,
+	sanitizeTaskFields,
 	sourceBuiltin,
 	sourceProperty,
 	sourceValueAliases,
@@ -117,9 +121,10 @@ describe("resolveTaskFields", () => {
 });
 
 /**
- * The three layers. Off globally means the card renders the fixed metadata it
- * always has — signalled by null, so the caller runs the legacy renderer rather
- * than an equivalent field list.
+ * The layers. Off globally means a TaskNotes card renders the fixed metadata
+ * it always has — signalled by null, so the caller runs the legacy renderer
+ * rather than an equivalent field list. Only TaskNotes cards follow the
+ * vault-wide list; every other source configures its own fields on the card.
  */
 describe("activeTaskFields", () => {
 	const off = { taskFieldsEnabled: false, taskFields: [] };
@@ -158,6 +163,110 @@ describe("activeTaskFields", () => {
 	it("keeps a card that stored fields but never opted in on the global list", () => {
 		const card = { taskFields: [field({ id: "card" })] };
 		expect(activeTaskFields(card, globalList)?.map((f) => f.id)).toEqual(["global"]);
+	});
+
+	it("ignores the vault-wide list on the other sources", () => {
+		expect(activeTaskFields({}, globalList, "checkbox")).toBeNull();
+		expect(activeTaskFields({}, globalList, "kanban")).toBeNull();
+	});
+
+	it("reads a checkbox card's own list even while the master switch is off", () => {
+		const card = { taskFieldsEnabled: true, taskFields: [field({ id: "card" })] };
+		expect(activeTaskFields(card, off, "checkbox")?.map((f) => f.id)).toEqual(["card"]);
+	});
+
+	it("drops TaskNotes-only keys off the other sources", () => {
+		const stored = [
+			field({
+				id: "mixed",
+				keys: [{ source: builtinSource("status") }, { source: builtinSource("due") }],
+			}),
+		];
+		const card = { taskFieldsEnabled: true, taskFields: stored };
+		const resolved = activeTaskFields(card, off, "checkbox");
+		expect(resolved?.[0].keys.map((k) => k.source)).toEqual([builtinSource("due")]);
+	});
+});
+
+describe("sources per card", () => {
+	it("offers the board column only to Kanban cards", () => {
+		expect(builtinSourcesFor("kanban")).toContain("column");
+		expect(builtinSourcesFor("checkbox")).not.toContain("column");
+		expect(builtinSourcesFor("tasknotes")).not.toContain("column");
+	});
+
+	it("offers the TaskNotes status to TaskNotes cards — and the plugin status to Tasks-plugin cards", () => {
+		expect(builtinSourcesFor("tasknotes")).toContain("status");
+		expect(builtinSourcesFor("obsidian-tasks")).toContain("status");
+		expect(builtinSourcesFor("checkbox")).not.toContain("status");
+		expect(builtinSourcesFor("kanban")).not.toContain("status");
+	});
+
+	it("lets any card read frontmatter, whatever the source", () => {
+		for (const source of ["checkbox", "kanban", "tasknotes", "obsidian-tasks"] as const) {
+			expect(isSourceAllowed(source, frontmatterSource("project"))).toBe(true);
+		}
+	});
+
+	it("rejects the unknown on every source, including the global list", () => {
+		expect(isSourceAllowed(null, "builtin:nonsense")).toBe(false);
+		expect(isSourceAllowed("checkbox", "builtin:nonsense")).toBe(false);
+	});
+
+	it("drops what a card of that source could never show", () => {
+		const stored = [
+			field({
+				id: "a",
+				keys: [{ source: builtinSource("status") }, { source: builtinSource("due") }],
+			}),
+			field({ id: "b", keys: [{ source: builtinSource("column") }] }),
+		];
+		expect(resolveTaskFields(stored, "checkbox").map((f) => f.id)).toEqual(["a"]);
+		expect(resolveTaskFields(stored, "checkbox")[0].keys.map((k) => k.source)).toEqual([
+			builtinSource("due"),
+		]);
+		expect(resolveTaskFields(stored, "kanban").map((f) => f.id)).toEqual(["a", "b"]);
+		expect(resolveTaskFields(stored, "tasknotes").map((f) => f.id)).toEqual(["a"]);
+	});
+
+	it("starts a non-TaskNotes card from the fixed card's own metadata", () => {
+		const checkbox = defaultTaskFields("checkbox");
+		expect(checkbox.map((f) => f.name)).toEqual(["Priority", "Dates", "Description"]);
+		expect(checkbox[0].keys.map((k) => k.source)).toEqual([builtinSource("priority")]);
+		expect(checkbox[1].keys.map((k) => k.source)).toEqual([
+			builtinSource("start"),
+			builtinSource("scheduled"),
+			builtinSource("due"),
+			builtinSource("doneDate"),
+		]);
+		const kanban = defaultTaskFields("kanban");
+		expect(kanban[0].keys.map((k) => k.source)).toEqual([builtinSource("column")]);
+		const plugin = defaultTaskFields("obsidian-tasks");
+		expect(plugin[0].keys.map((k) => k.source)).toEqual([builtinSource("status")]);
+	});
+});
+
+describe("sanitizeTaskFields", () => {
+	it("drops what isn't a field and coerces the rest into shape", () => {
+		const sanitized = sanitizeTaskFields([
+			null,
+			"Due",
+			{ id: "a", name: "A", keys: "nope", display: "party", opacity: 5000 },
+			{ name: "B", keys: [{ source: "fm:project", values: [{ match: "x", color: 7 }] }, null] },
+		]);
+		expect(sanitized).toHaveLength(2);
+		expect(sanitized[0]).toMatchObject({ id: "a", name: "A", keys: [] });
+		expect(sanitized[0].display).toBeUndefined();
+		expect(sanitized[0].opacity).toBe(100);
+		expect(sanitized[1].id).toBeTruthy();
+		expect(sanitized[1].keys).toHaveLength(1);
+		expect(sanitized[1].keys[0]).toEqual({ source: "fm:project", values: [{ match: "x" }] });
+	});
+
+	it("treats a missing list as an empty one and never throws", () => {
+		expect(sanitizeTaskFields(undefined)).toEqual([]);
+		expect(sanitizeTaskFields("fields")).toEqual([]);
+		expect(() => sanitizeTaskFields([{ keys: [{ source: 7 }] }])).not.toThrow();
 	});
 });
 

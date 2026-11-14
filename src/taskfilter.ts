@@ -1,5 +1,5 @@
 import { moment } from "./cardbodies";
-import { priorityLevel } from "./priority";
+import { priorityKey } from "./priority";
 import type { TaskDueFilter, TaskFilterConfig, TaskPriorityLevel } from "./types";
 
 /** The slice of a task row the list filter reads. Kept separate from the full
@@ -166,10 +166,14 @@ export function hitStatusValue(hit: Pick<TaskFilterHit, "status" | "boardColumn"
 	return hit.status ?? hit.boardColumn ?? hit.checkboxLabel ?? null;
 }
 
+/** The task's priority as the filter compares it: the plugin's five levels
+ * (highest…lowest) when the value names one, a coarse bucket for loose words
+ * like "urgent", and "none" when the task carries no priority. Fine-grained
+ * on purpose: filtering "High" must not quietly include "Highest". */
 export function hitPriorityLevel(hit: Pick<TaskFilterHit, "priority">): TaskPriorityLevel {
 	if (!hit.priority?.trim()) return "none";
-	const lvl = priorityLevel(hit.priority);
-	return lvl === "other" ? "none" : lvl;
+	const key = priorityKey(hit.priority);
+	return key ? (key as TaskPriorityLevel) : "none";
 }
 
 /** Every day a task is pinned to: its due date and its scheduled date. Both

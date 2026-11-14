@@ -300,8 +300,8 @@ whatever TaskNotes' own settings have them mapped to.*
 | *Due date field* | `due` | Frontmatter field read for a task's due date |
 | *Priority field* | `priority` | Frontmatter field read for a task's priority indicator |
 | *"Done" status value* | `done` | The status value that marks a TaskNotes task complete |
-| *Customize task fields* | Off | Replace the fixed metadata Tasks cards show with fields you define yourself. Turning it on starts from a blank slate: tasks then show only the fields you add |
-| *Fields shown on a task* | empty | The fields every Tasks card shows. A single card can define its own instead |
+| *Customize task fields* | Off | Replace the fixed metadata TaskNotes cards show with fields you define yourself. Turning it on starts from a blank slate: tasks then show only the fields you add |
+| *Fields shown on a task* | empty | The fields every TaskNotes card shows. A TaskNotes card can define its own instead; other sources configure their own fields on the card |
 
 Custom task fields are documented in [chapter 8](08-cards-planning.md).
 

@@ -726,7 +726,7 @@ const TASK_SORT_FIELDS = [
 	"alpha",
 	"status",
 ] as const;
-const TASK_PRIORITY_LEVELS = ["high", "medium", "low", "none"] as const;
+const TASK_PRIORITY_LEVELS = ["highest", "high", "medium", "low", "lowest", "none"] as const;
 const TASK_DUE_FILTERS = [
 	"overdue",
 	"today",
@@ -898,7 +898,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 	if (
 		r.source === "checkbox" ||
 		r.source === "tasknotes" ||
-		r.source === "kanban"
+		r.source === "kanban" ||
+		r.source === "obsidian-tasks"
 	) {
 		cfg.source = r.source;
 	}
@@ -948,6 +949,12 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 		cfg.taskNotesPriorityField = taskNotesPriorityField;
 	const taskNotesDoneValue = str(r.taskNotesDoneValue);
 	if (taskNotesDoneValue !== undefined) cfg.taskNotesDoneValue = taskNotesDoneValue;
+	const tasksQuery = str(r.tasksQuery);
+	if (tasksQuery !== undefined) cfg.tasksQuery = tasksQuery;
+	const tasksPluginNote = str(r.tasksPluginNote);
+	if (tasksPluginNote !== undefined) cfg.tasksPluginNote = tasksPluginNote;
+	if (typeof r.tasksPluginDailyNote === "boolean")
+		cfg.tasksPluginDailyNote = r.tasksPluginDailyNote;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
 	if (typeof r.taskFieldsEnabled === "boolean")

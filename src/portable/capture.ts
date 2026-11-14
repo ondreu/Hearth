@@ -279,24 +279,29 @@ function foldFavorites(cards: DashboardCard[], s: HomeSettings): void {
 }
 
 /**
- * Give every tasks card its own copy of the field list it was showing.
+ * Give every TaskNotes tasks card its own copy of the field list it was
+ * showing.
  *
- * A tasks card can define the metadata it renders, but by default it follows a
- * vault-wide list — so the same board in another vault shows different task
- * metadata, or none. Folding the resolved list onto each card closes that,
- * using the per-card override the card already has rather than a new one.
+ * A TaskNotes card can define the metadata it renders, but by default it
+ * follows a vault-wide list — so the same board in another vault shows
+ * different task metadata, or none. Folding the resolved list onto each card
+ * closes that, using the per-card override the card already has rather than
+ * a new one. Cards on the other sources configure their own fields already,
+ * independently of that list, so there is nothing to fold onto them.
  *
  * The one thing it cannot close is the master switch: `taskFieldsEnabled` in
- * the vault's settings gates every card's list, and flipping a global on
- * someone's behalf during an import is exactly what this whole engine exists to
- * avoid. So the fold is recorded as a requirement instead, and the import
- * dialog says the switch is needed. See `PackageRequirements.settings`.
+ * the vault's settings gates every TaskNotes card's list, and flipping a
+ * global on someone's behalf during an import is exactly what this whole
+ * engine exists to avoid. So the fold is recorded as a requirement instead,
+ * and the import dialog says the switch is needed. See
+ * `PackageRequirements.settings`.
  */
 function foldTaskFields(cards: DashboardCard[], s: HomeSettings): boolean {
 	let needsMasterSwitch = false;
 	for (const card of cards) {
 		const cfg = card.tasks;
 		if (!cfg) continue;
+		if ((cfg.source ?? "checkbox") !== "tasknotes") continue;
 		if (cfg.taskFieldsEnabled) {
 			// The card already states its own list; it only needs the switch.
 			needsMasterSwitch = true;
@@ -304,7 +309,7 @@ function foldTaskFields(cards: DashboardCard[], s: HomeSettings): boolean {
 		}
 		if (!s.taskFieldsEnabled) continue;
 		cfg.taskFieldsEnabled = true;
-		cfg.taskFields = clone(resolveTaskFields(s.taskFields));
+		cfg.taskFields = clone(resolveTaskFields(s.taskFields, "tasknotes"));
 		needsMasterSwitch = true;
 	}
 	return needsMasterSwitch;
@@ -332,6 +337,9 @@ function requirementsFor(
 		}
 		if (card.kind === "tasks" && card.tasks?.source === "kanban") {
 			plugins.add("obsidian-kanban");
+		}
+		if (card.kind === "tasks" && card.tasks?.source === "obsidian-tasks") {
+			plugins.add("obsidian-tasks-plugin");
 		}
 		// Likewise a periodic card, which reads from either Periodic Notes or
 		// Journals but never both (#318).
