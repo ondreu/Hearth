@@ -68,10 +68,13 @@ export interface TasksPluginApiV1 {
 
 
 /** The loaded Tasks plugin instance, or null when it isn't enabled. */
-function tasksPlugin(app: App): { apiV1?: unknown } | null {
+function tasksPlugin(app: App): { apiV1?: unknown; getTasks?: unknown } | null {
 	try {
 		if (!tasksPluginEnabled(app)) return null;
-		return (app.plugins.plugins[TASKS_PLUGIN_ID] as { apiV1?: unknown } | undefined) ?? null;
+		const plugin = app.plugins.plugins[TASKS_PLUGIN_ID] as
+			| { apiV1?: unknown; getTasks?: unknown }
+			| undefined;
+		return plugin ?? null;
 	} catch {
 		return null;
 	}
@@ -182,6 +185,38 @@ function readRegistryStatuses(plugin: Record<string, unknown>): TasksPluginStatu
 		return null;
 	}
 	return null;
+}
+
+
+/**
+ * The lines the plugin itself treats as tasks, as `path:line` keys, or null
+ * when its cache cannot be read (an older build without the accessor).
+ *
+ * Scanning checkbox lines is cheap, but only the plugin knows which of them
+ * pass its global filter: a vault that treats just `#task` lines as tasks must
+ * not show every other checkbox. The cache is where that answer is public.
+ */
+export function tasksPluginTaskIndex(app: App): Set<string> | null {
+	const plugin = tasksPlugin(app);
+	const getTasks = plugin?.getTasks;
+	if (typeof getTasks !== "function") return null;
+	let tasks: unknown;
+	try {
+		tasks = Reflect.apply(getTasks, plugin, []);
+	} catch {
+		return null;
+	}
+	if (!Array.isArray(tasks)) return null;
+	const index = new Set<string>();
+	for (const task of tasks) {
+		if (!task || typeof task !== "object") continue;
+		const path = (task as { path?: unknown }).path;
+		const line = (task as { lineNumber?: unknown }).lineNumber;
+		if (typeof path === "string" && typeof line === "number" && Number.isInteger(line)) {
+			index.add(`${path}:${line}`);
+		}
+	}
+	return index;
 }
 
 

@@ -11,6 +11,7 @@ import {
 	tasksPluginApi,
 	tasksPluginEnabled,
 	tasksPluginStatuses,
+	tasksPluginTaskIndex,
 	toggleTasksPluginTask,
 } from "../src/tasksplugin";
 import type { HomeView } from "../src/view";
@@ -394,5 +395,56 @@ describe("deleteTasksPluginTask", () => {
 		const file = fileFor(store, "Notes/Tasks.md");
 		expect(await deleteTasksPluginTask(view, file, 0, "gone")).toBe(true);
 		expect(store.get("Notes/Tasks.md")).toBe("- [ ] stays\n");
+	});
+});
+
+
+/** The slice of App the cache probe touches. */
+function cacheApp(plugin?: unknown, enabled = true) {
+	return {
+		plugins: {
+			enabledPlugins: new Set(enabled ? ["obsidian-tasks-plugin"] : []),
+			plugins: { "obsidian-tasks-plugin": plugin },
+		},
+	} as unknown as Parameters<typeof tasksPluginTaskIndex>[0];
+}
+
+
+describe("tasksplugin/taskIndex", () => {
+	it("keys the plugin's tasks by path and line", () => {
+		const index = tasksPluginTaskIndex(
+			cacheApp({
+				getTasks: () => [
+					{ path: "Inbox.md", lineNumber: 4 },
+					{ path: "a.md", lineNumber: 0 },
+				],
+			}),
+		);
+		expect(index && [...index].sort()).toEqual(["Inbox.md:4", "a.md:0"]);
+	});
+
+	it("is null when the plugin exposes no cache", () => {
+		expect(tasksPluginTaskIndex(cacheApp({}))).toBeNull();
+		expect(tasksPluginTaskIndex(cacheApp({ getTasks: () => [] }, false))).toBeNull();
+	});
+
+	it("is null when the cache throws or is not a list", () => {
+		expect(
+			tasksPluginTaskIndex(
+				cacheApp({
+					getTasks: () => {
+						throw new Error("not ready");
+					},
+				}),
+			),
+		).toBeNull();
+		expect(tasksPluginTaskIndex(cacheApp({ getTasks: () => "nope" }))).toBeNull();
+	});
+
+	it("skips entries without a usable location", () => {
+		const index = tasksPluginTaskIndex(
+			cacheApp({ getTasks: () => [null, "x", { path: "a.md" }, { lineNumber: 2 }, { path: "b.md", lineNumber: 7 }] }),
+		);
+		expect(index && [...index]).toEqual(["b.md:7"]);
 	});
 });

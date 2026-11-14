@@ -139,6 +139,7 @@ import {
 	parseTasksPluginLine,
 	tasksPluginEnabled,
 	tasksPluginStatuses,
+	tasksPluginTaskIndex,
 	toggleTasksPluginTask,
 } from "../tasksplugin";
 import { confirmAction, dressModal, makeClickable } from "../ui";
@@ -3912,6 +3913,10 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 async function collectTasksPluginTasks(view: HomeView, cfg: TasksConfig): Promise<TaskHit[]> {
 	const statuses = tasksPluginStatuses(view.app);
 	const known = new Map(statuses.map((s) => [s.symbol.toLowerCase(), s]));
+	// The plugin's global filter is the only thing that says which of these
+	// checkboxes it counts as a task; its cache is that answer. Null means the
+	// cache isn't readable, and the status symbols above are the best guess.
+	const index = tasksPluginTaskIndex(view.app);
 	const files = view.app.vault.getMarkdownFiles().filter((f) => inTaskScope(f.path, cfg));
 	const hits: TaskHit[] = [];
 	for (const file of files) {
@@ -3929,6 +3934,7 @@ async function collectTasksPluginTasks(view: HomeView, cfg: TasksConfig): Promis
 			// Only the plugin's own symbols count — a stray `- [1]` reference is
 			// not a task to it either.
 			if (!st) return;
+			if (index && !index.has(`${file.path}:${i}`)) return;
 			const raw = match[2].trim();
 			if (!raw) return;
 			const parsed = parseTasksPluginLine(raw);
