@@ -22,7 +22,8 @@ beforeAll(async () => {
 	installObsidianDom();
 	// jsdom has neither; the daylight style asks both.
 		const mediaQuery = (query: string) => ({ matches: false, media: query });
-		window.matchMedia ??= mediaQuery as unknown as typeof window.matchMedia;
+		const host = window as unknown as { matchMedia?: typeof window.matchMedia };
+		host.matchMedia ??= mediaQuery as unknown as typeof window.matchMedia;
 	(window as unknown as { ResizeObserver: unknown }).ResizeObserver ??= class {
 		observe(): void {}
 		disconnect(): void {}
