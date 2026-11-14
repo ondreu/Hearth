@@ -222,7 +222,7 @@ export function sanitizeTaskFields(stored: unknown): TaskFieldDef[] {
 			keys,
 		};
 		if (typeof rec.showName === "boolean" && rec.showName) field.showName = true;
-		if (rec.display === "pill" || rec.display === "dot" || rec.display === "dotlabel" || rec.display === "text" || rec.display === "hue" || rec.display === "glow") {
+		if (rec.display === "pill" || rec.display === "dot" || rec.display === "dotlabel" || rec.display === "text" || rec.display === "hue" || rec.display === "glow" || rec.display === "hidden") {
 			field.display = rec.display;
 		}
 		if (typeof rec.opacity === "number" && Number.isFinite(rec.opacity)) {

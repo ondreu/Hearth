@@ -2939,6 +2939,7 @@ export const de: Translations = {
 				text: "Reiner Text",
 				hue: "Ganze Aufgabe einfärben",
 				glow: "Leuchten um die Aufgabe",
+				hidden: "Ausgeblendet",
 			},
 			fieldOpacity: "Stärke",
 			fieldOpacityDesc:

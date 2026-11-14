@@ -2632,6 +2632,7 @@ export const zhTW: Translations = {
 				text: "純文字",
 				hue: "為整個任務染色",
 				glow: "任務周圍光暈",
+				hidden: "隱藏",
 			},
 			fieldOpacity: "強度",
 			fieldOpacityDesc:

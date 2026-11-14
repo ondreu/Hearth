@@ -2614,6 +2614,7 @@ export const zh: Translations = {
 				text: "纯文本",
 				hue: "为整个任务染色",
 				glow: "任务周围光晕",
+				hidden: "隐藏",
 			},
 			fieldOpacity: "强度",
 			fieldOpacityDesc:

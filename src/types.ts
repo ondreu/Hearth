@@ -252,7 +252,7 @@ export interface TaskFilterConfig {
  * so a board can be read at a glance without any single row having to be read at
  * all.
  */
-export type TaskFieldStyle = "pill" | "dot" | "dotlabel" | "text" | "hue" | "glow";
+export type TaskFieldStyle = "pill" | "dot" | "dotlabel" | "text" | "hue" | "glow" | "hidden";
 
 /** One value → what to show for it. Matching is case-insensitive on the
  * trimmed raw value. A value with no entry here still renders — as itself,

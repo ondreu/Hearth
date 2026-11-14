@@ -2879,6 +2879,7 @@ export const fr: Translations = {
 				text: "Texte simple",
 				hue: "Teinter toute la tâche",
 				glow: "Halo autour de la tâche",
+				hidden: "Masqué",
 			},
 			fieldOpacity: "Intensité",
 			fieldOpacityDesc:

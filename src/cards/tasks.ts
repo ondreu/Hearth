@@ -1163,6 +1163,8 @@ function renderCustomTaskFields(
 ): void {
 	for (const field of fields) {
 		const display = fieldStyle(field);
+		// Hidden keeps the field and its keys configured without drawing them.
+		if (display === "hidden") continue;
 		// An ambient field paints the whole task instead of adding to it, so it
 		// needs the colour and nothing else.
 		const ambient = isAmbientStyle(display);
@@ -6242,7 +6244,7 @@ export class TaskFieldsModal extends HearthModal {
 			.setName(labels.fieldDisplay)
 			.setDesc(labels.fieldDisplayDesc)
 			.addDropdown((d) => {
-				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow"] as const) {
+				for (const style of ["pill", "dot", "dotlabel", "text", "hue", "glow", "hidden"] as const) {
 					// The dot-and-label form is the priority's own, so it is offered
 					// only to a field that reads one (or is already set to it).
 					if (isPriorityStyle(style) && !allowsPriorityStyle(field)) continue;

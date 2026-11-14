@@ -2928,6 +2928,7 @@ export const en = {
 				text: "Plain text",
 				hue: "Tint the whole task",
 				glow: "Glow around the task",
+				hidden: "Hidden",
 			},
 			fieldOpacity: "Strength",
 			fieldOpacityDesc:

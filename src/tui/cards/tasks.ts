@@ -181,6 +181,7 @@ function taskChips(view: HomeView, cfg: TasksConfig, hit: TaskHit, today: string
 	let ambient: string | undefined;
 	for (const field of fields) {
 		const display = fieldStyle(field);
+		if (display === "hidden") continue;
 		const isAmbient = isAmbientStyle(display);
 		const prefix = field.showName && field.name.trim() ? `${field.name.trim()}:` : "";
 		for (const key of field.keys) {
