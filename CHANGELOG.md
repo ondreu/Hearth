@@ -11,6 +11,72 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [3.9.0]
+
+### Added
+
+- **A folder of albums can be browsed as albums.** The Music card's folder source
+  gains **Show albums**, offered once *Include subfolders* is on: the list under
+  the transport becomes those subfolders as collapsed album rows, each with its
+  track count, and opening one shows its tracks with a row back to the list —
+  picking a track plays that album as the queue. Files loose in the picked folder
+  are listed last, as *Loose tracks*. With the switch off the card stays one
+  queue of every track, in name order.
+
+
+- **Hearth speaks Traditional Chinese too.** A full `zh-tw` locale joins English,
+  German, French, Korean and Simplified Chinese: Obsidian's own Traditional
+  Chinese (`zh-TW`) display language now loads it, `zh` stays Simplified and
+  `zh-CN` still falls back to it. The wording is Taiwan's — a vault is 儲存庫 —
+  and the search bar understands Traditional spellings and Taiwan place names
+  next to the Simplified ones, for times, weather, Wikipedia, markets, dice and
+  currency. Simplified Chinese, German, French and English are unchanged.
+
+### Fixed
+
+- **A Music card whose folder changed no longer plays the old folder's tracks**
+  (#486). The card and the player share one queue, and the card handed its
+  tracks over only when that queue was empty: after pointing the card at another
+  folder the list showed the new tracks while next/previous still walked the old
+  queue, and a single path present in both was enough for the card to treat the
+  stale queue as its own. The player now remembers which card gave it the queue
+  and rebuilds it when that card's tracks change — keeping the track that is
+  playing, and stopping instead of playing a file that is gone.
+
+
+- **The Pet card in Terminal design no longer grows Obsidian's memory until it
+  crashes** (#479). Its frames were the one animation in Hearth running on a
+  JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
+  — a span with a click and a key listener for every sprite cell — and, through
+  the board's frame layer, every frame on the board. It did that in a background
+  tab as well, where nothing can be seen: roughly 3,000 nodes and 900 listeners
+  every five seconds, climbing until the renderer died. A repaint now keeps the
+  rows whose text did not change, the frame layer is rebuilt only when something
+  drawn on it changes, and a card's own redraw is skipped while its leaf is
+  hidden. The sprite also merges neighbouring cells of one colour into a single
+  run, and the whole body is the click target, so patting it works as before.
+
+
+- **The toggles in Hearth's settings and dialogs are visible again in the TUI
+  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
+  positioned, fully transparent `::before` as its click area; the TUI style draws
+  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
+  and colour, so the label inherited `position: absolute; opacity: 0`, left the
+  layout, and — with `height: auto` on the container — the toggle collapsed to
+  0 px. The rule now puts the pseudo-element back in flow, which restores the
+  toggle at its text height.
+
+
+- **“Same as the file explorer” now matches the sidebar with the sidebar
+  closed** (#439). Obsidian leaves the file explorer unbuilt while the left
+  sidebar is collapsed, and the call that orders a folder answers only with the
+  tree items it has built — so the page fell back to the explorer's *sort
+  setting*, read off that same unbuilt view, which is to say alphabetical. It
+  reads the setting from the state the leaf still carries now, treats a partial
+  answer as no answer instead of pushing the rest of the folder to the end, and
+  redraws when the sidebar's answer changes — so opening the sidebar corrects a
+  page that was drawn while it was closed.
+
 ## [3.8.0]
 
 ### Added
@@ -55,15 +121,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   names notes too, so the source is visible before the settings dialog.
 
 
-- **A folder of albums can be browsed as albums.** The Music card's folder source
-  gains **Show albums**, offered once *Include subfolders* is on: the list under
-  the transport becomes those subfolders as collapsed album rows, each with its
-  track count, and opening one shows its tracks with a row back to the list —
-  picking a track plays that album as the queue. Files loose in the picked folder
-  are listed last, as *Loose tracks*. With the switch off the card stays one
-  queue of every track, in name order.
-
-
 ### Changed
 
 - **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
@@ -81,27 +138,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- **A Music card whose folder changed no longer plays the old folder's tracks**
-  (#486). The card and the player share one queue, and the card handed its
-  tracks over only when that queue was empty: after pointing the card at another
-  folder the list showed the new tracks while next/previous still walked the old
-  queue, and a single path present in both was enough for the card to treat the
-  stale queue as its own. The player now remembers which card gave it the queue
-  and rebuilds it when that card's tracks change — keeping the track that is
-  playing, and stopping instead of playing a file that is gone.
-
-- **The Pet card in Terminal design no longer grows Obsidian's memory until it
-  crashes** (#479). Its frames were the one animation in Hearth running on a
-  JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
-  — a span with a click and a key listener for every sprite cell — and, through
-  the board's frame layer, every frame on the board. It did that in a background
-  tab as well, where nothing can be seen: roughly 3,000 nodes and 900 listeners
-  every five seconds, climbing until the renderer died. A repaint now keeps the
-  rows whose text did not change, the frame layer is rebuilt only when something
-  drawn on it changes, and a card's own redraw is skipped while its leaf is
-  hidden. The sprite also merges neighbouring cells of one colour into a single
-  run, and the whole body is the click target, so patting it works as before.
-
 - **Editing a card no longer rebuilds the board under the cursor** (#475). A
   couple of seconds into typing into a card's embedded editor — a note or a
   base — the whole board re-rendered, the editor came back at the top with the
@@ -113,15 +149,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   catch-up now runs once, for the cold cache a startup board was drawn
   against; later metadata changes arrive through *Live refresh on vault
   changes*, which is debounced and held while you are typing.
-
-- **The toggles in Hearth's settings and dialogs are visible again in the TUI
-  style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
-  positioned, fully transparent `::before` as its click area; the TUI style draws
-  the `[ ]` / `[x]` checkbox in that same pseudo-element and only set its content
-  and colour, so the label inherited `position: absolute; opacity: 0`, left the
-  layout, and — with `height: auto` on the container — the toggle collapsed to
-  0 px. The rule now puts the pseudo-element back in flow, which restores the
-  toggle at its text height.
 
 - **The Quick switcher engine ranks a note by its name, the way the switcher
   it copies does** (#447). Searching "black sphinx" listed an empty note called
@@ -164,8 +191,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   what obsidian-git's own source-control view does: on desktop both stage
   and reset the whole tree regardless, and on mobile the working tree is
   re-read at the moment of the click.
-
-
 
 ## [3.7.0]
 
@@ -265,16 +290,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   now. The sections folded while reading are remembered as well — on the device,
   so a folder folded in one browser is folded in the next one and after a
   restart, without writing to `data.json`.
-
-- **“Same as the file explorer” now matches the sidebar with the sidebar
-  closed** (#439). Obsidian leaves the file explorer unbuilt while the left
-  sidebar is collapsed, and the call that orders a folder answers only with the
-  tree items it has built — so the page fell back to the explorer's *sort
-  setting*, read off that same unbuilt view, which is to say alphabetical. It
-  reads the setting from the state the leaf still carries now, treats a partial
-  answer as no answer instead of pushing the rest of the folder to the end, and
-  redraws when the sidebar's answer changes — so opening the sidebar corrects a
-  page that was drawn while it was closed.
 
 - Currency conversion no longer hangs on a single host, and no longer forgets
   its rates between sessions. The rates are the ECB's own daily reference file,
