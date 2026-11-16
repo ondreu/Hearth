@@ -1037,6 +1037,10 @@ export const en = {
 			searchEngineBuiltin: "Hearth (built-in)",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "Quick switcher",
+			numberFormat: "Number format",
+			numberFormatDesc: "How numbers are written in the calculator card and in the search bars' answers: 1,234.5 keeps a dot decimal, 1 234,5 a comma. A calculator card can choose its own.",
+			numberFormatDot: "1,234.5 (dot)",
+			numberFormatComma: "1 234,5 (comma)",
 			omnisearchMissing:
 				"Omnisearch isn’t installed or enabled. Install and enable it, " +
 				"then select it again.",
@@ -3108,6 +3112,10 @@ export const en = {
 			keypadNone: "Hidden",
 			keypadBasic: "Basic",
 			keypadScientific: "Scientific",
+			separator: "Number format",
+			separatorDesc: "Decimal separator for this card's results and for what the keypad's decimal key types. Follows Settings → Search bar unless you pick one here.",
+			separatorDot: "1,234.5 (dot)",
+			separatorComma: "1 234,5 (comma)",
 		},
 		dataview: {
 			language: "Query type",
@@ -4066,6 +4074,9 @@ export const en = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km to miles, 10 € to USD…",
+			copyResult: "Copy result",
+			copied: (value: string) => `Copied ${value}`,
+			copyFailed: "Couldn't copy to the clipboard",
 		},
 		rss: {
 			allTab: "All",

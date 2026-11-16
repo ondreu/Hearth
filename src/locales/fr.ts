@@ -1000,6 +1000,10 @@ export const fr: Translations = {
 			searchEngineBuiltin: "Hearth (intégré)",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "Sélecteur rapide",
+			numberFormat: "Format des nombres",
+			numberFormatDesc: "Écriture des nombres dans la carte calculatrice et dans les réponses des barres de recherche : 1,234.5 garde le point, 1 234,5 la virgule. Une carte calculatrice peut choisir le sien.",
+			numberFormatDot: "1,234.5 (point)",
+			numberFormatComma: "1 234,5 (virgule)",
 			omnisearchMissing:
 				"Omnisearch n'est pas installé ou activé. Installez-le et activez-le, " +
 				"puis sélectionnez-le à nouveau.",
@@ -3061,6 +3065,10 @@ export const fr: Translations = {
 			keypadNone: "Masqué",
 			keypadBasic: "Basique",
 			keypadScientific: "Scientifique",
+			separator: "Format des nombres",
+			separatorDesc: "Séparateur décimal des résultats de cette carte et de la touche décimale du pavé. Suit Réglages → Barre de recherche sauf si vous en choisissez un ici.",
+			separatorDot: "1,234.5 (point)",
+			separatorComma: "1 234,5 (virgule)",
 		},
 		dataview: {
 			language: "Type de requête",
@@ -4001,6 +4009,9 @@ export const fr: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km to miles, 10 € to USD…",
+			copyResult: "Copier le résultat",
+			copied: (value: string) => `Copié : ${value}`,
+			copyFailed: "Impossible de copier dans le presse-papiers",
 		},
 		rss: {
 			allTab: "Tout",

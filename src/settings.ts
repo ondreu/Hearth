@@ -937,6 +937,21 @@ export class HomeSettingTab extends PluginSettingTab {
 			}
 		}
 		new Setting(containerEl)
+			.setName(t().settings.appearance.numberFormat)
+			.setDesc(t().settings.appearance.numberFormatDesc)
+			.addDropdown((d) => {
+				d.addOption(".", t().settings.appearance.numberFormatDot)
+					.addOption(",", t().settings.appearance.numberFormatComma)
+					.setValue(s.numberFormat ?? ".")
+					.onChange(async (v) => {
+						s.numberFormat = v === "," ? "," : ".";
+						this.save();
+						// Search bars and calculator cards read it when they draw.
+						this.plugin.refreshViews();
+					});
+			});
+
+		new Setting(containerEl)
 			.setName(t().settings.appearance.searchTips)
 			.setDesc(t().settings.appearance.searchTipsDesc)
 			.addButton((b) =>

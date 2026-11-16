@@ -40,7 +40,7 @@ import {
 	resolveSymbol,
 } from "./market";
 import { cachedQuote, cachedSeries, loadQuotes, loadSeries, searchMarkets } from "./marketfeed";
-import type { MarketRange } from "./types";
+import type { DecimalSeparator, MarketRange } from "./types";
 import {
 	formatTemp,
 	formatWeekday,
@@ -119,6 +119,8 @@ function copy(text: string): void {
 export interface InstantHost {
 	/** The privacy switch: nothing is fetched while it is on. */
 	externalCallsDisabled(): boolean;
+	/** How numbers are written in answers — the vault's number format. */
+	decimalSeparator(): DecimalSeparator;
 	/** Something the panel shows has arrived (a rate, a quote, a chart). */
 	changed(): void;
 }
@@ -153,7 +155,7 @@ export class InstantAnswers {
 	/** Read a query; returns what it asks for (and starts fetching whatever
 	 * the answer needs), or null when it's only a search. */
 	setQuery(query: string, enabled?: (feature: InstantFeature) => boolean): InstantIntent | null {
-		const intent = detectInstant(query, zones(), enabled);
+		const intent = detectInstant(query, zones(), enabled, this.host.decimalSeparator());
 		const key = intent ? JSON.stringify(intent) : "";
 		if (key === this.key) return this.intent;
 		this.key = key;
@@ -390,7 +392,7 @@ export class InstantAnswers {
 		intent: Extract<InstantIntent, { kind: "calc" }>,
 		row: (icon: string, open: () => void) => HTMLElement,
 	): void {
-		const res = evaluate(intent.input);
+		const res = evaluate(intent.input, { decimalSeparator: this.host.decimalSeparator() });
 		if (!res.ok) {
 			// Only a forced (`=`) query is worth an error; otherwise stay quiet.
 			if (intent.forced) {
@@ -410,7 +412,8 @@ export class InstantAnswers {
 	): void {
 		const strings = t().search.instant;
 		const rates = cachedRates()?.rates;
-		const res = evaluate(intent.input, { rates });
+		const decimalSeparator = this.host.decimalSeparator();
+		const res = evaluate(intent.input, { rates, decimalSeparator });
 		const from = intent.from.toUpperCase();
 		const to = intent.to.toUpperCase();
 		let el: HTMLElement;
@@ -419,7 +422,7 @@ export class InstantAnswers {
 			const unit = rates && rates[intent.from] ? rates[intent.to] / rates[intent.from] : null;
 			const note = [
 				res.note ?? "",
-				unit !== null ? strings.rate(from, formatPrice(unit, "currency"), to) : "",
+				unit !== null ? strings.rate(from, formatPrice(unit, "currency", decimalSeparator), to) : "",
 			]
 				.filter(Boolean)
 				.join(" · ");

@@ -8,7 +8,7 @@
  */
 import { debounce } from "obsidian";
 import { evaluate } from "../../calculator";
-import { CALC_BASIC_KEYS, CALC_SCI_KEYS, type CalcKey } from "../../cards/calculator";
+import { calcKeys, type CalcKey } from "../../cards/calculator";
 import { cachedRates, loadRates } from "../../currency";
 import { t } from "../../i18n";
 import type { TuiRenderer } from "../card";
@@ -21,6 +21,7 @@ export const calculatorTui: TuiRenderer = {
 		const { view } = ctx;
 		const cfg = (ctx.card.calculator ??= {});
 		const angleUnit = cfg.angleUnit ?? "deg";
+		const decimalSeparator = cfg.decimalSeparator ?? view.plugin.settings.numberFormat ?? ".";
 		const persist = debounce(() => void view.plugin.saveData(view.plugin.settings), 600, true);
 		let triedRates = false;
 
@@ -55,7 +56,7 @@ export const calculatorTui: TuiRenderer = {
 							show([], []);
 							return;
 						}
-						const res = evaluate(raw, { angleUnit, rates: cachedRates()?.rates });
+						const res = evaluate(raw, { angleUnit, rates: cachedRates()?.rates, decimalSeparator });
 						if (res.ok) {
 							show([{ text: "= ", style: "dim" }, { text: res.formatted, style: ["bold", "accent"] }], [{ text: res.note ?? "", style: "dim" }]);
 							return;
@@ -87,7 +88,7 @@ export const calculatorTui: TuiRenderer = {
 		const tier = cfg.keypad ?? "none";
 		if (tier === "none") return { lines, mounts, foot: t().tui.cards.calcFoot };
 
-		const keys: CalcKey[] = tier === "scientific" ? [...CALC_SCI_KEYS, ...CALC_BASIC_KEYS] : CALC_BASIC_KEYS;
+		const keys: CalcKey[] = calcKeys(tier, decimalSeparator);
 		const press = (key: CalcKey) => {
 			const input = ctx.state.input as HTMLInputElement | undefined;
 			const update = ctx.state.update as (() => void) | undefined;

@@ -1048,6 +1048,10 @@ export const de: Translations = {
 			searchEngineBuiltin: "Hearth (integriert)",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "Schnellwechsler",
+			numberFormat: "Zahlenformat",
+			numberFormatDesc: "Wie Zahlen in der Rechner-Karte und in den Antworten der Suchleisten geschrieben werden: 1,234.5 behält den Punkt als Dezimaltrennzeichen, 1 234,5 das Komma. Eine Rechner-Karte kann ihr eigenes Format wählen.",
+			numberFormatDot: "1,234.5 (Punkt)",
+			numberFormatComma: "1 234,5 (Komma)",
 			omnisearchMissing:
 				"Omnisearch ist nicht installiert oder aktiviert. Installiere und aktiviere es, " +
 				"und wähle es dann erneut aus.",
@@ -3120,6 +3124,10 @@ export const de: Translations = {
 			keypadNone: "Ausgeblendet",
 			keypadBasic: "Einfach",
 			keypadScientific: "Wissenschaftlich",
+			separator: "Zahlenformat",
+			separatorDesc: "Dezimaltrennzeichen für die Ergebnisse dieser Karte und für die Dezimaltaste des Tastenfelds. Folgt Einstellungen → Suchleiste, sofern hier nichts anderes gewählt ist.",
+			separatorDot: "1,234.5 (Punkt)",
+			separatorComma: "1 234,5 (Komma)",
 		},
 		dataview: {
 			language: "Abfragetyp",
@@ -4065,6 +4073,9 @@ export const de: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km in Meilen, 10 € in USD…",
+			copyResult: "Ergebnis kopieren",
+			copied: (value: string) => `Kopiert: ${value}`,
+			copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
 		},
 		rss: {
 			allTab: "Alle",

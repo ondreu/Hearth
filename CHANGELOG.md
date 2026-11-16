@@ -15,6 +15,18 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **Numbers can be written with a comma decimal separator.** *Number format* in
+  Settings → Search bar chooses between `1,234.5` and `1 234,5` across the app:
+  the calculator card (whose own setting is an override), the keypad's decimal
+  key, and the search bars' arithmetic and currency answers. A query typed with
+  the chosen separator (`1,5 + 2`) evaluates like its dotted form, while commas
+  between function arguments still separate arguments (`max(1, 5)`).
+
+- **Copy the calculator's result.** A copy button in the card's top-right corner
+  — revealed on hover, like the task card's add control — puts the result on the
+  clipboard exactly as the card shows it, including its unit and the card's
+  number format.
+
 - **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
   [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community

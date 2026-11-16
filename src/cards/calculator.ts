@@ -1,9 +1,10 @@
-import { debounce, Setting } from "obsidian";
+import { debounce, Notice, Setting } from "obsidian";
 import type { CardHost } from "../cardhost";
 import { evaluate as evaluateCalc } from "../calculator";
 import { cachedRates, loadRates } from "../currency";
+import { setIcon } from "../glyphs";
 import { t } from "../i18n";
-import { type DashboardCard } from "../types";
+import { type CalculatorKeypad, type DashboardCard, type DecimalSeparator } from "../types";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // ---- Calculator ---------------------------------------------------------
@@ -51,12 +52,24 @@ export const CALC_SCI_KEYS: CalcKey[] = [
 	{ label: "mod", insert: " mod ", cls: "is-fn" },
 ];
 
+/** The keys of a keypad tier, with the decimal key matching the card's chosen
+ * separator — a comma-formatted result has to be typeable back in. */
+export function calcKeys(tier: CalculatorKeypad, decimalSeparator: DecimalSeparator = "."): CalcKey[] {
+	const basic =
+		decimalSeparator === ","
+			? CALC_BASIC_KEYS.map((key) => (key.insert === "." ? { ...key, label: ",", insert: "," } : key))
+			: CALC_BASIC_KEYS;
+	return tier === "scientific" ? [...CALC_SCI_KEYS, ...basic] : basic;
+}
+
 /** A free-text calculator: arithmetic, unit/currency conversions and
  * plain-language queries (à la Wolfram Alpha's input box), evaluated live as
  * you type. The on-screen keypad tier is chosen in card settings. */
 export function renderCalculator(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = (card.calculator ??= {});
 	const angleUnit = cfg.angleUnit ?? "deg";
+	// The card follows the vault's number format unless it was given its own.
+	const decimalSeparator = cfg.decimalSeparator ?? view.plugin.settings.numberFormat ?? ".";
 
 	const wrap = body.createDiv("hearth-calc");
 
@@ -74,6 +87,32 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 	const resultEl = wrap.createDiv("hearth-calc-result");
 	const noteEl = wrap.createDiv("hearth-calc-note");
 	const keysEl = wrap.createDiv("hearth-calc-keys");
+
+	// What the result line currently shows, or null when there is nothing to
+	// copy. Read by the copy button so the two can never disagree.
+	let lastResult: string | null = null;
+
+	// A copy control in the card's top-right corner, revealed on hover like the
+	// task card's add button; hidden until there is a result to copy.
+	const actions = body.createDiv("hearth-calc-actions is-hidden");
+	const copyBtn = actions.createEl("button", {
+		cls: "hearth-calc-copy",
+		attr: {
+			type: "button",
+			"aria-label": t().cards.calculator.copyResult,
+			title: t().cards.calculator.copyResult,
+		},
+	});
+	setIcon(copyBtn, "clipboard-copy");
+	copyBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		if (lastResult === null) return;
+		const text = lastResult;
+		void navigator.clipboard
+			.writeText(text)
+			.then(() => new Notice(t().cards.calculator.copied(text)))
+			.catch(() => new Notice(t().cards.calculator.copyFailed));
+	});
 
 	// Currency conversions need exchange rates. To stay local-first, rates are
 	// only fetched lazily — the first time a query actually needs them (see the
@@ -95,17 +134,21 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 			resultEl.setText("");
 			resultEl.removeClass("is-error");
 			noteEl.setText("");
+			lastResult = null;
+			actions.toggleClass("is-hidden", true);
 			persist();
 			return;
 		}
-		const res = evaluateCalc(raw, { angleUnit, rates: currentRates() });
+		const res = evaluateCalc(raw, { angleUnit, rates: currentRates(), decimalSeparator });
 		if (res.ok) {
 			resultEl.removeClass("is-error");
 			resultEl.setText(res.formatted);
 			noteEl.setText(res.note ?? "");
+			lastResult = res.formatted;
 		} else {
 			resultEl.addClass("is-error");
 			resultEl.setText(res.error ? "…" : "");
+			lastResult = null;
 			// Surface a currency/rates hint (but not routine "still typing" errors).
 			noteEl.setText(/rate|currency/i.test(res.error) ? res.error : "");
 			// A currency query needs rates we don't have yet — fetch them once,
@@ -123,6 +166,7 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 				});
 			}
 		}
+		actions.toggleClass("is-hidden", lastResult === null);
 		persist();
 	};
 
@@ -169,7 +213,7 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 		const tier = cfg.keypad ?? "none";
 		keysEl.toggleClass("is-hidden", tier === "none");
 		if (tier === "none") return;
-		const keys = tier === "scientific" ? [...CALC_SCI_KEYS, ...CALC_BASIC_KEYS] : CALC_BASIC_KEYS;
+		const keys = calcKeys(tier, decimalSeparator);
 		for (const key of keys) {
 			const btn = keysEl.createEl("button", {
 				cls: `hearth-calc-key${key.cls ? " " + key.cls : ""}`,
@@ -225,6 +269,21 @@ export function calculatorEditor(ctx: CardEditorContext, containerEl: HTMLElemen
 			d.addOption("scientific", t().editors.calculator.keypadScientific);
 			d.setValue(cfg.keypad ?? "none").onChange((v) => {
 				cfg.keypad = v === "none" ? undefined : (v as "basic" | "scientific");
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	new Setting(containerEl)
+		.setName(t().editors.calculator.separator)
+		.setDesc(t().editors.calculator.separatorDesc)
+		.addDropdown((d) => {
+			d.addOption(".", t().editors.calculator.separatorDot);
+			d.addOption(",", t().editors.calculator.separatorComma);
+			d.setValue(cfg.decimalSeparator ?? ctx.opts.settings.numberFormat ?? ".").onChange((v) => {
+				const chosen: DecimalSeparator = v === "," ? "," : ".";
+				// Store only a deviation from the vault setting, so the card keeps
+				// following it — and a later change there — until it differs.
+				cfg.decimalSeparator = chosen === ctx.opts.settings.numberFormat ? undefined : chosen;
 				ctx.opts.save();
 				ctx.opts.rerender();
 			});

@@ -15,7 +15,7 @@
  * often unreachable) is served by Tencent first.
  */
 import { CURRENCY_CODES } from "./currency";
-import type { MarketProviderId, MarketRange } from "./types";
+import type { DecimalSeparator, MarketProviderId, MarketRange } from "./types";
 
 // ---- Shapes ---------------------------------------------------------------
 
@@ -925,11 +925,19 @@ export function priceDecimals(value: number, type: MarketAssetType, currency: st
 	return 2;
 }
 
-/** A price in the reader's number format, without a currency sign. */
-export function formatPrice(value: number | null, type: MarketAssetType = "equity", currency = ""): string {
+/** A price in the reader's number format, without a currency sign. Given a
+ * `decimalSeparator` (the vault's number format), the digits follow it instead
+ * of the runtime locale — so a search answer's rate line reads like its value. */
+export function formatPrice(
+	value: number | null,
+	type: MarketAssetType = "equity",
+	currency = "",
+	decimalSeparator?: DecimalSeparator,
+): string {
 	if (value === null) return "—";
 	const d = priceDecimals(value, type, currency);
-	return value.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+	const locale = decimalSeparator === "," ? "cs-CZ" : decimalSeparator === "." ? "en-US" : undefined;
+	return value.toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 /** A signed amount: "+1.23", "−0.45" (a real minus sign), "0.00". */

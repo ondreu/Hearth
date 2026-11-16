@@ -257,6 +257,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		searchInstantAnswers: s.searchInstantAnswers,
 		hiddenInstantAnswers: s.hiddenInstantAnswers,
 		searchEngine: s.searchEngine,
+		numberFormat: s.numberFormat,
 		webSearchEngine: s.webSearchEngine,
 
 		// Background
@@ -1560,6 +1561,8 @@ function sanitizeCalculator(r: Record<string, unknown>): CalculatorConfig {
 		cfg.angleUnit = r.angleUnit;
 	if (r.keypad === "basic" || r.keypad === "scientific" || r.keypad === "none")
 		cfg.keypad = r.keypad;
+	if (r.decimalSeparator === "," || r.decimalSeparator === ".")
+		cfg.decimalSeparator = r.decimalSeparator;
 	const lastInput = str(r.lastInput);
 	if (lastInput !== undefined) cfg.lastInput = lastInput;
 	return cfg;
@@ -2311,6 +2314,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	) {
 		s.searchEngine = data.searchEngine;
 	}
+	if (data.numberFormat === "." || data.numberFormat === ",")
+		s.numberFormat = data.numberFormat;
 	if (isWebSearchEngineId(data.webSearchEngine)) s.webSearchEngine = data.webSearchEngine;
 
 	// Background

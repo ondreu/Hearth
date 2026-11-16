@@ -236,7 +236,7 @@ feeds, reads **TaskNotes** (scheduled, due, recurrences, timeblocks) and
 | --- | --- | --- |
 | **Links / launchpad** | A launchpad for links, notes, commands and folders: a grid of buttons with labels of your own, each with its own column and row span, filling the card or fixed in pixels | — |
 | **Text / jot-down** | A quick Markdown scratchpad saved with the card | — |
-| **Calculator** | Math, unit conversions, number bases (`FF hex to decimal`), live currency and plain-language queries (`20% of 150`), with an optional keypad | Network for rates |
+| **Calculator** | Math, unit conversions, number bases (`FF hex to decimal`), live currency and plain-language queries (`20% of 150`), with an optional keypad, a dot/comma number format and one-click copying of the result | Network for rates |
 | **Web page** | Any `http(s)` URL in a sandboxed iframe, optionally auto-refreshed | Network |
 
 ### Integration cards

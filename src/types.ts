@@ -1044,12 +1044,19 @@ export interface StatsConfig {
  * constants and powers. */
 export type CalculatorKeypad = "none" | "basic" | "scientific";
 
+/** How a calculator writes (and reads) the fractional part of a number: a dot
+ * with comma-grouped thousands (`1,234.5`) or a comma with space-grouped
+ * thousands (`1 234,5`). */
+export type DecimalSeparator = "." | ",";
+
 /** Per-card configuration for a "calculator" card. */
 export interface CalculatorConfig {
 	/** Angle unit assumed by trig functions. Default "deg". */
 	angleUnit?: "deg" | "rad";
 	/** On-screen keypad tier. Default "none". */
 	keypad?: CalculatorKeypad;
+	/** Decimal separator for results and for typed decimal commas. Default ".". */
+	decimalSeparator?: DecimalSeparator;
 	/** The last query typed, restored when the board reloads. */
 	lastInput?: string;
 }
@@ -2746,6 +2753,11 @@ export interface HomeSettings {
 	 * enabled — Hearth falls back to the built-in engine otherwise), or matching
 	 * the way Obsidian's own Quick switcher does (see quickswitcher.ts). */
 	searchEngine: "builtin" | "omnisearch" | "quickswitcher";
+	/** How Hearth writes a number wherever it prints one — the calculator card
+	 * and the search bars' instant answers: a dot with comma-grouped thousands
+	 * (`1,234.5`) or a comma with space-grouped thousands (`1 234,5`). A
+	 * calculator card may override it for itself. */
+	numberFormat: DecimalSeparator;
 	/** Which web search engine the “Search online” button opens. The dropdown
 	 * beside the button can search elsewhere for one query without changing
 	 * this. See {@link WebSearchEngineId}. */
@@ -3122,6 +3134,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	searchInstantAnswers: true,
 	hiddenInstantAnswers: [],
 	searchEngine: "builtin",
+	numberFormat: ".",
 	webSearchEngine: DEFAULT_WEB_SEARCH_ENGINE,
 
 	backgroundKind: "default",

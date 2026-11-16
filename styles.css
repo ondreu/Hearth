@@ -3707,6 +3707,68 @@ button.hearth-kofi-btn:focus-visible {
 	background: var(--interactive-accent-hover);
 }
 
+/* Copy control in the card's top-right corner — the calculator's counterpart
+ * of the task card's add button: floated over the card and revealed on hover,
+ * so it never takes a row of its own. Hidden (not just faded) with no result. */
+.hearth-calc-actions {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	z-index: 4;
+	display: flex;
+	pointer-events: none;
+}
+
+.hearth-calc-actions.is-hidden {
+	display: none;
+}
+
+.hearth-calc-copy {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0;
+	pointer-events: auto;
+	transition:
+		opacity 140ms ease,
+		background 140ms ease,
+		border-color 140ms ease,
+		color 140ms ease;
+}
+
+/* Reveal on card hover (anywhere over the card, not just the button's corner). */
+.hearth-card:hover .hearth-calc-copy,
+.hearth-calc-copy:focus-visible {
+	opacity: 1;
+}
+
+.hearth-calc-copy:hover {
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	opacity: 1;
+}
+
+.hearth-calc-copy .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+/* A touch device has no hover to reveal it with, so keep it visible. */
+@media (hover: none) {
+	.hearth-calc-copy {
+		opacity: 1;
+	}
+}
+
 /* Links / launchpad */
 .hearth-links {
 	/* CSS grid with a fine cell size (44px columns, ~34px rows) so tiles can be

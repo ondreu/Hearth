@@ -15,12 +15,16 @@
  * are unavailable rather than guessing.
  */
 import { CURRENCY_CODES, CURRENCY_NAMES, CURRENCY_SYMBOLS } from "./currency";
+import type { DecimalSeparator } from "./types";
 
 /** Options that tune how an expression is evaluated. */
 export interface CalcOptions {
 	/** Angle unit assumed for trig functions and their inverses. Default "deg"
 	 * (so `sin(30)` is 0.5, which is what most casual users expect). */
 	angleUnit?: "deg" | "rad";
+	/** How results are formatted, and which decimal comma parses as a decimal
+	 * point. Default "." (1,234.5); "," writes 1 234,5 and reads 1,5 as 1.5. */
+	decimalSeparator?: DecimalSeparator;
 	/** Exchange rates for currency conversions: each ISO code (lowercase) mapped
 	 * to its units per one unit of some shared base, including that base = 1.
 	 * Omitted when no rates are available (offline / not yet fetched). */
@@ -286,8 +290,8 @@ function parsePrefixed(raw: string): { value: number; base: NumberBase } | null 
  * calculator has no bit width to wrap them at and treats negatives as signed
  * values everywhere else.
  */
-function formatInBase(value: number, base: NumberBase): string {
-	if (base.radix === 10) return formatNumber(value);
+function formatInBase(value: number, base: NumberBase, decimalSeparator: DecimalSeparator = "."): string {
+	if (base.radix === 10) return formatNumber(value, decimalSeparator);
 	const sign = value < 0 ? "-" : "";
 	return `${sign}${base.prefix}${Math.abs(value).toString(base.radix).toUpperCase()}`;
 }
@@ -615,21 +619,55 @@ function stripFiller(input: string): string {
 // ---- Number formatting -------------------------------------------------
 
 /** Format a number for display: tame floating-point noise, group thousands,
- * and fall back to exponential notation for very large/small magnitudes. */
-export function formatNumber(value: number): string {
+ * and fall back to exponential notation for very large/small magnitudes. The
+ * separator pair follows `decimalSeparator`: a comma decimal groups thousands
+ * with spaces (1 234,5), a dot decimal with commas (1,234.5). */
+export function formatNumber(value: number, decimalSeparator: DecimalSeparator = "."): string {
 	if (!Number.isFinite(value)) {
 		return Number.isNaN(value) ? "undefined" : value > 0 ? "∞" : "-∞";
 	}
 	if (value === 0) return "0";
 	const abs = Math.abs(value);
 	if (abs >= 1e15 || abs < 1e-6) {
-		return value.toExponential(6).replace(/\.?0+e/, "e");
+		const exp = value.toExponential(6).replace(/\.?0+e/, "e");
+		return decimalSeparator === "," ? exp.replace(".", ",") : exp;
 	}
 	// Round to 10 significant decimals to absorb 0.1+0.2 style noise.
 	const rounded = Number(value.toPrecision(12));
 	const parts = rounded.toString().split(".");
-	const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	return parts.length > 1 ? `${intPart}.${parts[1]}` : intPart;
+	const group = decimalSeparator === "," ? "\u00A0" : ",";
+	const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, group);
+	return parts.length > 1 ? `${intPart}${decimalSeparator}${parts[1]}` : intPart;
+}
+
+/**
+ * Read decimal commas as decimal points. A comma between digits is a decimal
+ * separator — unless it sits in a function call's argument list, where a comma
+ * still separates arguments (`max(1,5)` is two arguments, `1,5 + 2` is 3,5).
+ * Only applied when the card asks for comma decimals; a dot always works.
+ */
+function decimalCommasToPoints(input: string): string {
+	let out = "";
+	// One entry per open paren: true when that paren opens a function call.
+	const calls: boolean[] = [];
+	for (let i = 0; i < input.length; i++) {
+		const ch = input[i];
+		if (ch === "(") {
+			calls.push(/[a-zµπ][a-z0-9µπ]*$/i.test(out));
+		} else if (ch === ")") {
+			calls.pop();
+		} else if (
+			ch === "," &&
+			!calls[calls.length - 1] &&
+			/\d/.test(out.slice(-1)) &&
+			/\d/.test(input[i + 1] ?? "")
+		) {
+			out += ".";
+			continue;
+		}
+		out += ch;
+	}
+	return out;
 }
 
 // ---- Public entry point ------------------------------------------------
@@ -639,6 +677,7 @@ const CONVERSION_RE = /^(.*\S)\s+(?:to|in|into|as)\s+([^\s].*?)$/i;
 /** Try to interpret the input as a unit conversion. Returns null if it isn't
  * one (so the caller can fall back to plain expression evaluation). */
 function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
+	const fmt = (n: number) => formatNumber(n, opts.decimalSeparator);
 	const m = CONVERSION_RE.exec(input);
 	if (!m) return null;
 	const [, leftRaw, targetRaw] = m;
@@ -683,8 +722,8 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 		return {
 			ok: true,
 			value: out,
-			formatted: `${formatNumber(rounded)} ${targetCurrency.toUpperCase()}`,
-			note: `${formatNumber(value)} ${src.currency.toUpperCase()} → ${targetCurrency.toUpperCase()}`,
+			formatted: `${fmt(rounded)} ${targetCurrency.toUpperCase()}`,
+			note: `${fmt(value)} ${src.currency.toUpperCase()} → ${targetCurrency.toUpperCase()}`,
 		};
 	}
 
@@ -698,8 +737,8 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 		return {
 			ok: true,
 			value: out,
-			formatted: `${formatNumber(out)} ${TEMP_LABEL[targetTemp]}`,
-			note: `${formatNumber(value)} ${TEMP_LABEL[src.temp]} → ${TEMP_LABEL[targetTemp]}`,
+			formatted: `${fmt(out)} ${TEMP_LABEL[targetTemp]}`,
+			note: `${fmt(value)} ${TEMP_LABEL[src.temp]} → ${TEMP_LABEL[targetTemp]}`,
 		};
 	}
 
@@ -712,8 +751,8 @@ function tryConvert(input: string, opts: CalcOptions): CalcResult | null {
 	return {
 		ok: true,
 		value: out,
-		formatted: `${formatNumber(out)} ${to.label}`,
-		note: `${formatNumber(value)} ${from.label} → ${to.label}`,
+		formatted: `${fmt(out)} ${to.label}`,
+		note: `${fmt(value)} ${from.label} → ${to.label}`,
 	};
 }
 
@@ -759,8 +798,8 @@ function convertBase(leftRaw: string, target: NumberBase, opts: CalcOptions): Ca
 	return {
 		ok: true,
 		value,
-		formatted: formatInBase(value, target),
-		note: `${formatInBase(value, source)} → ${target.label}`,
+		formatted: formatInBase(value, target, opts.decimalSeparator),
+		note: `${formatInBase(value, source, opts.decimalSeparator)} → ${target.label}`,
 	};
 }
 
@@ -823,7 +862,8 @@ export function currencyConversion(
  * This is the single entry point the calculator card calls.
  */
 export function evaluate(rawInput: string, opts: CalcOptions = {}): CalcResult {
-	const input = stripFiller(normalizeCurrencySymbols(rawInput));
+	const stripped = stripFiller(normalizeCurrencySymbols(rawInput));
+	const input = opts.decimalSeparator === "," ? decimalCommasToPoints(stripped) : stripped;
 	if (!input) return { ok: false, error: "" };
 
 	// Unit conversion first (it recognises the "… to/in/as unit" shape).
@@ -837,7 +877,7 @@ export function evaluate(rawInput: string, opts: CalcOptions = {}): CalcResult {
 	try {
 		const value = evaluateExpression(input, opts);
 		if (Number.isNaN(value)) return { ok: false, error: "Not a number" };
-		return { ok: true, value, formatted: formatNumber(value) };
+		return { ok: true, value, formatted: formatNumber(value, opts.decimalSeparator) };
 	} catch (e) {
 		return { ok: false, error: e instanceof Error ? e.message : "Invalid expression" };
 	}

@@ -956,6 +956,10 @@ export const zh: Translations = {
 			searchEngineBuiltin: "Hearth（内置）",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "快速切换",
+			numberFormat: "数字格式",
+			numberFormatDesc: "计算器卡片和搜索栏答案中数字的写法：1,234.5 使用点为小数点，1 234,5 使用逗号。计算器卡片可单独选择。",
+			numberFormatDot: "1,234.5（点）",
+			numberFormatComma: "1 234,5（逗号）",
 			omnisearchMissing:
 				"Omnisearch 未安装或未启用。请先安装并启用，然后再次选择。",
 			omnisearchInstallLink: "在社区插件中打开 Omnisearch",
@@ -2785,6 +2789,10 @@ export const zh: Translations = {
 			keypadNone: "隐藏",
 			keypadBasic: "基础",
 			keypadScientific: "科学",
+			separator: "数字格式",
+			separatorDesc: "此卡片结果和键盘小数点键使用的分隔符。未在此选择时跟随“设置 → 搜索栏”。",
+			separatorDot: "1,234.5（点）",
+			separatorComma: "1 234,5（逗号）",
 		},
 		dataview: {
 			language: "查询类型",
@@ -3692,6 +3700,9 @@ export const zh: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2、10 km to miles、10 € to USD…",
+			copyResult: "复制结果",
+			copied: (value: string) => `已复制 ${value}`,
+			copyFailed: "无法复制到剪贴板",
 		},
 		rss: {
 			allTab: "全部",
