@@ -1,4 +1,5 @@
 import { Component, Notice, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import {
 	cardOverlayButton,
@@ -15,9 +16,7 @@ import {
 import { t } from "../i18n";
 import { openFile } from "../opener";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 /**
  * Embed today's daily note, resolved fresh on every render so the card always
@@ -25,7 +24,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * note doesn't exist yet, and respects the per-card editable toggle.
  */
 export function renderDaily(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -75,7 +74,6 @@ export function renderDaily(
 	body.addClass("is-embed-host");
 	void renderMarkdownFile(view, file, host, component);
 }
-
 
 export function dailyEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;

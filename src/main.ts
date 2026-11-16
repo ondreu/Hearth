@@ -2,6 +2,8 @@ import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } f
 import { installGlyphMode } from "./glyphs";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
 import { CardPaneView } from "./cardpaneview";
+import type { OpenFrom } from "./opener";
+import { syncCardCommands } from "./cardcommands";
 import { PANE_VIEW_TYPE } from "./cardpanesidebar";
 import { VIEW_TYPE_FOLDER } from "./cards/folder";
 import { FolderView } from "./folderview";
@@ -213,6 +215,10 @@ export default class HearthPlugin extends Plugin {
 		});
 
 		this.registerDashboardCommands();
+		// One command per card that asked for one (#491). Rebuilt whenever the
+		// settings are, so a card that is renamed, un-switched or deleted takes
+		// its command with it.
+		syncCardCommands(this);
 
 		this.addSettingTab(new HomeSettingTab(this.app, this));
 
@@ -484,7 +490,7 @@ export default class HearthPlugin extends Plugin {
 	 * has no view and falls back to the active leaf. `query` is what the search
 	 * field held when the button beside it was pressed — a title typed there
 	 * names the note; the command has no field and passes nothing. */
-	async createNewNote(from?: HomeView, query = "") {
+	async createNewNote(from?: OpenFrom, query = "") {
 		await createConfiguredNote(
 			this.app,
 			this.settings,
@@ -578,9 +584,14 @@ export default class HearthPlugin extends Plugin {
 	 * simply falls through to that comparison, which reaches the same answer.
 	 */
 	override async saveData(data: unknown): Promise<void> {
+		// Whether this is the live settings or a detached copy (an export, a
+		// staged write) has to be decided before the rewrite below: with
+		// device-local state on, `data` is replaced by the for-disk copy, and a
+		// check against `this.settings` made after that would never match.
+		const live = data === this.settings;
 		// With device-local state on, the active dashboard stays out of the file:
 		// it goes to localStorage, and data.json keeps the board it already holds.
-		if (data === this.settings) {
+		if (live) {
 			if (this.settings.deviceLocalState) {
 				this.rememberActiveDashboardLocally();
 				data = settingsForDisk(this.settings, this.diskActiveDashboardId);
@@ -589,10 +600,14 @@ export default class HearthPlugin extends Plugin {
 		}
 		await super.saveData(data);
 		this.lastSeenSettingsJson = JSON.stringify(data, null, 2);
+		if (!live) return;
+		// A card's own command follows the settings it was switched on in
+		// (#491) — every save path goes through here, the card editor included.
+		syncCardCommands(this);
 		// A pane draws a card that a board may just have changed or removed
 		// (#492): catch it up after the save rather than leaving it stale until
 		// something else happens to refresh it.
-		if (data === this.settings) this.refreshCardPanesDebounced();
+		this.refreshCardPanesDebounced();
 	}
 
 	async saveSettings() {
@@ -667,6 +682,8 @@ export default class HearthPlugin extends Plugin {
 		this.app.workspace.getLeavesOfType(PANE_VIEW_TYPE).forEach((leaf) => {
 			if (leaf.view instanceof HomeView && leafIsVisible(leaf)) leaf.view.render();
 		});
+		// Cards' own commands follow the same settings (#491).
+		syncCardCommands(this);
 	}
 
 	/** Re-render a home view when it becomes the active leaf again, so content

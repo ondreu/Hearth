@@ -1,4 +1,5 @@
 import { type Component, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
@@ -12,15 +13,13 @@ import {
 	recentFilePaths,
 } from "../recentfiles";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 import { displayTitleSetting, fitItemsToBody, fileViewSetting, renderFileItems } from "./fileview";
-
 
 // ---- Recent files -------------------------------------------------------
 
 export function renderRecent(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component?: Component,
@@ -54,7 +53,6 @@ export function renderRecent(
 	const container = renderFileItems(view, card, body, files.map((file) => ({ file })));
 	if (auto) fitItemsToBody(body, container, component);
 }
-
 
 export function recentEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
@@ -102,7 +100,6 @@ export function recentEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 	// Last, because it is the one setting most vaults never open (#399).
 	displayTitleSetting(ctx, containerEl, t().editors.recent);
 }
-
 
 /** File-type filter for the recent-files card: a row of toggleable chips
  * mirroring the search filter's types. Any combination may be selected; an

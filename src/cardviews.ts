@@ -264,6 +264,10 @@ export function stripFrame(card: DashboardCard): DashboardCard {
 	card.y = 0;
 	card.w = 1;
 	card.h = 1;
+	// A view is not a card of its own on the board, so it cannot carry a
+	// command of its own either — that would leave the palette offering to open
+	// a card that is now one face of another (#491).
+	card.command = undefined;
 	return card;
 }
 

@@ -1,6 +1,6 @@
 import { setTooltip, TFile } from "obsidian";
+import type { CardHost } from "./cardhost";
 import { setIcon } from "./glyphs";
-import type { HomeView } from "./view";
 import { isImageFile } from "./filetypes";
 import { t } from "./i18n";
 
@@ -11,7 +11,7 @@ import { t } from "./i18n";
  * existing image file. A bare Lucide id (no slash/extension) never resolves to
  * a file, so it falls through to Lucide rendering.
  */
-export function resolveIconImage(view: HomeView, icon: string | undefined): TFile | null {
+export function resolveIconImage(view: CardHost, icon: string | undefined): TFile | null {
 	const path = icon?.trim();
 	if (!path) return null;
 	const file = view.app.vault.getAbstractFileByPath(path);
@@ -29,7 +29,7 @@ export function resolveIconImage(view: HomeView, icon: string | undefined): TFil
  *   `fallback` when the string is empty).
  */
 export function applyTileVisual(
-	view: HomeView,
+	view: CardHost,
 	tile: HTMLElement,
 	icon: string | undefined,
 	fallback: string,

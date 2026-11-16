@@ -175,6 +175,21 @@ The card is drawn at whatever width the sidebar has, and adapts to it the way it
 does on a narrow board: a wide card shows less of itself in a thin sidebar, so
 widen the sidebar — or keep the card on the board — for its full layout.
 
+## A card as a command
+
+Any card can also be given a command of its own. The switch is in the card's
+settings dialog, on the **Layout** tab: **Add to command menu**. With it on, the card
+appears in Obsidian's command palette as **Hearth: Open <card>** — the card's
+title is what gets matched, so name the card something you would type.
+
+On Obsidian versions with the core **Slash commands** plugin turned on, the same
+command is also in the editor's `/` menu, which is the quick way to it while
+writing. Hearth's own search bar lists it too: a leading `>` searches commands.
+
+Running it opens the card in a floating dialog over the note — the same card,
+with its own settings a click away. The switch is off by default, because a
+board of thirty cards would otherwise put thirty commands in the palette.
+
 ## Cards, dashboards and the settings cascade
 
 Three visual properties — opacity, blur, border width — plus corner radius exist

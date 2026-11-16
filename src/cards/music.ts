@@ -1,4 +1,5 @@
 import { type App, type Component, Setting, TFile, TFolder } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { type PlayerState, vaultPlayer } from "../audioplayer";
 import { emptyState } from "../cardbodies";
 import { setIcon } from "../glyphs";
@@ -35,9 +36,7 @@ import {
 	type MusicRepeat,
 	type MusicSource,
 } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Track collection ---------------------------------------------------
 
@@ -78,7 +77,6 @@ function collectTracks(app: App, cfg: MusicConfig): TFile[] {
 	}
 	return folderTracks(app, cfg.folder, cfg.includeSubfolders === true);
 }
-
 
 // ---- Player chrome -----------------------------------------------------
 
@@ -428,7 +426,6 @@ function paintList(
 	items.forEach((el, index) => el.toggleClass("is-current", shown[index]?.current === true));
 }
 
-
 // ---- Vault source ------------------------------------------------------
 
 /** Which album each card is looking into, by card id. Browsing is not a
@@ -438,7 +435,7 @@ function paintList(
 const openedAlbums = new Map<string, string>();
 
 function renderVaultSource(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -621,11 +618,10 @@ function playbackError(code: string): string {
 	return strings.errorPlayback;
 }
 
-
 // ---- Stereo source -----------------------------------------------------
 
 function renderStereoSource(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -715,11 +711,10 @@ function renderStereoSource(
 	component.register(() => unsubscribe());
 }
 
-
 // ---- Render entry ------------------------------------------------------
 
 export function renderMusic(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -732,7 +727,6 @@ export function renderMusic(
 	if (musicSource(cfg) === "stereo") renderStereoSource(view, card, body, component, cfg);
 	else renderVaultSource(view, card, body, component, cfg);
 }
-
 
 // ---- Editor ------------------------------------------------------------
 
@@ -925,7 +919,6 @@ function stereoSection(ctx: CardEditorContext, containerEl: HTMLElement): void {
 		);
 	}
 }
-
 
 // ---- Definition --------------------------------------------------------
 

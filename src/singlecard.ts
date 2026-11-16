@@ -1,4 +1,5 @@
 import { setIcon } from "./glyphs";
+import type { BoardHost } from "./cardhost";
 import { emptyState } from "./cardbodies";
 import { t } from "./i18n";
 import {
@@ -12,7 +13,6 @@ import { openCardPicker } from "./cardpicker";
 import { GRID_GAP, placeFreeform, ROW_HEIGHT } from "./grid";
 import { openCardSettings, persistAndRender } from "./dashboard";
 import { openDashboardSettings } from "./dashboards";
-import type { HomeView } from "./view";
 
 /**
  * A single-card board: a dashboard whose whole board is one of its own Hearth
@@ -31,7 +31,7 @@ import type { HomeView } from "./view";
  * that board's grid — so switching the board back to cards keeps it. `dash`
  * need not be the active board: the dashboard settings open on any board.
  */
-export function addSingleBoardCard(view: HomeView, dash: Dashboard, onAdded?: () => void): void {
+export function addSingleBoardCard(view: BoardHost, dash: Dashboard, onAdded?: () => void): void {
 	openCardPicker(view.app, {
 		hearthVersion: view.plugin.manifest.version,
 		onChoose: (template) => {
@@ -58,7 +58,7 @@ export function addSingleBoardCard(view: HomeView, dash: Dashboard, onAdded?: ()
  * plugin board places its gear: the card's own settings (title, source, look),
  * and the dashboard settings, where the board can be pointed at another card.
  */
-export function renderSingleCardActions(view: HomeView, switcherZone: HTMLElement): void {
+export function renderSingleCardActions(view: BoardHost, switcherZone: HTMLElement): void {
 	const zone = switcherZone.createDiv("hearth-arrange-zone hearth-plugin-actions");
 	zone.toggleClass(
 		"is-auto-hide",
@@ -80,7 +80,7 @@ export function renderSingleCardActions(view: HomeView, switcherZone: HTMLElemen
 
 /** What a single-card board shows before it has a card: a spoken empty state
  * and the one button that fixes it. */
-export function renderSingleCardEmpty(view: HomeView, container: HTMLElement): void {
+export function renderSingleCardEmpty(view: BoardHost, container: HTMLElement): void {
 	const wrap = container.createDiv("hearth-single-card-empty");
 	emptyState(wrap, "square", t().cards.empty.boardPickCard);
 	const add = wrap.createEl("button", { cls: "mod-cta", text: t().dashboard.addCard });

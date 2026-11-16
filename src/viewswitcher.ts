@@ -1,4 +1,5 @@
 import type { Component } from "obsidian";
+import type { BoardHost } from "./cardhost";
 import { setIcon } from "./glyphs";
 import { cardDefinition } from "./cards";
 import { activeViewIndex, cardViews, resolveViewSwitcher, type ResolvedViewSwitcher } from "./cardviews";
@@ -6,7 +7,6 @@ import { t } from "./i18n";
 import { hearthMenu } from "./uidesign";
 import { showMenuFor } from "./filemenu";
 import type { DashboardCard } from "./types";
-import type { HomeView } from "./view";
 
 /**
  * The control that switches a card between its views (#385), and the two other
@@ -27,7 +27,7 @@ export interface ViewIdentity {
  * `viewLabel`/`viewIcon` wins; then what the kind can tell from the content (an
  * embed card's file); then the card's title; then the kind's name and icon.
  */
-export function viewIdentity(view: HomeView, card: DashboardCard): ViewIdentity {
+export function viewIdentity(view: BoardHost, card: DashboardCard): ViewIdentity {
 	const def = cardDefinition(card);
 	const own = def.viewIdentity?.(view, card) ?? {};
 	return {
@@ -62,7 +62,7 @@ export function revealScrollLeft(scrollLeft: number, row: Span, tab: Span): numb
 
 /** What the card hands the switcher. */
 export interface ViewSwitcherHost {
-	view: HomeView;
+	view: BoardHost;
 	/** The card on the board. */
 	card: DashboardCard;
 	cardEl: HTMLElement;

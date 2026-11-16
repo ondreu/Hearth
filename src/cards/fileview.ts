@@ -1,4 +1,5 @@
 import { type Component, debounce, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { fileLabel } from "../filelabel";
 import { explorerTitles } from "../frontmattertitle";
@@ -7,9 +8,7 @@ import { openFile } from "../opener";
 import { rowsThatFit } from "../recentfiles";
 import type { DashboardCard, FileView } from "../types";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardEditorContext } from "./definition";
-
 
 // ---- A card's files, as a list or as tiles (#358) -----------------------
 
@@ -34,7 +33,7 @@ export type FileItem = { file: TFile } | { missing: string };
  * different plugin.
  */
 export function renderFileItems(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	items: FileItem[],
@@ -66,7 +65,6 @@ export function renderFileItems(
 	}
 	return container;
 }
-
 
 /**
  * Hide the rows or tiles that don't fit the card's current height, and keep
@@ -121,7 +119,6 @@ export function fitItemsToBody(body: HTMLElement, container: HTMLElement, compon
 	component?.register(() => observer.disconnect());
 }
 
-
 /** The list/tiles switch, shared by both editors so it reads the same in each. */
 export function fileViewSetting(
 	ctx: CardEditorContext,
@@ -143,7 +140,6 @@ export function fileViewSetting(
 			});
 		});
 }
-
 
 /** The strings {@link displayTitleSetting} needs; both file-list editors pass
  * their own copy of the same three labels. */

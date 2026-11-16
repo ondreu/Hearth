@@ -7,6 +7,7 @@ import {
 	type TAbstractFile,
 } from "obsidian";
 import { setIcon } from "./glyphs";
+import type { CardHost } from "./cardhost";
 import { hearthMenu, HearthModal } from "./uidesign";
 import {
 	createDailyNoteAt,
@@ -70,7 +71,6 @@ import {
 	type TaskNotesSourceConfig,
 } from "./types";
 import { dressModal, makeClickable } from "./ui";
-import { type HomeView } from "./view";
 import { type CardEditorContext } from "./cards/definition";
 
 /**
@@ -126,7 +126,6 @@ export interface IcsContext {
 	start(): void;
 }
 
-
 /** The resolved TaskNotes source for one card render. */
 interface TaskNotesSource {
 	setup: TaskNotesSetup;
@@ -134,7 +133,6 @@ interface TaskNotesSource {
 	/** Offer a complete/reopen action in the event popup. */
 	allowComplete: boolean;
 }
-
 
 /** The resolved checkbox-task source for one card render. */
 interface CheckboxSource {
@@ -144,7 +142,6 @@ interface CheckboxSource {
 	/** Offer a complete/reopen action on each entry. */
 	allowComplete: boolean;
 }
-
 
 /** Resolve the card's checkbox-task source, or null when it's off. */
 function buildCheckboxSource(cfg: CheckboxTasksSourceConfig | undefined): CheckboxSource | null {
@@ -162,17 +159,14 @@ function buildCheckboxSource(cfg: CheckboxTasksSourceConfig | undefined): Checkb
 	};
 }
 
-
 /** Source id given to every checkbox-task entry. */
 const CHECKBOX_SOURCE_ID = "hearth:checkbox";
-
 
 /** Parsed checkbox tasks per note, stamped with the mtime they were read at.
  * The calendar cards are rebuilt on every vault change, so this keeps a
  * rebuild from re-reading the whole vault: only notes whose mtime moved are
  * read again, and until they are, their previous tasks stand in (no flicker). */
 const checkboxCache = new Map<string, { mtime: number; tasks: CheckboxTask[] }>();
-
 
 /** Every cached checkbox task in scope, plus the notes that need (re)reading. */
 function checkboxTasksNow(app: App, folders: string[]): { tasks: CheckboxTask[]; stale: TFile[] } {
@@ -195,7 +189,6 @@ function checkboxTasksNow(app: App, folders: string[]): { tasks: CheckboxTask[];
 	return { tasks, stale };
 }
 
-
 /** Read and parse `files` into the checkbox cache. */
 async function readCheckboxFiles(app: App, files: TFile[]): Promise<void> {
 	await Promise.all(
@@ -212,7 +205,6 @@ async function readCheckboxFiles(app: App, files: TFile[]): Promise<void> {
 	);
 }
 
-
 /** Source id given to every TaskNotes task/timeblock entry, so it resolves a
  * label and colour through the same lookup as an ICS feed. */
 const TASKNOTES_SOURCE_ID = "hearth:tasknotes";
@@ -223,7 +215,7 @@ const TASKNOTES_SUB_PREFIX = "hearth:tnsub:";
 /** Resolve the card's TaskNotes source: its live settings plus the layers to
  * draw. Each layer follows TaskNotes' own calendar settings unless this card
  * overrides it, so switching the source on mirrors TaskNotes as configured. */
-export function buildTaskNotesSource(view: HomeView, cfg: TaskNotesSourceConfig | undefined): TaskNotesSource | null {
+export function buildTaskNotesSource(view: CardHost, cfg: TaskNotesSourceConfig | undefined): TaskNotesSource | null {
 	if (cfg?.enabled !== true || !taskNotesEnabled(view.app)) return null;
 	const setup = readTaskNotesSetup(view.app);
 	const pick = (own: boolean | undefined, mirrored: boolean): boolean => own ?? mirrored;
@@ -244,9 +236,8 @@ export function buildTaskNotesSource(view: HomeView, cfg: TaskNotesSourceConfig 
 	};
 }
 
-
 export function buildIcsContext(
-	view: HomeView,
+	view: CardHost,
 	cfg: CalendarSourcesConfig,
 	sources: NonNullable<CalendarSourcesConfig["sources"]>,
 	component: Component,
@@ -453,7 +444,7 @@ export function buildIcsContext(
  * an existing note, runs the core "open today's note" command for today, or
  * offers to create the note for any other day. No-op when daily notes are off. */
 export function openDailyNote(
-	view: HomeView,
+	view: CardHost,
 	day: Moment,
 	options: DailyNotesOptions | null,
 	file: TAbstractFile | null,
@@ -475,7 +466,6 @@ export function openDailyNote(
 	}
 }
 
-
 /** A one-line time label for an event: its start–end range, or "All day". */
 export function eventTimeLabel(ev: IcsOccurrence): string {
 	if (ev.allDay) return t().cards.calendar.allDay;
@@ -484,13 +474,11 @@ export function eventTimeLabel(ev: IcsOccurrence): string {
 	return `${start} – ${moment(new Date(ev.end)).format("LT")}`;
 }
 
-
 /** Open the full event-details modal — the "view this event" action from the
  * day picker and the agenda. */
-export function showEventDetail(view: HomeView, ev: IcsOccurrence, ics: IcsContext): void {
+export function showEventDetail(view: CardHost, ev: IcsOccurrence, ics: IcsContext): void {
 	dressModal(new EventDetailModal(view, ev, ics), ics.expressive).open();
 }
-
 
 /** Human-readable date (or date range) for an event, spelled out for the modal:
  * a single day reads "Monday, July 20, 2026"; a span reads "Jul 20 – Jul 23". */
@@ -511,13 +499,12 @@ export function eventDateLabel(ev: IcsOccurrence): string {
 	return start.format("dddd, LL");
 }
 
-
 /** A full modal with every field an ICS event carries: name, date, time,
  * location, notes, source calendar and any link. Fields that are absent are
  * simply skipped, so a bare event shows just its name and when. */
 class EventDetailModal extends HearthModal {
 	constructor(
-		private readonly view: HomeView,
+		private readonly view: CardHost,
 		private readonly ev: IcsOccurrence,
 		private readonly ics: IcsContext,
 	) {
@@ -698,7 +685,6 @@ class EventDetailModal extends HearthModal {
 	}
 }
 
-
 /** The event data the note builder consumes, resolved from an occurrence plus
  * its source calendar's display name. */
 function toEventNoteInput(ev: IcsOccurrence, calendar: string): EventNoteInput {
@@ -715,7 +701,6 @@ function toEventNoteInput(ev: IcsOccurrence, calendar: string): EventNoteInput {
 	};
 }
 
-
 /** Create the note for an event from the card's note template, seeded from
  * its template note when it names one. Returns the file, or null on failure. */
 async function createEventNote(
@@ -729,12 +714,11 @@ async function createEventNote(
 	return writeClipNote(app, built);
 }
 
-
 /** When a day has external events, clicking it opens this picker rather than
  * jumping straight into the note: the daily note (open or create) sits at the
  * top, then each event — so notes and events are both reachable in one click. */
 export function showDayMenu(
-	view: HomeView,
+	view: CardHost,
 	day: Moment,
 	options: DailyNotesOptions | null,
 	file: TAbstractFile | null,
@@ -791,7 +775,7 @@ export function showDayMenu(
  * a recurring task, the status for a one-off; a checkbox task is ticked in its
  * note — then redraws the card. */
 function renderTaskCompleteBox(
-	view: HomeView,
+	view: CardHost,
 	row: HTMLElement,
 	task: TaskNotesMeta,
 	ics: IcsContext,
@@ -809,7 +793,6 @@ function renderTaskCompleteBox(
 	});
 }
 
-
 /** Whether an entry can be ticked off from the calendar: a checkbox task when
  * its source allows it, a TaskNotes task (never a timeblock) when TaskNotes'
  * source does. */
@@ -818,12 +801,11 @@ export function canComplete(task: TaskNotesMeta, ics: IcsContext): boolean {
 	return task.kind !== "timeblock" && ics.taskNotes?.allowComplete === true;
 }
 
-
 /** Complete (or reopen) one task occurrence from the calendar: a checkbox task
  * gets exactly the write the tasks card makes, a TaskNotes task what TaskNotes
  * writes. */
 export async function toggleTaskCompletion(
-	view: HomeView,
+	view: CardHost,
 	task: TaskNotesMeta,
 	complete: boolean,
 	ics: IcsContext,
@@ -847,7 +829,7 @@ export async function toggleTaskCompletion(
 }
 
 export function renderEventRow(
-	view: HomeView,
+	view: CardHost,
 	parent: HTMLElement,
 	ev: IcsOccurrence,
 	day: Moment,
@@ -1206,7 +1188,6 @@ export function taskNotesSourceEditor(
 	);
 }
 
-
 /** The "Checkbox tasks" section of the calendar editor: draw every Markdown
  * `- [ ]` task that carries a due (📅) or scheduled (⏳) date, the format the
  * tasks card reads and writes. */
@@ -1326,7 +1307,6 @@ export function checkboxTasksSourceEditor(
 		(v) => (cb.dueColor = v),
 	);
 }
-
 
 /** The "External calendars" section of the calendar editor: subscribe to one
  * or more ICS/iCal feeds (name, URL, colour, enable toggle) overlaid on the
@@ -1450,7 +1430,6 @@ export function calendarSourcesEditor(ctx: CardEditorContext, containerEl: HTMLE
 	eventNoteEditor(ctx, containerEl, cfg);
 }
 
-
 /**
  * One row per TaskNotes subscription, each reporting what actually happened to
  * it: how many events came through, that it was blocked by the "disable
@@ -1490,7 +1469,6 @@ function subscriptionStatusList(
 	);
 }
 
-
 /** A failure reason in the user's language, falling back to whatever the
  * network/vault layer reported. */
 function subscriptionError(error: string): string {
@@ -1499,7 +1477,6 @@ function subscriptionError(error: string): string {
 	if (error === "missing-file") return strings.taskNotesSubMissingFile;
 	return error;
 }
-
 
 /** Re-fetch every TaskNotes subscription now, bypassing the freshness window,
  * so the rows above report a fresh verdict. */
@@ -1516,7 +1493,6 @@ async function refreshSubscriptions(
 		),
 	);
 }
-
 
 /** The "Event notes" section: the note template behind the event popup's
  * "Create note" — name, folder, properties and body (see `src/clip.ts`),

@@ -10,7 +10,7 @@ import { deferRedrawWhileTyping } from "./cardfocus";
 import { gateCardMotionOnVisibility } from "./motion";
 import { confirmAction } from "./ui";
 import { t } from "./i18n";
-import type { HomeView } from "./view";
+import type { BoardHost } from "./cardhost";
 import {
 	createVaultEventHub,
 	scopedVaultEventHub,
@@ -86,7 +86,7 @@ import {
  * mode cards can be moved, resized, added, removed and re-targeted on the
  * snap-to-grid layout. */
 export function renderDashboard(
-	view: HomeView,
+	view: BoardHost,
 	container: HTMLElement,
 	component: Component,
 	/** The board to draw. Every caller but a sidebar card pane (#492) draws the
@@ -488,7 +488,7 @@ export function renderDashboard(
  *   "missing file" state); for content edits (modify) read-only cards redraw
  *   while editable cards sync their textarea in place so the cursor is kept. */
 export function mountCardBody(
-	view: HomeView,
+	view: BoardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	parent: Component,
@@ -592,12 +592,12 @@ export function mountCardBody(
  * `redrawOnModify` (a predicate, re-evaluated per event so an embed that
  * switches between a read-only and an editable view is handled correctly). */
 function watchCardFile(
-	view: HomeView,
+	view: BoardHost,
 	card: DashboardCard,
 	events: VaultEventHub,
 	draw: () => void,
 	redrawOnModify: () => boolean,
-	watchedPath: (view: HomeView, card: DashboardCard) => string | null,
+	watchedPath: (view: BoardHost, card: DashboardCard) => string | null,
 ): void {
 	// Coalesce bursts of writes (e.g. an editor autosaving) into one redraw.
 	const redraw = debounce(draw, 150, true);
@@ -616,7 +616,7 @@ function watchCardFile(
 
 /** Save the current settings and rebuild the view (used after structural
  * changes like adding, removing or re-targeting a card). */
-export function persistAndRender(view: HomeView): void {
+export function persistAndRender(view: BoardHost): void {
 	void view.plugin.saveData(view.plugin.settings);
 	view.render();
 }
@@ -634,7 +634,7 @@ export function persistAndRender(view: HomeView): void {
  * arranging, where the header is a text field that must keep its own clicks.
  */
 function enableCollapseToggle(
-	view: HomeView,
+	view: BoardHost,
 	card: DashboardCard,
 	el: HTMLElement,
 	head: HTMLElement,
@@ -684,7 +684,7 @@ function enableCollapseToggle(
 /** The editable card header shown in arrange mode: an inline title field plus
  * actions to open the card's settings and to remove the card. */
 function renderCardControls(
-	view: HomeView,
+	view: BoardHost,
 	card: DashboardCard,
 	head: HTMLElement,
 	commit: () => void,
@@ -796,7 +796,7 @@ function renderCardControls(
  * the first of them so the merge is visible. Shared by drop-to-merge and the
  * card editor's "Merge a card into this one".
  */
-export function mergeCardInto(view: HomeView, host: DashboardCard, other: DashboardCard): void {
+export function mergeCardInto(view: BoardHost, host: DashboardCard, other: DashboardCard): void {
 	if (host === other) return;
 	const s = view.plugin.settings;
 	const first = cardViews(host).length;
@@ -809,14 +809,14 @@ export function mergeCardInto(view: HomeView, host: DashboardCard, other: Dashbo
 
 /** Drop-to-merge from the arrange board: dragged card `dragged` let go over
  * `target`. */
-function mergeByDrop(view: HomeView, target: DashboardCard, dragged: DashboardCard): void {
+function mergeByDrop(view: BoardHost, target: DashboardCard, dragged: DashboardCard): void {
 	mergeCardInto(view, target, dragged);
 }
 
 /** Put cards that were views back on the board next to where they came from:
  * each takes the first free slot, as a newly added card does, on the board (or
  * pinned row) its card is on. */
-export function placeDetachedCards(view: HomeView, host: DashboardCard, detached: DashboardCard[]): void {
+export function placeDetachedCards(view: BoardHost, host: DashboardCard, detached: DashboardCard[]): void {
 	if (detached.length === 0) return;
 	const s = view.plugin.settings;
 	const pinned = s.pinnedCards.includes(host);
@@ -841,7 +841,7 @@ export function placeDetachedCards(view: HomeView, host: DashboardCard, detached
 
 /** Open the full settings editor for a single card, driven entirely from the
  * board so nothing has to be configured in the plugin settings tab. */
-export function openCardSettings(view: HomeView, card: DashboardCard): void {
+export function openCardSettings(view: BoardHost, card: DashboardCard): void {
 	const s = view.plugin.settings;
 	new CardSettingsModal(view.app, card, {
 		settings: s,
@@ -925,7 +925,7 @@ function addViewFromTemplate(card: DashboardCard, template: CardTemplateDef): nu
 /** Open the "Add card" picker and put the chosen card into a free slot on the
  * active board. Shared by the arrange toolbar and terminal mode's F7. The
  * gallery entry is offered only where the caller has room for it. */
-export function openAddCard(view: HomeView, withGallery: boolean, onAdded?: (card: DashboardCard) => void): void {
+export function openAddCard(view: BoardHost, withGallery: boolean, onAdded?: (card: DashboardCard) => void): void {
 	openCardPicker(view.app, {
 		hearthVersion: view.plugin.manifest.version,
 		onGallery: withGallery && galleryConfigured(view.plugin) ? () => openGallery(view.plugin) : undefined,
@@ -951,7 +951,7 @@ export function openAddCard(view: HomeView, withGallery: boolean, onAdded?: (car
 
 /** Confirm, then take `card` off the board. Shared by the arrange header's
  * remove button and terminal mode's card menu. */
-export function confirmRemoveCard(view: HomeView, card: DashboardCard): void {
+export function confirmRemoveCard(view: BoardHost, card: DashboardCard): void {
 	confirmAction(view.app, {
 		title: t().dashboard.removeCardTitle,
 		message: t().dashboard.removeCardMessage(card.title?.trim() || t().dashboard.thisCard),
@@ -963,7 +963,7 @@ export function confirmRemoveCard(view: HomeView, card: DashboardCard): void {
 	});
 }
 
-function renderToolbar(view: HomeView, container: HTMLElement): void {
+function renderToolbar(view: BoardHost, container: HTMLElement): void {
 	const bar = container.createDiv("hearth-toolbar");
 	// Track arrange mode so the toolbar can switch between its compact and full controls.
 	bar.toggleClass("is-arranging", view.arrangeMode);

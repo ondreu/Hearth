@@ -1,5 +1,5 @@
 import type { App, Component } from "obsidian";
-import type { HomeView } from "../view";
+import type { CardHost } from "../cardhost";
 import type { CardDesign, CardKind, DashboardCard, HomeSettings } from "../types";
 import type { VaultEvent } from "../cardevents";
 import type { CardSettingsOptions } from "../editors";
@@ -86,7 +86,7 @@ export type CardLiveness =
 	| {
 			mode: "watch-file";
 			/** The vault path the card currently tracks, or null if none. */
-			watchedPath: (view: HomeView, card: DashboardCard) => string | null;
+			watchedPath: (view: CardHost, card: DashboardCard) => string | null;
 			/** True while the card syncs edits in place (so a `modify` event must
 			 * not redraw and drop the cursor). Re-evaluated per event. */
 			editableInPlace: (card: DashboardCard) => boolean;
@@ -123,7 +123,7 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	/** At least one; drives the add-card menu. */
 	templates: CardTemplateDef[];
 	/** Draw the card body. */
-	render(view: HomeView, card: DashboardCard, body: HTMLElement, component: Component): void;
+	render(view: CardHost, card: DashboardCard, body: HTMLElement, component: Component): void;
 	/** Draw the kind-specific Content-tab controls. Omit for kinds with no
 	 * settings (bookmarks, text). */
 	renderEditor?(container: HTMLElement, ctx: CardEditorContext): void;
@@ -159,7 +159,7 @@ export interface CardDefinition<K extends CardKind = CardKind> {
 	 * Either field may be left out; the switcher falls back to the kind's name
 	 * and its first template's icon. A view's own `viewLabel`/`viewIcon` wins
 	 * over both. */
-	viewIdentity?(view: HomeView, card: DashboardCard): { label?: string; icon?: string };
+	viewIdentity?(view: CardHost, card: DashboardCard): { label?: string; icon?: string };
 	/** A note shown under the type dropdown in the editor (leaf's perf warning).
 	 * Gets the global settings so a note can react to them — the leaf card's
 	 * warning says something extra while the performance tier is stepped down. */

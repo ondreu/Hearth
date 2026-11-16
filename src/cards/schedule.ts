@@ -1,4 +1,5 @@
 import { Component, setTooltip, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import {
 	dailyNoteFinder,
@@ -38,9 +39,7 @@ import {
 } from "../timegrid";
 import { type DashboardCard, effectiveCardDesign, type ScheduleConfig, type ScheduleView } from "../types";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Calendar (full) -----------------------------------------------------
 
@@ -58,7 +57,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * today's daily note one click away.
  */
 export function renderSchedule(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -113,10 +112,9 @@ export function renderSchedule(
 	ics.start();
 }
 
-
 /** Everything a view renderer needs beyond its own layout maths. */
 interface ViewContext {
-	view: HomeView;
+	view: CardHost;
 	cfg: ScheduleConfig;
 	/** Daily-notes settings, or null when the card doesn't touch daily notes. */
 	options: DailyNotesOptions | null;
@@ -127,7 +125,6 @@ interface ViewContext {
 	/** Redraw the whole card (after navigating or switching view). */
 	redraw: () => void;
 }
-
 
 // ---- Navigation state ----------------------------------------------------
 
@@ -177,7 +174,6 @@ export function offeredViews(cfg: ScheduleConfig): ScheduleView[] {
 	const picked = ALL_VIEWS.filter((v) => cfg.views?.includes(v));
 	return picked.length ? picked : ALL_VIEWS;
 }
-
 
 // ---- Period maths --------------------------------------------------------
 
@@ -255,7 +251,6 @@ export function listDays(cfg: ScheduleConfig): number {
 	return days && days > 0 ? Math.min(Math.round(days), 90) : 14;
 }
 
-
 // ---- Toolbar -------------------------------------------------------------
 
 /** The card's one navigation surface: back / today / forward, the period it is
@@ -313,7 +308,6 @@ function viewName(view: ScheduleView): string {
 	return t().cards.schedule.views[view];
 }
 
-
 // ---- Shared day helpers --------------------------------------------------
 
 /** The daily note for a day, when the card is showing daily notes at all. */
@@ -330,7 +324,6 @@ function openDayNote(ctx: ViewContext, state: ScheduleState, day: Moment): void 
 	}
 	openDailyNote(ctx.view, day, ctx.options, noteFor(ctx, day), isToday(day));
 }
-
 
 /** Clicking a day's empty space or its column header: zoom into the day view —
  * what every calendar does. A card that doesn't offer the day view falls back
@@ -386,7 +379,6 @@ function eventChip(parent: HTMLElement, ev: IcsOccurrence, ctx: ViewContext): vo
 	makeClickable(chip, () => open(), ev.summary || t().cards.calendar.untitledEvent);
 }
 
-
 // ---- Month view ----------------------------------------------------------
 
 /** The month grid: one cell per day, each listing its events by name. Days
@@ -426,7 +418,6 @@ function renderMonth(main: HTMLElement, state: ScheduleState, ctx: ViewContext):
 		}
 	}
 }
-
 
 function renderMonthCell(
 	grid: HTMLElement,
@@ -491,7 +482,6 @@ function renderMonthCell(
 	cell.setAttribute("aria-label", day.format("dddd, LL"));
 }
 
-
 // ---- Week and day views --------------------------------------------------
 
 /** The time grid: an hour ruler down the left, one column per day, all-day
@@ -548,7 +538,6 @@ function renderTimeGrid(main: HTMLElement, state: ScheduleState, ctx: ViewContex
 	});
 }
 
-
 /** The days a time grid draws: the anchored day, or its week minus any hidden
  * weekend. */
 function gridDays(state: ScheduleState, ctx: ViewContext): Moment[] {
@@ -560,7 +549,6 @@ function gridDays(state: ScheduleState, ctx: ViewContext): Moment[] {
 		start.clone().add((dow - first + 7) % 7, "days"),
 	);
 }
-
 
 /** The sticky day headers above the grid: weekday, date, and the daily-note
  * dot, each opening its day. */
@@ -584,7 +572,6 @@ function renderGridHeader(
 		makeClickable(cell, activate, day.format("dddd, LL"));
 	}
 }
-
 
 /** The band above the grid for everything that has no hour of its own: all-day
  * events, and any timed event that falls outside the drawn window — those would
@@ -613,7 +600,6 @@ function renderAllDayRow(
 		for (const ev of events) eventChip(col, ev, ctx);
 	}
 }
-
 
 /** One day's column of timed blocks. */
 function renderDayColumn(
@@ -687,7 +673,6 @@ function renderDayColumn(
 	});
 }
 
-
 /** The line across now, on today's column only, nudged onto the right minute
  * every minute while the card is on screen. */
 function mountNowLine(
@@ -716,7 +701,6 @@ function mountNowLine(
 	ctx.component.registerInterval(window.setInterval(place, 60_000));
 }
 
-
 /** An hour ruler label, in the card's clock: "9 AM" on a 12-hour clock, "09:00"
  * on a 24-hour one, and whichever of the two the locale itself uses when the
  * card doesn't say. */
@@ -725,20 +709,17 @@ export function hourLabel(hour: number, cfg: ScheduleConfig): string {
 	return twelveHour(cfg) ? at.format("h A") : at.format("HH:mm");
 }
 
-
 /** Whether times are drawn on a 12-hour clock. */
 export function twelveHour(cfg: ScheduleConfig): boolean {
 	if (cfg.clock) return cfg.clock === "12";
 	return /a/i.test(moment.localeData().longDateFormat("LT"));
 }
 
-
 /** Pixels per hour, clamped to what stays legible and to what a card can hold. */
 function clampHourHeight(value: number | undefined): number {
 	const height = value === undefined || !Number.isFinite(value) ? 44 : Math.round(value);
 	return Math.min(Math.max(height, 20), 160);
 }
-
 
 // ---- List view -----------------------------------------------------------
 
@@ -781,7 +762,6 @@ function renderList(main: HTMLElement, state: ScheduleState, ctx: ViewContext): 
 		emptyState(main, "calendar-check", t().cards.schedule.listEmpty(days));
 	}
 }
-
 
 // ---- Editor --------------------------------------------------------------
 
@@ -1005,7 +985,6 @@ export function scheduleEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	checkboxTasksSourceEditor(ctx, containerEl, cfg);
 	calendarSourcesEditor(ctx, containerEl, cfg);
 }
-
 
 /** A full month / week / day / list calendar over ICS feeds, TaskNotes and the
  * vault's daily notes. */

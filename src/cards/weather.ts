@@ -1,4 +1,5 @@
 import { type App, Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { HearthModal } from "../uidesign";
 import { emptyState } from "../cardbodies";
@@ -16,7 +17,6 @@ import {
 	type WeatherStyle,
 	type WindUnit,
 } from "../types";
-import { type HomeView } from "../view";
 import {
 	cachedWeather,
 	compassIndex,
@@ -46,7 +46,6 @@ import { type AstroOptions, moonSummary, paintDaylight, paintMoon } from "./weat
 import { designSetting, dressModal, makeClickable } from "../ui";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
-
 // ---- Weather ------------------------------------------------------------
 //
 // One card, seven styles, from a single number on a transparent card to a
@@ -54,7 +53,6 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // snapshot (src/weather.ts) and honour the same "what to display" toggles;
 // what changes is how much of it reaches the surface. See `paintStyle` for the
 // dispatch and the `paint*` functions under it for each style.
-
 
 /** Every config value a render needs, with the defaults applied once so the
  * paint functions never repeat a `?? true` dance. */
@@ -522,7 +520,6 @@ function updatedLine(parent: HTMLElement, snapshot: WeatherSnapshot, r: Resolved
 	parent.createDiv({ cls: "hearth-weather-updated", text: updatedText(snapshot, r) });
 }
 
-
 // ---- Styles -------------------------------------------------------------
 
 /** Minimal: one glyph, one temperature. Anything else is opt-in. */
@@ -633,7 +630,6 @@ function paintForecast(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: Weathe
 	updatedLine(wrap, snapshot, r);
 }
 
-
 /** Artistic: an edge-to-edge painted sky with the reading laid over it. */
 function paintArtistic(wrap: HTMLElement, snapshot: WeatherSnapshot, cfg: WeatherConfig, r: Resolved): void {
 	const now = snapshot.now;
@@ -725,11 +721,10 @@ function paintStyle(
 	return null;
 }
 
-
 // ---- Render -------------------------------------------------------------
 
 export function renderWeather(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -865,7 +860,6 @@ export function renderWeather(
 		);
 	}
 }
-
 
 // ---- The full forecast --------------------------------------------------
 //
@@ -1227,7 +1221,6 @@ class WeatherDetailModal extends HearthModal {
 		return section;
 	}
 }
-
 
 // ---- Editor -------------------------------------------------------------
 

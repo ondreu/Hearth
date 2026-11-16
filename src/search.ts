@@ -1,6 +1,6 @@
 import { Command, Component, debounce, Platform, TFile, TFolder } from "obsidian";
+import type { CardHost } from "./cardhost";
 import { setIcon } from "./glyphs";
-import type { HomeView } from "./view";
 import { revealInExplorer } from "./fileexplorer";
 import { applyFileIcon, fileIconOptions, resolveFileIcon, type ResolvedIcon } from "./fileicons";
 import {
@@ -56,7 +56,7 @@ let resultsIdSeq = 0;
  * the notes (see instant.ts).
  */
 export class SearchSection {
-	private view: HomeView;
+	private view: CardHost;
 	private activeFilter: string | null = null;
 	/** Strict mode: the chip row is a whitelist, so this holds the chip ids the
 	 * reader switched *off*, and every chip starts on (#434). */
@@ -85,7 +85,7 @@ export class SearchSection {
 	/** The row Enter opens when none is selected. */
 	private defaultRow = 0;
 
-	constructor(view: HomeView) {
+	constructor(view: CardHost) {
 		this.view = view;
 		this.instant = new InstantAnswers({
 			externalCallsDisabled: () => this.view.plugin.settings.disableExternalCalls,

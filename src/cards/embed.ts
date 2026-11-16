@@ -1,4 +1,5 @@
 import { type App, Component, MarkdownRenderer, type OpenViewState, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { isBaseTarget, isEmbeddableBaseViewName, listBaseViews } from "../bases";
 import {
 	cardOverlayButton,
@@ -32,12 +33,10 @@ import {
 	type EmbedImageFit,
 	type EmbedImagePosition,
 } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
-
 export function renderEmbed(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -179,7 +178,6 @@ export function renderEmbed(
 	}
 }
 
-
 /**
  * Draw a picture that has been given a fit mode — "Fit the whole picture",
  * "Fill the card", "Stretch to the card" or "Fit the width".
@@ -196,7 +194,7 @@ export function renderEmbed(
  * before.
  */
 function renderFormattedImage(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	body: HTMLElement,
 	host: HTMLElement,
@@ -221,11 +219,10 @@ function renderFormattedImage(
 	img.decoding = "async";
 }
 
-
 /** How an embed card reads in a view switcher (#385): the embedded file's name,
  * and an icon for its type. Nothing when no file is chosen yet, so the switcher
  * falls back to the kind's own name and icon. */
-function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: string; icon?: string } {
+function embedViewIdentity(view: CardHost, card: DashboardCard): { label?: string; icon?: string } {
 	const target = card.target?.trim();
 	if (!target) return {};
 	const file = view.app.vault.getAbstractFileByPath(target);
@@ -247,7 +244,6 @@ function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: strin
 	return { label: part ? `${file.basename} › ${part}` : file.basename, icon };
 }
 
-
 // ---- Per-kind card editors (issue #103) --------------------------------
 // Lifted out of CardSettingsModal so each card kind's Content-tab controls
 // can be owned by its module. Each takes a CardEditorContext instead of the
@@ -258,7 +254,7 @@ function embedViewIdentity(view: HomeView, card: DashboardCard): { label?: strin
  * part in the body's scroll or flow. Where the file lands follows the global
  * open-behaviour setting (#106). */
 function renderEmbedOpenButton(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	body: HTMLElement,
 	section?: string,
@@ -267,7 +263,6 @@ function renderEmbedOpenButton(
 		void openEmbeddedFile(view, file, section, evt);
 	});
 }
-
 
 /**
  * Open the embedded file — and for a section card (#396), with the cursor on
@@ -279,7 +274,7 @@ function renderEmbedOpenButton(
  * the wrong place would be worse than one that opens the top.
  */
 async function openEmbeddedFile(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	section: string | undefined,
 	evt: MouseEvent,
@@ -292,7 +287,6 @@ async function openEmbeddedFile(
 	}
 	await openFile(view, file, "card", evt, state);
 }
-
 
 /**
  * The picture-formatting controls: how the picture fills the card, and — for
@@ -341,7 +335,6 @@ function imageFormatSettings(
 		});
 }
 
-
 /** The zoom slider. Its description depends on what
  * is being zoomed: a framed picture is scaled inside the frame it was fitted to
  * (so zooming a cropped picture crops further), everything else is scaled as a
@@ -376,7 +369,6 @@ function zoomSetting(
 		);
 }
 
-
 /** Whether `target` names a Markdown note — the only kind of file a section
  * (#396) applies to, and the only kind terminal mode draws as text. */
 function isMarkdownNote(app: App, target: string | undefined): boolean {
@@ -386,7 +378,6 @@ function isMarkdownNote(app: App, target: string | undefined): boolean {
 	return ext === "md" || ext === "markdown";
 }
 
-
 /** Whether terminal mode draws a view pointed at `target` as text — a note is;
  * a picture, a canvas, a base or a drawing is drawn as it always is, inside
  * the terminal frame, and keeps every setting (see `embedTui.graphicalFor`).
@@ -395,7 +386,6 @@ function isMarkdownNote(app: App, target: string | undefined): boolean {
 function drawnAsText(ctx: CardEditorContext, target: string | undefined): boolean {
 	return ctx.terminal && isMarkdownNote(ctx.app, target);
 }
-
 
 /**
  * Restrict the card to one section of the note (#396): a heading (with
@@ -467,7 +457,6 @@ function sectionSettings(
 		);
 }
 
-
 /** Store the section the field holds, normalizing nothing: `noteSection` does
  * that at render time, and the field should show what the user typed. An empty
  * field goes back to the whole note, and takes the heading toggle with it. */
@@ -479,7 +468,6 @@ function setSection(ctx: CardEditorContext, value: string): void {
 	ctx.opts.save();
 	ctx.opts.rerender();
 }
-
 
 /** Pick one of a note's headings or blocks (#396), by the fuzzy search every
  * other Hearth picker uses. */
@@ -511,7 +499,6 @@ class SectionPickerModal extends HearthFuzzySuggestModal<string> {
 		this.onChoose(item);
 	}
 }
-
 
 export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const card = ctx.card;
@@ -599,7 +586,6 @@ export function embedEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	}
 }
 
-
 export function setPrimaryEmbedTarget(ctx: CardEditorContext, value: string, rerender = false): void {
 	const previousTarget = ctx.card.target?.trim() ?? "";
 	const nextTarget = value.trim();
@@ -615,7 +601,6 @@ export function setPrimaryEmbedTarget(ctx: CardEditorContext, value: string, rer
 	if (rerender || wasBase !== isBase || imageChanged || (isBase && targetChanged))
 		ctx.requestRender();
 }
-
 
 export function baseViewSetting(ctx: CardEditorContext, 
 	containerEl: HTMLElement,
@@ -672,7 +657,6 @@ export function baseViewSetting(ctx: CardEditorContext,
 		});
 	});
 }
-
 
 /** Embedded note / image / base / excalidraw / canvas. One kind, five presets. */
 export const embedCard: CardDefinition<"embed"> = {

@@ -11,6 +11,7 @@ import {
 	type Menu,
 } from "obsidian";
 import { glyphModeActive, setIcon } from "../glyphs";
+import type { CardHost } from "../cardhost";
 import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
@@ -144,15 +145,12 @@ import {
 	toggleTasksPluginTask,
 } from "../tasksplugin";
 import { confirmAction, dressModal, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 /** Frontmatter key the Kanban plugin writes on every board note. Used both to
  * auto-detect a board when none is configured and to confirm a chosen file is
  * actually a Kanban board. */
 const KANBAN_FRONTMATTER_KEY = "kanban-plugin";
-
 
 // ---- Tasks ---------------------------------------------------------------
 
@@ -220,7 +218,6 @@ export interface TaskHit {
 	tags?: string[];
 }
 
-
 /** The default checkbox task states shown as Kanban columns when the card has
  * no custom set: To do ` `, In progress `/`, Done `x` (done). */
 function defaultCheckboxStatuses(): { symbol: string; label: string; done?: boolean }[] {
@@ -231,7 +228,6 @@ function defaultCheckboxStatuses(): { symbol: string; label: string; done?: bool
 	];
 }
 
-
 /** The card's configured checkbox statuses, or the default set. Blank/malformed
  * entries are dropped; a status without a label falls back to its symbol. */
 export function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: string; done?: boolean }[] {
@@ -240,7 +236,6 @@ export function checkboxStatuses(cfg: TasksConfig): { symbol: string; label: str
 		.map((s) => ({ symbol: s.symbol, label: (s.label || "").trim() || s.symbol, done: !!s.done }));
 	return custom.length ? custom : defaultCheckboxStatuses();
 }
-
 
 /**
  * Which task cards are drawn in the Expressive design, keyed by the config the
@@ -256,7 +251,7 @@ export function tasksExpressive(cfg: TasksConfig): boolean {
 }
 
 export function renderTasks(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component?: Component,
@@ -269,13 +264,12 @@ export function renderTasks(
 	refresh();
 }
 
-
 /**
  * The missing-plugin empty state for a card reading from obsidian-tasks: what
  * is wrong and the way back to Markdown checkboxes.
  */
 function renderTasksPluginMissing(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	container: HTMLElement,
 	refresh: () => void,
@@ -293,11 +287,10 @@ function renderTasksPluginMissing(
 	});
 }
 
-
 /** Resolve TaskNotes' "create new task" command id. Prefer a live lookup (the
  * plugin's command ids have shifted between versions) and fall back to the
  * conventional id. */
-export function taskNotesCreateCommandId(view: HomeView): string {
+export function taskNotesCreateCommandId(view: CardHost): string {
 	const commands = view.app.commands.listCommands();
 	const match =
 		commands.find((c) => /^tasknotes[:.]/i.test(c.id) && /create.*task/i.test(c.name)) ??
@@ -305,10 +298,9 @@ export function taskNotesCreateCommandId(view: HomeView): string {
 	return match?.id ?? "tasknotes:create-new-task";
 }
 
-
 /** A small "+" button that triggers TaskNotes' create-task command, appended to
  * `parent`. */
-function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
+function taskNotesAddButton(view: CardHost, parent: HTMLElement): void {
 	const btn = parent.createEl("button", {
 		cls: "hearth-task-add",
 		attr: { "aria-label": t().cards.tasks.createNewTask, title: t().cards.tasks.createNewTask },
@@ -322,7 +314,6 @@ function taskNotesAddButton(view: HomeView, parent: HTMLElement): void {
 		}
 	});
 }
-
 
 /** Places the list layout's controls: the filter/sort controls and a
  * source-appropriate add control (TaskNotes' create command, or a Kanban
@@ -340,9 +331,8 @@ export interface TaskFilterChoices {
 	tags: string[];
 }
 
-
 function renderTasksListHeader(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	filterChoices: TaskFilterChoices,
 	boardColumns: string[] | undefined,
@@ -372,7 +362,6 @@ function renderTasksListHeader(
 	}
 }
 
-
 /** Resolve where the list-layout controls (filter/sort/add) should live and
  * return the element to render them into.
  *
@@ -380,7 +369,7 @@ function renderTasksListHeader(
  * single host so a task refresh replaces — rather than stacks — them. An
  * untitled card, or any card while arranging (where the header holds the title
  * editor), floats them over the card's top-right corner instead. */
-function resolveTaskActionsHost(view: HomeView, container: HTMLElement): HTMLElement {
+function resolveTaskActionsHost(view: CardHost, container: HTMLElement): HTMLElement {
 	const head = view.arrangeMode
 		? null
 		: container.closest(".hearth-card")?.querySelector<HTMLElement>(".hearth-card-head");
@@ -397,7 +386,6 @@ function resolveTaskActionsHost(view: HomeView, container: HTMLElement): HTMLEle
 	// headerless cards, and never reserving a row of its own.
 	return container.createDiv("hearth-tasks-head hearth-tasks-listhead-actions");
 }
-
 
 /** A short, human-readable label for a recurrence rule (e.g. "FREQ=WEEKLY;
  * INTERVAL=2" → "Repeats weekly"). Returns null if the rule is empty or
@@ -422,13 +410,11 @@ export function recurrenceLabel(rule: string | undefined): string | null {
 	return interval > 1 ? t().recurrence.everyMany(interval, unit) : t().recurrence.everyOne(unit);
 }
 
-
 /** The date used for display/sorting — `due` wins, but recurring tasks use
  * `scheduled` (the next occurrence) since they have no fixed due date. */
 export function effectiveDate(hit: TaskHit): string | null {
 	return hit.due ?? hit.scheduled ?? null;
 }
-
 
 /** Format a due/next-occurrence date for display as a short, human-relative
  * label ("Today", "Tomorrow", "Yesterday", "Friday", "Next Friday", "15 Jul").
@@ -441,7 +427,6 @@ export function formatDueLabel(hit: TaskHit): string | null {
 	return `${formatRelativeDate(raw)}${tail}`;
 }
 
-
 /** Put a value's colour on a chip. It rides on a custom property rather than a
  * style attribute so the stylesheet decides what it tints — background, border
  * or dot — per chip style. */
@@ -450,7 +435,6 @@ function applyChipColor(el: HTMLElement, color: string | null): void {
 	el.addClass("is-colored");
 	el.style.setProperty("--chip-color", color);
 }
-
 
 /** Draw one value: a filled chip, a bare coloured dot with the value in the
  * tooltip, or plain text. `extraCls` carries a field's long-standing class
@@ -478,7 +462,6 @@ function renderValueChip(
 	el.setAttribute("title", opts.title ?? opts.text);
 	return el;
 }
-
 
 /**
  * A task's priority, in whichever form was asked for: the dot and its label
@@ -510,7 +493,6 @@ function renderPriorityChip(
 	return chip;
 }
 
-
 /** A pill showing a TaskNotes task's raw status value. The list layout's
  * completion checkbox only says done/not-done, so the actual status (open,
  * in-progress, waiting, …) needs a chip of its own. Where it lands is the
@@ -533,7 +515,6 @@ function renderStatusChip(
 	return chip;
 }
 
-
 /** The date a date source reads off a task. */
 export function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | null {
 	if (id === "start") return hit.start ?? null;
@@ -541,7 +522,6 @@ export function taskSourceDate(hit: TaskHit, id: TaskBuiltinSource): string | nu
 	if (id === "doneDate") return hit.doneDate ?? null;
 	return hit.due;
 }
-
 
 /** Render one of a task's date indicators: start (🛫), scheduled (⏳), the
  * due/next-occurrence label, or the done date (✅). The due label keeps its
@@ -625,7 +605,6 @@ function renderTaskDateChip(
 	return el;
 }
 
-
 /** A date held in a frontmatter property the user marked as a date: the same
  * relative label and relation colouring as a built-in date, without the emoji
  * marker (which belongs to the Tasks-plugin fields, not to arbitrary keys). */
@@ -653,7 +632,6 @@ function renderCustomDateChip(
 	if (!shown.color && !done && date.slice(0, 10) < today) el.addClass("is-overdue");
 	return el;
 }
-
 
 // ---- Editing a value from the task itself ---------------------------------
 
@@ -684,14 +662,13 @@ function taskKeyEditable(hit: TaskHit, source: string): boolean {
 	return hit.line < 0 || !!hit.linkedFile;
 }
 
-
 /** Write a new value for a key onto a task, or clear it when `value` is null.
  * Returns false when the write couldn't be made. Tasks-plugin tasks are never
  * written this way — their lines keep the vault's task format and go through
  * the plugin's own toggle/edit modals — so this refuses for that source and
  * the board/matrix render read-only there. */
 async function writeTaskFieldValue(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	source: string,
@@ -755,7 +732,6 @@ async function writeTaskFieldValue(
 		return false;
 	}
 }
-
 
 /**
  * A calendar for setting a task's date. The native date input is what puts a
@@ -829,7 +805,6 @@ class TaskDatePickerModal extends HearthModal {
 	}
 }
 
-
 /** Ask for a value the vault hasn't seen yet — the only way to introduce, say,
  * a first "blocked" status without editing the note by hand. */
 class TaskValuePromptModal extends HearthModal {
@@ -873,7 +848,6 @@ class TaskValuePromptModal extends HearthModal {
 	}
 }
 
-
 /**
  * The value picker opened by clicking a chip: the field's mapped values first
  * (under their own labels, so the menu reads the way the task does), then the
@@ -886,7 +860,7 @@ class TaskValuePromptModal extends HearthModal {
  * the user chose, and the rest are what the vault happens to contain.
  */
 async function openTaskValuePicker(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	key: TaskFieldKey,
@@ -950,10 +924,9 @@ async function openTaskValuePicker(
 	menu.showAtPosition(position);
 }
 
-
 /** The values one source takes across the card's scope, for the picker. */
 async function discoverSourceValues(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	source: string,
 ): Promise<string[]> {
@@ -963,12 +936,11 @@ async function discoverSourceValues(
 	return found.values.get(source) ?? [];
 }
 
-
 /** Make a chip open its value picker on click. The row underneath opens the
  * task, so the click must not reach it. */
 function makeChipEditable(
 	el: HTMLElement,
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	key: TaskFieldKey,
@@ -987,7 +959,6 @@ function makeChipEditable(
 	});
 }
 
-
 /** Where each field is drawn. The list layout is a single row, so all three are
  * the same element and the configured order is the visual order. A Kanban card
  * is three stacked areas (title row, description block, meta row), so a dot
@@ -1001,7 +972,6 @@ interface TaskFieldHosts {
 	 * (`hue`/`glow`) colours this instead of adding anything to the others. */
 	root: HTMLElement;
 }
-
 
 /** Colour the whole task. Applied at most once per task: a row has one
  * background and one ring, so the first ambient field that resolves a colour
@@ -1018,11 +988,10 @@ function applyAmbientColor(
 	root.style.setProperty("--hue-alpha", String(opacity));
 }
 
-
 /** Draw a task's metadata: the fields the card defines, or — when field
  * customization is off — the fixed set the card has always rendered. */
 function renderTaskFields(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	hosts: TaskFieldHosts,
@@ -1036,7 +1005,6 @@ function renderTaskFields(
 	else renderCustomTaskFields(view, cfg, hit, hosts, today, layout, fields, refresh, omitPriority);
 }
 
-
 /**
  * The metadata a task showed before any of this was configurable, and still
  * shows whenever field customization is off: the status chip and board column
@@ -1049,7 +1017,7 @@ function renderTaskFields(
  * chip aligning the title) are particular to it rather than general.
  */
 function renderLegacyTaskFields(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	hosts: TaskFieldHosts,
@@ -1103,7 +1071,6 @@ function renderLegacyTaskFields(
 	if (layout === "list" && hit.description) renderTaskDescription(hosts.block, hit.description, view, hit.file.path);
 }
 
-
 /** A task's tags as small chips (`#work`), in the order the line wrote them.
  * Draws nothing when the task has none. */
 function renderTaskTagChips(host: HTMLElement, hit: TaskHit): void {
@@ -1112,14 +1079,12 @@ function renderTaskTagChips(host: HTMLElement, hit: TaskHit): void {
 	}
 }
 
-
 /** The note a frontmatter key reads from: the task's own note for a TaskNotes
  * task, the linked note for a Kanban card converted to one, and otherwise the
  * note the task line lives in. */
 function fieldSourceFile(hit: TaskHit): TFile {
 	return hit.linkedFile ?? hit.file;
 }
-
 
 /** The raw values one of Hearth's own parsed sources holds for a task. Dates
  * and the description are drawn by their own renderers and never come through
@@ -1137,9 +1102,8 @@ function builtinSourceValues(hit: TaskHit, id: TaskBuiltinSource): string[] {
 	}
 }
 
-
 /** The raw values a key holds for a task, before any mapping. */
-export function keyValues(view: HomeView, hit: TaskHit, source: string): string[] {
+export function keyValues(view: CardHost, hit: TaskHit, source: string): string[] {
 	const builtin = sourceBuiltin(source);
 	if (builtin) return builtinSourceValues(hit, builtin);
 	const property = sourceProperty(source);
@@ -1148,14 +1112,13 @@ export function keyValues(view: HomeView, hit: TaskHit, source: string): string[
 	return taskFieldValues(frontmatter?.[property]);
 }
 
-
 /**
  * Draw the fields the user defined, in order — and only those. Every key of a
  * field that holds a value renders; a value with no mapping renders as itself,
  * uncoloured, so nothing goes missing for want of having been mapped.
  */
 function renderCustomTaskFields(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	hosts: TaskFieldHosts,
@@ -1276,15 +1239,13 @@ function renderCustomTaskFields(
 	}
 }
 
-
-
 /** Render a task's description as muted sub-bullets (one per line), with the
  * inline formatting a sub-bullet keeps (src/taskdescriptionview.ts). Links
  * open their target without also opening the task. */
 function renderTaskDescription(
 	parent: HTMLElement,
 	description: string,
-	view: HomeView | null = null,
+	view: CardHost | null = null,
 	sourcePath = "",
 ): void {
 	renderDescriptionLines(parent, description, (target, external, ev) => {
@@ -1293,7 +1254,6 @@ function renderTaskDescription(
 		else void openLink(view, target, sourcePath, "link", ev);
 	});
 }
-
 
 /** Whether a line-based task's inline Tasks-plugin metadata (dates, priority,
  * repeat marks) is managed — parsed for display/sorting and written on edits.
@@ -1306,7 +1266,6 @@ export function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
 	if ((cfg.source ?? "checkbox") === "obsidian-tasks") return true;
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
 }
-
 
 /** The default "smart" ordering: due date → scheduled date → priority → created
  * date. Dates compare as strings (YYYY-MM-DD sorts lexically); tasks missing a
@@ -1324,7 +1283,6 @@ function compareSmart(a: TaskHit, b: TaskHit): number {
 	return a.created - b.created;
 }
 
-
 /** A chosen sort key + direction. An absent `key` means "smart" (the default
  * chain); an absent `reverse` means ascending. */
 export type SortKey = NonNullable<TasksConfig["sortKey"]>;
@@ -1333,7 +1291,6 @@ export interface SortState {
 	key?: SortKey;
 	reverse?: boolean;
 }
-
 
 /** Sort a list of tasks in place by the given key and direction. Incomplete
  * tasks always come before completed ones (so "show completed" adds them below
@@ -1369,7 +1326,6 @@ export function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void 
 	});
 }
 
-
 /** Compare two tasks on a single custom-sort field, ascending. Tasks missing a
  * value for the field sort after those that have one; ties return 0 so the
  * next rule (or the created-date backstop) decides. */
@@ -1400,7 +1356,6 @@ function compareByField(a: TaskHit, b: TaskHit, field: TaskSortField): number {
 	return 0;
 }
 
-
 /** Sort tasks in place by an ordered list of custom rules: each rule is applied
  * as a tiebreaker for the previous, with the file creation time as the final
  * backstop. Like the single-key sort, incomplete tasks always come first. */
@@ -1415,12 +1370,10 @@ function sortHitsByRules(hits: TaskHit[], rules: TaskSortRule[]): void {
 	});
 }
 
-
 /** Whether a custom-rules sort is configured (a non-empty rule list). */
 function hasCustomSort(cfg: TasksConfig): boolean {
 	return !!cfg.sortRules?.length;
 }
-
 
 /** Sort tasks by the card's persistent (whole-list) sort setting: the custom
  * rule list when set, otherwise the single sort key + direction. */
@@ -1429,10 +1382,8 @@ export function sortTasks(hits: TaskHit[], cfg: TasksConfig): void {
 	else sortHits(hits, cfg.sortKey ?? "smart", !!cfg.sortReverse);
 }
 
-
 /** Available sort keys, in the order shown in the sort menu. */
 export const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "priority", "created", "alpha"];
-
 
 /** A minimalistic sort control: a small button that opens a menu to pick a sort
  * key or reverse the direction. `compact` renders it icon-only (for Kanban
@@ -1477,10 +1428,8 @@ function renderTaskSortControl(
 	});
 }
 
-
 /** Fields offered by the custom-sort modal, in menu order. */
 const TASK_SORT_FIELDS: TaskSortField[] = ["due", "scheduled", "priority", "created", "alpha", "status"];
-
 
 /**
  * The list header's sort control. Like {@link renderTaskSortControl} it offers
@@ -1490,7 +1439,7 @@ const TASK_SORT_FIELDS: TaskSortField[] = ["due", "scheduled", "priority", "crea
  * simple key clears it.
  */
 function renderTaskListSortControl(
-	view: HomeView,
+	view: CardHost,
 	parent: HTMLElement,
 	cfg: TasksConfig,
 	availableStatuses: string[],
@@ -1518,10 +1467,9 @@ function renderTaskListSortControl(
 	});
 }
 
-
 /** The list's sort menu: the simple sorts, reverse, and the custom-sort
  * dialog. Shared by the sort button and terminal mode's `s`. */
-export function taskSortMenu(view: HomeView, cfg: TasksConfig, availableStatuses: string[], refresh: () => void): Menu {
+export function taskSortMenu(view: CardHost, cfg: TasksConfig, availableStatuses: string[], refresh: () => void): Menu {
 	const custom = hasCustomSort(cfg);
 	const active: SortKey = cfg.sortKey ?? "smart";
 	const labels = t().cards.tasks.sortLabels;
@@ -1573,7 +1521,6 @@ export function taskSortMenu(view: HomeView, cfg: TasksConfig, availableStatuses
 	);
 	return menu;
 }
-
 
 /**
  * The custom-sort modal: an ordered list of rules (field + direction) applied
@@ -1714,7 +1661,6 @@ class TaskSortModal extends HearthModal {
 	}
 }
 
-
 // ---- List filter ---------------------------------------------------------
 
 /** Build distinct filter chip choices from every task the card loaded, so the
@@ -1774,11 +1720,10 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 	return { source, statuses, priorities, contexts, projects, tags };
 }
 
-
 /** A filter button styled like the sort control. Shows "active" when the card
  * carries a filter, and opens a modal to edit it (presets + custom criteria). */
 function renderTaskFilterControl(
-	view: HomeView,
+	view: CardHost,
 	parent: HTMLElement,
 	cfg: TasksConfig,
 	filterChoices: TaskFilterChoices,
@@ -1797,10 +1742,9 @@ function renderTaskFilterControl(
 	});
 }
 
-
 /** Open the filter dialog for a tasks card. Shared by the filter button and
  * terminal mode's `f`. */
-export function openTaskFilter(view: HomeView, cfg: TasksConfig, filterChoices: TaskFilterChoices, refresh: () => void): void {
+export function openTaskFilter(view: CardHost, cfg: TasksConfig, filterChoices: TaskFilterChoices, refresh: () => void): void {
 	const modal = new TaskFilterModal(view.app, cfg.taskFilter ?? {}, filterChoices, (next) => {
 		cfg.taskFilter = isTaskFilterActive(next) ? next : undefined;
 		void view.plugin.saveData(view.plugin.settings);
@@ -1809,10 +1753,8 @@ export function openTaskFilter(view: HomeView, cfg: TasksConfig, filterChoices: 
 	dressModal(modal, tasksExpressive(cfg)).open();
 }
 
-
 /** The order priority chips appear in the filter modal. */
 const TASK_PRIORITY_LEVELS: TaskPriorityLevel[] = ["highest", "high", "medium", "low", "lowest", "none"];
-
 
 /** Paint a filter chip as on or off, and say so for screen readers — the
  * accent fill is the only other cue that a chip is selected. */
@@ -1820,7 +1762,6 @@ function setChipState(chip: HTMLElement, on: boolean): void {
 	chip.toggleClass("is-on", on);
 	chip.setAttribute("aria-pressed", String(on));
 }
-
 
 /** The filter modal: quick presets across the top, then editable criteria
  * (due, priority, status, text). Edits are applied on "Apply"; "Cancel"
@@ -2116,7 +2057,6 @@ class TaskFilterModal extends HearthModal {
 	}
 }
 
-
 /** What a tasks card has to show: its tasks and what came with them, or the
  * message explaining why it has none to show. Shared by the graphical card and
  * its terminal-mode text form. */
@@ -2137,7 +2077,7 @@ export type TaskLoad =
 	  };
 
 /** Collect and sort a card's tasks from its source. */
-export async function loadTasks(view: HomeView, cfg: TasksConfig): Promise<TaskLoad> {
+export async function loadTasks(view: CardHost, cfg: TasksConfig): Promise<TaskLoad> {
 	const source = cfg.source ?? "checkbox";
 
 	if (source === "obsidian-tasks" && !tasksPluginEnabled(view.app)) {
@@ -2235,7 +2175,7 @@ export function taskChecked(cfg: TasksConfig, hit: TaskHit, today: string): bool
  * task moves between its done status and `openStatus`.
  */
 export function toggleTask(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	today: string,
@@ -2267,7 +2207,7 @@ export function toggleTask(
 }
 
 async function loadAndRenderTasks(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	container: HTMLElement,
 	refresh: () => void,
@@ -2320,10 +2260,9 @@ async function loadAndRenderTasks(
 	for (const hit of list) renderTaskRow(view, cfg, listEl, hit, today, refresh, openStatus);
 }
 
-
 /** The "+" control for a Tasks-plugin card: the plugin's own create dialog,
  * writing into the card's destination note. */
-function tasksPluginAddButton(view: HomeView, cfg: TasksConfig, parent: HTMLElement): void {
+function tasksPluginAddButton(view: CardHost, cfg: TasksConfig, parent: HTMLElement): void {
 	const btn = parent.createEl("button", {
 		cls: "hearth-task-add",
 		attr: { "aria-label": t().cards.tasks.createNewTask, title: t().cards.tasks.createNewTask },
@@ -2335,9 +2274,8 @@ function tasksPluginAddButton(view: HomeView, cfg: TasksConfig, parent: HTMLElem
 	});
 }
 
-
 function renderTaskRow(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	listEl: HTMLElement,
 	hit: TaskHit,
@@ -2432,7 +2370,6 @@ function renderTaskRow(
 	}
 }
 
-
 /** A Kanban board: tasks grouped into status columns, draggable between them.
  * For checkbox tasks the columns are To do / Done; for TaskNotes they're the
  * distinct status values (plus the configured "done" value). Dropping a task in
@@ -2473,7 +2410,7 @@ export interface TaskBoard {
 }
 
 export function taskBoard(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hits: TaskHit[],
 	refresh: () => void,
@@ -2681,9 +2618,8 @@ export function taskBoard(
 	};
 }
 
-
 function renderTaskKanban(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hits: TaskHit[],
 	container: HTMLElement,
@@ -2965,7 +2901,6 @@ function renderTaskKanban(
 	}
 }
 
-
 // ---- Eisenhower matrix ---------------------------------------------------
 
 /** The source a card's priorities are compared as. */
@@ -3048,7 +2983,7 @@ export function matrixReadsPriorities(cfg: TasksConfig): boolean {
  * property on a task note. A task already in the quadrant is left alone.
  */
 export function moveTaskToQuadrant(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	matrix: ResolvedTaskMatrix,
 	hit: TaskHit,
@@ -3073,7 +3008,7 @@ export function moveTaskToQuadrant(
  * line task's own items. Tasks-plugin tasks stay where the plugin puts them:
  * no move is offered, only the task's own items. */
 export function matrixTaskMenu(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	matrix: ResolvedTaskMatrix,
 	hit: TaskHit,
@@ -3113,7 +3048,7 @@ export function matrixTaskMenu(
 /** One task inside a quadrant: drawn as a board card, with the list's
  * checkbox (which ticks any source's task the same way the list does). */
 function renderMatrixCard(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	matrix: ResolvedTaskMatrix,
 	hit: TaskHit,
@@ -3158,7 +3093,7 @@ function renderMatrixCard(
  * between them rewrites its priority.
  */
 function renderTaskMatrix(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hits: TaskHit[],
 	container: HTMLElement,
@@ -3225,14 +3160,13 @@ function renderTaskMatrix(
 	}
 }
 
-
 /** Render a compact "+ Add card" control at the bottom of a Kanban column. On
  * click it swaps to a small form: a text input plus, in extended mode, a due
  * date and priority picker whose values are written onto the card as
  * Tasks-plugin metadata (📅 / ⏫🔼🔽). Enter or clicking away commits, Escape
  * cancels. When the column is a "done column" the new card is added completed. */
 function renderKanbanAddCard(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	heading: string,
 	colBody: HTMLElement,
@@ -3359,12 +3293,10 @@ function renderKanbanAddCard(
 	});
 }
 
-
 /** An empty metadata set. */
 function emptyMeta(): TaskMeta {
 	return { priority: "", tags: [], recurrence: "", start: "", scheduled: "", due: "" };
 }
-
 
 /** Build the Tasks-plugin metadata tail for a card (e.g. " ⏫ 🔁 every week 🛫
  * 2024-01-10 ⏳ 2024-01-12 📅 2024-01-15"). Emits markers in the Tasks-plugin's
@@ -3380,11 +3312,9 @@ function buildMetadataSuffix(meta: TaskMeta): string {
 	return s;
 }
 
-
 /** The repeat units offered by the deterministic recurrence picker, mapped to
  * the singular word the Tasks plugin expects ("every day/week/month/year"). */
 const RECURRENCE_UNITS = ["day", "week", "month", "year"] as const;
-
 
 /** Parse a Tasks-plugin recurrence string into the picker's {unit, interval}.
  * Handles "every day", "every week", "every 2 weeks", etc. Unknown/empty rules
@@ -3395,7 +3325,6 @@ function parseRecurrence(rule: string): { unit: string; interval: number } {
 	return { unit: m[2].toLowerCase(), interval: Math.max(1, parseInt(m[1] ?? "1", 10) || 1) };
 }
 
-
 /** Build a Tasks-plugin recurrence string from the picker's {unit, interval}
  * (e.g. "every week", "every 2 weeks"). Empty unit means no recurrence. */
 function buildRecurrence(unit: string, interval: number): string {
@@ -3403,7 +3332,6 @@ function buildRecurrence(unit: string, interval: number): string {
 	const n = Math.max(1, interval || 1);
 	return n > 1 ? `every ${n} ${unit}s` : `every ${unit}`;
 }
-
 
 /** Build the shared task-detail fields (priority, repeat, and start/scheduled/
  * due dates) into `parent`, prefilled from `meta`, and return a getter for the
@@ -3535,7 +3463,6 @@ function buildTaskDetailFields(
 	};
 }
 
-
 /** A modal to edit a Kanban card's dates, priority and description via {@link
  * buildTaskDetailFields}, prefilled from the card; submits the new values. */
 class TaskMetadataModal extends HearthModal {
@@ -3574,7 +3501,6 @@ class TaskMetadataModal extends HearthModal {
 	}
 }
 
-
 /** Where the quick view's "Create note" puts the note, for its tooltip. */
 function createNoteTooltip(cfg: TasksConfig): string {
 	const tt = t().cards.tasks;
@@ -3582,7 +3508,6 @@ function createNoteTooltip(cfg: TasksConfig): string {
 	const template = cfg.convertNoteTemplate?.trim();
 	return template ? tt.createNoteTooltipTemplate(folder, template) : tt.createNoteTooltip(folder);
 }
-
 
 /** A compact quick-view for a line-based task, opened by clicking it: shows the
  * task title, its Tasks-plugin metadata and (for Kanban cards) description, and
@@ -3602,7 +3527,7 @@ class TaskDetailModal extends HearthModal {
 	 * card — into its note body. Null when the extended-mode fields own it. */
 	private descArea: HTMLTextAreaElement | null = null;
 	constructor(
-		private readonly view: HomeView,
+		private readonly view: CardHost,
 		private readonly cfg: TasksConfig,
 		private readonly hit: TaskHit,
 		private readonly refresh: () => void,
@@ -3811,7 +3736,6 @@ class TaskDetailModal extends HearthModal {
 	}
 }
 
-
 /** Scan plain Markdown `- [ ]`/`- [x]` checkboxes in every in-scope note,
  * reading the full obsidian-tasks emoji metadata (priority, repeat, and the
  * start/scheduled/due/done dates) off each line — the same set the Kanban
@@ -3819,7 +3743,7 @@ class TaskDetailModal extends HearthModal {
  * editing. The metadata is stripped from the displayed text. When the card's
  * "Dates & priorities" toggle is off, checkboxes are read as plain text: the
  * emoji stay in the visible text and no dates/priority are parsed. */
-async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<TaskHit[]> {
+async function collectCheckboxTasks(view: CardHost, cfg: TasksConfig): Promise<TaskHit[]> {
 	const extended = cfg.checkboxExtended ?? true;
 	const statuses = checkboxStatuses(cfg);
 	// Symbols recognised as tasks: the configured ones, plus the always-valid
@@ -3915,7 +3839,6 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
 	return hits;
 }
 
-
 /**
  * Scan the vault for the tasks the obsidian-tasks plugin claims: any checkbox
  * line whose status symbol the plugin knows (its built-ins plus the user's
@@ -3924,7 +3847,7 @@ async function collectCheckboxTasks(view: HomeView, cfg: TasksConfig): Promise<T
  * status label are the plugin's own, so custom workflows sort and filter the
  * way the plugin means them.
  */
-async function collectTasksPluginTasks(view: HomeView, cfg: TasksConfig): Promise<TaskHit[]> {
+async function collectTasksPluginTasks(view: CardHost, cfg: TasksConfig): Promise<TaskHit[]> {
 	const statuses = tasksPluginStatuses(view.app);
 	const known = new Map(statuses.map((s) => [s.symbol.toLowerCase(), s]));
 	// The plugin's global filter is the only thing that says which of these
@@ -3977,7 +3900,6 @@ async function collectTasksPluginTasks(view: HomeView, cfg: TasksConfig): Promis
 	}
 	return hits;
 }
-
 
 /** Read TaskNotes task notes directly via frontmatter (see TasksConfig.source
  * doc for why: no stable public API, and field names are user-remappable).
@@ -4038,7 +3960,6 @@ function doneStatusMatcher(cfg: TasksConfig, globalDoneValue: string): (status: 
 	return (status: string) => done.has(status.trim().toLowerCase());
 }
 
-
 /** Coerce a frontmatter scalar to a string, treating missing, empty, or
  * non-scalar (object/array) values as absent. Guards against a YAML object
  * being rendered as the literal "[object Object]" in task metadata. */
@@ -4047,7 +3968,6 @@ function scalarField(v: unknown): string | undefined {
 	if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return String(v);
 	return undefined;
 }
-
 
 /** A string list from frontmatter: YAML arrays become entries; a scalar becomes
  * one entry. Duplicate values (case-insensitive, wikilink-normalized) collapse. */
@@ -4073,7 +3993,6 @@ function listField(v: unknown): string[] {
 	return out;
 }
 
-
 function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 	return {
 		text: hit.text,
@@ -4090,7 +4009,6 @@ function asTaskFilterHit(hit: TaskHit): TaskFilterHit {
 		tags: hit.tags,
 	};
 }
-
 
 /** Just a note's frontmatter tags, without their leading "#". This is the set
  * the editor round-trips for a note-linked card: {@link writeMetadataFrontmatter}
@@ -4110,7 +4028,6 @@ function noteFrontmatterTags(app: App, file: TFile): string[] {
 	}
 	return out;
 }
-
 
 /** Every tag on a note — frontmatter and inline — without its leading "#".
  * Used for the TaskNotes source, where a task is a note of its own. */
@@ -4132,8 +4049,7 @@ function noteTagValues(app: App, file: TFile): string[] {
 	return out;
 }
 
-
-function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
+function collectTaskNotesTasks(view: CardHost, cfg: TasksConfig): TaskHit[] {
 	const s = view.plugin.settings;
 	const setup = readTaskNotesSetup(view.app);
 	const statusField = taskNotesFieldName(s, cfg, "status", setup.fields.status);
@@ -4212,7 +4128,6 @@ function collectTaskNotesTasks(view: HomeView, cfg: TasksConfig): TaskHit[] {
 	return hits;
 }
 
-
 // ---- Kanban plugin board -------------------------------------------------
 
 /** Resolve the Kanban board note for a card. Prefers the explicitly configured
@@ -4232,7 +4147,6 @@ function resolveKanbanFile(app: App, cfg: TasksConfig): TFile | null {
 	return null;
 }
 
-
 /** The extent of a Kanban card starting at `cardLine`: its item line plus any
  * deeper-indented, non-blank continuation lines (the card's description). `end`
  * is the exclusive line after the block; `descLines` is the continuation text
@@ -4250,7 +4164,6 @@ function cardBlockRange(lines: string[], cardLine: number): { end: number; descL
 	}
 	return { end, descLines };
 }
-
 
 /** The extent of a plain checkbox task's description — the lines nested under
  * it — in the same shape {@link cardBlockRange} returns for a Kanban card, so
@@ -4276,7 +4189,6 @@ function checkboxBlockRange(lines: string[], taskLine: number): { end: number; d
 	return { end, descLines };
 }
 
-
 /** A description compared the way it is written: line by line, trimmed, with
  * blank lines dropped — the same shape {@link descriptionBullets} lays down. So
  * a description that round-trips through the editor unchanged compares equal to
@@ -4291,7 +4203,6 @@ function sameDescription(a: string, b: string): boolean {
 	return norm(a) === norm(b);
 }
 
-
 /** Build the nested description bullet lines for a card whose item line has the
  * given indent (each non-empty description line becomes an indented `- ` item,
  * one level deeper). */
@@ -4303,11 +4214,10 @@ function descriptionBullets(description: string, itemIndent: string): string[] {
 		.map((l) => `${itemIndent}\t- ${l}`);
 }
 
-
 /** If `text` is essentially a single link to a note (`[[Note]]`, `[[Note|alias]]`
  * or `[alias](Note.md)`) — the shape "Convert to note" leaves on the board —
  * return the resolved note, else null. */
-function soleLinkedNote(view: HomeView, text: string, sourcePath: string): TFile | null {
+function soleLinkedNote(view: CardHost, text: string, sourcePath: string): TFile | null {
 	const s = text.trim();
 	let target: string | null = null;
 	const wiki = /^\[\[([^\]]+?)\]\]$/.exec(s);
@@ -4332,19 +4242,17 @@ function soleLinkedNote(view: HomeView, text: string, sourcePath: string): TFile
 	return f instanceof TFile ? f : null;
 }
 
-
 /** Whether a line task is a note already: a Kanban card linked to one, or any
  * task whose text is just a link to a note (what converting one leaves). */
-function isNoteTask(view: HomeView, hit: TaskHit): boolean {
+function isNoteTask(view: CardHost, hit: TaskHit): boolean {
 	if (hit.linkedFile) return true;
 	return soleLinkedNote(view, stripInlineTags(stripTaskMetadata(hit.text)), hit.file.path) !== null;
 }
 
-
 /** Read a linked note's body (frontmatter stripped) as plain description lines,
  * with any leading list marker removed. Joined with "\n"; empty when the note
  * has no body. Used to show a converted card's description "inside the note". */
-async function readNoteDescription(view: HomeView, file: TFile): Promise<string> {
+async function readNoteDescription(view: CardHost, file: TFile): Promise<string> {
 	let content: string;
 	try {
 		content = await view.app.vault.cachedRead(file);
@@ -4359,11 +4267,10 @@ async function readNoteDescription(view: HomeView, file: TFile): Promise<string>
 		.join("\n");
 }
 
-
 /** Write a linked note's description (the body below its frontmatter) from the
  * quick-view editor: keeps the frontmatter intact and replaces the body with the
  * edited lines as bullet points. */
-async function writeNoteDescription(view: HomeView, file: TFile, description: string): Promise<void> {
+async function writeNoteDescription(view: CardHost, file: TFile, description: string): Promise<void> {
 	try {
 		const content = await view.app.vault.read(file);
 		const fm = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(content)?.[0] ?? "";
@@ -4380,14 +4287,13 @@ async function writeNoteDescription(view: HomeView, file: TFile, description: st
 	}
 }
 
-
 /** Read a Kanban board note: each `##` heading is a column and each checkbox
  * item beneath it is a card. In extended mode the Tasks-plugin emoji metadata
  * (📅 due, ⏫/🔼/🔽 priority, 🔁 recurrence) is parsed off each card so due dates
  * and priorities display and sort; otherwise cards are read as-is (plain text).
  * Returns the ordered columns too, so the Kanban layout can show empty lanes. */
 async function collectKanbanTasks(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 ): Promise<{ hits: TaskHit[]; columns: KanbanColumn[]; file: TFile | null }> {
 	const file = resolveKanbanFile(view.app, cfg);
@@ -4497,12 +4403,10 @@ async function collectKanbanTasks(
 	return { hits, columns, file };
 }
 
-
 /** The subset of metadata emoji Hearth's editor manages (due/scheduled/start/
  * recurrence/priority). Completion (✅), created (➕) and cancelled (❌) markers
  * are left untouched when rewriting a card's metadata. */
 const MANAGED_EMOJI_CLASS = "📅⏳🛫🔁⏫🔼🔽🔺⏬";
-
 
 /** The single source of truth for turning a raw date expression — an ISO date
  * (YYYY-MM-DD) or natural-language wording ("today", "next friday", "in 3
@@ -4518,7 +4422,6 @@ function resolveDate(expr: string): string | null {
 	return parseNaturalDate(expr);
 }
 
-
 /** Read a Tasks-plugin date field (e.g. 📅) and resolve it to YYYY-MM-DD, or
  * "" when absent/unparseable. Accepts natural-language wording. */
 function readEmojiDate(text: string, emoji: string): string {
@@ -4526,7 +4429,6 @@ function readEmojiDate(text: string, emoji: string): string {
 	if (!expr) return "";
 	return resolveDate(expr) ?? "";
 }
-
 
 /** Whether a line on disk is still the card we read, ignoring anything Hearth
  * itself rewrites — the metadata markers and the inline tags. Both are edited
@@ -4537,9 +4439,6 @@ function sameCardLine(lineText: string, hitText: string): boolean {
 	return norm(lineText) === norm(hitText);
 }
 
-
-
-
 /** Set (or, when null, remove) a Tasks-plugin date field (e.g. 📅/⏳/🛫) on a
  * task's text to `date`, replacing any existing value for that marker. */
 function withEmojiDate(text: string, emoji: string, date: string | null): string {
@@ -4547,7 +4446,6 @@ function withEmojiDate(text: string, emoji: string, date: string | null): string
 	const base = text.replace(re, "").replace(/\s+/g, " ").trim();
 	return date ? `${base} ${emoji} ${date}`.trim() : base;
 }
-
 
 /** Complete (or un-complete) the current occurrence of a recurring checkbox /
  * Kanban task in place, TaskNotes-style: the line stays unchecked (a recurring
@@ -4557,7 +4455,7 @@ function withEmojiDate(text: string, emoji: string, date: string | null): string
  * date. Un-completing removes today's ✅ and rolls the reference date back to
  * today. Bails (false) when the stored line no longer matches. */
 export async function setLineRecurringInstanceDone(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	done: boolean,
 ): Promise<boolean> {
@@ -4602,14 +4500,13 @@ export async function setLineRecurringInstanceDone(
 	return true;
 }
 
-
 /** Complete (or reopen) a checkbox task from outside this card — the calendar
  * cards' checkbox source — with exactly the write the list layout makes: a
  * recurring task stamps ✅ and rolls its date forward, anything else flips the
  * box and keeps its ✅ date in sync. `raw` is the line's text as read; the write
  * bails (false) when the line no longer matches it. */
 export async function setCheckboxTaskDone(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	line: number,
 	raw: string,
@@ -4630,12 +4527,11 @@ export async function setCheckboxTaskDone(
 	return recurrence ? setLineRecurringInstanceDone(view, hit, done) : setKanbanCardDone(view, hit, done, true);
 }
 
-
 /** Flip a Kanban card's checkbox to `done` in place, and — in extended mode —
  * add/remove its ✅ done date to match. Bails (false) if the stored line no
  * longer matches the card. */
 export async function setKanbanCardDone(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	done: boolean,
 	extended: boolean,
@@ -4654,14 +4550,13 @@ export async function setKanbanCardDone(
 	return true;
 }
 
-
 /** Move a Kanban card's checkbox line (plus any nested continuation lines) out
  * of its current column and under `targetHeading` in the board note. The card's
  * done state normally stays as-is (column and completion are independent), but
  * when `markDone` is set — the target is a "done column" — the card is checked
  * as it lands. Bails (returning false) if the stored line no longer matches. */
 async function moveKanbanCard(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	targetHeading: string,
 	markDone?: boolean,
@@ -4703,12 +4598,11 @@ async function moveKanbanCard(
 	return true;
 }
 
-
 /** Append a new card under `heading` in the configured board note, checked when
  * `markDone` (the target is a "done column") and unchecked otherwise. Any
  * `description` is written as plain-text sub-bullets under the card. */
 export async function addKanbanCard(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	heading: string,
 	text: string,
@@ -4728,14 +4622,13 @@ export async function addKanbanCard(
 	return true;
 }
 
-
 /** Add a new Kanban card as its own note (a link on the board) instead of an
  * inline checkbox — the same result as adding a card and immediately converting
  * it, honouring the card's convert-to-note template and metadata-to-frontmatter
  * options. Creates the note (template + description bullets, and frontmatter
  * metadata when scraping), then inserts a link card into `heading`'s column. */
 async function addKanbanCardAsNote(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	heading: string,
 	title: string,
@@ -4790,12 +4683,11 @@ async function addKanbanCardAsNote(
 	return true;
 }
 
-
 /** Mark a batch of Kanban cards (all in the same board note) done in a single
  * write, stamping the ✅ done date when `doneDate` is given. Skips any line that
  * no longer matches its card. Used when a column is toggled into a "done
  * column" so the cards already in it complete at once. */
-async function markCardsDone(view: HomeView, hits: TaskHit[], doneDate?: string): Promise<void> {
+async function markCardsDone(view: CardHost, hits: TaskHit[], doneDate?: string): Promise<void> {
 	if (!hits.length) return;
 	const file = hits[0].file;
 	const content = await view.app.vault.read(file);
@@ -4816,13 +4708,12 @@ async function markCardsDone(view: HomeView, hits: TaskHit[], doneDate?: string)
 	if (changed) await view.app.vault.modify(file, lines.join("\n"));
 }
 
-
 /** Attach a right-click menu to a Tasks-plugin task: edit in the plugin's own
  * dialog (so the note keeps the vault's task format), open the note, delete.
  * Hearth's own metadata editor and convert-to-note are deliberately not
  * offered here — both would rewrite the line in Hearth's shape. */
 function attachTasksPluginCardMenu(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	el: HTMLElement,
@@ -4835,11 +4726,10 @@ function attachTasksPluginCardMenu(
 	});
 }
 
-
 /** A Tasks-plugin task's menu: the plugin's own edit dialog, opening the
  * note, and deleting the line. Shared by the graphical card's right-click and
  * terminal mode's. */
-export function tasksPluginMenu(view: HomeView, hit: TaskHit, refresh: () => void, into?: Menu): Menu | null {
+export function tasksPluginMenu(view: CardHost, hit: TaskHit, refresh: () => void, into?: Menu): Menu | null {
 	if (hit.line < 0) return into ?? null;
 	const menu = into ?? hearthMenu();
 	if (into) into.addSeparator();
@@ -4884,14 +4774,13 @@ export function tasksPluginMenu(view: HomeView, hit: TaskHit, refresh: () => voi
 	return menu;
 }
 
-
 /** Attach a right-click menu to a task row/card. Every metadata-capable task
  * (Kanban cards, and plain checkboxes — which always read their marks) offers
  * "Edit dates & priority"; Kanban cards additionally offer convert-to-note and
  * delete. Kanban cards get a description field in the editor; checkboxes don't
  * (their nested lines may be sub-tasks, not a description). */
 function attachKanbanCardMenu(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	el: HTMLElement,
@@ -4912,14 +4801,13 @@ function attachKanbanCardMenu(
 	});
 }
 
-
 /** A line task's menu: edit its metadata where the marks are managed, and for
  * a Kanban card convert or delete it. Null when there is nothing to offer (a
  * plain checkbox with metadata off). Shared by the graphical card's right-click
  * and terminal mode's. Tasks-plugin tasks go through the plugin's own dialog
  * instead, so the note keeps the vault's task format. */
 export function taskMenu(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	refresh: () => void,
@@ -4993,11 +4881,10 @@ export function taskMenu(
 	return menu;
 }
 
-
 /** Render task text into `el`, turning `[[wikilinks]]` and `[label](url)` into
  * clickable links (the rest stays plain text). Link clicks open the target and
  * stop propagation so they don't also trigger the card's open-on-click. */
-function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath: string): void {
+function fillTaskText(view: CardHost, el: HTMLElement, text: string, sourcePath: string): void {
 	const re = /\[\[([^\]]+?)\]\]|\[([^\]]+?)\]\(([^)]+?)\)/g;
 	let last = 0;
 	let m: RegExpExecArray | null;
@@ -5027,12 +4914,11 @@ function fillTaskText(view: HomeView, el: HTMLElement, text: string, sourcePath:
 	if (!el.childNodes.length) el.appendText(text);
 }
 
-
 /** Set (or clear) a Kanban card's due date and priority, rewriting the card
  * line's Tasks-plugin metadata in place while preserving its text and any link.
  * `due` is "" to clear; `priority` is "high"/"medium"/"low" or "" to clear. */
 async function setKanbanCardMetadata(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	meta: TaskMeta,
 	description: string,
@@ -5075,7 +4961,6 @@ async function setKanbanCardMetadata(
 	return true;
 }
 
-
 /** Rewrite a line-based card's title text in place, preserving its checkbox mark
  * and any Tasks-plugin metadata markers (dates, priority, repeat, and the ✅/➕/❌
  * stamps). Only the descriptive text is replaced; nested description lines are
@@ -5084,7 +4969,7 @@ async function setKanbanCardMetadata(
  * the whole line text is the title and is replaced verbatim. Bails (returns
  * false) if the stored line no longer matches the card, or the new title is empty. */
 async function setKanbanCardText(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	newText: string,
 	extended: boolean,
@@ -5116,7 +5001,6 @@ async function setKanbanCardText(
 	return true;
 }
 
-
 /** Set (or clear) a line-based task's description, independent of its metadata:
  * a card linked to a note writes it to the note body; a Kanban card or a plain
  * checkbox replaces the nested `- ` sub-bullets under its item line, leaving the
@@ -5125,7 +5009,7 @@ async function setKanbanCardText(
  * `checkboxExtended` off), so no markers are rewritten. Bails (returns false) if
  * the stored line no longer matches the task. */
 async function setTaskDescription(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	description: string,
 ): Promise<boolean> {
@@ -5149,11 +5033,10 @@ async function setTaskDescription(
 	return true;
 }
 
-
 /** Delete a Kanban card (its checkbox line plus any nested continuation lines,
  * and one trailing blank line) from the board note. Bails if the stored line no
  * longer matches the card. */
-async function deleteKanbanCard(view: HomeView, hit: TaskHit): Promise<boolean> {
+async function deleteKanbanCard(view: CardHost, hit: TaskHit): Promise<boolean> {
 	const content = await view.app.vault.read(hit.file);
 	const lines = content.split("\n");
 	const cur = lines[hit.line];
@@ -5174,13 +5057,12 @@ async function deleteKanbanCard(view: HomeView, hit: TaskHit): Promise<boolean> 
 	return true;
 }
 
-
 /** Swap a card's title for an inline text input so it can be renamed in place,
  * mirroring the column rename. Enter (or blur) commits, Escape cancels; the
  * card's drag is suspended while editing so selecting text doesn't start a drag,
  * and clicks on the input are kept from bubbling to the card's open handler. */
 function startCardTitleEdit(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	row: HTMLElement,
@@ -5240,12 +5122,11 @@ function startCardTitleEdit(
 		input.addEventListener(type, (e) => e.stopPropagation());
 }
 
-
 /** Swap a Kanban column's title span for an inline text input to rename it.
  * Enter (or blur) commits, Escape cancels; the header's drag is suspended while
  * editing so text selection doesn't start a column drag. */
 function startColumnRename(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	head: HTMLElement,
 	titleEl: HTMLElement,
@@ -5296,11 +5177,10 @@ function startColumnRename(
 		input.addEventListener(type, (e) => e.stopPropagation());
 }
 
-
 /** Rename a Kanban board column: rewrite its `## heading` line and remap the
  * card's stored column keys (order/hidden/done) from the old to the new key. */
 async function renameKanbanColumn(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	oldHeading: string,
 	newHeading: string,
@@ -5324,7 +5204,6 @@ async function renameKanbanColumn(
 	await view.plugin.saveData(view.plugin.settings);
 }
 
-
 /**
  * Turn a line task — a Kanban card or a checkbox — into a note of its own and
  * replace the task's text with a link to it, keeping the checkbox state and any
@@ -5335,7 +5214,7 @@ async function renameKanbanColumn(
  * description lines move into the note as bullet points. Returns the note, or
  * null when nothing was changed.
  */
-async function convertTaskToNote(view: HomeView, cfg: TasksConfig, hit: TaskHit): Promise<TFile | null> {
+async function convertTaskToNote(view: CardHost, cfg: TasksConfig, hit: TaskHit): Promise<TFile | null> {
 	const app = view.app;
 	const board = hit.file;
 	const content = await app.vault.read(board);
@@ -5421,7 +5300,6 @@ async function convertTaskToNote(view: HomeView, cfg: TasksConfig, hit: TaskHit)
 	return note;
 }
 
-
 /** Substitute the note-template variables supported for convert-to-note:
  * {{title}}, {{date}}, {{time}} and their {{date:FMT}}/{{time:FMT}} formatted
  * variants (mirrors the daily-note template substitution). */
@@ -5435,7 +5313,6 @@ function applyConvertTemplate(raw: string, title: string): string {
 		.replace(/\{\{\s*title\s*\}\}/gi, title);
 }
 
-
 /** Substitute only the date/time template variables (leaving {{title}} for when
  * the card's title is known at create time). Used to preview a template's body
  * in the add-card form. */
@@ -5448,12 +5325,11 @@ function substituteConvertDateTime(raw: string): string {
 		.replace(/\{\{\s*time\s*\}\}/gi, now.format("HH:mm"));
 }
 
-
 /** Write a card's Tasks-plugin metadata (read from its raw text) into a note's
  * YAML frontmatter, using conventional keys (priority, due, scheduled, start,
  * done, recurrence). Only fields the card actually carries are written; merges
  * with any frontmatter a template already added. */
-async function writeTaskFrontmatter(view: HomeView, note: TFile, rawText: string): Promise<void> {
+async function writeTaskFrontmatter(view: CardHost, note: TFile, rawText: string): Promise<void> {
 	const priority = priorityKey(readPriorityEmoji(rawText));
 	const due = readEmojiDate(rawText, "📅");
 	const scheduled = readEmojiDate(rawText, "⏳");
@@ -5474,12 +5350,11 @@ async function writeTaskFrontmatter(view: HomeView, note: TFile, rawText: string
 	}
 }
 
-
 /** Write edited task metadata into a note's YAML frontmatter, using the same
  * conventional keys convert-to-note scrapes to (priority/recurrence/start/
  * scheduled/due). Empty fields are removed. Used when editing a converted
  * (linked) card's metadata from the quick view or right-click editor. */
-async function writeMetadataFrontmatter(view: HomeView, file: TFile, meta: TaskMeta): Promise<boolean> {
+async function writeMetadataFrontmatter(view: CardHost, file: TFile, meta: TaskMeta): Promise<boolean> {
 	const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
 	try {
 		await view.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
@@ -5503,7 +5378,6 @@ async function writeMetadataFrontmatter(view: HomeView, file: TFile, meta: TaskM
 	return true;
 }
 
-
 /** The substring of a card's text from its first Tasks-plugin metadata emoji to
  * the end (trimmed), or "" when the card carries no metadata. Used to keep
  * due/priority markers on the card when its text is replaced with a link. */
@@ -5512,15 +5386,12 @@ function extractMetadataTail(text: string): string {
 	return idx >= 0 ? text.slice(idx).trim() : "";
 }
 
-
-
-
 /** Set a checkbox task's status symbol in place (used when a checkbox card is
  * dragged between the board's status columns). Only the leading `[·]` marker is
  * changed; when metadata is managed the ✅ done date is stamped for a done status
  * and cleared otherwise. Returns false when the stored line no longer matches. */
 async function setCheckboxSymbol(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	symbol: string,
 	done: boolean,
@@ -5539,13 +5410,12 @@ async function setCheckboxSymbol(
 	return true;
 }
 
-
 /** Write a TaskNotes task's status frontmatter field (used by the Kanban board
  * when a card is dragged to another status column). */
 /** The status value written when a TaskNotes task is marked done: the card's
  * first configured "done" status when set (so a card treating both "done" and
  * "canceled" as complete writes "done"), otherwise the global done value. */
-export function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
+export function doneWriteValue(view: CardHost, cfg: TasksConfig): string {
 	const custom = (cfg.taskNotesDoneStatuses ?? []).map((v) => v.trim()).filter(Boolean);
 	return custom[0] ?? taskNotesDoneValue(view.plugin.settings, cfg);
 }
@@ -5555,7 +5425,7 @@ export function doneWriteValue(view: HomeView, cfg: TasksConfig): string {
  * (see openStatus in renderTaskList). Clicks are swallowed so ticking the box
  * doesn't also open the note. */
 function renderTaskNotesCheckbox(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	row: HTMLElement,
@@ -5580,7 +5450,7 @@ function renderTaskNotesCheckbox(
 }
 
 export async function setTaskNotesStatus(
-	view: HomeView,
+	view: CardHost,
 	cfg: TasksConfig,
 	hit: TaskHit,
 	value: string,
@@ -5594,7 +5464,6 @@ export async function setTaskNotesStatus(
 		new Notice(t().notices.couldNotUpdateTaskStatus);
 	}
 }
-
 
 /** Compute the next occurrence date (YYYY-MM-DD) of a TaskNotes recurrence
  * rule strictly after `fromDate` (YYYY-MM-DD). Handles the common FREQ values
@@ -5663,7 +5532,6 @@ function nextOccurrence(rule: string, fromDate: string): string | null {
 	return null;
 }
 
-
 /** Next occurrence strictly after `fromDate` for either an RRULE ("FREQ=…") or
  * a Tasks-plugin "every N unit" recurrence string (e.g. "every 2 weeks"), as
  * YYYY-MM-DD. Null when the rule is empty or unparseable. Used to roll a
@@ -5676,13 +5544,12 @@ function nextRecurrenceDate(rule: string, fromDate: string): string | null {
 	return moment(fromDate).add(interval, unit).format("YYYY-MM-DD");
 }
 
-
 /** Mark today's occurrence of a recurring TaskNotes task complete the way
  * TaskNotes does: append today's YYYY-MM-DD to `complete_instances` (deduped,
  * kept sorted) and advance `scheduled` to the next occurrence derived from the
  * recurrence rule. The task's `status` is left untouched — a recurring task
  * stays open and just rolls forward to its next due date. */
-export async function completeRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
+export async function completeRecurringInstance(view: CardHost, hit: TaskHit, targetFile?: TFile): Promise<void> {
 	if (!hit.recurrence) return;
 	const today: string = moment().format("YYYY-MM-DD");
 	const next = nextRecurrenceDate(hit.recurrence, today);
@@ -5707,12 +5574,11 @@ export async function completeRecurringInstance(view: HomeView, hit: TaskHit, ta
 	}
 }
 
-
 /** Undo today's completion of a recurring TaskNotes task: remove today from
  * `complete_instances` and roll `scheduled` back to today (the occurrence we
  * just un-completed). Used when the user unchecks the box to cancel a
  * mistaken completion. */
-export async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, targetFile?: TFile): Promise<void> {
+export async function uncompleteRecurringInstance(view: CardHost, hit: TaskHit, targetFile?: TFile): Promise<void> {
 	if (!hit.recurrence) return;
 	const today: string = moment().format("YYYY-MM-DD");
 	try {
@@ -5732,7 +5598,6 @@ export async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, 
 	}
 }
 
-
 /** Render a small checkbox that completes today's occurrence of a recurring
  * TaskNotes task on check, and undoes it on uncheck (removes today from
  * complete_instances and rolls scheduled back to today). Pre-checked when
@@ -5740,7 +5605,7 @@ export async function uncompleteRecurringInstance(view: HomeView, hit: TaskHit, 
  * triggers the row/card click or drag. Rendered as the first child of `parent`
  * so it sits before the task text. */
 function renderRecurringCheckbox(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	today: string,
 	parent: HTMLElement,
@@ -5772,14 +5637,13 @@ function renderRecurringCheckbox(
 	});
 }
 
-
 /** Render the per-occurrence completion checkbox for a recurring checkbox /
  * Kanban task (one carrying a 🔁 mark). Checked when the task's ✅ done date is
  * today; checking stamps today and rolls the reference date to the next
  * occurrence, unchecking undoes it — so it resets to open on its next date.
  * Rendered as the first child of `parent`. */
 function renderLineRecurringCheckbox(
-	view: HomeView,
+	view: CardHost,
 	hit: TaskHit,
 	today: string,
 	parent: HTMLElement,
@@ -5803,8 +5667,7 @@ function renderLineRecurringCheckbox(
 	});
 }
 
-
-export async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
+export async function openTask(view: CardHost, cfg: TasksConfig, hit: TaskHit, refresh: () => void): Promise<void> {
 	// Tasks-plugin tasks edit in the plugin's own modal, so the note keeps the
 	// vault's task format. Clicking opens that dialog rather than Hearth's
 	// quick view (which would rewrite the line in Hearth's own shape).
@@ -5825,11 +5688,10 @@ export async function openTask(view: HomeView, cfg: TasksConfig, hit: TaskHit, r
 	await openTaskFile(view, hit);
 }
 
-
 /** Open a task's underlying file: TaskNotes tasks in TaskNotes' own editor when
  * possible, otherwise the note, scrolled to the task's line for line-based
  * tasks. */
-export async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> {
+export async function openTaskFile(view: CardHost, hit: TaskHit): Promise<void> {
 	// A card that links to a note opens that note directly (not the board line).
 	if (hit.linkedFile) {
 		await openFile(view, hit.linkedFile, "card");
@@ -5851,7 +5713,6 @@ export async function openTaskFile(view: HomeView, hit: TaskHit): Promise<void> 
 	}
 }
 
-
 // ---- Field customization -------------------------------------------------
 
 /** What the fields editor found in the vault: the frontmatter properties a key
@@ -5863,12 +5724,10 @@ interface TaskFieldDiscovery {
 	values: Map<string, string[]>;
 }
 
-
 /** How many values a single source offers as suggestions. A property with
  * hundreds of distinct values (a date, an id) is not something anyone maps by
  * hand, and the list has to stay navigable. */
 const FIELD_VALUE_LIMIT = 40;
-
 
 /** Copy a field list deeply enough that the copy shares nothing mutable with
  * the original — keys and value mappings included. */
@@ -5878,7 +5737,6 @@ function cloneTaskFields(fields: TaskFieldDef[]): TaskFieldDef[] {
 		keys: f.keys.map((k) => ({ ...k, values: k.values?.map((v) => ({ ...v })) })),
 	}));
 }
-
 
 /**
  * Scan the card's scope for the values its keys can take.
@@ -5963,14 +5821,12 @@ async function discoverTaskFields(
 	};
 }
 
-
 /** A human label for a key's source, for the editor's rows. */
 function sourceLabel(source: string): string {
 	const builtin = sourceBuiltin(source);
 	if (builtin) return t().editors.tasks.sourceNames[builtin];
 	return sourceProperty(source) || source;
 }
-
 
 /**
  * The fields editor.
@@ -6101,7 +5957,6 @@ export class TaskFieldsModal extends HearthModal {
 		}
 		return actions;
 	}
-
 
 	/** One of a panel header's buttons. Disabled means inert, not just greyed:
 	 * the icon buttons are divs, so the guard has to be in the handler. */
@@ -6736,16 +6591,12 @@ export class TaskFieldsModal extends HearthModal {
 	}
 }
 
-
-
 /** A one-line summary of what a card shows, so the editor says what is
  * configured without opening the modal. */
 function taskFieldsSummary(fields: TaskFieldDef[]): string {
 	const names = fields.map((f) => f.name.trim()).filter(Boolean);
 	return names.length ? names.join(", ") : t().editors.tasks.fieldsNone;
 }
-
-
 
 export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.tasks ??= {});
@@ -7434,7 +7285,6 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 	};
 	draw();
 }
-
 
 /** Tasks pulled from the vault, as a list or kanban board. Redraws live, but a
  * folder-scoped card ignores changes it can provably never read. */

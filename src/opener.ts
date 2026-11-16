@@ -1,6 +1,7 @@
 import { Keymap, MarkdownView, TFile, type App, type OpenViewState, type PaneType, type UserEvent, type WorkspaceLeaf } from "obsidian";
 import type { GlobalSearchInstance } from "./obsidian-ext";
 import type { QueryHit } from "./query";
+import type { CardHost } from "./cardhost";
 import {
 	OPEN_IN_MODES,
 	type HomeSettings,
@@ -36,14 +37,19 @@ interface HearthViewLike {
 	plugin: { settings: HomeSettings };
 }
 
-/** Anything the open helpers accept: a Hearth view, or a hand-built host for
- * the few callers (modals, the plugin itself) that have no view. */
-export type OpenFrom = OpenHost | HearthViewLike;
+/** Anything the open helpers accept: a Hearth view, a hand-built host for the
+ * few callers (modals, the plugin itself) that have no view, or a plain card
+ * host — a card drawn in a dialog has no leaf to reuse, so "same tab" falls
+ * back to the active one, exactly as it does for a command. */
+export type OpenFrom = OpenHost | HearthViewLike | CardHost;
 
 function host(from: OpenFrom): OpenHost {
-	return "plugin" in from
-		? { app: from.app, settings: from.plugin.settings, leaf: from.leaf }
-		: from;
+	if (!("plugin" in from)) return from;
+	return {
+		app: from.app,
+		settings: from.plugin.settings,
+		leaf: "leaf" in from ? from.leaf : null,
+	};
 }
 
 /**

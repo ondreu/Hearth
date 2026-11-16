@@ -205,6 +205,8 @@ export class CardSettingsModal extends HearthTabbedModal {
 				this.hearthGroupBreak(body);
 				this.sidebarSection(body);
 				this.hearthGroupBreak(body);
+				this.commandSection(body);
+				this.hearthGroupBreak(body);
 				this.copySection(body);
 				break;
 		}
@@ -676,6 +678,22 @@ export class CardSettingsModal extends HearthTabbedModal {
 					.onChange((open) => {
 						void setCardInSidebar(this.app, card, open);
 					}),
+			);
+	}
+
+	/** A command of this card's own (#491), so it can be run from the palette or
+	 * from `/` and opens in a floating dialog. Off by default: a board full of
+	 * cards should not fill the palette with them. */
+	private commandSection(containerEl: HTMLElement): void {
+		const card = this.card;
+		new Setting(containerEl)
+			.setName(t().editors.command.heading)
+			.setDesc(t().editors.command.headingDesc)
+			.addToggle((tg) =>
+				tg.setValue(card.command === true).onChange((on) => {
+					card.command = on;
+					this.opts.save();
+				}),
 			);
 	}
 

@@ -1,7 +1,7 @@
 import { type Menu, Setting } from "obsidian";
+import type { BoardHost } from "./cardhost";
 import { setIcon } from "./glyphs";
 import { hearthMenu } from "./uidesign";
-import type { HomeView } from "./view";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
@@ -114,7 +114,7 @@ const DEFAULT_HEADER_SPACING_BELOW = 28;
  * dashboard settings modal's footer).
  */
 export function renderDashboardSwitcher(
-	view: HomeView,
+	view: BoardHost,
 	container: HTMLElement,
 ): HTMLElement {
 	const s = view.plugin.settings;
@@ -197,7 +197,7 @@ export function renderDashboardSwitcher(
 /** Open the per-dashboard settings editor for `dash`. Shared by the switcher's
  * right-click menu and the arrange-mode toolbar button, so both routes land in
  * exactly the same modal. */
-export function openDashboardSettings(view: HomeView, dash: Dashboard): void {
+export function openDashboardSettings(view: BoardHost, dash: Dashboard): void {
 	new DashboardSettingsModal(view, dash).open();
 }
 
@@ -206,7 +206,7 @@ export function openDashboardSettings(view: HomeView, dash: Dashboard): void {
  * destructive entry stands apart (an Expressive menu draws each group as a
  * container of its own). */
 export function showDashboardMenu(
-	view: HomeView,
+	view: BoardHost,
 	dash: Dashboard,
 	evt: MouseEvent,
 	/** Entries a caller adds on top — terminal mode's tab bar puts moving a
@@ -276,7 +276,7 @@ export function showDashboardMenu(
  * settings modal footer. `onDeleted` runs after the board is gone. Callers
  * keep at least one dashboard around by not offering this for the last one. */
 function confirmDeleteDashboard(
-	view: HomeView,
+	view: BoardHost,
 	dash: Dashboard,
 	onDeleted?: () => void,
 ): void {
@@ -306,14 +306,14 @@ function confirmDeleteDashboard(
  * persistent Done footer, mirroring the plugin settings pane so both configure
  * the same way. */
 class DashboardSettingsModal extends HearthTabbedModal {
-	private view: HomeView;
+	private view: BoardHost;
 	private dash: Dashboard;
 
 	/** Scratch space for the background place picker; survives this modal's
 	 * in-place rerenders, and goes when it closes. */
 	private placeSession: Record<string, unknown> = {};
 
-	constructor(view: HomeView, dash: Dashboard) {
+	constructor(view: BoardHost, dash: Dashboard) {
 		super(view.app);
 		this.view = view;
 		this.dash = dash;

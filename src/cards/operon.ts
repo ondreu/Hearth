@@ -1,4 +1,5 @@
 import { type App, Notice, Setting, type Component } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { hearthMenu } from "../uidesign";
 import { emptyState } from "../cardbodies";
@@ -48,9 +49,7 @@ import {
 } from "../operon";
 import { type DashboardCard, type OperonConfig } from "../types";
 import { confirmAction, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Operon --------------------------------------------------------------
 
@@ -90,7 +89,6 @@ export function sortKeyOf(cfg: OperonConfig): OperonSortKey {
 	return cfg.sortKey ?? "smart";
 }
 
-
 // ---- Access gating -------------------------------------------------------
 
 /** The empty state for every reason an Operon card can't show data. Each state
@@ -129,13 +127,11 @@ function renderAccessNotice(
 	}
 }
 
-
 /** Turn a failed read into a line the user can act on. Operon's error codes are
  * additive, so an unrecognised one is reported as-is rather than guessed at. */
 function renderReadFailure(body: HTMLElement, reason: string): void {
 	emptyState(body, "alert-triangle", t().cards.operon.readFailed(reason));
 }
-
 
 // ---- Async plumbing ------------------------------------------------------
 
@@ -185,7 +181,6 @@ function mountAsync<T>(
 	run();
 }
 
-
 /** The filter set a card sends to Operon. Empty arrays are dropped so a card
  * with nothing selected asks for everything rather than for nothing. */
 function filtersFor(cfg: OperonConfig, today: string): {
@@ -217,11 +212,10 @@ function filtersFor(cfg: OperonConfig, today: string): {
 	return filters;
 }
 
-
 /** Read the tasks one card wants: an Operon-defined scope when the card picked
  * one, otherwise its own filter set. */
 export function loadTasks(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	today: string,
 	limit: number,
@@ -238,7 +232,6 @@ export function loadTasks(
 	}
 	return queryTasks(session, filtersFor(cfg, today), limit);
 }
-
 
 // ---- Rows ----------------------------------------------------------------
 
@@ -311,7 +304,7 @@ interface OperonMove {
 /** One task row, shared by the list, board and agenda views. `move` is passed
  * only by the board, and only when Operon will actually accept the change. */
 function renderTaskRow(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	parent: HTMLElement,
 	task: OperonTask,
@@ -400,7 +393,7 @@ function renderTaskRow(
  * grant actually covers them. A card that offers a drag handle it cannot honour
  * is worse than one that offers none.
  */
-export function writesEnabled(view: HomeView): boolean {
+export function writesEnabled(view: CardHost): boolean {
 	const settings = view.plugin.settings;
 	if (!settings.operonIntegration || !settings.operonWrites) return false;
 	return canWrite(view.plugin.operon.access());
@@ -408,7 +401,7 @@ export function writesEnabled(view: HomeView): boolean {
 
 /** Ask before applying a plan Operon flagged as needing consent or as more than
  * routine. Operon owns the risk assessment; Hearth just relays it. */
-export function confirmPlan(view: HomeView): OperonConfirm {
+export function confirmPlan(view: CardHost): OperonConfirm {
 	return (plan) =>
 		new Promise<boolean>((resolve) => {
 			confirmAction(view.app, {
@@ -512,7 +505,7 @@ const DRAG_TYPE = "application/hearth-operon-task";
  * column it was dropped into, and an optional due date.
  */
 function renderQuickAdd(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	parent: HTMLElement,
 	statusId: string | undefined,
@@ -585,7 +578,6 @@ function renderQuickAdd(
 	});
 }
 
-
 /** "Showing 10 of 42" — Operon reports what it had to leave out, and dropping
  * that quietly is how a dashboard starts lying about the size of a backlog. */
 function renderTruncation(host: HTMLElement, page: OperonTaskPage["page"]): void {
@@ -605,11 +597,10 @@ function renderStaleness(host: HTMLElement, verified: boolean): void {
 	el.createSpan({ text: t().cards.operon.settling });
 }
 
-
 // ---- Views ---------------------------------------------------------------
 
 function renderList(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
@@ -646,9 +637,8 @@ function renderList(
 	);
 }
 
-
 function renderAgenda(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
@@ -688,9 +678,8 @@ function renderAgenda(
 	);
 }
 
-
 function renderBoard(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
@@ -810,14 +799,13 @@ function renderBoard(
 	);
 }
 
-
 /**
  * The running timer. Operon reports the elapsed seconds as of the read, so the
  * card counts forward from that reading locally rather than re-reading once a
  * second — one API call per redraw, a clock that still ticks.
  */
 function renderTimer(
-	view: HomeView,
+	view: CardHost,
 	body: HTMLElement,
 	component: Component,
 ): void {
@@ -872,7 +860,6 @@ function renderTimer(
 	);
 }
 
-
 /**
  * How many times a card re-checks a transient access state before giving up
  * and leaving the message on screen.
@@ -897,7 +884,7 @@ export const ACCESS_RETRIES = 6;
  * and each level fires once against a bounded budget.
  */
 function drawForAccess(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
@@ -925,7 +912,7 @@ function drawForAccess(
 }
 
 function drawReadyView(
-	view: HomeView,
+	view: CardHost,
 	cfg: OperonConfig,
 	body: HTMLElement,
 	component: Component,
@@ -949,7 +936,7 @@ function drawReadyView(
 }
 
 export function renderOperon(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -961,7 +948,6 @@ export function renderOperon(
 	}
 	drawForAccess(view, cfg, body, component, ACCESS_RETRIES);
 }
-
 
 // ---- Editor --------------------------------------------------------------
 
@@ -996,7 +982,6 @@ function chipPicker(
 	}
 }
 
-
 /** Every status across the taxonomy, each id offered once. Two pipelines can
  * name the same status, and a picker that listed it twice would let the user
  * toggle one copy on and the other off. */
@@ -1012,7 +997,6 @@ function statusOptions(taxonomy: OperonTaxonomy | null): { id: string; label: st
 	}
 	return options;
 }
-
 
 export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.operon ??= {});
@@ -1235,7 +1219,6 @@ export function operonEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 		);
 	}
 }
-
 
 // ---- Definition ----------------------------------------------------------
 

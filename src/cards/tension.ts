@@ -27,7 +27,7 @@ import {
 	type TensionStyle,
 } from "../types";
 import { makeClickable } from "../ui";
-import type { HomeView } from "../view";
+import type { CardHost } from "../cardhost";
 import type { CardDefinition, CardEditorContext } from "./definition";
 
 // ---- World Tension ------------------------------------------------------------
@@ -246,7 +246,7 @@ export function paintTensionStyle(wrap: HTMLElement, snapshot: TensionSnapshot, 
 
 // ---- Render -----------------------------------------------------------------------
 
-export function renderTension(view: HomeView, card: DashboardCard, body: HTMLElement, component: Component): void {
+export function renderTension(view: CardHost, card: DashboardCard, body: HTMLElement, component: Component): void {
 	const settings = view.plugin.settings;
 	const cfg = card.tension ?? {};
 	const r = resolveTension(

@@ -12,7 +12,7 @@ import { inlineTags, stripInlineTags } from "./taskfilter";
 import { readPriorityEmoji } from "./priority";
 import { readEmojiField, stripTaskMetadata } from "./checkboxtasks";
 import type { TasksConfig } from "./types";
-import type { HomeView } from "./view";
+import type { CardHost } from "./cardhost";
 
 /**
  * The obsidian-tasks community plugin as a tasks-card source.
@@ -370,7 +370,7 @@ export function tasksCreateInDailyNote(cfg: TasksConfig): boolean {
  * picked and Daily notes off, an unreadable target, or a daily note that
  * couldn't be made.
  */
-export async function ensureTasksPluginTarget(view: HomeView, cfg: TasksConfig): Promise<TFile | null> {
+export async function ensureTasksPluginTarget(view: CardHost, cfg: TasksConfig): Promise<TFile | null> {
 	const notices = t().notices;
 	if (tasksCreateInDailyNote(cfg)) {
 		const options: DailyNotesOptions | null = dailyNotesOptions(view);
@@ -409,7 +409,7 @@ export async function ensureTasksPluginTarget(view: HomeView, cfg: TasksConfig):
  * line (in the vault's configured task format), appended verbatim to the
  * card's destination note. Returns true when a task was created.
  */
-export async function createTasksPluginTask(view: HomeView, cfg: TasksConfig): Promise<boolean> {
+export async function createTasksPluginTask(view: CardHost, cfg: TasksConfig): Promise<boolean> {
 	const notices = t().notices;
 	const api = tasksPluginApi(view.app);
 	if (!api) {
@@ -452,7 +452,7 @@ function samePluginLine(lineText: string, hitText: string): boolean {
 
 /** The vault write behind a toggle/edit: replace `line` in `file` with
  * `nextLines` (one line, or two when completing a recurring task splits it). */
-async function replacePluginLines(file: TFile, view: HomeView, line: number, nextLines: string[]): Promise<boolean> {
+async function replacePluginLines(file: TFile, view: CardHost, line: number, nextLines: string[]): Promise<boolean> {
 	try {
 		const content = await view.app.vault.read(file);
 		const lines = content.split("\n");
@@ -472,7 +472,7 @@ async function replacePluginLines(file: TFile, view: HomeView, line: number, nex
  * task format. Returns false when the write couldn't be made.
  */
 export async function toggleTasksPluginTask(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	line: number,
 	rawText: string,
@@ -513,7 +513,7 @@ export async function toggleTasksPluginTask(
  * when cancelled or when the write couldn't be made.
  */
 export async function editTasksPluginTask(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	line: number,
 	rawText: string,
@@ -549,7 +549,7 @@ export async function editTasksPluginTask(
 /** Delete a task's line (plus any nested continuation lines, so no orphaned
  * description is left behind). Format-agnostic: only lines are removed. */
 export async function deleteTasksPluginTask(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	line: number,
 	rawText: string,

@@ -1,4 +1,5 @@
 import { Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { emptyState } from "../cardbodies";
 import { addResetButton } from "../editors";
 import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
@@ -16,16 +17,14 @@ import {
 } from "../query";
 import { type DashboardCard } from "../types";
 import { makeClickable, renderHighlighted } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Query (saved search) ----------------------------------------------
 
 /** A card that runs a saved query (same syntax as the top search bar) and lists
  * the matching files, refreshed on every render. `{{variables}}` in the stored
  * query are filled first, so it can ask for today's notes and stay correct. */
-export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderSavedSearch(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.savedSearch ?? {};
 	const query = expandQuery((cfg.query ?? "").trim());
 	if (!query) {
@@ -71,8 +70,7 @@ export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTM
 	}
 }
 
-
-function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): void {
+function renderQueryList(view: CardHost, body: HTMLElement, list: QueryHit[]): void {
 	const el = body.createDiv("hearth-list");
 	const icons = fileIconOptions(view.plugin.settings);
 	for (const hit of list) {
@@ -107,8 +105,7 @@ function renderQueryList(view: HomeView, body: HTMLElement, list: QueryHit[]): v
 	}
 }
 
-
-function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): void {
+function renderQueryTiles(view: CardHost, body: HTMLElement, list: QueryHit[]): void {
 	const grid = body.createDiv("hearth-links hearth-tiles-sized");
 	const baseTile = 90;
 	grid.style.setProperty("--hearth-tile", `${baseTile}px`);
@@ -128,7 +125,6 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 		makeClickable(tile, open, name);
 	}
 }
-
 
 /** The stored query's variables, under its field: click one and it goes in
  * where the cursor was. Same reference block the note templates show (and the

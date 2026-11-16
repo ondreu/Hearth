@@ -2201,6 +2201,12 @@ export interface DashboardCard {
 	 * across boards ("synced"). Stored once in settings.pinnedCards. */
 	pinned?: boolean;
 
+	/** Give this card a command of its own (#491), so it can be run from the
+	 * command palette, from Obsidian's `/` menu, or from Hearth's `>` mode and
+	 * opens in a floating dialog. Off unless the user asks for it: a board of
+	 * thirty cards would otherwise put thirty commands in the palette. */
+	command?: boolean;
+
 	// ---- Appearance ----
 	/** Optional accent color (CSS color) for the card header/border. */
 	accent?: string;

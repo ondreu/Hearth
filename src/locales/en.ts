@@ -3795,6 +3795,11 @@ export const en = {
 			headingDesc:
 				"Show this card in Obsidian's right sidebar, next to your notes. It stays the same card — changes made here show up there.",
 		},
+		command: {
+			heading: "Add to command menu",
+			headingDesc:
+				"Give this card a command of its own, so it can be run from the command palette or from the editor's / menu and opens in a floating dialog.",
+		},
 		copy: {
 			heading: "Copy to dashboard",
 			headingDesc:

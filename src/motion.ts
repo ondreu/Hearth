@@ -29,8 +29,8 @@
  * See docs/performance/macos-power-investigation.md for the measurements.
  */
 import { type Component, Platform } from "obsidian";
+import type { BoardHost } from "./cardhost";
 import { motionAllowed } from "./types";
-import type { HomeView } from "./view";
 
 /** Set on the view root while the window gate is closed. */
 const VIEW_PAUSED = "hearth-motion-paused";
@@ -59,7 +59,7 @@ const VISIBILITY_MARGIN = "250px";
  * No-op when the setting is off, and when the tier has already stopped the board
  * moving — there is nothing left to pause.
  */
-export function gateMotionOnWindow(view: HomeView, component: Component): void {
+export function gateMotionOnWindow(view: BoardHost, component: Component): void {
 	const settings = view.plugin.settings;
 	if (!settings.pauseWhenUnfocused || !motionAllowed(settings)) return;
 
@@ -98,7 +98,7 @@ export function gateMotionOnWindow(view: HomeView, component: Component): void {
  * No-op when the tier has already stopped the board moving.
  */
 export function gateCardMotionOnVisibility(
-	view: HomeView,
+	view: BoardHost,
 	gridEl: HTMLElement,
 	component: Component,
 ): void {

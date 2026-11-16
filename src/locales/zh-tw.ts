@@ -3442,6 +3442,11 @@ export const zhTW: Translations = {
 			headingDesc:
 				"在 Obsidian 右側邊欄中顯示此卡片，與筆記並排。它仍是同一張卡片——此處所做的變更會同步顯示。",
 		},
+		command: {
+			heading: "加入命令選單",
+			headingDesc:
+				"為此卡片新增獨立命令，可從命令面板或編輯器的 / 選單執行，並在浮動視窗中開啟。",
+		},
 		copy: {
 			heading: "複製到儀表板",
 			headingDesc: "把此卡片的副本新增到另一個儀表板的末尾。",
