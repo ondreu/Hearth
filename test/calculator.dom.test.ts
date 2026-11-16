@@ -7,7 +7,7 @@
  * separator that formats results but is never passed to `evaluate` would look
  * correct here only if this test went through the card's own renderer.
  */
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { installObsidianDom } from "./support/obsidian-dom";
 import type { CardHost } from "../src/cardhost";
 import type { CalculatorConfig, DashboardCard } from "../src/types";
@@ -60,5 +60,28 @@ describe("the calculator card's number format", () => {
 		expect(labels({ keypad: "basic" })).not.toContain(",");
 		expect(labels({ keypad: "basic", decimalSeparator: "," })).toContain(",");
 		expect(labels({ keypad: "basic", decimalSeparator: "," })).not.toContain(".");
+	});
+
+	it("copies the result the card is showing", async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+		const body = draw({ decimalSeparator: "," });
+		expect(type(body, "1,5 + 3")).toBe("4,5");
+		body.querySelector<HTMLButtonElement>(".hearth-calc-copy")?.click();
+		await Promise.resolve();
+		expect(writeText).toHaveBeenCalledWith("4,5");
+	});
+
+	it("offers nothing to copy while the query is empty or invalid", () => {
+		const hidden = (body: HTMLElement) =>
+			body.querySelector(".hearth-calc-actions")?.classList.contains("is-hidden");
+		const body = draw({});
+		expect(hidden(body)).toBe(true);
+		type(body, "2 + 2");
+		expect(hidden(body)).toBe(false);
+		type(body, "2 +");
+		expect(hidden(body)).toBe(true);
+		type(body, "");
+		expect(hidden(body)).toBe(true);
 	});
 });

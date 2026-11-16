@@ -3696,6 +3696,9 @@ export const zh: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2、10 km to miles、10 € to USD…",
+			copyResult: "复制结果",
+			copied: (value: string) => `已复制 ${value}`,
+			copyFailed: "无法复制到剪贴板",
 		},
 		rss: {
 			allTab: "全部",

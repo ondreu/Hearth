@@ -4070,6 +4070,9 @@ export const en = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km to miles, 10 € to USD…",
+			copyResult: "Copy result",
+			copied: (value: string) => `Copied ${value}`,
+			copyFailed: "Couldn't copy to the clipboard",
 		},
 		rss: {
 			allTab: "All",

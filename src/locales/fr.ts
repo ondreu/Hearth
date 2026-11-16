@@ -4005,6 +4005,9 @@ export const fr: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km to miles, 10 € to USD…",
+			copyResult: "Copier le résultat",
+			copied: (value: string) => `Copié : ${value}`,
+			copyFailed: "Impossible de copier dans le presse-papiers",
 		},
 		rss: {
 			allTab: "Tout",

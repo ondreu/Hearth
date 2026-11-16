@@ -2114,7 +2114,7 @@ export const ko: Translations = {
 		embed: { ...en.cards.embed, openFile: "이 파일 열기", editHint: "두 번 클릭해 편집", emptyNotePlaceholder: "빈 노트…", emptyNoteHint: "빈 노트 — 두 번 클릭해 편집" },
 		slideshow: { ...en.cards.slideshow, previous: "이전 이미지", next: "다음 이미지", pause: "슬라이드 쇼 일시 정지", play: "슬라이드 쇼 계속", openImage: "이 이미지 열기", jump: "이미지로 이동" },
 		text: { ...en.cards.text, placeholder: "메모를 입력하세요…" },
-		calculator: { ...en.cards.calculator, placeholder: "2 + 2, 10 km to miles, 10 € to USD…" },
+		calculator: { ...en.cards.calculator, placeholder: "2 + 2, 10 km to miles, 10 € to USD…", copyResult: "결과 복사", copied: (value: string) => `복사됨: ${value}`, copyFailed: "클립보드에 복사하지 못했습니다" },
 		web: { ...en.cards.web, openInBrowser: "브라우저에서 열기", mayRefuse: "이 사이트는 삽입을 거부할 수 있습니다." },
 		bookmarks: { ...en.cards.bookmarks, untitled: "제목 없음", needsSearch: "저장된 검색을 열려면 기본 Search 플러그인을 활성화하세요.", needsGraph: "저장된 그래프를 열려면 기본 Graph view 플러그인을 활성화하세요." },
 		daily: { ...en.cards.daily, createToday: "오늘의 노트 만들기", openToday: "오늘의 노트 열기", noNoteYet: "아직 오늘의 노트가 없습니다." },

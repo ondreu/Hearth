@@ -4069,6 +4069,9 @@ export const de: Translations = {
 		},
 		calculator: {
 			placeholder: "2 + 2, 10 km in Meilen, 10 € in USD…",
+			copyResult: "Ergebnis kopieren",
+			copied: (value: string) => `Kopiert: ${value}`,
+			copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
 		},
 		rss: {
 			allTab: "Alle",
