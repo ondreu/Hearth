@@ -1419,6 +1419,14 @@ export const ko: Translations = {
 			displayTiles: "타일",
 			maxResults: "최대 결과 수",
 			maxResultsDesc: "한 번에 표시할 최대 결과 수입니다.",
+			variables: "변수",
+			variablesHint: "클릭하면 커서 위치에 삽입됩니다. 날짜 필터로 형식을 바꿀 수 있습니다(예: {{today|date:\"YYYY-MM\"}}).",
+			vars: {
+				today: "오늘 날짜(YYYY-MM-DD)",
+				now: "현재 날짜와 시간",
+				yesterday: "어제 날짜",
+				tomorrow: "내일 날짜",
+			},
 		},
 		searchBar: {
 			...en.editors.searchBar,

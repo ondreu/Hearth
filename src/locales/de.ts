@@ -2584,6 +2584,15 @@ export const de: Translations = {
 			displayTiles: "Kacheln",
 			maxResults: "Max. Treffer",
 			maxResultsDesc: "Die meisten Treffer, die auf einmal angezeigt werden.",
+			variables: "Variablen",
+			variablesHint:
+				"Anklicken setzt sie an die Cursorposition ein. Ein Datumsfilter ändert das Format, z. B. {{today|date:\"YYYY-MM\"}}.",
+			vars: {
+				today: "Das heutige Datum (YYYY-MM-DD)",
+				now: "Datum und Uhrzeit jetzt",
+				yesterday: "Das gestrige Datum",
+				tomorrow: "Das morgige Datum",
+			},
 		},
 		searchBar: {
 			placeholder: "Platzhalter",

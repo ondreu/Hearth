@@ -2572,6 +2572,15 @@ export const en = {
 			displayTiles: "Tiles",
 			maxResults: "Max results",
 			maxResultsDesc: "The most matches to show at once.",
+			variables: "Variables",
+			variablesHint:
+				"Click one to insert it where the cursor is. Add a date filter to change the format, e.g. {{today|date:\"YYYY-MM\"}}.",
+			vars: {
+				today: "Today's date (YYYY-MM-DD)",
+				now: "The date and time now",
+				yesterday: "Yesterday's date",
+				tomorrow: "Tomorrow's date",
+			},
 		},
 		searchBar: {
 			placeholder: "Placeholder",

@@ -4,7 +4,7 @@ import { dailyNoteFinder, dailyNotesOptions, moment, type Moment } from "../card
 import { addResetButton, moveItem } from "../editors";
 import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupById, groupForFile } from "../filetypes";
 import { t } from "../i18n";
-import { countQuery } from "../query";
+import { countQuery, expandQuery } from "../query";
 import { ALL_STATS, DEFAULT_STATS, STAT_ICONS, type DashboardCard, type StatId } from "../types";
 import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
@@ -100,11 +100,13 @@ export function statTiles(view: HomeView, card: DashboardCard): StatTile[] {
 		tiles.push({ icon: group.icon, value: byType.get(groupId) ?? 0, label: fileTypeLabel(group) });
 	}
 
-	// Custom query counts.
+	// Custom query counts. The stored query is filled like the Query card's, so
+	// a tile can count today's notes; the label stays as written, since an
+	// expanded date would change the tile's caption every morning.
 	for (const q of cfg?.queries ?? []) {
 		const query = q.query?.trim();
 		if (!query) continue;
-		tiles.push({ icon: q.icon?.trim() || "hash", value: countQuery(view.app, query), label: q.label?.trim() || query });
+		tiles.push({ icon: q.icon?.trim() || "hash", value: countQuery(view.app, expandQuery(query)), label: q.label?.trim() || query });
 	}
 	return tiles;
 }

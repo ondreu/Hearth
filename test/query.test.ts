@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { TAbstractFile } from "obsidian";
 import {
 	clearContentSearchCache,
+	expandQuery,
 	formatPropertyValue,
 	foldedBody,
 	mergeRanked,
+	QUERY_VARIABLES,
 	queryMode,
+	queryVars,
 	RANK,
 	slotsAboveBody,
 	sortByRank,
@@ -219,5 +222,65 @@ describe("foldedBody", () => {
 	it("keeps a single over-budget note rather than looping to evict itself", () => {
 		const huge = "Y".repeat(5_000_000);
 		expect(foldedBody("huge.md", 1, huge).length).toBe(huge.length);
+	});
+});
+
+describe("expandQuery", () => {
+	/** A local timestamp on the given day, at 00:30 by default: close enough to
+	 * midnight that a plain "subtract 24 hours" would name the previous day. */
+	const at = (y: number, m: number, d: number, h = 0, min = 30): number =>
+		new Date(y, m - 1, d, h, min).getTime();
+
+	it("leaves a query without placeholders exactly as typed", () => {
+		expect(expandQuery("#project")).toBe("#project");
+		expect(expandQuery("meeting notes")).toBe("meeting notes");
+		expect(expandQuery("status:active")).toBe("status:active");
+	});
+
+	it("fills today's date into a property query", () => {
+		expect(expandQuery("date:{{today}}", at(2026, 11, 16))).toBe("date:2026-11-16");
+	});
+
+	it("takes a format from the date filter", () => {
+		expect(expandQuery('date:{{today|date:"YYYY-MM"}}', at(2026, 11, 16))).toBe("date:2026-11");
+	});
+
+	it("fills now with a time", () => {
+		expect(expandQuery("{{now}}", at(2026, 11, 16, 14, 5))).toBe("2026-11-16 14:05");
+	});
+
+	it("steps a day back and forward across a month boundary", () => {
+		expect(expandQuery("{{yesterday}}", at(2026, 3, 1))).toBe("2026-02-28");
+		expect(expandQuery("{{tomorrow}}", at(2026, 2, 28))).toBe("2026-03-01");
+	});
+
+	it("steps over a leap day", () => {
+		expect(expandQuery("{{yesterday}}", at(2028, 3, 1))).toBe("2028-02-29");
+		expect(expandQuery("{{tomorrow}}", at(2028, 2, 28))).toBe("2028-02-29");
+	});
+
+	it("steps across a DST switch without landing on the wrong day", () => {
+		// In a zone that turns the clocks forward on 2026-03-29 (Europe/Prague),
+		// `now - 86_400_000` from 00:30 lands at 23:30 of the 27th — the day
+		// before yesterday. The calendar step must yield the 28th regardless.
+		expect(expandQuery("{{yesterday}}", at(2026, 3, 29))).toBe("2026-03-28");
+	});
+
+	it("leaves an unknown placeholder visible instead of blanking it", () => {
+		// A typo should show up in the card, not silently match nothing.
+		expect(expandQuery("date:{{tomorow}}", at(2026, 11, 16))).toBe("date:{{tomorow}}");
+	});
+
+	it("fills several placeholders inside a longer query", () => {
+		expect(expandQuery("due:{{today}} created:{{yesterday}}", at(2026, 11, 16))).toBe(
+			"due:2026-11-16 created:2026-11-15",
+		);
+	});
+
+	it("resolves exactly the variables the card's settings list", () => {
+		// The chips under the query field are built from QUERY_VARIABLES; if a
+		// name is added there without a value (or vice versa) the editor would
+		// offer a variable that expands to nothing visible.
+		expect(Object.keys(queryVars(at(2026, 11, 16))).sort()).toEqual([...QUERY_VARIABLES].sort());
 	});
 });

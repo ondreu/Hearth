@@ -2522,6 +2522,15 @@ export const fr: Translations = {
 			displayTiles: "Tuiles",
 			maxResults: "Résultats max",
 			maxResultsDesc: "Le nombre maximal de résultats affichés à la fois.",
+			variables: "Variables",
+			variablesHint:
+				"Cliquez pour l'insérer à la position du curseur. Un filtre de date change le format, par ex. {{today|date:\"YYYY-MM\"}}.",
+			vars: {
+				today: "La date d'aujourd'hui (YYYY-MM-DD)",
+				now: "La date et l'heure actuelles",
+				yesterday: "La date d'hier",
+				tomorrow: "La date de demain",
+			},
 		},
 		searchBar: {
 			placeholder: "Texte indicatif",

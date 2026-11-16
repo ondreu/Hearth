@@ -2314,6 +2314,14 @@ export const zh: Translations = {
 			displayTiles: "磁贴",
 			maxResults: "最大结果数",
 			maxResultsDesc: "一次最多显示多少条匹配。",
+			variables: "变量",
+			variablesHint: "点击即可插入到光标处。加上日期过滤器可改变格式，例如 {{today|date:\"YYYY-MM\"}}。",
+			vars: {
+				today: "今天的日期（YYYY-MM-DD）",
+				now: "当前的日期和时间",
+				yesterday: "昨天的日期",
+				tomorrow: "明天的日期",
+			},
 		},
 		searchBar: {
 			placeholder: "占位文本",

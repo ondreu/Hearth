@@ -2332,6 +2332,14 @@ export const zhTW: Translations = {
 			displayTiles: "圖磚",
 			maxResults: "最大結果數",
 			maxResultsDesc: "一次最多顯示多少筆符合項目。",
+			variables: "變數",
+			variablesHint: "點擊即可插入到游標處。加上日期篩選器可改變格式，例如 {{today|date:\"YYYY-MM\"}}。",
+			vars: {
+				today: "今天的日期（YYYY-MM-DD）",
+				now: "目前的日期與時間",
+				yesterday: "昨天的日期",
+				tomorrow: "明天的日期",
+			},
 		},
 		searchBar: {
 			placeholder: "預留位置文字",
