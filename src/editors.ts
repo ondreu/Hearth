@@ -27,6 +27,7 @@ import {
 	terminalModeActive,
 } from "./types";
 import { confirmAction, designSetting } from "./ui";
+import { cardInSidebar, setCardInSidebar } from "./cardpanesidebar";
 import { activeViewCard, activeViewIndex, cardViews, syncViewDesign } from "./cardviews";
 import { renderViewIdentity, renderViewPicker, renderViewsTab, type ViewsEditorHost } from "./viewseditor";
 
@@ -201,6 +202,8 @@ export class CardSettingsModal extends HearthTabbedModal {
 				this.buttonsSection(body);
 				this.hearthGroupBreak(body);
 				this.pinSection(body);
+				this.hearthGroupBreak(body);
+				this.sidebarSection(body);
 				this.hearthGroupBreak(body);
 				this.copySection(body);
 				break;
@@ -657,6 +660,22 @@ export class CardSettingsModal extends HearthTabbedModal {
 					this.opts.isPinned = v;
 					this.opts.save();
 				}),
+			);
+	}
+
+	/** A pane of its own in the right sidebar (#492), next to whatever is being
+	 * written — the same card, not a copy, so an edit here shows up there. */
+	private sidebarSection(containerEl: HTMLElement): void {
+		const card = this.card;
+		new Setting(containerEl)
+			.setName(t().editors.sidebar.heading)
+			.setDesc(t().editors.sidebar.headingDesc)
+			.addToggle((tg) =>
+				tg
+					.setValue(cardInSidebar(this.app, card.id))
+					.onChange((open) => {
+						void setCardInSidebar(this.app, card, open);
+					}),
 			);
 	}
 

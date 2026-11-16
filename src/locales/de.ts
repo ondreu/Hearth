@@ -582,6 +582,13 @@ export const de: Translations = {
 	},
 
 	// ---- Dashboard-Werkzeugleiste & Kartensteuerung -----------------------------
+	cardPane: {
+		missing: "Diese Karte existiert nicht mehr.",
+		choose: "Andere Karte wählen",
+		choosePlaceholder: "Karte wählen…",
+		settings: "Karteneinstellungen",
+		close: "Diesen Bereich schließen",
+	},
 	dashboard: {
 		addCard: "Karte hinzufügen",
 		addCardAria: "Eine Karte zum Dashboard hinzufügen",
@@ -3784,6 +3791,11 @@ export const de: Translations = {
 			heading: "Auf allen Dashboards anheften",
 			headingDesc:
 				"Diese Karte auf jedem Dashboard zeigen, mit einer gemeinsamen Definition und Position.",
+		},
+		sidebar: {
+			heading: "In der Seitenleiste öffnen",
+			headingDesc:
+				"Diese Karte in der rechten Seitenleiste von Obsidian neben deinen Notizen anzeigen. Es bleibt dieselbe Karte — Änderungen hier erscheinen dort.",
 		},
 		copy: {
 			heading: "Auf Dashboard kopieren",

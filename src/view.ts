@@ -54,6 +54,8 @@ import { tabIconIdFor } from "./icon";
 import { hearthLeafIsNavigable } from "./opener";
 import { t } from "./i18n";
 import { stateDesign } from "./uidesign";
+import { PANE_STATE_KEY, paneCard, paneCardIdFromState } from "./cardpanestate";
+import { renderCardPane, renderCardPaneMissing } from "./cardpane";
 import { TuiViewState } from "./tui/state";
 import type { TuiBoard } from "./tui/board";
 import { clearTerminalView, renderTerminalView } from "./tui/screen";
@@ -153,6 +155,10 @@ export class HomeView extends ItemView {
 	 * src/scrollmemory.ts for why it is keyed and stored the way it is.
 	 */
 	private scrollMemory: ScrollMemory = {};
+	/** The card this tab is a sidebar pane for (#492), or null for an ordinary
+	 * board. Read from the leaf state, and persisted in it: like the scroll
+	 * memory below, it describes this tab rather than the vault. */
+	cardPaneId: string | null = null;
 	/** The current render's scroll area, so state arriving after the render has
 	 * something to act on. */
 	private scrollEl: HTMLElement | null = null;
@@ -178,7 +184,22 @@ export class HomeView extends ItemView {
 	}
 
 	getDisplayText(): string {
+		if (this.cardPaneId) {
+			const card = paneCard(this.plugin.settings, this.cardPaneId);
+			if (card) return card.title?.trim() || t().editors.kinds[card.kind];
+		}
 		return t().view.displayName;
+	}
+
+	/**
+	 * Show another card in this pane (#492) — what a pane does when the card it
+	 * showed has been deleted. Renders at once and asks Obsidian to persist the
+	 * new leaf state, so the choice survives a restart.
+	 */
+	setPaneCard(cardId: string): void {
+		this.cardPaneId = cardId;
+		this.render();
+		void this.app.workspace.requestSaveLayout();
 	}
 
 	getIcon(): string {
@@ -197,14 +218,21 @@ export class HomeView extends ItemView {
 	 */
 	getState(): Record<string, unknown> {
 		const base = super.getState();
+		// What this tab *is* comes first: a sidebar pane's card is not optional
+		// state, and it is stated even when the device-local-state setting keeps
+		// the scroll memory out of workspace.json — without it the pane would
+		// come back from a reload empty (#492).
+		const pane: Record<string, unknown> = this.cardPaneId
+			? { [PANE_STATE_KEY]: this.cardPaneId }
+			: {};
 		// Device-local state (#392): offsets stay in memory, out of workspace.json.
-		if (this.plugin.settings.deviceLocalState) return base;
+		if (this.plugin.settings.deviceLocalState) return { ...base, ...pane };
 		const memory = pruneScrollMemory(
 			this.scrollMemory,
 			this.plugin.settings.dashboards.map((d) => d.id),
 		);
-		if (Object.keys(memory).length === 0) return base;
-		return { ...base, [SCROLL_STATE_KEY]: memory };
+		if (Object.keys(memory).length === 0) return { ...base, ...pane };
+		return { ...base, ...pane, [SCROLL_STATE_KEY]: memory };
 	}
 
 	/**
@@ -217,6 +245,13 @@ export class HomeView extends ItemView {
 	 */
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
 		await super.setState(state, result);
+		// A pane's card arrives with the state, and the state can land either
+		// side of the first render — so a tab that was built before it knew
+		// which card it shows is redrawn here rather than left blank (#492).
+		const paneId = paneCardIdFromState(state);
+		const paneChanged = paneId !== this.cardPaneId;
+		this.cardPaneId = paneId;
+		if (paneChanged && this.contentEl.isConnected) this.render();
 		// With device-local state on, getState never hands the offsets out, so a
 		// state without them is this tab's own coming back (history, a layout
 		// reload) — not a reason to forget where it was.
@@ -281,6 +316,9 @@ export class HomeView extends ItemView {
 	 * scaled down as it always was. A single-card board never stacks: its one
 	 * card already fills the board at any width. */
 	isStacked(): boolean {
+		// A pane draws one card at whatever width the sidebar has; stacking it
+		// would be a column of one, and it would lose the single-card fill.
+		if (this.cardPaneId) return false;
 		if (activeIsSingleCardBoard(this.plugin.settings)) return false;
 		return this.isNarrow() && effectiveStackOnNarrow(this.plugin.settings);
 	}
@@ -545,6 +583,23 @@ export class HomeView extends ItemView {
 		const root = this.contentEl;
 		root.empty();
 		root.addClass("hearth-view");
+
+		// A sidebar pane is one card filling the tab (#492). It draws through
+		// the ordinary board renderer, with a board of its own — and none of the
+		// board furniture below (switcher, header, banner, wallpaper, terminal
+		// mode, mobile bar) belongs around a card that *is* the whole tab.
+		if (this.cardPaneId) {
+			this.arrangeMode = false;
+			this.phonePreview = false;
+			// A pane is not a place to open files into: it shows one card, and
+			// a link opened "in the same tab" would replace it (#492).
+			this.navigation = false;
+			const shown = paneCard(this.plugin.settings, this.cardPaneId);
+			if (shown) renderCardPane(this, shown, root, child);
+			else renderCardPaneMissing(this, root);
+			gateMotionOnWindow(this, child);
+			return;
+		}
 
 		// Terminal mode draws the whole view as text (src/tui/). It replaces
 		// everything below — the wallpaper, the frosted glass, the graphical

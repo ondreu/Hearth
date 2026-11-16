@@ -158,6 +158,23 @@ Use this for a clock, a search bar, or a launchpad you always want present.
 another board. The two diverge freely from that point on. Use this when you want
 a similar card on two boards but expect to tune each.
 
+## A card in the sidebar
+
+Any card can also live in Obsidian's **right sidebar**, next to whatever you are
+writing. The switch is in the card's settings dialog, on the **Layout** tab: **Open in
+sidebar**. It shows the same card, not a copy — changing its title, its source or
+its content on the board changes what the sidebar shows, and the other way round.
+
+The pane is the card and nothing else: no switcher, no search field, no
+background. Its top-right corner carries two small buttons on hover — the card's
+own settings, and closing the pane. Closing it is the same switch again, or the
+button; the card itself stays on its board. If the card is later deleted, the
+pane says so and offers to point at another card instead.
+
+The card is drawn at whatever width the sidebar has, and adapts to it the way it
+does on a narrow board: a wide card shows less of itself in a thin sidebar, so
+widen the sidebar — or keep the card on the board — for its full layout.
+
 ## Cards, dashboards and the settings cascade
 
 Three visual properties — opacity, blur, border width — plus corner radius exist

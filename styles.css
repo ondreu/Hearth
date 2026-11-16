@@ -27255,3 +27255,94 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 .hearth-card.is-expressive .hearth-tc-cell {
 	border-radius: 3px;
 }
+
+
+/* ---- Sidebar card pane (#492) -------------------------------------------
+   One card in the right sidebar. The pane is the page, so the page gutter the
+   board gives its content would be a frame around a frame: it goes, and the
+   card's own surface is the edge. */
+.hearth-view.hearth-card-pane {
+	padding: 0;
+}
+
+.hearth-view.hearth-card-pane .hearth-scroll {
+	--hearth-scroll-pad-x: 0px;
+	--hearth-scroll-pad-top: 0px;
+	height: 100%;
+	padding: 0;
+}
+
+.hearth-view.hearth-card-pane .hearth-inner {
+	max-width: none;
+	height: 100%;
+	gap: 0;
+}
+
+.hearth-view.hearth-card-pane .hearth-dashboard {
+	display: flex;
+	height: 100%;
+}
+
+.hearth-view.hearth-card-pane .hearth-grid.is-single {
+	height: 100%;
+}
+
+/* The card's own controls, over its top-right corner: a card that fills the
+   pane has no arrange header to put a gear in. Hover/focus only, like the
+   card's other overlay buttons. */
+.hearth-pane-actions {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	gap: 4px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 120ms ease;
+}
+
+.hearth-card-pane:hover .hearth-pane-actions,
+.hearth-pane-actions:focus-within {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.hearth-pane-action {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+/* A touch device has no hover to reveal the controls with — and the tab a
+   phone falls back to has no sidebar either. They are simply always there. */
+@media (hover: none) {
+	.hearth-pane-actions {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
+.hearth-pane-action:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+/* A pane whose card is gone: say so, and offer the one way out. */
+.hearth-card-pane-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	height: 100%;
+	padding: 24px;
+	text-align: center;
+}

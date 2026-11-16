@@ -1,6 +1,8 @@
 import { addIcon, debounce, Platform, Plugin, setIcon, WorkspaceLeaf, Notice } from "obsidian";
 import { installGlyphMode } from "./glyphs";
 import { HomeView, VIEW_TYPE_HOME } from "./view";
+import { CardPaneView } from "./cardpaneview";
+import { PANE_VIEW_TYPE } from "./cardpanesidebar";
 import { VIEW_TYPE_FOLDER } from "./cards/folder";
 import { FolderView } from "./folderview";
 import { flushRssState, initRssState } from "./rssstate";
@@ -138,6 +140,9 @@ export default class HearthPlugin extends Plugin {
 		// The folder browser, opened in a tab of its own (#375).
 		this.registerView(VIEW_TYPE_FOLDER, (leaf) => new FolderView(leaf, this));
 		this.registerView(VIEW_TYPE_RSS_READER, (leaf) => new RssReaderView(leaf, this));
+		// One card in the right sidebar (#492) — the same view the board is,
+		// registered under its own type so the two are told apart.
+		this.registerView(PANE_VIEW_TYPE, (leaf) => new CardPaneView(leaf, this));
 
 		// A renegotiated Operon session may be looking at different settings, so
 		// the cached taxonomy it filled is no longer trustworthy.
@@ -301,6 +306,7 @@ export default class HearthPlugin extends Plugin {
 		// plugin has no business re-rendering views or reading its own data file.
 		this.liveRefreshDebounced.cancel();
 		this.externalSettingsDebounced.cancel();
+		this.refreshCardPanesDebounced.cancel();
 		flushRssState();
 		// Views are detached automatically by Obsidian on plugin unload.
 		// The content-search cache holds lower-cased note bodies, though, so
@@ -583,6 +589,10 @@ export default class HearthPlugin extends Plugin {
 		}
 		await super.saveData(data);
 		this.lastSeenSettingsJson = JSON.stringify(data, null, 2);
+		// A pane draws a card that a board may just have changed or removed
+		// (#492): catch it up after the save rather than leaving it stale until
+		// something else happens to refresh it.
+		if (data === this.settings) this.refreshCardPanesDebounced();
 	}
 
 	async saveSettings() {
@@ -602,12 +612,25 @@ export default class HearthPlugin extends Plugin {
 		// Obsidian's own icon, not the terminal glyph: the ribbon is Obsidian's
 		// chrome, not Hearth's.
 		if (this.ribbonEl) setIcon(this.ribbonEl, this.brandIconId());
-		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach((leaf) => {
+		const updateHeader = (leaf: WorkspaceLeaf) =>
 			// updateHeader is undocumented; when absent the tab icon simply
 			// refreshes the next time the leaf re-renders.
 			(leaf as WorkspaceLeaf & { updateHeader?: () => void }).updateHeader?.();
-		});
+		this.app.workspace.getLeavesOfType(VIEW_TYPE_HOME).forEach(updateHeader);
+		this.app.workspace.getLeavesOfType(PANE_VIEW_TYPE).forEach(updateHeader);
 	}
+
+	/**
+	 * Redraw the open sidebar panes (#492). A pane draws the same card object as
+	 * the board it came from, but it is a view of its own: a save that rebuilds
+	 * the board — an edit in the card dialog, a card removed — leaves the pane
+	 * showing what it had. Debounced, because a drag writes on every move.
+	 */
+	refreshCardPanesDebounced = debounce(() => {
+		this.app.workspace.getLeavesOfType(PANE_VIEW_TYPE).forEach((leaf) => {
+			if (leaf.view instanceof HomeView) leaf.view.render();
+		});
+	}, 250, true);
 
 	/**
 	 * Re-render every open home view.
@@ -635,6 +658,14 @@ export default class HearthPlugin extends Plugin {
 		});
 		this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_READER).forEach((leaf) => {
 			if (leaf.view instanceof RssReaderView) leaf.view.refresh();
+		});
+		// A sidebar card pane draws the same card as the board it came from, so
+		// a settings change has to reach it too — otherwise the pane keeps
+		// showing the card as it was when the pane opened (#492). Skipped while
+		// the sidebar is collapsed, for the same reason a board behind another
+		// tab is: the focus refresh brings it up to date before it is seen.
+		this.app.workspace.getLeavesOfType(PANE_VIEW_TYPE).forEach((leaf) => {
+			if (leaf.view instanceof HomeView && leafIsVisible(leaf)) leaf.view.render();
 		});
 	}
 
@@ -760,6 +791,11 @@ export default class HearthPlugin extends Plugin {
 			if (view instanceof HomeView && !view.arrangeMode && leafIsVisible(leaf)) {
 				view.liveRender();
 			}
+		});
+		// A pane is one card, so a vault-driven redraw costs one card's worth of
+		// work — cheap enough to run whether or not the sidebar is on screen.
+		this.app.workspace.getLeavesOfType(PANE_VIEW_TYPE).forEach((leaf) => {
+			if (leaf.view instanceof HomeView) leaf.view.liveRender();
 		});
 	}
 }

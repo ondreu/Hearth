@@ -3342,13 +3342,36 @@ export function activeCards(s: HomeSettings): DashboardCard[] {
  * nowhere to sit on a board that is one full-size hosted view. A single-card
  * board renders exactly its one card, and no pinned ones for the same reason. */
 export function renderCards(s: HomeSettings): DashboardCard[] {
-	const dash = activeDashboard(s);
+	return cardsForBoard(activeDashboard(s), s);
+}
+
+/** Cards a given board renders: its own plus every pinned card.
+ *
+ * Split out of {@link renderCards} so a view that draws a board other than the
+ * active one — the sidebar card pane (#492) — asks the same question about
+ * *its* board instead of re-deriving the rules. */
+export function cardsForBoard(dash: Dashboard, s: HomeSettings): DashboardCard[] {
 	if (isPluginBoard(dash)) return [];
 	if (isSingleCardBoard(dash)) {
 		const card = singleBoardCard(dash);
 		return card ? [card] : [];
 	}
 	return [...dash.cards, ...s.pinnedCards];
+}
+
+/** The card with this id, wherever it lives — on any board, or in the shared
+ * pinned set. Null when no such card exists any more, which is what a sidebar
+ * pane showing a deleted card has to be able to ask (#492). */
+export function findCardById(s: HomeSettings, id: string): DashboardCard | null {
+	for (const d of s.dashboards) {
+		const card = d.cards.find((c) => c.id === id);
+		if (card) return card;
+	}
+	const pinned = s.pinnedCards.find((c) => c.id === id);
+	if (pinned) return pinned;
+	// A single-card board names its card by id, but that card is always in the
+	// board's own `cards` too — the loop above has already covered it.
+	return null;
 }
 
 /** Whether `dash` gives its whole board to one of its own cards. Like
