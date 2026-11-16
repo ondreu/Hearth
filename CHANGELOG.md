@@ -15,6 +15,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Added
 
+- **The Calculator card can use a comma decimal separator.** *Number format* in
+  the card's settings chooses between `1,234.5` and `1 234,5`: the choice
+  formats results, is what the keypad's decimal key types, and makes a query
+  typed with the chosen separator (`1,5 + 2`) evaluate like its dotted form.
+  Commas between function arguments still separate arguments (`max(1, 5)`).
+
 - **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
   [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community

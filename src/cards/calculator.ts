@@ -3,7 +3,7 @@ import type { CardHost } from "../cardhost";
 import { evaluate as evaluateCalc } from "../calculator";
 import { cachedRates, loadRates } from "../currency";
 import { t } from "../i18n";
-import { type DashboardCard } from "../types";
+import { type CalculatorKeypad, type DashboardCard, type DecimalSeparator } from "../types";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // ---- Calculator ---------------------------------------------------------
@@ -51,12 +51,23 @@ export const CALC_SCI_KEYS: CalcKey[] = [
 	{ label: "mod", insert: " mod ", cls: "is-fn" },
 ];
 
+/** The keys of a keypad tier, with the decimal key matching the card's chosen
+ * separator — a comma-formatted result has to be typeable back in. */
+export function calcKeys(tier: CalculatorKeypad, decimalSeparator: DecimalSeparator = "."): CalcKey[] {
+	const basic =
+		decimalSeparator === ","
+			? CALC_BASIC_KEYS.map((key) => (key.insert === "." ? { ...key, label: ",", insert: "," } : key))
+			: CALC_BASIC_KEYS;
+	return tier === "scientific" ? [...CALC_SCI_KEYS, ...basic] : basic;
+}
+
 /** A free-text calculator: arithmetic, unit/currency conversions and
  * plain-language queries (à la Wolfram Alpha's input box), evaluated live as
  * you type. The on-screen keypad tier is chosen in card settings. */
 export function renderCalculator(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = (card.calculator ??= {});
 	const angleUnit = cfg.angleUnit ?? "deg";
+	const decimalSeparator = cfg.decimalSeparator ?? ".";
 
 	const wrap = body.createDiv("hearth-calc");
 
@@ -98,7 +109,7 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 			persist();
 			return;
 		}
-		const res = evaluateCalc(raw, { angleUnit, rates: currentRates() });
+		const res = evaluateCalc(raw, { angleUnit, rates: currentRates(), decimalSeparator });
 		if (res.ok) {
 			resultEl.removeClass("is-error");
 			resultEl.setText(res.formatted);
@@ -169,7 +180,7 @@ export function renderCalculator(view: CardHost, card: DashboardCard, body: HTML
 		const tier = cfg.keypad ?? "none";
 		keysEl.toggleClass("is-hidden", tier === "none");
 		if (tier === "none") return;
-		const keys = tier === "scientific" ? [...CALC_SCI_KEYS, ...CALC_BASIC_KEYS] : CALC_BASIC_KEYS;
+		const keys = calcKeys(tier, decimalSeparator);
 		for (const key of keys) {
 			const btn = keysEl.createEl("button", {
 				cls: `hearth-calc-key${key.cls ? " " + key.cls : ""}`,
@@ -225,6 +236,18 @@ export function calculatorEditor(ctx: CardEditorContext, containerEl: HTMLElemen
 			d.addOption("scientific", t().editors.calculator.keypadScientific);
 			d.setValue(cfg.keypad ?? "none").onChange((v) => {
 				cfg.keypad = v === "none" ? undefined : (v as "basic" | "scientific");
+				ctx.opts.save();
+				ctx.opts.rerender();
+			});
+		});
+	new Setting(containerEl)
+		.setName(t().editors.calculator.separator)
+		.setDesc(t().editors.calculator.separatorDesc)
+		.addDropdown((d) => {
+			d.addOption(".", t().editors.calculator.separatorDot);
+			d.addOption(",", t().editors.calculator.separatorComma);
+			d.setValue(cfg.decimalSeparator ?? ".").onChange((v) => {
+				cfg.decimalSeparator = v === "," ? "," : undefined;
 				ctx.opts.save();
 				ctx.opts.rerender();
 			});

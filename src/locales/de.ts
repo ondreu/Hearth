@@ -3120,6 +3120,10 @@ export const de: Translations = {
 			keypadNone: "Ausgeblendet",
 			keypadBasic: "Einfach",
 			keypadScientific: "Wissenschaftlich",
+			separator: "Zahlenformat",
+			separatorDesc: "Dezimaltrennzeichen für Ergebnisse und für die Dezimaltaste des Tastenfelds. Bei Komma werden Tausender mit einem Leerzeichen gruppiert, bei Punkt mit einem Komma.",
+			separatorDot: "1,234.5 (Punkt)",
+			separatorComma: "1 234,5 (Komma)",
 		},
 		dataview: {
 			language: "Abfragetyp",

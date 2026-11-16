@@ -2803,6 +2803,10 @@ export const zhTW: Translations = {
 			keypadNone: "隱藏",
 			keypadBasic: "基本",
 			keypadScientific: "科學",
+			separator: "數字格式",
+			separatorDesc: "結果與鍵盤小數點鍵使用的分隔符號。選擇逗號時千位以空格分組，選擇點時千位以逗號分組。",
+			separatorDot: "1,234.5（點）",
+			separatorComma: "1 234,5（逗號）",
 		},
 		dataview: {
 			language: "查詢類型",

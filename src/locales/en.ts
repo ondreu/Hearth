@@ -3108,6 +3108,10 @@ export const en = {
 			keypadNone: "Hidden",
 			keypadBasic: "Basic",
 			keypadScientific: "Scientific",
+			separator: "Number format",
+			separatorDesc: "Decimal separator for results and for what the keypad's decimal key types. A comma groups thousands with a space; a dot groups them with a comma.",
+			separatorDot: "1,234.5 (dot)",
+			separatorComma: "1 234,5 (comma)",
 		},
 		dataview: {
 			language: "Query type",

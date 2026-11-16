@@ -1560,6 +1560,8 @@ function sanitizeCalculator(r: Record<string, unknown>): CalculatorConfig {
 		cfg.angleUnit = r.angleUnit;
 	if (r.keypad === "basic" || r.keypad === "scientific" || r.keypad === "none")
 		cfg.keypad = r.keypad;
+	if (r.decimalSeparator === "," || r.decimalSeparator === ".")
+		cfg.decimalSeparator = r.decimalSeparator;
 	const lastInput = str(r.lastInput);
 	if (lastInput !== undefined) cfg.lastInput = lastInput;
 	return cfg;

@@ -2785,6 +2785,10 @@ export const zh: Translations = {
 			keypadNone: "隐藏",
 			keypadBasic: "基础",
 			keypadScientific: "科学",
+			separator: "数字格式",
+			separatorDesc: "结果和键盘小数点键使用的分隔符。选择逗号时千位以空格分组，选择点时千位以逗号分组。",
+			separatorDot: "1,234.5（点）",
+			separatorComma: "1 234,5（逗号）",
 		},
 		dataview: {
 			language: "查询类型",

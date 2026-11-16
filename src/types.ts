@@ -1044,12 +1044,19 @@ export interface StatsConfig {
  * constants and powers. */
 export type CalculatorKeypad = "none" | "basic" | "scientific";
 
+/** How a calculator writes (and reads) the fractional part of a number: a dot
+ * with comma-grouped thousands (`1,234.5`) or a comma with space-grouped
+ * thousands (`1 234,5`). */
+export type DecimalSeparator = "." | ",";
+
 /** Per-card configuration for a "calculator" card. */
 export interface CalculatorConfig {
 	/** Angle unit assumed by trig functions. Default "deg". */
 	angleUnit?: "deg" | "rad";
 	/** On-screen keypad tier. Default "none". */
 	keypad?: CalculatorKeypad;
+	/** Decimal separator for results and for typed decimal commas. Default ".". */
+	decimalSeparator?: DecimalSeparator;
 	/** The last query typed, restored when the board reloads. */
 	lastInput?: string;
 }

@@ -3061,6 +3061,10 @@ export const fr: Translations = {
 			keypadNone: "Masqué",
 			keypadBasic: "Basique",
 			keypadScientific: "Scientifique",
+			separator: "Format des nombres",
+			separatorDesc: "Séparateur décimal des résultats et de la touche décimale du pavé. Avec la virgule, les milliers sont groupés par une espace ; avec le point, par une virgule.",
+			separatorDot: "1,234.5 (point)",
+			separatorComma: "1 234,5 (virgule)",
 		},
 		dataview: {
 			language: "Type de requête",

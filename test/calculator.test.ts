@@ -269,3 +269,45 @@ describe("formatNumber", () => {
 		expect(formatNumber(1e-9)).toContain("e");
 	});
 });
+
+describe("decimalSeparator", () => {
+	it("writes a comma decimal with space-grouped thousands", () => {
+		expect(formatNumber(1234.5, ",")).toBe("1\u00A0234,5");
+		expect(formatNumber(1234567, ",")).toBe("1\u00A0234\u00A0567");
+	});
+
+	it("keeps the separator in exponential notation", () => {
+		expect(formatNumber(1.5e20)).toContain(".");
+		expect(formatNumber(1.5e20, ",")).toContain(",");
+	});
+
+	it("reads a typed decimal comma", () => {
+		const r = evaluate("1,5 + 2", { decimalSeparator: "," });
+		expect(r.ok && r.formatted).toBe("3,5");
+		// Without the option a comma is not a decimal point, as before.
+		expect(evaluate("1,5 + 2").ok).toBe(false);
+	});
+
+	it("still reads a dot when the card is set to commas", () => {
+		const r = evaluate("1.5 + 2", { decimalSeparator: "," });
+		expect(r.ok && r.formatted).toBe("3,5");
+	});
+
+	it("keeps commas between function arguments", () => {
+		const r = evaluate("max(1,5)", { decimalSeparator: "," });
+		expect(r.ok && r.value).toBe(5);
+	});
+
+	it("formats conversions and their notes with the chosen separator", () => {
+		const r = evaluate("1 km to m", { decimalSeparator: "," });
+		if (!r.ok) throw new Error(r.error);
+		expect(r.formatted).toBe("1\u00A0000 m");
+		expect(r.note).toBe("1 km → m");
+	});
+
+	it("converts a quantity typed with a decimal comma", () => {
+		const r = evaluate("1,5 m to cm", { decimalSeparator: "," });
+		if (!r.ok) throw new Error(r.error);
+		expect(r.formatted).toBe("150 cm");
+	});
+});
