@@ -11,7 +11,7 @@
 import { TFile } from "obsidian";
 import { createSearchBarButton } from "../../header";
 import { t } from "../../i18n";
-import { mergeRanked, runQuery, searchFileContents, slotsAboveBody, type QueryHit } from "../../query";
+import { expandQuery, mergeRanked, runQuery, searchFileContents, slotsAboveBody, type QueryHit } from "../../query";
 import { SearchSection } from "../../search";
 import { effectiveStrictFilters } from "../../types";
 import type { TuiContext, TuiItem, TuiRenderer } from "../card";
@@ -43,7 +43,7 @@ function hitsFor(ctx: TuiContext, query: string, limit: number): QueryHit[] {
 export const searchTui: TuiRenderer = {
 	render(ctx) {
 		const cfg = ctx.card.savedSearch ?? {};
-		const query = (cfg.query ?? "").trim();
+		const query = expandQuery((cfg.query ?? "").trim());
 		if (!query) return { lines: message(t().cards.empty.searchNoQuery, ctx.cols) };
 		const limit = ctx.zoomed ? 100 : cfg.count && cfg.count > 0 ? cfg.count : 12;
 		const list = hitsFor(ctx, query, limit);

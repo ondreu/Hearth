@@ -28,7 +28,16 @@ changes.
 | *Display* | **List** (compact) or **Tiles** |
 | *Max results* | The most matches to show at once |
 
-Example queries: `#project`, `status:active`, `meeting notes`.
+A query can hold `{{variables}}`, filled each time the card draws:
+`{{today}}`, `{{yesterday}}`, `{{tomorrow}}` and `{{now}}`. So `date:{{today}}`
+lists what is dated today, and `due:{{tomorrow}}` what is due tomorrow, without
+editing the card every morning. A `date` filter changes the format —
+`{{today|date:"YYYY-MM"}}` matches a whole month, `{{today|date:"D. M. YYYY"}}`
+matches a Czech-style date. The card's settings list the variables and put one
+in at the cursor, and a placeholder that names nothing is left as written rather
+than matching nothing. The same tokens work in a stat tile's custom query.
+
+Example queries: `#project`, `status:active`, `meeting notes`, `date:{{today}}`.
 
 Empty states: *Set a query in card settings*, and *No matches*.
 

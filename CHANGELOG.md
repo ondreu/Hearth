@@ -46,6 +46,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   next to the Simplified ones, for times, weather, Wikipedia, markets, dice and
   currency. Simplified Chinese, German, French and English are unchanged.
 
+- **The Query card understands dates.** Its saved query can hold `{{variables}}`,
+  filled every time the card draws: `{{today}}`, `{{yesterday}}`, `{{tomorrow}}`
+  and `{{now}}`. `date:{{today}}` lists what is dated today and
+  `due:{{tomorrow}}` what is due tomorrow, without the card being edited each
+  morning; a date filter changes the format, so `{{today|date:"YYYY-MM"}}`
+  matches a whole month. The card's settings list the variables and insert one
+  where the cursor is, a placeholder that names nothing is left as written
+  instead of matching nothing, and the same tokens work in a stat tile's custom
+  query.
+
 ### Fixed
 
 - **Task fields no longer leak between sources.** The *Fields* customisation

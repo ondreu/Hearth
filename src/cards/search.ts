@@ -5,11 +5,14 @@ import { applyFileIcon, fileIconOptions, resolveFileIcon } from "../fileicons";
 import { t } from "../i18n";
 import { openSearchHit } from "../opener";
 import {
+	expandQuery,
 	mergeRanked,
+	QUERY_VARIABLES,
 	runQuery,
 	searchFileContents,
 	slotsAboveBody,
 	type QueryHit,
+	type QueryVariable,
 } from "../query";
 import { type DashboardCard } from "../types";
 import { makeClickable, renderHighlighted } from "../ui";
@@ -20,10 +23,11 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // ---- Query (saved search) ----------------------------------------------
 
 /** A card that runs a saved query (same syntax as the top search bar) and lists
- * the matching files, refreshed on every render. */
+ * the matching files, refreshed on every render. `{{variables}}` in the stored
+ * query are filled first, so it can ask for today's notes and stay correct. */
 export function renderSavedSearch(view: HomeView, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.savedSearch ?? {};
-	const query = (cfg.query ?? "").trim();
+	const query = expandQuery((cfg.query ?? "").trim());
 	if (!query) {
 		emptyState(body, "search", t().cards.empty.searchNoQuery);
 		return;
@@ -126,20 +130,57 @@ function renderQueryTiles(view: HomeView, body: HTMLElement, list: QueryHit[]): 
 }
 
 
+/** The stored query's variables, under its field: click one and it goes in
+ * where the cursor was. Same reference block the note templates show (and the
+ * same CSS), because without it `{{today}}` would exist but nobody would guess
+ * it. */
+function renderQueryVariables(
+	containerEl: HTMLElement,
+	strings: { variables: string; variablesHint: string; vars: Record<QueryVariable, string> },
+	field: () => HTMLInputElement | null,
+): void {
+	const ref = containerEl.createDiv("hearth-clip-ref");
+	ref.createDiv({ cls: "hearth-clip-ref-head", text: strings.variables });
+	ref.createDiv({ cls: "hearth-clip-ref-hint", text: strings.variablesHint });
+	const row = ref.createDiv("hearth-clip-vars");
+	for (const name of QUERY_VARIABLES) {
+		const chip = row.createEl("button", { cls: "hearth-clip-chip", attr: { type: "button" } });
+		chip.createSpan({ cls: "hearth-clip-chip-code", text: `{{${name}}}` });
+		chip.createSpan({ cls: "hearth-clip-chip-desc", text: strings.vars[name] });
+		// Keep the field's focus and selection: insert where the cursor is.
+		chip.addEventListener("mousedown", (e) => e.preventDefault());
+		chip.addEventListener("click", () => {
+			const el = field();
+			if (!el || !el.isConnected) return;
+			const start = el.selectionStart ?? el.value.length;
+			const end = el.selectionEnd ?? start;
+			el.setRangeText(`{{${name}}}`, start, end, "end");
+			// The field's own change handler saves it; "input" is how a
+			// programmatic edit reaches Obsidian's TextComponent.
+			el.dispatchEvent(new Event("input", { bubbles: true }));
+			el.focus();
+		});
+	}
+}
+
 export function savedSearchEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.savedSearch ??= {});
+	const strings = t().editors.savedSearch;
+	let field: HTMLInputElement | null = null;
 	new Setting(containerEl)
-		.setName(t().editors.savedSearch.query)
-		.setDesc(t().editors.savedSearch.queryDesc)
-		.addText((txt) =>
+		.setName(strings.query)
+		.setDesc(strings.queryDesc)
+		.addText((txt) => {
+			field = txt.inputEl;
 			txt
-				.setPlaceholder(t().editors.savedSearch.queryPlaceholder)
+				.setPlaceholder(strings.queryPlaceholder)
 				.setValue(cfg.query ?? "")
 				.onChange((v) => {
 					cfg.query = v;
 					ctx.opts.save();
-				}),
-		);
+				});
+		});
+	renderQueryVariables(containerEl, strings, () => field);
 	new Setting(containerEl)
 		.setName(t().editors.savedSearch.display)
 		.setDesc(t().editors.savedSearch.displayDesc)

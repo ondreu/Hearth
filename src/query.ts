@@ -1,4 +1,5 @@
 import { App, getAllTags, prepareFuzzySearch, TAbstractFile, TFile, TFolder } from "obsidian";
+import { clipDate, commonClipVars, renderClip, type ClipVars } from "./clip";
 import { buildExcerpt, foldForMatch, highlightRanges } from "./excerpt";
 import { groupForFile } from "./filetypes";
 
@@ -68,6 +69,50 @@ export function formatPropertyValue(v: unknown): string {
 }
 
 const NO_FILTER: QueryFilter = { includeFolders: true, includeFiles: true, groupId: null };
+
+// ---- Variables ------------------------------------------------------------
+
+/** The variables a saved query can be filled from, in the order the card's
+ * settings list them. */
+export const QUERY_VARIABLES = ["today", "now", "yesterday", "tomorrow"] as const;
+
+export type QueryVariable = (typeof QUERY_VARIABLES)[number];
+
+/** `offset` calendar days from `now`, at local noon. Deliberately not
+ * `now ± 86_400_000`: across a DST switch that lands on 23:00 or 01:00 of a
+ * neighbouring day, and the formatted date would name the wrong one. Noon is
+ * far enough from midnight for either direction. */
+function dayOffset(now: number, offset: number): number {
+	const d = new Date(now);
+	d.setHours(12, 0, 0, 0);
+	d.setDate(d.getDate() + offset);
+	return d.getTime();
+}
+
+/** What a saved query is filled from. `today` and `now` are the note templates'
+ * own variables (see `commonClipVars` in clip.ts), so a date is spelled the
+ * same way in a query as in a template rather than growing a second dialect. */
+export function queryVars(now = Date.now()): ClipVars {
+	return {
+		...commonClipVars(now),
+		yesterday: clipDate(dayOffset(now, -1), "YYYY-MM-DD"),
+		tomorrow: clipDate(dayOffset(now, 1), "YYYY-MM-DD"),
+	};
+}
+
+/**
+ * Fill `{{variable}}` placeholders in a stored query, so a card can ask for
+ * "the notes dated today" without being edited every morning.
+ *
+ * Only stored queries are filled: the search bar is typed live, and a date
+ * appearing in the field under someone's hands would be a surprise. A
+ * placeholder naming no variable is left as written, so a typo stays visible
+ * in the card instead of quietly matching nothing.
+ */
+export function expandQuery(query: string, now = Date.now()): string {
+	if (!query.includes("{{")) return query;
+	return renderClip(query, queryVars(now));
+}
 
 /** Whether the strict list rules this file out (#434). Tag, property and body
  * queries only ever hit notes, so they check this alone — a `groupId`
