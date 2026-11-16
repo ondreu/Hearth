@@ -21,7 +21,7 @@ export const calculatorTui: TuiRenderer = {
 		const { view } = ctx;
 		const cfg = (ctx.card.calculator ??= {});
 		const angleUnit = cfg.angleUnit ?? "deg";
-		const decimalSeparator = cfg.decimalSeparator ?? ".";
+		const decimalSeparator = cfg.decimalSeparator ?? view.plugin.settings.numberFormat ?? ".";
 		const persist = debounce(() => void view.plugin.saveData(view.plugin.settings), 600, true);
 		let triedRates = false;
 

@@ -68,7 +68,8 @@ export function calcKeys(tier: CalculatorKeypad, decimalSeparator: DecimalSepara
 export function renderCalculator(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = (card.calculator ??= {});
 	const angleUnit = cfg.angleUnit ?? "deg";
-	const decimalSeparator = cfg.decimalSeparator ?? ".";
+	// The card follows the vault's number format unless it was given its own.
+	const decimalSeparator = cfg.decimalSeparator ?? view.plugin.settings.numberFormat ?? ".";
 
 	const wrap = body.createDiv("hearth-calc");
 
@@ -278,8 +279,11 @@ export function calculatorEditor(ctx: CardEditorContext, containerEl: HTMLElemen
 		.addDropdown((d) => {
 			d.addOption(".", t().editors.calculator.separatorDot);
 			d.addOption(",", t().editors.calculator.separatorComma);
-			d.setValue(cfg.decimalSeparator ?? ".").onChange((v) => {
-				cfg.decimalSeparator = v === "," ? "," : undefined;
+			d.setValue(cfg.decimalSeparator ?? ctx.opts.settings.numberFormat ?? ".").onChange((v) => {
+				const chosen: DecimalSeparator = v === "," ? "," : ".";
+				// Store only a deviation from the vault setting, so the card keeps
+				// following it — and a later change there — until it differs.
+				cfg.decimalSeparator = chosen === ctx.opts.settings.numberFormat ? undefined : chosen;
 				ctx.opts.save();
 				ctx.opts.rerender();
 			});

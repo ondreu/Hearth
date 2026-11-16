@@ -35,6 +35,7 @@ import { moment as createMoment } from "obsidian";
 import { currencyConversion, evaluate } from "./calculator";
 import { CURRENCY_CODES } from "./currency";
 import { parseNaturalDate } from "./dates";
+import type { DecimalSeparator } from "./types";
 
 /** What a search query asks for, beyond matching notes. */
 export type InstantIntent =
@@ -591,8 +592,9 @@ export function detectInstant(
 	raw: string,
 	zones: readonly string[] = [],
 	enabled: (feature: InstantFeature) => boolean = () => true,
+	decimalSeparator: DecimalSeparator = ".",
 ): InstantIntent | null {
-	const intent = detectAny(tidy(raw), zones, enabled);
+	const intent = detectAny(tidy(raw), zones, enabled, decimalSeparator);
 	return intent && enabled(instantFeature(intent)) ? intent : null;
 }
 
@@ -603,6 +605,7 @@ function detectAny(
 	query: string,
 	zones: readonly string[],
 	enabled: (feature: InstantFeature) => boolean,
+	decimalSeparator: DecimalSeparator,
 ): InstantIntent | null {
 	if (!query) return null;
 
@@ -641,7 +644,7 @@ function detectAny(
 	if (date) return date;
 
 	if (!enabled("calc") || !(/\d/.test(query) || HEX_WORDS_RE.test(query)) || notMath(query)) return null;
-	const res = evaluate(query);
+	const res = evaluate(query, { decimalSeparator });
 	if (!res.ok || !Number.isFinite(res.value)) return null;
 	return { kind: "calc", input: query, forced: false };
 }

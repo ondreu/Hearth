@@ -1000,6 +1000,10 @@ export const fr: Translations = {
 			searchEngineBuiltin: "Hearth (intégré)",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "Sélecteur rapide",
+			numberFormat: "Format des nombres",
+			numberFormatDesc: "Écriture des nombres dans la carte calculatrice et dans les réponses des barres de recherche : 1,234.5 garde le point, 1 234,5 la virgule. Une carte calculatrice peut choisir le sien.",
+			numberFormatDot: "1,234.5 (point)",
+			numberFormatComma: "1 234,5 (virgule)",
 			omnisearchMissing:
 				"Omnisearch n'est pas installé ou activé. Installez-le et activez-le, " +
 				"puis sélectionnez-le à nouveau.",
@@ -3062,7 +3066,7 @@ export const fr: Translations = {
 			keypadBasic: "Basique",
 			keypadScientific: "Scientifique",
 			separator: "Format des nombres",
-			separatorDesc: "Séparateur décimal des résultats et de la touche décimale du pavé. Avec la virgule, les milliers sont groupés par une espace ; avec le point, par une virgule.",
+			separatorDesc: "Séparateur décimal des résultats de cette carte et de la touche décimale du pavé. Suit Réglages → Barre de recherche sauf si vous en choisissez un ici.",
 			separatorDot: "1,234.5 (point)",
 			separatorComma: "1 234,5 (virgule)",
 		},

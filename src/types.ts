@@ -2753,6 +2753,11 @@ export interface HomeSettings {
 	 * enabled — Hearth falls back to the built-in engine otherwise), or matching
 	 * the way Obsidian's own Quick switcher does (see quickswitcher.ts). */
 	searchEngine: "builtin" | "omnisearch" | "quickswitcher";
+	/** How Hearth writes a number wherever it prints one — the calculator card
+	 * and the search bars' instant answers: a dot with comma-grouped thousands
+	 * (`1,234.5`) or a comma with space-grouped thousands (`1 234,5`). A
+	 * calculator card may override it for itself. */
+	numberFormat: DecimalSeparator;
 	/** Which web search engine the “Search online” button opens. The dropdown
 	 * beside the button can search elsewhere for one query without changing
 	 * this. See {@link WebSearchEngineId}. */
@@ -3129,6 +3134,7 @@ export const DEFAULT_SETTINGS: HomeSettings = {
 	searchInstantAnswers: true,
 	hiddenInstantAnswers: [],
 	searchEngine: "builtin",
+	numberFormat: ".",
 	webSearchEngine: DEFAULT_WEB_SEARCH_ENGINE,
 
 	backgroundKind: "default",

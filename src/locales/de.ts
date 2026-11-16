@@ -1048,6 +1048,10 @@ export const de: Translations = {
 			searchEngineBuiltin: "Hearth (integriert)",
 			searchEngineOmnisearch: "Omnisearch",
 			searchEngineQuickSwitcher: "Schnellwechsler",
+			numberFormat: "Zahlenformat",
+			numberFormatDesc: "Wie Zahlen in der Rechner-Karte und in den Antworten der Suchleisten geschrieben werden: 1,234.5 behält den Punkt als Dezimaltrennzeichen, 1 234,5 das Komma. Eine Rechner-Karte kann ihr eigenes Format wählen.",
+			numberFormatDot: "1,234.5 (Punkt)",
+			numberFormatComma: "1 234,5 (Komma)",
 			omnisearchMissing:
 				"Omnisearch ist nicht installiert oder aktiviert. Installiere und aktiviere es, " +
 				"und wähle es dann erneut aus.",
@@ -3121,7 +3125,7 @@ export const de: Translations = {
 			keypadBasic: "Einfach",
 			keypadScientific: "Wissenschaftlich",
 			separator: "Zahlenformat",
-			separatorDesc: "Dezimaltrennzeichen für Ergebnisse und für die Dezimaltaste des Tastenfelds. Bei Komma werden Tausender mit einem Leerzeichen gruppiert, bei Punkt mit einem Komma.",
+			separatorDesc: "Dezimaltrennzeichen für die Ergebnisse dieser Karte und für die Dezimaltaste des Tastenfelds. Folgt Einstellungen → Suchleiste, sofern hier nichts anderes gewählt ist.",
 			separatorDot: "1,234.5 (Punkt)",
 			separatorComma: "1 234,5 (Komma)",
 		},

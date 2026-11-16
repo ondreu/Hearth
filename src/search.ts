@@ -89,6 +89,7 @@ export class SearchSection {
 		this.view = view;
 		this.instant = new InstantAnswers({
 			externalCallsDisabled: () => this.view.plugin.settings.disableExternalCalls,
+			decimalSeparator: () => this.view.plugin.settings.numberFormat ?? ".",
 			changed: () => {
 				if (!this.redraw || !this.resultsEl?.isShown()) return;
 				this.redrawing = true;

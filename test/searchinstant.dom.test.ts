@@ -132,6 +132,22 @@ describe("search bar instant answers", () => {
 		expect(results.querySelector(".hearth-search-empty")).toBeNull();
 	});
 
+	it("writes its answer in the vault's number format", () => {
+		const dot = mount();
+		dot.type("1.5 + 3");
+		expect(dot.results.querySelector(".hearth-instant-value")?.textContent).toBe("4.5");
+		// A decimal comma is not a number in the dot format, so no answer.
+		dot.type("1,5 + 3");
+		expect(dot.results.querySelector(".hearth-instant")).toBeNull();
+
+		const comma = mount((s) => (s.numberFormat = ","));
+		comma.type("1,5 + 3");
+		expect(comma.results.querySelector(".hearth-instant-value")?.textContent).toBe("4,5");
+		// Thousands follow the same choice.
+		comma.type("1500 * 2");
+		expect(comma.results.querySelector(".hearth-instant-value")?.textContent).toBe("3\u00A0000");
+	});
+
 	it("stays silent for an answer off on the card or vault-wide", () => {
 		const card = mount(() => {}, ["calc"]);
 		card.type("1+1");

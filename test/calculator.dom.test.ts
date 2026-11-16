@@ -10,7 +10,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { installObsidianDom } from "./support/obsidian-dom";
 import type { CardHost } from "../src/cardhost";
-import type { CalculatorConfig, DashboardCard } from "../src/types";
+import type { CalculatorConfig, DashboardCard, DecimalSeparator } from "../src/types";
 
 let renderCalculator: typeof import("../src/cards/calculator").renderCalculator;
 
@@ -20,15 +20,18 @@ beforeAll(async () => {
 });
 
 /** A host that answers only what a rendered card asks of it. */
-function host(): CardHost {
-	const plugin = { settings: { disableExternalCalls: true }, saveData: async () => {} };
+function host(numberFormat: DecimalSeparator = "."): CardHost {
+	const plugin = {
+		settings: { disableExternalCalls: true, numberFormat },
+		saveData: async () => {},
+	};
 	return { plugin } as unknown as CardHost;
 }
 
-function draw(calculator: CalculatorConfig): HTMLElement {
+function draw(calculator: CalculatorConfig, numberFormat: DecimalSeparator = "."): HTMLElement {
 	const body = document.body.createDiv();
 	const card: DashboardCard = { id: "calc", kind: "calculator", title: "Calculator", x: 0, y: 0, w: 4, h: 3, calculator };
-	renderCalculator(host(), card, body);
+	renderCalculator(host(numberFormat), card, body);
 	return body;
 }
 
@@ -51,6 +54,12 @@ describe("the calculator card's number format", () => {
 		const body = draw({ decimalSeparator: "," });
 		expect(type(body, "1,5 + 3")).toBe("4,5");
 		expect(type(body, "1500 * 2")).toBe("3\u00A0000");
+	});
+
+	it("follows the vault's number format unless the card sets its own", () => {
+		expect(type(draw({}, ","), "1,5 + 3")).toBe("4,5");
+		// A card that picked a dot keeps it, whatever the vault says.
+		expect(type(draw({ decimalSeparator: "." }, ","), "1.5 + 3")).toBe("4.5");
 	});
 
 	it("puts the chosen separator on the keypad", () => {

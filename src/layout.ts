@@ -257,6 +257,7 @@ export function exportSettingsPayload(s: HomeSettings): Record<string, unknown> 
 		searchInstantAnswers: s.searchInstantAnswers,
 		hiddenInstantAnswers: s.hiddenInstantAnswers,
 		searchEngine: s.searchEngine,
+		numberFormat: s.numberFormat,
 		webSearchEngine: s.webSearchEngine,
 
 		// Background
@@ -2313,6 +2314,8 @@ export function applySettings(s: HomeSettings, data: Record<string, unknown>): v
 	) {
 		s.searchEngine = data.searchEngine;
 	}
+	if (data.numberFormat === "." || data.numberFormat === ",")
+		s.numberFormat = data.numberFormat;
 	if (isWebSearchEngineId(data.webSearchEngine)) s.webSearchEngine = data.webSearchEngine;
 
 	// Background

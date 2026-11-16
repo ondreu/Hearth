@@ -134,6 +134,7 @@ function panel(disabled = false) {
 	let changes = 0;
 	const answers = new InstantAnswers({
 		externalCallsDisabled: () => disabled,
+		decimalSeparator: () => ".",
 		changed: () => {
 			changes++;
 		},

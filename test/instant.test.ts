@@ -43,6 +43,14 @@ describe("detectInstant — calculations", () => {
 		expect(detectInstant("cafe hex en décimal")?.kind).toBe("calc");
 	});
 
+	it("reads a decimal comma only when the number format is comma", () => {
+		// A comma between digits isn't a decimal point by default...
+		expect(detectInstant("1,5 + 2")).toBeNull();
+		// ...but it is once the vault's number format says so.
+		expect(detectInstant("1,5 + 2", [], () => true, ",")?.kind).toBe("calc");
+		expect(detectInstant("1,5 eur to usd", [], () => true, ",")?.kind).toBe("currency");
+	});
+
 	it("leaves numbers, dates and times of day to the note search", () => {
 		expect(detectInstant("2026")).toBeNull();
 		expect(detectInstant("-5")).toBeNull();
