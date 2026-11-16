@@ -570,6 +570,13 @@ export const en = {
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
+	cardPane: {
+		missing: "This card no longer exists.",
+		choose: "Pick another card",
+		choosePlaceholder: "Pick a card…",
+		settings: "Card settings",
+		close: "Close this pane",
+	},
 	dashboard: {
 		addCard: "Add card",
 		addCardAria: "Add a card to the dashboard",
@@ -3782,6 +3789,11 @@ export const en = {
 			heading: "Pin to all dashboards",
 			headingDesc:
 				"Show this card on every dashboard, sharing one definition and position.",
+		},
+		sidebar: {
+			heading: "Open in sidebar",
+			headingDesc:
+				"Show this card in Obsidian's right sidebar, next to your notes. It stays the same card — changes made here show up there.",
 		},
 		copy: {
 			heading: "Copy to dashboard",

@@ -548,6 +548,13 @@ export const fr: Translations = {
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
+	cardPane: {
+		missing: "Cette carte n'existe plus.",
+		choose: "Choisir une autre carte",
+		choosePlaceholder: "Choisir une carte…",
+		settings: "Réglages de la carte",
+		close: "Fermer ce panneau",
+	},
 	dashboard: {
 		addCard: "Ajouter une carte",
 		addCardAria: "Ajouter une carte au tableau de bord",
@@ -3725,6 +3732,11 @@ export const fr: Translations = {
 			heading: "Épingler sur tous les tableaux",
 			headingDesc:
 				"Afficher cette carte sur tous les tableaux de bord, avec une même définition et position.",
+		},
+		sidebar: {
+			heading: "Ouvrir dans la barre latérale",
+			headingDesc:
+				"Afficher cette carte dans la barre latérale droite d'Obsidian, à côté de vos notes. Il s'agit de la même carte — les modifications faites ici y apparaissent.",
 		},
 		copy: {
 			heading: "Copier vers un tableau",

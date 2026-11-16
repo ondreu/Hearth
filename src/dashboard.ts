@@ -46,6 +46,8 @@ import { renderSingleCardEmpty } from "./singlecard";
 import {
 	activeCards,
 	activeDashboard,
+	cardsForBoard,
+	type Dashboard,
 	type DashboardCard,
 	type HomeSettings,
 	effectiveArrangeButtonVisibility,
@@ -87,9 +89,13 @@ export function renderDashboard(
 	view: HomeView,
 	container: HTMLElement,
 	component: Component,
+	/** The board to draw. Every caller but a sidebar card pane (#492) draws the
+	 * active one; a pane names its own board, so it shows its card whatever
+	 * dashboard the main tab is on. */
+	board: Dashboard = activeDashboard(view.plugin.settings),
 ): void {
 	const s = view.plugin.settings;
-	const cards = renderCards(s);
+	const cards = cardsForBoard(board, s);
 	// A narrow board reflows into one full-width column (see src/narrow.ts).
 	// Everything the stacked layout does is render-only: `stackedCards` reads
 	// the free-form geometry to derive an order and never writes to it, so a
@@ -99,7 +105,7 @@ export function renderDashboard(
 	// than at its stored place on the grid (see src/singlecard.ts). The stored
 	// geometry is still seeded and kept, so switching back to cards puts it back
 	// where it was.
-	const single = isSingleCardBoard(activeDashboard(s));
+	const single = isSingleCardBoard(board);
 	const columns = effectiveColumns(s);
 	const rowHeight = effectiveRowHeight(s);
 

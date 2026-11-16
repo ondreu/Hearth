@@ -56,6 +56,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   instead of matching nothing, and the same tokens work in a stat tile's custom
   query.
 
+- **Any card can live in the right sidebar.** The card settings dialog gains
+  *Open in sidebar* (#492): the card — the same card, not a copy — fills a pane in
+  Obsidian's right sidebar next to the note being written, with its own small
+  gear and close buttons over its top-right corner. It follows the board's
+  settings, keeps its place across a restart, and shows a short empty state with
+  a card picker if the card it was showing is deleted.
+
 ### Fixed
 
 - **Task fields no longer leak between sources.** The *Fields* customisation

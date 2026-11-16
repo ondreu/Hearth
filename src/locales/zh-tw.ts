@@ -524,6 +524,13 @@ export const zhTW: Translations = {
 	},
 
 	// ---- Dashboard toolbar & card controls -----------------------------
+	cardPane: {
+		missing: "此卡片已不存在。",
+		choose: "選擇其他卡片",
+		choosePlaceholder: "選擇卡片…",
+		settings: "卡片設定",
+		close: "關閉此面板",
+	},
 	dashboard: {
 		addCard: "新增卡片",
 		addCardAria: "向儀表板新增卡片",
@@ -3429,6 +3436,11 @@ export const zhTW: Translations = {
 		pin: {
 			heading: "釘選到所有儀表板",
 			headingDesc: "在每個儀表板上顯示此卡片，共用同一份定義和位置。",
+		},
+		sidebar: {
+			heading: "在側邊欄中開啟",
+			headingDesc:
+				"在 Obsidian 右側邊欄中顯示此卡片，與筆記並排。它仍是同一張卡片——此處所做的變更會同步顯示。",
 		},
 		copy: {
 			heading: "複製到儀表板",
