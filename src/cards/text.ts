@@ -1,15 +1,14 @@
 import { Component, debounce, MarkdownRenderer, Platform } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { wireMarkdownCheckboxes, wireMarkdownLinks } from "../cardbodies";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition } from "./definition";
-
 
 // ---- Text / jot-down ----------------------------------------------------
 
 export function renderText(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,

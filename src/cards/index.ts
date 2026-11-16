@@ -252,6 +252,10 @@ export function cloneCard(card: DashboardCard): DashboardCard {
 		...card,
 		id: `card-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`,
 	};
+	// A copy is its own card, so it must not answer to the original's command:
+	// both would carry the same name in the palette, with no way to tell which
+	// is which (#491). The switch is per card and is turned on deliberately.
+	copy.command = undefined;
 	// Run every kind's cloneConfig, not just the current kind's: switching a
 	// card's type keeps the previous kind's config on the card (see the editor's
 	// type dropdown), so a card can legitimately carry several kinds' nested

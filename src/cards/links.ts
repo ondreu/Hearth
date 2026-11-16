@@ -1,4 +1,5 @@
 import { setTooltip, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { applyTileSize, createTileGrid, emptyState, makeTileDraggable, makeTileResizable, markOverlappingTiles } from "../cardbodies";
 import { moveItem } from "../editors";
 import { type FolderDestination, folderDestination } from "../fileexplorer";
@@ -9,14 +10,12 @@ import { FIXED_TILE_BASE, tileSizing } from "../tiles";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type DashboardCard, type LinkItem } from "../types";
 import { inExpressiveCard, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { openFolderByDestination } from "./bookmarks";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
-
 // ---- Links / launchpad --------------------------------------------------
 
-export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderLinks(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const links = card.links ?? [];
 	if (links.length === 0) {
 		emptyState(body, "layout-grid", t().cards.empty.linksEmpty);
@@ -51,7 +50,6 @@ export function renderLinks(view: HomeView, card: DashboardCard, body: HTMLEleme
 	markOverlappingTiles(grid);
 }
 
-
 /** The icon a button without one draws: a command reads as a command, as it
  * did on the retired Commands card, whose buttons this card now holds; a
  * folder tile reads as a folder, the way a folder bookmark does. */
@@ -59,9 +57,8 @@ export function linkFallbackIcon(link: LinkItem): string {
 	return link.type === "command" ? "terminal-square" : link.type === "folder" ? "folder" : "link";
 }
 
-
 export function openLink(
-	view: HomeView,
+	view: CardHost,
 	link: LinkItem,
 	expressive = false,
 	folders: FolderDestination = "browser",
@@ -86,7 +83,6 @@ export function openLink(
 		}
 	}
 }
-
 
 export function linksEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	new Setting(containerEl).setName(t().editors.links.heading).setHeading();

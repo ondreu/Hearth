@@ -1,4 +1,5 @@
 import { Notice, Setting, type Component, TFile, TFolder } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { bookmarkTarget, type BookmarkItem } from "../bookmarks";
 import { emptyState, redrawCard } from "../cardbodies";
@@ -9,10 +10,8 @@ import { type BookmarksInstance } from "../obsidian-ext";
 import { openFile, openSearch, targetLeaf } from "../opener";
 import { type DashboardCard } from "../types";
 import { inExpressiveCard, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 import { defaultBrowseState, openFolderBrowser } from "./folder";
-
 
 // ---- Bookmarks (Obsidian core) -----------------------------------------
 
@@ -24,7 +23,7 @@ import { defaultBrowseState, openFolderBrowser } from "./folder";
  * native pane hides those orphans. We mirror that so the card never shows dead,
  * unclickable rows (see issue #41). A group whose whole subtree prunes away is
  * dropped too, rather than leaving an empty folder in the card. */
-export function pruneBookmarks(items: BookmarkItem[], view: HomeView): BookmarkItem[] {
+export function pruneBookmarks(items: BookmarkItem[], view: CardHost): BookmarkItem[] {
 	const out: BookmarkItem[] = [];
 	for (const item of items) {
 		if (item.type === "group") {
@@ -40,9 +39,8 @@ export function pruneBookmarks(items: BookmarkItem[], view: HomeView): BookmarkI
 	return out;
 }
 
-
 export function renderBookmarks(
-	view: HomeView,
+	view: CardHost,
 	body: HTMLElement,
 	component?: Component,
 	card?: DashboardCard,
@@ -76,7 +74,6 @@ export function renderBookmarks(
 	renderBookmarkItems(view, body.createDiv("hearth-list"), tree, folderBookmarkTarget(card));
 }
 
-
 /** Where a bookmarked folder opens (#448): Hearth's browser, or Obsidian's own
  * file explorer in the sidebar. */
 export type FolderBookmarkTarget = FolderDestination;
@@ -88,11 +85,10 @@ export function folderBookmarkTarget(
 	return folderDestination(card?.folderTarget);
 }
 
-
 /** Render a level of the bookmark tree into `container`, recursing into groups
  * so the card mirrors Obsidian's own collapsible folder layout. */
 function renderBookmarkItems(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	items: BookmarkItem[],
 	folders: FolderBookmarkTarget = "browser",
@@ -106,11 +102,10 @@ function renderBookmarkItems(
 	}
 }
 
-
 /** A collapsible folder: a header row that toggles its nested children, which
  * are themselves rendered recursively so sub-groups nest to any depth. */
 function renderBookmarkGroup(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	group: BookmarkItem,
 	folders: FolderBookmarkTarget = "browser",
@@ -130,22 +125,20 @@ function renderBookmarkGroup(
 	makeClickable(header, toggle, label);
 }
 
-
 /** The name Obsidian shows for an unnamed file/folder bookmark: the target's
  * basename, not its full path. Resolving through the vault strips the `.md`
  * extension from notes (like Obsidian) and keeps the extension on other files;
  * if the target can't be resolved we fall back to the last path segment. */
-export function bookmarkPathName(view: HomeView, path: string): string {
+export function bookmarkPathName(view: CardHost, path: string): string {
 	const file = view.app.vault.getAbstractFileByPath(path);
 	if (file instanceof TFile) return file.basename;
 	if (file instanceof TFolder) return file.name;
 	return path.split("/").pop() || path;
 }
 
-
 /** A single (non-group) bookmark row: file, folder, url, search or graph. */
 function renderBookmarkLeaf(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	item: BookmarkItem,
 	folders: FolderBookmarkTarget = "browser",
@@ -187,7 +180,6 @@ function renderBookmarkLeaf(
 	makeClickable(row, open, label);
 }
 
-
 /** Show a site favicon for a URL bookmark, falling back to the globe icon if the
  * URL can't be parsed or the favicon fails to load (e.g. offline). */
 function renderFavicon(iconEl: HTMLElement, url: string): void {
@@ -208,7 +200,6 @@ function renderFavicon(iconEl: HTMLElement, url: string): void {
 	img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
 }
 
-
 /**
  * Follow a bookmark — every kind of one.
  *
@@ -218,7 +209,7 @@ function renderFavicon(iconEl: HTMLElement, url: string): void {
  * what the bug looked like.
  */
 export function openBookmark(
-	view: HomeView,
+	view: CardHost,
 	item: BookmarkItem,
 	expressive: boolean,
 	folders: FolderBookmarkTarget = "browser",
@@ -254,7 +245,6 @@ export function openBookmark(
 	}
 }
 
-
 /**
  * Open a bookmarked note, at the heading or block the bookmark points into.
  *
@@ -269,12 +259,11 @@ export function openBookmark(
  * deleted *after* the card drew leaves one behind, and the one thing a stale
  * row must not do is create an empty note where the old one was.
  */
-function openNote(view: HomeView, path: string, subpath?: string): void {
+function openNote(view: CardHost, path: string, subpath?: string): void {
 	const file = view.app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return;
 	void openFile(view, file, "card", null, subpath ? { eState: { subpath } } : undefined);
 }
-
 
 /** Hand a folder to Hearth's folder browser. There is no card config to
  * read here — a bookmark is a path and nothing else — so the browser opens on
@@ -282,10 +271,9 @@ function openNote(view: HomeView, path: string, subpath?: string): void {
  *
  * Exported because a launchpad's folder tile opens its target the same way
  * (#448): one destination for "this is a folder", in both cards. */
-export function openBookmarkedFolder(view: HomeView, path: string, expressive: boolean): void {
+export function openBookmarkedFolder(view: CardHost, path: string, expressive: boolean): void {
 	openFolderBrowser(view, { ...defaultBrowseState(path), expressive });
 }
-
 
 /** Open a folder wherever the card's *where a folder opens* setting says
  * (#448): Hearth's browser, or Obsidian's file explorer in the sidebar.
@@ -295,7 +283,7 @@ export function openBookmarkedFolder(view: HomeView, path: string, expressive: b
  * click that does nothing. Shared by the two cards that can open a folder from
  * a click, so a folder bookmark and a launchpad folder button never disagree. */
 export function openFolderByDestination(
-	view: HomeView,
+	view: CardHost,
 	path: string,
 	expressive: boolean,
 	folders: FolderDestination = "browser",
@@ -309,11 +297,10 @@ export function openFolderByDestination(
 	});
 }
 
-
 /** Open the graph view carrying the bookmark's saved state — the filters,
  * groups and forces that *are* what was bookmarked. Goes wherever the user's
  * "open in" setting sends a card's click, like every other row. */
-async function openGraph(view: HomeView, options: Record<string, unknown>): Promise<void> {
+async function openGraph(view: CardHost, options: Record<string, unknown>): Promise<void> {
 	if (!view.app.internalPlugins.getPluginById("graph")?.enabled) {
 		new Notice(t().cards.bookmarks.needsGraph);
 		return;
@@ -328,7 +315,6 @@ async function openGraph(view: HomeView, options: Record<string, unknown>): Prom
 		.dataEngine;
 	if (typeof engine?.setOptions === "function") engine.setOptions(options);
 }
-
 
 /**
  * Redraw the card when the bookmark store changes.
@@ -386,7 +372,6 @@ function bookmarksEditor(containerEl: HTMLElement, ctx: CardEditorContext): void
 			});
 		});
 }
-
 
 /** The core Bookmarks plugin's entries, grouped. Its one setting is where a
  * folder bookmark opens — a dropdown in the card's settings, not a control on

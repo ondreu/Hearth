@@ -1,11 +1,10 @@
 import { Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import { DATAVIEW_PLUGIN_ID, getDataviewApi, isDataviewAvailable } from "../dataview";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Dataview query -----------------------------------------------------
 
@@ -17,7 +16,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * renderer to `component`, so results update live as the vault (and Dataview's
  * index) change, without Hearth having to re-run the query. */
 export function renderDataview(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -61,7 +60,6 @@ export function renderDataview(
 	setupDataviewColumnResize(view, card, cfg, host, component);
 }
 
-
 /**
  * Make the columns of a Dataview TABLE result resizable by dragging a header's
  * right edge. Columns auto-fit their content by default; the first drag
@@ -74,7 +72,7 @@ export function renderDataview(
  * dataset flag so the observer never loops.
  */
 function setupDataviewColumnResize(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	cfg: NonNullable<DashboardCard["dataview"]>,
 	host: HTMLElement,
@@ -92,7 +90,6 @@ function setupDataviewColumnResize(
 	decorate();
 }
 
-
 /** Read a Dataview table's header cells (thead, falling back to the first row). */
 function dataviewHeaderCells(table: HTMLTableElement): HTMLTableCellElement[] {
 	const thead = Array.from(
@@ -104,7 +101,6 @@ function dataviewHeaderCells(table: HTMLTableElement): HTMLTableCellElement[] {
 	);
 	return firstRow ? Array.from(firstRow.cells) : [];
 }
-
 
 /** Ensure a `<colgroup>` at the front of `table` with `count` sized `<col>`s. */
 function dataviewColgroup(table: HTMLTableElement, count: number, widths: number[]): HTMLElement {
@@ -120,7 +116,6 @@ function dataviewColgroup(table: HTMLTableElement, count: number, widths: number
 	}
 	return colgroup;
 }
-
 
 /** Attach resize handles and (re-)apply stored widths to one Dataview table. */
 function decorateDataviewTable(
@@ -199,7 +194,6 @@ function decorateDataviewTable(
 		});
 	});
 }
-
 
 export function dataviewEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.dataview ??= {});

@@ -1,4 +1,5 @@
 import { Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import {
 	activityByDay,
 	createDailyNoteAt,
@@ -20,9 +21,7 @@ import {
 	type HeatmapRuleOp,
 } from "../types";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Activity heatmap (GitHub-style) ------------------------------------
 
@@ -48,7 +47,7 @@ export function heatUnit(cfg: HeatmapConfig): string {
  * With `advanced` on, the same grid stands for whatever the vault tracks: the
  * day comes from a frontmatter date, the value from a summed property, and
  * rules pick which notes count at all (see `src/heatmapmetric.ts`). */
-export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderHeatmap(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.heatmap ?? {};
 	const advanced = cfg.advanced ?? false;
 	const metric = cfg.metric ?? "modified";
@@ -127,7 +126,6 @@ export function renderHeatmap(view: HomeView, card: DashboardCard, body: HTMLEle
 	legend.createSpan({ cls: "hearth-heatmap-legend-label", text: t().cards.heatmap.more });
 }
 
-
 /**
  * The heatmap card is a vault-activity grid by default — one dropdown and a
  * range. An "Advanced" toggle turns it into a custom metric: the day a note
@@ -176,11 +174,9 @@ export function heatmapEditor(ctx: CardEditorContext, containerEl: HTMLElement):
 	gridSection(ctx, containerEl, cfg);
 }
 
-
 /** The colour a freshly opened picker starts on — Hearth's own accent, the same
  * stand-in the card's accent picker uses, so an unset grid never opens on black. */
 const STANDIN_HEAT_TINT = "#7c5cff";
-
 
 /** The grid's own colour: a card may tint its squares instead of taking the
  * theme's accent, which is what a theme with a low-contrast accent needs (#430).
@@ -210,7 +206,6 @@ function gridSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Heat
 	);
 }
 
-
 /** How much history the grid shows — the one control both modes share. */
 function weeksSetting(ctx: CardEditorContext, containerEl: HTMLElement, cfg: HeatmapConfig): void {
 	const strings = t().editors.heatmap;
@@ -234,7 +229,6 @@ function weeksSetting(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Hea
 			}),
 	);
 }
-
 
 /** Advanced mode: where a day comes from, what each note adds, and what the
  * total is called. */
@@ -319,7 +313,6 @@ function metricSection(ctx: CardEditorContext, containerEl: HTMLElement, cfg: He
 				}),
 		);
 }
-
 
 /** Advanced mode: the rules deciding which notes are counted, and whether a
  * note has to meet all of them or just one. */

@@ -3738,6 +3738,11 @@ export const fr: Translations = {
 			headingDesc:
 				"Afficher cette carte dans la barre latérale droite d'Obsidian, à côté de vos notes. Il s'agit de la même carte — les modifications faites ici y apparaissent.",
 		},
+		command: {
+			heading: "Ajouter au menu de commandes",
+			headingDesc:
+				"Donner à cette carte sa propre commande, pour l'ouvrir depuis la palette de commandes ou le menu / de l'éditeur, dans une fenêtre flottante.",
+		},
 		copy: {
 			heading: "Copier vers un tableau",
 			headingDesc:

@@ -1,13 +1,12 @@
 import { Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isLeafViewAvailable, isViewTypeHostable, listLeafViewTypes, mountLeafView } from "../leafview";
 import { FilePickerModal } from "../pickers";
 import { type DashboardCard, type HomeSettings, performanceTier } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 /** A card that hosts another plugin's (or a core) registered side-panel view —
  * a calendar, outline, tag pane, kanban board, and so on — by mounting a
@@ -19,7 +18,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * throws, and the hosted leaf's lifecycle is tied to `component`, so it is torn
  * down cleanly on the next redraw or when the dashboard closes. */
 export function renderLeaf(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -48,7 +47,6 @@ export function renderLeaf(
 	}
 }
 
-
 /** The performance warning shown under the type dropdown for the leaf card.
  *
  * Deliberately louder than the other editor notes (`hearth-setting-note`): this
@@ -75,7 +73,6 @@ export function leafTypeNote(containerEl: HTMLElement, settings: HomeSettings): 
 		});
 	}
 }
-
 
 	/** Pick which registered side-panel view the "leaf" card hosts. The dropdown
 	 * lists every hostable view type found in the app right now (core panes plus

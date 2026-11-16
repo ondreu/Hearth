@@ -1,11 +1,10 @@
 import { Component, type DropdownComponent, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { localDayKey } from "../dates";
 import { t } from "../i18n";
 import { type DashboardCard, type PetConfig, type PetSpecies, motionAllowed } from "../types";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Pet ----------------------------------------------------------------
 //
@@ -19,7 +18,6 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // The sprites are 16×16 character grids (no image assets): one shared body plus
 // a per-species head, painted with a face for the current mood and emitted as a
 // run-length-encoded SVG of at most a few dozen rects.
-
 
 /** The mood ladder, quietest first. Nothing below "sleepy" exists. */
 export type PetMood = "sleepy" | "bored" | "content" | "happy" | "excited";
@@ -43,7 +41,6 @@ export const PET_SLEEPY_AFTER_MS = 6 * 60 * 60 * 1000;
 /** How often the card re-derives its mood without a vault event, so a pet left
  * on screen still drifts from bored to sleepy (and out of a petting). */
 export const PET_TICK_MS = 5 * 60 * 1000;
-
 
 // ---- Mood ---------------------------------------------------------------
 
@@ -193,7 +190,7 @@ interface VaultPulse {
 	sinceLastMs: number | null;
 }
 
-export function readVaultPulse(view: HomeView, metric: "modified" | "created"): VaultPulse {
+export function readVaultPulse(view: CardHost, metric: "modified" | "created"): VaultPulse {
 	const counts = new Map<string, number>();
 	let newest = 0;
 	for (const file of view.app.vault.getMarkdownFiles()) {
@@ -214,7 +211,6 @@ export function readVaultPulse(view: HomeView, metric: "modified" | "created"): 
 		sinceLastMs: newest > 0 ? Math.max(0, now.getTime() - newest) : null,
 	};
 }
-
 
 // ---- Colors -------------------------------------------------------------
 
@@ -279,7 +275,6 @@ export function paletteFor(cfg: PetConfig): PetPalette {
 export function defaultColors(species: PetSpecies): { body: string; accent: string } {
 	return SPECIES_COLORS[species] ?? SPECIES_COLORS.cat;
 }
-
 
 // ---- Sprites ------------------------------------------------------------
 //
@@ -438,7 +433,6 @@ const SPECIES_ART: Record<PetSpecies, SpeciesArt> = {
 		mouth: true,
 	},
 };
-
 
 /** Write one pixel, ignoring anything that would fall off the grid. */
 function put(grid: string[][], row: number, col: number, ch: string): void {
@@ -707,7 +701,6 @@ function drawSprite(parent: HTMLElement, species: PetSpecies, mood: PetMood, sti
 	});
 }
 
-
 // ---- Render -------------------------------------------------------------
 
 /** The pet's display name: what it was called, or the species' own name. */
@@ -745,7 +738,7 @@ function burstHearts(stage: HTMLElement): void {
 }
 
 export function renderPet(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -891,7 +884,6 @@ export function renderPet(
 	// timer, like the web card's refresh.
 	if (!still) component.registerInterval(window.setInterval(paint, PET_TICK_MS));
 }
-
 
 // ---- Editor -------------------------------------------------------------
 
@@ -1106,7 +1098,6 @@ export function petEditor(container: HTMLElement, ctx: CardEditorContext): void 
 		}),
 	);
 }
-
 
 /** A pixel-art companion whose mood follows how much you write. */
 export const petCard: CardDefinition<"pet"> = {

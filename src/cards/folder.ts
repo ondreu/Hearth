@@ -1,4 +1,5 @@
 import { Component, debounce, getLinkpath, Keymap, Setting, TAbstractFile, TFile, TFolder, type App, type EventRef } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { currentUiDesign, DESIGN_ATTR, HearthModal } from "../uidesign";
 import { cardOverlayButton, emptyState, redrawCard, resetCardBody } from "../cardbodies";
@@ -44,14 +45,12 @@ import { openFile, type OpenFrom } from "../opener";
 import { FolderPickerModal } from "../pickers";
 import { type DashboardCard, effectiveCardDesign, type FolderCardConfig, type HomeSettings, performanceTier } from "../types";
 import { dressModal, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 // The browse state and the path rules are pure, so they live where a test can
 // reach them; re-exported for everything that has always imported them here.
 export { browseStateFor, defaultBrowseState, folderPath, picturesAllowed, readBrowseState, ROOT } from "../folderbrowse";
 export type { BrowserLayout, FolderBrowseState } from "../folderbrowse";
-
 
 // ---- Folder contents ----------------------------------------------------
 
@@ -140,7 +139,6 @@ export function childCount(app: App, path: string): number {
 	return folderAt(app, path)?.children.length ?? 0;
 }
 
-
 // ---- Where the card is looking ------------------------------------------
 
 /**
@@ -176,10 +174,9 @@ export function currentPath(app: App, card: DashboardCard, root: string): string
 	return at;
 }
 
-
 // ---- The card -----------------------------------------------------------
 
-export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderFolder(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = card.folder ?? {};
 	const root = folderPath(cfg.path);
 	const inCard = cfg.navigate === "card";
@@ -290,7 +287,6 @@ export function renderFolder(view: HomeView, card: DashboardCard, body: HTMLElem
 	}
 }
 
-
 /**
  * The path row a card grows once it has been walked below its own folder: where
  * you are, and the way back up.
@@ -327,9 +323,8 @@ export function maxPath(path: string, root: string): string {
 	return pathWithin(path, root) ? path : root;
 }
 
-
 function renderFolderList(
-	view: HomeView,
+	view: CardHost,
 	body: HTMLElement,
 	entries: FolderEntry[],
 	cfg: FolderCardConfig,
@@ -351,9 +346,8 @@ function renderFolderList(
 	}
 }
 
-
 function renderFolderTiles(
-	view: HomeView,
+	view: CardHost,
 	body: HTMLElement,
 	entries: FolderEntry[],
 	cfg: FolderCardConfig,
@@ -378,18 +372,16 @@ function renderFolderTiles(
 	}
 }
 
-
 /** What a right-click on a card's row offers (#389): what the file explorer
  * offers for it, the card standing in for the explorer. A file opens the way
  * the card opens notes. */
-function cardFileMenu(view: HomeView): FileMenuOptions {
+function cardFileMenu(view: CardHost): FileMenuOptions {
 	return {
 		app: view.app,
 		source: EXPLORER_SOURCE,
 		open: (file, state) => void openFile(view, file, "card", null, state),
 	};
 }
-
 
 /** The icon a row shows. Resolved from the vault's own object, so a folder the
  * user gave an icon (Iconic and Iconize both do folders) keeps it here. The
@@ -400,7 +392,6 @@ function entryIcon(app: App, entry: FolderEntry, icons: FileIconOptions) {
 	if (file) return resolveFileIcon(app, file, icons);
 	return entry.isFolder ? "folder" : "file";
 }
-
 
 // ---- The browser (the folder's own page) --------------------------------
 
@@ -424,7 +415,7 @@ interface BrowseOptions extends FolderBrowseState {
 /** Open the folder browser at a path — in the dialog, or in a tab when the
  * options ask for one. Exported for the card and for anything else that
  * wants to hand the user a folder. */
-export function openFolderBrowser(view: HomeView, opts: BrowseOptions): void {
+export function openFolderBrowser(view: CardHost, opts: BrowseOptions): void {
 	if (opts.inTab) {
 		// The tab is drawn in the design of what opened it, as the dialog
 		// would have been: the card's when it says, else the press's.
@@ -1003,7 +994,7 @@ class FolderBrowserModal extends HearthModal {
 	/** Holds the vault watch for as long as the dialog is open. */
 	private watch: Component | null = null;
 
-	constructor(private readonly view: HomeView, private readonly opts: BrowseOptions) {
+	constructor(private readonly view: CardHost, private readonly opts: BrowseOptions) {
 		super(view.app);
 	}
 
@@ -1050,7 +1041,6 @@ class FolderBrowserModal extends HearthModal {
 		this.contentEl.empty();
 	}
 }
-
 
 // ---- Previews ------------------------------------------------------------
 
@@ -1161,7 +1151,6 @@ class PreviewLoader {
 	}
 }
 
-
 /** Whether the click that opened a note should leave the browser open: a
  * modifier means the reader is sending notes to other tabs, not leaving. Never
  * throws — `isModEvent` reads Obsidian's own key state, and a browser that
@@ -1174,7 +1163,6 @@ function keepsBrowsingOpen(evt?: MouseEvent): boolean {
 		return false;
 	}
 }
-
 
 // ---- Editor -------------------------------------------------------------
 
@@ -1383,7 +1371,6 @@ export function folderEditor(ctx: CardEditorContext, containerEl: HTMLElement): 
 	);
 }
 
-
 /** One folder's contents, one level down, with a browser behind them. */
 export const folderCard: CardDefinition<"folder"> = {
 	kind: "folder",
@@ -1406,7 +1393,6 @@ export const folderCard: CardDefinition<"folder"> = {
 	expressive: true,
 	liveness: { mode: "vault", shouldRedraw: (card, ev) => folderReactsTo(card, ev) },
 };
-
 
 /** Whether a vault event can change what this card shows. */
 export function folderReactsTo(

@@ -3797,6 +3797,11 @@ export const de: Translations = {
 			headingDesc:
 				"Diese Karte in der rechten Seitenleiste von Obsidian neben deinen Notizen anzeigen. Es bleibt dieselbe Karte — Änderungen hier erscheinen dort.",
 		},
+		command: {
+			heading: "Zum Befehlsmenü hinzufügen",
+			headingDesc:
+				"Dieser Karte einen eigenen Befehl geben, damit sie über die Befehlspalette oder das /-Menü des Editors geöffnet werden kann — in einem schwebenden Dialog.",
+		},
 		copy: {
 			heading: "Auf Dashboard kopieren",
 			headingDesc:

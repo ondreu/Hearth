@@ -1,4 +1,5 @@
 import { Component, MarkdownRenderer, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { cardOverlayButton, emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { isViewTypeHostable, mountLeafView } from "../leafview";
@@ -11,9 +12,7 @@ import {
 	openVaultPetHouse,
 	vaultPetDisplay,
 } from "../vaultpet";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Vault Pet ----------------------------------------------------------
 //
@@ -38,10 +37,9 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // Missing plugin, disabled plugin, a future version that drops the block or
 // renames the view: each degrades to a named prompt rather than an empty card.
 
-
 /** Draw the card: the plugin's pet block, or its house view hosted in the body. */
 export function renderVaultPet(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -75,10 +73,9 @@ export function renderVaultPet(
 	void MarkdownRenderer.render(view.app, VAULT_PET_BLOCK, host, "", component);
 }
 
-
 /** Host Vault Pet's house view inside the card body. */
 function renderVaultPetHouse(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -103,7 +100,6 @@ function renderVaultPetHouse(
 		emptyState(body, "egg", t().cards.empty.vaultPetNoHouse);
 	}
 }
-
 
 /** The card's Content-tab settings: which of the plugin's two surfaces the card
  * shows, and the two bits of chrome around it. */
@@ -157,7 +153,6 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			}),
 		);
 }
-
 
 /** A card that houses the Vault Pet plugin — its pet card, or its whole house. */
 export const vaultPetCard: CardDefinition<"vaultpet"> = {

@@ -1,4 +1,5 @@
 import { Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { moment } from "../cardbodies";
 import { t } from "../i18n";
 import {
@@ -10,9 +11,7 @@ import {
 	motionAllowed,
 	resolveClockFace,
 } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Clock / greeting ---------------------------------------------------
 
@@ -26,7 +25,6 @@ export function greetingBucket(hour: number): number {
 	return 5; // night
 }
 
-
 export function pickGreeting(hour: number, playful: boolean): string {
 	if (!playful) {
 		return hour < 12 ? t().clock.greetingMorning : hour < 18 ? t().clock.greetingAfternoon : t().clock.greetingEvening;
@@ -34,7 +32,6 @@ export function pickGreeting(hour: number, playful: boolean): string {
 	const pool = t().clock.playfulGreetings[greetingBucket(hour)];
 	return pool[Math.floor(Math.random() * pool.length)];
 }
-
 
 /** Resolve the clock's `hour12` option. Returns `undefined` for "auto" so the
  * locale default is used, or a boolean to force a 12- or 24-hour clock. The
@@ -46,7 +43,6 @@ export function resolveHour12(cfg: ClockConfig): boolean | undefined {
 	if (fmt === "12") return true;
 	return undefined;
 }
-
 
 export function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMode"]>, custom?: string): string {
 	switch (mode) {
@@ -70,7 +66,6 @@ export function formatClockDate(now: Date, mode: NonNullable<ClockConfig["dateMo
 	}
 }
 
-
 function svgEl(
 	parent: Element,
 	tag: keyof SVGElementTagNameMap,
@@ -81,7 +76,6 @@ function svgEl(
 	// two classes — so several go in as an array.
 	return parent.createSvg(tag, { attr: attrs, cls: cls?.split(" ") });
 }
-
 
 /** Draw an analogue clock face and return a tick() to rotate its hands.
  * `lowPower` drops the second hand and snaps the minute hand to whole minutes,
@@ -140,7 +134,6 @@ function renderAnalogClock(
 	};
 }
 
-
 /** The pieces of a time, formatted for the clock's hour format. `period` is
  * the AM/PM marker, empty on a 24-hour clock. */
 interface TimeParts {
@@ -149,7 +142,6 @@ interface TimeParts {
 	second: string;
 	period: string;
 }
-
 
 /** A formatter for the separate pieces of the time. A forced 24-hour clock
  * asks for the h23 cycle rather than `hour12: false`, which some engines
@@ -172,7 +164,6 @@ function timePartsFormatter(cfg: ClockConfig, hourStyle: "2-digit" | "numeric"):
 	};
 }
 
-
 /** Set an element's text only when it changed, so a face that ticks every
  * second writes nothing to the DOM between minutes. */
 function textSetter(el: Element): (text: string) => boolean {
@@ -183,7 +174,6 @@ function textSetter(el: Element): (text: string) => boolean {
 		return true;
 	};
 }
-
 
 /**
  * A closed shape around (cx, cy) whose radius swings `amp` either side of `r`,
@@ -204,7 +194,6 @@ export function wavyPath(cx: number, cy: number, r: number, amp: number, waves: 
 	return `${d}Z`;
 }
 
-
 /** Hours over minutes, big. Classic in light type, Expressive on two tonal
  * blocks. */
 function renderStackedClock(wrap: HTMLElement, cfg: ClockConfig, seconds: boolean): (now: Date) => void {
@@ -224,7 +213,6 @@ function renderStackedClock(wrap: HTMLElement, cfg: ClockConfig, seconds: boolea
 		side.toggleClass("is-empty", !seconds && !p.period);
 	};
 }
-
 
 /** A flip clock: a tile each for the hours, minutes and (optionally) seconds,
  * split across the middle; a tile turns over when its number changes. */
@@ -265,7 +253,6 @@ function renderFlipClock(
 		setP(p.period);
 	};
 }
-
 
 /** Concentric progress rings — minutes outside, hours inside them, seconds
  * innermost — round the time. Expressive draws each ring's progress as
@@ -316,7 +303,6 @@ function renderRingClock(
 	};
 }
 
-
 /** The tile shapes the Shapes face puts its digits on, one per digit. */
 const SHAPE_TILES: { waves: number; amp: number }[] = [
 	{ waves: 4, amp: 7 }, // clover
@@ -324,7 +310,6 @@ const SHAPE_TILES: { waves: number; amp: number }[] = [
 	{ waves: 8, amp: 4 }, // flower
 	{ waves: 0, amp: 0 }, // squircle (drawn as a rounded square)
 ];
-
 
 /** Expressive only: every digit on a shape of its own — hours in the accent,
  * minutes in its complementary tone — in a 2×2 block, or a row on a wide card. */
@@ -355,7 +340,6 @@ function renderShapesClock(wrap: HTMLElement, cfg: ClockConfig, seconds: boolean
 		extra.toggleClass("is-empty", !seconds && !p.period);
 	};
 }
-
 
 /** Expressive only: the hour, big, on a scalloped face, with the minute as a
  * dot orbiting its edge (and the seconds as a smaller one inside). */
@@ -393,9 +377,8 @@ function renderOrbitClock(
 	};
 }
 
-
 export function renderClock(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -483,7 +466,6 @@ export function renderClock(
 	update();
 	component.registerInterval(window.setInterval(update, 1000));
 }
-
 
 export function clockEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.clock ??= {});

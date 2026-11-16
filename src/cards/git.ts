@@ -1,4 +1,5 @@
 import { Component, Notice, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { hearthMenu } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
@@ -38,9 +39,7 @@ import { t } from "../i18n";
 import { openFile } from "../opener";
 import { effectiveAutoRefreshMinutes, type DashboardCard } from "../types";
 import { confirmAction, inExpressiveCard, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Git (obsidian-git) -------------------------------------------------
 
@@ -61,7 +60,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * case of a repo changed from outside Obsidian.
  */
 export function renderGit(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -93,7 +92,7 @@ export function renderGit(
  * obsidian-git while the card is up, as soon as it is gone, which is the one
  * case that really is "enable the Git plugin". */
 function waitForGit(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -127,7 +126,7 @@ const GIT_STARTUP_POLL_MS = 500;
  * body the `gitReady === false` path draws, since to the user they are the same
  * situation — obsidian-git has nothing to show yet, and its own view is where
  * that gets sorted out. */
-function paintGitStarting(view: HomeView, parent: HTMLElement): void {
+function paintGitStarting(view: CardHost, parent: HTMLElement): void {
 	const empty = parent.createDiv("hearth-git-notready");
 	emptyState(empty, "git-branch", t().cards.empty.gitNotReady);
 	const button = empty.createEl("button", {
@@ -139,7 +138,7 @@ function paintGitStarting(view: HomeView, parent: HTMLElement): void {
 
 /** The card proper, once obsidian-git is far enough along to be called. */
 function renderGitBody(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -306,7 +305,6 @@ function renderGitBody(
 	}
 }
 
-
 /** The status line: branch, what it tracks, how far ahead, and the size of the
  * working tree's changes. */
 function paintStatus(
@@ -376,7 +374,6 @@ function paintStatus(
 	refresh.addEventListener("click", onRefresh);
 }
 
-
 /** The button row. Unavailable actions are drawn disabled rather than hidden,
  * so a card configured against a newer obsidian-git doesn't silently lose the
  * button the user put there. */
@@ -410,10 +407,9 @@ function paintActions(
 	}
 }
 
-
 /** The changed-files list. */
 function paintChanges(
-	view: HomeView,
+	view: CardHost,
 	plugin: GitPlugin,
 	wrap: HTMLElement,
 	snapshot: GitSnapshot,
@@ -441,11 +437,10 @@ function paintChanges(
 	}
 }
 
-
 /** One file row: status letter, name, and (optionally) its folder. Clicking
  * opens the note; the context menu offers what obsidian-git can do to it. */
 function paintChangeRow(
-	view: HomeView,
+	view: CardHost,
 	plugin: GitPlugin,
 	list: HTMLElement,
 	row: GitChangeRow,
@@ -535,10 +530,9 @@ function paintChangeRow(
 	});
 }
 
-
 /** The recent-commits list. */
 function paintLog(
-	view: HomeView,
+	view: CardHost,
 	wrap: HTMLElement,
 	snapshot: GitSnapshot,
 	limit: number,
@@ -569,13 +563,11 @@ function paintLog(
 	}
 }
 
-
 /** "3 minutes ago", in the user's locale — the same moment shim the rest of the
  * card bodies use. */
 function relativeTime(ms: number): string {
 	return (moment(new Date(ms)) as unknown as { fromNow(): string }).fromNow();
 }
-
 
 // ---- Editor -------------------------------------------------------------
 
@@ -798,7 +790,6 @@ export function gitEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 		cfg.refreshMin = undefined;
 	});
 }
-
 
 /** The repository's state and controls, driven by the obsidian-git plugin. */
 export const gitCard: CardDefinition<"git"> = {

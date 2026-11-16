@@ -1,4 +1,5 @@
 import { type App, type Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { cardOverlayButton, emptyState } from "../cardbodies";
 import { t } from "../i18n";
 import { setIcon } from "../glyphs";
@@ -29,9 +30,7 @@ import {
 import { type DashboardCard, type TaskChuteConfig } from "../types";
 import { confirmAction } from "../ui";
 import { hearthMenu, HearthModal } from "../uidesign";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- TaskChute -----------------------------------------------------------
 //
@@ -63,7 +62,7 @@ export const TASKCHUTE_OVERVIEW_DAYS = 7;
 
 /** Draw the card. */
 export function renderTaskChute(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -91,7 +90,6 @@ export function renderTaskChute(
 	const root = body.createDiv("hearth-taskchute");
 	void paintTasks(view.app, root, component, strings);
 }
-
 
 // ---- Task list -----------------------------------------------------------
 
@@ -512,7 +510,6 @@ class TaskChuteDateModal extends HearthModal {
 	}
 }
 
-
 // ---- Overview and heatmap (pure reads of the plugin's snapshot) ----------
 
 async function paintRecords(app: App, root: HTMLElement, kind: "overview" | "heatmap"): Promise<void> {
@@ -604,7 +601,6 @@ function stat(parent: HTMLElement, label: string, value: string): void {
 	item.createSpan({ cls: "hearth-tc-stat-value", text: value });
 	item.createSpan({ cls: "hearth-tc-stat-label", text: label });
 }
-
 
 // ---- Definition ----------------------------------------------------------
 

@@ -2,6 +2,7 @@ import { type Component, Platform } from "obsidian";
 import { setIcon } from "./glyphs";
 import { hearthMenu } from "./uidesign";
 import type { HomeView } from "./view";
+import type { CardHost } from "./cardhost";
 import { SearchSection } from "./search";
 import { hearthIconIdFor } from "./icon";
 import { renderTitleIcon } from "./titleicon";
@@ -123,7 +124,7 @@ export function renderHeader(view: HomeView, container: HTMLElement, component: 
  * the button belongs to: "searchOnline" reads its current query to search for,
  * "newNote" reads it to name the note it creates. */
 export function createSearchBarButton(
-	view: HomeView,
+	view: CardHost,
 	bar: HTMLElement,
 	mode: "newNote" | "searchOnline",
 ): HTMLElement {
@@ -145,7 +146,7 @@ function getSearchQuery(bar: HTMLElement): string {
  * note's name, so "capture this thing I was searching for" is one click and
  * nothing has to be typed twice. An empty field, or one holding a `#tag` /
  * `key:value` filter, leaves the configured filename in charge. */
-function createNewNoteButton(view: HomeView, bar: HTMLElement): HTMLElement {
+function createNewNoteButton(view: CardHost, bar: HTMLElement): HTMLElement {
 	const label = newNoteButtonLabel(view.plugin.settings);
 	const btn = createEl("button", {
 		cls: "hearth-newnote",
@@ -173,7 +174,7 @@ function createNewNoteButton(view: HomeView, bar: HTMLElement): HTMLElement {
  * Both halves are real <button>s inside one wrapper rather than one button with
  * a clickable corner: the caret is then reachable by keyboard and announces
  * itself as a menu opener. */
-function createSearchOnlineButton(view: HomeView, bar: HTMLElement): HTMLElement {
+function createSearchOnlineButton(view: CardHost, bar: HTMLElement): HTMLElement {
 	const wrap = createDiv("hearth-searchonline");
 
 	const btn = wrap.createEl("button", {

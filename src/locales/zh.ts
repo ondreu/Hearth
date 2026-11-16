@@ -3433,6 +3433,11 @@ export const zh: Translations = {
 			headingDesc:
 				"在 Obsidian 右侧边栏中显示此卡片，与笔记并排。它仍是同一张卡片——此处所做的更改会同步显示。",
 		},
+		command: {
+			heading: "添加到命令菜单",
+			headingDesc:
+				"为此卡片添加独立命令，可从命令面板或编辑器的 / 菜单运行，并在浮动窗口中打开。",
+		},
 		copy: {
 			heading: "复制到面板",
 			headingDesc: "把此卡片的副本添加到另一个面板的末尾。",

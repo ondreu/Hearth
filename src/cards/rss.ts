@@ -1,4 +1,5 @@
 import { Component, type Menu, moment as createMoment, Notice, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { emptyState } from "../cardbodies";
 import { clipTemplateEditor } from "../clipeditor";
@@ -31,9 +32,7 @@ import {
 import { drawTabStrip } from "../tabstrip";
 import { hearthMenu } from "../uidesign";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- RSS (lightweight feed reader) -------------------------------------
 
@@ -42,15 +41,13 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * the card objects live in settings and are reused — but resets on reload. */
 export const rssActiveTab = new WeakMap<DashboardCard, string>();
 
-
 /** moment's `.fromNow()` isn't on the shared Moment shim; assert it locally. */
 interface RelativeMoment {
 	fromNow(): string;
 }
 
-
 export function renderRss(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -246,7 +243,6 @@ export function renderRss(
 	}
 }
 
-
 /** An entry's menu — the right-click on the card, and the terminal card's
  * `m`: every way to open it, mark it, save it or copy its link. */
 export function rssEntryMenu(ctx: RssOpenContext, card: DashboardCard, tabId: string, entry: RssEntry): Menu {
@@ -305,14 +301,12 @@ export function rssEntryMenu(ctx: RssOpenContext, card: DashboardCard, tabId: st
 	return menu;
 }
 
-
 /** A GitHub repo split into its owner and repo halves, as pulled from user
  * input by {@link parseGithubRepo}. */
 interface GithubRepo {
 	owner: string;
 	repo: string;
 }
-
 
 /** Parse an `owner/repo` string — or a full GitHub URL, or an `git@…` SSH
  * remote — into its two halves. Returns null when either half is missing so
@@ -333,7 +327,6 @@ function parseGithubRepo(input: string): GithubRepo | null {
 	if (parts.length < 2) return null;
 	return { owner: parts[0], repo: parts[1] };
 }
-
 
 /** Build the RSS sources for a repo's GitHub Atom feeds. `type` selects the
  * releases feed, the commits feed, or both. */
@@ -361,7 +354,6 @@ function githubFeedSources(
 	}
 	return out;
 }
-
 
 export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.rss ??= {});
@@ -552,7 +544,6 @@ export function rssEditor(ctx: CardEditorContext, containerEl: HTMLElement): voi
 	rssNoteEditor(ctx, containerEl, cfg);
 }
 
-
 /** The "Reading" section: where an entry opens, the reader's pictures, and
  * the unread filter. */
 function rssReadingEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: RssConfig): void {
@@ -597,7 +588,6 @@ function rssReadingEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg:
 		);
 }
 
-
 /** The "Save as note" section: the reader's note template, previewed with
  * the card's newest entry when one has been fetched. */
 function rssNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: RssConfig): void {
@@ -641,7 +631,6 @@ function rssNoteEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Rs
 		},
 	});
 }
-
 
 /** Quick-add helper: turn an `owner/repo` (or a GitHub URL) into RSS sources
  * pointing at GitHub's built-in `releases.atom` / `commits.atom` feeds, so

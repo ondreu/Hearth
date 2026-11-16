@@ -1,4 +1,5 @@
 import { getAllTags, Setting, TFile, TFolder } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { dailyNoteFinder, dailyNotesOptions, moment, type Moment } from "../cardbodies";
 import { addResetButton, moveItem } from "../editors";
@@ -6,9 +7,7 @@ import { FILE_TYPE_GROUPS, fileTypeLabel, FOLDERS_GROUP_ID, groupById, groupForF
 import { t } from "../i18n";
 import { countQuery, expandQuery } from "../query";
 import { ALL_STATS, DEFAULT_STATS, STAT_ICONS, type DashboardCard, type StatId } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Vault statistics -----------------------------------------------------
 
@@ -26,7 +25,7 @@ export interface StatTile {
 
 /** The card's stats, in order: what the tiles show. Shared by the graphical
  * card and its terminal-mode text form. */
-export function statTiles(view: HomeView, card: DashboardCard): StatTile[] {
+export function statTiles(view: CardHost, card: DashboardCard): StatTile[] {
 	const tiles: StatTile[] = [];
 	const cfg = card.stats;
 	const advanced = cfg?.advanced ?? false;
@@ -111,11 +110,10 @@ export function statTiles(view: HomeView, card: DashboardCard): StatTile[] {
 	return tiles;
 }
 
-export function renderStats(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderStats(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const grid = body.createDiv("hearth-stats");
 	for (const tile of statTiles(view, card)) addStat(grid, tile.icon, tile.value, tile.label);
 }
-
 
 function addStat(grid: HTMLElement, icon: string, value: number, label: string): void {
 	const cell = grid.createDiv("hearth-stat");
@@ -124,11 +122,10 @@ function addStat(grid: HTMLElement, icon: string, value: number, label: string):
 	cell.createDiv({ cls: "hearth-stat-label", text: label });
 }
 
-
 /** Consecutive days with an existing daily note, counting back from today —
  * or from yesterday if today's isn't written yet, so an otherwise-unbroken
  * streak doesn't read as zero just because the day isn't over. */
-function dailyNoteStreak(view: HomeView): number | null {
+function dailyNoteStreak(view: CardHost): number | null {
 	const options = dailyNotesOptions(view);
 	if (!options) return null;
 
@@ -147,7 +144,6 @@ function dailyNoteStreak(view: HomeView): number | null {
 	}
 	return streak;
 }
-
 
 /**
  * The stats card is plain by default — a fixed set of tiles, no controls. An

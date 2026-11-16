@@ -27302,6 +27302,7 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 }
 
 .hearth-card-pane:hover .hearth-pane-actions,
+.hearth-card-dialog-body:hover .hearth-pane-actions,
 .hearth-pane-actions:focus-within {
 	opacity: 1;
 	pointer-events: auto;
@@ -27345,4 +27346,24 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	height: 100%;
 	padding: 24px;
 	text-align: center;
+}
+
+
+/* ---- A card in a floating dialog (#491) -----------------------------------
+   What a card's own command opens. The dialog is sized like a card rather than
+   like a page, and the card fills it edge to edge — its head, its body and its
+   own scrolling are the board's. */
+.modal.hearth-card-dialog {
+	width: min(560px, 92vw);
+}
+
+.hearth-card-dialog .hearth-card-dialog-body {
+	position: relative;
+	height: min(62vh, 540px);
+	padding: 0;
+	overflow: hidden;
+}
+
+.hearth-card-dialog-body .hearth-grid.is-single {
+	height: 100%;
 }

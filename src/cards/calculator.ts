@@ -1,11 +1,10 @@
 import { debounce, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { evaluate as evaluateCalc } from "../calculator";
 import { cachedRates, loadRates } from "../currency";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Calculator ---------------------------------------------------------
 
@@ -18,7 +17,6 @@ export interface CalcKey {
 	/** Extra CSS class for accent keys (operators, equals). */
 	cls?: string;
 }
-
 
 /** The basic pad: digits and the four operations plus edit keys. */
 export const CALC_BASIC_KEYS: CalcKey[] = [
@@ -37,7 +35,6 @@ export const CALC_BASIC_KEYS: CalcKey[] = [
 	{ label: "+", insert: "+", cls: "is-op" },
 ];
 
-
 /** Extra keys prepended for the scientific tier: functions, powers, constants. */
 export const CALC_SCI_KEYS: CalcKey[] = [
 	{ label: "sin", insert: "sin(", cls: "is-fn" },
@@ -54,11 +51,10 @@ export const CALC_SCI_KEYS: CalcKey[] = [
 	{ label: "mod", insert: " mod ", cls: "is-fn" },
 ];
 
-
 /** A free-text calculator: arithmetic, unit/currency conversions and
  * plain-language queries (à la Wolfram Alpha's input box), evaluated live as
  * you type. The on-screen keypad tier is chosen in card settings. */
-export function renderCalculator(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderCalculator(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	const cfg = (card.calculator ??= {});
 	const angleUnit = cfg.angleUnit ?? "deg";
 
@@ -205,7 +201,6 @@ export function renderCalculator(view: HomeView, card: DashboardCard, body: HTML
 	renderKeys();
 	update();
 }
-
 
 export function calculatorEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.calculator ??= {});

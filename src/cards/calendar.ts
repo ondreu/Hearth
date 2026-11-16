@@ -1,4 +1,5 @@
 import { Component, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import {
 	activityByDay,
@@ -26,7 +27,6 @@ import { taskNotesEnabled, taskNotesMeta } from "../tasknotes";
 import { t } from "../i18n";
 import { type DashboardCard, effectiveCardDesign } from "../types";
 import { makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 import {
 	isOperonAvailable,
@@ -45,7 +45,7 @@ import {
  * today's daily note" command (template-aware). Other empty days are left
  * alone rather than guessing at template handling for arbitrary dates. */
 export function renderCalendar(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -129,9 +129,6 @@ export function renderCalendar(
 	ics.start();
 }
 
-
-
-
 /**
  * The Operon half of a calendar card's overlay.
  *
@@ -162,7 +159,7 @@ export interface OperonOverlay {
 const OPERON_OVERLAY_LIMIT = 400;
 
 export function buildOperonOverlay(
-	view: HomeView,
+	view: CardHost,
 	cfg: NonNullable<DashboardCard["calendar"]>,
 	component: Component,
 ): OperonOverlay {
@@ -229,7 +226,6 @@ export function buildOperonOverlay(
 	};
 }
 
-
 function renderCalendarHead(
 	wrap: HTMLElement,
 	cursor: Moment,
@@ -249,10 +245,8 @@ function renderCalendarHead(
 	next.addEventListener("click", handlers.onNext);
 }
 
-
-
 function renderCalendarGrid(
-	view: HomeView,
+	view: CardHost,
 	wrap: HTMLElement,
 	cursor: Moment,
 	options: DailyNotesOptions | null,
@@ -362,7 +356,6 @@ function renderCalendarGrid(
 	}
 }
 
-
 /** The agenda layout of the calendar card: a chronological list of days from
  * today forward (`agendaDays`, default 14). Each day header opens its daily note
  * (or offers to create it, exactly like the month grid), and any external
@@ -371,7 +364,7 @@ function renderCalendarGrid(
  * by that day's activity. Suits narrow or tall cards, and is the natural home
  * for subscribed ICS calendars. */
 function renderCalendarAgenda(
-	view: HomeView,
+	view: CardHost,
 	wrap: HTMLElement,
 	options: DailyNotesOptions | null,
 	cfg: NonNullable<DashboardCard["calendar"]>,
@@ -459,7 +452,6 @@ function renderCalendarAgenda(
 	}
 }
 
-
 /** One event line in the agenda: a coloured bullet, its time (or "All day"),
  * and the summary, with the source name as a trailing badge when more than one
  * calendar is in play. A TaskNotes entry additionally carries a completion box,
@@ -470,7 +462,7 @@ function renderCalendarAgenda(
  * marker), the task's description, and a struck-through look when it is already
  * closed. */
 function renderAgendaTask(
-	view: HomeView,
+	view: CardHost,
 	parent: HTMLElement,
 	task: OperonTask,
 	day: Moment,
@@ -492,11 +484,6 @@ function renderAgendaTask(
 	row.addEventListener("click", open);
 	makeClickable(row, open, `${label} — ${day.format("MMM D")}`);
 }
-
-
-
-
-
 
 export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.calendar ??= {});
@@ -601,12 +588,6 @@ export function calendarEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	checkboxTasksSourceEditor(ctx, containerEl, cfg);
 	calendarSourcesEditor(ctx, containerEl, cfg);
 }
-
-
-
-
-
-
 
 /** A mini month calendar with an optional agenda and external ICS calendars. */
 export const calendarCard: CardDefinition<"calendar"> = {

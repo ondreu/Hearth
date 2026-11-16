@@ -1,4 +1,5 @@
 import { Component, debounce, getAllTags, MarkdownRenderer, moment as createMoment, Platform, Setting, TFile } from "obsidian";
+import type { CardHost } from "./cardhost";
 import { setIcon } from "./glyphs";
 import { type CardEditorContext } from "./cards/definition";
 import { type CheckboxScanOptions, countCheckboxes, toggleCheckboxAt } from "./checkboxes";
@@ -243,7 +244,7 @@ function stripFrontmatter(text: string): string {
  * always has.
  */
 export function wireMarkdownLinks(
-	view: HomeView,
+	view: CardHost,
 	host: HTMLElement,
 	sourcePath: string,
 	opts: { capture?: boolean } = {},
@@ -376,7 +377,7 @@ export function wireMarkdownCheckboxes(
 /** Apply an edit to a note, atomically re-reading it first so a checkbox click
  * can't clobber a concurrent edit. */
 export function processFile(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 ): (fn: (data: string) => string) => Promise<unknown> {
 	return (fn) => {
@@ -389,7 +390,7 @@ export function processFile(
 
 /** Render a Markdown file's real content (not a transclusion placeholder). */
 export async function renderMarkdownFile(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	host: HTMLElement,
 	component: Component,
@@ -416,7 +417,7 @@ export async function renderMarkdownFile(
  * nothing, so the caller can say which part is missing.
  */
 export async function renderMarkdownSection(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	host: HTMLElement,
 	component: Component,
@@ -449,7 +450,7 @@ export async function renderMarkdownSection(
  * `renderEditableEmbed`.
  */
 export function renderLivePreviewEmbed(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	body: HTMLElement,
 	component: Component,
@@ -475,7 +476,7 @@ export function renderLivePreviewEmbed(
  * setting that hosts Obsidian's real editor instead.
  */
 export function renderEditableEmbed(
-	view: HomeView,
+	view: CardHost,
 	file: TFile,
 	body: HTMLElement,
 	component: Component,
@@ -621,7 +622,7 @@ export interface DailyNotesOptions {
 
 /** The core Daily notes plugin's options, or null if it's disabled. Shared by
  * every card that resolves a daily-note path (daily, calendar, stats). */
-export function dailyNotesOptions(view: HomeView): DailyNotesOptions | null {
+export function dailyNotesOptions(view: CardHost): DailyNotesOptions | null {
 	const plugin = view.app.internalPlugins.getPluginById("daily-notes");
 	if (!plugin?.enabled) return null;
 	return (plugin.instance as { options?: DailyNotesOptions } | undefined)?.options ?? {};
@@ -658,7 +659,7 @@ export function todaysDailyNotePath(options: DailyNotesOptions): string {
  * happens at most once, however many days are probed.
  */
 export function dailyNoteFinder(
-	view: HomeView,
+	view: CardHost,
 	options: DailyNotesOptions,
 ): (day: Moment) => TFile | null {
 	const format = (options.format || "").trim() || "YYYY-MM-DD";
@@ -695,7 +696,7 @@ export function dailyNoteFinder(
 
 /** The vault path an embed/daily card currently tracks, used to refresh the card
  * live when that file changes. Returns null when there's nothing to watch. */
-export function watchedCardPath(view: HomeView, card: DashboardCard): string | null {
+export function watchedCardPath(view: CardHost, card: DashboardCard): string | null {
 	if (card.kind === "embed") return card.target?.trim() || null;
 	if (card.kind === "daily") {
 		const options = dailyNotesOptions(view);
@@ -720,7 +721,7 @@ export function heatLevel(count: number, peak: number): number {
  * core Daily notes template (with the usual {{date}}/{{time}}/{{title}}
  * substitutions) so a note made here matches Obsidian's own defaults. */
 export async function createDailyNoteAt(
-	view: HomeView,
+	view: CardHost,
 	day: Moment,
 	options: DailyNotesOptions,
 ): Promise<TFile | null> {
@@ -820,7 +821,7 @@ export function customActivityByDay(app: HomeView["app"], cfg: HeatmapConfig): M
  * fraction of the card. See `src/tiles.ts` for the arithmetic both share.
  */
 export function createTileGrid(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 ): { grid: HTMLElement; spec: TileSpec } {
@@ -889,7 +890,7 @@ function applyTileIconOnly(tile: HTMLElement, spans: TileSpans, spec: TileSpec):
  * pixel size. Fully self-contained: stops propagation so the card's drag engine
  * never interferes. */
 export function makeTileResizable(
-	view: HomeView,
+	view: CardHost,
 	tile: HTMLElement,
 	item: TileGeometry,
 	spec: TileSpec,
@@ -1007,7 +1008,7 @@ function firstTrack(template: string): number | undefined {
  *    target slot and siblings swap aside live (phone-widget style). See
  *    `makeTileAutoFlowDrag`. */
 export function makeTileDraggable<T extends TileGeometry & { id: string }>(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	tile: HTMLElement,
 	item: T,
@@ -1048,7 +1049,7 @@ const TOUCH_HOLD_SLOP = 8;
  *  picked up once the finger has rested on it for a moment; from then on the
  *  touch is the drag's, and the browser is told not to scroll with it (which
  *  would otherwise cancel the gesture half way, leaving the tile where it was). */
-function onTileGrab(view: HomeView, tile: HTMLElement, grab: (e: PointerEvent) => void): void {
+function onTileGrab(view: CardHost, tile: HTMLElement, grab: (e: PointerEvent) => void): void {
 	const holdFirst = view.isStacked();
 	let timer = 0;
 	let grabbed = false;
@@ -1119,7 +1120,7 @@ function onTileGrab(view: HomeView, tile: HTMLElement, grab: (e: PointerEvent) =
  *  Using a transform (not absolute positioning) avoids any offset/jump —
  *  the tile simply translates by the pointer delta from its grid slot. */
 function makeTileFreeFormDrag<T extends TileGeometry & { id: string }>(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	tile: HTMLElement,
 	item: T,
@@ -1219,7 +1220,7 @@ function makeTileFreeFormDrag<T extends TileGeometry & { id: string }>(
  *  their stored positions (a full re-render follows), so a tile that was
  *  shoved aside comes back if its slot wasn't taken. */
 function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
-	view: HomeView,
+	view: CardHost,
 	container: HTMLElement,
 	tile: HTMLElement,
 	item: T,

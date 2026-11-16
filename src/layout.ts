@@ -489,6 +489,9 @@ export function sanitizeCard(raw: unknown, index: number, asView = false): Dashb
 	const mobile = sanitizeMobileOptions(r.mobile);
 	if (mobile) card.mobile = mobile;
 
+	// Not part of the exported layout's shape until now; carried through so a
+	// card that was given a command keeps it across import/export.
+	if (typeof r.command === "boolean") card.command = r.command;
 	const title = str(r.title);
 	if (title !== undefined) card.title = title;
 	const target = str(r.target);

@@ -4,7 +4,7 @@ import {
 	type RequestUrlParam,
 } from "obsidian";
 import { setIcon } from "./glyphs";
-import type { HomeView } from "./view";
+import type { CardHost } from "./cardhost";
 import {
 	type DashboardCard,
 	effectiveAutoRefreshMinutes,
@@ -493,7 +493,7 @@ export function controlLabel(control: JiraControl): string {
 
 /** Render a Jira saved-filter card, with unrefined option discovery. */
 export function renderJiraCard(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,

@@ -1,4 +1,5 @@
 import { type App, Component, Notice, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { HearthModal } from "../uidesign";
 import { emptyState } from "../cardbodies";
@@ -43,9 +44,7 @@ import {
 	motionAllowed,
 } from "../types";
 import { designSetting, dressModal, makeClickable } from "../ui";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Market -------------------------------------------------------------
 //
@@ -55,7 +54,6 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
 // shared feed (src/marketfeed.ts) and honour the same display toggles, in a
 // Classic or a Material 3 Expressive design — the weather card's two, and
 // built the same way. Clicking an instrument opens the whole of it in a dialog.
-
 
 /** Every config value a render needs, with its default applied once. */
 export interface Resolved {
@@ -181,7 +179,6 @@ export function seriesMove(series: MarketSeries): number | null {
 	const base = series.baseline ?? series.points[0]?.v ?? null;
 	return last && base !== null ? last.v - base : null;
 }
-
 
 // ---- Pieces -------------------------------------------------------------
 
@@ -373,7 +370,6 @@ export function quoteFacts(quote: MarketQuote): { label: string; value: string }
 		{ label: s.volume, value: formatCompact(quote.volume) },
 	];
 }
-
 
 // ---- Styles -------------------------------------------------------------
 
@@ -720,7 +716,6 @@ function paintStyle(wrap: HTMLElement, ctx: PaintContext): void {
 	}
 }
 
-
 // ---- Render -------------------------------------------------------------
 
 /** Run loads a few at a time: a board of twenty charts shouldn't open twenty
@@ -731,7 +726,7 @@ export async function inBatches<T>(items: T[], size: number, fn: (item: T) => Pr
 	}
 }
 
-export function renderMarket(view: HomeView, card: DashboardCard, body: HTMLElement, component: Component): void {
+export function renderMarket(view: CardHost, card: DashboardCard, body: HTMLElement, component: Component): void {
 	const cfg = card.market ?? {};
 	const r = resolveMarket(
 		cfg,
@@ -850,7 +845,6 @@ export function renderMarket(view: HomeView, card: DashboardCard, body: HTMLElem
 	}
 }
 
-
 // ---- Lookup -------------------------------------------------------------
 //
 // A search field on the card over its watchlist. The field is built once and
@@ -866,7 +860,7 @@ interface LookupOptions {
 }
 
 function renderLookup(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	wrap: HTMLElement,
 	component: Component,
@@ -1098,7 +1092,6 @@ function renderLookup(
 	}
 }
 
-
 // ---- The detail dialog --------------------------------------------------
 
 interface DetailOptions {
@@ -1226,7 +1219,6 @@ export class MarketDetailModal extends HearthModal {
 		}
 	}
 }
-
 
 // ---- Editor -------------------------------------------------------------
 

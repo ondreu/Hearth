@@ -1,4 +1,5 @@
 import { Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { emptyState, wireMarkdownLinks } from "../cardbodies";
 import {
@@ -12,9 +13,7 @@ import {
 } from "../datacore";
 import { t } from "../i18n";
 import { type DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Datacore query -----------------------------------------------------
 
@@ -30,7 +29,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * `component` and its hooks subscribe to the index, so results update live as
  * the vault changes without Hearth re-running anything. */
 export function renderDatacore(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -88,7 +87,6 @@ export function renderDatacore(
 	wireMarkdownLinks(view, host, origin, { capture: true });
 }
 
-
 /**
  * Show a failed query/script: a one-line headline plus the engine's own message
  * verbatim, in a monospaced block.
@@ -107,7 +105,6 @@ function datacoreError(body: HTMLElement, title: string, detail: string): void {
 	wrap.createEl("pre", { cls: "hearth-datacore-error-detail", text: detail });
 }
 
-
 /** The headline for a query that didn't parse. One that spans lines gets a more
  * specific one: pasting a block of several queries (or a query with a trailing
  * note about what it does) is the overwhelmingly common way to land here, and
@@ -124,7 +121,6 @@ function queryErrorTitle(query: string): string {
 		? t().cards.empty.datacoreOneQuery
 		: t().cards.empty.datacoreBadQuery;
 }
-
 
 export function datacoreEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.datacore ??= {});

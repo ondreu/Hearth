@@ -1,4 +1,5 @@
 import { type App, Component, Setting, type TAbstractFile, TFile, TFolder } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import { cardOverlayButton, emptyState, renderMarkdownFile } from "../cardbodies";
 import { moveItem } from "../editors";
@@ -48,7 +49,6 @@ import {
 	type SlideshowSource,
 	type SlideshowTransition,
 } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
 /**
@@ -153,7 +153,6 @@ export function collectSlideshowPictures(
 	return orderPictures(pictures, slideshowOrder(cfg), seed);
 }
 
-
 // ---- Remembered positions ------------------------------------------------
 
 /**
@@ -189,7 +188,6 @@ function writePosition(app: App, cardId: string, position: SlideshowPosition): v
 	app.saveLocalStorage(POSITIONS_KEY, rememberSlideshowPosition(store, cardId, position));
 }
 
-
 // ---- Render -------------------------------------------------------------
 
 /**
@@ -213,9 +211,8 @@ const slideshowState = new WeakMap<DashboardCard, SlideshowState>();
  * before each swap so the next animation starts from scratch. */
 const LAYER_STATE_CLASSES = ["is-in-next", "is-in-prev", "is-out-next", "is-out-prev"];
 
-
 export function renderSlideshow(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -641,7 +638,6 @@ export function renderSlideshow(
 	}
 }
 
-
 // ---- Editor -------------------------------------------------------------
 
 export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
@@ -868,7 +864,6 @@ export function slideshowEditor(ctx: CardEditorContext, containerEl: HTMLElement
 	);
 }
 
-
 /** A save-and-redraw toggle row — every display option below is one. */
 function toggle(
 	ctx: CardEditorContext,
@@ -889,7 +884,6 @@ function toggle(
 			}),
 		);
 }
-
 
 /** The hand-picked list: one row per picture, plus the two ways to add. */
 function listSection(
@@ -994,13 +988,11 @@ function listSection(
 	);
 }
 
-
 /** A picture picker limited to the vault's images — a slideshow of PDFs isn't
  * a thing, and the full file list buries the photos. */
 function openImagePicker(ctx: CardEditorContext, onChoose: (file: TFile) => void): void {
 	new FilePickerModal(ctx.app, onChoose, t().pickers.image, (file) => isImageFile(file)).open();
 }
-
 
 function newSlide(path: string): SlideshowSlide {
 	return {
@@ -1008,7 +1000,6 @@ function newSlide(path: string): SlideshowSlide {
 		path,
 	};
 }
-
 
 /** The folder sources: which folder, and whether subfolders count. The image and
  * notes sources differ only in the wording of these controls. */
@@ -1064,7 +1055,6 @@ function folderSection(
 	const found = collectSlideshowPictures(ctx.app, cfg).length;
 	new Setting(containerEl).setDesc(notes ? strings.notesCount(found) : strings.folderCount(found));
 }
-
 
 /** Pictures from the vault, rotated on a timer. */
 export const slideshowCard: CardDefinition<"slideshow"> = {

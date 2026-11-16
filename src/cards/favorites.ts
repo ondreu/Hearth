@@ -1,25 +1,24 @@
 import { Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { emptyState } from "../cardbodies";
 import { moveItem } from "../editors";
 import { t } from "../i18n";
 import { FilePickerModal } from "../pickers";
 import type { DashboardCard } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 import { type FileItem, displayTitleSetting, fileViewSetting, renderFileItems } from "./fileview";
-
 
 // ---- Favorites (curated note cards) ------------------------------------
 
 /** The list this card shows: its own, when it has one, and the vault's
  * otherwise. See `DashboardCard.favorites` — an imported board carries its
  * author's list on the card so it arrives looking like theirs. */
-export function favoritesFor(view: HomeView, card: DashboardCard): string[] {
+export function favoritesFor(view: CardHost, card: DashboardCard): string[] {
 	return card.favorites ?? view.plugin.settings.favorites;
 }
 
 export function renderFavorites(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 ): void {
@@ -35,7 +34,6 @@ export function renderFavorites(
 	});
 	renderFileItems(view, card, body, items);
 }
-
 
 /**
  * The favourites editor, which edits one of two lists.

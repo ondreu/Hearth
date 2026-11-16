@@ -1,4 +1,5 @@
 import { Notice, setTooltip, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import {
 	applyTileSize,
 	createTileGrid,
@@ -28,10 +29,8 @@ import {
 import { tileSizing } from "../tiles";
 import { type DashboardCard, type TemplaterItem } from "../types";
 import { makeClickable, promptForText } from "../ui";
-import { type HomeView } from "../view";
 import { addIconHelp, applyTileVisual } from "../widgeticon";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Templater / new note from template ---------------------------------
 
@@ -53,7 +52,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * `tp.system.prompt()` dialogs, cursor placement and folder templates all
  * behave exactly as they do from Templater's own command.
  */
-export function renderTemplater(view: HomeView, card: DashboardCard, body: HTMLElement): void {
+export function renderTemplater(view: CardHost, card: DashboardCard, body: HTMLElement): void {
 	if (!isTemplaterAvailable(view.app)) {
 		emptyState(body, "file-plus-2", t().cards.empty.templaterEnable);
 		return;
@@ -107,13 +106,11 @@ export function renderTemplater(view: HomeView, card: DashboardCard, body: HTMLE
 	markOverlappingTiles(grid);
 }
 
-
 /** The text on a tile: the user's label, or the template's own name so a tile
  * added and never renamed still reads correctly. */
 export function tileLabel(item: TemplaterItem): string {
 	return item.label.trim() || templateDisplayName(item.template) || t().cards.templater.untitledTile;
 }
-
 
 /** The tile's hover text: where the note will go, so a board of six tiles is
  * self-documenting without opening settings. */
@@ -129,7 +126,6 @@ function tileTooltip(item: TemplaterItem): string {
 	);
 }
 
-
 /**
  * One tile's click: resolve the template, ask for the `{{prompt}}` value if the
  * pattern wants one, hand the job to Templater, then open the result the way
@@ -138,7 +134,7 @@ function tileTooltip(item: TemplaterItem): string {
  * Every failure is reported as a Notice rather than swallowed — a launcher
  * button that silently does nothing is worse than one that says why.
  */
-export async function runTemplaterItem(view: HomeView, item: TemplaterItem): Promise<void> {
+export async function runTemplaterItem(view: CardHost, item: TemplaterItem): Promise<void> {
 	const strings = t().notices;
 	const app = view.app;
 
@@ -182,7 +178,6 @@ export async function runTemplaterItem(view: HomeView, item: TemplaterItem): Pro
 	// instead (see src/templater.ts), so the cursor jump has to be asked for.
 	await jumpToTemplaterCursor(app, file);
 }
-
 
 export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const strings = t().editors.templater;
@@ -397,7 +392,6 @@ export function templaterEditor(ctx: CardEditorContext, containerEl: HTMLElement
 		folder ? strings.tokensHelpScoped(folder) : strings.tokensHelp,
 	);
 }
-
 
 /** A launchpad of "new note from this template, here" buttons, driven by the
  * Templater plugin. Offered whether or not Templater is installed — the card

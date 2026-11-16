@@ -1,4 +1,5 @@
 import { Component, Notice, Setting, TFile } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { setIcon } from "../glyphs";
 import {
 	cardOverlayButton,
@@ -34,9 +35,7 @@ import {
 	periodicNotePathFor,
 } from "../periodic";
 import { type DashboardCard, type PeriodicSource } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 /** The period a card with no explicit setting shows. Weekly is the reason the
  * card exists — a daily note already has a card of its own. */
@@ -67,7 +66,6 @@ function journalOf(card: DashboardCard): string {
 	return typeof journal === "string" ? journal.trim() : "";
 }
 
-
 // ---- The parts both sources share ---------------------------------------
 
 /**
@@ -96,7 +94,7 @@ function createPrompt(
  * time we are here the note is just a file.
  */
 function renderNote(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -122,7 +120,6 @@ function renderNote(
 	void renderMarkdownFile(view, file, host, component);
 }
 
-
 // ---- Which note the card shows ------------------------------------------
 
 /**
@@ -138,7 +135,7 @@ export type PeriodicResolution =
 	| { kind: "create"; text: string; label: string; create: () => void }
 	| { kind: "note"; file: TFile; openLabel: string };
 
-export function resolvePeriodicNote(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
+export function resolvePeriodicNote(view: CardHost, card: DashboardCard, redraw: () => void): PeriodicResolution {
 	return sourceOf(card) === "journals" ? resolveFromJournals(view, card, redraw) : resolveFromPeriodicNotes(view, card, redraw);
 }
 
@@ -152,7 +149,7 @@ export function resolvePeriodicNote(view: HomeView, card: DashboardCard, redraw:
  * now?", "please make one") and renders the answer with the same embed
  * machinery every other file-backed card uses.
  */
-function resolveFromPeriodicNotes(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
+function resolveFromPeriodicNotes(view: CardHost, card: DashboardCard, redraw: () => void): PeriodicResolution {
 	const granularity = granularityOf(card);
 	if (!getPeriodicNotesPlugin(view.app)) {
 		return { kind: "message", icon: "plug-zap", text: t().cards.empty.periodicInstall };
@@ -210,7 +207,7 @@ function resolveFromPeriodicNotes(view: HomeView, card: DashboardCard, redraw: (
  *   *file* is there is still read from the vault on every render, so a note
  *   created or deleted behind Hearth's back shows immediately.
  */
-function resolveFromJournals(view: HomeView, card: DashboardCard, redraw: () => void): PeriodicResolution {
+function resolveFromJournals(view: CardHost, card: DashboardCard, redraw: () => void): PeriodicResolution {
 	if (!getJournalsApi(view.app)) {
 		return { kind: "message", icon: "plug-zap", text: t().cards.empty.journalsInstall };
 	}
@@ -244,10 +241,9 @@ function resolveFromJournals(view: HomeView, card: DashboardCard, redraw: () => 
 	};
 }
 
-
 /** The current note of the card's chosen source, embedded live. */
 export function renderPeriodic(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -264,7 +260,6 @@ export function renderPeriodic(
 			renderNote(view, card, body, component, r.file, r.openLabel);
 	}
 }
-
 
 // ---- Editor -------------------------------------------------------------
 
@@ -391,7 +386,6 @@ export function periodicEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			.setDesc(getPeriodicNotesPlugin(ctx.app) ? strings.infoDesc : strings.missingDesc);
 	}
 }
-
 
 /** The current week's, month's, quarter's or year's note from Periodic Notes —
  * or one journal's current note from Journals — embedded live. */

@@ -63,6 +63,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   settings, keeps its place across a restart, and shows a short empty state with
   a card picker if the card it was showing is deleted.
 
+- **Any card can be run as a command.** The card settings dialog gains *Add to
+  command menu* (#491): the card appears in the command palette as
+  `Hearth: Open <card>`, in Obsidian's `/` menu when the core Slash commands
+  plugin is on, and in Hearth's own `>` search mode, and opens in a floating
+  dialog over the note. The switch is off by default and the command follows the
+  card's title, so a rename renames it and deleting the card removes it. The
+  card render contract was narrowed to `CardHost` so a card can be drawn by a
+  dialog as well as by a board.
+
 ### Fixed
 
 - **Task fields no longer leak between sources.** The *Fields* customisation

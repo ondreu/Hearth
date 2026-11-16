@@ -1,5 +1,5 @@
 import { Component } from "obsidian";
-import type { HomeView } from "./view";
+import type { BoardHost } from "./cardhost";
 import { DashboardCard } from "./types";
 
 /** Seed metrics used to convert legacy grid layouts (and freshly packed cards)
@@ -498,7 +498,7 @@ export function enableStackedResize(
  * magnetically to neighbouring cards and the board, with alignment guides shown.
  */
 export function enableDragResize(
-	view: HomeView,
+	view: BoardHost,
 	cardEl: HTMLElement,
 	gridEl: HTMLElement,
 	card: DashboardCard,

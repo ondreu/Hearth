@@ -1,4 +1,5 @@
 import { Component, Setting } from "obsidian";
+import type { CardHost } from "../cardhost";
 import { FILE_TYPE_GROUPS, fileTypeLabel } from "../filetypes";
 import { INSTANT_FEATURES } from "../instant";
 import { createSearchBarButton } from "../header";
@@ -12,9 +13,7 @@ import {
 	effectiveStrictFilters,
 	type SearchBarConfig,
 } from "../types";
-import { type HomeView } from "../view";
 import { type CardDefinition, type CardEditorContext } from "./definition";
-
 
 // ---- Search bar --------------------------------------------------------
 
@@ -32,7 +31,7 @@ import { type CardDefinition, type CardEditorContext } from "./definition";
  * search bar anywhere on the board instead of a card that contains one.
  */
 export function renderSearchBar(
-	view: HomeView,
+	view: CardHost,
 	card: DashboardCard,
 	body: HTMLElement,
 	component: Component,
@@ -59,7 +58,6 @@ export function renderSearchBar(
 		strictFilters: cfg.strictFilters === true || effectiveStrictFilters(view.plugin.settings),
 	});
 }
-
 
 /** One toggle per file-type chip, mirroring Settings → Filters but scoped to
  * this card — so a narrow bar can carry the three chips that earn their place
@@ -94,7 +92,6 @@ function renderFilterTypes(
 		});
 	}
 }
-
 
 /** The strict switch, scoped to this card: search only the types this bar's
  * chips show (#434). Off unless asked for; a board or vault that already turned
@@ -155,7 +152,6 @@ function renderInstantAnswers(
 		});
 	}
 }
-
 
 export function searchBarEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const cfg = (ctx.card.searchBar ??= {});
