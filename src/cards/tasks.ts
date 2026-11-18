@@ -86,6 +86,7 @@ import {
 	withQuadrantLabel,
 } from "../taskmatrix";
 import { renderTaskMatrixFrame, type TaskMatrixFrame } from "../taskmatrixview";
+import type { TaskTabFacts } from "../tasktabs";
 import { descriptionEditor, renderDescriptionLines } from "../taskdescriptionview";
 import { createDestinationFolder } from "../newnote";
 import { createNoteFromTemplate, isTemplaterAvailable, normalizeFolderPath, resolveTemplateFile } from "../templater";
@@ -296,6 +297,18 @@ export function taskNotesCreateCommandId(view: CardHost): string {
 		commands.find((c) => /^tasknotes[:.]/i.test(c.id) && /create.*task/i.test(c.name)) ??
 		commands.find((c) => /tasknotes/i.test(c.id) && /create.*task/i.test(c.name));
 	return match?.id ?? "tasknotes:create-new-task";
+}
+
+/** The tab-row model's view of one task (#481): the values a row of tabs can
+ * read off it, whatever source it came from. */
+export function taskTabFacts(hit: TaskHit): TaskTabFacts {
+	return {
+		tags: hit.tags ?? [],
+		projects: hit.projects ?? [],
+		contexts: hit.contexts ?? [],
+		priority: hit.priority,
+		status: hitStatusValue(hit),
+	};
 }
 
 /** A small "+" button that triggers TaskNotes' create-task command, appended to

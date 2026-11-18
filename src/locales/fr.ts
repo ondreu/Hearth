@@ -2688,6 +2688,44 @@ export const fr: Translations = {
 				"et s'exécute exactement comme depuis la commande de Templater.",
 		},
 		tasks: {
+			tabs: {
+				heading: "Tab rows",
+				headingDesc:
+					"Rows of tabs above the tasks. Each row filters what the rows above it " +
+					"left — pick a project in the first row, then a priority within that " +
+					"project in the second. The choice is remembered for this session only; " +
+					"switching a tab never rewrites your vault.",
+				add: "Add a row",
+				addDesc: (count: number) => `A card can hold up to ${count} rows.`,
+				empty: "No tab rows. The card shows its tasks as it is.",
+				untitled: (n: number) => `Row ${n}`,
+				facet: "Tabs are made of",
+				facetDesc:
+					"What each tab in this row reads. Only values the card's tasks carry " +
+					"get a tab.",
+				mode: "Which tabs",
+				modeDesc: "Every value the tasks carry, or only the ones you list — in your order.",
+				modeAuto: "Every value found",
+				modeFixed: "Only the values I list",
+				values: "Values",
+				valuesDesc: "Comma-separated, in tab order. Tags may be written with or without a #.",
+				valuesPlaceholder: "work, home, side-project",
+				label: "Row caption",
+				labelDesc: "Shown before the tabs. Empty shows just the row's icon.",
+				labelPlaceholder: "Project",
+				other: "Add an “Other” tab",
+				otherDesc: "A last tab holding the tasks none of this row's tabs match.",
+				all: "Add an “All” tab",
+				allDesc: "A first tab undoing this row's choice. Recommended.",
+				remove: "Remove this row",
+				moveUp: "Move up",
+				moveDown: "Move down",
+				unsupported: (facet: string) => `This source has no ${facet} to tab by.`,
+				layoutNote:
+					"Tab rows show in the list and board layouts. The matrix keeps its own " +
+					"priorities and ignores them.",
+				tuiHelp: "t  tab rows",
+			},
 			source: "Source",
 			sourceDesc:
 				"Les cases à cocher Markdown fonctionnent partout. TaskNotes lit les notes de tâches " +
@@ -4413,6 +4451,21 @@ export const fr: Translations = {
 			needsGraph: "Activez le module principal Vue graphique pour ouvrir un graphe enregistré",
 		},
 		tasks: {
+			tabs: {
+				title: "Tab rows",
+				all: "All",
+				other: "Other",
+				none: "None",
+				more: "Tabs not in view",
+				facets: {
+					tag: "Tags",
+					project: "Projects",
+					context: "Contexts",
+					priority: "Priority",
+					status: "Status",
+				},
+				tuiHelp: "t  tab rows",
+			},
 			createNewTask: "Créer une tâche",
 			toDo: "À faire",
 			done: "Terminé",
