@@ -2466,6 +2466,43 @@ export const zhTW: Translations = {
 				"都屬於 Templater 自己，其執行方式與從 Templater 的命令呼叫時完全一致。",
 		},
 		tasks: {
+			tabs: {
+				heading: "分頁列",
+				headingDesc:
+					"任務上方的分頁列。每一列都會進一步篩選上方各列留下的任務——在第一列選擇一個專案，" +
+					"再在第二列選擇該專案中的某個優先順序。選擇只會在本次工作階段記住；" +
+					"切換分頁絕不會改寫你的儲存庫。",
+				add: "新增一列",
+				addDesc: (count: number) => `一張卡片最多可容納 ${count} 列。`,
+				empty: "沒有分頁列。卡片將按原樣顯示任務。",
+				untitled: (n: number) => `第 ${n} 列`,
+				facet: "分頁依據",
+				facetDesc:
+					"本列每個分頁讀取的內容。自動模式下只有卡片任務帶有的值" +
+					"才會有分頁；固定列會顯示你列出的全部值，即使沒有任何符合的值。",
+				mode: "要顯示哪些分頁",
+				modeDesc: "顯示任務帶有的全部值，或只顯示你列出的值——依你的順序。",
+				modeAuto: "找到的全部值",
+				modeFixed: "只顯示我列出的值",
+				values: "值",
+				valuesDesc: "以逗號分隔，依分頁順序排列。標籤開頭的 # 可加可不加。",
+				valuesPlaceholder: "工作, 家庭, 副業",
+				label: "列標題",
+				labelDesc: "顯示在分頁之前。留空則只顯示該列的圖示。",
+				labelPlaceholder: "專案",
+				other: "新增「其他」分頁",
+				otherDesc: "最後一個分頁，收納本列其他分頁都未命中的任務。",
+				all: "新增「全部」分頁",
+				allDesc: "第一個分頁，用於取消本列的選擇。建議開啟。",
+				remove: "刪除此列",
+				moveUp: "上移",
+				moveDown: "下移",
+				unsupported: (facet: string) => `此來源沒有可用於分組分頁的${facet}。`,
+				layoutNote:
+					"分頁列會顯示在清單與看板版面中。矩陣使用自身的" +
+					"優先順序，會忽略它們。",
+				tuiHelp: "t  分頁列",
+			},
 			source: "來源",
 			sourceDesc:
 				"Markdown 核取方塊在任何地方都可用。TaskNotes 透過 frontmatter 讀取該外掛的" +
@@ -4116,6 +4153,21 @@ export const zhTW: Translations = {
 			needsGraph: "請啟用核心外掛「關係圖譜」以開啟已儲存的圖譜",
 		},
 		tasks: {
+			tabs: {
+				title: "分頁列",
+				all: "全部",
+				other: "其他",
+				none: "無",
+				more: "未顯示的分頁",
+				facets: {
+					tag: "標籤",
+					project: "專案",
+					context: "情境",
+					priority: "優先順序",
+					status: "狀態",
+				},
+				tuiHelp: "t  分頁列",
+			},
 			createNewTask: "新增任務",
 			toDo: "待辦",
 			done: "已完成",

@@ -2448,6 +2448,43 @@ export const zh: Translations = {
 				"都属于 Templater 自己，其运行方式与从 Templater 的命令调用时完全一致。",
 		},
 		tasks: {
+			tabs: {
+				heading: "标签页行",
+				headingDesc:
+					"任务上方的标签页行。每一行都会进一步筛选上面各行留下的任务——在第一行选择一个项目，" +
+					"再在第二行选择该项目中的某个优先级。选择仅在本次会话中记住；" +
+					"切换标签页绝不会改写你的仓库。",
+				add: "添加一行",
+				addDesc: (count: number) => `一张卡片最多可容纳 ${count} 行。`,
+				empty: "没有标签页行。卡片将按原样显示任务。",
+				untitled: (n: number) => `行 ${n}`,
+				facet: "标签页依据",
+				facetDesc:
+					"本行每个标签页读取的内容。自动模式下只有卡片任务携带的值" +
+					"才会有标签页；固定行会显示你列出的全部值，即使没有任何匹配。",
+				mode: "显示哪些标签页",
+				modeDesc: "显示任务携带的全部值，或仅显示你列出的值——按你的顺序。",
+				modeAuto: "找到的全部值",
+				modeFixed: "仅显示我列出的值",
+				values: "值",
+				valuesDesc: "以逗号分隔，按标签页顺序排列。标签开头的 # 可加可不加。",
+				valuesPlaceholder: "工作, 家庭, 副业",
+				label: "行标题",
+				labelDesc: "显示在标签页之前。留空则只显示该行的图标。",
+				labelPlaceholder: "项目",
+				other: "添加“其他”标签页",
+				otherDesc: "最后一个标签页，收纳本行其他标签页都未命中的任务。",
+				all: "添加“全部”标签页",
+				allDesc: "第一个标签页，用于取消本行的选择。建议开启。",
+				remove: "删除本行",
+				moveUp: "上移",
+				moveDown: "下移",
+				unsupported: (facet: string) => `此来源没有可用于分组标签页的${facet}。`,
+				layoutNote:
+					"标签页行显示在列表和看板布局中。矩阵使用自身的" +
+					"优先级，会忽略它们。",
+				tuiHelp: "t  标签页行",
+			},
 			source: "来源",
 			sourceDesc:
 				"Markdown 复选框在任何地方都可用。TaskNotes 通过 frontmatter 读取该插件的" +
@@ -4106,6 +4143,21 @@ export const zh: Translations = {
 			needsGraph: "请启用核心插件「关系图谱」以打开已保存的图谱",
 		},
 		tasks: {
+			tabs: {
+				title: "标签页行",
+				all: "全部",
+				other: "其他",
+				none: "无",
+				more: "未显示的标签页",
+				facets: {
+					tag: "标签",
+					project: "项目",
+					context: "上下文",
+					priority: "优先级",
+					status: "状态",
+				},
+				tuiHelp: "t  标签页行",
+			},
 			createNewTask: "新建任务",
 			toDo: "待办",
 			done: "已完成",

@@ -316,6 +316,36 @@ export interface TaskFieldDef {
 	keys: TaskFieldKey[];
 }
 
+/** What a row of tabs on a Tasks card is built from (#481). Each facet reads
+ * something the card's tasks already carry, from any source that has it. */
+export type TaskTabFacet = "tag" | "project" | "context" | "priority" | "status";
+
+/** One row of tabs above a Tasks card's tasks (#481). Rows filter in order: a
+ * row's tabs are made of what the rows above left, and a task must match the
+ * tab every row shows to appear — so "project, then priority within it" is
+ * two rows, with no hierarchy to configure. */
+export interface TaskTabRow {
+	/** Stable identity, so a row keeps its place while edited. */
+	id: string;
+	facet: TaskTabFacet;
+	/** "auto": a tab per value the card's tasks carry, ordered by the facet
+	 * (priorities highest first, statuses in the card's order, names
+	 * alphabetically). "fixed": exactly {@link values}, in the order written. */
+	mode: "auto" | "fixed";
+	/** Fixed mode: the values given a tab, in tab order. */
+	values?: string[];
+	/** Add a last tab holding the tasks none of this row's tabs match. Tasks
+	 * carrying no value for the facet (a tagless task in a tag row) land
+	 * there too. Off unless turned on. */
+	other?: boolean;
+	/** Caption before the tabs (e.g. "Project"). Empty shows just the facet's
+	 * icon. */
+	label?: string;
+	/** Show an "All" tab first — the way to undo this row's choice. On unless
+	 * turned off. */
+	all?: boolean;
+}
+
 export interface TasksConfig {
 	/** "checkbox" (default) scans plain Markdown `- [ ]` checkboxes anywhere
 	 * in scope. "tasknotes" reads frontmatter from the TaskNotes community
@@ -415,6 +445,11 @@ export interface TasksConfig {
 	 * filter modal are conveniences that fill in these concrete criteria; the
 	 * filter is "active" (and applied) when any field below is set. */
 	taskFilter?: TaskFilterConfig;
+	/** Rows of tabs above the tasks (#481): each row narrows what the rows
+	 * above left, and the choice is remembered for the session only — a tab
+	 * click never rewrites data.json. Absent or empty means no tab rows, so a
+	 * card without them draws exactly as before. */
+	tabRows?: TaskTabRow[];
 	/** Give this card its own field list. For TaskNotes cards, opting in
 	 * replaces the global list from Settings → Hearth → Integrations (and is
 	 * only consulted while that global `taskFieldsEnabled` master switch is

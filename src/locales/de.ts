@@ -2748,6 +2748,45 @@ export const de: Translations = {
 				"und läuft genau wie über Templaters Befehl.",
 		},
 		tasks: {
+			tabs: {
+				heading: "Tab-Zeilen",
+				headingDesc:
+					"Zeilen mit Tabs oberhalb der Aufgaben. Jede Zeile filtert, was die Zeilen darüber " +
+					"übrig gelassen haben — wähle in der ersten Zeile ein Projekt, dann eine Priorität innerhalb " +
+					"dieses Projekts in der zweiten. Die Auswahl gilt nur für diese Sitzung; " +
+					"das Umschalten eines Tabs schreibt nie in deinen Vault.",
+				add: "Zeile hinzufügen",
+				addDesc: (count: number) => `Eine Karte kann bis zu ${count} Zeilen haben.`,
+				empty: "Keine Tab-Zeilen. Die Karte zeigt ihre Aufgaben unverändert.",
+				untitled: (n: number) => `Zeile ${n}`,
+				facet: "Tabs bestehen aus",
+				facetDesc:
+					"Was jeder Tab in dieser Zeile liest. Im Auto-Modus bekommen nur Werte, " +
+					"welche die Aufgaben der Karte tragen, einen Tab; eine festgelegte Zeile " +
+					"zeigt genau die von dir aufgelisteten Werte — auch ohne Treffer.",
+				mode: "Welche Tabs",
+				modeDesc: "Jeder Wert, den die Aufgaben tragen, oder nur die von dir aufgelisteten — in deiner Reihenfolge.",
+				modeAuto: "Jeder gefundene Wert",
+				modeFixed: "Nur die von mir aufgelisteten",
+				values: "Werte",
+				valuesDesc: "Kommagetrennt, in Tab-Reihenfolge. Bei Tags ist ein führendes # optional.",
+				valuesPlaceholder: "arbeit, zuhause, nebenprojekt",
+				label: "Zeilenbeschriftung",
+				labelDesc: "Wird vor den Tabs angezeigt. Leer zeigt nur das Symbol der Zeile.",
+				labelPlaceholder: "Projekt",
+				other: "„Sonstige“-Tab hinzufügen",
+				otherDesc: "Ein letzter Tab für die Aufgaben, auf die kein Tab dieser Zeile passt.",
+				all: "„Alle“-Tab hinzufügen",
+				allDesc: "Ein erster Tab, der die Auswahl dieser Zeile aufhebt. Empfohlen.",
+				remove: "Diese Zeile entfernen",
+				moveUp: "Nach oben",
+				moveDown: "Nach unten",
+				unsupported: (facet: string) => `Diese Quelle kennt keine ${facet} für Tabs.`,
+				layoutNote:
+					"Tab-Zeilen erscheinen in den Layouts Liste und Board. Die Matrix behält ihre eigenen " +
+					"Prioritäten und ignoriert sie.",
+				tuiHelp: "t  Tab-Zeilen",
+			},
 			source: "Quelle",
 			sourceDesc:
 				"Markdown-Checkboxen funktionieren überall. TaskNotes liest die " +
@@ -4482,6 +4521,21 @@ export const de: Translations = {
 			needsGraph: "Aktiviere das Kern-Plugin „Graphansicht“, um einen gespeicherten Graphen zu öffnen",
 		},
 		tasks: {
+			tabs: {
+				title: "Tab-Zeilen",
+				all: "Alle",
+				other: "Sonstige",
+				none: "Keine",
+				more: "Ausgeblendete Tabs",
+				facets: {
+					tag: "Tags",
+					project: "Projekte",
+					context: "Kontexte",
+					priority: "Priorität",
+					status: "Status",
+				},
+				tuiHelp: "t  Tab-Zeilen",
+			},
 			createNewTask: "Neue Aufgabe erstellen",
 			toDo: "Offen",
 			done: "Erledigt",

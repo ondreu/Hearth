@@ -34,6 +34,9 @@ import {
 	taskNotesCreateCommandId,
 	taskSortMenu,
 	taskSourceDate,
+	taskTabBaseMask,
+	taskTabFacts,
+	taskTabStatusOrder,
 	toggleTask,
 	type TaskHit,
 	type TaskLoad,
@@ -62,12 +65,22 @@ import {
 	sourceBuiltin,
 } from "../../taskfields";
 import { isTaskFilterActive } from "../../taskfilter";
-import type { TaskMatrixQuadrant, TasksConfig } from "../../types";
+import {
+	resolveTaskTabRows,
+	setTaskTabChoice,
+	TASK_TAB_ALL,
+	taskTabRevealsDone,
+	taskTabFacets,
+	taskTabMask,
+	type ResolvedTaskTabRow,
+	type TaskTabValue,
+} from "../../tasktabs";
+import type { TaskMatrixQuadrant, TaskTabRow, TasksConfig } from "../../types";
 import { PromptModal } from "../../ui";
 import { hearthMenu } from "../../uidesign";
 import type { HomeView } from "../../view";
 import type { TuiContext, TuiItem, TuiOutput, TuiRenderer } from "../card";
-import { asciify, centerLine, fit, padEnd, spread, styleLine, type Line, type Seg, type TuiStyle } from "../text";
+import { asciify, centerLine, fit, padEnd, spread, strWidth, styleLine, type Line, type Seg, type TuiStyle } from "../text";
 import { showMenuFor } from "./common";
 
 // ---- Loading --------------------------------------------------------------------
@@ -276,10 +289,18 @@ function showTaskMenu(ctx: TuiContext, cfg: TasksConfig, hit: TaskHit, evt: Mous
 
 function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TuiOutput {
 	const { view } = ctx;
-	const { hits, today, openStatus } = load;
-	const list = listTasks(cfg, hits, today);
+	const scope = tabScope(ctx, cfg, load);
+	const { today, openStatus } = load;
+	const list = listTasks(cfg, scope?.hits ?? load.hits, today, scope?.showDone);
 	const lines: Line[] = [];
 	const items: TuiItem[] = [];
+	if (scope) {
+		const rows = tabRowLines(ctx, scope.resolved);
+		lines.push(...rows.lines);
+		items.push(...rows.items);
+	}
+	const sticky = 1 + (scope?.resolved.length ?? 0);
+	const foot = tabFoot(t().tui.cards.tasksFoot, scope);
 	const dueW = ctx.cols >= 60 ? 11 : 9;
 	const fixed = 4 + 4 + dueW + 1;
 	lines.push(
@@ -299,9 +320,14 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 		),
 	);
 	if (list.length === 0) {
-		const empty = isTaskFilterActive(cfg.taskFilter) ? t().cards.empty.tasksNoMatch : t().cards.empty.tasksEmpty;
+		// Tabs can be what emptied the list, not just the Filter button.
+		const tabsNarrow = scope?.resolved.some((entry) => entry.active !== TASK_TAB_ALL) ?? false;
+		const empty =
+			tabsNarrow || isTaskFilterActive(cfg.taskFilter)
+				? t().cards.empty.tasksNoMatch
+				: t().cards.empty.tasksEmpty;
 		lines.push([{ text: empty, style: "dim" }]);
-		return { lines, hint: filterHint(cfg, 0), foot: t().tui.cards.tasksFoot, sticky: 1 };
+		return { lines, items, hint: filterHint(cfg, 0), foot, sticky };
 	}
 	for (const hit of list) {
 		const checked = taskChecked(cfg, hit, today);
@@ -336,7 +362,7 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 		});
 	}
 	const open = list.filter((h) => !taskChecked(cfg, h, today)).length;
-	return { lines, items, hint: filterHint(cfg, open), foot: t().tui.cards.tasksFoot, sticky: 1 };
+	return { lines, items, hint: filterHint(cfg, open), foot, sticky };
 }
 
 function headerCells(cols: [string, number][], sorted: number): Line {
@@ -346,6 +372,167 @@ function headerCells(cols: [string, number][], sorted: number): Line {
 function filterHint(cfg: TasksConfig, open: number): string {
 	const base = t().tui.cards.tasksOpen(open);
 	return isTaskFilterActive(cfg.taskFilter) ? `${base} · ${t().cards.tasks.filter.toLowerCase()}` : base;
+}
+
+// ---- Tab rows -------------------------------------------------------------------
+
+/**
+ * The tab rows above the list and the board (#481): resolved against the
+ * loaded hits, filtering what the layouts draw. The matrix keeps its own
+ * priorities and ignores them.
+ */
+interface TabScope {
+	resolved: ResolvedTaskTabRow[];
+	hits: TaskHit[];
+	/** A done status tab is showing, so completed tasks belong in the list. */
+	showDone: boolean;
+}
+
+/**
+ * The rows resolved against the card's loaded hits, with the hits the rows
+ * let through. Null when the card holds no rows. Counts are taken against the
+ * same base as the graphical card's, so a tab reads the same in both.
+ */
+function tabScope(
+	ctx: TuiContext,
+	cfg: TasksConfig,
+	load: Extract<TaskLoad, { kind: "ok" }>,
+): TabScope | null {
+	// Rows the source cannot answer stay in the settings but are not drawn —
+	// same rule as the graphical card's.
+	const facets = taskTabFacets(cfg.source);
+	const rows = cfg.tabRows?.filter((row) => facets.includes(row.facet));
+	if (!rows?.length) return null;
+	const facts = load.hits.map(taskTabFacts);
+	const base = taskTabBaseMask(load.hits, cfg, load.today);
+	const resolved = resolveTaskTabRows(
+		facts,
+		rows,
+		base,
+		taskTabStatusOrder(ctx.view, cfg, load.boardColumns),
+		cfg.showCompleted === true,
+	);
+	const mask = taskTabMask(facts, resolved);
+	return {
+		resolved,
+		hits: load.hits.filter((_, i) => mask[i]),
+		showDone: taskTabRevealsDone(facts, resolved),
+	};
+}
+
+/** A row's caption: its own label, else the facet's name. */
+function tabCaption(row: TaskTabRow): string {
+	return row.label?.trim() || t().cards.tasks.tabs.facets[row.facet] || row.facet;
+}
+
+/** What a tab reads: All / Other / a dash for a missing value / the value. */
+function tabTitle(tab: TaskTabValue): string {
+	const tabs = t().cards.tasks.tabs;
+	if (tab.kind === "all") return tabs.all;
+	if (tab.kind === "other") return tabs.other;
+	if (tab.kind === "none") return tabs.none;
+	return tab.label;
+}
+
+/**
+ * Show `id` in `row` and redraw from the cached load. Switching a tab never
+ * rewrites the vault, and it must not reload the tasks either — so the draw
+ * that follows treats the cached load as fresh instead of reading the vault
+ * again.
+ */
+function pickTab(ctx: TuiContext, row: TaskTabRow, id: string): void {
+	setTaskTabChoice(row, id);
+	ctx.state.fresh = true;
+	ctx.redraw();
+}
+
+/** The card's key help, naming the tab rows' key while they show. */
+function tabFoot(base: string, scope: TabScope | null): string {
+	return scope ? `${base} · ${t().cards.tasks.tabs.tuiHelp}` : base;
+}
+
+/**
+ * One text line per row above the list or board: the caption in dim, then
+ * `label count` tabs two spaces apart, the active tab in reverse. Tabs past
+ * the body's width collapse into a trailing `+N` — text only, no popup.
+ * Every visible tab is an item on its line, so a click (or Enter on it)
+ * switches the row.
+ */
+function tabRowLines(ctx: TuiContext, resolved: readonly ResolvedTaskTabRow[]): { lines: Line[]; items: TuiItem[] } {
+	const lines: Line[] = [];
+	const items: TuiItem[] = [];
+	for (const entry of resolved) {
+		const caption = asciify(tabCaption(entry.row));
+		const cells = entry.values.map((tab) => ({
+			id: tab.id,
+			label: asciify(tabTitle(tab)),
+			count: String(tab.count),
+			active: tab.id === entry.active,
+		}));
+		const widths = cells.map((c) => 2 + strWidth(c.label) + 1 + strWidth(c.count));
+		const tooWide = (shown: number[]): boolean => {
+			const hidden = cells.length - shown.length;
+			const suffix = hidden > 0 ? 2 + String(hidden).length : 0;
+			return strWidth(caption) + shown.reduce((n, i) => n + widths[i], 0) + suffix > ctx.cols;
+		};
+		// Leading tabs that fit, always leaving the active one visible.
+		let shown = cells.map((_, i) => i);
+		while (shown.length > 0 && tooWide(shown)) {
+			let drop = -1;
+			for (let k = shown.length - 1; k >= 0; k--) {
+				if (!cells[shown[k]].active) {
+					drop = k;
+					break;
+				}
+			}
+			if (drop === -1) break;
+			shown = [...shown.slice(0, drop), ...shown.slice(drop + 1)];
+		}
+		const line: Line = [{ text: caption, style: "dim" }];
+		let col = strWidth(caption);
+		for (const i of shown) {
+			const cell = cells[i];
+			line.push({ text: "  " });
+			col += 2;
+			const activate = (): void => pickTab(ctx, entry.row, cell.id);
+			const range: [number, number] = [col, col + strWidth(cell.label) + 1 + strWidth(cell.count)];
+			items.push({ line: lines.length, range, activate });
+			const index = items.length - 1;
+			const onClick = (): void => {
+				ctx.select(index);
+				activate();
+			};
+			const tip = `${tabCaption(entry.row)}: ${cell.label}`;
+			line.push({ text: cell.label, style: cell.active ? "reverse" : undefined, onClick, label: tip });
+			line.push({ text: " " });
+			line.push({ text: cell.count, style: cell.active ? ["reverse", "dim"] : "dim", onClick, label: tip });
+			col = range[1];
+		}
+		const hidden = cells.length - shown.length;
+		if (hidden > 0) line.push({ text: ` +${hidden}`, style: "dim" });
+		lines.push(fit(line, ctx.cols));
+	}
+	return { lines, items };
+}
+
+/** The `t` menu: every row's tabs as `<caption>: <tab>`, checked on show. */
+function tabMenu(ctx: TuiContext, resolved: readonly ResolvedTaskTabRow[], evt: MouseEvent | KeyboardEvent): void {
+	const menu = hearthMenu();
+	resolved.forEach((entry, r) => {
+		if (r > 0) menu.addSeparator();
+		const caption = tabCaption(entry.row);
+		for (const tab of entry.values) {
+			const id = tab.id;
+			const title = `${caption}: ${asciify(tabTitle(tab))}`;
+			menu.addItem((it) =>
+				it
+					.setTitle(title)
+					.setChecked(id === entry.active)
+					.onClick(() => pickTab(ctx, entry.row, id)),
+			);
+		}
+	});
+	showMenuFor(menu, evt);
 }
 
 // ---- Board layout ----------------------------------------------------------------
@@ -418,10 +605,22 @@ function columnMenu(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, {
 
 function boardOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TuiOutput {
 	const { view } = ctx;
-	const board = taskBoard(view, cfg, boardTasks(cfg, load.hits, load.today), refreshOf(ctx), load.boardColumns);
+	const scope = tabScope(ctx, cfg, load);
+	const board = taskBoard(view, cfg, boardTasks(cfg, scope?.hits ?? load.hits, load.today), refreshOf(ctx), load.boardColumns);
 	ctx.state.boardModel = board;
 	const cols = board.visible;
-	if (cols.length === 0) return { lines: [[{ text: t().tui.cards.boardNoColumns, style: "dim" }]], foot: t().tui.cards.boardFoot };
+	const lines: Line[] = [];
+	const items: TuiItem[] = [];
+	if (scope) {
+		const rows = tabRowLines(ctx, scope.resolved);
+		lines.push(...rows.lines);
+		items.push(...rows.items);
+	}
+	const foot = tabFoot(t().tui.cards.boardFoot, scope);
+	if (cols.length === 0) {
+		lines.push([{ text: t().tui.cards.boardNoColumns, style: "dim" }]);
+		return { lines, items, foot, sticky: scope?.resolved.length ?? 0 };
+	}
 	const sel = boardSel(ctx);
 	sel.col = Math.max(0, Math.min(cols.length - 1, sel.col));
 	sel.row = Math.max(0, Math.min(Math.max(0, cols[sel.col].hits.length - 1), sel.row));
@@ -438,7 +637,6 @@ function boardOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoa
 	const shown = cols.slice(first, first + across);
 	const w = Math.floor((ctx.cols - gap * (shown.length - 1)) / shown.length);
 
-	const lines: Line[] = [];
 	const header: Line = [];
 	shown.forEach((col, i) => {
 		const idx = first + i;
@@ -513,7 +711,7 @@ function boardOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoa
 		}
 	}
 	const total = cols.reduce((n, c) => n + c.hits.length, 0);
-	return { lines, hint: t().tui.cards.boardHint(total, cols.length), foot: t().tui.cards.boardFoot, sticky: 1 };
+	return { lines, items, hint: t().tui.cards.boardHint(total, cols.length), foot, sticky: 1 + (scope?.resolved.length ?? 0) };
 }
 
 function boardKey(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>, evt: KeyboardEvent): boolean {
@@ -780,6 +978,15 @@ export const tasksTui: TuiRenderer = {
 				void ctx.view.plugin.saveData(ctx.view.plugin.settings);
 				ctx.redraw();
 				return true;
+			case "t": {
+				// The tab rows' menu — the same rows as above the tasks.
+				// The matrix keeps its own priorities and ignores them.
+				if (cfg.layout === "matrix") return false;
+				const scope = tabScope(ctx, cfg, load);
+				if (!scope) return false;
+				tabMenu(ctx, scope.resolved, evt);
+				return true;
+			}
 		}
 		if (cfg.layout === "kanban") return boardKey(ctx, cfg, load, evt);
 		if (cfg.layout === "matrix" && matrixKey(ctx, cfg, evt)) return true;

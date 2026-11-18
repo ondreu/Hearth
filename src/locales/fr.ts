@@ -2688,6 +2688,45 @@ export const fr: Translations = {
 				"et s'exécute exactement comme depuis la commande de Templater.",
 		},
 		tasks: {
+			tabs: {
+				heading: "Rangées d'onglets",
+				headingDesc:
+					"Des rangées d'onglets au-dessus des tâches. Chaque rangée filtre ce que les rangées du dessus " +
+					"ont laissé — choisissez un projet dans la première rangée, puis une priorité au sein de ce " +
+					"projet dans la seconde. Le choix n'est mémorisé que pour cette session ; " +
+					"changer d'onglet ne réécrit jamais votre coffre.",
+				add: "Ajouter une rangée",
+				addDesc: (count: number) => `Une carte peut contenir jusqu'à ${count} rangées.`,
+				empty: "Aucune rangée d'onglets. La carte affiche ses tâches telles quelles.",
+				untitled: (n: number) => `Rangée ${n}`,
+				facet: "Les onglets sont faits de",
+				facetDesc:
+					"Ce que chaque onglet de cette rangée lit. En mode auto, seules les valeurs " +
+					"portées par les tâches de la carte obtiennent un onglet ; une rangée fixe " +
+					"affiche exactement les valeurs listées, même sans correspondance.",
+				mode: "Quels onglets",
+				modeDesc: "Toutes les valeurs portées par les tâches, ou seulement celles que vous listez — dans votre ordre.",
+				modeAuto: "Toutes les valeurs trouvées",
+				modeFixed: "Seulement les valeurs listées",
+				values: "Valeurs",
+				valuesDesc: "Séparées par des virgules, dans l'ordre des onglets. Pour les tags, un # initial est facultatif.",
+				valuesPlaceholder: "travail, maison, projet-annexe",
+				label: "Légende de la rangée",
+				labelDesc: "Affichée avant les onglets. Vide, elle n'affiche que l'icône de la rangée.",
+				labelPlaceholder: "Projet",
+				other: "Ajouter un onglet « Autres »",
+				otherDesc: "Un dernier onglet pour les tâches qu'aucun onglet de cette rangée ne retient.",
+				all: "Ajouter un onglet « Tous »",
+				allDesc: "Un premier onglet qui annule le choix de cette rangée. Recommandé.",
+				remove: "Supprimer cette rangée",
+				moveUp: "Déplacer vers le haut",
+				moveDown: "Déplacer vers le bas",
+				unsupported: (facet: string) => `Cette source ne propose pas de ${facet} pour les onglets.`,
+				layoutNote:
+					"Les rangées d'onglets s'affichent dans les dispositions liste et kanban. La matrice garde ses propres " +
+					"priorités et les ignore.",
+				tuiHelp: "t  rangées d'onglets",
+			},
 			source: "Source",
 			sourceDesc:
 				"Les cases à cocher Markdown fonctionnent partout. TaskNotes lit les notes de tâches " +
@@ -4413,6 +4452,21 @@ export const fr: Translations = {
 			needsGraph: "Activez le module principal Vue graphique pour ouvrir un graphe enregistré",
 		},
 		tasks: {
+			tabs: {
+				title: "Rangées d'onglets",
+				all: "Tous",
+				other: "Autres",
+				none: "Aucun",
+				more: "Onglets masqués",
+				facets: {
+					tag: "Tags",
+					project: "Projets",
+					context: "Contextes",
+					priority: "Priorité",
+					status: "Statut",
+				},
+				tuiHelp: "t  rangées d'onglets",
+			},
 			createNewTask: "Créer une tâche",
 			toDo: "À faire",
 			done: "Terminé",
