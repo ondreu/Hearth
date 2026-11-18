@@ -2761,14 +2761,15 @@ export const de: Translations = {
 				untitled: (n: number) => `Zeile ${n}`,
 				facet: "Tabs bestehen aus",
 				facetDesc:
-					"Was jeder Tab in dieser Zeile liest. Nur Werte, welche die Aufgaben der Karte tragen, " +
-					"bekommen einen Tab.",
+					"Was jeder Tab in dieser Zeile liest. Im Auto-Modus bekommen nur Werte, " +
+					"welche die Aufgaben der Karte tragen, einen Tab; eine festgelegte Zeile " +
+					"zeigt genau die von dir aufgelisteten Werte — auch ohne Treffer.",
 				mode: "Welche Tabs",
 				modeDesc: "Jeder Wert, den die Aufgaben tragen, oder nur die von dir aufgelisteten — in deiner Reihenfolge.",
 				modeAuto: "Jeder gefundene Wert",
 				modeFixed: "Nur die von mir aufgelisteten",
 				values: "Werte",
-				valuesDesc: "Kommagetrennt, in Tab-Reihenfolge. Tags dürfen mit oder ohne # geschrieben werden.",
+				valuesDesc: "Kommagetrennt, in Tab-Reihenfolge. Bei Tags ist ein führendes # optional.",
 				valuesPlaceholder: "arbeit, zuhause, nebenprojekt",
 				label: "Zeilenbeschriftung",
 				labelDesc: "Wird vor den Tabs angezeigt. Leer zeigt nur das Symbol der Zeile.",

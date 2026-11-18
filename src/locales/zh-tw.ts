@@ -2478,14 +2478,14 @@ export const zhTW: Translations = {
 				untitled: (n: number) => `第 ${n} 列`,
 				facet: "分頁依據",
 				facetDesc:
-					"本列每個分頁讀取的內容。只有卡片任務帶有的值" +
-					"才會有分頁。",
+					"本列每個分頁讀取的內容。自動模式下只有卡片任務帶有的值" +
+					"才會有分頁；固定列會顯示你列出的全部值，即使沒有任何符合的值。",
 				mode: "要顯示哪些分頁",
 				modeDesc: "顯示任務帶有的全部值，或只顯示你列出的值——依你的順序。",
 				modeAuto: "找到的全部值",
 				modeFixed: "只顯示我列出的值",
 				values: "值",
-				valuesDesc: "以逗號分隔，依分頁順序排列。標籤可加 # 也可不加。",
+				valuesDesc: "以逗號分隔，依分頁順序排列。標籤開頭的 # 可加可不加。",
 				valuesPlaceholder: "工作, 家庭, 副業",
 				label: "列標題",
 				labelDesc: "顯示在分頁之前。留空則只顯示該列的圖示。",

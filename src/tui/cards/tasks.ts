@@ -36,6 +36,7 @@ import {
 	taskSourceDate,
 	taskTabBaseMask,
 	taskTabFacts,
+	taskTabStatusOrder,
 	toggleTask,
 	type TaskHit,
 	type TaskLoad,
@@ -67,6 +68,7 @@ import { isTaskFilterActive } from "../../taskfilter";
 import {
 	resolveTaskTabRows,
 	setTaskTabChoice,
+	taskTabFacets,
 	taskTabMask,
 	type ResolvedTaskTabRow,
 	type TaskTabValue,
@@ -285,7 +287,7 @@ function showTaskMenu(ctx: TuiContext, cfg: TasksConfig, hit: TaskHit, evt: Mous
 
 function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TuiOutput {
 	const { view } = ctx;
-	const scope = tabScope(cfg, load);
+	const scope = tabScope(ctx, cfg, load);
 	const { today, openStatus } = load;
 	const list = listTasks(cfg, scope?.hits ?? load.hits, today);
 	const lines: Line[] = [];
@@ -382,19 +384,31 @@ interface TabScope {
  * let through. Null when the card holds no rows. Counts are taken against the
  * same base as the graphical card's, so a tab reads the same in both.
  */
-function tabScope(cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TabScope | null {
-	const rows = cfg.tabRows;
+function tabScope(
+	ctx: TuiContext,
+	cfg: TasksConfig,
+	load: Extract<TaskLoad, { kind: "ok" }>,
+): TabScope | null {
+	// Rows the source cannot answer stay in the settings but are not drawn —
+	// same rule as the graphical card's.
+	const facets = taskTabFacets(cfg.source);
+	const rows = cfg.tabRows?.filter((row) => facets.includes(row.facet));
 	if (!rows?.length) return null;
 	const facts = load.hits.map(taskTabFacts);
 	const base = taskTabBaseMask(load.hits, cfg, load.today, cfg.layout === "kanban");
-	const resolved = resolveTaskTabRows(facts, rows, base, load.filterChoices.statuses);
+	const resolved = resolveTaskTabRows(
+		facts,
+		rows,
+		base,
+		taskTabStatusOrder(ctx.view, cfg, load.boardColumns),
+	);
 	const mask = taskTabMask(facts, resolved);
 	return { resolved, hits: load.hits.filter((_, i) => mask[i]) };
 }
 
 /** A row's caption: its own label, else the facet's name. */
 function tabCaption(row: TaskTabRow): string {
-	return row.label?.trim() || t().cards.tasks.tabs.facets[row.facet];
+	return row.label?.trim() || t().cards.tasks.tabs.facets[row.facet] || row.facet;
 }
 
 /** What a tab reads: All / Other / a dash for a missing value / the value. */
@@ -402,7 +416,7 @@ function tabTitle(tab: TaskTabValue): string {
 	const tabs = t().cards.tasks.tabs;
 	if (tab.kind === "all") return tabs.all;
 	if (tab.kind === "other") return tabs.other;
-	if (tab.kind === "none") return "—";
+	if (tab.kind === "none") return tabs.none;
 	return tab.label;
 }
 
@@ -577,7 +591,7 @@ function columnMenu(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, {
 
 function boardOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad, { kind: "ok" }>): TuiOutput {
 	const { view } = ctx;
-	const scope = tabScope(cfg, load);
+	const scope = tabScope(ctx, cfg, load);
 	const board = taskBoard(view, cfg, boardTasks(cfg, scope?.hits ?? load.hits, load.today), refreshOf(ctx), load.boardColumns);
 	ctx.state.boardModel = board;
 	const cols = board.visible;
@@ -954,7 +968,7 @@ export const tasksTui: TuiRenderer = {
 				// The tab rows' menu — the same rows as above the tasks.
 				// The matrix keeps its own priorities and ignores them.
 				if (cfg.layout === "matrix") return false;
-				const scope = tabScope(cfg, load);
+				const scope = tabScope(ctx, cfg, load);
 				if (!scope) return false;
 				tabMenu(ctx, scope.resolved, evt);
 				return true;

@@ -127,9 +127,15 @@ describe("tasks card tab rows in terminal mode", () => {
 		const cfg: TasksConfig = { tabRows: [tag, priRow()] };
 		const { ctx, redraws } = ctxFor(cfg, loadFor(hits));
 		const { item } = tabItem(ctx, 0, "#work");
+		const loadedBefore = ctx.state.load;
 		item.activate?.();
 		expect(redraws()).toBe(1);
+		// The next draw uses the cached load: a tab is view state, so no vault
+		// read may be triggered by picking one.
+		expect(ctx.state.fresh).toBe(true);
 		const out = tasksTui.render(ctx);
+		expect(ctx.state.load).toBe(loadedBefore);
+		expect(ctx.state.fresh).toBe(false);
 		const body = out.lines.slice(3).map(textOf).join("\n");
 		expect(body).toContain("Fix leak");
 		expect(body).toContain("Paint fence");

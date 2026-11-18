@@ -76,10 +76,13 @@ export interface ResolvedTaskTabRow {
 }
 
 /** A task's values for one facet, as `{key, label}`: `key` is what a choice
- * stores and compares, `label` what the tab reads. */
+ * stores and compares, `label` what the tab reads. `raw` keeps the value as
+ * written when the label is derived from it (a project's path), so a collision
+ * can be told apart in the user's own casing. */
 interface FacetValue {
 	key: string;
 	label: string;
+	raw?: string;
 }
 
 /** Dedupe by key, keeping the first label seen. */
@@ -111,6 +114,7 @@ export function taskFacetValues(facts: TaskTabFacts, facet: TaskTabFacet): Facet
 				(facts.projects ?? []).map((p) => ({
 					key: normalizeFilterTag(p),
 					label: filterTagLabel(p),
+					raw: p,
 				})),
 			);
 		case "context":
@@ -118,6 +122,7 @@ export function taskFacetValues(facts: TaskTabFacts, facet: TaskTabFacet): Facet
 				(facts.contexts ?? []).map((c) => ({
 					key: normalizeFilterTag(c),
 					label: filterTagLabel(c),
+					raw: c,
 				})),
 			);
 		case "priority": {
@@ -151,6 +156,13 @@ export function setTaskTabChoice(row: TaskTabRow, id: string): void {
 	chosen.set(row, id);
 }
 
+/** Forget `row`'s choice — for when what its tabs are made of changes (the
+ * facet switched), so an id that happens to exist under the new facet does not
+ * come back as a selection the user never made. */
+export function clearTaskTabChoice(row: TaskTabRow): void {
+	chosen.delete(row);
+}
+
 // ---- Resolving a row against the card's tasks -----------------------------------
 
 /** Values a facet shows on a row, in the order the facet implies: priorities
@@ -176,6 +188,29 @@ function orderValues(
 	return sorted;
 }
 
+/** Two projects can share a note name in different folders; their tabs would
+ * read identically. Append the parent segment to the ones that collide, so the
+ * strip still says which is which. */
+function disambiguateLabels(values: FacetValue[], facet: TaskTabFacet): FacetValue[] {
+	if (facet !== "project" && facet !== "context") return values;
+	const byLabel = new Map<string, FacetValue[]>();
+	for (const v of values) {
+		const group = byLabel.get(v.label) ?? [];
+		group.push(v);
+		byLabel.set(v.label, group);
+	}
+	for (const group of byLabel.values()) {
+		if (group.length < 2) continue;
+		for (const v of group) {
+			const written = (v.raw ?? v.key).replace(/^\[\[|\]\]$/g, "");
+			const parts = written.split("/");
+			const parent = parts.length > 1 ? parts[parts.length - 2]?.trim() : "";
+			if (parent) v.label = `${v.label} · ${parent}`;
+		}
+	}
+	return values;
+}
+
 /** Collect one row's value tabs across `facts`, in facet order. */
 function collectValues(
 	facts: readonly TaskTabFacts[],
@@ -190,12 +225,25 @@ function collectValues(
 			if (!seen.has(v.key)) seen.set(v.key, i);
 		}
 	});
-	return orderValues([...found.values()], row.facet, seen, statusOrder);
+	return disambiguateLabels(orderValues([...found.values()], row.facet, seen, statusOrder), row.facet);
 }
 
-/** Whether a task carries `key` on `facet`. */
+/** The last path segment of a normalized project/context key: TaskNotes stores
+ * projects as path wikilinks, and a user typing the note name in a fixed row
+ * means the same thing as the full path. */
+function basenameOf(key: string): string {
+	const slash = key.lastIndexOf("/");
+	return slash >= 0 ? key.slice(slash + 1) : key;
+}
+
+/** Whether a task carries `key` on `facet`. Projects and contexts also match on
+ * their last path segment, so a fixed value written as the note name finds a
+ * task whose frontmatter holds the full path (and two same-named notes in
+ * different folders both match — the label is the same either way). */
 function carries(facts: TaskTabFacts, facet: TaskTabFacet, key: string): boolean {
-	return taskFacetValues(facts, facet).some((v) => v.key === key);
+	return taskFacetValues(facts, facet).some(
+		(v) => v.key === key || (facet !== "tag" && facet !== "priority" && facet !== "status" && basenameOf(v.key) === key),
+	);
 }
 
 /** How one task reads against one tab of one row. */
@@ -205,7 +253,7 @@ function matchesTab(facts: TaskTabFacts, row: TaskTabRow, id: string, listed: re
 	const values = taskFacetValues(facts, row.facet);
 	// A tab for a priority-less task ("none") matches only tasks without one.
 	if (id === "none") return values.every((v) => v.key === "none");
-	return values.some((v) => v.key === id);
+	return carries(facts, row.facet, id);
 }
 
 /** Resolve every row against `facts`: the tabs each row offers, their counts,
@@ -227,13 +275,17 @@ export function resolveTaskTabRows(
 	for (let index = 0; index < rows.length; index++) {
 		const row = rows[index];
 		const scoped = facts.filter((_, i) => above[i]);
-		const values =
-			row.mode === "fixed"
-				? (row.values ?? []).map((v) => ({
-						key: fixedKey(row.facet, v),
-						label: fixedLabel(row.facet, v),
-					}))
-				: collectValues(scoped, row, statusOrder);
+		// A fixed row with nothing listed behaves like an auto one rather than
+		// an empty strip: the editor lets the field be cleared, and a row that
+		// silently vanished on the next load would be worse than one that
+		// falls back to every value the card carries.
+		const fixed = row.mode === "fixed" && (row.values?.length ?? 0) > 0;
+		const values = fixed
+			? (row.values ?? []).map((v) => ({
+					key: fixedKey(row.facet, v),
+					label: fixedLabel(row.facet, v),
+				}))
+			: collectValues(scoped, row, statusOrder);
 
 		const listed = values.map((v) => v.key);
 		const tabs: TaskTabValue[] = [];
@@ -247,6 +299,10 @@ export function resolveTaskTabRows(
 			});
 		}
 		if (row.other === true) tabs.push({ id: TASK_TAB_OTHER, kind: "other", label: "", count: 0 });
+		// A row can legitimately offer no tabs (an auto row on a card with no
+		// tasks carrying that facet, with "All" turned off). It still needs one
+		// tab to show and one id to be active, so it falls back on "All".
+		if (!tabs.length) tabs.push({ id: TASK_TAB_ALL, kind: "all", label: "", count: 0 });
 
 		// Remembered choice, clamped onto what this row offers now.
 		const remembered = chosen.get(row);
@@ -344,7 +400,9 @@ export function sanitizeTaskTabRows(raw: unknown): TaskTabRow[] | undefined {
 				.filter(Boolean);
 			if (values.length) row.values = values;
 		}
-		if (row.mode === "fixed" && !row.values?.length) continue;
+		// A fixed row with nothing listed falls back to auto on load instead of
+		// disappearing, so a cleared values field cannot lose the row.
+		if (row.mode === "fixed" && !row.values?.length) row.mode = "auto";
 		if (r.other === true) row.other = true;
 		if (r.all === false) row.all = false;
 		if (typeof r.label === "string" && r.label.trim()) row.label = r.label.trim();

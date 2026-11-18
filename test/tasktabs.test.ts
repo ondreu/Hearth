@@ -3,6 +3,7 @@ import {
 	TASK_TAB_ALL,
 	TASK_TAB_MAX_ROWS,
 	TASK_TAB_OTHER,
+	clearTaskTabChoice,
 	resolveTaskTabRows,
 	sanitizeTaskTabRows,
 	setTaskTabChoice,
@@ -31,7 +32,11 @@ describe("taskFacetValues", () => {
 
 	it("reads a project wikilink as its note name", () => {
 		expect(taskFacetValues(task({ projects: ["[[Noting/Projects/Dropzone]]"] }), "project")).toEqual([
-			{ key: "noting/projects/dropzone", label: "Dropzone" },
+			{
+				key: "noting/projects/dropzone",
+				label: "Dropzone",
+				raw: "[[Noting/Projects/Dropzone]]",
+			},
 		]);
 	});
 
@@ -171,14 +176,68 @@ describe("taskTabMask", () => {
 	});
 });
 
+describe("edge cases the strip must survive", () => {
+	const hits = [
+		task({ tags: ["work"], priority: "high" }),
+		task({ tags: ["home"] }),
+	];
+
+	it("keeps one All tab when a row would otherwise offer none", () => {
+		// Auto tag row, no task carries a tag, "All" turned off: the row still
+		// needs a tab to show and an id to be active.
+		const [resolved] = resolveTaskTabRows([task({})], [
+			row({ facet: "tag", mode: "auto", all: false }),
+		]);
+		expect(resolved.values.map((v) => [v.id, v.kind])).toEqual([[TASK_TAB_ALL, "all"]]);
+		expect(resolved.active).toBe(TASK_TAB_ALL);
+	});
+
+	it("treats a fixed row with no values as an auto one", () => {
+		const [resolved] = resolveTaskTabRows(hits, [
+			row({ facet: "tag", mode: "fixed", values: [] }),
+		]);
+		expect(resolved.values.map((v) => v.id)).toEqual([TASK_TAB_ALL, "home", "work"]);
+	});
+
+	it("matches a fixed project written as the note name", () => {
+		const projects = [task({ projects: ["[[Noting/Projects/Dropzone]]"] })];
+		const [resolved] = resolveTaskTabRows(projects, [
+			row({ facet: "project", mode: "fixed", values: ["Dropzone"] }),
+		]);
+		expect(resolved.values.find((v) => v.kind === "value")?.count).toBe(1);
+	});
+
+	it("tells two same-named projects apart", () => {
+		const projects = [
+			task({ projects: ["[[A/Website]]"] }),
+			task({ projects: ["[[B/Website]]"] }),
+		];
+		const [resolved] = resolveTaskTabRows(projects, [row({ facet: "project" })]);
+		expect(resolved.values.filter((v) => v.kind === "value").map((v) => v.label)).toEqual([
+			"Website · A",
+			"Website · B",
+		]);
+	});
+
+	it("drops the remembered choice when the facet changes", () => {
+		const rows = [row({ facet: "tag" })];
+		setTaskTabChoice(rows[0], "work");
+		clearTaskTabChoice(rows[0]);
+		expect(taskTabChoice(rows[0])).toBeUndefined();
+	});
+});
+
 describe("sanitizeTaskTabRows", () => {
-	it("drops a fixed row with no values and unknown facets", () => {
+	it("falls back to tag on an unknown facet, and to auto on an empty fixed row", () => {
 		expect(
 			sanitizeTaskTabRows([
 				{ id: "a", facet: "nope", mode: "fixed", values: [] },
 				{ id: "b", facet: "project", mode: "auto" },
 			]),
-		).toEqual([{ id: "b", facet: "project", mode: "auto" }]);
+		).toEqual([
+			{ id: "a", facet: "tag", mode: "auto" },
+			{ id: "b", facet: "project", mode: "auto" },
+		]);
 	});
 
 	it("caps the number of rows and keeps flags only when set", () => {
@@ -196,6 +255,10 @@ describe("sanitizeTaskTabRows", () => {
 
 	it("returns undefined when nothing survives", () => {
 		expect(sanitizeTaskTabRows("nope")).toBeUndefined();
-		expect(sanitizeTaskTabRows([{ facet: "tag", mode: "fixed" }])).toBeUndefined();
+		expect(sanitizeTaskTabRows([])).toBeUndefined();
+		// A cleared fixed row survives as an auto one instead of vanishing.
+		expect(sanitizeTaskTabRows([{ id: "x", facet: "tag", mode: "fixed" }])).toEqual([
+			{ id: "x", facet: "tag", mode: "auto" },
+		]);
 	});
 });

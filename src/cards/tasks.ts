@@ -88,10 +88,12 @@ import {
 import { renderTaskMatrixFrame, type TaskMatrixFrame } from "../taskmatrixview";
 import { hiddenTabs } from "../tabstrip";
 import {
+	clearTaskTabChoice,
 	resolveTaskTabRows,
 	setTaskTabChoice,
 	taskTabFacets,
 	taskTabMask,
+	TASK_TAB_ALL,
 	TASK_TAB_MAX_ROWS,
 	type ResolvedTaskTabRow,
 	type TaskTabFacts,
@@ -271,7 +273,9 @@ export function renderTasks(
 	const cfg = card.tasks ?? {};
 	expressiveConfigs.set(cfg, effectiveCardDesign(view.plugin.settings, card.design) === "expressive");
 	const container = body.createDiv("hearth-tasks-wrap");
-	void component;
+	// The strip owns a ResizeObserver and a pending frame; a card thrown away
+	// without a redraw has to let them go.
+	component?.register(() => disposeTaskTabStrip(container));
 	const refresh = () => void loadAndRenderTasks(view, cfg, container, refresh);
 	refresh();
 }
@@ -366,7 +370,7 @@ export function taskTabBaseMask(hits: TaskHit[], cfg: TasksConfig, today: string
 /** The status order a row of status tabs follows: whatever orders the card's
  * own statuses — checkbox states, the Tasks plugin's registry, the board's
  * columns — in that source's display order. */
-function taskTabStatusOrder(view: CardHost, cfg: TasksConfig, boardColumns?: string[]): string[] {
+export function taskTabStatusOrder(view: CardHost, cfg: TasksConfig, boardColumns?: string[]): string[] {
 	const source = cfg.source ?? "checkbox";
 	if (source === "checkbox") return checkboxStatuses(cfg).map((s) => s.label);
 	if (source === "obsidian-tasks") return tasksPluginStatuses(view.app).map((s) => s.label);
@@ -378,6 +382,10 @@ function taskTabStatusOrder(view: CardHost, cfg: TasksConfig, boardColumns?: str
  * keyed by the card body it was drawn into. A redraw disconnects the old
  * strip's watchers before emptying its nodes. */
 const taskTabStripDisposers = new WeakMap<HTMLElement, Array<() => void>>();
+
+/** Which load a card body is waiting for. A slow load that lands after a newer
+ * one has to leave the newer render alone. */
+const taskRenderSeq = new WeakMap<HTMLElement, number>();
 
 function disposeTaskTabStrip(container: HTMLElement): void {
 	const pending = taskTabStripDisposers.get(container);
@@ -467,8 +475,11 @@ export function renderTaskTabStrip(
 		caption.setAttribute("title", captionText ? `${captionText} · ${facetName}` : facetName);
 		caption.setAttribute("aria-hidden", "true");
 
+		// A group of toggle buttons, not a tablist: these filter one list that
+		// carries no panel role, and "tab" without a tabpanel is a promise the
+		// card cannot keep (APG). aria-pressed carries the state instead.
 		const list = rowEl.createDiv("hearth-tasktab-list");
-		list.setAttribute("role", "tablist");
+		list.setAttribute("role", "group");
 		list.setAttribute("aria-label", captionText || facetName);
 		const buttons: HTMLButtonElement[] = [];
 		for (const tab of entry.values) {
@@ -478,9 +489,7 @@ export function renderTaskTabStrip(
 				cls: `hearth-tasktab${active ? " is-active" : ""}`,
 				attr: {
 					type: "button",
-					role: "tab",
-					"aria-selected": active ? "true" : "false",
-					tabindex: active ? "0" : "-1",
+					"aria-pressed": active ? "true" : "false",
 					title: label,
 				},
 			});
@@ -489,7 +498,7 @@ export function renderTaskTabStrip(
 			// A zero count stays on the tab, dimmed — it says the tab would
 			// show nothing, which is itself worth knowing.
 			count.toggleClass("is-zero", tab.count === 0);
-			btn.addEventListener("click", () => onPick(entry.row, tab.id, null));
+			btn.addEventListener("click", () => onPick(entry.row, tab.id, entry.index));
 			buttons.push(btn);
 		}
 
@@ -497,7 +506,12 @@ export function renderTaskTabStrip(
 		// is never more than two clicks away however narrow the card.
 		const more = rowEl.createEl("button", {
 			cls: "hearth-tasktab-more",
-			attr: { type: "button", "aria-label": strings.more, title: strings.more },
+			attr: {
+				type: "button",
+				"aria-label": strings.more,
+				"aria-haspopup": "menu",
+				title: strings.more,
+			},
 		});
 		setIcon(more.createSpan("hearth-tasktab-more-icon"), "chevron-down");
 		const moreCount = more.createSpan("hearth-tasktab-more-count");
@@ -511,7 +525,7 @@ export function renderTaskTabStrip(
 					item
 						.setTitle(tab.count > 0 ? `${label} (${taskTabCountText(tab.count)})` : label)
 						.setChecked(tab.id === entry.active)
-						.onClick(() => onPick(entry.row, tab.id, null)),
+						.onClick(() => onPick(entry.row, tab.id, entry.index)),
 				);
 			}
 			menu.showAtMouseEvent(evt);
@@ -2511,9 +2525,14 @@ async function loadAndRenderTasks(
 	container: HTMLElement,
 	refresh: () => void,
 ): Promise<void> {
+	// Two vault events can start two loads; only the last one may draw, or the
+	// card ends up with two strips and one lost disposer.
+	const seq = (taskRenderSeq.get(container) ?? 0) + 1;
+	taskRenderSeq.set(container, seq);
 	disposeTaskTabStrip(container);
 	container.empty();
 	const load = await loadTasks(view, cfg);
+	if (taskRenderSeq.get(container) !== seq) return;
 	if (load.kind === "message") {
 		emptyState(container, load.icon, load.text);
 		if ((cfg.source ?? "checkbox") === "obsidian-tasks") {
@@ -2543,7 +2562,13 @@ function renderTasksContent(
 	// hits already on hand, hiding what the rows don't let through before the
 	// layout sees them. The matrix keeps its own priorities and ignores rows.
 	const layout = cfg.layout ?? "list";
-	const rows = layout === "matrix" ? undefined : cfg.tabRows;
+	// A row whose facet the source cannot answer (a project row on a checkbox
+	// card after switching sources) would render as one meaningless "All" tab,
+	// so it is left out until a supported facet is picked for it.
+	const facets = taskTabFacets(cfg.source);
+	const rows =
+		layout === "matrix" ? undefined : cfg.tabRows?.filter((row) => facets.includes(row.facet));
+	let tabsNarrow = false;
 	let shown = hits;
 	if (rows?.length) {
 		const facts = hits.map(taskTabFacts);
@@ -2554,6 +2579,7 @@ function renderTasksContent(
 			taskTabStatusOrder(view, cfg, boardColumns),
 		);
 		const mask = taskTabMask(facts, resolved);
+		tabsNarrow = resolved.some((entry) => entry.active !== TASK_TAB_ALL);
 		shown = hits.filter((_, i) => mask[i] ?? false);
 		const redraw = (row: TaskTabRow, id: string, refocus: number | null) => {
 			// View state, not vault state: remember the choice and redraw from
@@ -2601,7 +2627,10 @@ function renderTasksContent(
 	renderTasksListHeader(view, cfg, filterChoices, boardColumns, container, refresh);
 
 	if (list.length === 0) {
-		const empty = isTaskFilterActive(cfg.taskFilter) ? t().cards.empty.tasksNoMatch : t().cards.empty.tasksEmpty;
+		const empty =
+			tabsNarrow || isTaskFilterActive(cfg.taskFilter)
+				? t().cards.empty.tasksNoMatch
+				: t().cards.empty.tasksEmpty;
 		emptyState(container, "list-todo", empty);
 		return;
 	}
@@ -7403,6 +7432,8 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 					d.setValue(facets.includes(row.facet) ? row.facet : (facets[0] ?? "tag"));
 					d.onChange((v) => {
 						row.facet = v as TaskTabFacet;
+						// The remembered tab belongs to the old facet.
+						clearTaskTabChoice(row);
 						ctx.opts.save();
 						ctx.requestRender();
 					});

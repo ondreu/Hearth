@@ -2460,14 +2460,14 @@ export const zh: Translations = {
 				untitled: (n: number) => `行 ${n}`,
 				facet: "标签页依据",
 				facetDesc:
-					"本行每个标签页读取的内容。只有卡片任务携带的值" +
-					"才会有标签页。",
+					"本行每个标签页读取的内容。自动模式下只有卡片任务携带的值" +
+					"才会有标签页；固定行会显示你列出的全部值，即使没有任何匹配。",
 				mode: "显示哪些标签页",
 				modeDesc: "显示任务携带的全部值，或仅显示你列出的值——按你的顺序。",
 				modeAuto: "找到的全部值",
 				modeFixed: "仅显示我列出的值",
 				values: "值",
-				valuesDesc: "以逗号分隔，按标签页顺序排列。标签可带 # 也可不带。",
+				valuesDesc: "以逗号分隔，按标签页顺序排列。标签开头的 # 可加可不加。",
 				valuesPlaceholder: "工作, 家庭, 副业",
 				label: "行标题",
 				labelDesc: "显示在标签页之前。留空则只显示该行的图标。",

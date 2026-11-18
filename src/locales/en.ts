@@ -2749,14 +2749,14 @@ export const en = {
 				untitled: (n: number) => `Row ${n}`,
 				facet: "Tabs are made of",
 				facetDesc:
-					"What each tab in this row reads. Only values the card's tasks carry " +
-					"get a tab.",
+					"What each tab in this row reads. In auto mode only values the card's tasks carry " +
+					"get a tab; a fixed row shows exactly the values you list, even when none match.",
 				mode: "Which tabs",
 				modeDesc: "Every value the tasks carry, or only the ones you list — in your order.",
 				modeAuto: "Every value found",
 				modeFixed: "Only the values I list",
 				values: "Values",
-				valuesDesc: "Comma-separated, in tab order. Tags may be written with or without a #.",
+				valuesDesc: "Comma-separated, in tab order. For tags, a leading # is optional.",
 				valuesPlaceholder: "work, home, side-project",
 				label: "Row caption",
 				labelDesc: "Shown before the tabs. Empty shows just the row's icon.",

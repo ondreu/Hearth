@@ -134,9 +134,11 @@ describe("renderTaskTabStrip", () => {
 		]);
 		// Counts match the card's own filter math: All sees 3, #home sees 1.
 		expect(buttons.map((b) => b.querySelector(".hearth-tasktab-count")?.textContent)).toEqual(["3", "1", "2"]);
-		expect(buttons[0].getAttribute("aria-selected")).toBe("true");
-		expect(buttons[0].getAttribute("role")).toBe("tab");
-		expect(host.querySelector(".hearth-tasktab-list")?.getAttribute("role")).toBe("tablist");
+		// Toggle buttons, not tabs: the strip filters one list that has no
+		// tabpanel, so the state rides on aria-pressed.
+		expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
+		expect(buttons[1].getAttribute("aria-pressed")).toBe("false");
+		expect(host.querySelector(".hearth-tasktab-list")?.getAttribute("role")).toBe("group");
 
 		// A fixed row naming a value no task carries keeps its tab, dimmed.
 		host.empty();
@@ -155,8 +157,10 @@ describe("renderTaskTabStrip", () => {
 		tasks.renderTaskTabStrip(host, resolved, (_row, id, refocus) => picks.push({ id, refocus }));
 		const buttons = tabButtons(host);
 
+		// A click asks for focus back on its own row too, so the redraw that
+		// replaces the button does not drop focus onto the body.
 		buttons[1].click();
-		expect(picks).toEqual([{ id: "home", refocus: null }]);
+		expect(picks).toEqual([{ id: "home", refocus: 0 }]);
 
 		// ArrowRight on the active (first) tab picks the next one, asking for
 		// focus back on this row after the redraw.
@@ -174,6 +178,40 @@ describe("renderTaskTabStrip", () => {
 });
 
 describe("the tasks card with tab rows", () => {
+	it("counts only the tasks the layout would show (done hidden unless asked)", async () => {
+		const { view } = viewWith(FILES);
+		const body = document.body.createDiv();
+		tasks.renderTasks(view, cardWith({ tabRows: [{ id: "r1", facet: "tag", mode: "auto" }] }), body);
+		await flush();
+
+		const counts = () =>
+			tabButtons(body.querySelector(".hearth-tasks-wrap")!).map((b) => [
+				tabLabel(b),
+				b.querySelector(".hearth-tasktab-count")?.textContent,
+			]);
+		// "done thing #work" is complete and the list hides it by default.
+		expect(counts()).toEqual([
+			[locales.en.cards.tasks.tabs.all, "2"],
+			["#home", "1"],
+			["#work", "1"],
+		]);
+
+		// Asked to show completed tasks, the same tabs count them.
+		document.body.empty();
+		const again = document.body.createDiv();
+		tasks.renderTasks(
+			view,
+			cardWith({ showCompleted: true, tabRows: [{ id: "r2", facet: "tag", mode: "auto" }] }),
+			again,
+		);
+		await flush();
+		expect(
+			tabButtons(again.querySelector(".hearth-tasks-wrap")!).map(
+				(b) => b.querySelector(".hearth-tasktab-count")?.textContent,
+			),
+		).toEqual(["3", "1", "2"]);
+	});
+
 	it("draws the strip first, and a tab narrows the list without saving", async () => {
 		const { view, saveData } = viewWith(FILES);
 		const card = cardWith({ tabRows: [{ id: "r1", facet: "tag", mode: "auto", label: "Tags" }] });

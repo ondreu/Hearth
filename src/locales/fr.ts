@@ -2701,14 +2701,15 @@ export const fr: Translations = {
 				untitled: (n: number) => `Rangée ${n}`,
 				facet: "Les onglets sont faits de",
 				facetDesc:
-					"Ce que chaque onglet de cette rangée lit. Seules les valeurs portées par les tâches de la carte " +
-					"obtiennent un onglet.",
+					"Ce que chaque onglet de cette rangée lit. En mode auto, seules les valeurs " +
+					"portées par les tâches de la carte obtiennent un onglet ; une rangée fixe " +
+					"affiche exactement les valeurs listées, même sans correspondance.",
 				mode: "Quels onglets",
 				modeDesc: "Toutes les valeurs portées par les tâches, ou seulement celles que vous listez — dans votre ordre.",
 				modeAuto: "Toutes les valeurs trouvées",
 				modeFixed: "Seulement les valeurs listées",
 				values: "Valeurs",
-				valuesDesc: "Séparées par des virgules, dans l'ordre des onglets. Les tags peuvent s'écrire avec ou sans #.",
+				valuesDesc: "Séparées par des virgules, dans l'ordre des onglets. Pour les tags, un # initial est facultatif.",
 				valuesPlaceholder: "travail, maison, projet-annexe",
 				label: "Légende de la rangée",
 				labelDesc: "Affichée avant les onglets. Vide, elle n'affiche que l'icône de la rangée.",
