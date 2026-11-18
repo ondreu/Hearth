@@ -11,7 +11,7 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
-## [3.9.0]
+## [3.10.0]
 
 ### Added
 
@@ -40,23 +40,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   priority levels, and a field can be set to *Hidden* to keep it configured
   without drawing it. Kanban is not offered for this source and the matrix is
   read-only: the plugin cannot write a status by dragging.
-
-- **A folder of albums can be browsed as albums.** The Music card's folder source
-  gains **Show albums**, offered once *Include subfolders* is on: the list under
-  the transport becomes those subfolders as collapsed album rows, each with its
-  track count, and opening one shows its tracks with a row back to the list —
-  picking a track plays that album as the queue. Files loose in the picked folder
-  are listed last, as *Loose tracks*. With the switch off the card stays one
-  queue of every track, in name order.
-
-
-- **Hearth speaks Traditional Chinese too.** A full `zh-tw` locale joins English,
-  German, French, Korean and Simplified Chinese: Obsidian's own Traditional
-  Chinese (`zh-TW`) display language now loads it, `zh` stays Simplified and
-  `zh-CN` still falls back to it. The wording is Taiwan's — a vault is 儲存庫 —
-  and the search bar understands Traditional spellings and Taiwan place names
-  next to the Simplified ones, for times, weather, Wikipedia, markets, dice and
-  currency. Simplified Chinese, German, French and English are unchanged.
 
 - **The Query card understands dates.** Its saved query can hold `{{variables}}`,
   filled every time the card draws: `{{today}}`, `{{yesterday}}`, `{{tomorrow}}`
@@ -103,6 +86,29 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   three coarse buckets, so *High* quietly included *Highest* and the top and
   bottom levels could not be picked at all. The chips now follow the levels the
   card actually holds, and matching is exact.
+
+## [3.9.0]
+
+### Added
+
+- **A folder of albums can be browsed as albums.** The Music card's folder source
+  gains **Show albums**, offered once *Include subfolders* is on: the list under
+  the transport becomes those subfolders as collapsed album rows, each with its
+  track count, and opening one shows its tracks with a row back to the list —
+  picking a track plays that album as the queue. Files loose in the picked folder
+  are listed last, as *Loose tracks*. With the switch off the card stays one
+  queue of every track, in name order.
+
+
+- **Hearth speaks Traditional Chinese too.** A full `zh-tw` locale joins English,
+  German, French, Korean and Simplified Chinese: Obsidian's own Traditional
+  Chinese (`zh-TW`) display language now loads it, `zh` stays Simplified and
+  `zh-CN` still falls back to it. The wording is Taiwan's — a vault is 儲存庫 —
+  and the search bar understands Traditional spellings and Taiwan place names
+  next to the Simplified ones, for times, weather, Wikipedia, markets, dice and
+  currency. Simplified Chinese, German, French and English are unchanged.
+
+### Fixed
 
 - **A Music card whose folder changed no longer plays the old folder's tracks**
   (#486). The card and the player share one queue, and the card handed its
