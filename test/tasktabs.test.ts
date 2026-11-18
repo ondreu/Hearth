@@ -110,6 +110,22 @@ describe("resolveTaskTabRows", () => {
 		expect(second.values.find((v) => v.id === TASK_TAB_ALL)?.count).toBe(2);
 	});
 
+	it("keeps a row's counts when a row below it is picked", () => {
+		// A row counts what it would leave on its own; a tab picked lower down
+		// must not make the tabs above it look emptier.
+		const rows = [row({ facet: "tag" }), row({ facet: "priority" })];
+		const before = resolveTaskTabRows(tasks, rows)[0].values.map((v) => [v.id, v.count]);
+		setTaskTabChoice(rows[1], "high");
+		const after = resolveTaskTabRows(tasks, rows)[0].values.map((v) => [v.id, v.count]);
+		expect(after).toEqual(before);
+		expect(before).toEqual([
+			[TASK_TAB_ALL, 3],
+			["home", 1],
+			["urgent", 1],
+			["work", 2],
+		]);
+	});
+
 	it("honours the base narrowing (the card's own filter)", () => {
 		// The card's filter keeps the first and the last task; #work is then
 		// carried by one of them, so it still narrows.

@@ -371,17 +371,12 @@ export function resolveTaskTabRows(
 	// only what the list would show.
 	const revealDone = taskTabRevealsDone(facts, resolved);
 
-	// Counts need every other row's choice, so they come after all rows have
-	// settled their active tab.
+	// Counts are what the row would leave, given the rows above it — and only
+	// them. A row never counts against a row below, so clicking a tab down
+	// there cannot make the tabs above it look emptier than they are.
+	const scope = facts.map((_, i) => inBase(i));
 	for (const entry of resolved) {
-		const listed = entry.values
-			.filter((t) => t.kind === "value" || t.kind === "none")
-			.map((t) => t.id);
-		const masks = resolved.map((other) =>
-			facts.map((f) =>
-				other === entry ? true : matchesTab(f, other.row, other.active, listedIds(other)),
-			),
-		);
+		const listed = listedIds(entry);
 		for (const tab of entry.values) {
 			// A tab naming a done status counts the completed tasks it exists
 			// for, even before it is picked — a "Done" tab reading 0 would
@@ -392,13 +387,16 @@ export function resolveTaskTabRows(
 				statusNamesDone(facts, tab.id);
 			let n = 0;
 			for (let i = 0; i < facts.length; i++) {
-				if (!inBase(i)) continue;
+				if (!scope[i]) continue;
 				if (facts[i].done === true && !revealDone && !includeDone && !doneTab) continue;
-				if (!masks.every((m) => m[i])) continue;
 				if (!matchesTab(facts[i], entry.row, tab.id, listed)) continue;
 				n++;
 			}
 			tab.count = n;
+		}
+		// What this row shows narrows the scope the next row counts in.
+		for (let i = 0; i < facts.length; i++) {
+			if (scope[i]) scope[i] = matchesTab(facts[i], entry.row, entry.active, listed);
 		}
 	}
 	return resolved;
