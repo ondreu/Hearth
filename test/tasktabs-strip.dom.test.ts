@@ -108,6 +108,7 @@ describe("taskTabFacts", () => {
 			contexts: ["home"],
 			priority: "high",
 			status: "To do",
+			done: false,
 		});
 	});
 });
@@ -210,6 +211,31 @@ describe("the tasks card with tab rows", () => {
 				(b) => b.querySelector(".hearth-tasktab-count")?.textContent,
 			),
 		).toEqual(["3", "1", "2"]);
+	});
+
+	it("a done status tab counts and shows the completed tasks the list hides", async () => {
+		const { view } = viewWith(FILES);
+		const body = document.body.createDiv();
+		tasks.renderTasks(view, cardWith({ tabRows: [{ id: "s1", facet: "status", mode: "auto" }] }), body);
+		await flush();
+
+		const wrap = () => body.querySelector(".hearth-tasks-wrap")!;
+		const counts = tabButtons(wrap()).map((b) => [
+			tabLabel(b),
+			b.querySelector(".hearth-tasktab-count")?.textContent,
+		]);
+		// "To do" 2, "Done" 1 even though the list hides completed tasks.
+		expect(counts).toEqual([
+			[locales.en.cards.tasks.tabs.all, "2"],
+			["To do", "2"],
+			["Done", "1"],
+		]);
+
+		const done = tabButtons(wrap()).find((b) => tabLabel(b) === "Done")!;
+		done.click();
+		await flush();
+		expect(body.textContent).toContain("done thing");
+		expect(body.textContent).not.toContain("alpha");
 	});
 
 	it("draws the strip first, and a tab narrows the list without saving", async () => {

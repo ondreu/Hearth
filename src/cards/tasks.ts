@@ -91,6 +91,7 @@ import {
 	clearTaskTabChoice,
 	resolveTaskTabRows,
 	setTaskTabChoice,
+	taskTabRevealsDone,
 	taskTabFacets,
 	taskTabMask,
 	TASK_TAB_ALL,
@@ -323,6 +324,7 @@ export function taskTabFacts(hit: TaskHit): TaskTabFacts {
 		contexts: hit.contexts ?? [],
 		priority: hit.priority,
 		status: hitStatusValue(hit),
+		done: hit.done,
 	};
 }
 
@@ -353,18 +355,14 @@ function taskTabCountText(n: number): string {
 }
 
 /**
- * The tasks the card would show at all, as a mask parallel to `hits`: the
- * card's own Filter button, and — everywhere but the board, which shows
- * completed tasks — the completed rule. Tab counts are computed against this,
- * so a count matches what picking that tab would actually leave.
+ * The tasks the card's own Filter button keeps, as a mask parallel to `hits`.
+ * Tab counts are computed against this; whether completed tasks count is the
+ * rows' business — a done status tab reaches them, every other tab follows
+ * the card's Show completed setting.
  */
-export function taskTabBaseMask(hits: TaskHit[], cfg: TasksConfig, today: string, board: boolean): boolean[] {
+export function taskTabBaseMask(hits: TaskHit[], cfg: TasksConfig, today: string): boolean[] {
 	const filter = isTaskFilterActive(cfg.taskFilter) ? (cfg.taskFilter as TaskFilterConfig) : null;
-	return hits.map((hit) => {
-		if (!board && !(cfg.showCompleted || !hit.done)) return false;
-		if (filter && !taskMatchesFilter(asTaskFilterHit(hit), filter, today)) return false;
-		return true;
-	});
+	return hits.map((hit) => !filter || taskMatchesFilter(asTaskFilterHit(hit), filter, today));
 }
 
 /** The status order a row of status tabs follows: whatever orders the card's
@@ -2442,25 +2440,26 @@ export async function loadTasks(view: CardHost, cfg: TasksConfig): Promise<TaskL
 /** The board layout's cards: every task, thinned by the card's filter. The
  * columns stay whatever the filter does, so a filter set in one layout still
  * means the same thing after switching to the other. */
-export function boardTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
+export function boardTasks(cfg: TasksConfig, hits: TaskHit[], today: string, showDone?: boolean): TaskHit[] {
+	const visible = cfg.showCompleted || showDone ? hits : hits.filter((h) => !h.done);
 	return isTaskFilterActive(cfg.taskFilter)
-		? hits.filter((h) => taskMatchesFilter(asTaskFilterHit(h), cfg.taskFilter as TaskFilterConfig, today))
-		: hits;
+		? visible.filter((h) => taskMatchesFilter(asTaskFilterHit(h), cfg.taskFilter as TaskFilterConfig, today))
+		: visible;
 }
 
 /** The list layout's tasks: completed ones hidden unless asked for, the
  * card's filter applied, then capped to the card's count. */
-export function listTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
+export function listTasks(cfg: TasksConfig, hits: TaskHit[], today: string, showDone?: boolean): TaskHit[] {
 	const limit = cfg.count && cfg.count > 0 ? cfg.count : 10;
-	return matrixTasks(cfg, hits, today).slice(0, limit);
+	return matrixTasks(cfg, hits, today, showDone).slice(0, limit);
 }
 
 /** The list's tasks before its cap — completed ones hidden unless asked for,
  * the card's filter applied — which is exactly what the matrix shows: a
  * quadrant that silently lost tasks to a count meant for one list would
  * misreport itself. */
-export function matrixTasks(cfg: TasksConfig, hits: TaskHit[], today: string): TaskHit[] {
-	let list = cfg.showCompleted ? hits : hits.filter((h) => !h.done);
+export function matrixTasks(cfg: TasksConfig, hits: TaskHit[], today: string, showDone?: boolean): TaskHit[] {
+	let list = cfg.showCompleted || showDone ? hits : hits.filter((h) => !h.done);
 	if (isTaskFilterActive(cfg.taskFilter)) {
 		const filter = cfg.taskFilter as TaskFilterConfig;
 		list = list.filter((h) => taskMatchesFilter(asTaskFilterHit(h), filter, today));
@@ -2569,17 +2568,22 @@ function renderTasksContent(
 	const rows =
 		layout === "matrix" ? undefined : cfg.tabRows?.filter((row) => facets.includes(row.facet));
 	let tabsNarrow = false;
+	// A done status tab is an explicit request for the completed tasks the
+	// card hides by default.
+	let showDone = false;
 	let shown = hits;
 	if (rows?.length) {
 		const facts = hits.map(taskTabFacts);
 		const resolved = resolveTaskTabRows(
 			facts,
 			rows,
-			taskTabBaseMask(hits, cfg, today, layout === "kanban"),
+			taskTabBaseMask(hits, cfg, today),
 			taskTabStatusOrder(view, cfg, boardColumns),
+			cfg.showCompleted === true,
 		);
 		const mask = taskTabMask(facts, resolved);
 		tabsNarrow = resolved.some((entry) => entry.active !== TASK_TAB_ALL);
+		showDone = taskTabRevealsDone(facts, resolved);
 		shown = hits.filter((_, i) => mask[i] ?? false);
 		const redraw = (row: TaskTabRow, id: string, refocus: number | null) => {
 			// View state, not vault state: remember the choice and redraw from
@@ -2607,7 +2611,7 @@ function renderTasksContent(
 		renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
 		if (source === "tasknotes") taskNotesAddButton(view, actions);
 		if (source === "obsidian-tasks") tasksPluginAddButton(view, cfg, actions);
-		renderTaskKanban(view, cfg, boardTasks(cfg, shown, today), container, refresh, boardColumns);
+		renderTaskKanban(view, cfg, boardTasks(cfg, shown, today, showDone), container, refresh, boardColumns);
 		return;
 	}
 
@@ -2619,7 +2623,7 @@ function renderTasksContent(
 		return;
 	}
 
-	const list = listTasks(cfg, shown, today);
+	const list = listTasks(cfg, shown, today, showDone);
 
 	// The list's sort/filter/add controls — docked into the card's title header
 	// when it has one, otherwise floating over the card's corner. Rendered even

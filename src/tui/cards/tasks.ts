@@ -69,6 +69,7 @@ import {
 	resolveTaskTabRows,
 	setTaskTabChoice,
 	TASK_TAB_ALL,
+	taskTabRevealsDone,
 	taskTabFacets,
 	taskTabMask,
 	type ResolvedTaskTabRow,
@@ -290,7 +291,7 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 	const { view } = ctx;
 	const scope = tabScope(ctx, cfg, load);
 	const { today, openStatus } = load;
-	const list = listTasks(cfg, scope?.hits ?? load.hits, today);
+	const list = listTasks(cfg, scope?.hits ?? load.hits, today, scope?.showDone);
 	const lines: Line[] = [];
 	const items: TuiItem[] = [];
 	if (scope) {
@@ -383,6 +384,8 @@ function filterHint(cfg: TasksConfig, open: number): string {
 interface TabScope {
 	resolved: ResolvedTaskTabRow[];
 	hits: TaskHit[];
+	/** A done status tab is showing, so completed tasks belong in the list. */
+	showDone: boolean;
 }
 
 /**
@@ -401,15 +404,20 @@ function tabScope(
 	const rows = cfg.tabRows?.filter((row) => facets.includes(row.facet));
 	if (!rows?.length) return null;
 	const facts = load.hits.map(taskTabFacts);
-	const base = taskTabBaseMask(load.hits, cfg, load.today, cfg.layout === "kanban");
+	const base = taskTabBaseMask(load.hits, cfg, load.today);
 	const resolved = resolveTaskTabRows(
 		facts,
 		rows,
 		base,
 		taskTabStatusOrder(ctx.view, cfg, load.boardColumns),
+		cfg.showCompleted === true,
 	);
 	const mask = taskTabMask(facts, resolved);
-	return { resolved, hits: load.hits.filter((_, i) => mask[i]) };
+	return {
+		resolved,
+		hits: load.hits.filter((_, i) => mask[i]),
+		showDone: taskTabRevealsDone(facts, resolved),
+	};
 }
 
 /** A row's caption: its own label, else the facet's name. */

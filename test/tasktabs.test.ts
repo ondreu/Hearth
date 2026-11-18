@@ -5,6 +5,7 @@ import {
 	TASK_TAB_OTHER,
 	clearTaskTabChoice,
 	resolveTaskTabRows,
+	taskTabRevealsDone,
 	sanitizeTaskTabRows,
 	setTaskTabChoice,
 	taskFacetValues,
@@ -110,9 +111,12 @@ describe("resolveTaskTabRows", () => {
 	});
 
 	it("honours the base narrowing (the card's own filter)", () => {
-		const [resolved] = resolveTaskTabRows(tasks, [row({ facet: "tag" })], [true, false, false]);
+		// The card's filter keeps the first and the last task; #work is then
+		// carried by one of them, so it still narrows.
+		const [resolved] = resolveTaskTabRows(tasks, [row({ facet: "tag" })], [true, false, true]);
 		expect(resolved.values.map((v) => [v.id, v.count])).toEqual([
-			[TASK_TAB_ALL, 1],
+			[TASK_TAB_ALL, 2],
+			["home", 1],
 			["work", 1],
 		]);
 	});
@@ -182,14 +186,12 @@ describe("edge cases the strip must survive", () => {
 		task({ tags: ["home"] }),
 	];
 
-	it("keeps one All tab when a row would otherwise offer none", () => {
-		// Auto tag row, no task carries a tag, "All" turned off: the row still
-		// needs a tab to show and an id to be active.
-		const [resolved] = resolveTaskTabRows([task({})], [
-			row({ facet: "tag", mode: "auto", all: false }),
-		]);
-		expect(resolved.values.map((v) => [v.id, v.kind])).toEqual([[TASK_TAB_ALL, "all"]]);
-		expect(resolved.active).toBe(TASK_TAB_ALL);
+	it("does not draw a row that cannot narrow anything", () => {
+		// Auto tag row on a card whose tasks carry no tags: the row would be a
+		// caption with no choice, so it is left out entirely.
+		expect(
+			resolveTaskTabRows([task({})], [row({ facet: "tag", mode: "auto", all: false })]),
+		).toEqual([]);
 	});
 
 	it("treats a fixed row with no values as an auto one", () => {
@@ -226,6 +228,50 @@ describe("edge cases the strip must survive", () => {
 		expect(resolved.values.filter((v) => v.kind === "value").map((v) => v.label)).toEqual([
 			"#work",
 		]);
+	});
+
+	it("drops the value a row above already fixed, and hides a row left with nothing", () => {
+		// "rondo" picked in a tag row: every task that survived carries it, so
+		// a second tag row has no business offering it again.
+		const tagged = [task({ tags: ["rondo", "kontrola"] }), task({ tags: ["rondo"] })];
+		const rows = [row({ facet: "tag", mode: "fixed", values: ["rondo"] }), row({ facet: "tag" })];
+		setTaskTabChoice(rows[0], "rondo");
+		const [, second] = resolveTaskTabRows(tagged, rows);
+		expect(second.values.map((v) => v.id)).toEqual([TASK_TAB_ALL, "kontrola"]);
+
+		// With nothing but the picked tag left, the second row is not drawn.
+		const onlyRondo = [task({ tags: ["rondo"] }), task({ tags: ["rondo"] })];
+		const rows2 = [
+			row({ facet: "tag", mode: "fixed", values: ["rondo"] }),
+			row({ facet: "tag" }),
+		];
+		setTaskTabChoice(rows2[0], "rondo");
+		expect(resolveTaskTabRows(onlyRondo, rows2)).toHaveLength(1);
+	});
+
+	it("counts a done status tab and reveals its completed tasks", () => {
+		const hits = [
+			task({ status: "Todo" }),
+			task({ status: "Done", done: true }),
+		];
+		const rows = [row({ facet: "status" })];
+		const resolvedRows = resolveTaskTabRows(hits, rows);
+		const [resolved] = resolvedRows;
+		// The done tab counts the completed task even though the list hides
+		// completed tasks by default; the open tabs do not count it.
+		expect(resolved.values.map((v) => [v.id, v.count])).toEqual([
+			[TASK_TAB_ALL, 1],
+			["todo", 1],
+			["done", 1],
+		]);
+		expect(taskTabRevealsDone(hits, resolvedRows)).toBe(false);
+
+		// Picking it is an explicit request for those tasks.
+		setTaskTabChoice(rows[0], "done");
+		const [done] = resolveTaskTabRows(hits, rows);
+		expect(done.active).toBe("done");
+		expect(done.values.find((v) => v.id === TASK_TAB_ALL)?.count).toBe(2);
+		expect(taskTabRevealsDone(hits, [done])).toBe(true);
 	});
 
 	it("drops the remembered choice when the facet changes", () => {

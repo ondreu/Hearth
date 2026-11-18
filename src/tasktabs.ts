@@ -31,6 +31,10 @@ export interface TaskTabFacts {
 	contexts?: readonly string[];
 	priority?: string;
 	status?: string | null;
+	/** Whether the task is complete. Only status rows need it, to tell a
+	 * "Done" tab from a "To do" one and to let that tab reach the tasks the
+	 * card hides by default. */
+	done?: boolean;
 }
 
 /** Which facets a source can actually answer. A checkbox task has no
@@ -236,6 +240,44 @@ function basenameOf(key: string): string {
 	return slash >= 0 ? key.slice(slash + 1) : key;
 }
 
+/** A status value whose tasks are all complete — "Done", "Canceled" and any
+ * other status a source treats as finished. Computed from the tasks rather
+ * than from per-source config, so it holds for every source. */
+function statusNamesDone(facts: readonly TaskTabFacts[], key: string): boolean {
+	const carrying = facts.filter((f) =>
+		taskFacetValues(f, "status").some((v) => v.key === key),
+	);
+	return carrying.length > 0 && carrying.every((f) => f.done === true);
+}
+
+/** Whether the row's tabs should reach completed tasks: a status row showing a
+ * done status is an explicit request for them, so the card stops hiding them
+ * for as long as that tab is picked. */
+export function taskTabRevealsDone(
+	facts: readonly TaskTabFacts[],
+	rows: readonly ResolvedTaskTabRow[],
+): boolean {
+	return rows.some(
+		(entry) =>
+			entry.row.facet === "status" &&
+			entry.active !== TASK_TAB_ALL &&
+			entry.active !== TASK_TAB_OTHER &&
+			statusNamesDone(facts, entry.active),
+	);
+}
+
+/** Drop auto values every task in scope already carries: a tab that would
+ * show exactly what the rows above left narrows nothing — after picking
+ * "Rondo" in a tag row, a second tag row has no business offering "Rondo". */
+function dropUniversalValues(
+	values: FacetValue[],
+	scoped: readonly TaskTabFacts[],
+	facet: TaskTabFacet,
+): FacetValue[] {
+	if (!scoped.length) return values;
+	return values.filter((v) => !scoped.every((f) => carries(f, facet, v.key)));
+}
+
 /** Whether a task carries `key` on `facet`. Projects and contexts also match on
  * their last path segment, so a fixed value written as the note name finds a
  * task whose frontmatter holds the full path (and two same-named notes in
@@ -265,6 +307,9 @@ export function resolveTaskTabRows(
 	rows: readonly TaskTabRow[],
 	base?: readonly boolean[],
 	statusOrder: readonly string[] = [],
+	/** The card shows completed tasks anyway (its Show completed setting), so
+	 * every tab counts them. */
+	includeDone = false,
 ): ResolvedTaskTabRow[] {
 	const inBase = (i: number): boolean => base?.[i] ?? true;
 	const resolved: ResolvedTaskTabRow[] = [];
@@ -287,7 +332,11 @@ export function resolveTaskTabRows(
 						label: fixedLabel(row.facet, v),
 					})),
 				)
-			: collectValues(scoped, row, statusOrder);
+			: dropUniversalValues(collectValues(scoped, row, statusOrder), scoped, row.facet);
+
+		// A row with nothing left to choose between cannot filter anything, so
+		// it is not drawn at all (its config stays, it comes back when it can).
+		if (!values.length && row.mode === "auto") continue;
 
 		const listed = values.map((v) => v.key);
 		const tabs: TaskTabValue[] = [];
@@ -318,6 +367,10 @@ export function resolveTaskTabRows(
 		}
 	}
 
+	// Done-status tabs reach the tasks the card hides; every other tab counts
+	// only what the list would show.
+	const revealDone = taskTabRevealsDone(facts, resolved);
+
 	// Counts need every other row's choice, so they come after all rows have
 	// settled their active tab.
 	for (const entry of resolved) {
@@ -330,9 +383,17 @@ export function resolveTaskTabRows(
 			),
 		);
 		for (const tab of entry.values) {
+			// A tab naming a done status counts the completed tasks it exists
+			// for, even before it is picked — a "Done" tab reading 0 would
+			// never be clicked.
+			const doneTab =
+				entry.row.facet === "status" &&
+				tab.kind === "value" &&
+				statusNamesDone(facts, tab.id);
 			let n = 0;
 			for (let i = 0; i < facts.length; i++) {
 				if (!inBase(i)) continue;
+				if (facts[i].done === true && !revealDone && !includeDone && !doneTab) continue;
 				if (!masks.every((m) => m[i])) continue;
 				if (!matchesTab(facts[i], entry.row, tab.id, listed)) continue;
 				n++;
