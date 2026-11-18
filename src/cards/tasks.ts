@@ -7311,6 +7311,12 @@ export const tasksCard: CardDefinition<"tasks"> = {
 						)
 					: undefined,
 				sortRules: source.tasks.sortRules ? source.tasks.sortRules.map((r) => ({ ...r })) : undefined,
+				tabRows: source.tasks.tabRows
+					? source.tasks.tabRows.map((r) => ({
+							...r,
+							values: r.values ? [...r.values] : undefined,
+						}))
+					: undefined,
 				taskFields: source.tasks.taskFields
 					? cloneTaskFields(source.tasks.taskFields)
 					: undefined,

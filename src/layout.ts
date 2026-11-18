@@ -1,4 +1,5 @@
 import { sanitizeTaskMatrix } from "./taskmatrix";
+import { sanitizeTaskTabRows } from "./tasktabs";
 import {
 	type BackgroundConfig,
 	type BackgroundKind,
@@ -961,6 +962,8 @@ function sanitizeTasks(r: Record<string, unknown>): TasksConfig {
 		cfg.tasksPluginDailyNote = r.tasksPluginDailyNote;
 	const taskFilter = sanitizeTaskFilter(r.taskFilter);
 	if (taskFilter) cfg.taskFilter = taskFilter;
+	const tabRows = sanitizeTaskTabRows(r.tabRows);
+	if (tabRows) cfg.tabRows = tabRows;
 	if (typeof r.taskFieldsEnabled === "boolean")
 		cfg.taskFieldsEnabled = r.taskFieldsEnabled;
 	const taskFields = sanitizeTaskFields(r.taskFields);
