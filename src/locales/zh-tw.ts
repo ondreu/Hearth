@@ -3599,7 +3599,7 @@ export const zhTW: Translations = {
 			tasksPluginTextOnly: "Tasks 外掛在 Obsidian 中繪製此卡片——文字檢視無法顯示其結果",
 			tasksPluginQueryFailed: "Tasks 外掛無法在此處繪製其結果",
 			tasksEmpty: "沒有未完成的任務",
-			tasksNoMatch: "沒有任務符合篩選條件",
+			tasksNoMatch: "沒有符合篩選條件或分頁的任務",
 			matrixNeedsPriorities: "矩陣依優先順序排列任務——請在此卡片設定中開啟「日期與優先順序」以便讀取。",
 			kanbanNoBoard:
 				"未找到 Kanban 看板——請在卡片設定中選擇一篇看板筆記，或用 Kanban 外掛建立一個",

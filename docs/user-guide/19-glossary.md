@@ -172,6 +172,11 @@ its neighbours and of the board. The threshold is 8 pixels.
 layout: one full-width column, top to bottom, in the order the desktop board
 reads in. The stored layout is untouched.
 
+**Tab rows** — Optional rows of tabs above a Tasks card's list or board, each
+built from one facet the card's tasks carry (tags, projects, contexts, priority
+or status). Rows cascade, a row counts only against the rows above it, and a tab
+click filters the tasks already loaded — it is never written to the vault.
+
 **Terminal mode** — The third design, beside Classic and Expressive, set
 vault-wide at *Settings → Hearth → Appearance*: all of Hearth drawn as a text
 interface on one character grid, cards as box-drawn frames, with keys for

@@ -207,6 +207,10 @@ the views can stay behind the switcher or stack as separate cards.
 - **Sorting & filtering** — smart chain (due → scheduled → priority → created)
   or a custom multi-rule sort, per list and per Kanban column; filter by status,
   priority or tag, on the list and on the Kanban board alike.
+- **Tab rows** — optional rows of tabs above the tasks (tags, projects,
+  contexts, priority or status), each narrowing what the rows above left. Auto
+  or fixed values, an *Other* tab, counts that follow the row, and a *Done*
+  status tab that reaches completed tasks.
 - **Tags & descriptions** — `#tags` show as chips, and lines indented under a
   checkbox show (and edit) as the task's description.
 - **Custom task fields** *(opt-in)* — name a field, pick how it's drawn (chip,

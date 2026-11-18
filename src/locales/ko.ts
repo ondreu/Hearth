@@ -2033,7 +2033,7 @@ export const ko: Translations = {
 			tasksPluginTextOnly: "Tasks 플러그인은 Obsidian에서 이 카드를 그립니다 — 텍스트 보기에서는 결과를 표시할 수 없습니다.",
 			tasksPluginQueryFailed: "Tasks 플러그인이 결과를 여기에 그리지 못했습니다.",
 			tasksEmpty: "열린 작업이 없습니다.",
-			tasksNoMatch: "필터와 일치하는 작업이 없습니다.",
+			tasksNoMatch: "필터나 탭과 일치하는 작업이 없습니다",
 			matrixNeedsPriorities: "우선순위로 작업을 정렬합니다. 작업을 읽을 수 있도록 카드 설정에서 ‘날짜 및 우선순위’를 켜세요.",
 			kanbanNoBoard: "Kanban 보드를 찾지 못했습니다. 카드 설정에서 보드 노트를 선택하거나 Kanban 플러그인으로 만드세요.",
 			dataviewEnable: "쿼리를 실행하려면 Dataview 플러그인을 활성화하세요.",

@@ -300,6 +300,41 @@ Other filters on the card:
 | *Scope* | *Whole vault*, *Only these folders*, or *Everywhere except these folders* |
 | *Folders* | One folder path per line, used by the two scoped modes |
 
+### Tab rows
+
+Optional rows of tabs above the tasks, in the list layout and on the board —
+the fastest way to slice a long list without opening the filter dialog. Add them
+under **Tab rows** in the card's settings. Each row
+is built from one thing the card's tasks already carry: **tags**, **projects**,
+**contexts**, **priority** or **status**. (Projects and contexts only exist on
+TaskNotes cards, so those two rows are offered there and nowhere else.)
+
+A row shows either one tab per value the tasks carry — *Every value found* — or
+exactly the values you list, *Only the values I list*, comma-separated and in
+your order. It can add a last **Other** tab holding the tasks none of its tabs
+match, and its **All** tab (the one that undoes the row's choice) can be turned
+off. A tag may be written with or without the `#`.
+
+Rows **cascade**: a row's tabs are made of what the rows above it left, so a
+project row followed by a priority row offers the priorities *inside* the chosen
+project. A value the rows above already fixed is not offered again, and a row
+with nothing left to choose between is not drawn at all.
+
+Counts on a tab are what the card would show if you picked it, given the rows
+above — picking a tab lower down never changes the numbers above it. A **Done**
+status tab counts and shows the completed tasks the card otherwise hides; every
+other tab keeps following *Show completed*.
+
+Picking a tab is view state: the card re-filters the tasks it already loaded, so
+nothing is read from the vault again and nothing is written to `data.json`. The
+choice lasts until Obsidian reloads.
+
+Each row can carry a caption of its own (the facet's icon always shows, the
+caption collapses to the icon on a narrow card), and a card holds up to four
+rows. Rows apply to the list and the board; the **matrix** keeps its own
+priorities and ignores them. In terminal mode the rows are drawn as text above
+the list or board — click a tab, or press `t` to pick a row's tab from a menu.
+
 ### Custom task fields
 
 This is opt-in and off by default. Until you turn it on, tasks keep their usual
@@ -387,7 +422,7 @@ created as its own note straight away rather than as an inline checkbox.
 
 - *Enable the TaskNotes plugin, or switch source to checkboxes*
 - *No open tasks*
-- *No tasks match the filter*
+- *No tasks match the filter or tabs*
 - *No Kanban board found — pick a board note in card settings, or create one
   with the Kanban plugin*
 

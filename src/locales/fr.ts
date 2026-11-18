@@ -3898,7 +3898,7 @@ export const fr: Translations = {
 				"Le plugin Tasks dessine cette carte dans Obsidian — les vues texte ne peuvent pas montrer ses résultats",
 			tasksPluginQueryFailed: "Le plugin Tasks n'a pas pu dessiner ses résultats ici",
 			tasksEmpty: "Aucune tâche ouverte",
-			tasksNoMatch: "Aucune tâche ne correspond au filtre",
+			tasksNoMatch: "Aucune tâche ne correspond au filtre ou aux onglets",
 			matrixNeedsPriorities:
 				"La matrice range les tâches par priorité — activez « Dates et priorités » " +
 				"dans les réglages de cette carte pour qu'elle puisse les lire.",
