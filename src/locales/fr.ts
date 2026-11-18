@@ -2689,42 +2689,42 @@ export const fr: Translations = {
 		},
 		tasks: {
 			tabs: {
-				heading: "Tab rows",
+				heading: "Rangées d'onglets",
 				headingDesc:
-					"Rows of tabs above the tasks. Each row filters what the rows above it " +
-					"left — pick a project in the first row, then a priority within that " +
-					"project in the second. The choice is remembered for this session only; " +
-					"switching a tab never rewrites your vault.",
-				add: "Add a row",
-				addDesc: (count: number) => `A card can hold up to ${count} rows.`,
-				empty: "No tab rows. The card shows its tasks as it is.",
-				untitled: (n: number) => `Row ${n}`,
-				facet: "Tabs are made of",
+					"Des rangées d'onglets au-dessus des tâches. Chaque rangée filtre ce que les rangées du dessus " +
+					"ont laissé — choisissez un projet dans la première rangée, puis une priorité au sein de ce " +
+					"projet dans la seconde. Le choix n'est mémorisé que pour cette session ; " +
+					"changer d'onglet ne réécrit jamais votre coffre.",
+				add: "Ajouter une rangée",
+				addDesc: (count: number) => `Une carte peut contenir jusqu'à ${count} rangées.`,
+				empty: "Aucune rangée d'onglets. La carte affiche ses tâches telles quelles.",
+				untitled: (n: number) => `Rangée ${n}`,
+				facet: "Les onglets sont faits de",
 				facetDesc:
-					"What each tab in this row reads. Only values the card's tasks carry " +
-					"get a tab.",
-				mode: "Which tabs",
-				modeDesc: "Every value the tasks carry, or only the ones you list — in your order.",
-				modeAuto: "Every value found",
-				modeFixed: "Only the values I list",
-				values: "Values",
-				valuesDesc: "Comma-separated, in tab order. Tags may be written with or without a #.",
-				valuesPlaceholder: "work, home, side-project",
-				label: "Row caption",
-				labelDesc: "Shown before the tabs. Empty shows just the row's icon.",
-				labelPlaceholder: "Project",
-				other: "Add an “Other” tab",
-				otherDesc: "A last tab holding the tasks none of this row's tabs match.",
-				all: "Add an “All” tab",
-				allDesc: "A first tab undoing this row's choice. Recommended.",
-				remove: "Remove this row",
-				moveUp: "Move up",
-				moveDown: "Move down",
-				unsupported: (facet: string) => `This source has no ${facet} to tab by.`,
+					"Ce que chaque onglet de cette rangée lit. Seules les valeurs portées par les tâches de la carte " +
+					"obtiennent un onglet.",
+				mode: "Quels onglets",
+				modeDesc: "Toutes les valeurs portées par les tâches, ou seulement celles que vous listez — dans votre ordre.",
+				modeAuto: "Toutes les valeurs trouvées",
+				modeFixed: "Seulement les valeurs listées",
+				values: "Valeurs",
+				valuesDesc: "Séparées par des virgules, dans l'ordre des onglets. Les tags peuvent s'écrire avec ou sans #.",
+				valuesPlaceholder: "travail, maison, projet-annexe",
+				label: "Légende de la rangée",
+				labelDesc: "Affichée avant les onglets. Vide, elle n'affiche que l'icône de la rangée.",
+				labelPlaceholder: "Projet",
+				other: "Ajouter un onglet « Autres »",
+				otherDesc: "Un dernier onglet pour les tâches qu'aucun onglet de cette rangée ne retient.",
+				all: "Ajouter un onglet « Tous »",
+				allDesc: "Un premier onglet qui annule le choix de cette rangée. Recommandé.",
+				remove: "Supprimer cette rangée",
+				moveUp: "Déplacer vers le haut",
+				moveDown: "Déplacer vers le bas",
+				unsupported: (facet: string) => `Cette source ne propose pas de ${facet} pour les onglets.`,
 				layoutNote:
-					"Tab rows show in the list and board layouts. The matrix keeps its own " +
-					"priorities and ignores them.",
-				tuiHelp: "t  tab rows",
+					"Les rangées d'onglets s'affichent dans les dispositions liste et kanban. La matrice garde ses propres " +
+					"priorités et les ignore.",
+				tuiHelp: "t  rangées d'onglets",
 			},
 			source: "Source",
 			sourceDesc:
@@ -4452,19 +4452,19 @@ export const fr: Translations = {
 		},
 		tasks: {
 			tabs: {
-				title: "Tab rows",
-				all: "All",
-				other: "Other",
-				none: "None",
-				more: "Tabs not in view",
+				title: "Rangées d'onglets",
+				all: "Tous",
+				other: "Autres",
+				none: "Aucun",
+				more: "Onglets masqués",
 				facets: {
 					tag: "Tags",
-					project: "Projects",
-					context: "Contexts",
-					priority: "Priority",
-					status: "Status",
+					project: "Projets",
+					context: "Contextes",
+					priority: "Priorité",
+					status: "Statut",
 				},
-				tuiHelp: "t  tab rows",
+				tuiHelp: "t  rangées d'onglets",
 			},
 			createNewTask: "Créer une tâche",
 			toDo: "À faire",

@@ -11678,6 +11678,332 @@ body.hearth-dv-resizing {
 	opacity: 1;
 }
 
+/* ---- Tasks: tab rows (#481) ------------------------------------------------
+ * Rows of folder tabs above the list or board. Proton's tab strip is the
+ * model: a tinted shelf with connected tabs on it, the active tab taking the
+ * card's own surface and opening into the content below, quiet inactive tabs,
+ * an icon + optional caption at the row's left, sideways scrolling with faded
+ * edges and a "+N" menu, and container queries (not JS) for narrow cards.
+ * Only the bottom row's active tab merges into the content; the rows above
+ * stay inside the shelf, separated by a hairline, so the stack reads as tiers
+ * of tabs rather than one broken row.
+ * -------------------------------------------------------------------------- */
+
+/* The wrap is the query container: thresholds below measure the card's own
+ * width. Inline-size containment leaves the wrap's height (100%) alone. */
+.hearth-tasks-wrap {
+	container-type: inline-size;
+}
+
+/* The shelf. Its tint is what makes the active tab read as a hole into the
+ * content: without a background of its own, a tab filled with the card surface
+ * is invisible against the same surface. */
+.hearth-tasktabs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 0 0 auto;
+	min-width: 0;
+	max-width: 100%;
+	padding: 4px 6px 0;
+	border-radius: 10px 10px 0 0;
+	background: color-mix(in srgb, var(--text-normal) 9%, var(--hearth-card-surface, var(--background-primary)));
+}
+
+/* The content the tabs sit on starts right under the shelf's edge. */
+.hearth-tasktabs + .hearth-list,
+.hearth-tasktabs + .hearth-kanban {
+	padding-top: 4px;
+}
+
+.hearth-tasktab-row {
+	display: flex;
+	align-items: stretch;
+	gap: 6px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+/* Two tiers read as tiers: a hairline between the rows, no extra box. */
+.hearth-tasktab-row + .hearth-tasktab-row {
+	border-top: 1px solid color-mix(in srgb, var(--background-modifier-border) 55%, transparent);
+	padding-top: 2px;
+}
+
+/* Caption: the row's facet icon always, its label until the card narrows. */
+.hearth-tasktab-caption {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+	min-width: 0;
+	max-width: 32%;
+	padding-left: 2px;
+	color: var(--text-muted);
+	font-size: 0.72rem;
+	align-self: center;
+}
+
+.hearth-tasktab-caption-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+}
+
+.hearth-tasktab-caption-icon .svg-icon,
+.hearth-tasktab-caption-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.hearth-tasktab-caption-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The scrolling tab list: flush tabs on one baseline, fades at the edges
+ * with more tabs beyond them (the is-fade-* classes come from the strip). */
+.hearth-tasktab-list {
+	position: relative;
+	display: flex;
+	align-items: flex-end;
+	gap: 1px;
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 100%;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.hearth-tasktab-list::-webkit-scrollbar {
+	display: none;
+}
+
+.hearth-tasktab-list.is-fade-end {
+	mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+}
+
+.hearth-tasktab-list.is-fade-start {
+	mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent);
+}
+
+.hearth-tasktab-list.is-fade-start.is-fade-end {
+	mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent);
+}
+
+/* A tab: rounded on top, open at the bottom, sized to its label. The bottom
+ * border is the shelf's own edge, which the active tab covers. */
+.hearth-tasktab {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex: 0 0 auto;
+	max-width: 100%;
+	height: 28px;
+	box-sizing: border-box;
+	padding: 3px 10px 4px;
+	border: 1px solid transparent;
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 10px 10px 0 0;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background 120ms ease,
+		color 120ms ease;
+}
+
+/* A thin separator between neighbours, like the folder dividers. */
+.hearth-tasktab + .hearth-tasktab::before {
+	content: "";
+	position: absolute;
+	left: -1px;
+	top: 6px;
+	bottom: 6px;
+	width: 1px;
+	background: var(--background-modifier-border);
+}
+
+.hearth-tasktab:hover {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+}
+
+.hearth-tasktab:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+/* The active tab is the card surface itself: it covers the shelf's bottom
+ * edge (margin-bottom + a matching border) and so opens into the list. */
+.hearth-tasktab.is-active {
+	z-index: 1;
+	font-weight: 600;
+	background: var(--hearth-card-surface, var(--background-primary));
+	border-color: var(--background-modifier-border);
+	/* No baseline under the active tab: its fill is the content surface, so it
+	 * reads as the same plane continuing below the shelf. */
+	border-bottom-color: transparent;
+	color: var(--text-normal);
+}
+
+/* Rows above the bottom one: tonal fill, still a tab, but it has nothing
+ * below to open into. */
+.hearth-tasktab-row:not(:last-child) .hearth-tasktab.is-active {
+	background: var(--background-modifier-active-hover);
+	border-color: transparent;
+	border-bottom-color: var(--background-modifier-border);
+}
+
+.hearth-tasktab.is-active::before,
+.hearth-tasktab.is-active + .hearth-tasktab::before {
+	background: transparent;
+}
+
+.hearth-tasktab-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hearth-tasktab-count {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.hearth-tasktab.is-active .hearth-tasktab-count {
+	color: var(--text-muted);
+}
+
+.hearth-tasktab-count.is-zero {
+	opacity: 0.55;
+}
+
+/* "+N": the tabs not in view; hidden until there are any. */
+.hearth-tasktab-more {
+	display: none;
+	flex: 0 0 auto;
+	align-self: center;
+	align-items: center;
+	gap: 2px;
+	height: 22px;
+	margin-left: 4px;
+	padding: 0 8px;
+	border: none;
+	border-radius: 999px;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.hearth-tasktab-more.is-shown {
+	display: inline-flex;
+}
+
+.hearth-tasktab-more:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-active-hover);
+}
+
+.hearth-tasktab-more:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.hearth-tasktab-more-icon {
+	display: inline-flex;
+}
+
+.hearth-tasktab-more-icon :is(.svg-icon, svg) {
+	width: 14px;
+	height: 14px;
+}
+
+/* ---- Expressive: the same shelf in Material-You tones ----------------------
+ * The folder geometry stays (a tab that opens into its content is still the
+ * clearest thing on a dashboard), and the M3 language comes in as a tonal
+ * shelf, an accent indicator over the active tab and a tonal count pill. */
+.hearth-card.is-expressive .hearth-tasktabs {
+	--x-surface-high: color-mix(in srgb, var(--interactive-accent) 13%, var(--background-primary));
+	--x-container: color-mix(in srgb, var(--interactive-accent) 20%, var(--background-primary));
+	--x-on-container: color-mix(in srgb, var(--interactive-accent) 55%, var(--text-normal));
+	background: var(--x-surface-high);
+	border-radius: 12px 12px 0 0;
+}
+
+.hearth-card.is-expressive .hearth-tasktab {
+	border-radius: 12px 12px 0 0;
+}
+
+.hearth-card.is-expressive .hearth-tasktab.is-active {
+	font-weight: 600;
+}
+
+.hearth-card.is-expressive .hearth-tasktab.is-active::after {
+	content: "";
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	top: 0;
+	height: 3px;
+	border-radius: 0 0 3px 3px;
+	background: var(--interactive-accent);
+}
+
+.hearth-card.is-expressive .hearth-tasktab.is-active .hearth-tasktab-count {
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--x-container);
+	color: var(--x-on-container);
+}
+
+/* ---- Narrow cards: captions shrink to icons, then tabs tighten ----
+ * Container queries against the wrap, so the strip follows the card rather
+ * than the pane. The card must never overflow: the caption keeps its icon,
+ * the tabs scroll, nothing grows past 100%. */
+@container (max-width: 300px) {
+	.hearth-tasktab-caption-label {
+		display: none;
+	}
+
+	.hearth-tasktab-caption {
+		max-width: none;
+	}
+
+	.hearth-tasktabs {
+		padding-left: 4px;
+		padding-right: 4px;
+	}
+}
+
+@container (max-width: 220px) {
+	.hearth-tasktab {
+		padding-left: 7px;
+		padding-right: 7px;
+		font-size: 0.72rem;
+	}
+
+	.hearth-tasktab-count {
+		font-size: 0.68rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hearth-tasktab,
+	.hearth-tasktab-more {
+		transition: none;
+	}
+}
+
 /* ---- Task filter modal ---------------------------------------------- */
 .hearth-taskfilter-modal h3 {
 	margin: 0 0 12px;

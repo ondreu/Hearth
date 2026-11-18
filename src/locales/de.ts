@@ -2749,42 +2749,42 @@ export const de: Translations = {
 		},
 		tasks: {
 			tabs: {
-				heading: "Tab rows",
+				heading: "Tab-Zeilen",
 				headingDesc:
-					"Rows of tabs above the tasks. Each row filters what the rows above it " +
-					"left — pick a project in the first row, then a priority within that " +
-					"project in the second. The choice is remembered for this session only; " +
-					"switching a tab never rewrites your vault.",
-				add: "Add a row",
-				addDesc: (count: number) => `A card can hold up to ${count} rows.`,
-				empty: "No tab rows. The card shows its tasks as it is.",
-				untitled: (n: number) => `Row ${n}`,
-				facet: "Tabs are made of",
+					"Zeilen mit Tabs oberhalb der Aufgaben. Jede Zeile filtert, was die Zeilen darüber " +
+					"übrig gelassen haben — wähle in der ersten Zeile ein Projekt, dann eine Priorität innerhalb " +
+					"dieses Projekts in der zweiten. Die Auswahl gilt nur für diese Sitzung; " +
+					"das Umschalten eines Tabs schreibt nie in deinen Vault.",
+				add: "Zeile hinzufügen",
+				addDesc: (count: number) => `Eine Karte kann bis zu ${count} Zeilen haben.`,
+				empty: "Keine Tab-Zeilen. Die Karte zeigt ihre Aufgaben unverändert.",
+				untitled: (n: number) => `Zeile ${n}`,
+				facet: "Tabs bestehen aus",
 				facetDesc:
-					"What each tab in this row reads. Only values the card's tasks carry " +
-					"get a tab.",
-				mode: "Which tabs",
-				modeDesc: "Every value the tasks carry, or only the ones you list — in your order.",
-				modeAuto: "Every value found",
-				modeFixed: "Only the values I list",
-				values: "Values",
-				valuesDesc: "Comma-separated, in tab order. Tags may be written with or without a #.",
-				valuesPlaceholder: "work, home, side-project",
-				label: "Row caption",
-				labelDesc: "Shown before the tabs. Empty shows just the row's icon.",
-				labelPlaceholder: "Project",
-				other: "Add an “Other” tab",
-				otherDesc: "A last tab holding the tasks none of this row's tabs match.",
-				all: "Add an “All” tab",
-				allDesc: "A first tab undoing this row's choice. Recommended.",
-				remove: "Remove this row",
-				moveUp: "Move up",
-				moveDown: "Move down",
-				unsupported: (facet: string) => `This source has no ${facet} to tab by.`,
+					"Was jeder Tab in dieser Zeile liest. Nur Werte, welche die Aufgaben der Karte tragen, " +
+					"bekommen einen Tab.",
+				mode: "Welche Tabs",
+				modeDesc: "Jeder Wert, den die Aufgaben tragen, oder nur die von dir aufgelisteten — in deiner Reihenfolge.",
+				modeAuto: "Jeder gefundene Wert",
+				modeFixed: "Nur die von mir aufgelisteten",
+				values: "Werte",
+				valuesDesc: "Kommagetrennt, in Tab-Reihenfolge. Tags dürfen mit oder ohne # geschrieben werden.",
+				valuesPlaceholder: "arbeit, zuhause, nebenprojekt",
+				label: "Zeilenbeschriftung",
+				labelDesc: "Wird vor den Tabs angezeigt. Leer zeigt nur das Symbol der Zeile.",
+				labelPlaceholder: "Projekt",
+				other: "„Sonstige“-Tab hinzufügen",
+				otherDesc: "Ein letzter Tab für die Aufgaben, auf die kein Tab dieser Zeile passt.",
+				all: "„Alle“-Tab hinzufügen",
+				allDesc: "Ein erster Tab, der die Auswahl dieser Zeile aufhebt. Empfohlen.",
+				remove: "Diese Zeile entfernen",
+				moveUp: "Nach oben",
+				moveDown: "Nach unten",
+				unsupported: (facet: string) => `Diese Quelle kennt keine ${facet} für Tabs.`,
 				layoutNote:
-					"Tab rows show in the list and board layouts. The matrix keeps its own " +
-					"priorities and ignores them.",
-				tuiHelp: "t  tab rows",
+					"Tab-Zeilen erscheinen in den Layouts Liste und Board. Die Matrix behält ihre eigenen " +
+					"Prioritäten und ignoriert sie.",
+				tuiHelp: "t  Tab-Zeilen",
 			},
 			source: "Quelle",
 			sourceDesc:
@@ -4521,19 +4521,19 @@ export const de: Translations = {
 		},
 		tasks: {
 			tabs: {
-				title: "Tab rows",
-				all: "All",
-				other: "Other",
-				none: "None",
-				more: "Tabs not in view",
+				title: "Tab-Zeilen",
+				all: "Alle",
+				other: "Sonstige",
+				none: "Keine",
+				more: "Ausgeblendete Tabs",
 				facets: {
 					tag: "Tags",
-					project: "Projects",
-					context: "Contexts",
-					priority: "Priority",
+					project: "Projekte",
+					context: "Kontexte",
+					priority: "Priorität",
 					status: "Status",
 				},
-				tuiHelp: "t  tab rows",
+				tuiHelp: "t  Tab-Zeilen",
 			},
 			createNewTask: "Neue Aufgabe erstellen",
 			toDo: "Offen",
