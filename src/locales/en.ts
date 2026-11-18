@@ -3921,7 +3921,7 @@ export const en = {
 				"The Tasks plugin draws this card in Obsidian — text views can't show its results",
 			tasksPluginQueryFailed: "The Tasks plugin couldn't draw its results here",
 			tasksEmpty: "No open tasks",
-			tasksNoMatch: "No tasks match the filter",
+			tasksNoMatch: "No tasks match the filter or tabs",
 			matrixNeedsPriorities:
 				"The matrix sorts tasks by priority — turn on “Dates & priorities” in " +
 				"this card's settings so it can read them.",

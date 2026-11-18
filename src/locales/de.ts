@@ -3956,7 +3956,7 @@ export const de: Translations = {
 				"Das Tasks-Plugin zeichnet diese Karte in Obsidian — Textansichten können seine Ergebnisse nicht zeigen",
 			tasksPluginQueryFailed: "Das Tasks-Plugin konnte seine Ergebnisse hier nicht darstellen",
 			tasksEmpty: "Keine offenen Aufgaben",
-			tasksNoMatch: "Keine Aufgaben passen zum Filter",
+			tasksNoMatch: "Keine Aufgaben entsprechen dem Filter oder den Tabs",
 			matrixNeedsPriorities:
 				"Die Matrix ordnet Aufgaben nach Priorität – schalte „Termine & Prioritäten“ " +
 				"in den Einstellungen dieser Karte ein, damit sie sie lesen kann.",

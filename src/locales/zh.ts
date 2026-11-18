@@ -3586,7 +3586,7 @@ export const zh: Translations = {
 			tasksPluginTextOnly: "Tasks 插件在 Obsidian 中绘制此卡片——文本视图无法显示其结果",
 			tasksPluginQueryFailed: "Tasks 插件无法在此处绘制其结果",
 			tasksEmpty: "没有未完成的任务",
-			tasksNoMatch: "没有任务符合筛选条件",
+			tasksNoMatch: "没有符合筛选条件或标签页的任务",
 			matrixNeedsPriorities: "矩阵按优先级排列任务——请在此卡片设置中开启“日期与优先级”以便读取。",
 			kanbanNoBoard:
 				"未找到 Kanban 看板 — 请在卡片设置中选择一篇看板笔记，或用 Kanban 插件创建一个",
