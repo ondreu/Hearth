@@ -281,10 +281,12 @@ export function resolveTaskTabRows(
 		// falls back to every value the card carries.
 		const fixed = row.mode === "fixed" && (row.values?.length ?? 0) > 0;
 		const values = fixed
-			? (row.values ?? []).map((v) => ({
-					key: fixedKey(row.facet, v),
-					label: fixedLabel(row.facet, v),
-				}))
+			? uniqueValues(
+					(row.values ?? []).map((v) => ({
+						key: fixedKey(row.facet, v),
+						label: fixedLabel(row.facet, v),
+					})),
+				)
 			: collectValues(scoped, row, statusOrder);
 
 		const listed = values.map((v) => v.key);

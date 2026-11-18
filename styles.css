@@ -11844,11 +11844,10 @@ body.hearth-dv-resizing {
 	outline-offset: -2px;
 }
 
-/* The active tab is the card surface itself: it covers the shelf's bottom
- * edge (margin-bottom + a matching border) and so opens into the list. */
+/* The active tab is the card surface itself, with no baseline under it, so
+ * it reads as the same plane continuing into the list below. */
 .hearth-tasktab.is-active {
 	z-index: 1;
-	font-weight: 600;
 	background: var(--hearth-card-surface, var(--background-primary));
 	border-color: var(--background-modifier-border);
 	/* No baseline under the active tab: its fill is the content surface, so it
@@ -11876,6 +11875,7 @@ body.hearth-dv-resizing {
 	text-overflow: ellipsis;
 }
 
+
 .hearth-tasktab-count {
 	flex: 0 0 auto;
 	/* Muted, not faint: the count is the only quantitative cue on a tab. */
@@ -11889,7 +11889,7 @@ body.hearth-dv-resizing {
 }
 
 .hearth-tasktab-count.is-zero {
-	opacity: 0.55;
+	opacity: 0.65;
 }
 
 /* "+N": the tabs not in view; hidden until there are any. */
@@ -11952,7 +11952,9 @@ body.hearth-dv-resizing {
 }
 
 .hearth-card.is-expressive .hearth-tasktab.is-active {
-	font-weight: 600;
+	/* Emphasis without a metric change: a bolder weight would widen the tab
+	 * on every pick and reflow the row. */
+	text-shadow: 0 0 0.3px currentColor;
 }
 
 .hearth-card.is-expressive .hearth-tasktab.is-active::after {

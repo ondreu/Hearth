@@ -148,6 +148,18 @@ describe("tasks card tab rows in terminal mode", () => {
 		expect(textOf(out.lines[1])).not.toContain("— 1");
 	});
 
+	it("says nothing matched when the tabs emptied the list, not just the filter", () => {
+		const rows: TaskTabRow[] = [{ id: "fixed", facet: "tag", mode: "fixed", values: ["nope"] }];
+		const { ctx } = ctxFor({ tabRows: rows }, loadFor(hits));
+		// Pick the tab no task carries: the body is empty because of the tabs.
+		const { item } = tabItem(ctx, 0, "#nope");
+		item.activate?.();
+		const out = tasksTui.render(ctx);
+		const body = out.lines.slice(1).map(textOf).join("\n");
+		expect(body).toContain(t().cards.empty.tasksNoMatch);
+		expect(body).not.toContain(t().cards.empty.tasksEmpty);
+	});
+
 	it("collapses tabs past the body's width into a trailing +N", () => {
 		const { ctx } = ctxFor({ tabRows: [tagRow()] }, loadFor(hits), 24);
 		const out = tasksTui.render(ctx);

@@ -68,6 +68,7 @@ import { isTaskFilterActive } from "../../taskfilter";
 import {
 	resolveTaskTabRows,
 	setTaskTabChoice,
+	TASK_TAB_ALL,
 	taskTabFacets,
 	taskTabMask,
 	type ResolvedTaskTabRow,
@@ -318,7 +319,12 @@ function listOutputFor(ctx: TuiContext, cfg: TasksConfig, load: Extract<TaskLoad
 		),
 	);
 	if (list.length === 0) {
-		const empty = isTaskFilterActive(cfg.taskFilter) ? t().cards.empty.tasksNoMatch : t().cards.empty.tasksEmpty;
+		// Tabs can be what emptied the list, not just the Filter button.
+		const tabsNarrow = scope?.resolved.some((entry) => entry.active !== TASK_TAB_ALL) ?? false;
+		const empty =
+			tabsNarrow || isTaskFilterActive(cfg.taskFilter)
+				? t().cards.empty.tasksNoMatch
+				: t().cards.empty.tasksEmpty;
 		lines.push([{ text: empty, style: "dim" }]);
 		return { lines, items, hint: filterHint(cfg, 0), foot, sticky };
 	}

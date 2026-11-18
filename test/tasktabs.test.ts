@@ -219,6 +219,15 @@ describe("edge cases the strip must survive", () => {
 		]);
 	});
 
+	it("does not draw the same fixed value twice", () => {
+		const [resolved] = resolveTaskTabRows(hits, [
+			row({ facet: "tag", mode: "fixed", values: ["work", "Work", "#work"] }),
+		]);
+		expect(resolved.values.filter((v) => v.kind === "value").map((v) => v.label)).toEqual([
+			"#work",
+		]);
+	});
+
 	it("drops the remembered choice when the facet changes", () => {
 		const rows = [row({ facet: "tag" })];
 		setTaskTabChoice(rows[0], "work");
