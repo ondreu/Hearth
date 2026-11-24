@@ -1297,10 +1297,11 @@ function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 					sib.style.setProperty("--hearth-tile-row", String(cell.row));
 				}
 			}
-			// Take the tile out of flow and immediately pin it to its current
-			// spot so it doesn't jump before the first delta is applied.
-			tile.setCssStyles({
-				position: "absolute",
+			// Take the tile out of flow (`is-tile-pinned` carries the static
+			// `position`) and immediately pin it to its current spot so it
+			// doesn't jump before the first delta is applied.
+			tile.addClass("is-tile-pinned");
+			tile.setCssProps({
 				width: `${rect.width}px`,
 				height: `${rect.height}px`,
 				left: `${baseLeft}px`,
@@ -1308,8 +1309,7 @@ function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 			});
 		}
 		// Move by the pointer delta from the grab point — no offset issues.
-		tile.setCssStyles({
-			position: "absolute",
+		tile.setCssProps({
 			width: `${baseWidth}px`,
 			height: `${baseHeight}px`,
 			left: `${baseLeft + dx}px`,
@@ -1342,7 +1342,9 @@ function makeTileAutoFlowDrag<T extends TileGeometry & { id: string }>(
 		const wasMoved = moved;
 		moved = false;
 		tile.removeClass("is-tile-dragging");
-		tile.setCssStyles({});
+		tile.removeClass("is-tile-pinned");
+		// Empty values remove the inline offsets set while dragging.
+		tile.setCssProps({ width: "", height: "", left: "", top: "" });
 		tile.closest(".hearth-card")?.removeClass("has-tile-gesture");
 		const dropPos = placeholderPos;
 		if (placeholder) {

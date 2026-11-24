@@ -4107,6 +4107,14 @@ button.hearth-kofi-btn:focus-visible {
 	transition: none;
 }
 
+/* Auto-flow drag lifts the tile out of the grid and pins it to the spot it was
+ * measured at; only the offsets change while the pointer moves, so `position`
+ * lives here rather than in an inline style. Scoped to arrange mode and with
+ * enough classes to win over the arrange-mode `position: relative` on tiles. */
+.hearth-grid.is-arranging .hearth-link-tile.is-tile-dragging.is-tile-pinned {
+	position: absolute;
+}
+
 /* Dashed placeholder that occupies the dragged tile's target grid cell, so
  * the user sees where it will land and siblings swap around it live like
  * phone widgets. */
