@@ -423,6 +423,19 @@ describe("tasksplugin/taskIndex", () => {
 		expect(index && [...index].sort()).toEqual(["Inbox.md:4", "a.md:0"]);
 	});
 
+	it("indexes the taskLocation getters used by Obsidian Tasks 7.21", () => {
+		const taskLocation = {
+			get path() { return "Notes/Tasks.md"; },
+			get lineNumber() { return 0; },
+		};
+		const task = {
+			taskLocation,
+			get path() { return this.taskLocation.path; },
+		};
+		const index = tasksPluginTaskIndex(cacheApp({ getTasks: () => [task] }));
+		expect(index && [...index]).toEqual(["Notes/Tasks.md:0"]);
+	});
+
 	it("is null when the plugin exposes no cache", () => {
 		expect(tasksPluginTaskIndex(cacheApp({}))).toBeNull();
 		expect(tasksPluginTaskIndex(cacheApp({ getTasks: () => [] }, false))).toBeNull();

@@ -210,8 +210,14 @@ export function tasksPluginTaskIndex(app: App): Set<string> | null {
 	const index = new Set<string>();
 	for (const task of tasks) {
 		if (!task || typeof task !== "object") continue;
-		const path = (task as { path?: unknown }).path;
-		const line = (task as { lineNumber?: unknown }).lineNumber;
+		// Obsidian Tasks 7.x exposes the line number on the task's location.
+		const entry = task as {
+			path?: unknown;
+			lineNumber?: unknown;
+			taskLocation?: { path?: unknown; lineNumber?: unknown };
+		};
+		const path = entry.taskLocation?.path ?? entry.path;
+		const line = entry.taskLocation?.lineNumber ?? entry.lineNumber;
 		if (typeof path === "string" && typeof line === "number" && Number.isInteger(line)) {
 			index.add(`${path}:${line}`);
 		}
