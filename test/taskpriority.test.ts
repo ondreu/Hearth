@@ -11,8 +11,8 @@ describe("priorityRank", () => {
 	it("orders the five Tasks-plugin levels, words and emoji alike", () => {
 		const words = ["highest", "high", "medium", "low", "lowest"];
 		const emoji = ["🔺", "⏫", "🔼", "🔽", "⏬"];
-		expect(words.map(priorityRank)).toEqual([0, 1, 2, 3, 4]);
-		expect(emoji.map(priorityRank)).toEqual([0, 1, 2, 3, 4]);
+		expect(words.map((p) => priorityRank(p))).toEqual([0, 1, 2, 3, 4]);
+		expect(emoji.map((p) => priorityRank(p))).toEqual([0, 1, 2, 3, 4]);
 	});
 
 	it("keeps highest above high", () => {

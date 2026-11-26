@@ -57,7 +57,15 @@ function loadFor(hits: TaskHit[]): OkLoad {
 		kind: "ok",
 		source: "checkbox",
 		hits,
-		filterChoices: { source: "checkbox", statuses: [], priorities: [], contexts: [], projects: [], tags: [] },
+		filterChoices: {
+			source: "checkbox",
+			statuses: [],
+			priorities: [],
+			dateFields: [],
+			contexts: [],
+			projects: [],
+			tags: [],
+		},
 		today: "2026-11-18",
 		openStatus: "",
 	};

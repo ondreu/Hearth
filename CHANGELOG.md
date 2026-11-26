@@ -27,6 +27,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   clipboard exactly as the card shows it, including its unit and the card's
   number format.
 
+- **Sort tasks by any date the card actually holds.** The sort menu and the
+  custom-sort dialog gain *Start date*, and **due**, **scheduled** and **start**
+  each compare on their own: a due sort no longer falls back to the scheduled
+  date, so a task with a deadline comes before one that is only scheduled
+  (#508). A date field no task carries is not offered, so the menu follows the
+  card's own tasks.
+
 - **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
   [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
@@ -68,6 +75,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   dialog as well as by a board.
 
 ### Fixed
+
+- **An Obsidian Tasks task with no priority is Normal.** The priority sort put
+  every unmarked task after *Lowest*, while the Tasks plugin defines it as
+  Normal. With the Obsidian Tasks source an unmarked task now ranks between
+  Medium and Low — the plugin's own order — and the list shows a muted *Normal*
+  badge for it instead of leaving the priority column empty. Other sources keep
+  unprioritised tasks last (#145), and the badge is display only: editing an
+  unrelated field never writes 🔼 into a line that had no marker (#507, #509).
 
 - **Task fields no longer leak between sources.** The *Fields* customisation
   followed the vault-wide TaskNotes field list on every card, whatever its

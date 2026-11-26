@@ -122,6 +122,24 @@ describe("tasks-plugin source", () => {
 		expect(body.querySelectorAll(".hearth-task-add")).toHaveLength(1);
 	});
 
+	it("shows a muted Normal badge on an unmarked task", async () => {
+		const view = viewWith({
+			plugins: PLUGIN,
+			enabled: ["obsidian-tasks-plugin"],
+			files: { "Notes/Tasks.md": "- [ ] no signifier\n- [ ] medium one 🔼\n" },
+		});
+		const body = document.body.createDiv();
+		tasks.renderTasks(view, cardWith("obsidian-tasks"), body);
+		await flush();
+
+		const unmarked = body.querySelectorAll(".hearth-task-priority.is-unmarked");
+		expect(unmarked).toHaveLength(1);
+		expect(unmarked[0].textContent?.toLowerCase()).toContain("normal");
+		// The written 🔼 keeps its usual medium chip, so the muted one reads as
+		// "no marker" rather than as a second Medium.
+		expect(body.querySelectorAll(".hearth-task-priority.is-medium:not(.is-unmarked)")).toHaveLength(1);
+	});
+
 	it("filters, sorts and caps over what the plugin says exists", async () => {
 		const view = viewWith({
 			plugins: PLUGIN,
