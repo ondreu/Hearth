@@ -418,8 +418,8 @@ always opens the browser.
 
 *Same as the file explorer* is the default, and it means what it says: the card
 asks the file explorer to order the folder, exactly as the sidebar does when it
-draws it. The folder does not have to be open in the sidebar — or the sidebar
-even visible — for this to work.
+draws it. The folder does not have to be open in the sidebar, and the sidebar
+does not have to be visible.
 
 That includes a **custom order from a plugin**. A plugin that lets you drag the
 sidebar into your own order — [Flexplorer](https://github.com/kh4f/flexplorer),
@@ -427,8 +427,13 @@ which the card was asked for, works this way — does it by replacing that same
 ordering call, so its order is the answer the card gets, pinned items and all.
 Reorder the sidebar and the card follows on its next redraw.
 
-Two honest limits:
+Three honest limits:
 
+- **A custom order needs the file explorer built once in the session.** After a
+  restart, with the sidebar never opened, Obsidian keeps the explorer deferred:
+  the leaf exists, but its view is a placeholder, so there is no ordering call
+  to ask. The card falls back to the sort the explorer is *set* to until the
+  sidebar is opened once — the rule, not the plugin's order.
 - If the explorer can't be read at all — no file explorer in this window, or a
   future Obsidian rearranges its internals — the card falls back to the sort the
   explorer is *set* to, so it still agrees with the sidebar's rule even when it
