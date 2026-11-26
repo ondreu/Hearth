@@ -3,10 +3,13 @@ import type { App } from "obsidian";
 import {
 	VAULT_PET_BLOCK,
 	VAULT_PET_HOUSE_VIEW,
+	VAULT_PET_HOUSE_VIEW_LEGACY,
 	VAULT_PET_PLUGIN_ID,
 	isVaultPetAvailable,
 	openVaultPetHouse,
 	vaultPetDisplay,
+	vaultPetHasPetBlock,
+	vaultPetHouseView,
 	vaultPetPlugin,
 } from "../src/vaultpet";
 import type { DashboardCard } from "../src/types";
@@ -24,7 +27,9 @@ function fakeApp(opts: {
 	plugin?: Record<string, unknown>;
 	commands?: Record<string, boolean>;
 	commandCalls?: string[];
+	views?: string[];
 } = {}): App {
+	const viewByType = Object.fromEntries((opts.views ?? []).map((type) => [type, {}]));
 	return {
 		plugins: {
 			plugins: opts.plugin ? { [VAULT_PET_PLUGIN_ID]: opts.plugin } : {},
@@ -35,6 +40,7 @@ function fakeApp(opts: {
 				return opts.commands?.[id] ?? false;
 			},
 		},
+		viewRegistry: { viewByType },
 	} as unknown as App;
 }
 
@@ -116,14 +122,37 @@ describe("vaultPetDisplay", () => {
 	});
 });
 
+describe("the plugin's surfaces", () => {
+	it("resolves the house view type the instance registers", () => {
+		// 1.x renamed the view; 0.4-0.6 keep the old name, and either must host.
+		expect(vaultPetHouseView(fakeApp({ views: [VAULT_PET_HOUSE_VIEW] }))).toBe(VAULT_PET_HOUSE_VIEW);
+		expect(vaultPetHouseView(fakeApp({ views: [VAULT_PET_HOUSE_VIEW_LEGACY] }))).toBe(
+			VAULT_PET_HOUSE_VIEW_LEGACY,
+		);
+		expect(vaultPetHouseView(fakeApp({ views: [VAULT_PET_HOUSE_VIEW_LEGACY, VAULT_PET_HOUSE_VIEW] }))).toBe(
+			VAULT_PET_HOUSE_VIEW,
+		);
+		expect(vaultPetHouseView(fakeApp())).toBeNull();
+	});
+
+	it("treats the legacy house view as the witness for the compact block", () => {
+		// 0.4-0.6 registered `vault-pet` together with `vault-pet-house`; 1.0
+		// dropped both names, so the view registry is what tells them apart.
+		expect(vaultPetHasPetBlock(fakeApp({ views: [VAULT_PET_HOUSE_VIEW_LEGACY] }))).toBe(true);
+		expect(vaultPetHasPetBlock(fakeApp({ views: [VAULT_PET_HOUSE_VIEW] }))).toBe(false);
+		expect(vaultPetHasPetBlock(fakeApp())).toBe(false);
+	});
+
+	it("names the current and legacy view types", () => {
+		expect(VAULT_PET_HOUSE_VIEW).toBe("kitcommit-house");
+		expect(VAULT_PET_HOUSE_VIEW_LEGACY).toBe("vault-pet-house");
+	});
+});
+
 describe("what Hearth hands the plugin", () => {
 	it("renders the plugin's own empty fenced block", () => {
 		// The processor is registered on the language and ignores the contents,
 		// so the block is exactly what its "Insert pet card" command writes.
 		expect(VAULT_PET_BLOCK).toBe("```vault-pet\n```");
-	});
-
-	it("names the view type the house is hosted from", () => {
-		expect(VAULT_PET_HOUSE_VIEW).toBe("vault-pet-house");
 	});
 });

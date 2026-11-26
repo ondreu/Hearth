@@ -15,10 +15,10 @@
  *    its streak, its click-to-pet. The plugin keeps a handle on every block it
  *    renders and repaints them itself, so the card stays live with no polling
  *    of any kind from Hearth.
- * 2. **The pet house** — the `vault-pet-house` side-panel view, hosted in the
- *    card as a detached leaf the same way the Plugin view card hosts any other
- *    view. Quests, dex, badges, wardrobe and stats are all there, exactly as
- *    they are in the sidebar.
+ * 2. **The pet house** — the house side-panel view (`kitcommit-house` in 1.x,
+ *    `vault-pet-house` before that), hosted in the card as a detached leaf the
+ *    same way the Plugin view card hosts any other view. Quests, dex, badges,
+ *    wardrobe and stats are all there, exactly as they are in the sidebar.
  *
  * Consequently this module is tiny and entirely made of guards. Vault Pet
  * exposes no versioned API object, so the only plugin member Hearth calls —
@@ -27,13 +27,19 @@
  * never throws inside a dashboard render.
  */
 import type { App } from "obsidian";
+import { isViewTypeHostable } from "./leafview";
 import type { DashboardCard, VaultPetDisplay } from "./types";
 
 /** The community-plugin id Vault Pet registers itself under. */
 export const VAULT_PET_PLUGIN_ID = "vault-pet";
 
-/** Vault Pet's "pet house" view type — quests, dex, badges and stats. */
-export const VAULT_PET_HOUSE_VIEW = "vault-pet-house";
+/** Vault Pet's "pet house" view type. Version 1.0.0 renamed it from
+ * `vault-pet-house` to `kitcommit-house`; both are probed at runtime. */
+export const VAULT_PET_HOUSE_VIEW = "kitcommit-house";
+
+/** The house view type Vault Pet 0.4–0.6 registered. Those versions also
+ * registered the compact `vault-pet` fenced block; 1.0 dropped both names. */
+export const VAULT_PET_HOUSE_VIEW_LEGACY = "vault-pet-house";
 
 /** The fenced-block language Vault Pet registers a Markdown processor for. */
 export const VAULT_PET_BLOCK_LANG = "vault-pet";
@@ -78,6 +84,25 @@ export function vaultPetPlugin(app: App): VaultPetLike | null {
 /** Whether Vault Pet is installed *and* enabled right now. */
 export function isVaultPetAvailable(app: App): boolean {
 	return vaultPetPlugin(app) != null;
+}
+
+/** The house view type this Vault Pet instance actually registers, or null when
+ * neither name is there. 1.x uses `kitcommit-house`; 0.4–0.6 used
+ * `vault-pet-house`, and a card saved back then should keep working. */
+export function vaultPetHouseView(app: App): string | null {
+	for (const type of [VAULT_PET_HOUSE_VIEW, VAULT_PET_HOUSE_VIEW_LEGACY]) {
+		if (isViewTypeHostable(app, type)) return type;
+	}
+	return null;
+}
+
+/** Whether the compact `vault-pet` fenced block still exists. Vault Pet 0.4–0.6
+ * registered that block together with the legacy house view; 1.0 removed the
+ * block and kept only the renamed house. Obsidian exposes no list of code-block
+ * processors, so the view registry is the witness: the block and the legacy view
+ * arrived and left together. */
+export function vaultPetHasPetBlock(app: App): boolean {
+	return isViewTypeHostable(app, VAULT_PET_HOUSE_VIEW_LEGACY);
 }
 
 /**
