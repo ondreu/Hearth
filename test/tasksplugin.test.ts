@@ -430,7 +430,7 @@ describe("tasksplugin/taskIndex", () => {
 		};
 		const task = {
 			taskLocation,
-			get path() { return this.taskLocation.path; },
+			get path() { return taskLocation.path; },
 		};
 		const index = tasksPluginTaskIndex(cacheApp({ getTasks: () => [task] }));
 		expect(index && [...index]).toEqual(["Notes/Tasks.md:0"]);
