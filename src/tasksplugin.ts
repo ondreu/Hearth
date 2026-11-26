@@ -39,6 +39,11 @@ import type { CardHost } from "./cardhost";
 /** Community plugin id for obsidian-tasks. */
 export const TASKS_PLUGIN_ID = "obsidian-tasks-plugin";
 
+/** Workspace event the plugin fires after its task cache has been rebuilt —
+ * including the first build after Obsidian starts. Hearth listens so a Tasks
+ * card drawn during that build redraws once the cache is ready. */
+export const TASKS_CACHE_UPDATE_EVENT = "obsidian-tasks-plugin:cache-update";
+
 
 /** Whether obsidian-tasks is installed and enabled in this vault. */
 export function tasksPluginEnabled(app: App): boolean {
@@ -68,11 +73,11 @@ export interface TasksPluginApiV1 {
 
 
 /** The loaded Tasks plugin instance, or null when it isn't enabled. */
-function tasksPlugin(app: App): { apiV1?: unknown; getTasks?: unknown } | null {
+function tasksPlugin(app: App): { apiV1?: unknown; getTasks?: unknown; getState?: unknown } | null {
 	try {
 		if (!tasksPluginEnabled(app)) return null;
 		const plugin = app.plugins.plugins[TASKS_PLUGIN_ID] as
-			| { apiV1?: unknown; getTasks?: unknown }
+			| { apiV1?: unknown; getTasks?: unknown; getState?: unknown }
 			| undefined;
 		return plugin ?? null;
 	} catch {
@@ -199,7 +204,22 @@ function readRegistryStatuses(plugin: Record<string, unknown>): TasksPluginStatu
 export function tasksPluginTaskIndex(app: App): Set<string> | null {
 	const plugin = tasksPlugin(app);
 	const getTasks = plugin?.getTasks;
-	if (typeof getTasks !== "function") return null;
+	if (!plugin || typeof getTasks !== "function") return null;
+	// The cache builds asynchronously: getTasks() is empty until the plugin's
+	// state reaches "Warm". An empty Set is not "unknown" to the caller — it says
+	// "the plugin considers no line a task" and filters the whole list out — so a
+	// cache that is still loading must be answered as null (fall back to the
+	// status registry) rather than as an empty answer (#510).
+	const getState = plugin.getState;
+	if (typeof getState === "function") {
+		let phase: unknown;
+		try {
+			phase = Reflect.apply(getState, plugin, []);
+		} catch {
+			phase = undefined;
+		}
+		if (typeof phase === "string" && phase !== "Warm") return null;
+	}
 	let tasks: unknown;
 	try {
 		tasks = Reflect.apply(getTasks, plugin, []);
