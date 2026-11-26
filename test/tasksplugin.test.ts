@@ -423,6 +423,20 @@ describe("tasksplugin/taskIndex", () => {
 		expect(index && [...index].sort()).toEqual(["Inbox.md:4", "a.md:0"]);
 	});
 
+
+	it("indexes the taskLocation getters used by Obsidian Tasks 7.21", () => {
+		const taskLocation = {
+			get path() { return "Notes/Tasks.md"; },
+			get lineNumber() { return 0; },
+		};
+		const task = {
+			taskLocation,
+			get path() { return taskLocation.path; },
+		};
+		const index = tasksPluginTaskIndex(cacheApp({ getTasks: () => [task] }));
+		expect(index && [...index]).toEqual(["Notes/Tasks.md:0"]);
+	});
+
 	it("is null while the plugin's cache is still loading", () => {
 		// getTasks() is empty until the state is Warm. An empty Set would mean
 		// "no line is a task" and hide the whole list, so a loading cache is
