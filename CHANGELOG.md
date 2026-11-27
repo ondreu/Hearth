@@ -27,6 +27,13 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   clipboard exactly as the card shows it, including its unit and the card's
   number format.
 
+- **Sort tasks by any date the card actually holds.** The sort menu and the
+  custom-sort dialog gain *Start date*, and **due**, **scheduled** and **start**
+  each compare on their own: a due sort no longer falls back to the scheduled
+  date, so a task with a deadline comes before one that is only scheduled
+  (#508). A date field no task carries is not offered, so the menu follows the
+  card's own tasks.
+
 - **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
   [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community
@@ -77,6 +84,14 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   now treated as unknown — the card falls back to the plugin's status registry —
   and it redraws when the plugin announces `cache-update` on the workspace
   (#510).
+
+- **An Obsidian Tasks task with no priority is Normal.** The priority sort put
+  every unmarked task after *Lowest*, while the Tasks plugin defines it as
+  Normal. With the Obsidian Tasks source an unmarked task now ranks between
+  Medium and Low — the plugin's own order. Nothing is drawn in the priority
+  column for a missing signifier, so the line stays exactly as written; other
+  sources keep unprioritised tasks last (#145), and editing an unrelated field
+  never writes 🔼 into a line that had no marker (#507, #509).
 
 - **The Vault Pet card works on Vault Pet 1.x and 2.x again.** The plugin
   renamed its house view to `kitcommit-house` and removed the compact

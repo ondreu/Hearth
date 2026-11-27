@@ -4285,6 +4285,8 @@ export const zhTW: Translations = {
 			sortLabels: {
 				smart: "智慧",
 				due: "到期日",
+				scheduled: "預定日期",
+				start: "開始日期",
 				priority: "優先順序",
 				created: "建立日期",
 				alpha: "依字母",
@@ -4297,6 +4299,7 @@ export const zhTW: Translations = {
 			sortFields: {
 				due: "到期日",
 				scheduled: "預定日期",
+				start: "開始日期",
 				priority: "優先順序",
 				created: "建立日期",
 				alpha: "依字母",

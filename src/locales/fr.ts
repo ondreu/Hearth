@@ -4588,6 +4588,8 @@ export const fr: Translations = {
 			sortLabels: {
 				smart: "Intelligent",
 				due: "Échéance",
+				scheduled: "Date planifiée",
+				start: "Date de début",
 				priority: "Priorité",
 				created: "Date de création",
 				alpha: "Alphabétique",
@@ -4600,6 +4602,7 @@ export const fr: Translations = {
 			sortFields: {
 				due: "Échéance",
 				scheduled: "Date planifiée",
+				start: "Date de début",
 				priority: "Priorité",
 				created: "Date de création",
 				alpha: "Alphabétique",

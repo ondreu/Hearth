@@ -122,6 +122,25 @@ describe("tasks-plugin source", () => {
 		expect(body.querySelectorAll(".hearth-task-add")).toHaveLength(1);
 	});
 
+	it("does not draw a priority chip on an unmarked task", async () => {
+		const view = viewWith({
+			plugins: PLUGIN,
+			enabled: ["obsidian-tasks-plugin"],
+			files: { "Notes/Tasks.md": "- [ ] no signifier\n- [ ] medium one 🔼\n" },
+		});
+		const body = document.body.createDiv();
+		tasks.renderTasks(view, cardWith("obsidian-tasks"), body);
+		await flush();
+
+		// Only the task that carries a signifier gets a chip: "no priority" is
+		// an absence, not a level the line declared. It still sorts as Normal
+		// (see taskssort.test.ts), it just doesn't wear a badge for it.
+		const chips = body.querySelectorAll(".hearth-task-priority");
+		expect(chips).toHaveLength(1);
+		expect(chips[0].textContent?.toLowerCase()).toContain("medium");
+		expect(body.querySelectorAll(".hearth-task-priority.is-unmarked")).toHaveLength(0);
+	});
+
 	it("filters, sorts and caps over what the plugin says exists", async () => {
 		const view = viewWith({
 			plugins: PLUGIN,
