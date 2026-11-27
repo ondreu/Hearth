@@ -3725,10 +3725,6 @@ export const fr: Translations = {
 			displayDesc:
 				"Les deux viennent de Vault Pet : la petite carte qu'il peut insérer dans une note, " +
 				"ou sa vue maison, hébergée ici au lieu de la barre latérale.",
-			displayDescHouseOnly:
-				"Vault Pet 1.x a supprimé la petite carte de compagnon qu'il insérait " +
-				"dans les notes ; cette carte affiche donc sa maison. Le choix " +
-				"enregistré est conservé si vous revenez à une version plus ancienne.",
 			displayPet: "Le compagnon",
 			displayHouse: "La maison du compagnon",
 			showHeader: "Garder la barre de titre de la maison",

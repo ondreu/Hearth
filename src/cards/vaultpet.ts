@@ -115,8 +115,9 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 	const strings = t().editors.vaultPet;
 	const cfg = (ctx.card.vaultPet ??= {});
 	// The compact `vault-pet` block only exists in 0.4–0.6; 1.0 dropped it.
-	// Offering both options on a plugin that has one surface would promise two
-	// views and draw the same one twice. A stored "pet" choice is left alone.
+	// Offering a two-value setting there would promise two views and draw the
+	// same one twice, so the setting disappears entirely. A stored "pet" choice
+	// is left alone and comes back with the older plugin.
 	const displays = vaultPetDisplays(ctx.app);
 
 	if (!isVaultPetAvailable(ctx.app)) {
@@ -127,21 +128,21 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		note.settingEl.addClass("hearth-setting-note");
 	}
 
-	new Setting(containerEl)
-		.setName(strings.display)
-		.setDesc(displays.length > 1 ? strings.displayDesc : strings.displayDescHouseOnly)
-		.addDropdown((d) => {
-			if (displays.includes("pet")) d.addOption("pet", strings.displayPet);
-			d.addOption("house", strings.displayHouse);
-			d.setValue(
-				displays.includes(vaultPetDisplay(ctx.card)) ? vaultPetDisplay(ctx.card) : "house",
-			).onChange((v) => {
-				cfg.display = v === "house" ? "house" : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-				ctx.opts.rerender();
+	if (displays.length > 1) {
+		new Setting(containerEl)
+			.setName(strings.display)
+			.setDesc(strings.displayDesc)
+			.addDropdown((d) => {
+				d.addOption("pet", strings.displayPet);
+				d.addOption("house", strings.displayHouse);
+				d.setValue(vaultPetDisplay(ctx.card)).onChange((v) => {
+					cfg.display = v === "house" ? "house" : undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				});
 			});
-		});
+	}
 
 	if (displays.length === 1 || vaultPetDisplay(ctx.card) === "house") {
 		new Setting(containerEl)

@@ -121,6 +121,21 @@ describe("vaultPetDisplay", () => {
 		const fromTheFuture = card({ display: "aviary" as never });
 		expect(vaultPetDisplay(fromTheFuture)).toBe("pet");
 	});
+
+	it("keeps a legacy card's stored pet choice for a downgrade", () => {
+		// Boards saved against Vault Pet 0.4-0.6 carry display:"pet". Resolving
+		// the display must not rewrite them: the same card has to render the
+		// compact block again when the old plugin comes back.
+		const legacy = card({ display: "pet" });
+		expect(vaultPetDisplay(legacy)).toBe("pet");
+		expect(legacy.vaultPet).toEqual({ display: "pet" });
+
+		// A card from before the setting existed has no config at all; the
+		// default keeps it working without adding keys to the stored board.
+		const old = card();
+		expect(vaultPetDisplay(old)).toBe("pet");
+		expect(old.vaultPet).toBeUndefined();
+	});
 });
 
 describe("the plugin's surfaces", () => {

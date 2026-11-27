@@ -3442,9 +3442,6 @@ export const zhTW: Translations = {
 			displayDesc:
 				"兩者都來自 Vault Pet 自身：它可以插入筆記的小卡片，或它的小屋檢視，" +
 				"承載在這裡而不是側邊欄。",
-			displayDescHouseOnly:
-				"Vault Pet 1.x 移除了原本可插入筆記的小型寵物卡片，因此這張卡片顯示" +
-				"牠的寵物小屋。若你回到舊版本，已儲存的選擇仍會保留。",
 			displayPet: "寵物",
 			displayHouse: "寵物小屋",
 			showHeader: "保留小屋的標題列",

@@ -3784,11 +3784,6 @@ export const de: Translations = {
 				"Beides stammt von Vault Pet selbst: die kleine Karte, die es in eine " +
 				"Notiz einfügen kann, oder seine Haus-Ansicht, hier statt in der " +
 				"Seitenleiste eingebettet.",
-			displayDescHouseOnly:
-				"Vault Pet 1.x hat die kleine Haustierkarte abgeschafft, die es früher " +
-				"in Notizen einfügte; diese Karte zeigt deshalb sein Haus. Die " +
-				"gespeicherte Auswahl bleibt erhalten, falls du zu einer älteren " +
-				"Version zurückkehrst.",
 			displayPet: "Das Haustier",
 			displayHouse: "Das Haustierhaus",
 			showHeader: "Titelleiste des Hauses behalten",
