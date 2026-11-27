@@ -27,6 +27,12 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   clipboard exactly as the card shows it, including its unit and the card's
   number format.
 
+- **The graph view gets a one-click card.** *Add card → Graph* mounts Obsidian's
+  own graph view in a Plugin view card — the real interactive graph with zoom,
+  pan, node dragging, filters and colour groups, not a redrawn copy. It shares
+  the Graph core plugin's global options, so per-card graph settings are not
+  saved (#490).
+
 - **Sort tasks by any date the card actually holds.** The sort menu and the
   custom-sort dialog gain *Start date*, and **due**, **scheduled** and **start**
   each compare on their own: a due sort no longer falls back to the scheduled

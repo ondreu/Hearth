@@ -218,6 +218,13 @@ describe("CARD_TEMPLATES (add-card menu)", () => {
 				build: { kind: "leaf", title: "Plugin view", leafView: {}, w: 5, h: 4 },
 			},
 			{
+				id: "graph",
+				icon: "git-fork",
+				category: "integrations",
+				requires: "Graph view",
+				build: { kind: "leaf", title: "Graph", leafView: { viewType: "graph" }, w: 5, h: 5 },
+			},
+			{
 				id: "taskchute",
 				icon: "timer",
 				category: "integrations",

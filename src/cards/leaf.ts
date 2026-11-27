@@ -185,6 +185,18 @@ export const leafCard: CardDefinition<"leaf"> = {
 				satisfied: (app) => isLeafViewAvailable(app),
 			},
 		},
+		{
+			id: "graph",
+			name: "Graph",
+			icon: "git-fork",
+			build: () => ({ kind: "leaf", title: "Graph", leafView: { viewType: "graph" }, w: 5, h: 5 }),
+			// Core plugin, not a community one: no pluginId, so the picker
+			// badges it without offering an install link.
+			requires: {
+				name: "Graph view",
+				satisfied: (app) => app.internalPlugins.getPluginById("graph")?.enabled === true,
+			},
+		},
 	],
 	render: (view, card, body, component) => renderLeaf(view, card, body, component),
 	renderEditor: (container, ctx) => leafEditor(ctx, container),
