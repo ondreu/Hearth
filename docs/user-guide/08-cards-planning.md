@@ -276,8 +276,8 @@ deadline comes before one that has only a scheduled date, and a scheduled date
 no longer stands in for a missing due date. With the **Obsidian Tasks** source,
 a task with no priority signifier counts as **Normal** and sorts between Medium
 and Low, the way the plugin orders it; the other sources keep unprioritised
-tasks last. An unmarked Obsidian Tasks task also shows a muted **Normal** badge
-in the list, so the empty priority column no longer needs remembering.
+tasks last. Nothing is drawn in the priority column for a missing signifier — it
+stays an absence, not a badge.
 
 **The Filter button** appears at the card's top-right on hover — in the list
 layout and on the Kanban board alike — and stays visible while a filter is set.

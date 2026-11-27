@@ -79,10 +79,10 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **An Obsidian Tasks task with no priority is Normal.** The priority sort put
   every unmarked task after *Lowest*, while the Tasks plugin defines it as
   Normal. With the Obsidian Tasks source an unmarked task now ranks between
-  Medium and Low — the plugin's own order — and the list shows a muted *Normal*
-  badge for it instead of leaving the priority column empty. Other sources keep
-  unprioritised tasks last (#145), and the badge is display only: editing an
-  unrelated field never writes 🔼 into a line that had no marker (#507, #509).
+  Medium and Low — the plugin's own order. Nothing is drawn in the priority
+  column for a missing signifier, so the line stays exactly as written; other
+  sources keep unprioritised tasks last (#145), and editing an unrelated field
+  never writes 🔼 into a line that had no marker (#507, #509).
 
 - **Task fields no longer leak between sources.** The *Fields* customisation
   followed the vault-wide TaskNotes field list on every card, whatever its

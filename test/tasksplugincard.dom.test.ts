@@ -122,7 +122,7 @@ describe("tasks-plugin source", () => {
 		expect(body.querySelectorAll(".hearth-task-add")).toHaveLength(1);
 	});
 
-	it("shows a muted Normal badge on an unmarked task", async () => {
+	it("does not draw a priority chip on an unmarked task", async () => {
 		const view = viewWith({
 			plugins: PLUGIN,
 			enabled: ["obsidian-tasks-plugin"],
@@ -132,12 +132,13 @@ describe("tasks-plugin source", () => {
 		tasks.renderTasks(view, cardWith("obsidian-tasks"), body);
 		await flush();
 
-		const unmarked = body.querySelectorAll(".hearth-task-priority.is-unmarked");
-		expect(unmarked).toHaveLength(1);
-		expect(unmarked[0].textContent?.toLowerCase()).toContain("normal");
-		// The written 🔼 keeps its usual medium chip, so the muted one reads as
-		// "no marker" rather than as a second Medium.
-		expect(body.querySelectorAll(".hearth-task-priority.is-medium:not(.is-unmarked)")).toHaveLength(1);
+		// Only the task that carries a signifier gets a chip: "no priority" is
+		// an absence, not a level the line declared. It still sorts as Normal
+		// (see taskssort.test.ts), it just doesn't wear a badge for it.
+		const chips = body.querySelectorAll(".hearth-task-priority");
+		expect(chips).toHaveLength(1);
+		expect(chips[0].textContent?.toLowerCase()).toContain("medium");
+		expect(body.querySelectorAll(".hearth-task-priority.is-unmarked")).toHaveLength(0);
 	});
 
 	it("filters, sorts and caps over what the plugin says exists", async () => {

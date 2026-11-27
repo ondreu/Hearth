@@ -12890,18 +12890,6 @@ body.hearth-dv-resizing {
 	border: 1.5px solid var(--level-color);
 }
 
-/* An unmarked Obsidian Tasks line means Normal. The badge says so, but in the
-   muted neutral of "this task says nothing" rather than the medium/orange a
-   written 🔼 gets — it is an absence, not a level the task declared. */
-.hearth-task-priority.is-unmarked {
-	--level-color: var(--text-faint);
-	opacity: 0.75;
-}
-
-.hearth-task-priority.is-unmarked .hearth-task-priority-label {
-	font-style: italic;
-}
-
 /* Chip and text forms: the same shapes every other field's value takes, tinted
    by the level instead of by a colour the user had to set. Only the
    dot-and-label form (`is-dotlabel`) stays particular to a priority. */

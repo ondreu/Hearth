@@ -1362,12 +1362,6 @@ function renderLegacyTaskFields(
 		// The list has room for the dot and its label (a bare dot is easy to
 		// miss); board cards stay dot-only for compactness.
 		if (priority) renderPriorityChip(hosts.meta, priority, "dotlabel");
-		// Obsidian Tasks defines a task with no signifier as Normal, so the list
-		// says so instead of leaving a blank where every other task has a chip.
-		// Display only: `hit.priority` stays empty, because an unrelated edit
-		// rebuilds the metadata tail from it and would write 🔼 into the line.
-		else if (!omitPriority && source === "obsidian-tasks")
-			renderPriorityChip(hosts.meta, "normal", "dotlabel").addClass("is-unmarked");
 	} else {
 		// Kanban priority shows as a single coloured dot inline with the title;
 		// the other sources keep their labelled chip in the meta row below.
