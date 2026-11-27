@@ -68,6 +68,10 @@ declare module "obsidian" {
 		): EventRef;
 		on(name: "obsidian-git:head-change", callback: () => unknown, ctx?: unknown): EventRef;
 		on(name: "obsidian-git:loading-status", callback: () => unknown, ctx?: unknown): EventRef;
+		/** The Tasks plugin, after rebuilding its task cache — including the first
+		 * build after startup. Registered in `main.ts` so a Tasks card drawn
+		 * during that build redraws once the cache is ready (#510). */
+		on(name: "obsidian-tasks-plugin:cache-update", callback: () => unknown, ctx?: unknown): EventRef;
 	}
 
 	/**

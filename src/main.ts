@@ -33,6 +33,7 @@ import { BoardRefreshTracker } from "./boardrefresh";
 import { refreshOnceMetadataReady } from "./metaready";
 import { recordRecentFile, renameRecentFile } from "./recentfiles";
 import { forgetTaxonomy, OperonSession } from "./operon";
+import { TASKS_CACHE_UPDATE_EVENT } from "./tasksplugin";
 import { disposeVaultPlayer } from "./audioplayer";
 import { disposeTaskChuteSession } from "./taskchute";
 import { installUiDesign } from "./uidesign";
@@ -241,6 +242,16 @@ export default class HearthPlugin extends Plugin {
 		this.registerEvent(this.app.vault.on("delete", onVaultChange));
 		this.registerEvent(this.app.vault.on("rename", onVaultChange));
 		this.registerEvent(this.app.vault.on("modify", onVaultChange));
+
+		// The Tasks plugin builds its task cache asynchronously and fires this on
+		// the workspace when it finishes — including the first build after
+		// startup, which no vault event announces. A Tasks card drawn during that
+		// build shows no tasks until something redraws it, so redraw on the
+		// plugin's own signal (#510). Registered unconditionally; the event only
+		// fires when that plugin is running.
+		this.registerEvent(
+			this.app.workspace.on(TASKS_CACHE_UPDATE_EVENT, () => this.liveRefreshDebounced()),
+		);
 
 		// Settings another device synced in. `data.json` lives in the config
 		// folder, which the create/modify/delete events above never report — they

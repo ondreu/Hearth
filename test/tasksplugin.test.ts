@@ -423,6 +423,50 @@ describe("tasksplugin/taskIndex", () => {
 		expect(index && [...index].sort()).toEqual(["Inbox.md:4", "a.md:0"]);
 	});
 
+
+	it("indexes the taskLocation getters used by Obsidian Tasks 7.21", () => {
+		const taskLocation = {
+			get path() { return "Notes/Tasks.md"; },
+			get lineNumber() { return 0; },
+		};
+		const task = {
+			taskLocation,
+			get path() { return taskLocation.path; },
+		};
+		const index = tasksPluginTaskIndex(cacheApp({ getTasks: () => [task] }));
+		expect(index && [...index]).toEqual(["Notes/Tasks.md:0"]);
+	});
+
+	it("is null while the plugin's cache is still loading", () => {
+		// getTasks() is empty until the state is Warm. An empty Set would mean
+		// "no line is a task" and hide the whole list, so a loading cache is
+		// answered as unknown (#510).
+		expect(tasksPluginTaskIndex(cacheApp({ getState: () => "Cold", getTasks: () => [] }))).toBeNull();
+		expect(tasksPluginTaskIndex(cacheApp({ getState: () => "Initializing", getTasks: () => [] }))).toBeNull();
+	});
+
+	it("reads the cache once it is Warm", () => {
+		const index = tasksPluginTaskIndex(
+			cacheApp({ getState: () => "Warm", getTasks: () => [{ path: "a.md", lineNumber: 1 }] }),
+		);
+		expect(index && [...index]).toEqual(["a.md:1"]);
+	});
+
+	it("still reads a build that exposes no state or a broken one", () => {
+		const tasks = () => [{ path: "a.md", lineNumber: 1 }];
+		const noState = tasksPluginTaskIndex(cacheApp({ getTasks: tasks }));
+		expect(noState && [...noState]).toEqual(["a.md:1"]);
+		const brokenState = tasksPluginTaskIndex(
+			cacheApp({
+				getState: () => {
+					throw new Error("no state");
+				},
+				getTasks: tasks,
+			}),
+		);
+		expect(brokenState && [...brokenState]).toEqual(["a.md:1"]);
+	});
+
 	it("is null when the plugin exposes no cache", () => {
 		expect(tasksPluginTaskIndex(cacheApp({}))).toBeNull();
 		expect(tasksPluginTaskIndex(cacheApp({ getTasks: () => [] }, false))).toBeNull();
