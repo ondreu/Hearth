@@ -11,6 +11,59 @@ preceding beta series.
 History begins at 1.5.0. For releases before 1.5.0, see the
 [GitHub Releases](https://github.com/ondreu/Hearth/releases) page.
 
+## [3.11.0]
+
+### Added
+
+- **The Tasks card can show rows of filter tabs.** Each row is built from one
+  facet the card's tasks carry — tags, projects, contexts, priority or status —
+  with *auto* tabs or a fixed list, optional **All** and **Other**, counts per tab,
+  and cascading rows where the next row only offers what the previous one left.
+  Selection is view state only and never writes `data.json`. It works for all four
+  sources, in the list, board and terminal (#481).
+
+- **The graph view gets a one-click card.** *Add card → Graph* mounts Obsidian's
+  own graph view in a Plugin view card — the real interactive graph with zoom,
+  pan, node dragging, filters and colour groups, not a redrawn copy. It shares
+  the Graph core plugin's global options, so per-card graph settings are not
+  saved (#490).
+
+- **Sort tasks by any date the card actually holds.** The sort menu and the
+  custom-sort dialog gain *Start date*, and **due**, **scheduled** and **start**
+  each compare on their own: a due sort no longer falls back to the scheduled
+  date, so a task with a deadline comes before one that is only scheduled
+  (#508). A date field no task carries is not offered, so the menu follows the
+  card's own tasks.
+
+### Fixed
+
+- **The Tasks card no longer goes blank while the Tasks plugin is still
+  indexing.** The plugin builds its task cache asynchronously; until it reports
+  `Warm`, its `getTasks()` is empty. Hearth read that as "no line is a task" and
+  filtered the whole list out, so a board drawn just after startup showed *No
+  open tasks* while the notes were right there. A cache that is not `Warm` is
+  now treated as unknown — the card falls back to the plugin's status registry —
+  and it redraws when the plugin announces `cache-update` on the workspace
+  (#510).
+
+- **An Obsidian Tasks task with no priority is Normal.** The priority sort put
+  every unmarked task after *Lowest*, while the Tasks plugin defines it as
+  Normal. With the Obsidian Tasks source an unmarked task now ranks between
+  Medium and Low — the plugin's own order. Nothing is drawn in the priority
+  column for a missing signifier, so the line stays exactly as written; other
+  sources keep unprioritised tasks last (#145), and editing an unrelated field
+  never writes 🔼 into a line that had no marker (#507, #509).
+
+- **The Vault Pet card works on Vault Pet 1.x and 2.x again.** The plugin
+  renamed its house view to `kitcommit-house` and removed the compact
+  `vault-pet` block it had exposed in September; the card still asked for the
+  old block and the old view name, so its body stayed empty while the plugin
+  itself worked. The card now resolves whichever house view the running plugin
+  registers, and a card set to *The pet* falls back to the house when the
+  compact block is gone; on 1.x+ the *Show* setting is hidden and the card
+  always shows the house, while the saved choice is kept for older versions.
+  The corner button keeps opening the house in the sidebar (#503).
+
 ## [3.10.0]
 
 ### Added
@@ -26,19 +79,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   — revealed on hover, like the task card's add control — puts the result on the
   clipboard exactly as the card shows it, including its unit and the card's
   number format.
-
-- **The graph view gets a one-click card.** *Add card → Graph* mounts Obsidian's
-  own graph view in a Plugin view card — the real interactive graph with zoom,
-  pan, node dragging, filters and colour groups, not a redrawn copy. It shares
-  the Graph core plugin's global options, so per-card graph settings are not
-  saved (#490).
-
-- **Sort tasks by any date the card actually holds.** The sort menu and the
-  custom-sort dialog gain *Start date*, and **due**, **scheduled** and **start**
-  each compare on their own: a due sort no longer falls back to the scheduled
-  date, so a task with a deadline comes before one that is only scheduled
-  (#508). A date field no task carries is not offered, so the menu follows the
-  card's own tasks.
 
 - **The Tasks card reads the Tasks plugin.** *Source* gains a fourth option
   beside Markdown checkboxes, TaskNotes and Kanban: the
@@ -82,33 +122,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
-- **The Tasks card no longer goes blank while the Tasks plugin is still
-  indexing.** The plugin builds its task cache asynchronously; until it reports
-  `Warm`, its `getTasks()` is empty. Hearth read that as "no line is a task" and
-  filtered the whole list out, so a board drawn just after startup showed *No
-  open tasks* while the notes were right there. A cache that is not `Warm` is
-  now treated as unknown — the card falls back to the plugin's status registry —
-  and it redraws when the plugin announces `cache-update` on the workspace
-  (#510).
-
-- **An Obsidian Tasks task with no priority is Normal.** The priority sort put
-  every unmarked task after *Lowest*, while the Tasks plugin defines it as
-  Normal. With the Obsidian Tasks source an unmarked task now ranks between
-  Medium and Low — the plugin's own order. Nothing is drawn in the priority
-  column for a missing signifier, so the line stays exactly as written; other
-  sources keep unprioritised tasks last (#145), and editing an unrelated field
-  never writes 🔼 into a line that had no marker (#507, #509).
-
-- **The Vault Pet card works on Vault Pet 1.x and 2.x again.** The plugin
-  renamed its house view to `kitcommit-house` and removed the compact
-  `vault-pet` block it had exposed in September; the card still asked for the
-  old block and the old view name, so its body stayed empty while the plugin
-  itself worked. The card now resolves whichever house view the running plugin
-  registers, and a card set to *The pet* falls back to the house when the
-  compact block is gone; on 1.x+ the *Show* setting is hidden and the card
-  always shows the house, while the saved choice is kept for older versions.
-  The corner button keeps opening the house in the sidebar (#503).
-
 - **Task fields no longer leak between sources.** The *Fields* customisation
   followed the vault-wide TaskNotes field list on every card, whatever its
   source. Now only TaskNotes cards do that: every other source configures its
@@ -139,7 +152,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   are listed last, as *Loose tracks*. With the switch off the card stays one
   queue of every track, in name order.
 
-
 - **Hearth speaks Traditional Chinese too.** A full `zh-tw` locale joins English,
   German, French, Korean and Simplified Chinese: Obsidian's own Traditional
   Chinese (`zh-TW`) display language now loads it, `zh` stays Simplified and
@@ -159,7 +171,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   and rebuilds it when that card's tracks change — keeping the track that is
   playing, and stopping instead of playing a file that is gone.
 
-
 - **The Pet card in Terminal design no longer grows Obsidian's memory until it
   crashes** (#479). Its frames were the one animation in Hearth running on a
   JavaScript timer instead of CSS, and every tick rebuilt the card's whole body
@@ -172,7 +183,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   hidden. The sprite also merges neighbouring cells of one colour into a single
   run, and the whole body is the click target, so patting it works as before.
 
-
 - **The toggles in Hearth's settings and dialogs are visible again in the TUI
   style on Obsidian 1.15** (#480). That release gives every toggle an absolutely
   positioned, fully transparent `::before` as its click area; the TUI style draws
@@ -181,7 +191,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   layout, and — with `height: auto` on the container — the toggle collapsed to
   0 px. The rule now puts the pseudo-element back in flow, which restores the
   toggle at its text height.
-
 
 - **“Same as the file explorer” now matches the sidebar with the sidebar
   closed** (#439). Obsidian leaves the file explorer unbuilt while the left
@@ -210,7 +219,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   The list keeps one TaskChute view mounted off-screen as its data source; the
   other two read the plugin's monthly snapshot and mount nothing.
 
-
 - **The New-note button takes its name from the search field.** Typing a title in
   the search bar and pressing the button beside it now creates a note called
   exactly that, instead of one called "Untitled" and a name to type again —
@@ -221,7 +229,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   for a Search bar card's button. A typed title replaces the filename pattern
   rather than being appended to it, so no `{{date}}` prefix and no `{{prompt}}`
   dialog appear over text you have already typed.
-
 
 - **A slideshow can rotate through notes.** The Slideshow card's *Slides from*
   setting gains a third source beside a list and a folder of pictures: **The
@@ -236,7 +243,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   which starts on this source — and the picture entry's one-line description now
   names notes too, so the source is visible before the settings dialog.
 
-
 ### Changed
 
 - **Spacing is now a three-step choice.** *Settings → Hearth → Dashboard* (and
@@ -250,7 +256,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   keeps exactly the spacing it had, because the old setting is folded into the
   new one when settings load. The space *between* cards is part of their saved
   layout rather than a style, so Flush leaves it untouched.
-
 
 ### Fixed
 
@@ -280,7 +285,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   For the same query the order and the scores now line up
   with Obsidian's own switcher.
 
-
 - **The Git card works again with obsidian-git 2.41.** That release moved its
   commit-and-push actions, which every earlier version kept flat on the
   plugin, onto its own GitActions helper, so Hearth's support probe, which
@@ -289,7 +293,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   *This version of the Git plugin doesn't support that*. The write actions
   are now looked up per member, on the helper first and on the plugin itself
   second, so a 2.41+ and a pre-2.41 install answer alike.
-
 
 - **The commit scope the card editor chooses is respected again on
   obsidian-git 2.40 and later.** Since 2.40 renamed its commit options to
@@ -300,7 +303,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   passes through and the plugin resolves it exactly as its own Commit
   command does, against a status read at commit time; the old `onlyStaged`
   rides alongside for builds that predate modes.
-
 
 - **Staging everything from the card no longer rests on a possibly stale
   snapshot.** Stage-all and unstage-all now run without a status, matching
@@ -856,7 +858,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   favicon was still fetched from Google's favicon service with the switch on.
   It now shows the globe icon instead.
 
-
 ## [3.2.0]
 
 ### Added
@@ -962,7 +963,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **A board set to *Hearth default* keeps it.** Choosing it in a board's own
   background settings painted nothing and was forgotten on restart.
 
-
 ## [3.1.1]
 
 ### Added
@@ -1035,7 +1035,6 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 - **The board no longer wobbles sideways on a phone.** The board can't be
   dragged horizontally any more, and a long one-word title wraps instead of
   pushing past the edge (#326).
-
 
 ## [3.1.0]
 
