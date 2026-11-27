@@ -4661,6 +4661,8 @@ export const en = {
 			sortLabels: {
 				smart: "Smart",
 				due: "Due date",
+				scheduled: "Scheduled date",
+				start: "Start date",
 				priority: "Priority",
 				created: "Date created",
 				alpha: "Alphabetical",
@@ -4673,6 +4675,7 @@ export const en = {
 			sortFields: {
 				due: "Due date",
 				scheduled: "Scheduled date",
+				start: "Start date",
 				priority: "Priority",
 				created: "Date created",
 				alpha: "Alphabetical",

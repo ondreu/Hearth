@@ -49,10 +49,21 @@ export function priorityKey(priority: string | undefined): string {
 /** Rank of a priority value for ordering: highest → high → medium → low →
  * lowest → none. This ranks on the fine-grained key rather than the coarse
  * colour level, so "highest" sorts above "high" (and "low" above "lowest")
- * instead of tying with it and falling through to the next sort rule. */
-export function priorityRank(priority: string | undefined): number {
-	const i = PRIORITY_ORDER.indexOf(priorityKey(priority));
-	return i === -1 ? PRIORITY_ORDER.length : i;
+ * instead of tying with it and falling through to the next sort rule.
+ *
+ * `unmarkedAsNormal` is for sources whose own format defines a missing
+ * priority: Obsidian Tasks treats a task with no signifier as Normal, so for
+ * that source an absent value ranks where an explicit `normal` does (between
+ * Medium and Low) instead of after Lowest. An unrecognised value ("banana")
+ * still ranks last either way — this only moves a *missing* one. */
+export function priorityRank(priority: string | undefined, unmarkedAsNormal = false): number {
+	const key = priorityKey(priority);
+	const i = PRIORITY_ORDER.indexOf(key);
+	if (i !== -1) return i;
+	// The Tasks plugin puts "no signifier" (= Normal) between Medium and Low, so
+	// the rank is fractional: it must not tie with an explicit 🔼.
+	if (unmarkedAsNormal && !(priority ?? "").trim()) return PRIORITY_ORDER.indexOf("medium") + 0.5;
+	return PRIORITY_ORDER.length;
 }
 
 

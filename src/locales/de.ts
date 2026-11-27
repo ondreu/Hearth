@@ -4657,6 +4657,8 @@ export const de: Translations = {
 			sortLabels: {
 				smart: "Smart",
 				due: "Fälligkeitsdatum",
+				scheduled: "Geplantes Datum",
+				start: "Startdatum",
 				priority: "Priorität",
 				created: "Erstelldatum",
 				alpha: "Alphabetisch",
@@ -4669,6 +4671,7 @@ export const de: Translations = {
 			sortFields: {
 				due: "Fälligkeitsdatum",
 				scheduled: "Geplantes Datum",
+				start: "Startdatum",
 				priority: "Priorität",
 				created: "Erstelldatum",
 				alpha: "Alphabetisch",

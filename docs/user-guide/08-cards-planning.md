@@ -269,6 +269,16 @@ Sorting is either a **smart chain** — due date, then scheduled date, then
 priority, then created date — or a custom multi-rule sort you define. Sorting is
 set per list and per Kanban column.
 
+The single-key sorts and the custom rules can order by each date field on its
+own — **due**, **scheduled** and **start** — and only the ones your tasks
+actually carry are offered. A date sort compares only that date: a task with a
+deadline comes before one that has only a scheduled date, and a scheduled date
+no longer stands in for a missing due date. With the **Obsidian Tasks** source,
+a task with no priority signifier counts as **Normal** and sorts between Medium
+and Low, the way the plugin orders it; the other sources keep unprioritised
+tasks last. Nothing is drawn in the priority column for a missing signifier — it
+stays an absence, not a badge.
+
 **The Filter button** appears at the card's top-right on hover — in the list
 layout and on the Kanban board alike — and stays visible while a filter is set.
 It opens a dialog with quick presets (Overdue, Today, This week, High priority,

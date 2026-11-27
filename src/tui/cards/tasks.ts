@@ -963,7 +963,10 @@ export const tasksTui: TuiRenderer = {
 				return true;
 			case "s":
 				if (cfg.layout === "kanban") return false;
-				showMenuFor(taskSortMenu(ctx.view, cfg, statusesOf(cfg, load), refreshOf(ctx)), evt);
+				showMenuFor(
+					taskSortMenu(ctx.view, cfg, { ...load.filterChoices, statuses: statusesOf(cfg, load) }, refreshOf(ctx)),
+					evt,
+				);
 				return true;
 			case "b":
 				// Switch between the list and the board — the same setting as the

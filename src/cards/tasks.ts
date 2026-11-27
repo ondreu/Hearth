@@ -132,6 +132,7 @@ import {
 	effectiveCardDesign,
 	type HomeSettings,
 	type TaskDueFilter,
+	type TaskDateSortField,
 	type TaskFieldDef,
 	type TaskFieldKey,
 	type TaskValueMap,
@@ -637,6 +638,10 @@ export interface TaskFilterChoices {
 	/** Priority levels the card's tasks actually carry, in their own order.
 	 * Empty means none was seen, and the editor offers every level. */
 	priorities: TaskPriorityLevel[];
+	/** Date fields at least one task actually carries, in menu order. Used to
+	 * offer only the date sorts that can change the order: a card whose tasks
+	 * have no scheduled date does not offer "Scheduled date". */
+	dateFields: TaskDateSortField[];
 	contexts: string[];
 	projects: string[];
 	tags: string[];
@@ -654,7 +659,7 @@ function renderTasksListHeader(
 	// Filter and sort controls for the whole list. Like the add control, they're
 	// revealed on card hover (see styles.css) so the header stays uncluttered.
 	renderTaskFilterControl(view, actions, cfg, filterChoices, refresh);
-	renderTaskListSortControl(view, actions, cfg, filterChoices.statuses, refresh);
+	renderTaskListSortControl(view, actions, cfg, filterChoices, refresh);
 	if (filterChoices.source === "tasknotes") {
 		// TaskNotes add is a single command button, so it sits with the controls.
 		taskNotesAddButton(view, actions);
@@ -1578,18 +1583,35 @@ export function taskMetaEnabled(cfg: TasksConfig, hit: TaskHit): boolean {
 	return hit.boardColumn ? (cfg.kanbanExtended ?? false) : (cfg.checkboxExtended ?? true);
 }
 
+/** Whether a source's own format makes a missing priority mean Normal.
+ * Obsidian Tasks treats a task with no signifier as Normal; TaskNotes'
+ * frontmatter and the generic checkbox source leave it unset, where "no
+ * priority" is a real state and sorts last (#145). */
+function unmarkedPriorityIsNormal(source: string | undefined): boolean {
+	return source === "obsidian-tasks";
+}
+
+/** Compare two date strings; tasks missing a date sort after those that have
+ * one. */
+function compareDate(a: string | null | undefined, b: string | null | undefined): number {
+	if (a && b) return a < b ? -1 : a > b ? 1 : 0;
+	if (a) return -1;
+	if (b) return 1;
+	return 0;
+}
+
 /** The default "smart" ordering: due date → scheduled date → priority → created
  * date. Dates compare as strings (YYYY-MM-DD sorts lexically); tasks missing a
- * date sort after those that have one. */
-function compareSmart(a: TaskHit, b: TaskHit): number {
-	if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
-	if (a.due) return -1;
-	if (b.due) return 1;
-	if (a.scheduled && b.scheduled) return a.scheduled < b.scheduled ? -1 : a.scheduled > b.scheduled ? 1 : 0;
-	if (a.scheduled) return -1;
-	if (b.scheduled) return 1;
-	const pa = priorityRank(a.priority);
-	const pb = priorityRank(b.priority);
+ * date sort after those that have one. `source` decides whether an unmarked
+ * priority counts as Normal (Obsidian Tasks) or as "no priority" (the rest). */
+function compareSmart(a: TaskHit, b: TaskHit, source?: string): number {
+	const byDue = compareDate(a.due, b.due);
+	if (byDue !== 0) return byDue;
+	const byScheduled = compareDate(a.scheduled, b.scheduled);
+	if (byScheduled !== 0) return byScheduled;
+	const unmarkedAsNormal = unmarkedPriorityIsNormal(source);
+	const pa = priorityRank(a.priority, unmarkedAsNormal);
+	const pb = priorityRank(b.priority, unmarkedAsNormal);
 	if (pa !== pb) return pa - pb;
 	return a.created - b.created;
 }
@@ -1606,28 +1628,32 @@ export interface SortState {
 /** Sort a list of tasks in place by the given key and direction. Incomplete
  * tasks always come before completed ones (so "show completed" adds them below
  * rather than crowding out open work); within each group the chosen key
- * applies, and `reverse` flips that key (not the incomplete/complete grouping). */
-export function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void {
+ * applies, and `reverse` flips that key (not the incomplete/complete grouping).
+ *
+ * A date key compares only its own field — `due` no longer falls back to
+ * `scheduled`, so a task with a deadline always sorts ahead of one that only
+ * has a scheduled date (#508). The fallback still applies to the due-date
+ * *filter* and the overdue mark, which is a different question. */
+export function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean, source?: string): void {
 	const compare = (a: TaskHit, b: TaskHit): number => {
 		switch (key) {
-			case "due": {
-				const ad = effectiveDate(a);
-				const bd = effectiveDate(b);
-				if (ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0;
-				if (ad) return -1;
-				if (bd) return 1;
-				return a.created - b.created;
-			}
+			case "due":
+				return compareDate(a.due, b.due) || compareSmart(a, b, source);
+			case "scheduled":
+				return compareDate(a.scheduled, b.scheduled) || compareSmart(a, b, source);
+			case "start":
+				return compareDate(a.start, b.start) || compareSmart(a, b, source);
 			case "priority": {
-				const d = priorityRank(a.priority) - priorityRank(b.priority);
-				return d !== 0 ? d : compareSmart(a, b);
+				const unmarkedAsNormal = unmarkedPriorityIsNormal(source);
+				const d = priorityRank(a.priority, unmarkedAsNormal) - priorityRank(b.priority, unmarkedAsNormal);
+				return d !== 0 ? d : compareSmart(a, b, source);
 			}
 			case "created":
 				return a.created - b.created;
 			case "alpha":
 				return (a.text || a.file.basename).localeCompare(b.text || b.file.basename);
 			default:
-				return compareSmart(a, b);
+				return compareSmart(a, b, source);
 		}
 	};
 	hits.sort((a, b) => {
@@ -1640,20 +1666,18 @@ export function sortHits(hits: TaskHit[], key: SortKey, reverse: boolean): void 
 /** Compare two tasks on a single custom-sort field, ascending. Tasks missing a
  * value for the field sort after those that have one; ties return 0 so the
  * next rule (or the created-date backstop) decides. */
-function compareByField(a: TaskHit, b: TaskHit, field: TaskSortField): number {
-	const cmpDate = (x: string | null, y: string | null): number => {
-		if (x && y) return x < y ? -1 : x > y ? 1 : 0;
-		if (x) return -1;
-		if (y) return 1;
-		return 0;
-	};
+function compareByField(a: TaskHit, b: TaskHit, field: TaskSortField, source?: string): number {
 	switch (field) {
 		case "due":
-			return cmpDate(effectiveDate(a), effectiveDate(b));
+			return compareDate(a.due, b.due);
 		case "scheduled":
-			return cmpDate(a.scheduled, b.scheduled);
-		case "priority":
-			return priorityRank(a.priority) - priorityRank(b.priority);
+			return compareDate(a.scheduled, b.scheduled);
+		case "start":
+			return compareDate(a.start, b.start);
+		case "priority": {
+			const unmarkedAsNormal = unmarkedPriorityIsNormal(source);
+			return priorityRank(a.priority, unmarkedAsNormal) - priorityRank(b.priority, unmarkedAsNormal);
+		}
 		case "created":
 			return a.created - b.created;
 		case "alpha":
@@ -1670,11 +1694,11 @@ function compareByField(a: TaskHit, b: TaskHit, field: TaskSortField): number {
 /** Sort tasks in place by an ordered list of custom rules: each rule is applied
  * as a tiebreaker for the previous, with the file creation time as the final
  * backstop. Like the single-key sort, incomplete tasks always come first. */
-function sortHitsByRules(hits: TaskHit[], rules: TaskSortRule[]): void {
+function sortHitsByRules(hits: TaskHit[], rules: TaskSortRule[], source?: string): void {
 	hits.sort((a, b) => {
 		if (a.done !== b.done) return a.done ? 1 : -1;
 		for (const rule of rules) {
-			const c = compareByField(a, b, rule.field);
+			const c = compareByField(a, b, rule.field, source);
 			if (c !== 0) return rule.reverse ? -c : c;
 		}
 		return a.created - b.created;
@@ -1689,12 +1713,18 @@ function hasCustomSort(cfg: TasksConfig): boolean {
 /** Sort tasks by the card's persistent (whole-list) sort setting: the custom
  * rule list when set, otherwise the single sort key + direction. */
 export function sortTasks(hits: TaskHit[], cfg: TasksConfig): void {
-	if (hasCustomSort(cfg)) sortHitsByRules(hits, cfg.sortRules as TaskSortRule[]);
-	else sortHits(hits, cfg.sortKey ?? "smart", !!cfg.sortReverse);
+	const source = cfg.source ?? "checkbox";
+	if (hasCustomSort(cfg)) sortHitsByRules(hits, cfg.sortRules as TaskSortRule[], source);
+	else sortHits(hits, cfg.sortKey ?? "smart", !!cfg.sortReverse, source);
 }
 
 /** Available sort keys, in the order shown in the sort menu. */
-export const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "priority", "created", "alpha"];
+export const TASK_SORT_KEYS: SortKey[] = ["smart", "due", "scheduled", "start", "priority", "created", "alpha"];
+
+/** Whether a sort key/field is one of the date fields. */
+export function isDateSortField(field: TaskSortField | SortKey): field is TaskDateSortField {
+	return field === "due" || field === "scheduled" || field === "start";
+}
 
 /** A minimalistic sort control: a small button that opens a menu to pick a sort
  * key or reverse the direction. `compact` renders it icon-only (for Kanban
@@ -1740,7 +1770,7 @@ function renderTaskSortControl(
 }
 
 /** Fields offered by the custom-sort modal, in menu order. */
-const TASK_SORT_FIELDS: TaskSortField[] = ["due", "scheduled", "priority", "created", "alpha", "status"];
+const TASK_SORT_FIELDS: TaskSortField[] = ["due", "scheduled", "start", "priority", "created", "alpha", "status"];
 
 /**
  * The list header's sort control. Like {@link renderTaskSortControl} it offers
@@ -1753,7 +1783,7 @@ function renderTaskListSortControl(
 	view: CardHost,
 	parent: HTMLElement,
 	cfg: TasksConfig,
-	availableStatuses: string[],
+	choices: TaskFilterChoices,
 	refresh: () => void,
 ): void {
 	const custom = hasCustomSort(cfg);
@@ -1774,13 +1804,27 @@ function renderTaskListSortControl(
 
 	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		taskSortMenu(view, cfg, availableStatuses, refresh).showAtMouseEvent(e);
+		taskSortMenu(view, cfg, choices, refresh).showAtMouseEvent(e);
 	});
+}
+
+/** The sort keys the menu offers for a task set: date keys only when the tasks
+ * carry that date somewhere (or when it is the key already in use, so the
+ * current setting stays visible and can be changed), everything else always. */
+function offeredSortKeys(choices: TaskFilterChoices, active: SortKey): SortKey[] {
+	return TASK_SORT_KEYS.filter(
+		(key) => !isDateSortField(key) || choices.dateFields.includes(key) || key === active,
+	);
 }
 
 /** The list's sort menu: the simple sorts, reverse, and the custom-sort
  * dialog. Shared by the sort button and terminal mode's `s`. */
-export function taskSortMenu(view: CardHost, cfg: TasksConfig, availableStatuses: string[], refresh: () => void): Menu {
+export function taskSortMenu(
+	view: CardHost,
+	cfg: TasksConfig,
+	choices: TaskFilterChoices,
+	refresh: () => void,
+): Menu {
 	const custom = hasCustomSort(cfg);
 	const active: SortKey = cfg.sortKey ?? "smart";
 	const labels = t().cards.tasks.sortLabels;
@@ -1789,7 +1833,7 @@ export function taskSortMenu(view: CardHost, cfg: TasksConfig, availableStatuses
 		refresh();
 	};
 	const menu = hearthMenu();
-	for (const key of TASK_SORT_KEYS) {
+	for (const key of offeredSortKeys(choices, active)) {
 		menu.addItem((item) =>
 			item
 				.setTitle(labels[key])
@@ -1823,10 +1867,16 @@ export function taskSortMenu(view: CardHost, cfg: TasksConfig, availableStatuses
 			.setChecked(custom)
 			.setIcon("list-ordered")
 			.onClick(() => {
-				const modal = new TaskSortModal(view.app, cfg.sortRules ?? [], availableStatuses, (rules) => {
-					cfg.sortRules = rules.length ? rules : undefined;
-					persist();
-				});
+				const modal = new TaskSortModal(
+					view.app,
+					cfg.sortRules ?? [],
+					choices.statuses,
+					choices.dateFields,
+					(rules) => {
+						cfg.sortRules = rules.length ? rules : undefined;
+						persist();
+					},
+				);
 				dressModal(modal, tasksExpressive(cfg)).open();
 			}),
 	);
@@ -1846,6 +1896,7 @@ class TaskSortModal extends HearthModal {
 		app: App,
 		initial: TaskSortRule[],
 		private readonly availableStatuses: string[],
+		private readonly availableDateFields: TaskDateSortField[],
 		private readonly onSubmit: (rules: TaskSortRule[]) => void,
 	) {
 		super(app);
@@ -1853,10 +1904,17 @@ class TaskSortModal extends HearthModal {
 		this.rules = initial.map((r) => ({ ...r }));
 	}
 
-	/** Sort fields available in this context (status only when the source exposes
-	 * status/column values, matching the filter modal). */
+	/** Sort fields available in this context: status only when the source
+	 * exposes status/column values (matching the filter modal), and a date field
+	 * only when the tasks carry it — unless a rule already uses it, which must
+	 * stay visible or the dropdown would show an empty value. */
 	private fields(): TaskSortField[] {
-		return TASK_SORT_FIELDS.filter((f) => f !== "status" || this.availableStatuses.length > 0);
+		const used = new Set(this.rules.map((r) => r.field));
+		return TASK_SORT_FIELDS.filter((f) => {
+			if (f === "status") return this.availableStatuses.length > 0 || used.has(f);
+			if (isDateSortField(f)) return this.availableDateFields.includes(f) || used.has(f);
+			return true;
+		});
 	}
 
 	onOpen(): void {
@@ -2028,7 +2086,13 @@ export function collectTaskFilterChoices(hits: TaskHit[], source: string, status
 	// Only the levels that occur, in the canonical highest→none order: a chip
 	// that would match nothing is noise, and the row then follows the data.
 	const priorities = TASK_PRIORITY_LEVELS.filter((l) => presentPriorities.has(l));
-	return { source, statuses, priorities, contexts, projects, tags };
+	// Date sorts follow the same rule: offer only a date field the tasks carry
+	// somewhere, so a card without scheduled dates has no dead "Scheduled" entry.
+	const dateFields: TaskDateSortField[] = [];
+	if (hits.some((h) => h.due)) dateFields.push("due");
+	if (hits.some((h) => h.scheduled)) dateFields.push("scheduled");
+	if (hits.some((h) => h.start)) dateFields.push("start");
+	return { source, statuses, priorities, dateFields, contexts, projects, tags };
 }
 
 /** A filter button styled like the sort control. Shows "active" when the card
@@ -2974,7 +3038,7 @@ export function taskBoard(
 		// A column with its own override sorts by that; otherwise it follows the
 		// card's global sort — the custom rule list when set, else the simple key.
 		if (colSort.key || colSort.reverse) {
-			sortHits(col.hits, colSort.key ?? globalKey, colSort.reverse ?? globalReverse);
+			sortHits(col.hits, colSort.key ?? globalKey, colSort.reverse ?? globalReverse, source);
 		} else {
 			sortTasks(col.hits, cfg);
 		}

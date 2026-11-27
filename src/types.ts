@@ -207,10 +207,19 @@ export type TaskPriorityLevel =
  * effective date (due, or the next scheduled occurrence for recurring tasks). */
 export type TaskDueFilter = "overdue" | "today" | "week" | "hasDate" | "noDate";
 
+/** Every sort key the tasks card's simple sort offers. */
+export type TaskSortKey = "smart" | TaskDateSortField | "priority" | "created" | "alpha";
+
+/** A date field a task sort can order by. Each compares only its own date —
+ * `due` does not fall back to `scheduled` here, because a sort can now name
+ * either one separately. */
+export type TaskDateSortField = "due" | "scheduled" | "start";
+
 /** A single field a custom task sort can order by. Mirrors the simple sort
- * keys but adds `scheduled` and `status`, and drops the composite "smart"
- * (which is only meaningful as the whole default chain, not one rule level). */
-export type TaskSortField = "due" | "scheduled" | "priority" | "created" | "alpha" | "status";
+ * keys but adds `scheduled`, `start` and `status`, and drops the composite
+ * "smart" (which is only meaningful as the whole default chain, not one rule
+ * level). */
+export type TaskSortField = TaskDateSortField | "priority" | "created" | "alpha" | "status";
 
 /** One level of a custom task sort: a field and a direction. Rules apply in
  * order — the first is the primary sort and each following rule breaks ties. */
@@ -405,7 +414,7 @@ export interface TasksConfig {
 	 * control. "smart" (default) is the due → scheduled → priority → created
 	 * chain; the others sort by a single field. Incomplete tasks always sort
 	 * before completed ones regardless of key. */
-	sortKey?: "smart" | "due" | "priority" | "created" | "alpha";
+	sortKey?: TaskSortKey;
 	/** Reverse the chosen sort direction. */
 	sortReverse?: boolean;
 	/** List/board custom multi-level sort: an ordered list of field+direction
@@ -418,7 +427,7 @@ export interface TasksConfig {
 	/** Kanban: per-column sort, keyed by column key. Each column sorts
 	 * independently from its own header; a column with no entry falls back to the
 	 * card's global `sortKey`/`sortReverse`. */
-	kanbanColumnSort?: Record<string, { key?: "smart" | "due" | "priority" | "created" | "alpha"; reverse?: boolean }>;
+	kanbanColumnSort?: Record<string, { key?: TaskSortKey; reverse?: boolean }>;
 	/** How `folders` is applied. "all" (default) scans the whole vault. */
 	folderScope?: "all" | "whitelist" | "blacklist";
 	folders?: string[];
