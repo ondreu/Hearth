@@ -2,15 +2,17 @@ import { Component, MarkdownRenderer, Setting } from "obsidian";
 import type { CardHost } from "../cardhost";
 import { cardOverlayButton, emptyState } from "../cardbodies";
 import { t } from "../i18n";
-import { isViewTypeHostable, mountLeafView } from "../leafview";
+import { mountLeafView } from "../leafview";
 import { type DashboardCard } from "../types";
 import {
 	VAULT_PET_BLOCK,
-	VAULT_PET_HOUSE_VIEW,
 	VAULT_PET_PLUGIN_ID,
 	isVaultPetAvailable,
 	openVaultPetHouse,
 	vaultPetDisplay,
+	vaultPetDisplays,
+	vaultPetHasPetBlock,
+	vaultPetHouseView,
 } from "../vaultpet";
 import { type CardDefinition, type CardEditorContext } from "./definition";
 
@@ -61,7 +63,10 @@ export function renderVaultPet(
 		});
 	}
 
-	if (vaultPetDisplay(card) === "house") {
+	if (vaultPetDisplay(card) === "house" || !vaultPetHasPetBlock(view.app)) {
+		// 1.0 dropped the compact block entirely, so "pet" would render an empty
+		// body. Fall through to the house — the plugin's other own surface — and
+		// leave the choice stored, so a downgrade brings the block display back.
 		renderVaultPetHouse(view, card, body, component);
 		return;
 	}
@@ -80,7 +85,10 @@ function renderVaultPetHouse(
 	body: HTMLElement,
 	component: Component,
 ): void {
-	if (!isViewTypeHostable(view.app, VAULT_PET_HOUSE_VIEW)) {
+	// Resolve the view type at draw time: 1.x registers `kitcommit-house`, 0.4–0.6
+	// the older name, and a board can meet either.
+	const houseView = vaultPetHouseView(view.app);
+	if (!houseView) {
 		emptyState(body, "egg", t().cards.empty.vaultPetNoHouse);
 		return;
 	}
@@ -94,7 +102,7 @@ function renderVaultPetHouse(
 	// Its leaf header is a title bar meant for the sidebar; the card already has
 	// one of its own, so drop it unless the user asks for it back.
 	if (!card.vaultPet?.showHeader) host.addClass("hearth-leaf-hide-header");
-	if (!mountLeafView(view.app, VAULT_PET_HOUSE_VIEW, host, component)) {
+	if (!mountLeafView(view.app, houseView, host, component)) {
 		host.remove();
 		body.removeClass("hearth-card-body-live");
 		emptyState(body, "egg", t().cards.empty.vaultPetNoHouse);
@@ -106,6 +114,11 @@ function renderVaultPetHouse(
 export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const strings = t().editors.vaultPet;
 	const cfg = (ctx.card.vaultPet ??= {});
+	// The compact `vault-pet` block only exists in 0.4–0.6; 1.0 dropped it.
+	// Offering a two-value setting there would promise two views and draw the
+	// same one twice, so the setting disappears entirely. A stored "pet" choice
+	// is left alone and comes back with the older plugin.
+	const displays = vaultPetDisplays(ctx.app);
 
 	if (!isVaultPetAvailable(ctx.app)) {
 		// Same posture as the Git card's editor: say what is missing rather than
@@ -115,21 +128,23 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 		note.settingEl.addClass("hearth-setting-note");
 	}
 
-	new Setting(containerEl)
-		.setName(strings.display)
-		.setDesc(strings.displayDesc)
-		.addDropdown((d) => {
-			d.addOption("pet", strings.displayPet);
-			d.addOption("house", strings.displayHouse);
-			d.setValue(vaultPetDisplay(ctx.card)).onChange((v) => {
-				cfg.display = v === "house" ? "house" : undefined;
-				ctx.opts.save();
-				ctx.requestRender();
-				ctx.opts.rerender();
+	if (displays.length > 1) {
+		new Setting(containerEl)
+			.setName(strings.display)
+			.setDesc(strings.displayDesc)
+			.addDropdown((d) => {
+				d.addOption("pet", strings.displayPet);
+				d.addOption("house", strings.displayHouse);
+				d.setValue(vaultPetDisplay(ctx.card)).onChange((v) => {
+					cfg.display = v === "house" ? "house" : undefined;
+					ctx.opts.save();
+					ctx.requestRender();
+					ctx.opts.rerender();
+				});
 			});
-		});
+	}
 
-	if (vaultPetDisplay(ctx.card) === "house") {
+	if (displays.length === 1 || vaultPetDisplay(ctx.card) === "house") {
 		new Setting(containerEl)
 			.setName(strings.showHeader)
 			.setDesc(strings.showHeaderDesc)

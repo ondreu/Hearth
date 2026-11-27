@@ -364,7 +364,7 @@ reset your pet or disagree with what the plugin shows elsewhere.
 
 | Setting | Meaning |
 | --- | --- |
-| *Show* | **The pet** — the plugin's own compact card: its sprite, level bar, today's characters, links and notes, and its streak. Clicking it pets the pet, exactly as clicking it in a note does. **The pet house** — the plugin's house view, hosted in the card: quests, dex, badges, wardrobe and stats |
+| *Show* | **The pet** — the plugin's own compact card: its sprite, level bar, today's characters, links and notes, and its streak. Clicking it pets the pet, exactly as clicking it in a note does. **The pet house** — the plugin's house view, hosted in the card: quests, dex, badges, wardrobe and stats. On Vault Pet 1.0 and newer the plugin no longer offers the compact card, so the card drops the *Show* setting and always shows *The pet house*; a stored *The pet* choice is kept for older versions |
 | *Keep the house's title bar* | The hosted view's own header is hidden by default, since the card has one already. Only shown for the house |
 | *"Open the pet house" button* | A small button in the card's corner that opens the house in the sidebar, the same as Vault Pet's ribbon icon. On by default |
 

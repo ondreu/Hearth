@@ -93,6 +93,16 @@ History begins at 1.5.0. For releases before 1.5.0, see the
   sources keep unprioritised tasks last (#145), and editing an unrelated field
   never writes 🔼 into a line that had no marker (#507, #509).
 
+- **The Vault Pet card works on Vault Pet 1.x and 2.x again.** The plugin
+  renamed its house view to `kitcommit-house` and removed the compact
+  `vault-pet` block it had exposed in September; the card still asked for the
+  old block and the old view name, so its body stayed empty while the plugin
+  itself worked. The card now resolves whichever house view the running plugin
+  registers, and a card set to *The pet* falls back to the house when the
+  compact block is gone; on 1.x+ the *Show* setting is hidden and the card
+  always shows the house, while the saved choice is kept for older versions.
+  The corner button keeps opening the house in the sidebar (#503).
+
 - **Task fields no longer leak between sources.** The *Fields* customisation
   followed the vault-wide TaskNotes field list on every card, whatever its
   source. Now only TaskNotes cards do that: every other source configures its
