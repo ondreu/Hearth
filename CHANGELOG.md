@@ -69,6 +69,15 @@ History begins at 1.5.0. For releases before 1.5.0, see the
 
 ### Fixed
 
+- **The Tasks card no longer goes blank while the Tasks plugin is still
+  indexing.** The plugin builds its task cache asynchronously; until it reports
+  `Warm`, its `getTasks()` is empty. Hearth read that as "no line is a task" and
+  filtered the whole list out, so a board drawn just after startup showed *No
+  open tasks* while the notes were right there. A cache that is not `Warm` is
+  now treated as unknown — the card falls back to the plugin's status registry —
+  and it redraws when the plugin announces `cache-update` on the workspace
+  (#510).
+
 - **The Vault Pet card works on Vault Pet 1.x and 2.x again.** The plugin
   renamed its house view to `kitcommit-house` and removed the compact
   `vault-pet` block it had exposed in September; the card still asked for the
