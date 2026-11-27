@@ -1013,7 +1013,7 @@ export const ko: Translations = {
 		folder: "폴더", links: "링크 / 실행 모음", templater: "템플릿으로 새 노트", clock: "시계와 인사말", tasks: "작업", calendar: "미니 달력", schedule: "캘린더",
 		stats: "보관함 통계", search: "검색 쿼리", searchbar: "검색창", heatmap: "활동 히트맵", text: "텍스트 / 메모", calculator: "계산기", dataview: "Dataview 쿼리", datacore: "Datacore 쿼리",
 		rss: "RSS 피드", jira: "Jira 필터", weather: "날씨", market: "시장 정보", tension: "세계 긴장도", git: "Git", "operon-tasks": "Operon 작업", "operon-board": "Operon 보드",
-		"operon-agenda": "Operon 일정", "operon-timer": "Operon 타이머", leaf: "플러그인 보기 (베타)", pet: "펫", "vault-pet": "Vault Pet", "vault-pet-house": "Vault Pet 하우스",
+		"operon-agenda": "Operon 일정", "operon-timer": "Operon 타이머", leaf: "플러그인 보기 (베타)", graph: "그래프", pet: "펫", "vault-pet": "Vault Pet", "vault-pet-house": "Vault Pet 하우스",
 	},
 	templateDescriptions: {
 		...en.templateDescriptions,
@@ -1030,7 +1030,7 @@ export const ko: Translations = {
 		rss: "구독한 피드의 새 글", jira: "Jira 필터 또는 JQL 검색의 이슈", weather: "선택한 지역의 일기 예보", market: "주식, 펀드, 외환, 가상자산의 실시간 시세",
 		tension: "세계 긴장도에 대한 Kagi News AI 분석", git: "커밋, 풀, 푸시 기능이 있는 저장소 상태", "operon-tasks": "원하는 방식으로 필터링한 Operon 작업",
 		"operon-board": "보드 열로 표시하는 Operon 파이프라인 상태", "operon-agenda": "날짜별 Operon 작업 일정", "operon-timer": "실시간으로 갱신되는 Operon 시간 추적기",
-		leaf: "카드에서 호스팅하는 다른 플러그인의 사이드 패널", pet: "보드에 함께하는 작은 친구", "vault-pet": "글을 쓸수록 성장하는 Vault Pet 플러그인의 펫",
+		leaf: "카드에서 호스팅하는 다른 플러그인의 사이드 패널", graph: "카드에서 호스팅하는 Obsidian 그래프 뷰", pet: "보드에 함께하는 작은 친구", "vault-pet": "글을 쓸수록 성장하는 Vault Pet 플러그인의 펫",
 		"vault-pet-house": "퀘스트, 도감, 배지, 통계를 제공하는 Vault Pet 하우스",
 	},
 	tui: {

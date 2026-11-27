@@ -641,6 +641,14 @@ card — a calendar, an outline, a tag pane, a Kanban board.
 The card can also be pinned to one file, which is what makes it useful for a
 specific drawing or PDF.
 
+### Graph on a card
+
+**Add card → Graph** mounts Obsidian's own graph view in a card — the real
+interactive graph with zoom, pan, node dragging, filters and colour groups,
+not a redrawn copy. It shares the Graph core plugin's global options, so
+per-card graph settings are not saved; tune filters and forces in the graph
+view itself. If the core Graph plugin is off, the card shows a prompt instead.
+
 ### The performance warning, in full
 
 This is by far the heaviest card Hearth has. It runs another plugin's full view
