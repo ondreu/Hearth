@@ -105,6 +105,13 @@ export function vaultPetHasPetBlock(app: App): boolean {
 	return isViewTypeHostable(app, VAULT_PET_HOUSE_VIEW_LEGACY);
 }
 
+/** The displays the card editor may offer. The compact block exists only in
+ * 0.4–0.6; on 1.x+ both options would render the same house, so the editor
+ * offers the house alone. A stored "pet" choice is left untouched. */
+export function vaultPetDisplays(app: App): readonly VaultPetDisplay[] {
+	return vaultPetHasPetBlock(app) ? VAULT_PET_DISPLAYS : ["house"];
+}
+
 /**
  * Open Vault Pet's house in the sidebar, the same as clicking its ribbon icon.
  * Tries the plugin instance first and falls back to its command; returns false

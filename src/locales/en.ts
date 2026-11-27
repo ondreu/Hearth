@@ -3776,6 +3776,10 @@ export const en = {
 			displayDesc:
 				"Both are Vault Pet's own: the small card it can insert into a note, " +
 				"or its house view, hosted here instead of in the sidebar.",
+			displayDescHouseOnly:
+				"Vault Pet 1.x dropped the compact pet card it used to insert into " +
+				"notes, so this card shows its house. The saved choice is kept in " +
+				"case you return to an older version.",
 			displayPet: "The pet",
 			displayHouse: "The pet house",
 			showHeader: "Keep the house's title bar",

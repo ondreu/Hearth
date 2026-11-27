@@ -3424,6 +3424,9 @@ export const zh: Translations = {
 			displayDesc:
 				"两者都来自 Vault Pet 自身：它可以插入笔记的小卡片，或它的小屋视图，" +
 				"承载在这里而不是侧边栏。",
+			displayDescHouseOnly:
+				"Vault Pet 1.x 移除了原本可插入笔记的小型宠物卡片，因此这张卡片显示" +
+				"它的宠物小屋。若你回到旧版本，已保存的选择仍会保留。",
 			displayPet: "宠物",
 			displayHouse: "宠物小屋",
 			showHeader: "保留小屋的标题栏",

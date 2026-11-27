@@ -10,6 +10,7 @@ import {
 	isVaultPetAvailable,
 	openVaultPetHouse,
 	vaultPetDisplay,
+	vaultPetDisplays,
 	vaultPetHasPetBlock,
 	vaultPetHouseView,
 } from "../vaultpet";
@@ -113,6 +114,10 @@ function renderVaultPetHouse(
 export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement): void {
 	const strings = t().editors.vaultPet;
 	const cfg = (ctx.card.vaultPet ??= {});
+	// The compact `vault-pet` block only exists in 0.4–0.6; 1.0 dropped it.
+	// Offering both options on a plugin that has one surface would promise two
+	// views and draw the same one twice. A stored "pet" choice is left alone.
+	const displays = vaultPetDisplays(ctx.app);
 
 	if (!isVaultPetAvailable(ctx.app)) {
 		// Same posture as the Git card's editor: say what is missing rather than
@@ -124,11 +129,13 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 
 	new Setting(containerEl)
 		.setName(strings.display)
-		.setDesc(strings.displayDesc)
+		.setDesc(displays.length > 1 ? strings.displayDesc : strings.displayDescHouseOnly)
 		.addDropdown((d) => {
-			d.addOption("pet", strings.displayPet);
+			if (displays.includes("pet")) d.addOption("pet", strings.displayPet);
 			d.addOption("house", strings.displayHouse);
-			d.setValue(vaultPetDisplay(ctx.card)).onChange((v) => {
+			d.setValue(
+				displays.includes(vaultPetDisplay(ctx.card)) ? vaultPetDisplay(ctx.card) : "house",
+			).onChange((v) => {
 				cfg.display = v === "house" ? "house" : undefined;
 				ctx.opts.save();
 				ctx.requestRender();
@@ -136,7 +143,7 @@ export function vaultPetEditor(ctx: CardEditorContext, containerEl: HTMLElement)
 			});
 		});
 
-	if (vaultPetDisplay(ctx.card) === "house") {
+	if (displays.length === 1 || vaultPetDisplay(ctx.card) === "house") {
 		new Setting(containerEl)
 			.setName(strings.showHeader)
 			.setDesc(strings.showHeaderDesc)

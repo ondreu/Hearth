@@ -1924,6 +1924,9 @@ export const ko: Translations = {
 			missingDesc: "이 카드는 Vault Pet 커뮤니티 플러그인을 표시합니다. 플러그인을 설치하고 활성화하면 카드가 자동으로 채워집니다. 이 설정은 어느 경우든 유지됩니다.",
 			display: "표시",
 			displayDesc: "둘 다 Vault Pet 자체 화면입니다. 노트에 삽입할 수 있는 작은 카드, 또는 사이드바 대신 여기에 표시하는 펫 집 보기입니다.",
+			displayDescHouseOnly:
+				"Vault Pet 1.x는 노트에 삽입하던 작은 펫 카드를 없앴기 때문에 이 카드는 " +
+				"펫 하우스를 표시합니다. 이전 버전으로 돌아가도 저장된 선택은 유지됩니다.",
 			displayPet: "펫",
 			displayHouse: "펫 집",
 			showHeader: "집 제목 표시줄 유지",

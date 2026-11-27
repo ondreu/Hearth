@@ -8,6 +8,7 @@ import {
 	isVaultPetAvailable,
 	openVaultPetHouse,
 	vaultPetDisplay,
+	vaultPetDisplays,
 	vaultPetHasPetBlock,
 	vaultPetHouseView,
 	vaultPetPlugin,
@@ -141,6 +142,17 @@ describe("the plugin's surfaces", () => {
 		expect(vaultPetHasPetBlock(fakeApp({ views: [VAULT_PET_HOUSE_VIEW_LEGACY] }))).toBe(true);
 		expect(vaultPetHasPetBlock(fakeApp({ views: [VAULT_PET_HOUSE_VIEW] }))).toBe(false);
 		expect(vaultPetHasPetBlock(fakeApp())).toBe(false);
+	});
+
+	it("offers only the house when the compact block is gone", () => {
+		// Both displays render the house on 1.x+, so the editor must not promise
+		// a compact view the running plugin no longer has.
+		expect(vaultPetDisplays(fakeApp({ views: [VAULT_PET_HOUSE_VIEW_LEGACY] }))).toEqual([
+			"pet",
+			"house",
+		]);
+		expect(vaultPetDisplays(fakeApp({ views: [VAULT_PET_HOUSE_VIEW] }))).toEqual(["house"]);
+		expect(vaultPetDisplays(fakeApp())).toEqual(["house"]);
 	});
 
 	it("names the current and legacy view types", () => {
