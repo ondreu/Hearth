@@ -78,9 +78,8 @@ describe("renderTaskMatrixFrame", () => {
 		expect(quads[3].classList.contains("is-locked")).toBe(true);
 		expect(host.querySelector(".hearth-matrix-unsorted .item")?.textContent).toBe("loose");
 		expect(Array.from(host.querySelectorAll(".hearth-matrix-item")).every((e) => e.getAttribute("draggable") === "true")).toBe(true);
-		// The test shim reports English, so the CJK upright-glyph override
-		// stays off (the on-state needs a CJK Obsidian language, which the
-		// shim cannot provide without mocking Obsidian itself).
+		// The English shim keeps the CJK upright-glyph override off here; the
+		// on-state is covered by test/taskmatrixview.cjk.dom.test.ts.
 		expect(host.querySelector(".hearth-matrix.is-cjk-axis")).toBeNull();
 	});
 
