@@ -18,7 +18,7 @@ import { type TaskNotesMeta } from "./tasknotes";
 
 /** Every Tasks-plugin metadata emoji marker, used to strip metadata from a
  * task's display text and to find where one field's value ends. */
-export const TASK_EMOJI_CLASS = "📅⏳🛫🔁✅❌➕⏫🔼🔽🔺⏬";
+export const TASK_EMOJI_CLASS = "📅⏳🛫🔁✅❌➕⏫🔼🔽🔺⏬🆔⛔🏁";
 
 
 /** Read the value of a Tasks-plugin emoji field from a checkbox line, e.g.

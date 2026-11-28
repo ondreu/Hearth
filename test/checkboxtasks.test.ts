@@ -57,6 +57,12 @@ describe("parseCheckboxTask", () => {
 		expect(task?.recurrence).toBe("every week");
 		expect(task?.doneDate).toBe("2026-09-24");
 	});
+
+
+	it("hides the Tasks 7.4 id, depends-on and on-completion markers", () => {
+		const task = parseCheckboxTask("a.md", 0, "- [ ] Ship release 🆔 abc-123 ⛔ def-456 🏁 keep 📅 2026-12-01");
+		expect(task).toMatchObject({ title: "Ship release", due: "2026-12-01" });
+	});
 });
 
 describe("parseCheckboxTasks", () => {
@@ -115,6 +121,12 @@ describe("shared emoji helpers", () => {
 	it("read one field and strip them all", () => {
 		expect(readEmojiField("Do it 📅 tomorrow ⏫", "📅")).toBe("tomorrow");
 		expect(stripTaskMetadata("Do it 📅 2026-10-01 ⏫")).toBe("Do it");
+	});
+
+
+	it("stops a field at an id marker and strips the new markers", () => {
+		expect(readEmojiField("Do it 📅 2026-12-01 🆔 abc-123", "📅")).toBe("2026-12-01");
+		expect(stripTaskMetadata("Do it 🆔 abc-123 ⛔ def-456 🏁 keep 📅 2026-12-01")).toBe("Do it");
 	});
 });
 
