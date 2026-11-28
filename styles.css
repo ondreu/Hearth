@@ -25998,6 +25998,12 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	justify-content: center;
 }
 
+/* Under a CJK UI language the glyphs already stand upright top-to-bottom,
+ * so the 180° turn is dropped — it would flip them upside down. */
+.hearth-matrix.is-cjk-axis .hearth-matrix-axis.is-side .hearth-matrix-axis-label {
+	transform: none;
+}
+
 .hearth-matrix-grid {
 	position: relative;
 	display: grid;
@@ -26336,6 +26342,11 @@ body.hearth-snapshot-capturing .hearth-view:not(#hearth-boost) {
 	writing-mode: vertical-rl;
 	transform: rotate(180deg);
 	align-self: center;
+}
+
+/* The settings preview follows the same CJK rule as the drawn matrix. */
+.hearth-matrix-preview.is-cjk-axis .hearth-matrix-preview-axis.is-side {
+	transform: none;
 }
 
 .hearth-matrix-preview-q {

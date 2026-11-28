@@ -78,6 +78,10 @@ describe("renderTaskMatrixFrame", () => {
 		expect(quads[3].classList.contains("is-locked")).toBe(true);
 		expect(host.querySelector(".hearth-matrix-unsorted .item")?.textContent).toBe("loose");
 		expect(Array.from(host.querySelectorAll(".hearth-matrix-item")).every((e) => e.getAttribute("draggable") === "true")).toBe(true);
+		// The test shim reports English, so the CJK upright-glyph override
+		// stays off (the on-state needs a CJK Obsidian language, which the
+		// shim cannot provide without mocking Obsidian itself).
+		expect(host.querySelector(".hearth-matrix.is-cjk-axis")).toBeNull();
 	});
 
 	it("lays the quadrants out in the order it is given", () => {

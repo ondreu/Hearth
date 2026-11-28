@@ -16,7 +16,7 @@ import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
-import { t } from "../i18n";
+import { detectLanguage, isCjkLanguage, t } from "../i18n";
 import {
 	insertCardBlock,
 	KANBAN_CARD_RE,
@@ -7787,6 +7787,8 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 		// ---- Layout, with a preview of the cross as it will be drawn.
 		new Setting(body).setName(te.matrixLayout).setHeading();
 		const preview = body.createDiv("hearth-matrix-preview");
+		// Same CJK upright-glyph rule as the drawn matrix (see taskmatrixview).
+		preview.toggleClass("is-cjk-axis", isCjkLanguage(detectLanguage()));
 		preview.createDiv("hearth-matrix-preview-corner");
 		for (const end of arrangement.across) preview.createDiv({ cls: "hearth-matrix-preview-axis is-top", text: names[end] });
 		arrangement.cells.forEach((id, n) => {

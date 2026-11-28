@@ -1,4 +1,5 @@
 import type { TaskMatrixQuadrant } from "./types";
+import { detectLanguage, isCjkLanguage } from "./i18n";
 
 /**
  * The Eisenhower matrix's frame: the cross of four quadrants under their axis
@@ -100,6 +101,9 @@ export function renderTaskMatrixFrame<T>(container: HTMLElement, frame: TaskMatr
 	// The host is the size container the narrow-card rules query.
 	const root = container.createDiv("hearth-matrix-host").createDiv("hearth-matrix");
 	root.toggleClass("has-unsorted", frame.unsorted !== null);
+	// Under a CJK UI language the side labels read top-to-bottom as is — the
+	// 180° turn stays off via the is-cjk-axis override in styles.css.
+	root.toggleClass("is-cjk-axis", isCjkLanguage(detectLanguage()));
 
 	const drawItems = (host: HTMLElement, items: T[]) => {
 		for (const item of items) {
