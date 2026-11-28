@@ -17,6 +17,7 @@ interface Moment {
 	subtract(amount: number, unit: string): Moment;
 	add(amount: number, unit: string): Moment;
 	day(): number;
+	year(): number;
 	diff(other: Moment, unit?: string): number;
 	/** moment's isValid is a METHOD. Typed as such so a bare `m.isValid`
 	 * (forgetting the call) is caught by the compiler (TS2774) rather than
@@ -208,7 +209,9 @@ function stripTrailingTags(s: string): string {
 /** Format a YYYY-MM-DD (or datetime) as a short, human-relative label for the
  *  tasks card: "Today", "Tomorrow", "Yesterday", the weekday name for the
  *  rest of the week ("Friday"), "Next Friday" / "Last Friday" for the week
- *  after that, and a compact "D MMM" (e.g. "15 Jul") beyond. The caller adds
+ *  after that, and a compact "D MMM" (e.g. "15 Jul") beyond — with the year
+ *  appended ("D MMM YYYY") when it isn't this year, so a task due next year
+ *  can't read as if it were due this month. The caller adds
  *  the ↻ recurring suffix and the overdue tint; this returns only the date
  *  wording. Falls back to the raw string when it can't be parsed as a date. */
 export function formatRelativeDate(dateStr: string): string {
@@ -228,6 +231,10 @@ export function formatRelativeDate(dateStr: string): string {
 	if (diff <= -2 && diff >= -6) return t().dates.daysAgo(Math.abs(diff));
 	if (diff >= 7 && diff <= 13) return t().dates.nextWeekday(capitalize(m.format("dddd")));
 	if (diff <= -7 && diff >= -13) return t().dates.lastWeekday(capitalize(m.format("dddd")));
+	// Beyond the surrounding weeks the year is noise when it matches today's
+	// (a task this August reads "15 Aug"), but dropping it for another year
+	// makes next January read as this January — so keep it then.
+	if (m.year() !== today.year()) return m.format("D MMM YYYY");
 	return m.format("D MMM");
 }
 
