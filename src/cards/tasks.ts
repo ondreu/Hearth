@@ -7070,7 +7070,10 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	// Filtering, sorting and fields are Hearth's own, over the tasks the
 	// plugin says exist — so the rest of the editor below applies as usual.
 	if (isTasksPlugin) {
-		const daily = cfg.tasksPluginDailyNote === true || !(cfg.tasksPluginNote?.trim());
+		const note = cfg.tasksPluginNote?.trim() ?? "";
+		// An explicit choice (true/false) wins; legacy configs without the
+		// flag fall back to the named note when one is set.
+		const daily = cfg.tasksPluginDailyNote === true || (cfg.tasksPluginDailyNote !== false && !note);
 		new Setting(containerEl)
 			.setName(te.tasksDestination)
 			.setDesc(te.tasksDestinationDesc)
@@ -7078,7 +7081,7 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				d.addOption("daily", te.tasksDestinationDaily);
 				d.addOption("note", te.tasksDestinationNote);
 				d.setValue(daily ? "daily" : "note").onChange((v) => {
-					cfg.tasksPluginDailyNote = v === "daily" ? true : undefined;
+					cfg.tasksPluginDailyNote = v === "daily" ? true : false;
 					ctx.opts.save();
 					ctx.requestRender();
 				});

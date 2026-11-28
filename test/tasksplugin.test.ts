@@ -153,8 +153,17 @@ describe("tasksCreateInDailyNote", () => {
 		);
 	});
 
+
 	it("uses the named note otherwise", () => {
 		expect(tasksCreateInDailyNote(cfg({ tasksPluginNote: "Notes/Tasks.md" }))).toBe(false);
+	});
+
+
+	it("honours an explicit note choice, even with no path yet", () => {
+		expect(tasksCreateInDailyNote(cfg({ tasksPluginDailyNote: false }))).toBe(false);
+		expect(tasksCreateInDailyNote(cfg({ tasksPluginNote: "Notes/Tasks.md", tasksPluginDailyNote: false }))).toBe(
+			false,
+		);
 	});
 });
 
@@ -250,6 +259,12 @@ describe("ensureTasksPluginTarget", () => {
 	it("reports nowhere to put the task when Daily notes is off and no note is picked", async () => {
 		const { view } = stubView({ dailyNotes: null, files: {} });
 		expect(await ensureTasksPluginTarget(view, {})).toBeNull();
+	});
+
+
+	it("reports no target for an explicit note choice with no path yet", async () => {
+		const { view } = stubView({ files: {} });
+		expect(await ensureTasksPluginTarget(view, { tasksPluginDailyNote: false })).toBeNull();
 	});
 
 	it("resolves the named note, with or without its extension", async () => {

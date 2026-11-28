@@ -385,7 +385,13 @@ export function parseTasksPluginLine(raw: string): ParsedTasksPluginLine {
 /** Where a new Tasks-plugin task goes: today's daily note (created when
  * missing), or one specific note. The default is the daily note. */
 export function tasksCreateInDailyNote(cfg: TasksConfig): boolean {
-	return (cfg.tasksPluginNote?.trim() ?? "") === "" || cfg.tasksPluginDailyNote === true;
+	// An explicit choice wins either way; without one the named note wins
+	// when set (legacy configs predate the flag) and the daily note is the
+	// default. An explicit note with no path yet resolves here (false), so
+	// the target lookup reports "no target" instead of using the daily note.
+	if (cfg.tasksPluginDailyNote === true) return true;
+	if (cfg.tasksPluginDailyNote === false) return false;
+	return (cfg.tasksPluginNote?.trim() ?? "") === "";
 }
 
 
