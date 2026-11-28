@@ -16,7 +16,7 @@ import { hearthMenu, HearthModal } from "../uidesign";
 import { emptyState, moment } from "../cardbodies";
 import { formatRelativeDate, parseNaturalDate } from "../dates";
 import { addResetButton } from "../editors";
-import { t } from "../i18n";
+import { detectLanguage, isCjkLanguage, t } from "../i18n";
 import {
 	insertCardBlock,
 	KANBAN_CARD_RE,
@@ -7070,7 +7070,10 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 	// Filtering, sorting and fields are Hearth's own, over the tasks the
 	// plugin says exist — so the rest of the editor below applies as usual.
 	if (isTasksPlugin) {
-		const daily = cfg.tasksPluginDailyNote === true || !(cfg.tasksPluginNote?.trim());
+		const note = cfg.tasksPluginNote?.trim() ?? "";
+		// An explicit choice (true/false) wins; legacy configs without the
+		// flag fall back to the named note when one is set.
+		const daily = cfg.tasksPluginDailyNote === true || (cfg.tasksPluginDailyNote !== false && !note);
 		new Setting(containerEl)
 			.setName(te.tasksDestination)
 			.setDesc(te.tasksDestinationDesc)
@@ -7078,7 +7081,7 @@ export function tasksEditor(ctx: CardEditorContext, containerEl: HTMLElement): v
 				d.addOption("daily", te.tasksDestinationDaily);
 				d.addOption("note", te.tasksDestinationNote);
 				d.setValue(daily ? "daily" : "note").onChange((v) => {
-					cfg.tasksPluginDailyNote = v === "daily" ? true : undefined;
+					cfg.tasksPluginDailyNote = v === "daily" ? true : false;
 					ctx.opts.save();
 					ctx.requestRender();
 				});
@@ -7787,6 +7790,8 @@ function matrixEditor(ctx: CardEditorContext, containerEl: HTMLElement, cfg: Tas
 		// ---- Layout, with a preview of the cross as it will be drawn.
 		new Setting(body).setName(te.matrixLayout).setHeading();
 		const preview = body.createDiv("hearth-matrix-preview");
+		// Same CJK upright-glyph rule as the drawn matrix (see taskmatrixview).
+		preview.toggleClass("is-cjk-axis", isCjkLanguage(detectLanguage()));
 		preview.createDiv("hearth-matrix-preview-corner");
 		for (const end of arrangement.across) preview.createDiv({ cls: "hearth-matrix-preview-axis is-top", text: names[end] });
 		arrangement.cells.forEach((id, n) => {

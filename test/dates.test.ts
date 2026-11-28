@@ -261,6 +261,13 @@ describe("formatRelativeDate", () => {
 		expect(formatRelativeDate("2026-08-15")).toBe("15 Aug");
 	});
 
+
+	it("keeps the year when it isn't this year", () => {
+		expect(formatRelativeDate("2027-01-05")).toBe("5 Jan 2027");
+		expect(formatRelativeDate("2025-08-15")).toBe("15 Aug 2025");
+		expect(formatRelativeDate("2026-08-15")).toBe("15 Aug");
+	});
+
 	it("strips a time component before comparing", () => {
 		expect(formatRelativeDate("2026-07-16T09:30:00")).toBe("Tomorrow");
 	});

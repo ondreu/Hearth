@@ -33,6 +33,15 @@ export function setLanguage(lang: string = detectLanguage()): void {
 	active = LOCALES[code] ?? LOCALES[code.split("-")[0]] ?? en;
 }
 
+/** Whether an Obsidian UI language reads CJK (Chinese, Japanese, Korean):
+ * only the base language before any "-" matters, so "zh-TW" counts. The
+ * matrix side labels drop their 180° rotation there, which would otherwise
+ * turn upright CJK glyphs upside down. Pure, so it is unit-tested. */
+export function isCjkLanguage(lang: string): boolean {
+	const base = lang.toLowerCase().split("-")[0];
+	return base === "zh" || base === "ja" || base === "ko";
+}
+
 /**
  * The active translation table. Access plain strings as `t().section.key`;
  * entries that take parameters are functions, e.g.

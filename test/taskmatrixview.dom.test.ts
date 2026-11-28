@@ -78,6 +78,9 @@ describe("renderTaskMatrixFrame", () => {
 		expect(quads[3].classList.contains("is-locked")).toBe(true);
 		expect(host.querySelector(".hearth-matrix-unsorted .item")?.textContent).toBe("loose");
 		expect(Array.from(host.querySelectorAll(".hearth-matrix-item")).every((e) => e.getAttribute("draggable") === "true")).toBe(true);
+		// The English shim keeps the CJK upright-glyph override off here; the
+		// on-state is covered by test/taskmatrixview.cjk.dom.test.ts.
+		expect(host.querySelector(".hearth-matrix.is-cjk-axis")).toBeNull();
 	});
 
 	it("lays the quadrants out in the order it is given", () => {

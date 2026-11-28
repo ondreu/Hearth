@@ -500,8 +500,10 @@ export interface TasksConfig {
 	 * path ("Notes/Tasks" with or without ".md"). When empty (the default),
 	 * new tasks go to today's daily note instead. */
 	tasksPluginNote?: string;
-	/** Obsidian-tasks source: pin new tasks to today's daily note even when
-	 * `tasksPluginNote` names a note. Stored only when true. */
+	/** Obsidian-tasks source: where new tasks go. True pins them to today's
+	 * daily note, false to the note `tasksPluginNote` names (even while its
+	 * path is still empty, so the field stays editable). Unset keeps the
+	 * legacy rule: the named note when set, else the daily note. */
 	tasksPluginDailyNote?: boolean;
 }
 
